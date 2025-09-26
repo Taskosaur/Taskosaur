@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import ActionButton from "@/components/common/ActionButton";
 import { ArrowDownToLine } from "lucide-react";
 import { HiPaperClip, HiTrash } from "react-icons/hi2";
@@ -24,12 +25,12 @@ interface TaskAttachmentsProps {
     fileName: string
   ) => Promise<void>;
   onDeleteAttachment: (attachmentId: string) => Promise<void>;
-  hasAccess?: boolean
+  hasAccess?: boolean;
 }
 
 const SectionHeader = ({ icon: Icon, title }: { icon: any; title: string }) => (
   <div className="flex items-center gap-2 mb-4">
-   <Icon size={16} className="text-[var(--primary)]" />
+    <Icon size={16} className="text-[var(--primary)]" />
     <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
   </div>
 );
@@ -41,10 +42,12 @@ export default function TaskAttachments({
   onFileUpload,
   onDownloadAttachment,
   onDeleteAttachment,
-  hasAccess = false
+  hasAccess = false,
 }: TaskAttachmentsProps) {
   const { getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
+
+  const [dragActive, setDragActive] = useState(false);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
@@ -66,6 +69,31 @@ export default function TaskAttachments({
     }
   };
 
+  // Handle drag & drop
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const fileList = e.dataTransfer.files as FileList;
+      const event = {
+        target: { files: fileList },
+      } as unknown as React.ChangeEvent<HTMLInputElement>;
+
+      onFileUpload(event);
+      e.dataTransfer.clearData();
+    }
+  };
+
   if (loadingAttachments) {
     return (
       <div>
@@ -84,7 +112,7 @@ export default function TaskAttachments({
     return (
       <div>
         <SectionHeader icon={HiPaperClip} title="Attachments" />
-        <div className="flex flex-col items-center justify-center py-8 text-[var(--muted-foreground)]">
+        <div className="flex flex-col items-center pb-2 justify-center text-[var(--muted-foreground)]">
           <p className="text-sm">No attachments yet</p>
         </div>
         {hasAccess && (
@@ -101,8 +129,13 @@ export default function TaskAttachments({
 
             <label
               htmlFor="file-upload"
-              className={`block w-full p-6 border-2 border-dashed border-[var(--border)] rounded-lg text-sm cursor-pointer transition-colors ${
-                isUploading
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`block w-full p-6 border-2 border-dashed rounded-lg text-sm cursor-pointer transition-colors ${
+                dragActive
+                  ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
+                  : isUploading
                   ? "text-[var(--muted-foreground)] cursor-not-allowed border-[var(--muted)]"
                   : "text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5"
               }`}
@@ -110,12 +143,15 @@ export default function TaskAttachments({
               <div className="flex flex-col items-center gap-3">
                 <HiPaperClip className="w-6 h-6" />
                 <div className="text-center">
-                  <span className="font-medium">Click to upload files</span>
+                  <span className="font-medium">
+                    {isUploading
+                      ? "Uploading files..."
+                      : dragActive
+                      ? "Drop files to upload"
+                      : "Click or drag files to upload"}
+                  </span>
                   <div className="text-xs text-[var(--muted-foreground)] mt-1">
                     PNG, JPG, PDF, DOC, XLS up to 10MB each
-                  </div>
-                  <div className="text-xs text-[var(--muted-foreground)] mt-1">
-                    Or drag and drop files here
                   </div>
                 </div>
               </div>
@@ -178,7 +214,7 @@ export default function TaskAttachments({
                         <HiTrash className="w-4 h-4" />
                       </ActionButton>
                     </Tooltip>
-                    )}
+                  )}
                 </div>
               </div>
             ))}
@@ -200,8 +236,13 @@ export default function TaskAttachments({
 
             <label
               htmlFor="file-upload"
-              className={`block w-full p-6 border-2 border-dashed border-[var(--border)] rounded-lg text-sm cursor-pointer transition-colors ${
-                isUploading
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`block w-full p-6 border-2 border-dashed rounded-lg text-sm cursor-pointer transition-colors ${
+                dragActive
+                  ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
+                  : isUploading
                   ? "text-[var(--muted-foreground)] cursor-not-allowed border-[var(--muted)]"
                   : "text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5"
               }`}
@@ -217,16 +258,15 @@ export default function TaskAttachments({
                       </div>
                     </div>
                   </>
+                ) : dragActive ? (
+                  <span className="font-medium">Drop files to upload</span>
                 ) : (
                   <>
                     <HiPaperClip className="w-6 h-6" />
                     <div className="text-center">
-                      <span className="font-medium">Click to upload files</span>
+                      <span className="font-medium">Click or drag files here</span>
                       <div className="text-xs text-[var(--muted-foreground)] mt-1">
                         PNG, JPG, PDF, DOC, XLS up to 10MB each
-                      </div>
-                      <div className="text-xs text-[var(--muted-foreground)] mt-1">
-                        Or drag and drop files here
                       </div>
                     </div>
                   </>

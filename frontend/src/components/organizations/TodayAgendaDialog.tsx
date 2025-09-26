@@ -1,4 +1,5 @@
 import React from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,11 @@ interface TodayAgendaDialogProps {
   onClose: () => void;
   currentDate: string;
   upcomingTasks?: Task[];
+}
+
+interface TaskAgendaItemProps {
+  task: Task;
+  onClick: (taskId: string) => void;
 }
 
 const getPriorityConfig = (priority: string) => {
@@ -77,12 +83,104 @@ const formatDueDate = (dateString: string) => {
   }
 };
 
+const TaskAgendaItem: React.FC<TaskAgendaItemProps> = ({ task, onClick }) => {
+  const priorityConfig = getPriorityConfig(task.priority);
+  const isUrgent = task.priority === "HIGH";
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onClick(task.id);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick(task.id);
+    }
+  };
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      className={`
+        group relative cursor-pointer p-3 rounded-lg border 
+        min-h-[76px] flex items-center
+        transition-all duration-200 ease-in-out
+        transform hover:scale-[1.01] active:scale-[0.99]
+        focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-opacity-50
+        ${
+          isUrgent
+            ? "border-red-200 bg-red-50/30 dark:border-red-800/30 dark:bg-red-900/5 hover:bg-red-50 dark:hover:bg-red-900/10 hover:border-red-300 dark:hover:border-red-700"
+            : "border-[var(--border)] bg-[var(--card)] hover:bg-[var(--accent)]/50 hover:border-[var(--primary)]/30 hover:shadow-sm"
+        }
+      `}
+      aria-label={`Open task: ${task.title}`}
+      title={`Click to view task details`}
+    >
+     
+
+      <div className="flex items-center gap-3 w-full">
+        <div
+          className={`w-1.5 h-1.5 rounded-full ${priorityConfig.color} flex-shrink-0`}
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate group-hover:text-[var(--primary)] transition-colors duration-200">
+                {task.title}
+              </p>
+              {task.description && (
+                <p className="text-xs text-[var(--muted-foreground)] mt-0.5 line-clamp-1">
+                  {task.description}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Badge
+                className={`text-[10px] px-1.5 py-0.5 ${priorityConfig.bgClass} border-none pointer-events-none`}
+              >
+                {task.priority}
+              </Badge>
+            </div>
+          </div>
+          
+          {/* Consistent spacing for due date area */}
+          <div className="flex items-center gap-1 mt-1.5 min-h-[16px]">
+            {task.dueDate ? (
+              <>
+                <Clock className="w-2.5 h-2.5 text-[var(--muted-foreground)]" />
+                <span className="text-[10px] text-[var(--muted-foreground)]">
+                  Due: {formatDueDate(task.dueDate)}
+                </span>
+              </>
+            ) : (
+              <span className="text-[10px] text-[var(--muted-foreground)] opacity-50">
+                No due date
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export function TodayAgendaDialog({
   isOpen,
   onClose,
   currentDate,
   upcomingTasks = [],
 }: TodayAgendaDialogProps) {
+  const router = useRouter();
+
+  const handleTaskClick = (taskId: string) => {
+    router.push(`/tasks/${taskId}`);
+    onClose(); // Close the dialog after navigation
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md bg-[var(--card)] border-[var(--border)]">
@@ -117,58 +215,14 @@ export function TodayAgendaDialog({
         <CardContent className="p-0 max-h-[50vh] overflow-y-auto">
           <div className="p-4 space-y-3">
             {upcomingTasks.length > 0 ? (
-              <div className="space-y-4">
-                <div>
-                  <div className="space-y-2">
-                    {upcomingTasks.map((task) => {
-                      const priorityConfig = getPriorityConfig(task.priority);
-                      const isUrgent = task.priority === "HIGH";
-                      return (
-                        <div
-                          key={task.id}
-                          className={`group p-3 rounded-lg border transition-all duration-200 ${
-                            isUrgent
-                              ? "border-red-200 bg-red-50/30 dark:border-red-800/30 dark:bg-red-900/5 hover:bg-red-50 dark:hover:bg-red-900/10"
-                              : "border-[var(--border)] bg-[var(--card)] hover:bg-[var(--accent)]/30 hover:border-[var(--primary)]/20"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-1.5 h-1.5 rounded-full ${priorityConfig.color} flex-shrink-0`}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate ">
-                                    {task.title}
-                                  </p>
-                                  {task.description && (
-                                    <p className="text-xs text-[var(--muted-foreground)] mt-0.5 truncate">
-                                      {task.description}
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                  <Badge
-                                    className={`text-[10px] px-1.5 py-0.5 ${priorityConfig.bgClass} border-none`}
-                                  >
-                                    {task.priority}
-                                  </Badge>
-                                </div>
-                              </div>
-                              {task.dueDate && (
-                                <div className="flex items-center gap-1 mt-1.5 text-[10px] text-[var(--muted-foreground)]">
-                                  <Clock className="w-2.5 h-2.5" />
-                                  Due: {formatDueDate(task.dueDate)}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+              <div className="space-y-3">
+                {upcomingTasks.map((task) => (
+                  <TaskAgendaItem
+                    key={task.id}
+                    task={task}
+                    onClick={handleTaskClick}
+                  />
+                ))}
               </div>
             ) : (
               <div className="text-center py-8">

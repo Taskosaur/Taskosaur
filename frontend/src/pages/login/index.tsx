@@ -15,7 +15,7 @@ export default function LoginPage() {
     <AuthRedirect redirectTo={redirectTo}>
       <div className="min-h-screen bg-[var(--background)]">
         <div className="login-container">
-          <div className="login-content-panel">
+          <div className="login-content-panel hidden md:block">
             <LoginContent />
           </div>
           <div className="login-form-mode-toggle">
@@ -23,6 +23,7 @@ export default function LoginPage() {
           </div>
           <div className="login-form-panel">
             <div className="login-form-wrapper">
+             
               <LoginForm />
             </div>
           </div>

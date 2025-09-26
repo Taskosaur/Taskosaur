@@ -6,7 +6,7 @@ import { HiX } from "react-icons/hi";
 import TaskTable from "@/components/ui/tables/TaskTable";
 import type { Task } from "@/types/tasks";
 import { getCurrentOrganizationId } from "@/utils/hierarchyContext";
-
+import Loader from "../common/Loader";
 interface SprintTasksPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -100,7 +100,7 @@ export const SprintTasksPanel: React.FC<SprintTasksPanelProps> = ({
 
           <div className="sprints-tasks-content">
             {loading ? (
-              <div className="sprints-tasks-loading">Loading tasks...</div>
+              <Loader />
             ) : error ? (
               <div className="sprints-tasks-error">{error}</div>
             ) : (

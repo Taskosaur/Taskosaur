@@ -62,18 +62,7 @@ export class ProjectsService {
         },
         select: { role: true },
       });
-
-      const canCreate =
-        orgMember?.role === Role.MANAGER ||
-        orgMember?.role === Role.OWNER ||
-        wsMember?.role === Role.MANAGER ||
-        wsMember?.role === Role.OWNER;
-
-      if (!canCreate) {
-        throw new ForbiddenException(
-          'Insufficient permissions to create project in this workspace',
-        );
-      }
+  
     }
 
     // Generate unique slug

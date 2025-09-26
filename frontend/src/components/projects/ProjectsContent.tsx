@@ -31,6 +31,7 @@ import { EmptyState } from "@/components/ui";
 
 import { toast } from "sonner";
 import Tooltip from "../common/ToolTip";
+import Loader from "../common/Loader";
 
 interface ProjectsContentProps {
   contextType: "workspace" | "organization";
@@ -304,7 +305,6 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
             projectsData = await getProjectsByWorkspace(workspace.id, filters);
           }
         } else if (contextType === "organization") {
-          // Call organization projects API with filters
           projectsData = await getProjectsByOrganization(contextId, filters);
         }
 
@@ -329,8 +329,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
             toast.error("Authentication required. Please log in again.");
           } else {
             toast.error(
-              `Failed to load ${
-                contextType === "workspace" ? "workspace" : "organization"
+              `Failed to load ${contextType === "workspace" ? "workspace" : "organization"
               } projects`
             );
           }
@@ -346,7 +345,6 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
       debouncedSearchQuery,
       enablePagination,
       pageSize,
-      workspace,
     ]
   );
 
@@ -370,42 +368,42 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     }
   }, [contextId, contextType, workspace]);
 
-  // Effect for initial data load and context changes
+  // Single effect for data loading and changes
   useEffect(() => {
     const contextKey = `${contextType}/${contextId}`;
+
+    // Handle context changes
     if (currentContextRef.current !== contextKey) {
       isInitializedRef.current = false;
       setDataLoaded(false);
       setWorkspace(null);
-      // Clear filters when context changes
       setSelectedStatuses([]);
       setSelectedPriorities([]);
       setSearchInput("");
       setCurrentPage(1);
+      currentContextRef.current = contextKey;
     }
 
-    if (contextId && !dataLoaded) {
+    
+    if (contextId && (!dataLoaded || isInitializedRef.current)) {
+      const shouldDelay = !isInitializedRef.current; 
       const timeoutId = setTimeout(() => {
+        if (isInitializedRef.current) {
+          setCurrentPage(1);
+        }
         fetchData(1, true);
-      }, 50);
+      }, shouldDelay ? 50 : 0);
+
       return () => clearTimeout(timeoutId);
     }
-  }, [contextId, contextType, dataLoaded]);
-
-  // Effect for filter/search changes - always call API
-  useEffect(() => {
-    if (contextId && dataLoaded) {
-      setCurrentPage(1);
-      fetchData(1, true);
-    }
   }, [
+    contextId,
+    contextType,
+    dataLoaded,
     selectedStatuses,
     selectedPriorities,
-    debouncedSearchQuery,
-    contextId,
-    dataLoaded,
+    debouncedSearchQuery
   ]);
-
   // Effect for pagination
   useEffect(() => {
     if (enablePagination && currentPage > 1 && dataLoaded) {
@@ -445,7 +443,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     setCurrentPage(1);
 
     fetchData(1, true);
-  }, [fetchData, clearError]);
+  }, [clearError]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
@@ -468,7 +466,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
       console.error("Error refreshing projects after creation:", error);
       toast.error("Project created but failed to refresh list");
     }
-  }, [refreshProjects, fetchData]);
+  }, [refreshProjects]);
 
   const loadMore = () => {
     if (hasMore && !isLoading && enablePagination) {
@@ -567,11 +565,8 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
           }
         />
 
-        {/* Loading indicator for background operations */}
         {isLoading && projects.length > 0 && (
-          <div className="flex justify-center py-4">
-            <div className="animate-spin h-5 w-5 border-2 border-[var(--primary)] border-t-transparent rounded-full" />
-          </div>
+          <Loader />
         )}
 
         {/* Projects Grid - Use context projects */}
@@ -580,9 +575,8 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
             <EmptyState
               icon={<HiSearch size={24} />}
               title="No projects found"
-              description={`No projects match your current search${
-                totalActiveFilters > 0 ? " and filters" : ""
-              }. Try adjusting your criteria.`}
+              description={`No projects match your current search${totalActiveFilters > 0 ? " and filters" : ""
+                }. Try adjusting your criteria.`}
               action={
                 <ActionButton onClick={clearAllFilters}>Clear All</ActionButton>
               }
@@ -677,8 +671,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                   {projects.length !== 1 ? "s" : ""}
                   {searchInput && ` matching "${searchInput}"`}
                   {totalActiveFilters > 0 &&
-                    ` with ${totalActiveFilters} filter${
-                      totalActiveFilters !== 1 ? "s" : ""
+                    ` with ${totalActiveFilters} filter${totalActiveFilters !== 1 ? "s" : ""
                     } applied`}
                   {(searchInput || totalActiveFilters > 0) && (
                     <button

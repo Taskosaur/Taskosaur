@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { HiExclamationTriangle, HiArrowLeft } from "react-icons/hi2";
 import { useRouter } from "next/router";
-
+import Loader from "@/components/common/Loader";
 function TaskDetailContent() {
   const [task, setTask] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +66,7 @@ function TaskDetailContent() {
   }, [taskId]);
 
   if (isLoading) {
-    return <div>Loading task...</div>;
+    return <Loader />;
   }
 
   if (error || !task) {

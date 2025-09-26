@@ -36,7 +36,7 @@ export class ProjectsController {
 
   // Create project - requires MANAGER/OWNER at workspace level
   @Post()
-  @Roles(Role.MANAGER, Role.OWNER)
+  @Roles(Role.MANAGER, Role.OWNER, Role.SUPER_ADMIN)
   @LogActivity({
     type: 'PROJECT_CREATED',
     entityType: 'Project',
@@ -187,7 +187,6 @@ export class ProjectsController {
 
   // Archive project - MANAGER/OWNER
   @Patch('archive/:id')
-  @Scope('PROJECT', 'id')
   @Roles(Role.MANAGER, Role.OWNER)
   @HttpCode(HttpStatus.NO_CONTENT)
   archiveProject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {

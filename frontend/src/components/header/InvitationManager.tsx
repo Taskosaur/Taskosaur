@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { TbMailPlus } from "react-icons/tb";
 import { invitationApi } from "@/utils/api/invitationsApi";
-
+import ActionButton from "../common/ActionButton";
 interface Invitation {
   id: string;
   token: string;
@@ -46,7 +46,7 @@ export default function InvitationManager({ userId, className = "" }: Invitation
   const [loading, setLoading] = useState(false);
 
   const searchParams = useSearchParams();
-
+const router = useRouter();
   // Fetch pending invitations
   useEffect(() => {
     const fetchInvitations = async () => {
@@ -140,7 +140,7 @@ export default function InvitationManager({ userId, className = "" }: Invitation
 
       // Optionally trigger a page refresh or navigation
       if (action === "accept") {
-        window.location.reload();
+          router.refresh();
       }
     } catch (error) {
       console.error(`Failed to ${action} invitation:`, error);
@@ -242,23 +242,22 @@ export default function InvitationManager({ userId, className = "" }: Invitation
                           Expires: {formatInviteDate(invite.expiresAt)}
                         </div>
                         <div className="header-invitations-item-actions">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="header-invitations-action-button-decline"
+                          <ActionButton
+                            secondary
+                            className="w-26"
                             onClick={() => handleInviteAction(invite.token, "decline")}
                             disabled={processingInvite}
                           >
                             Decline
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="header-invitations-action-button-accept"
+                          </ActionButton>
+                          <ActionButton
+                            primary
+                            className="w-26"
                             onClick={() => handleInviteAction(invite.token, "accept")}
                             disabled={processingInvite}
                           >
                             Accept
-                          </Button>
+                          </ActionButton>
                         </div>
                       </div>
                     </div>

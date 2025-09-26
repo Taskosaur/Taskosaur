@@ -228,7 +228,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   projectMembers,
   currentProject,
 }) => {
-  const { createTask , getTaskById, currentTask} = useTask();
+  const { createTask, getTaskById, currentTask } = useTask();
   const { getTaskStatusByProject } = useProject();
   const { getProjectMembers } = useProject();
 
@@ -255,7 +255,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
 
   useEffect(() => {
     const fetchProjectMeta = async () => {
-      const projectId = currentProject?.id || newTaskData?.projectId ;
+      const projectId = currentProject?.id || newTaskData?.projectId;
       if (addTaskStatuses && addTaskStatuses.length > 0) {
         setLocalAddTaskStatuses(addTaskStatuses);
       } else if (projectId) {
@@ -282,7 +282,6 @@ const TaskTable: React.FC<TaskTableProps> = ({
     };
     fetchProjectMeta();
   }, [newTaskData.projectId, projectSlug]);
-
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -386,10 +385,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
           return (
             <div className="flex items-start gap-2">
               <FileText className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
-              <span
-                className="text-sm line-clamp-2 max-w-xs"
-                title={value}
-              >
+              <span className="text-sm line-clamp-2 max-w-xs" title={value}>
                 {value}
               </span>
             </div>
@@ -526,8 +522,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   const handleCreateTask = async () => {
-    if (!newTaskData.title.trim()) {
-      toast.error("Task title is required");
+    if (!isTaskValid() || !newTaskData.title.trim()) {
+      toast.error(
+        "Please fill in all required fields (Title, Status, and Project)"
+      );
       return;
     }
 
@@ -536,6 +534,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
       let projectId = null;
       if (currentProject && currentProject.id) {
         projectId = currentProject.id;
+      } else if (newTaskData.projectId) {
+        projectId = newTaskData.projectId;
       } else if (tasks.length > 0) {
         projectId = tasks[0].projectId || tasks[0].project?.id;
       }
@@ -548,6 +548,12 @@ const TaskTable: React.FC<TaskTableProps> = ({
         return;
       }
 
+      if (!newTaskData.statusId) {
+        toast.error("Please select a task status.");
+        setIsSubmitting(false);
+        return;
+      }
+
       const taskData = {
         title: newTaskData.title.trim(),
         description: "",
@@ -555,14 +561,12 @@ const TaskTable: React.FC<TaskTableProps> = ({
         projectId,
         statusId: newTaskData.statusId,
         assigneeId: newTaskData.assigneeId || undefined,
-
         dueDate: newTaskData.dueDate
           ? new Date(newTaskData.dueDate + "T00:00:00.000Z").toISOString()
           : undefined,
       };
 
       await createTask(taskData);
-
       handleCancelCreating();
 
       if (onTaskRefetch) {
@@ -585,6 +589,16 @@ const TaskTable: React.FC<TaskTableProps> = ({
 
   // Helper to check if title is invalid
   const isTitleInvalid = !newTaskData.title.trim() && titleTouched;
+  const isTaskValid = () => {
+    const hasTitle = newTaskData.title.trim().length > 0;
+    const hasStatus = newTaskData.statusId.length > 0;
+    const hasProject =
+      currentProject?.id ||
+      newTaskData.projectId ||
+      (tasks.length > 0 && (tasks[0].projectId || tasks[0].project?.id));
+
+    return hasTitle && hasStatus && hasProject;
+  };
 
   return (
     <div className="w-full">
@@ -680,7 +694,13 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
                               e.preventDefault();
-                              handleCreateTask();
+                              if (isTaskValid()) {
+                                handleCreateTask();
+                              } else {
+                                toast.error(
+                                  "Please fill in all required fields"
+                                );
+                              }
                             } else if (e.key === "Escape") {
                               handleCancelCreating();
                             }
@@ -691,7 +711,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           <Tooltip content="Create task" position="top">
                             <button
                               onClick={handleCreateTask}
-                              disabled={isSubmitting || !newTaskData.title.trim()}
+                              disabled={
+                                isSubmitting ||
+                                !isTaskValid() ||
+                                !newTaskData.title.trim()
+                              }
                               className="p-1 text-green-600 hover:bg-green-100 rounded disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Check className="w-4 h-4" />
@@ -723,8 +747,14 @@ const TaskTable: React.FC<TaskTableProps> = ({
                             }
                             disabled={isSubmitting}
                           >
-                            <SelectTrigger className="border-none shadow-none -ml-3">
-                              <SelectValue placeholder="Select project" />
+                            <SelectTrigger
+                              className={`border-none shadow-none -ml-3 ${
+                                !newTaskData.projectId
+                                  ? "ring-1 ring-red-300"
+                                  : ""
+                              }`}
+                            >
+                              <SelectValue placeholder="Select project *" />
                             </SelectTrigger>
                             <SelectContent className="overflow-y-auto bg-white border-none text-black">
                               {Array.isArray(projectsOfCurrentWorkspace) &&
@@ -770,7 +800,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                       </TableCell>
                     )}
                     {/* Priority */}
-                       <TableCell className="tasktable-cell">
+                    <TableCell className="tasktable-cell">
                       <Select
                         value={newTaskData.priority}
                         onValueChange={(value) =>
@@ -823,8 +853,12 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           }
                           disabled={isSubmitting}
                         >
-                          <SelectTrigger className="border-none shadow-none bg-transparent ">
-                            <SelectValue placeholder="Select status" />
+                          <SelectTrigger
+                            className={`border-none shadow-none bg-transparent ${
+                              !newTaskData.statusId ? "ring-1 ring-red-300" : ""
+                            }`}
+                          >
+                            <SelectValue placeholder="Select status *" />
                           </SelectTrigger>
                           <SelectContent className="bg-white border-none text-black">
                             {localAddTaskStatuses.length > 0 ? (

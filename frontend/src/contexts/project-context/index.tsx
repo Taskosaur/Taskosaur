@@ -636,7 +636,6 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       ): Promise<{ success: boolean; message: string }> => {
         return handleApiOperation(async () => {
           const result = await projectApi.archiveProject(projectId);
-          await contextValue.refreshProjects();
           return result;
         });
       },

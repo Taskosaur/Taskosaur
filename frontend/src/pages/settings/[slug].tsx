@@ -94,11 +94,14 @@ function OrganizationManagePageContent() {
   const getCurrentUserRole = (): OrganizationRole => {
     if (!currentUser || !organization) return OrganizationRole.MEMBER;
     if (organization.ownerId === currentUser.id) {
-      return OrganizationRole.SUPER_ADMIN;
+      return OrganizationRole.OWNER;
     }
     const userMember = members.find(
       (member) => member.userId === currentUser.id
     );
+    if (currentUser.role === "SUPER_ADMIN") {
+      return OrganizationRole.SUPER_ADMIN;
+    }
     return userMember?.role || OrganizationRole.MEMBER;
   };
 
@@ -255,7 +258,6 @@ function OrganizationManagePageContent() {
   const canManage =
     getCurrentUserRole() === OrganizationRole.SUPER_ADMIN ||
     organization.ownerId === currentUser?.id;
-
   if (!canManage) {
     return <AccessDenied onBack={handleBackToOrganizations} />;
   }

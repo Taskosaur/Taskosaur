@@ -1,7 +1,5 @@
-;
-
 import { useState, useCallback } from "react";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
@@ -13,11 +11,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Eye,
   EyeOff,
-  
   Loader2,
   Mail,
   Lock,
   ArrowRight,
+  Sparkle,
 } from "lucide-react";
 
 interface FormData {
@@ -60,7 +58,7 @@ export function LoginForm() {
       router.push("/dashboard");
     } catch (err) {
       setError("Invalid email or password. Please try again.");
-      console.error(err)
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +80,19 @@ export function LoginForm() {
 
         <div className="login-form-header-content">
           <h1 className="login-form-title">
-            Welcome back
+            {/* Show as flex row on max-md, block on md+ */}
+            <div className="md:hidden">
+              Welcome back to
+              <span className="flex items-center justify-center ">
+                Taskosaur{" "}
+                <span className="ml-2">
+                  <Sparkle />
+                </span>
+              </span>
+            </div>
+
+            {/* Block for md+ */}
+            <span className="hidden md:block">Welcome back</span>
           </h1>
           <p className="login-form-subtitle">
             Login to continue your productive journey
@@ -96,14 +106,9 @@ export function LoginForm() {
           initial={{ opacity: 0, scale: 0.95, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
         >
-          <Alert
-            variant="destructive"
-            className="login-error-alert"
-          >
+          <Alert variant="destructive" className="login-error-alert">
             <AlertDescription className="font-medium">
-              <span className="login-error-title">
-                Authentication Failed
-              </span>
+              <span className="login-error-title">Authentication Failed</span>
               <span className="login-error-message">{error}</span>
             </AlertDescription>
           </Alert>
@@ -119,10 +124,7 @@ export function LoginForm() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="login-field-container"
         >
-          <Label
-            htmlFor="email"
-            className="login-field-label"
-          >
+          <Label htmlFor="email" className="login-field-label">
             <Mail className="login-field-icon" />
             <span>Email Address</span>
           </Label>
@@ -146,10 +148,7 @@ export function LoginForm() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="login-field-container"
         >
-          <Label
-            htmlFor="password"
-            className="login-field-label"
-          >
+          <Label htmlFor="password" className="login-field-label">
             <Lock className="login-field-icon" />
             <span>Password</span>
           </Label>
@@ -202,17 +201,11 @@ export function LoginForm() {
               }
               className="login-remember-me-checkbox"
             />
-            <Label
-              htmlFor="rememberMe"
-              className="login-remember-me-label"
-            >
+            <Label htmlFor="rememberMe" className="login-remember-me-label">
               Remember me
             </Label>
           </div>
-          <Link
-            href="/forgot-password"
-            className="login-forgot-password-link"
-          >
+          <Link href="/forgot-password" className="login-forgot-password-link">
             Forgot password?
           </Link>
         </motion.div>
@@ -254,9 +247,7 @@ export function LoginForm() {
           <div className="login-divider-border" />
         </div>
         <div className="login-divider-text-container">
-          <span className="login-divider-text">
-            New to Taskosaur?
-          </span>
+          <span className="login-divider-text">New to Taskosaur?</span>
         </div>
       </motion.div>
 
@@ -267,10 +258,7 @@ export function LoginForm() {
         transition={{ duration: 0.5, delay: 0.6 }}
       >
         <Link href="/register">
-          <Button
-            variant="outline"
-            className="login-signup-button"
-          >
+          <Button variant="outline" className="login-signup-button">
             Create New Account
             <ArrowRight className="login-button-arrow" />
           </Button>
@@ -286,17 +274,11 @@ export function LoginForm() {
       >
         <p className="login-footer-text">
           By signing in, you agree to our{" "}
-          <Link
-            href="/terms"
-            className="login-footer-link"
-          >
+          <Link href="/terms" className="login-footer-link">
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link
-            href="/privacy"
-            className="login-footer-link"
-          >
+          <Link href="/privacy" className="login-footer-link">
             Privacy Policy
           </Link>
         </p>
