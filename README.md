@@ -7,6 +7,7 @@
 ### 📹 Watch Taskosaur in Action
 
 [![Taskosaur Demo - AI Turns Simple Requests Into Complete Projects](https://img.youtube.com/vi/sv2lsteRKac/maxresdefault.jpg)](https://youtu.be/sv2lsteRKac)
+
 *Click to watch: Taskosaur Demo - AI Turns Simple Requests Into Complete Projects*
 
 🚀 **World's First AI Mode Project Management Tool** - Taskosaur isn't just project management software, it's a complete **Project Manager Assistant** rolled into one. Our groundbreaking AI Mode allows you to accomplish almost all project management tasks through natural language conversation - a first in the industry.
@@ -584,6 +585,7 @@ This project is licensed under the Business Source License - see the [LICENSE](L
 ## Support
 
 - Email: support@taskosaur.com
+- Discord: [Join our community](https://discord.gg/zNFHCcux)
 - Issues: [GitHub Issues](https://github.com/Taskosaur/taskosaur/issues)
 - Discussions: [GitHub Discussions](https://github.com/Taskosaur/taskosaur/discussions)
 
