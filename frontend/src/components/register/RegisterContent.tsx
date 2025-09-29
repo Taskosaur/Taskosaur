@@ -1,5 +1,3 @@
-;
-
 import { motion } from 'framer-motion';
 import { Sparkles, Award } from 'lucide-react';
 

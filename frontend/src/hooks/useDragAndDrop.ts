@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
 interface DragState<T = unknown> {
   isDragging: boolean;

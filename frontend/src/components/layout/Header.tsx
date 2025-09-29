@@ -213,7 +213,7 @@ export default function Header() {
 
   useEffect(() => {
     const checkSidebarState = () => {
-      const collapsed = getSidebarCollapsedState();
+      getSidebarCollapsedState();
     };
 
     checkSidebarState();
@@ -224,9 +224,7 @@ export default function Header() {
       }
     };
 
-    const handleSidebarStateChange = (
-      e: CustomEvent<{ collapsed: boolean }>
-    ) => {
+    const handleSidebarStateChange = () => {
       // setIsSidebarCollapsed(e.detail.collapsed);
     };
 

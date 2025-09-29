@@ -29,8 +29,8 @@ export default function InlineAutomationScript({
         // console.log('🔧 Initializing Taskosaur Automation System...');
         
         // Initialize the TypeScript automation system
-        const result = await automation.initialize();
-        
+        await automation.initialize();
+
         // Enable browser console access
         enableBrowserConsoleAccess();
         

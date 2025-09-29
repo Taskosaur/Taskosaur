@@ -9,7 +9,6 @@ import { useChatContext } from "@/contexts/chat-context";
 import { mcpServer, extractContextFromPath } from "@/lib/mcp-server";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
-import { Button, Textarea } from "../ui";
 
 interface Message {
   role: "user" | "assistant" | "system";

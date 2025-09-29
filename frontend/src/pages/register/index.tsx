@@ -1,5 +1,3 @@
-;
-
 import { useAuth } from '@/contexts/auth-context';
 import AuthRedirect from '@/components/auth/AuthRedirect';
 import { ModeToggle } from "@/components/header/ModeToggle";

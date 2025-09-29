@@ -1,5 +1,3 @@
-;
-
 import React from 'react';
 import { Sprint } from '@/types';
 import { Badge } from '@/components/ui/badge';

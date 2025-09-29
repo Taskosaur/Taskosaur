@@ -61,7 +61,7 @@ export async function createTask(
                                    h1.textContent?.includes('Create New Task')
                                  );
       if (!isTaskCreationPage) {
-        throw new Error('Task creation page did not load properly');
+        throw new Error('Task creation page did not load properly', error);
       }
     }
     
@@ -106,17 +106,10 @@ export async function createTask(
 
     if (!titleInput) {
       // Log available inputs for debugging
-      const allInputs = document.querySelectorAll('input, textarea');
-      // console.log('Available input fields:');
-      Array.from(allInputs).forEach((input, index) => {
-        // console.log(`${index + 1}. ${input.tagName} - placeholder: "${input.getAttribute('placeholder')}" - name: "${input.getAttribute('name')}" - type: "${input.getAttribute('type')}"`);
-      });
-      
       throw new Error('Task title input field not found');
     }
 
     // Fill title with React-compatible approach
-    // console.log(`Filling title: "${taskTitle}"`);
     titleInput.focus();
     titleInput.click();
     await waitFor(200);
@@ -492,10 +485,6 @@ export async function createTask(
       // Check if form was reset (another success indicator)
       const titleInput = document.querySelector('input#title') as HTMLInputElement;
       const formWasReset = titleInput && titleInput.value === '';
-      
-      // Check if submit button is no longer disabled (form was processed)
-      const submitBtn = document.querySelector('button[type="submit"]') as HTMLButtonElement;
-      const submitProcessed = submitBtn && !submitBtn.disabled;
       
       // Look for any success toasts or notifications
       const toastSuccess = document.querySelector('.sonner-toast-success, .toast-success, .notification-success');
