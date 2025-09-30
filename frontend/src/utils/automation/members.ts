@@ -52,8 +52,6 @@ export async function inviteMember(
         const emailInput = await waitForElement('#invite-email', timeout) as HTMLInputElement | null;
         if (!emailInput) throw new Error("Email input not found");
 
-        // Fill email
-        // Fill email properly so React/controlled input picks it up
         const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
         window.HTMLInputElement.prototype,
         "value"
@@ -62,8 +60,6 @@ export async function inviteMember(
         nativeInputValueSetter?.call(emailInput, email);
 
         emailInput.dispatchEvent(new Event("input", { bubbles: true }));
-
-
 
         // Role select trigger
         const roleTrigger = await waitForElement('[role="combobox"]', timeout) as HTMLElement | null;

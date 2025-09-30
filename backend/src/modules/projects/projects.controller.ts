@@ -14,7 +14,13 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -26,13 +32,20 @@ import { Role } from '@prisma/client';
 import { Roles } from 'src/common/decorator/roles.decorator';
 import { Scope } from 'src/common/decorator/scope.decorator';
 import { ProjectChartsService } from './project-charts.service';
-import { GetProjectChartsQueryDto, ProjectChartDataResponse, ProjectChartType } from './dto/get-project-charts-query.dto';
+import {
+  GetProjectChartsQueryDto,
+  ProjectChartDataResponse,
+  ProjectChartType,
+} from './dto/get-project-charts-query.dto';
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('projects')
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService, private readonly projectChartsService: ProjectChartsService) { }
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly projectChartsService: ProjectChartsService,
+  ) {}
 
   // Create project - requires MANAGER/OWNER at workspace level
   @Post()
@@ -80,7 +93,6 @@ export class ProjectsController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
     @Query('search') search?: string,
-
   ) {
     const filters = {
       organizationId,
@@ -89,7 +101,7 @@ export class ProjectsController {
       priority,
       page: page ? parseInt(page, 10) : 1,
       pageSize: pageSize ? parseInt(pageSize, 10) : 10,
-      search: search
+      search: search,
     };
     return this.projectsService.findByOrganizationId(filters, user.id);
   }
@@ -104,7 +116,12 @@ export class ProjectsController {
     @Query('organizationId') organizationId?: string,
     @Query('search') search?: string,
   ) {
-    return this.projectsService.findBySearch(workspaceId, organizationId, search, user.id);
+    return this.projectsService.findBySearch(
+      workspaceId,
+      organizationId,
+      search,
+      user.id,
+    );
   }
 
   // Search with pagination
@@ -127,7 +144,7 @@ export class ProjectsController {
       search,
       pageNum,
       limitNum,
-      user.id
+      user.id,
     );
   }
 
@@ -189,20 +206,24 @@ export class ProjectsController {
   @Patch('archive/:id')
   @Roles(Role.MANAGER, Role.OWNER)
   @HttpCode(HttpStatus.NO_CONTENT)
-  archiveProject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  archiveProject(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
     return this.projectsService.archiveProject(id, user.id);
   }
 
   // Chart endpoints - require project access
-@Get(':slug/charts')
-  @ApiOperation({ 
+  @Get(':slug/charts')
+  @ApiOperation({
     summary: 'Get project charts data',
-    description: 'Retrieve multiple project chart data types in a single request'
+    description:
+      'Retrieve multiple project chart data types in a single request',
   })
   @ApiParam({
     name: 'slug',
     description: 'Project slug',
-    type: 'string'
+    type: 'string',
   })
   @ApiQuery({
     name: 'types',
@@ -211,7 +232,7 @@ export class ProjectsController {
     isArray: true,
     style: 'form',
     explode: true,
-    example: [ProjectChartType.KPI_METRICS, ProjectChartType.TASK_STATUS]
+    example: [ProjectChartType.KPI_METRICS, ProjectChartType.TASK_STATUS],
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -223,22 +244,22 @@ export class ProjectsController {
         'kpi-metrics': {
           totalTasks: 45,
           completedTasks: 32,
-          completionRate: 71.11
+          completionRate: 71.11,
         },
         'task-status': [
           { statusId: '1', count: 12, status: { name: 'To Do' } },
-          { statusId: '2', count: 8, status: { name: 'In Progress' } }
-        ]
-      }
-    }
+          { statusId: '2', count: 8, status: { name: 'In Progress' } },
+        ],
+      },
+    },
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'Invalid chart type or missing parameters'
+    description: 'Invalid chart type or missing parameters',
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
-    description: 'Project not found'
+    description: 'Project not found',
   })
   @Scope('PROJECT', 'slug')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
@@ -267,7 +288,11 @@ export class ProjectsController {
     @Param('sprintId', ParseUUIDPipe) sprintId: string,
     @CurrentUser() user: any,
   ) {
-    return this.projectChartsService.projectSprintBurndown(sprintId, slug, user.id);
+    return this.projectChartsService.projectSprintBurndown(
+      sprintId,
+      slug,
+      user.id,
+    );
   }
 
   // Get project by slug

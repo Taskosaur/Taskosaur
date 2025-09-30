@@ -9,7 +9,12 @@ import { WorkspaceChartsService } from './workspace-charts.service';
 @Module({
   imports: [PrismaModule],
   controllers: [WorkspacesController],
-  providers: [WorkspacesService, ActivityLogService, AccessControlService, WorkspaceChartsService],
+  providers: [
+    WorkspacesService,
+    ActivityLogService,
+    AccessControlService,
+    WorkspaceChartsService,
+  ],
   exports: [WorkspacesService],
 })
-export class WorkspacesModule { }
+export class WorkspacesModule {}

@@ -22,7 +22,7 @@ import { ActivityLogService } from './activity-log.service';
 @UseGuards(JwtAuthGuard)
 @Controller('activity-logs')
 export class ActivityLogController {
-  constructor(private readonly activityLogService: ActivityLogService) { }
+  constructor(private readonly activityLogService: ActivityLogService) {}
 
   @Get('organization/:organizationId/recent')
   @ApiOperation({
@@ -146,5 +146,4 @@ export class ActivityLogController {
       validatedLimit,
     );
   }
-
 }

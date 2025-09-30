@@ -11,4 +11,4 @@ import { ProjectChartsService } from './project-charts.service';
   providers: [ProjectsService, AccessControlService, ProjectChartsService],
   exports: [ProjectsService],
 })
-export class ProjectsModule { }
+export class ProjectsModule {}

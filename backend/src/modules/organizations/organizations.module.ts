@@ -10,7 +10,12 @@ import { UniversalSearchService } from './universal-search.service';
 @Module({
   imports: [PrismaModule, AuthModule],
   controllers: [OrganizationsController],
-  providers: [OrganizationsService, OrganizationChartsService, AccessControlService, UniversalSearchService],
+  providers: [
+    OrganizationsService,
+    OrganizationChartsService,
+    AccessControlService,
+    UniversalSearchService,
+  ],
   exports: [OrganizationsService],
 })
 export class OrganizationsModule {}

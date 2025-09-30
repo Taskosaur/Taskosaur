@@ -183,7 +183,7 @@ export class TaskLabelsService {
           taskId,
           labelId,
         },
-      }
+      },
     });
 
     if (!taskLabel) {

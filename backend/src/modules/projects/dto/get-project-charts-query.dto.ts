@@ -8,7 +8,7 @@ export enum ProjectChartType {
   TASK_TYPE = 'task-type',
   KPI_METRICS = 'kpi-metrics',
   TASK_PRIORITY = 'task-priority',
-  SPRINT_VELOCITY = 'sprint-velocity'
+  SPRINT_VELOCITY = 'sprint-velocity',
 }
 // src/project/interfaces/project-chart-data.interface.ts
 export interface ProjectChartDataResponse {
@@ -40,8 +40,8 @@ export interface TaskStatusFlow {
 export interface SprintVelocity {
   id: string;
   name: string;
-  startDate: Date | null;  // Allow null
-  endDate: Date | null;    // Allow null
+  startDate: Date | null; // Allow null
+  endDate: Date | null; // Allow null
   velocity: number;
 }
 export class GetProjectChartsQueryDto {
@@ -50,11 +50,14 @@ export class GetProjectChartsQueryDto {
     enum: ProjectChartType,
     isArray: true,
     example: [ProjectChartType.KPI_METRICS, ProjectChartType.TASK_STATUS],
-    required: true
+    required: true,
   })
   @IsArray()
   @ArrayNotEmpty({ message: 'At least one chart type must be specified' })
-  @IsEnum(ProjectChartType, { each: true, message: 'Invalid chart type provided' })
+  @IsEnum(ProjectChartType, {
+    each: true,
+    message: 'Invalid chart type provided',
+  })
   @Transform(({ value }) => {
     if (Array.isArray(value)) {
       return value;

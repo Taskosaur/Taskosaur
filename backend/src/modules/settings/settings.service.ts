@@ -7,44 +7,57 @@ export class SettingsService {
 
   async get(key: string, defaultValue?: string): Promise<string | null> {
     const setting = await this.prisma.settings.findUnique({
-      where: { key }
+      where: { key },
     });
-    
+
     return setting?.value || defaultValue || null;
   }
 
-  async set(key: string, value: string, description?: string, category?: string, isEncrypted?: boolean): Promise<void> {
+  async set(
+    key: string,
+    value: string,
+    description?: string,
+    category?: string,
+    isEncrypted?: boolean,
+  ): Promise<void> {
     await this.prisma.settings.upsert({
       where: { key },
-      update: { 
+      update: {
         value,
         description: description || undefined,
         category: category || 'general',
         isEncrypted: isEncrypted || false,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       create: {
         key,
         value,
         description: description || undefined,
         category: category || 'general',
-        isEncrypted: isEncrypted || false
-      }
+        isEncrypted: isEncrypted || false,
+      },
     });
   }
 
-  async getAll(category?: string): Promise<Array<{ key: string; value: string | null; description: string | null; category: string }>> {
+  async getAll(category?: string): Promise<
+    Array<{
+      key: string;
+      value: string | null;
+      description: string | null;
+      category: string;
+    }>
+  > {
     const settings = await this.prisma.settings.findMany({
       where: category ? { category } : undefined,
       select: {
         key: true,
         value: true,
         description: true,
-        category: true
+        category: true,
       },
       orderBy: {
-        key: 'asc'
-      }
+        key: 'asc',
+      },
     });
 
     return settings;
@@ -52,15 +65,15 @@ export class SettingsService {
 
   async delete(key: string): Promise<void> {
     await this.prisma.settings.delete({
-      where: { key }
+      where: { key },
     });
   }
 
   async exists(key: string): Promise<boolean> {
     const count = await this.prisma.settings.count({
-      where: { key }
+      where: { key },
     });
-    
+
     return count > 0;
   }
 }

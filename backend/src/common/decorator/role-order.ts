@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from '@prisma/client';
 
 export const ROLE_RANK: Record<Role, number> = {
   SUPER_ADMIN: 5,

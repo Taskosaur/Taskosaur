@@ -35,7 +35,7 @@ export class SeederService {
     private taskDependenciesSeeder: TaskDependenciesSeederService,
     private taskWatchersSeeder: TaskWatchersSeederService,
     private timeEntriesSeeder: TimeEntriesSeederService,
-  ) { }
+  ) {}
 
   async seedCoreModules() {
     console.log('🌱 Starting core modules seeding...');
@@ -53,9 +53,6 @@ export class SeederService {
       const organizations = await this.organizationsSeeder.seed(users);
       console.log('✅ Organizations seeded');
 
-      // const workflows = await this.workflowsSeeder.seed(organizations);
-      // console.log('✅ Workflows seeded');
-
       // 3. Seed Workspaces (depends on organizations)
       const workspaces = await this.workspacesSeeder.seed(organizations, users);
       console.log('✅ Workspaces seeded');
@@ -64,37 +61,30 @@ export class SeederService {
       const projects = await this.projectsSeeder.seed(workspaces, users);
       console.log('✅ Projects seeded');
 
-      // const taskStatuses = await this.taskStatusSeeder.seed(workflows, users);
-      // console.log('✅ Task statuses seeded');
-
       // 5. Seed Tasks (depends on projects, users, and task statuses)
       const tasks = await this.tasksSeeder.seed(projects, users);
       console.log('✅ Tasks seeded');
 
-      // 6. Seed Sprints (depends on projects and users)
-      // const sprints = await this.sprintsSeeder.seed(projects, users);
-      // console.log('✅ Sprints seeded');
-
-      // 7. Seed Labels (depends on projects and users)
+      // 6. Seed Labels (depends on projects and users)
       const labels = await this.labelsSeeder.seed(projects, users);
       console.log('✅ Labels seeded');
 
-      // 8. Seed Task Comments (depends on tasks and users)
+      // 7. Seed Task Comments (depends on tasks and users)
       const taskComments = await this.taskCommentsSeeder.seed(tasks, users);
       console.log('✅ Task comments seeded');
 
-      // 9. Seed Task Dependencies (depends on tasks and users)
+      // 8. Seed Task Dependencies (depends on tasks and users)
       const taskDependencies = await this.taskDependenciesSeeder.seed(
         tasks,
         users,
       );
       console.log('✅ Task dependencies seeded');
 
-      // 10. Seed Task Watchers (depends on tasks and users)
+      // 9. Seed Task Watchers (depends on tasks and users)
       const taskWatchers = await this.taskWatchersSeeder.seed(tasks, users);
       console.log('✅ Task watchers seeded');
 
-      // 11. Seed Time Entries (depends on tasks and users)
+      // 10. Seed Time Entries (depends on tasks and users)
       const timeEntries = await this.timeEntriesSeeder.seed(tasks, users);
       console.log('✅ Time entries seeded');
 

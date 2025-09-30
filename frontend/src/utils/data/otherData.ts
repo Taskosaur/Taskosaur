@@ -49,6 +49,6 @@ export const mockResults = [
   { id: 48, title: 'Chat History', type: 'Page', icon: '💬', category: 'Communication' },
   { id: 49, title: 'Custom Widgets', type: 'Feature', icon: '🔧', category: 'Customization' },
   { id: 50, title: 'Customer Segmentation', type: 'Page', icon: '📊', category: 'Analytics' },
-   { id: 49, title: 'hello Widgets', type: 'Feature', icon: '🔧', category: 'Chelloization' },
+  { id: 49, title: 'hello Widgets', type: 'Feature', icon: '🔧', category: 'Chelloization' },
   { id: 50, title: 'helloer Segmentation', type: 'Page', icon: '📊', category: 'Analytics' },
 ];

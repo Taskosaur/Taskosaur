@@ -129,13 +129,3 @@ export function createAuditMiddleware(): Prisma.Middleware {
     return next(params);
   };
 }
-
-// Helper function to check if a model has audit fields
-export function hasAuditFields(modelName: string): boolean {
-  return AUDITABLE_MODELS.includes(modelName);
-}
-
-// Helper function to get current user for manual operations
-export function getCurrentUserForAudit(): string | undefined {
-  return RequestContextService.getCurrentUserId();
-}

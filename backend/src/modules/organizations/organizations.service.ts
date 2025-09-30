@@ -20,7 +20,7 @@ import slugify from 'slugify';
 
 @Injectable()
 export class OrganizationsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   private async generateUniqueSlug(name: string): Promise<string> {
     const baseSlug = slugify(name, {
@@ -171,13 +171,16 @@ export class OrganizationsService {
 
       const defaultSprint = project.sprints.find((s) => s.isDefault);
       if (!project.workflow || project.workflow.statuses.length === 0) {
-        throw new NotFoundException('Default workflow or statuses not found for the project');
+        throw new NotFoundException(
+          'Default workflow or statuses not found for the project',
+        );
       }
       const workflowStatuses = project.workflow.statuses;
       await this.prisma.task.createMany({
         data: DEFAULT_TASKS.map((task, index) => {
-          const status = workflowStatuses.find((s) => s.name === task.status)
-            ?? workflowStatuses[0];
+          const status =
+            workflowStatuses.find((s) => s.name === task.status) ??
+            workflowStatuses[0];
           return {
             title: task.title,
             description: task.description,
@@ -195,7 +198,9 @@ export class OrganizationsService {
       return organization;
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException('Organization with this slug already exists');
+        throw new ConflictException(
+          'Organization with this slug already exists',
+        );
       }
       throw error;
     }

@@ -15,7 +15,7 @@ import { UpdateOrganizationMemberDto } from './dto/update-organization-member.dt
 
 @Injectable()
 export class OrganizationMembersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(
     createOrganizationMemberDto: CreateOrganizationMemberDto,
@@ -482,7 +482,6 @@ export class OrganizationMembersService {
       };
     });
   }
-
 
   async getOrganizationStats(organizationId: string): Promise<any> {
     const organization = await this.prisma.organization.findUnique({

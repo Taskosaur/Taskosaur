@@ -36,7 +36,11 @@ export class RolesGuard implements CanActivate {
       type: ScopeType;
       idParam: string;
     }>(SCOPE_KEY, [ctx.getHandler(), ctx.getClass()]);
-    const params = { ...(req.params ?? {}), ...(req.query ?? {}), ...req.body ?? {} };
+    const params = {
+      ...(req.params ?? {}),
+      ...(req.query ?? {}),
+      ...(req.body ?? {}),
+    };
     const { type, idParam } = scopeMeta ?? inferScopeFromParams(params);
 
     if (!type) throw new ForbiddenException('Scope not specified');
@@ -55,9 +59,7 @@ export class RolesGuard implements CanActivate {
     }
     const memberRole = await this.getMemberRole(type, user.id, resolvedScopeId);
     if (!memberRole) throw new ForbiddenException('Not a member of this scope');
-    const ok = requiredRoles.some(
-      (r) => ROLE_RANK[memberRole] >= ROLE_RANK[r as PrismaRole],
-    );
+    const ok = requiredRoles.some((r) => ROLE_RANK[memberRole] >= ROLE_RANK[r]);
     if (!ok) throw new ForbiddenException('Insufficient role');
 
     return true;
@@ -70,8 +72,8 @@ export class RolesGuard implements CanActivate {
   ) {
     switch (type) {
       case 'ORGANIZATION': {
-        
-        const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+        const uuidRegex =
+          /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
         if (!uuidRegex.test(userId) || !uuidRegex.test(scopeId)) {
           return null;
         }

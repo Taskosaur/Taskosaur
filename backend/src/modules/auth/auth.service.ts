@@ -27,7 +27,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
-  ) { }
+  ) {}
 
   async validateUser(email: string, password: string) {
     const user = await this.usersService.findByEmail(email);
@@ -142,8 +142,6 @@ export class AuthService {
 
   async refreshToken(refreshToken: string): Promise<AuthResponseDto> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
       const decoded = this.jwtService.verify(refreshToken);
 
       // Type guard to ensure decoded payload has required properties

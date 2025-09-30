@@ -14,8 +14,10 @@ type Role = 'OWNER' | 'MANAGER' | 'MEMBER' | 'VIEWER';
 
 @Injectable()
 export class WorkspacesService {
-  constructor(private prisma: PrismaService, private accessControl: AccessControlService) {}
-
+  constructor(
+    private prisma: PrismaService,
+    private accessControl: AccessControlService,
+  ) {}
 
   async create(
     createWorkspaceDto: CreateWorkspaceDto,
@@ -115,7 +117,10 @@ export class WorkspacesService {
 
     if (organizationId) {
       whereClause.organizationId = organizationId;
-      const { isElevated } = await this.accessControl.getOrgAccess(organizationId, userId);
+      const { isElevated } = await this.accessControl.getOrgAccess(
+        organizationId,
+        userId,
+      );
       if (!isElevated) {
         whereClause.members = { some: { userId } };
       }
@@ -169,7 +174,10 @@ export class WorkspacesService {
     if (organizationId) {
       whereClause.organizationId = organizationId;
 
-      const { isElevated } = await this.accessControl.getOrgAccess(organizationId, userId);
+      const { isElevated } = await this.accessControl.getOrgAccess(
+        organizationId,
+        userId,
+      );
       if (!isElevated) {
         whereClause.members = { some: { userId } };
       }
@@ -223,7 +231,10 @@ export class WorkspacesService {
   }
 
   async findOne(id: string, userId: string): Promise<Workspace> {
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(id, userId);
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(
+      id,
+      userId,
+    );
 
     const workspace = await this.prisma.workspace.findUnique({
       where: { id },
@@ -280,7 +291,10 @@ export class WorkspacesService {
     userId: string,
   ): Promise<Workspace> {
     // Check organization access first
-    const { isElevated } = await this.accessControl.getOrgAccess(organizationId, userId);
+    const { isElevated } = await this.accessControl.getOrgAccess(
+      organizationId,
+      userId,
+    );
 
     const workspace = await this.prisma.workspace.findUnique({
       where: { organizationId_slug: { organizationId, slug } },
@@ -392,7 +406,10 @@ export class WorkspacesService {
 
     if (!workspace) throw new NotFoundException('Workspace not found');
 
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(workspace.id, userId);
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(
+      workspace.id,
+      userId,
+    );
 
     const projectWhere = {
       workspace: { slug: workspaceSlug, archive: false },
@@ -407,7 +424,11 @@ export class WorkspacesService {
     });
   }
 
-  async workspaceTaskPriorityBreakdown(organizationId: string, workspaceSlug: string, userId: string) {
+  async workspaceTaskPriorityBreakdown(
+    organizationId: string,
+    workspaceSlug: string,
+    userId: string,
+  ) {
     const workspace = await this.prisma.workspace.findUnique({
       where: { organizationId_slug: { organizationId, slug: workspaceSlug } },
       select: { id: true, organizationId: true },
@@ -415,7 +436,10 @@ export class WorkspacesService {
 
     if (!workspace) throw new NotFoundException('Workspace not found');
 
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(workspace.id, userId);
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(
+      workspace.id,
+      userId,
+    );
 
     const taskWhere = {
       project: {
@@ -435,7 +459,11 @@ export class WorkspacesService {
     });
   }
 
-  async workspaceKPIMetrics(organizationId: string, workspaceSlug: string, userId: string) {
+  async workspaceKPIMetrics(
+    organizationId: string,
+    workspaceSlug: string,
+    userId: string,
+  ) {
     const workspace = await this.prisma.workspace.findUnique({
       where: { organizationId_slug: { organizationId, slug: workspaceSlug } },
       select: { id: true, organizationId: true },
@@ -443,7 +471,10 @@ export class WorkspacesService {
 
     if (!workspace) throw new NotFoundException('Workspace not found');
 
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(workspace.id, userId);
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(
+      workspace.id,
+      userId,
+    );
 
     const projectBase = {
       workspace: { slug: workspaceSlug, archive: false },
@@ -489,7 +520,11 @@ export class WorkspacesService {
     };
   }
 
-  async workspaceTaskTypeDistribution(organizationId: string, workspaceSlug: string, userId: string) {
+  async workspaceTaskTypeDistribution(
+    organizationId: string,
+    workspaceSlug: string,
+    userId: string,
+  ) {
     const workspace = await this.prisma.workspace.findUnique({
       where: { organizationId_slug: { organizationId, slug: workspaceSlug } },
       select: { id: true, organizationId: true },
@@ -497,7 +532,10 @@ export class WorkspacesService {
 
     if (!workspace) throw new NotFoundException('Workspace not found');
 
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(workspace.id, userId);
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(
+      workspace.id,
+      userId,
+    );
 
     const taskWhere = {
       project: {
@@ -517,7 +555,11 @@ export class WorkspacesService {
     });
   }
 
-  async workspaceSprintStatusOverview(organizationId: string, workspaceSlug: string, userId: string) {
+  async workspaceSprintStatusOverview(
+    organizationId: string,
+    workspaceSlug: string,
+    userId: string,
+  ) {
     const workspace = await this.prisma.workspace.findUnique({
       where: { organizationId_slug: { organizationId, slug: workspaceSlug } },
       select: { id: true, organizationId: true },
@@ -525,7 +567,10 @@ export class WorkspacesService {
 
     if (!workspace) throw new NotFoundException('Workspace not found');
 
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(workspace.id, userId);
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(
+      workspace.id,
+      userId,
+    );
 
     const sprintWhere = {
       project: {
@@ -543,7 +588,11 @@ export class WorkspacesService {
     });
   }
 
-  async workspaceMonthlyTaskCompletion(organizationId: string, workspaceSlug: string, userId: string) {
+  async workspaceMonthlyTaskCompletion(
+    organizationId: string,
+    workspaceSlug: string,
+    userId: string,
+  ) {
     const workspace = await this.prisma.workspace.findUnique({
       where: { organizationId_slug: { organizationId, slug: workspaceSlug } },
       select: { id: true, organizationId: true },
@@ -551,7 +600,10 @@ export class WorkspacesService {
 
     if (!workspace) throw new NotFoundException('Workspace not found');
 
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(workspace.id, userId);
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(
+      workspace.id,
+      userId,
+    );
 
     const taskWhere = {
       project: {
@@ -589,7 +641,12 @@ export class WorkspacesService {
   }
 
   async findAllSlugs(organization_id: string): Promise<string[]> {
-    if (organization_id === '' || organization_id === null || organization_id === undefined) return [];
+    if (
+      organization_id === '' ||
+      organization_id === null ||
+      organization_id === undefined
+    )
+      return [];
     const workspaces = await this.prisma.workspace.findMany({
       where: { archive: false, organizationId: organization_id },
       select: { slug: true },

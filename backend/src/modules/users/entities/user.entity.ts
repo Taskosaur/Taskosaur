@@ -2,7 +2,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Role, UserStatus } from '@prisma/client';
 
 export class User {
-
   @ApiProperty()
   id: string;
 

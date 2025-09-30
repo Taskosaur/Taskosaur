@@ -24,7 +24,10 @@ type ProjectFilters = {
 
 @Injectable()
 export class ProjectsService {
-  constructor(private prisma: PrismaService, private accessControl: AccessControlService) { }
+  constructor(
+    private prisma: PrismaService,
+    private accessControl: AccessControlService,
+  ) {}
 
   async create(
     createProjectDto: CreateProjectDto,
@@ -62,7 +65,6 @@ export class ProjectsService {
         },
         select: { role: true },
       });
-  
     }
 
     // Generate unique slug
@@ -225,7 +227,10 @@ export class ProjectsService {
       whereClause.workspaceId = workspaceId;
 
       // Check workspace access
-      const access = await this.accessControl.getWorkspaceAccess(workspaceId, userId);
+      const access = await this.accessControl.getWorkspaceAccess(
+        workspaceId,
+        userId,
+      );
       const isElevated = access.isElevated;
 
       // If not elevated, restrict to projects where user is a member
@@ -241,14 +246,14 @@ export class ProjectsService {
     // Step 2: Add status filter
     if (status) {
       whereClause.status = status.includes(',')
-        ? { in: status.split(',').map(s => s.trim()) }
+        ? { in: status.split(',').map((s) => s.trim()) }
         : status;
     }
 
     // Step 3: Add priority filter
     if (priority) {
       whereClause.priority = priority.includes(',')
-        ? { in: priority.split(',').map(p => p.trim()) }
+        ? { in: priority.split(',').map((p) => p.trim()) }
         : priority;
     }
 
@@ -317,9 +322,6 @@ export class ProjectsService {
     });
   }
 
-
-
-
   async findByOrganizationId(
     filters: ProjectFilters,
     userId: string,
@@ -354,12 +356,12 @@ export class ProjectsService {
       archive: false,
       ...(status && {
         status: status.includes(',')
-          ? { in: status.split(',').map(s => s.trim()) }
+          ? { in: status.split(',').map((s) => s.trim()) }
           : status,
       }),
       ...(priority && {
         priority: priority.includes(',')
-          ? { in: priority.split(',').map(p => p.trim()) }
+          ? { in: priority.split(',').map((p) => p.trim()) }
           : priority,
       }),
       ...(workspaceId && { workspaceId }),
@@ -374,19 +376,16 @@ export class ProjectsService {
       const accessibleProjectIds = await this.getAccessibleProjectIds(
         organizationId,
         userId,
-        workspaceId // Pass workspace filter if provided
+        workspaceId, // Pass workspace filter if provided
       );
-      console.log(JSON.stringify(accessibleProjectIds))
+      console.log(JSON.stringify(accessibleProjectIds));
       if (accessibleProjectIds.length === 0) {
         // No accessible projects, return empty result
         return [];
       }
 
       whereClause = {
-        AND: [
-          baseFilters,
-          { id: { in: accessibleProjectIds } }
-        ]
+        AND: [baseFilters, { id: { in: accessibleProjectIds } }],
       };
     }
 
@@ -395,15 +394,15 @@ export class ProjectsService {
       const searchCondition = {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
-          { slug: { contains: search, mode: 'insensitive' } }
-        ]
+          { slug: { contains: search, mode: 'insensitive' } },
+        ],
       };
 
       if (whereClause.AND) {
         whereClause.AND.push(searchCondition);
       } else {
         whereClause = {
-          AND: [whereClause, searchCondition]
+          AND: [whereClause, searchCondition],
         };
       }
     }
@@ -466,7 +465,7 @@ export class ProjectsService {
   private async getAccessibleProjectIds(
     organizationId: string,
     userId: string,
-    workspaceId?: string
+    workspaceId?: string,
   ): Promise<string[]> {
     // Get all workspaces in the organization (filtered by workspaceId if provided)
     const workspaces = await this.prisma.workspace.findMany({
@@ -484,11 +483,9 @@ export class ProjectsService {
     for (const workspace of workspaces) {
       try {
         // Get workspace-level access for this user
-        const { isElevated: wsIsElevated } = await this.accessControl.getWorkspaceAccess(
-          workspace.id,
-          userId
-        );
-        console.log(workspace.id, wsIsElevated)
+        const { isElevated: wsIsElevated } =
+          await this.accessControl.getWorkspaceAccess(workspace.id, userId);
+        console.log(workspace.id, wsIsElevated);
         if (wsIsElevated) {
           // If elevated at workspace level, get all projects in this workspace
           const workspaceProjects = await this.prisma.project.findMany({
@@ -499,7 +496,7 @@ export class ProjectsService {
             select: { id: true },
           });
 
-          accessibleProjectIds.push(...workspaceProjects.map(p => p.id));
+          accessibleProjectIds.push(...workspaceProjects.map((p) => p.id));
         } else {
           // If not elevated at workspace level, get only projects where user is a member
           const memberProjects = await this.prisma.project.findMany({
@@ -507,13 +504,13 @@ export class ProjectsService {
               workspaceId: workspace.id,
               archive: false,
               members: {
-                some: { userId }
-              }
+                some: { userId },
+              },
             },
             select: { id: true },
           });
-          console.log(memberProjects)
-          accessibleProjectIds.push(...memberProjects.map(p => p.id));
+          console.log(memberProjects);
+          accessibleProjectIds.push(...memberProjects.map((p) => p.id));
         }
       } catch (error) {
         // If user doesn't have access to workspace, skip it
@@ -525,11 +522,11 @@ export class ProjectsService {
     return accessibleProjectIds;
   }
 
-
-
-
   async findOne(id: string, userId: string): Promise<Project> {
-    const { isElevated } = await this.accessControl.getProjectAccess(id, userId);
+    const { isElevated } = await this.accessControl.getProjectAccess(
+      id,
+      userId,
+    );
 
     const project = await this.prisma.project.findUnique({
       where: { id },
@@ -577,26 +574,26 @@ export class ProjectsService {
         // Show tasks based on access level
         tasks: isElevated
           ? {
-            select: {
-              id: true,
-              title: true,
-              type: true,
-              priority: true,
-              status: true,
-            },
-            take: 10,
-          }
+              select: {
+                id: true,
+                title: true,
+                type: true,
+                priority: true,
+                status: true,
+              },
+              take: 10,
+            }
           : {
-            select: {
-              id: true,
-              title: true,
-              type: true,
-              priority: true,
-              status: true,
+              select: {
+                id: true,
+                title: true,
+                type: true,
+                priority: true,
+                status: true,
+              },
+              where: { OR: [{ assigneeId: userId }, { reporterId: userId }] },
+              take: 10,
             },
-            where: { OR: [{ assigneeId: userId }, { reporterId: userId }] },
-            take: 10,
-          },
       },
     });
 
@@ -630,7 +627,10 @@ export class ProjectsService {
     updateProjectDto: UpdateProjectDto,
     userId: string,
   ): Promise<Project> {
-    const { isElevated } = await this.accessControl.getProjectAccess(id, userId);
+    const { isElevated } = await this.accessControl.getProjectAccess(
+      id,
+      userId,
+    );
 
     if (!isElevated) {
       throw new ForbiddenException(
@@ -677,7 +677,7 @@ export class ProjectsService {
 
   async remove(id: string, userId: string): Promise<void> {
     const { role } = await this.accessControl.getProjectAccess(id, userId);
-    console.log(role)
+    console.log(role);
     if (role !== Role.OWNER && role !== Role.SUPER_ADMIN) {
       throw new ForbiddenException('Only owners can delete projects');
     }
@@ -692,7 +692,10 @@ export class ProjectsService {
   }
 
   async archiveProject(id: string, userId: string): Promise<void> {
-    const { isElevated } = await this.accessControl.getProjectAccess(id, userId);
+    const { isElevated } = await this.accessControl.getProjectAccess(
+      id,
+      userId,
+    );
 
     if (!isElevated) {
       throw new ForbiddenException(
@@ -857,7 +860,10 @@ export class ProjectsService {
     };
   }
 
-  async getProjectBySlug(slug: string, userId: string): Promise<Project | null> {
+  async getProjectBySlug(
+    slug: string,
+    userId: string,
+  ): Promise<Project | null> {
     // Find project by slug
     const project = await this.prisma.project.findUnique({
       where: { slug },

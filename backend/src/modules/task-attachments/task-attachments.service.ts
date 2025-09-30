@@ -29,7 +29,8 @@ export class TaskAttachmentsService {
   }
 
   async create(
-    createTaskAttachmentDto: CreateTaskAttachmentDto, userId: string
+    createTaskAttachmentDto: CreateTaskAttachmentDto,
+    userId: string,
   ): Promise<TaskAttachment> {
     const { taskId } = createTaskAttachmentDto;
 

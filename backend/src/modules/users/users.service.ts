@@ -76,7 +76,6 @@ export class UsersService {
         resetTokenExpiry: true,
         createdAt: true,
         updatedAt: true,
-        
       },
     });
     const usersWithAvatarUrls = await Promise.all(
@@ -132,7 +131,6 @@ export class UsersService {
     const { password, ...userWithoutPassword } = user;
     return { ...userWithoutPassword, avatar: avatarUrl || null };
   }
-
 
   async getUserPassword(id: string): Promise<string | null> {
     const user = await this.prisma.user.findUnique({
@@ -298,43 +296,53 @@ export class UsersService {
     return count > 0;
   }
 
+  async changePassword(
+    userId: string,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<{ success: boolean; message: string }> {
+    const userPassword = await this.getUserPassword(userId);
+    if (userPassword === null) {
+      throw new BadRequestException('User not found');
+    }
 
-
- async changePassword(
-  userId: string,
-  changePasswordDto: ChangePasswordDto,
-): Promise<{ success: boolean; message: string }> {
-  const userPassword = await this.getUserPassword(userId);
-  if (userPassword === null) {
-    throw new BadRequestException('User not found');
-  }
-
-  const isMatch = await bcrypt.compare(changePasswordDto.currentPassword, userPassword);
-  if (!isMatch) {
-    throw new BadRequestException('Current password is not correct');
-  }
-
-  
-  const isSamePassword = await bcrypt.compare(changePasswordDto.newPassword, userPassword);
-  if (isSamePassword) {
-    throw new BadRequestException('New password must be different from current password');
-  }
-
-  if (changePasswordDto.newPassword !== changePasswordDto.confirmPassword) {
-    throw new BadRequestException('New password and confirm password do not match');
-  }
-
-  if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(changePasswordDto.newPassword)) {
-    throw new BadRequestException(
-      'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+    const isMatch = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      userPassword,
     );
+    if (!isMatch) {
+      throw new BadRequestException('Current password is not correct');
+    }
+
+    const isSamePassword = await bcrypt.compare(
+      changePasswordDto.newPassword,
+      userPassword,
+    );
+    if (isSamePassword) {
+      throw new BadRequestException(
+        'New password must be different from current password',
+      );
+    }
+
+    if (changePasswordDto.newPassword !== changePasswordDto.confirmPassword) {
+      throw new BadRequestException(
+        'New password and confirm password do not match',
+      );
+    }
+
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(changePasswordDto.newPassword)) {
+      throw new BadRequestException(
+        'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+      );
+    }
+
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(
+      changePasswordDto.newPassword,
+      saltRounds,
+    );
+
+    await this.updatePassword(userId, hashedPassword);
+
+    return { success: true, message: 'Password changed successfully' };
   }
-
-  const saltRounds = 12;
-  const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, saltRounds);
-
-  await this.updatePassword(userId, hashedPassword);
-
-  return { success: true, message: 'Password changed successfully' };
-}
 }

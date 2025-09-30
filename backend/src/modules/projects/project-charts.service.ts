@@ -7,8 +7,13 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AccessControlService } from 'src/common/access-control.utils';
-import { ProjectChartDataResponse, ProjectChartType, ProjectKPIMetrics, SprintVelocity, TaskStatusFlow } from './dto/get-project-charts-query.dto';
-
+import {
+  ProjectChartDataResponse,
+  ProjectChartType,
+  ProjectKPIMetrics,
+  SprintVelocity,
+  TaskStatusFlow,
+} from './dto/get-project-charts-query.dto';
 
 @Injectable()
 export class ProjectChartsService {
@@ -35,7 +40,11 @@ export class ProjectChartsService {
       // Execute all chart requests in parallel
       const chartPromises = chartTypes.map(async (type) => {
         try {
-          const data = await this.getSingleProjectChartData(projectSlug, userId, type);
+          const data = await this.getSingleProjectChartData(
+            projectSlug,
+            userId,
+            type,
+          );
           return { type, data, error: null };
         } catch (error) {
           this.logger.error(
@@ -92,8 +101,6 @@ export class ProjectChartsService {
     }
   }
 
-
-
   /**
    * Helper method to get project and validate access
    */
@@ -126,7 +133,10 @@ export class ProjectChartsService {
   /**
    * 1) Task Status Flow
    */
-  async projectTaskStatusFlow(projectSlug: string, userId: string): Promise<TaskStatusFlow[]> {
+  async projectTaskStatusFlow(
+    projectSlug: string,
+    userId: string,
+  ): Promise<TaskStatusFlow[]> {
     const { isElevated } = await this.accessControl.getProjectAccessBySlug(
       projectSlug,
       userId,
@@ -190,7 +200,10 @@ export class ProjectChartsService {
    * 2) Task Type Distribution
    */
   async projectTaskTypeDistribution(projectSlug: string, userId: string) {
-    const { project, isElevated } = await this.getProjectWithAccess(projectSlug, userId);
+    const { project, isElevated } = await this.getProjectWithAccess(
+      projectSlug,
+      userId,
+    );
 
     const taskWhere = {
       projectId: project.id,
@@ -209,8 +222,14 @@ export class ProjectChartsService {
   /**
    * 3) KPI Metrics
    */
-  async projectKPIMetrics(projectSlug: string, userId: string): Promise<ProjectKPIMetrics> {
-    const { project, isElevated } = await this.getProjectWithAccess(projectSlug, userId);
+  async projectKPIMetrics(
+    projectSlug: string,
+    userId: string,
+  ): Promise<ProjectKPIMetrics> {
+    const { project, isElevated } = await this.getProjectWithAccess(
+      projectSlug,
+      userId,
+    );
 
     const taskWhere = {
       projectId: project.id,
@@ -253,7 +272,10 @@ export class ProjectChartsService {
    * 4) Task Priority Distribution
    */
   async projectTaskPriorityDistribution(projectSlug: string, userId: string) {
-    const { project, isElevated } = await this.getProjectWithAccess(projectSlug, userId);
+    const { project, isElevated } = await this.getProjectWithAccess(
+      projectSlug,
+      userId,
+    );
 
     const taskWhere = {
       projectId: project.id,
@@ -272,8 +294,14 @@ export class ProjectChartsService {
   /**
    * 5) Sprint Velocity Trend
    */
-  async projectSprintVelocityTrend(projectSlug: string, userId: string): Promise<SprintVelocity[]> {
-    const { project, isElevated } = await this.getProjectWithAccess(projectSlug, userId);
+  async projectSprintVelocityTrend(
+    projectSlug: string,
+    userId: string,
+  ): Promise<SprintVelocity[]> {
+    const { project, isElevated } = await this.getProjectWithAccess(
+      projectSlug,
+      userId,
+    );
 
     const sprints = await this.prisma.sprint.findMany({
       where: {

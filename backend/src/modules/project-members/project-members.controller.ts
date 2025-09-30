@@ -38,7 +38,10 @@ export class ProjectMembersController {
   }
 
   @Get()
-  findAll(@Query('projectId') projectId?: string, @Query('search') search?: string) {
+  findAll(
+    @Query('projectId') projectId?: string,
+    @Query('search') search?: string,
+  ) {
     return this.projectMembersService.findAll(projectId, search);
   }
 

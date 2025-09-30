@@ -46,7 +46,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tasks')
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) { }
+  constructor(private readonly tasksService: TasksService) {}
 
   @Post()
   @Scope('PROJECT', 'projectId')
@@ -112,7 +112,7 @@ export class TasksController {
   @ApiQuery({
     name: 'search',
     required: false,
-    description: "Filter by search query",
+    description: 'Filter by search query',
   })
   @ApiQuery({
     name: 'page',
@@ -218,7 +218,7 @@ export class TasksController {
   @ApiQuery({
     name: 'search',
     required: false,
-    description: "Filter by search query",
+    description: 'Filter by search query',
   })
   @Scope('ORGANIZATION', 'organizationId')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
@@ -237,10 +237,18 @@ export class TasksController {
       throw new BadRequestException('Organization ID is required');
     }
 
-    const priorityArray = priorities ? priorities.split(',').filter(Boolean) : undefined;
-    const statusArray = statuses ? statuses.split(',').filter(Boolean) : undefined;
-    const projectIdArray = projectId ? projectId.split(',').filter(Boolean) : undefined;
-    const workspaceIdArray = workspaceId ? workspaceId.split(',').filter(Boolean) : undefined;
+    const priorityArray = priorities
+      ? priorities.split(',').filter(Boolean)
+      : undefined;
+    const statusArray = statuses
+      ? statuses.split(',').filter(Boolean)
+      : undefined;
+    const projectIdArray = projectId
+      ? projectId.split(',').filter(Boolean)
+      : undefined;
+    const workspaceIdArray = workspaceId
+      ? workspaceId.split(',').filter(Boolean)
+      : undefined;
 
     return this.tasksService.getTasks(
       organizationId,
@@ -254,7 +262,6 @@ export class TasksController {
       search,
     );
   }
-
 
   @Get('by-status')
   @ApiOperation({ summary: 'Get tasks grouped by status' })

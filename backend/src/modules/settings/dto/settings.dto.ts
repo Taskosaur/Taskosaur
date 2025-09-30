@@ -25,7 +25,7 @@ export class SetSettingDto {
 
   @ApiPropertyOptional({
     description: 'Setting category',
-    default: 'general'
+    default: 'general',
   })
   @IsOptional()
   @IsString()
@@ -33,7 +33,7 @@ export class SetSettingDto {
 
   @ApiPropertyOptional({
     description: 'Whether the value should be encrypted',
-    default: false
+    default: false,
   })
   @IsOptional()
   @IsBoolean()

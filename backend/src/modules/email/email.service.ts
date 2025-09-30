@@ -469,7 +469,6 @@ export class EmailService {
         data: emailData,
         priority: EmailPriority.HIGH,
       });
-
     } catch (error) {
       console.error(
         `Failed to send password reset confirmation email to ${email}:`,
