@@ -1,16 +1,14 @@
-# Taskosaur - Where AI Meets Action
+# Taskosaur
 
-### The First Full-Featured AI Mode Open Source Project Management Tool
-
-> **"Stop Managing Projects. Start Talking to Them"**
+### Open Source Project Management with AI Mode
 
 ### 📹 Watch Taskosaur in Action
 
 [![Taskosaur Demo - AI Turns Simple Requests Into Complete Projects](https://img.youtube.com/vi/sv2lsteRKac/maxresdefault.jpg)](https://youtu.be/sv2lsteRKac)
 
-*Click to watch: Taskosaur Demo - AI Turns Simple Requests Into Complete Projects*
+*Click to watch: See how AI Mode works in Taskosaur*
 
-🚀 **World's First AI Mode Project Management Tool** - Taskosaur isn't just project management software, it's a complete **Project Manager Assistant** rolled into one. Our groundbreaking AI Mode allows you to accomplish almost all project management tasks through natural language conversation - a first in the industry.
+Taskosaur is an open source project management platform with AI Mode integration. The AI assistant handles project management tasks through natural conversation, from creating tasks to managing workflows.
 
 <!-- Badges will be added here -->
 
@@ -22,27 +20,24 @@
 ![Redis](https://img.shields.io/badge/redis-%3E%3D6-red.svg)
 ![AI](https://img.shields.io/badge/AI-Powered-purple.svg)
 
-**Transform how you manage projects with revolutionary AI Mode.** Taskosaur is the world's first open source project management platform with full AI Mode integration - a conversational AI assistant that doesn't just help, it **acts as your complete Project Manager Assistant**. Unlike traditional PM tools where you navigate through complex menus and forms, Taskosaur's AI Mode lets you accomplish virtually all project management tasks through natural conversation - simply tell the AI what you need, and watch it execute complex workflows in real-time.
+Taskosaur combines traditional project management features with AI Mode, allowing you to manage projects through natural conversation. Instead of navigating menus and forms, you can create tasks, assign work, and manage workflows by simply describing what you need.
 
-## Why Choose Taskosaur?
+## Key Features
 
-🏆 **World's First AI Mode PM Tool** - Revolutionary AI Mode that executes complex project management workflows through conversation  
-🤖 **Complete Project Manager Assistant** - Not just AI help, but a full PM assistant that handles tasks from creation to completion  
-💬 **Natural Language Everything** - "Create sprint with high-priority bugs from last week" - and it happens automatically  
-🎯 **Zero Learning Curve** - If you can chat, you can manage entire projects  
-🏠 **Self-Hosted & Private** - Your data, AI conversations, and project insights stay completely private  
-💰 **No AI Subscription Fees** - Use your own LLM key, no expensive monthly AI charges  
-🔧 **Intelligent Automation** - AI that learns your workflows and proactively suggests optimizations  
-🚀 **Advanced AI Capabilities** - Browser automation, intelligent task routing, predictive analytics  
-📱 **Enterprise Ready** - Full-featured PM with AI superpowers, not limitations  
-🌍 **Open Source Revolution** - First open source tool to crack the AI PM code
+🤖 **AI Mode** - Manage projects through natural conversation instead of clicking through forms
+💬 **Natural Language Commands** - "Create sprint with high-priority bugs from last week" executes automatically
+🏠 **Self-Hosted** - Your data stays on your infrastructure
+💰 **Bring Your Own LLM** - Use your own API key with OpenAI, Anthropic, OpenRouter, or local models
+🔧 **Browser Automation** - AI navigates the interface and performs actions directly
+📊 **Full Project Management** - Kanban boards, sprints, task dependencies, time tracking
+🌐 **Open Source** - Available under Business Source License (BSL)
 
 ## Table of Contents
 
-- [Why Choose Taskosaur?](#why-choose-taskosaur)
+- [Key Features](#key-features)
 - [🚀 AI Mode Setup](#-ai-mode-setup)
 - [Features](#features)
-  - [🤖 Revolutionary AI Mode Capabilities](#-revolutionary-ai-mode-capabilities)
+  - [🤖 AI Mode Capabilities](#-ai-mode-capabilities)
 - [Quick Start](#quick-start)
 - [Development](#development)
 - [Project Structure](#project-structure)
@@ -57,9 +52,7 @@
 
 ## 🚀 AI Mode Setup
 
-**Unlock the world's first AI Mode for project management!**
-
-### Enable AI Mode in 3 Simple Steps:
+### Enable AI Mode in 3 Steps:
 
 1. **Navigate to Organization Settings**
 
@@ -79,11 +72,11 @@
 3. **Start Managing with AI**
    - Open the AI chat panel (sparkles icon)
    - Type: _"Create a new project called Website Redesign with 5 tasks"_
-   - Watch Taskosaur execute complex workflows automatically!
+   - The AI executes the workflow automatically
 
-### What Makes Taskosaur's AI Mode Revolutionary?
+### How AI Mode Works
 
-Unlike other tools that offer basic AI chat, Taskosaur's AI Mode **actually performs actions**:
+Taskosaur's AI Mode performs actions directly instead of just providing suggestions:
 
 - **Direct Browser Automation** - AI navigates your interface and clicks buttons
 - **Complex Workflow Execution** - Multi-step operations handled seamlessly
@@ -104,36 +97,34 @@ Unlike other tools that offer basic AI chat, Taskosaur's AI Mode **actually perf
 
 _Taskosaur is actively under development. The following features represent our planned capabilities, with many already implemented and others in progress._
 
-### 🤖 Revolutionary AI Mode Capabilities
+### 🤖 AI Mode Capabilities
 
-**The World's First AI Project Manager Assistant That Actually Works**
+🎯 **Workflow Automation**
 
-🎯 **Complete Workflow Automation**
+- **Browser-Based Task Execution**: AI navigates the interface, fills forms, and completes tasks
+- **Multi-Step Workflow Processing**: Execute complex workflows with a single command
+- **Context Understanding**: AI recognizes your current workspace, project, and team context
+- **Proactive Suggestions**: AI identifies bottlenecks and suggests improvements
 
-- **Browser-Based Task Execution**: AI doesn't just suggest - it navigates your interface, fills forms, and completes tasks
-- **Multi-Step Workflow Processing**: "Create workspace → Add team → Set up projects → Generate initial tasks" - all in one command
-- **Intelligent Context Understanding**: AI knows your current workspace, project, and team context automatically
-- **Proactive Project Management**: AI identifies bottlenecks, suggests improvements, and flags potential issues
+🧠 **Natural Language Processing**
 
-🧠 **Advanced Natural Language Processing**
+- Understands complex project management requests
+- Extracts actions, parameters, and context from conversational inputs
+- Infers missing details from current context
 
-- **Intent Recognition**: Understands complex project management requests in natural language
-- **Command Parsing**: Extracts specific actions, parameters, and context from conversational inputs
-- **Smart Parameter Inference**: Fills in missing details based on current context and project history
+⚡ **Action Execution**
 
-⚡ **Real-Time Action Execution**
+- Live browser automation in real-time
+- Bulk operations on multiple tasks at once
+- Works within your existing workflows
 
-- **Live Browser Automation**: Watch AI click buttons, fill forms, and navigate interfaces in real-time
-- **Bulk Operations**: Process hundreds of tasks, assignments, or updates with single commands
-- **Cross-Platform Integration**: AI works with your existing tools and workflows seamlessly
+🚀 **Project Workflow Support**
 
-🚀 **Intelligent Project Workflows**
+- Sprint planning with task analysis
+- Task assignment based on team capacity
+- Project timeline forecasting
 
-- **Automated Sprint Planning**: AI analyzes task complexity, team capacity, and historical data
-- **Smart Task Distribution**: Optimal task assignment based on team skills and current workload
-- **Predictive Analytics**: Forecast project completion, identify risks, and suggest mitigation strategies
-
-**Real AI Mode Examples:**
+**AI Mode Examples:**
 
 - "Set up Q1 marketing campaign: create workspace, add team, set up 3 projects with standard templates"
 - "Analyze all overdue tasks and reschedule based on team capacity and priorities"
@@ -489,22 +480,22 @@ The API documentation is automatically generated using Swagger and is available 
 ### AI & Features Questions
 
 **Q: How does Taskosaur's AI Mode work?**
-A: Unlike basic AI chatbots, Taskosaur's AI Mode is a complete Project Manager Assistant. It uses advanced browser automation to actually perform actions - navigating interfaces, filling forms, creating tasks, updating statuses, and executing complex workflows. It combines natural language understanding with real automation capabilities to act as your personal project manager.
+A: AI Mode uses browser automation to perform actions directly - navigating interfaces, filling forms, creating tasks, updating statuses, and executing workflows. It combines natural language understanding with automation to manage projects conversationally.
 
 **Q: What makes this different from other AI project management tools?**
-A: Taskosaur is the world's first **AI Mode** project management tool. While other tools offer AI chat for suggestions, Taskosaur's AI actually executes tasks, automates workflows, and manages projects end-to-end through natural conversation. It's the difference between AI advice and AI action.
+A: While many tools offer AI chat for suggestions, Taskosaur's AI executes tasks and manages workflows directly through natural conversation.
 
 **Q: How do I enable AI Mode?**
 A: Go to Organization Settings → AI Assistant Settings, toggle "Enable AI Chat" to ON, and add your LLM API key from any compatible provider (OpenRouter, OpenAI, Anthropic, or local AI). The AI chat panel (sparkles icon) will appear, ready to manage your projects conversationally.
 
 **Q: What can I accomplish with AI Mode?**
-A: Virtually everything! Set up complete project hierarchies, automate task assignments, bulk update hundreds of items, create complex workflows, generate reports, analyze team performance, migrate data between projects - all through natural language commands.
+A: Set up project hierarchies, automate task assignments, bulk update items, create workflows, generate reports, analyze team performance, and migrate data between projects - all through natural language commands.
 
 **Q: Does the AI require internet connection?**
 A: Taskosaur supports both cloud AI providers (OpenRouter, OpenAI, Anthropic) and local AI models (Ollama, etc.). For complete privacy, run open-source models locally. The AI Mode automation works entirely within your browser.
 
 **Q: Is my data secure with AI Mode?**
-A: Absolutely. All AI interactions happen within your self-hosted Taskosaur instance. Your project data, conversations, and API keys stay completely private. The AI only sees what you choose to share through the chat interface.
+A: Yes. All AI interactions happen within your self-hosted Taskosaur instance. Your project data, conversations, and API keys remain private. The AI only accesses what you share through the chat interface.
 
 ### General Questions
 
@@ -515,7 +506,7 @@ A: Yes! Taskosaur is available under the Business Source License and free for no
 A: Yes, you can use Taskosaur for production purposes as long as you don't offer it to third parties as a competitive hosting service or embedded product. Internal use within your organization is permitted. After 4 years, it becomes MPL 2.0 licensed.
 
 **Q: How does Taskosaur compare to Jira/Monday.com/Asana?**
-A: Taskosaur provides equivalent core functionality but with a revolutionary advantage: the world's first AI Mode that actually executes project management tasks through conversation. While traditional tools require manual navigation and complex workflows, Taskosaur's AI Mode handles everything from project setup to team coordination through natural language. Plus, you get complete data ownership, no subscription fees, full source code access, and self-hosting capability. It's like having Jira's power with an expert Project Manager Assistant built-in.
+A: Taskosaur provides core project management functionality with the addition of AI Mode for conversational task management. You get self-hosting capability, full source code access, and data ownership without subscription fees. AI Mode handles project setup and coordination through natural language instead of manual navigation.
 
 ### Technical Questions
 
