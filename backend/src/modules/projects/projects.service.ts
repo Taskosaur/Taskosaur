@@ -509,10 +509,9 @@ export class ProjectsService {
             where: {
               workspaceId: workspace.id,
               archive: false,
-              OR: [
-                { members: { some: { userId } } },
-                { visibility: 'INTERNAL' },
-              ],
+              members: {
+                some: { userId },
+              },
             },
             select: { id: true },
           });
