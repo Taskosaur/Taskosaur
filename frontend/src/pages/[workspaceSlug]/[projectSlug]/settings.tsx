@@ -37,6 +37,7 @@ function ProjectSettingsContent() {
     name: "",
     description: "",
     status: "ACTIVE",
+    visibility: "PRIVATE",
   });
 
   const retryFetch = () => {
@@ -75,6 +76,7 @@ function ProjectSettingsContent() {
           name: projectData.name || "",
           description: projectData.description || "",
           status: projectData.status || "ACTIVE",
+          visibility: projectData.visibility || "PRIVATE",
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load project");
@@ -182,6 +184,7 @@ function ProjectSettingsContent() {
           name: projectData.name || "",
           description: projectData.description || "",
           status: projectData.status || "ACTIVE",
+          visibility: projectData.visibility || "PRIVATE",
         });
       } catch (err) {
         if (!isActive) return;
@@ -222,6 +225,7 @@ function ProjectSettingsContent() {
         name: formData.name.trim(),
         description: formData.description.trim(),
         status: formData.status,
+        visibility: formData.visibility,
       });
 
       setSuccess("Project settings updated successfully");
@@ -351,6 +355,26 @@ function ProjectSettingsContent() {
               <option value="COMPLETED">Completed</option>
               <option value="ARCHIVED">Archived</option>
             </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="visibility">Visibility</Label>
+            <select
+              id="visibility"
+              value={formData.visibility}
+              onChange={(e) => handleInputChange("visibility", e.target.value)}
+              disabled={saving || !hasAccess}
+              className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] text-sm ${
+                !hasAccess || saving ? "cursor-not-allowed" : "cursor-pointer"
+              }`}
+            >
+              <option value="PRIVATE">🔒 Private - Only members</option>
+              <option value="INTERNAL">🏢 Internal - Workspace members can view</option>
+              <option value="PUBLIC">🌍 Public - Anyone can view</option>
+            </select>
+            <p className="text-xs text-[var(--muted-foreground)]">
+              Control who can access this project. Members always have full access based on their role.
+            </p>
           </div>
 
           {hasAccess && (

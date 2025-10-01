@@ -56,19 +56,21 @@ export class TaskStatusesController {
     @Query('workflowId') workflowId?: string,
     @Query('organizationId') organizationId?: string,
   ) {
-    
     if (workflowId) {
       return this.taskStatusesService.findAll(workflowId);
     }
     if (organizationId) {
-      const defaultWorkflow = await this.taskStatusesService.findDefaultWorkflowByOrganizationId(organizationId);
+      const defaultWorkflow =
+        await this.taskStatusesService.findDefaultWorkflowByOrganizationId(
+          organizationId,
+        );
       if (defaultWorkflow) {
         return this.taskStatusesService.findAll(defaultWorkflow.id);
       } else {
         return [];
       }
     }
-   
+
     return this.taskStatusesService.findAll();
   }
   @Get('project')
@@ -77,11 +79,9 @@ export class TaskStatusesController {
   }
   @Patch('positions')
   updatePositions(
-    
     @Body() updatePositionsDto: UpdatePositionsDto,
     @CurrentUser() user: any,
   ) {
-    
     return this.taskStatusesService.updatePositions(
       updatePositionsDto.statusUpdates,
       user.id,

@@ -35,7 +35,7 @@ import { AdminSeederService } from './admin-seeder.service';
     TaskDependenciesSeederService,
     TaskWatchersSeederService,
     TimeEntriesSeederService,
-    AdminSeederService
+    AdminSeederService,
   ],
   exports: [SeederService],
 })

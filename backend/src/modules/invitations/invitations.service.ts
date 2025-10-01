@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
-import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
 import { PrismaService } from 'src/prisma/prisma.service';
 

@@ -255,8 +255,6 @@ export class TaskosaurAutomation {
    */
   public async initialize(): Promise<Helpers.AutomationResult> {
     try {
-      // console.log('🔧 Initializing Taskosaur Automation System...');
-
       // Check if we're in a browser environment
       if (typeof window === 'undefined') {
         throw new Error('Automation system requires browser environment');
@@ -264,13 +262,10 @@ export class TaskosaurAutomation {
 
       // Check if we're on a Taskosaur domain
       const hostname = window.location.hostname;
-      // console.log(`📍 Current domain: ${hostname}`);
 
       // Perform initial checks
       const authStatus = await AuthAutomation.checkAuthenticationStatus();
       const currentContext = Helpers.getCurrentContext();
-
-      // console.log('✅ Taskosaur Automation System initialized successfully');
 
       return {
         success: true,
@@ -373,19 +368,6 @@ export function enableBrowserConsoleAccess(): void {
     
     // Make workflows available
     (window as any).taskosaurWorkflows = automation.workflows;
-    
-    // console.log('🌐 Taskosaur Automation functions are now available in browser console:');
-    // console.log('- TaskosaurAutomation: Main automation instance');
-    // console.log('- taskosaurAuth: Authentication functions');
-    // console.log('- taskosaurWorkspace: Workspace management');
-    // console.log('- taskosaurProject: Project management');
-    // console.log('- taskosaurTask: Task management');
-    // console.log('- taskosaurHelpers: Utility functions');
-    // console.log('- taskosaurWorkflows: High-level workflows');
-    // console.log('');
-    // console.log('Example usage:');
-    // console.log('await TaskosaurAutomation.login("user@example.com", "password")');
-    // console.log('await taskosaurWorkspace.createWorkspace("My Workspace", "Description")');
   }
 }
 

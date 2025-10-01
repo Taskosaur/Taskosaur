@@ -168,7 +168,6 @@ export async function createTask(
           const text = element.textContent?.toLowerCase() || '';
           if (!text.includes('medium') && !text.includes('assignee') && !text.includes('reporter')) {
             statusButton = element;
-            // console.log(`Status dropdown found with selector: ${selector}`);
             break;
           }
         }
@@ -190,7 +189,6 @@ export async function createTask(
         const optionText = option.textContent?.trim().toLowerCase() || '';
         if (optionText === 'to do' || optionText === 'todo' || optionText === 'open' || 
             optionText === 'new' || optionText === 'backlog') {
-          // console.log(`Selecting status option: "${option.textContent}"`);
           await simulateClick(option);
           await waitFor(500);
           break;
@@ -199,15 +197,13 @@ export async function createTask(
       
       // If no specific status found, just click the first option
       if (statusOptions.length > 0) {
-        // console.log('No specific status found, selecting first option');
         await simulateClick(statusOptions[0]);
         await waitFor(500);
       }
     }
 
     // Set mandatory Priority field (default to Medium if not already set)
-    // console.log('Checking Priority field...');
-    
+
     // Find priority dropdown by checking if it contains "Medium" or "Select" text
     const allButtons = document.querySelectorAll('button[role="combobox"]');
     let priorityButton: Element | null = null;
@@ -216,14 +212,12 @@ export async function createTask(
       const text = button.textContent?.toLowerCase() || '';
       if (text.includes('medium') || text.includes('priority')) {
         priorityButton = button;
-        // console.log('Priority dropdown found: "' + button.textContent + '"');
         break;
       }
     }
 
     // Check if priority needs to be set (if it doesn't already show "Medium")
     if (priorityButton && !priorityButton.textContent?.includes('Medium')) {
-      // console.log('Priority needs to be set, clicking dropdown...');
       await simulateClick(priorityButton);
       await waitFor(1000);
 
@@ -240,12 +234,7 @@ export async function createTask(
           break;
         }
       }
-    } else {
-      // console.log('Priority already set to Medium or dropdown not found');
     }
-
-    // Set mandatory Assignee field (assign to current user)
-    // console.log('Setting mandatory Assignee field...');
 
     // Find assignee dropdown by text content
     let assigneeButton: Element | null = null;
@@ -255,7 +244,6 @@ export async function createTask(
       const text = combobox.textContent?.toLowerCase() || '';
       if (text.includes('select assignee') || text.includes('assignee')) {
         assigneeButton = combobox;
-        // console.log('Assignee dropdown found: "' + combobox.textContent + '"');
         break;
       }
     }
@@ -265,20 +253,18 @@ export async function createTask(
       for (const combobox of assigneeComboboxes) {
         const text = combobox.textContent?.toLowerCase() || '';
         if (text.includes('select reporter') || text.includes('reporter')) {
-          // Skip reporter for now, we want assignee
           continue;
         }
+
         // If we can't find specific assignee dropdown, use any remaining dropdown
         if (!text.includes('status') && !text.includes('medium') && !text.includes('priority')) {
           assigneeButton = combobox;
-          // console.log('Using generic dropdown for assignee: "' + combobox.textContent + '"');
           break;
         }
       }
     }
 
     if (assigneeButton) {
-      // console.log('Clicking assignee dropdown...');
       await simulateClick(assigneeButton);
       await waitFor(1000);
 
@@ -292,7 +278,6 @@ export async function createTask(
         const optionText = option.textContent?.trim().toLowerCase() || '';
         if (optionText === 'me' || optionText.includes('jane smith') || 
             optionText.includes('current user') || optionText.includes('assign to me')) {
-          // console.log(`Selecting assignee: "${option.textContent}"`);
           await simulateClick(option);
           await waitFor(500);
           assigneeSet = true;
@@ -302,7 +287,6 @@ export async function createTask(
       
       // If no specific assignee found, just click the first option (usually current user)
       if (!assigneeSet && assigneeOptions.length > 0) {
-        // console.log('No specific assignee found, selecting first option (current user)');
         await simulateClick(assigneeOptions[0]);
         await waitFor(500);
       }
@@ -310,7 +294,6 @@ export async function createTask(
 
     // Optional: Set description if provided (using the specific markdown editor)
     if (description) {
-      // console.log('Looking for description field (markdown editor)...');
       const descSelectors = [
         '.w-md-editor-text-input', // Specific to the markdown editor
         'textarea[placeholder*="Describe the task"]',
@@ -323,7 +306,6 @@ export async function createTask(
       for (const selector of descSelectors) {
         const descInput = document.querySelector(selector) as HTMLTextAreaElement;
         if (descInput) {
-          // console.log(`Description field found, filling: "${description}"`);
           descInput.focus();
           descInput.click();
           await waitFor(200);
@@ -344,7 +326,6 @@ export async function createTask(
     }
 
     // Find the submit button (from HTML: button[type="submit"] with "Create Task")
-    // console.log('Looking for submit button...');
     let submitButton: Element | null = null;
     
     const submitSelectors = [
@@ -368,7 +349,6 @@ export async function createTask(
         const text = button.textContent?.trim() || '';
         if (text === 'Create Task' || text.includes('Creating')) {
           submitButton = button;
-          // console.log(`Submit button found by text: "${text}"`);
           break;
         }
       }
@@ -381,7 +361,6 @@ export async function createTask(
         const text = button.textContent?.trim() || '';
         if (text === 'Create Task') {
           submitButton = button;
-          // console.log('Found disabled Create Task button - will try to enable it');
           break;
         }
       }
@@ -391,18 +370,8 @@ export async function createTask(
       throw new Error('Submit button not found');
     }
     
-    // Check if the button is still disabled (common when required fields aren't filled)
-    const isDisabled = submitButton.hasAttribute('disabled');
-    if (isDisabled) {
-      // console.log('Submit button is disabled, checking if all required fields are filled...');
-      // We'll try to submit anyway as our field filling should have enabled it
-    }
-
-    // console.log('Submitting task creation form...');
-    
     // If button is still disabled, try to enable it by triggering form validation
     if (submitButton.hasAttribute('disabled')) {
-      // console.log('Button is disabled, triggering form validation...');
       // Focus on the form to trigger validation
       const form = document.querySelector('form');
       if (form) {
@@ -419,18 +388,13 @@ export async function createTask(
     await simulateClick(submitButton);
     
     // Wait for task creation to complete
-    // console.log('Waiting for task creation to complete...');
     await waitFor(3000);
     
     // Check if we've navigated away from the /new page (success indicator)
     const currentPath = window.location.pathname;
     const navigatedAway = !currentPath.includes('/tasks/new');
     
-    if (navigatedAway) {
-      // console.log(`✅ Task creation successful - navigated to: ${currentPath}`);
-    } else {
-      // console.log('Still on task creation page - checking for success/error indicators...');
-      
+    if (!navigatedAway) {
       // Look for specific error messages (exclude page titles and form labels)
       const errorSelectors = [
         '.alert-destructive',
@@ -463,40 +427,8 @@ export async function createTask(
         }
       }
       
-      // Check for success indicators even if still on the same page
-      const successSelectors = [
-        '.alert-success',
-        '.success-message',
-        '.text-success',
-        '.bg-success',
-        '[role="alert"][class*="success"]',
-        '.sonner-toast[data-type="success"]'
-      ];
-      
-      let hasSuccessMessage = false;
-      for (const selector of successSelectors) {
-        if (document.querySelector(selector)) {
-          hasSuccessMessage = true;
-          // console.log('✅ Found success message on page');
-          break;
-        }
-      }
-      
-      // Check if form was reset (another success indicator)
-      const titleInput = document.querySelector('input#title') as HTMLInputElement;
-      const formWasReset = titleInput && titleInput.value === '';
-      
-      // Look for any success toasts or notifications
-      const toastSuccess = document.querySelector('.sonner-toast-success, .toast-success, .notification-success');
-      
       if (hasErrors) {
         throw new Error(`Task creation failed: ${errorText}`);
-      } else if (hasSuccessMessage || formWasReset || toastSuccess) {
-        // console.log('✅ Task creation appears successful based on page indicators');
-      } else {
-        // If no errors found and we're still on the page, assume success
-        // since the logs show the task was actually created
-        // console.log('⚠️  No clear success/error indicators, but assuming success since no errors detected');
       }
     }
     
@@ -1532,7 +1464,6 @@ export async function deleteTask(
         }
       };
     } else {
-      // Cancel deletion
       const cancelButton = document.querySelector('.confirmationmodal-cancel') ||
                           document.querySelector('.confirmationmodal-footer button:last-child');
       
@@ -1549,7 +1480,6 @@ export async function deleteTask(
         }
       };
     }
-
   } catch (error) {
     return {
       success: false,

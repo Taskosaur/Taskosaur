@@ -195,6 +195,7 @@ model Project {
   color           String // Made required (removed ?)
   status          ProjectStatus    @default(PLANNING)
   priority        ProjectPriority  @default(MEDIUM)
+  visibility      ProjectVisibility @default(PRIVATE)
   startDate       DateTime?        @map("start_date")
   endDate         DateTime?        @map("end_date")
   settings        Json?
@@ -331,10 +332,10 @@ model TaskStatus {
   color           String
   category        StatusCategory
   position        Int
-  isDefault       Boolean            @default(false) // ✅ Add this field
-  workflowId      String             @db.Uuid
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  isDefault       Boolean            @default(false) @map("is_default")
+  workflowId      String             @map("workflow_id") @db.Uuid
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
   createdBy       String?            @map("created_by_id") @db.Uuid
   updatedBy       String?            @map("updated_by_id") @db.Uuid
   fromTransitions StatusTransition[] @relation("FromStatus")
@@ -374,7 +375,7 @@ model Sprint {
   name          String
   goal          String?
   status        SprintStatus @default(PLANNING)
-  isDefault     Boolean      @default(false) // ✅ Add this field
+  isDefault     Boolean      @default(false) @map("is_default")
   archive       Boolean      @default(false)
   startDate     DateTime?    @map("start_date")
   endDate       DateTime?    @map("end_date")
@@ -687,6 +688,12 @@ enum ProjectPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+enum ProjectVisibility {
+  PRIVATE
+  INTERNAL
+  PUBLIC
 }
 
 enum TaskType {

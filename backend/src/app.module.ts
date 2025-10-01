@@ -115,7 +115,7 @@ import { AiChatModule } from './modules/ai-chat/ai-chat.module';
     InvitationsModule,
     TaskLabelsModule,
     SettingsModule,
-    AiChatModule
+    AiChatModule,
     // EmailModule,
     // SchedulerModule,
   ],

@@ -181,11 +181,7 @@ export class TaskWatchersSeederService {
       taskType === 'EPIC'
     ) {
       const managers = availableUsers
-        .filter(
-          (u) =>
-            u.role === 'MANAGER' ||
-            u.role === 'SUPER_ADMIN',
-        )
+        .filter((u) => u.role === 'MANAGER' || u.role === 'SUPER_ADMIN')
         .filter((u) => !watchers.find((w) => w.id === u.id));
       watchers.push(...managers.slice(0, 1));
     }

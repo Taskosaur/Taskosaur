@@ -28,18 +28,17 @@ import { LogActivity } from 'src/common/decorator/log-activity.decorator';
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
 @Controller('task-labels')
-
 export class TaskLabelsController {
   constructor(private readonly taskLabelsService: TaskLabelsService) {}
 
   @Post()
   @LogActivity({
-      type: 'TASK_LABEL_ADDED',
-      entityType: 'Task Label',
-      description: 'Added label to task',
-      includeNewValue: true,
-      entityIdName: 'taskId',
-    })
+    type: 'TASK_LABEL_ADDED',
+    entityType: 'Task Label',
+    description: 'Added label to task',
+    includeNewValue: true,
+    entityIdName: 'taskId',
+  })
   @ApiOperation({ summary: 'Assign a label to a task' })
   @ApiResponse({
     status: 201,
@@ -63,11 +62,11 @@ export class TaskLabelsController {
   }
   @Delete(':taskId/:labelId')
   @LogActivity({
-      type: 'TASK_LABEL_REMOVED',
-      entityType: 'Task Label',
-      description: 'Removed label from task',
-      entityIdName: 'taskId',
-    })
+    type: 'TASK_LABEL_REMOVED',
+    entityType: 'Task Label',
+    description: 'Removed label from task',
+    entityIdName: 'taskId',
+  })
   @ApiOperation({ summary: 'Remove a label from a task' })
   @ApiParam({ name: 'taskId', description: 'Task ID (UUID)' })
   @ApiParam({ name: 'labelId', description: 'Label ID (UUID)' })

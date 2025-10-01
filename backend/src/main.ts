@@ -6,7 +6,10 @@ import { join } from 'path';
 import * as express from 'express';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import * as fs from 'fs';
-import { createStaticRoutingMiddleware, findPublicDir } from './middleware/static-routing.middleware';
+import {
+  createStaticRoutingMiddleware,
+  findPublicDir,
+} from './middleware/static-routing.middleware';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -104,7 +107,7 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, swaggerOptions);
   SwaggerModule.setup(swaggerConfig.path, app, document);
-  
+
   if (useUnixSocket) {
     // Ensure socket directory exists
     const socketDir = join(unixSocketPath, '..');

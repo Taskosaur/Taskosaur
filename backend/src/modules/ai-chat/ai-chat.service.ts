@@ -1,5 +1,9 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { ChatRequestDto, ChatResponseDto, ChatMessageDto } from './dto/chat.dto';
+import {
+  ChatRequestDto,
+  ChatResponseDto,
+  ChatMessageDto,
+} from './dto/chat.dto';
 import { SettingsService } from '../settings/settings.service';
 import * as commandsData from '../../constants/commands.json';
 import { WorkspacesService } from '../workspaces/workspaces.service';
@@ -9,14 +13,17 @@ import { ProjectsService } from '../projects/projects.service';
 export class AiChatService {
   private commands: any;
   // Store conversation context per session/user
-  private conversationContexts: Map<string, {
-    workspaceSlug?: string;
-    workspaceName?: string;
-    projectSlug?: string;
-    projectName?: string;
-    lastUpdated: Date;
-    currentWorkSpaceProjectSlug?: string[];
-  }> = new Map();
+  private conversationContexts: Map<
+    string,
+    {
+      workspaceSlug?: string;
+      workspaceName?: string;
+      projectSlug?: string;
+      projectName?: string;
+      lastUpdated: Date;
+      currentWorkSpaceProjectSlug?: string[];
+    }
+  > = new Map();
 
   constructor(
     private settingsService: SettingsService,
@@ -28,7 +35,7 @@ export class AiChatService {
     // Clean up old contexts every hour
     setInterval(() => this.cleanupOldContexts(), 3600000);
   }
-  
+
   private cleanupOldContexts() {
     const oneHourAgo = new Date(Date.now() - 3600000);
     for (const [sessionId, context] of this.conversationContexts.entries()) {
@@ -57,16 +64,17 @@ export class AiChatService {
     slugs: string[] = [],
   ): string {
     // Generate system prompt dynamically from commands.json
-    const commandList = this.commands.commands.map(cmd => {
-      const requiredParams = cmd.params.filter(p => !p.endsWith('?'));
-      const optionalParams = cmd.params.filter(p => p.endsWith('?'));
-      
-      let paramDescription = '';
-      if (requiredParams.length > 0) {
-        paramDescription = `needs ${requiredParams.join(', ')}`;
-      }
-      if (optionalParams.length > 0) {
-        const cleanOptional = optionalParams.map(p => p.replace('?', ''));
+    const commandList = this.commands.commands
+      .map((cmd) => {
+        const requiredParams = cmd.params.filter((p) => !p.endsWith('?'));
+        const optionalParams = cmd.params.filter((p) => p.endsWith('?'));
+
+        let paramDescription = '';
+        if (requiredParams.length > 0) {
+          paramDescription = `needs ${requiredParams.join(', ')}`;
+        }
+        if (optionalParams.length > 0) {
+          const cleanOptional = optionalParams.map((p) => p.replace('?', ''));
           paramDescription += paramDescription
             ? `, optional: ${cleanOptional.join(', ')}`
             : `optional: ${cleanOptional.join(', ')}`;
@@ -169,9 +177,11 @@ WORKSPACE NAME CONVERSION:
 - Always convert spaces to hyphens and make lowercase for slugs
 
 AVAILABLE WORKSPACE SLUGS (from database):
-  ${slugs.length > 0
-        ? slugs.map(slug => `→ slug: "${slug}"`).join('\n')
-      : '- No workspaces available'}
+  ${
+    slugs.length > 0
+      ? slugs.map((slug) => `→ slug: "${slug}"`).join('\n')
+      : '- No workspaces available'
+  }
 
 
 PROJECT NAME CONVERSION:
@@ -193,12 +203,27 @@ CRITICAL REMINDER:
 - If the current context is missing, ALWAYS use the most recent workspace name or slug that the user either navigated to or created.
 
 
-${sessionContext && (sessionContext.workspaceSlug || sessionContext.projectSlug || sessionContext.workspaceName) ? `
+${
+  sessionContext &&
+  (sessionContext.workspaceSlug ||
+    sessionContext.projectSlug ||
+    sessionContext.workspaceName)
+    ? `
 
 CURRENT CONTEXT:
-${sessionContext.workspaceSlug ? `- Current Workspace: ${sessionContext.workspaceName || sessionContext.workspaceSlug} (slug: ${sessionContext.workspaceSlug})
-` : ''}${sessionContext.projectSlug ? `- Current Project: ${sessionContext.projectName || sessionContext.projectSlug} (slug: ${sessionContext.projectSlug})
-` : ''}` : ''}
+${
+  sessionContext.workspaceSlug
+    ? `- Current Workspace: ${sessionContext.workspaceName || sessionContext.workspaceSlug} (slug: ${sessionContext.workspaceSlug})
+`
+    : ''
+}${
+        sessionContext.projectSlug
+          ? `- Current Project: ${sessionContext.projectName || sessionContext.projectSlug} (slug: ${sessionContext.projectSlug})
+`
+          : ''
+      }`
+    : ''
+}
 
 ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current Workspace: ${sessionContext.currentWorkSpaceProjectSlug.join(', ')}` : ''}
 `;
@@ -208,19 +233,28 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     commandName: string,
     parameters: Record<string, any>,
   ): { valid: boolean; missing: string[]; message?: string } {
-    const command = this.commands.commands.find(cmd => cmd.name === commandName);
+    const command = this.commands.commands.find(
+      (cmd) => cmd.name === commandName,
+    );
     if (!command) {
-      return { valid: false, missing: [], message: `Unknown command: ${commandName}` };
+      return {
+        valid: false,
+        missing: [],
+        message: `Unknown command: ${commandName}`,
+      };
     }
 
-    const requiredParams = command.params.filter(p => !p.endsWith('?'));
-    const missing = requiredParams.filter(param => !parameters[param] || parameters[param].toString().trim() === '');
-    
+    const requiredParams = command.params.filter((p) => !p.endsWith('?'));
+    const missing = requiredParams.filter(
+      (param) =>
+        !parameters[param] || parameters[param].toString().trim() === '',
+    );
+
     if (missing.length > 0) {
-      return { 
-        valid: false, 
+      return {
+        valid: false,
         missing,
-        message: `Missing required parameters for ${commandName}: ${missing.join(', ')}`
+        message: `Missing required parameters for ${commandName}: ${missing.join(', ')}`,
       };
     }
 
@@ -232,9 +266,13 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       // Check if AI is enabled
       const isEnabled = await this.settingsService.get('ai_enabled');
       if (isEnabled !== 'true') {
-        throw new BadRequestException('AI chat is currently disabled. Please enable it in settings.');
+        throw new BadRequestException(
+          'AI chat is currently disabled. Please enable it in settings.',
+        );
       }
-      const slugs = await this.workspacesService.findAllSlugs(chatRequest.currentOrganizationId ?? '');
+      const slugs = await this.workspacesService.findAllSlugs(
+        chatRequest.currentOrganizationId ?? '',
+      );
 
       // Get or create session context
       const sessionId = chatRequest.sessionId || 'default';
@@ -247,50 +285,61 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       // Get API settings from database
       const [apiKey, model, apiUrl] = await Promise.all([
         this.settingsService.get('ai_api_key'),
-        this.settingsService.get('ai_model', 'deepseek/deepseek-chat-v3-0324:free'),
-        this.settingsService.get('ai_api_url', 'https://openrouter.ai/api/v1')
+        this.settingsService.get(
+          'ai_model',
+          'deepseek/deepseek-chat-v3-0324:free',
+        ),
+        this.settingsService.get('ai_api_url', 'https://openrouter.ai/api/v1'),
       ]);
 
-      const provider = this.detectProvider(apiUrl || 'https://openrouter.ai/api/v1');
+      const provider = this.detectProvider(
+        apiUrl || 'https://openrouter.ai/api/v1',
+      );
 
       if (!apiKey) {
-        throw new BadRequestException('AI API key not configured. Please set it in settings.');
+        throw new BadRequestException(
+          'AI API key not configured. Please set it in settings.',
+        );
       }
 
       // Build messages array with system prompt and conversation history
       const messages: ChatMessageDto[] = [];
-      
+
       // Generate dynamic system prompt from commands.json with session context
       const systemPrompt = this.generateSystemPrompt(sessionContext, slugs);
       messages.push({
         role: 'system',
-        content: systemPrompt
+        content: systemPrompt,
       });
-      
+
       // Add conversation history if provided
       if (chatRequest.history && Array.isArray(chatRequest.history)) {
         chatRequest.history.forEach((msg: ChatMessageDto) => {
           messages.push({
             role: msg.role,
-            content: msg.content
+            content: msg.content,
           });
         });
       }
-      
+
       // Extract and update context from user message before processing
-      this.extractContextFromMessage(sessionId, chatRequest.message, sessionContext);
-      
+      this.extractContextFromMessage(
+        sessionId,
+        chatRequest.message,
+        sessionContext,
+      );
+
       // Add current user message
       messages.push({
         role: 'user',
-        content: chatRequest.message
+        content: chatRequest.message,
       });
 
       // Prepare request based on provider
       let requestUrl = apiUrl;
-      let requestHeaders: any = {
+      const requestHeaders: any = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       };
       let requestBody: any = {
         model,
@@ -304,20 +353,21 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       switch (provider) {
         case 'openrouter':
           requestUrl = `${apiUrl}/chat/completions`;
-          requestHeaders['HTTP-Referer'] = process.env.APP_URL || 'http://localhost:3000';
+          requestHeaders['HTTP-Referer'] =
+            process.env.APP_URL || 'http://localhost:3000';
           requestHeaders['X-Title'] = 'Taskosaur AI Assistant';
           requestBody.top_p = 0.9;
           requestBody.frequency_penalty = 0;
           requestBody.presence_penalty = 0;
           break;
-          
+
         case 'openai':
           requestUrl = `${apiUrl}/chat/completions`;
           requestBody.top_p = 0.9;
           requestBody.frequency_penalty = 0;
           requestBody.presence_penalty = 0;
           break;
-          
+
         case 'anthropic':
           requestUrl = `${apiUrl}/messages`;
           requestHeaders['x-api-key'] = apiKey;
@@ -325,29 +375,29 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
           delete requestHeaders['Authorization'];
           requestBody = {
             model,
-            messages: messages.filter(m => m.role !== 'system'), // Anthropic doesn't use system role the same way
-            system: messages.find(m => m.role === 'system')?.content,
+            messages: messages.filter((m) => m.role !== 'system'), // Anthropic doesn't use system role the same way
+            system: messages.find((m) => m.role === 'system')?.content,
             max_tokens: 500,
             temperature: 0.1,
           };
           break;
-          
+
         case 'google':
           // Google Gemini has a different API structure
           requestUrl = `${apiUrl}/models/${model}:generateContent?key=${apiKey}`;
           delete requestHeaders['Authorization'];
           requestBody = {
-            contents: messages.map(m => ({
+            contents: messages.map((m) => ({
               role: m.role === 'assistant' ? 'model' : m.role,
-              parts: [{ text: m.content }]
+              parts: [{ text: m.content }],
             })),
             generationConfig: {
               temperature: 0.1,
               maxOutputTokens: 500,
-            }
+            },
           };
           break;
-          
+
         default: // custom or openrouter fallback
           requestUrl = `${apiUrl}/chat/completions`;
           break;
@@ -362,20 +412,29 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        
+
         if (response.status === 401) {
-          throw new BadRequestException('Invalid API key. Please check your OpenRouter API key in settings.');
+          throw new BadRequestException(
+            'Invalid API key. Please check your OpenRouter API key in settings.',
+          );
         } else if (response.status === 429) {
-          throw new BadRequestException('Rate limit exceeded by API provider. Please try again in a moment.');
+          throw new BadRequestException(
+            'Rate limit exceeded by API provider. Please try again in a moment.',
+          );
         } else if (response.status === 402) {
-          throw new BadRequestException('Insufficient credits. Please check your OpenRouter account.');
+          throw new BadRequestException(
+            'Insufficient credits. Please check your OpenRouter account.',
+          );
         }
-        
-        throw new BadRequestException(errorData.error?.message || `API request failed with status ${response.status}`);
+
+        throw new BadRequestException(
+          errorData.error?.message ||
+            `API request failed with status ${response.status}`,
+        );
       }
 
       const data = await response.json();
-      
+
       let aiMessage = '';
 
       // Parse response based on provider
@@ -383,11 +442,11 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
         case 'anthropic':
           aiMessage = data.content?.[0]?.text || '';
           break;
-          
+
         case 'google':
           aiMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
           break;
-          
+
         default: // OpenAI, OpenRouter, and custom providers use the same format
           aiMessage = data.choices?.[0]?.message?.content || '';
           break;
@@ -395,30 +454,30 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
       // Parse command if detected
       let action: { name: string; parameters: Record<string, any> } | undefined;
-      
+
       // Try both formats: with ** markers and without
       // Use a more robust regex that handles nested braces
-      let commandMatch = aiMessage.match(/\*\*\[COMMAND:\s*([^\]]+)\]\*\*\s*(\{.*\})$/m);
+      let commandMatch = aiMessage.match(
+        /\*\*\[COMMAND:\s*([^\]]+)\]\*\*\s*(\{.*\})$/m,
+      );
       if (!commandMatch) {
         commandMatch = aiMessage.match(/\[COMMAND:\s*([^\]]+)\]\s*(\{.*\})$/m);
       }
-      
+
       // If still no match, try without requiring closing brace and attempt to fix JSON
       if (!commandMatch) {
         commandMatch = aiMessage.match(/\[COMMAND:\s*([^\]]+)\]\s*(\{.*)/);
       }
-      
+
       if (commandMatch) {
         try {
           const commandName = commandMatch[1].trim();
           const parametersString = commandMatch[2] || '{}';
-          
+
           let parameters: any;
           try {
             parameters = JSON.parse(parametersString);
           } catch (parseError) {
-
-            
             // Attempt to repair incomplete JSON by adding missing closing braces
             let repairedJson = parametersString;
             let openBraces = 0;
@@ -426,45 +485,59 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
               if (repairedJson[i] === '{') openBraces++;
               if (repairedJson[i] === '}') openBraces--;
             }
-            
+
             // Add missing closing braces
             while (openBraces > 0) {
               repairedJson += '}';
               openBraces--;
             }
-            
+
             try {
               parameters = JSON.parse(repairedJson);
             } catch (repairError) {
               throw parseError; // Throw original error
             }
           }
-          
+
           // Validate command parameters
-          const validation = this.validateCommandParameters(commandName, parameters);
-          
+          const validation = this.validateCommandParameters(
+            commandName,
+            parameters,
+          );
+
           if (!validation.valid) {
             // Override the AI message with parameter collection guidance
-            const missingParamsList = validation.missing.length > 0 
-              ? `I need the following information to proceed: ${validation.missing.join(', ')}.`
-              : validation.message;
-            
+            const missingParamsList =
+              validation.missing.length > 0
+                ? `I need the following information to proceed: ${validation.missing.join(', ')}.`
+                : validation.message;
+
             // Don't return action if validation fails - this prevents execution
             return {
               message: `${aiMessage}\n\n${missingParamsList}`,
-              success: true
+              success: true,
             };
           }
-          
+
           if (sessionContext) {
             // Auto-fill workspace/project if missing and context exists
-            if (commandName !== 'listWorkspaces' && commandName !== 'createWorkspace') {
+            if (
+              commandName !== 'listWorkspaces' &&
+              commandName !== 'createWorkspace'
+            ) {
               if (!parameters.workspaceSlug && sessionContext.workspaceSlug) {
                 parameters.workspaceSlug = sessionContext.workspaceSlug;
               }
             }
-            if (commandName.includes('Task') || commandName.includes('Project')) {
-              if (!parameters.projectSlug && sessionContext.projectSlug && parameters.workspaceSlug === sessionContext.workspaceSlug) {
+            if (
+              commandName.includes('Task') ||
+              commandName.includes('Project')
+            ) {
+              if (
+                !parameters.projectSlug &&
+                sessionContext.projectSlug &&
+                parameters.workspaceSlug === sessionContext.workspaceSlug
+              ) {
                 parameters.projectSlug = sessionContext.projectSlug;
               }
             }
@@ -473,9 +546,14 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
           // Validate the project slug
           switch (commandName) {
             case 'navigateToProject':
-              const projectSlug = await this.projectService.validateProjectSlug(parameters.projectSlug);
+              const projectSlug = await this.projectService.validateProjectSlug(
+                parameters.projectSlug,
+              );
 
-              if (projectSlug.status === 'exact' || projectSlug.status === 'fuzzy') {
+              if (
+                projectSlug.status === 'exact' ||
+                projectSlug.status === 'fuzzy'
+              ) {
                 parameters.projectSlug = projectSlug.slug;
               }
 
@@ -499,10 +577,15 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
           action = {
             name: commandName,
-            parameters
+            parameters,
           };
           // Update context based on command execution
-        await this.updateContextFromCommand(sessionId, commandName, parameters, sessionContext);
+          await this.updateContextFromCommand(
+            sessionId,
+            commandName,
+            parameters,
+            sessionContext,
+          );
         } catch (error) {
           console.error('Failed to parse command parameters:', error);
         }
@@ -511,23 +594,24 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       return {
         message: aiMessage,
         action,
-        success: true
+        success: true,
       };
-
     } catch (error: any) {
-      
-      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+      if (
+        error.message?.includes('Failed to fetch') ||
+        error.message?.includes('NetworkError')
+      ) {
         return {
           message: '',
           success: false,
-          error: 'Network error. Please check your internet connection.'
+          error: 'Network error. Please check your internet connection.',
         };
       }
-      
+
       return {
         message: '',
         success: false,
-        error: error.message || 'Failed to process chat request'
+        error: error.message || 'Failed to process chat request',
       };
     }
   }
@@ -541,22 +625,29 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     // Update workspace context
     if (commandName === 'navigateToWorkspace') {
       if (parameters.workspaceSlug) {
-        const slug = await this.workspacesService.getIdBySlug(parameters.workspaceSlug);
-        const currentWorkSpaceAllProjects = await this.projectService.getAllSlugsByWorkspaceId(slug ?? '');
+        const slug = await this.workspacesService.getIdBySlug(
+          parameters.workspaceSlug,
+        );
+        const currentWorkSpaceAllProjects =
+          await this.projectService.getAllSlugsByWorkspaceId(slug ?? '');
         context.currentWorkSpaceProjectSlug = currentWorkSpaceAllProjects;
         context.workspaceSlug = parameters.workspaceSlug;
-        context.workspaceName = parameters.workspaceName || parameters.workspaceSlug;
+        context.workspaceName =
+          parameters.workspaceName || parameters.workspaceSlug;
         // Clear project context when switching workspaces
         delete context.projectSlug;
         delete context.projectName;
       }
     }
-    
+
     // Handle createWorkspace - convert name to slug and update context
     if (commandName === 'createWorkspace') {
       if (parameters.name) {
         // Convert workspace name to slug format
-        const workspaceSlug = parameters.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        const workspaceSlug = parameters.name
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '');
         context.workspaceSlug = workspaceSlug;
         context.workspaceName = parameters.name;
         // Clear project context when creating new workspace
@@ -567,11 +658,15 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
     // Update project context
     const slugify = (str) =>
-      str?.toLowerCase()
+      str
+        ?.toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '');
 
-    if (commandName === 'navigateToProject' || commandName === 'createProject') {
+    if (
+      commandName === 'navigateToProject' ||
+      commandName === 'createProject'
+    ) {
       const { name, projectSlug, workspaceSlug } = parameters;
 
       if (commandName === 'createProject') {
@@ -595,17 +690,21 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
         context.workspaceName = parameters.updates.name;
       }
     }
-    
+
     // Update last activity timestamp
     context.lastUpdated = new Date();
-    
+
     // Save updated context
     this.conversationContexts.set(sessionId, context);
   }
-  private extractContextFromMessage(sessionId: string, message: string, context: any) {
+  private extractContextFromMessage(
+    sessionId: string,
+    message: string,
+    context: any,
+  ) {
     const lowerMessage = message.toLowerCase();
     let contextUpdated = false;
-    
+
     // Extract workspace mentions - improved patterns
     const workspacePatterns = [
       /(?:go\s+with|use|with|navigate\s+to|go\s+to)\s+workspace\s+["\']([^"']+)["\']?/gi,
@@ -615,30 +714,30 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       /in\s+(?:the\s+)?["\']?([^"'.,!?\n]+)\s+workspace["\']?/gi,
       /["\']?([a-zA-Z][^"'.,!?\n]*?)\s+w[uo]rkspace["\']?/gi,
       // Add pattern for "take me to X" or "navigate to X"
-      /(?:take\s+me\s+to|navigate\s+to|go\s+to)\s+["\']?([^"'.,!?\n]+)["\']?(?:\s+workspace)?/gi
+      /(?:take\s+me\s+to|navigate\s+to|go\s+to)\s+["\']?([^"'.,!?\n]+)["\']?(?:\s+workspace)?/gi,
     ];
-    
+
     for (const pattern of workspacePatterns) {
       const matches = [...message.matchAll(pattern)];
       for (const match of matches) {
         if (match[1]) {
           const workspaceName = match[1].trim();
-          
+
           context.workspaceName = workspaceName;
           contextUpdated = true;
-          
+
           // Clear project context when switching workspaces (unless mentioned in same message)
           if (!lowerMessage.includes('project')) {
             delete context.projectSlug;
             delete context.projectName;
           }
-          
+
           break; // Use first match
         }
       }
     }
-    
-    // Extract project mentions - improved patterns  
+
+    // Extract project mentions - improved patterns
     const projectPatterns = [
       // "Ok, go with HIMS project"
       /(?:ok,?\s+)?(?:go\s+with|use|with|navigate\s+to|go\s+to)\s+["\']?([^"'.,!?\n]+?)\s+project["\']?/gi,
@@ -651,44 +750,73 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       // "in HIMS project"
       /in\s+(?:the\s+)?["\']?([^"'.,!?\n]+?)\s+project["\']?/gi,
       // Add pattern for "take me to project X"
-      /(?:take\s+me\s+to|navigate\s+to|go\s+to)\s+project\s+["\']?([^"'.,!?\n]+)["\']?/gi
+      /(?:take\s+me\s+to|navigate\s+to|go\s+to)\s+project\s+["\']?([^"'.,!?\n]+)["\']?/gi,
     ];
-    
+
     for (const pattern of projectPatterns) {
       const matches = [...message.matchAll(pattern)];
       for (const match of matches) {
         if (match[1]) {
-          let projectName = match[1].trim();
-          
+          const projectName = match[1].trim();
+
           // Skip if it looks like a workspace (contains 'workspace')
-          if (projectName.toLowerCase().includes('workspace') || projectName.toLowerCase().includes('wokspace')) {
+          if (
+            projectName.toLowerCase().includes('workspace') ||
+            projectName.toLowerCase().includes('wokspace')
+          ) {
             continue;
           }
-          
+
           // Skip common words that aren't project names
           const skipWords = [
-            'yes', 'no', 'ok', 'fine', 'good', 'sure', 'right', 'correct', 'thanks', 'thank you',
-            'i want to create a task drink water', 'can you first list the projects sot hat i can choose',
-            'the', 'a', 'an', 'and', 'or', 'but', 'with', 'without', 'please', 'help'
+            'yes',
+            'no',
+            'ok',
+            'fine',
+            'good',
+            'sure',
+            'right',
+            'correct',
+            'thanks',
+            'thank you',
+            'i want to create a task drink water',
+            'can you first list the projects sot hat i can choose',
+            'the',
+            'a',
+            'an',
+            'and',
+            'or',
+            'but',
+            'with',
+            'without',
+            'please',
+            'help',
           ];
-          if (skipWords.some(word => projectName.toLowerCase().includes(word)) || 
-              projectName.toLowerCase().startsWith('i want to') ||
-              projectName.toLowerCase().startsWith('can you')) {
+          if (
+            skipWords.some((word) =>
+              projectName.toLowerCase().includes(word),
+            ) ||
+            projectName.toLowerCase().startsWith('i want to') ||
+            projectName.toLowerCase().startsWith('can you')
+          ) {
             continue;
           }
-          
+
           // Convert name to slug format
-          const projectSlug = projectName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-          
+          const projectSlug = projectName
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '');
+
           context.projectSlug = projectSlug;
           context.projectName = projectName;
           contextUpdated = true;
-          
+
           break; // Use first match
         }
       }
     }
-    
+
     // Update last activity timestamp and save context
     if (contextUpdated) {
       context.lastUpdated = new Date();
@@ -700,7 +828,6 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
   clearContext(sessionId: string): { success: boolean } {
     if (this.conversationContexts.has(sessionId)) {
       this.conversationContexts.delete(sessionId);
-    
     }
     return { success: true };
   }

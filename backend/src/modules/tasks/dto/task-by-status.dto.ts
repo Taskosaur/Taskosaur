@@ -25,7 +25,7 @@ export interface TasksByStatusParams {
   slug: string;
   userId?: string;
   includeSubtasks?: boolean;
-  organizationId: string; 
+  organizationId: string;
 }
 
 export class GetTasksByStatusQueryDto {

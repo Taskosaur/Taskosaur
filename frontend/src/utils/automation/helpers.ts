@@ -555,8 +555,6 @@ export async function retryWithBackoff<T>(
 }
 
 export function normalizeDate(dateStr: string): string {
-    // Already in correct format
-    // yyyy-mm-dd or yyyy-dd-mm
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
     const clean = dateStr.replace(/\//g, "-");
     const parts = clean.split("-").map(p => p.trim());

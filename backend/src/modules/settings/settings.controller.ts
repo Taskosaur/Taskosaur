@@ -1,8 +1,21 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SettingsService } from './settings.service';
-import { SetSettingDto, GetSettingDto, SettingResponseDto } from './dto/settings.dto';
+import {
+  SetSettingDto,
+  GetSettingDto,
+  SettingResponseDto,
+} from './dto/settings.dto';
 
 @ApiTags('Settings')
 @Controller('settings')
@@ -22,7 +35,7 @@ export class SettingsController {
   @ApiResponse({ status: 200, type: SettingResponseDto })
   async getSetting(
     @Param('key') key: string,
-    @Query('defaultValue') defaultValue?: string
+    @Query('defaultValue') defaultValue?: string,
   ) {
     const value = await this.settingsService.get(key, defaultValue);
     return { key, value };
@@ -30,14 +43,17 @@ export class SettingsController {
 
   @Post()
   @ApiOperation({ summary: 'Set or update a setting' })
-  @ApiResponse({ status: 201, description: 'Setting created/updated successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Setting created/updated successfully',
+  })
   async setSetting(@Body() setSettingDto: SetSettingDto) {
     await this.settingsService.set(
       setSettingDto.key,
       setSettingDto.value,
       setSettingDto.description,
       setSettingDto.category,
-      setSettingDto.isEncrypted
+      setSettingDto.isEncrypted,
     );
     return { message: 'Setting updated successfully' };
   }

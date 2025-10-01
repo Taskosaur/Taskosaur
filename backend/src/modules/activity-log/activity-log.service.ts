@@ -5,7 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class ActivityLogService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async logActivity(data: {
     type: ActivityType;
@@ -211,7 +211,7 @@ export class ActivityLogService {
       includeChatActivities?: boolean;
       dateFrom?: Date;
       dateTo?: Date;
-    }
+    },
   ): Promise<{
     activities: any[];
     pagination: {
@@ -226,7 +226,7 @@ export class ActivityLogService {
     if (!taskId) {
       throw new Error('Task ID is required');
     }
-    let activityTypeFilter: any = {};
+    const activityTypeFilter: any = {};
 
     if (filters?.activityTypes && filters.activityTypes.length > 0) {
       activityTypeFilter.type = { in: filters.activityTypes };
@@ -240,10 +240,10 @@ export class ActivityLogService {
           ActivityType.TASK_COMMENTED,
           ActivityType.TASK_LABEL_ADDED,
           ActivityType.TASK_LABEL_REMOVED,
-        ]
+        ],
       };
     }
-    let dateFilter: any = {};
+    const dateFilter: any = {};
     if (filters?.dateFrom || filters?.dateTo) {
       dateFilter.createdAt = {};
       if (filters.dateFrom) {
@@ -276,23 +276,23 @@ export class ActivityLogService {
             {
               newValue: {
                 path: ['taskId'],
-                equals: taskId
-              }
+                equals: taskId,
+              },
             },
             {
               oldValue: {
                 path: ['taskId'],
-                equals: taskId
-              }
-            }
-          ]
+                equals: taskId,
+              },
+            },
+          ],
         },
         {
           entityType: 'Task Label',
           ...activityTypeFilter,
           ...dateFilter,
-          entityId: taskId
-        }
+          entityId: taskId,
+        },
       ],
     };
 
@@ -335,8 +335,8 @@ export class ActivityLogService {
 
     // Fetch related comments/messages separately based on entityType and entityId
     const commentIds = activities
-      .filter(activity => activity.entityType === 'TaskComment')
-      .map(activity => activity.entityId);
+      .filter((activity) => activity.entityType === 'TaskComment')
+      .map((activity) => activity.entityId);
 
     // Fetch comments if any exist
     let comments: any[] = [];
@@ -355,7 +355,7 @@ export class ActivityLogService {
 
     // Transform activities with enhanced data
     const transformedActivities = activities.map((activity) => {
-      const relatedComment = comments.find(c => c.id === activity.entityId);
+      const relatedComment = comments.find((c) => c.id === activity.entityId);
 
       return {
         id: activity.id,
@@ -389,10 +389,12 @@ export class ActivityLogService {
   private getRelatedActivityData(activity: any, comment?: any) {
     switch (activity.entityType) {
       case 'TaskComment':
-        return comment ? {
-          comment,
-          type: 'comment',
-        } : null;
+        return comment
+          ? {
+              comment,
+              type: 'comment',
+            }
+          : null;
       case 'Task':
         return {
           type: 'task',
@@ -401,9 +403,6 @@ export class ActivityLogService {
         return null;
     }
   }
-
-
-
 
   // activity-log.service.ts
   // More efficient version using raw query or better Prisma relations

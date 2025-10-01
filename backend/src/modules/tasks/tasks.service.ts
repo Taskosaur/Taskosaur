@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { StatusCategory, Task, TaskPriority, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -8,7 +12,10 @@ import { AccessControlService } from 'src/common/access-control.utils';
 
 @Injectable()
 export class TasksService {
-  constructor(private prisma: PrismaService, private accessControl: AccessControlService) { }
+  constructor(
+    private prisma: PrismaService,
+    private accessControl: AccessControlService,
+  ) {}
 
   async create(createTaskDto: CreateTaskDto, userId: string): Promise<Task> {
     const project = await this.prisma.project.findUnique({
@@ -20,9 +27,9 @@ export class TasksService {
         workspace: {
           select: {
             organizationId: true,
-            organization: { select: { ownerId: true } }
-          }
-        }
+            organization: { select: { ownerId: true } },
+          },
+        },
       },
     });
 
@@ -40,7 +47,9 @@ export class TasksService {
       });
 
       const wsMember = await this.prisma.workspaceMember.findUnique({
-        where: { userId_workspaceId: { userId, workspaceId: project.workspaceId } },
+        where: {
+          userId_workspaceId: { userId, workspaceId: project.workspaceId },
+        },
         select: { role: true },
       });
 
@@ -52,7 +61,9 @@ export class TasksService {
       const canCreate = orgMember || wsMember || projectMember;
 
       if (!canCreate) {
-        throw new ForbiddenException('Insufficient permissions to create task in this project');
+        throw new ForbiddenException(
+          'Insufficient permissions to create task in this project',
+        );
       }
     }
 
@@ -96,10 +107,22 @@ export class TasksService {
           },
         },
         assignee: {
-          select: { id: true, email: true, firstName: true, lastName: true, avatar: true },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
         },
         reporter: {
-          select: { id: true, email: true, firstName: true, lastName: true, avatar: true },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
         },
         status: {
           select: { id: true, name: true, color: true, category: true },
@@ -111,7 +134,12 @@ export class TasksService {
           select: { id: true, title: true, slug: true, type: true },
         },
         _count: {
-          select: { childTasks: true, comments: true, attachments: true, watchers: true },
+          select: {
+            childTasks: true,
+            comments: true,
+            attachments: true,
+            watchers: true,
+          },
         },
       },
     });
@@ -129,7 +157,13 @@ export class TasksService {
     search?: string,
     page: number = 1,
     limit: number = 20,
-  ): Promise<{ data: Task[]; total: number; page: number; limit: number; totalPages: number }> {
+  ): Promise<{
+    data: Task[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     if (!userId) {
       throw new ForbiddenException('User context required');
     }
@@ -188,7 +222,11 @@ export class TasksService {
 
     // Handle parentTaskId filtering
     if (parentTaskId !== undefined) {
-      if (parentTaskId === 'null' || parentTaskId === '' || parentTaskId === null) {
+      if (
+        parentTaskId === 'null' ||
+        parentTaskId === '' ||
+        parentTaskId === null
+      ) {
         whereClause.parentTaskId = null;
       } else {
         whereClause.parentTaskId = parentTaskId;
@@ -248,7 +286,12 @@ export class TasksService {
               taskId: true,
               labelId: true,
               label: {
-                select: { id: true, name: true, color: true, description: true },
+                select: {
+                  id: true,
+                  name: true,
+                  color: true,
+                  description: true,
+                },
               },
             },
           },
@@ -267,7 +310,13 @@ export class TasksService {
             },
           },
           assignee: {
-            select: { id: true, firstName: true, lastName: true, avatar: true, email: true },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              email: true,
+            },
           },
           reporter: {
             select: { id: true, firstName: true, lastName: true, avatar: true },
@@ -279,7 +328,9 @@ export class TasksService {
           parentTask: {
             select: { id: true, title: true, slug: true, type: true },
           },
-          _count: { select: { childTasks: true, comments: true, attachments: true } },
+          _count: {
+            select: { childTasks: true, comments: true, attachments: true },
+          },
         },
         orderBy: { taskNumber: 'desc' },
         skip,
@@ -324,7 +375,10 @@ export class TasksService {
       throw new ForbiddenException('User context required');
     }
 
-    const { isElevated } = await this.accessControl.getOrgAccess(organizationId, userId);
+    const { isElevated } = await this.accessControl.getOrgAccess(
+      organizationId,
+      userId,
+    );
 
     // Verify organization exists
     const organization = await this.prisma.organization.findUnique({
@@ -382,7 +436,11 @@ export class TasksService {
 
     if (!isElevated) {
       andConditions.push({
-        OR: [{ assigneeId: userId }, { reporterId: userId }, { createdBy: userId }],
+        OR: [
+          { assigneeId: userId },
+          { reporterId: userId },
+          { createdBy: userId },
+        ],
       });
     }
 
@@ -397,7 +455,9 @@ export class TasksService {
           select: {
             taskId: true,
             labelId: true,
-            label: { select: { id: true, name: true, color: true, description: true } },
+            label: {
+              select: { id: true, name: true, color: true, description: true },
+            },
           },
         },
         project: {
@@ -405,15 +465,33 @@ export class TasksService {
             id: true,
             name: true,
             slug: true,
-            workspace: { select: { id: true, name: true, organizationId: true } },
+            workspace: {
+              select: { id: true, name: true, organizationId: true },
+            },
           },
         },
-        assignee: { select: { id: true, firstName: true, lastName: true, avatar: true, email: true } },
-        reporter: { select: { id: true, firstName: true, lastName: true, avatar: true } },
-        status: { select: { id: true, name: true, color: true, category: true } },
+        assignee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            email: true,
+          },
+        },
+        reporter: {
+          select: { id: true, firstName: true, lastName: true, avatar: true },
+        },
+        status: {
+          select: { id: true, name: true, color: true, category: true },
+        },
         sprint: { select: { id: true, name: true, status: true } },
-        parentTask: { select: { id: true, title: true, slug: true, type: true } },
-        _count: { select: { childTasks: true, comments: true, attachments: true } },
+        parentTask: {
+          select: { id: true, title: true, slug: true, type: true },
+        },
+        _count: {
+          select: { childTasks: true, comments: true, attachments: true },
+        },
       },
       orderBy: { taskNumber: 'desc' },
     });
@@ -429,7 +507,6 @@ export class TasksService {
       })),
     }));
   }
-
 
   async findOne(id: string, userId: string): Promise<Task | any> {
     const { isElevated } = await this.accessControl.getTaskAccess(id, userId);
@@ -455,56 +532,86 @@ export class TasksService {
           },
         },
         assignee: {
-          select: { id: true, email: true, firstName: true, lastName: true, avatar: true },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
         },
         reporter: {
-          select: { id: true, email: true, firstName: true, lastName: true, avatar: true },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
         },
         status: {
           select: { id: true, name: true, color: true, category: true },
         },
         sprint: {
-          select: { id: true, name: true, status: true, startDate: true, endDate: true },
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            startDate: true,
+            endDate: true,
+          },
         },
         parentTask: {
           select: { id: true, title: true, slug: true, type: true },
         },
-        childTasks: isElevated ? {
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-            type: true,
-            priority: true,
-            status: {
-              select: { name: true, color: true, category: true },
+        childTasks: isElevated
+          ? {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                type: true,
+                priority: true,
+                status: {
+                  select: { name: true, color: true, category: true },
+                },
+                assignee: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    avatar: true,
+                  },
+                },
+              },
+            }
+          : {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                type: true,
+                priority: true,
+                status: {
+                  select: { name: true, color: true, category: true },
+                },
+                assignee: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    avatar: true,
+                  },
+                },
+              },
+              where: {
+                OR: [
+                  { assigneeId: userId },
+                  { reporterId: userId },
+                  { createdBy: userId },
+                ],
+              },
             },
-            assignee: {
-              select: { id: true, firstName: true, lastName: true, avatar: true },
-            },
-          },
-        } : {
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-            type: true,
-            priority: true,
-            status: {
-              select: { name: true, color: true, category: true },
-            },
-            assignee: {
-              select: { id: true, firstName: true, lastName: true, avatar: true },
-            },
-          },
-          where: {
-            OR: [
-              { assigneeId: userId },
-              { reporterId: userId },
-              { createdBy: userId },
-            ],
-          },
-        },
         labels: {
           include: {
             label: {
@@ -515,31 +622,58 @@ export class TasksService {
         watchers: {
           include: {
             user: {
-              select: { id: true, firstName: true, lastName: true, avatar: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
             },
           },
         },
         comments: {
           include: {
             author: {
-              select: { id: true, firstName: true, lastName: true, avatar: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
             },
           },
           orderBy: { createdAt: 'desc' },
         },
         attachments: {
-          select: { id: true, fileName: true, fileSize: true, mimeType: true, createdAt: true },
+          select: {
+            id: true,
+            fileName: true,
+            fileSize: true,
+            mimeType: true,
+            createdAt: true,
+          },
         },
         timeEntries: {
           include: {
             user: {
-              select: { id: true, firstName: true, lastName: true, avatar: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
             },
           },
           orderBy: { date: 'desc' },
         },
         _count: {
-          select: { childTasks: true, comments: true, attachments: true, watchers: true, timeEntries: true },
+          select: {
+            childTasks: true,
+            comments: true,
+            attachments: true,
+            watchers: true,
+            timeEntries: true,
+          },
         },
       },
     });
@@ -576,7 +710,11 @@ export class TasksService {
     return this.findOne(task.id, userId);
   }
 
-  async update(id: string, updateTaskDto: UpdateTaskDto, userId: string): Promise<Task> {
+  async update(
+    id: string,
+    updateTaskDto: UpdateTaskDto,
+    userId: string,
+  ): Promise<Task> {
     const { isElevated } = await this.accessControl.getTaskAccess(id, userId);
 
     // Check if user can update this task
@@ -590,13 +728,16 @@ export class TasksService {
     }
 
     // Allow update if user is elevated OR is the assignee/reporter/creator
-    const canUpdate = isElevated ||
+    const canUpdate =
+      isElevated ||
       task.assigneeId === userId ||
       task.reporterId === userId ||
       task.createdBy === userId;
 
     if (!canUpdate) {
-      throw new ForbiddenException('Insufficient permissions to update this task');
+      throw new ForbiddenException(
+        'Insufficient permissions to update this task',
+      );
     }
 
     try {
@@ -801,10 +942,7 @@ export class TasksService {
       ];
 
       if (search && search.trim()) {
-        whereClause.AND = [
-          { OR: whereClause.OR },
-          { OR: userFilters },
-        ];
+        whereClause.AND = [{ OR: whereClause.OR }, { OR: userFilters }];
         delete whereClause.OR;
       } else {
         whereClause.OR = userFilters;
@@ -824,7 +962,13 @@ export class TasksService {
         labels: { include: { label: true } },
         project: { select: { id: true, name: true, slug: true } },
         assignee: {
-          select: { id: true, firstName: true, lastName: true, avatar: true, email: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            email: true,
+          },
         },
         reporter: {
           select: { id: true, firstName: true, lastName: true, avatar: true },
@@ -890,7 +1034,10 @@ export class TasksService {
       throw new ForbiddenException('User context required');
     }
 
-    const { isElevated } = await this.accessControl.getOrgAccess(organizationId, userId);
+    const { isElevated } = await this.accessControl.getOrgAccess(
+      organizationId,
+      userId,
+    );
 
     const today = new Date();
     const startOfDay = new Date(today);
@@ -995,10 +1142,22 @@ export class TasksService {
             },
           },
           assignee: {
-            select: { id: true, firstName: true, lastName: true, avatar: true, email: true },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              email: true,
+            },
           },
           reporter: {
-            select: { id: true, firstName: true, lastName: true, avatar: true, email: true },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              email: true,
+            },
           },
           status: {
             select: { id: true, name: true, color: true, category: true },
@@ -1013,10 +1172,7 @@ export class TasksService {
             select: { childTasks: true, comments: true, timeEntries: true },
           },
         },
-        orderBy: [
-          { dueDate: 'asc' },
-          { updatedAt: 'desc' },
-        ],
+        orderBy: [{ dueDate: 'asc' }, { updatedAt: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -1077,7 +1233,10 @@ export class TasksService {
       // Check if user has elevated access
       let isElevated = false;
       if (type === 'project') {
-        const projectAccess = await this.accessControl.getProjectAccess(whereClause.projectId, userId);
+        const projectAccess = await this.accessControl.getProjectAccess(
+          whereClause.projectId,
+          userId,
+        );
         isElevated = projectAccess.isElevated;
       }
 
@@ -1106,7 +1265,13 @@ export class TasksService {
         where: whereClause,
         include: {
           status: {
-            select: { id: true, name: true, color: true, category: true, position: true },
+            select: {
+              id: true,
+              name: true,
+              color: true,
+              category: true,
+              position: true,
+            },
           },
           assignee: {
             select: { id: true, firstName: true, lastName: true, avatar: true },
@@ -1146,18 +1311,18 @@ export class TasksService {
             taskNumber: task.taskNumber,
             assignee: task.assignee
               ? {
-                id: task.assignee.id,
-                firstName: task.assignee.firstName,
-                lastName: task.assignee.lastName,
-                avatar: task.assignee.avatar || undefined,
-              }
+                  id: task.assignee.id,
+                  firstName: task.assignee.firstName,
+                  lastName: task.assignee.lastName,
+                  avatar: task.assignee.avatar || undefined,
+                }
               : undefined,
             reporter: task.reporter
               ? {
-                id: task.reporter.id,
-                firstName: task.reporter.firstName,
-                lastName: task.reporter.lastName,
-              }
+                  id: task.reporter.id,
+                  firstName: task.reporter.firstName,
+                  lastName: task.reporter.lastName,
+                }
               : undefined,
             dueDate: task.dueDate ? task.dueDate.toISOString() : undefined,
             createdAt: task.createdAt.toISOString(),
@@ -1176,10 +1341,16 @@ export class TasksService {
   }
 
   // Additional helper methods with role-based filtering
-  async findSubtasksByParent(parentTaskId: string, userId: string): Promise<Task[]> {
+  async findSubtasksByParent(
+    parentTaskId: string,
+    userId: string,
+  ): Promise<Task[]> {
     await this.accessControl.getTaskAccess(parentTaskId, userId);
 
-    const { isElevated } = await this.accessControl.getTaskAccess(parentTaskId, userId);
+    const { isElevated } = await this.accessControl.getTaskAccess(
+      parentTaskId,
+      userId,
+    );
 
     const whereClause: any = {
       parentTaskId: parentTaskId,
@@ -1202,7 +1373,13 @@ export class TasksService {
           select: { id: true, name: true, slug: true },
         },
         assignee: {
-          select: { id: true, firstName: true, lastName: true, avatar: true, email: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            email: true,
+          },
         },
         reporter: {
           select: { id: true, firstName: true, lastName: true, avatar: true },
@@ -1248,7 +1425,10 @@ export class TasksService {
       }
 
       // Check workspace access
-      const { isElevated } = await this.accessControl.getOrgAccess(workspace.organizationId, userId);
+      const { isElevated } = await this.accessControl.getOrgAccess(
+        workspace.organizationId,
+        userId,
+      );
 
       const projects = await this.prisma.project.findMany({
         where: { workspaceId },
@@ -1267,7 +1447,10 @@ export class TasksService {
         ];
       }
     } else if (projectId) {
-      const { isElevated } = await this.accessControl.getTaskAccess(projectId, userId);
+      const { isElevated } = await this.accessControl.getTaskAccess(
+        projectId,
+        userId,
+      );
       whereClause.projectId = projectId;
 
       if (!isElevated) {
@@ -1297,7 +1480,13 @@ export class TasksService {
           select: { id: true, name: true, slug: true },
         },
         assignee: {
-          select: { id: true, firstName: true, lastName: true, avatar: true, email: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            email: true,
+          },
         },
         reporter: {
           select: { id: true, firstName: true, lastName: true, avatar: true },

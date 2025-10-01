@@ -9,7 +9,7 @@ export enum WorkspaceChartType {
   KPI_METRICS = 'kpi-metrics',
   TASK_TYPE = 'task-type',
   SPRINT_STATUS = 'sprint-status',
-  MONTHLY_COMPLETION = 'monthly-completion'
+  MONTHLY_COMPLETION = 'monthly-completion',
 }
 export interface WorkspaceChartDataResponse {
   [key: string]: any;
@@ -33,12 +33,18 @@ export class GetWorkspaceChartsQueryDto {
     description: 'Types of workspace chart data to retrieve',
     enum: WorkspaceChartType,
     isArray: true,
-    example: [WorkspaceChartType.KPI_METRICS, WorkspaceChartType.PROJECT_STATUS],
-    required: true
+    example: [
+      WorkspaceChartType.KPI_METRICS,
+      WorkspaceChartType.PROJECT_STATUS,
+    ],
+    required: true,
   })
   @IsArray()
   @ArrayNotEmpty({ message: 'At least one chart type must be specified' })
-  @IsEnum(WorkspaceChartType, { each: true, message: 'Invalid chart type provided' })
+  @IsEnum(WorkspaceChartType, {
+    each: true,
+    message: 'Invalid chart type provided',
+  })
   @Transform(({ value }) => {
     if (Array.isArray(value)) {
       return value;

@@ -13,7 +13,7 @@ export enum ChartType {
   QUALITY_METRICS = 'quality-metrics',
   WORKSPACE_PROJECT_COUNT = 'workspace-project-count',
   MEMBER_WORKLOAD = 'member-workload',
-  RESOURCE_ALLOCATION = 'resource-allocation'
+  RESOURCE_ALLOCATION = 'resource-allocation',
 }
 export interface ChartDataResponse {
   [key: string]: any;
@@ -24,7 +24,7 @@ export class GetChartsQueryDto {
     enum: ChartType,
     isArray: true,
     example: [ChartType.KPI_METRICS, ChartType.PROJECT_PORTFOLIO],
-    required: true
+    required: true,
   })
   @IsArray()
   @ArrayNotEmpty({ message: 'At least one chart type must be specified' })

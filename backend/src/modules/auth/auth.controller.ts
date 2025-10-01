@@ -12,7 +12,13 @@ import {
   ParseUUIDPipe,
   BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -26,7 +32,10 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { SetupService } from './services/setup.service';
-import { AccessControlService, AccessResult } from 'src/common/access-control.utils';
+import {
+  AccessControlService,
+  AccessResult,
+} from 'src/common/access-control.utils';
 export enum ScopeType {
   ORGANIZATION = 'organization',
   WORKSPACE = 'workspace',
@@ -40,7 +49,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly setupService: SetupService,
     private readonly accessControlService: AccessControlService,
-  ) { }
+  ) {}
 
   @Public()
   @Post('login')
@@ -141,7 +150,10 @@ export class AuthController {
       type: 'object',
       properties: {
         isElevated: { type: 'boolean' },
-        role: { type: 'string', enum: ['SUPER_ADMIN','OWNER', 'MANAGER', 'MEMBER', 'VIEWER'] },
+        role: {
+          type: 'string',
+          enum: ['SUPER_ADMIN', 'OWNER', 'MANAGER', 'MEMBER', 'VIEWER'],
+        },
         canChange: { type: 'boolean' },
         userId: { type: 'string' },
         scopeId: { type: 'string' },
@@ -156,8 +168,6 @@ export class AuthController {
   ): Promise<AccessResult> {
     return this.accessControlService.getResourceAccess(scope, id, user.id);
   }
-
-
 
   @Public()
   @Post('forgot-password')

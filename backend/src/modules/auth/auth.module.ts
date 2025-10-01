@@ -37,7 +37,7 @@ import { AccessControlService } from 'src/common/access-control.utils';
     LocalStrategy,
     SetupService,
     SystemUserSeederService,
-    AccessControlService
+    AccessControlService,
   ],
   exports: [AuthService, JwtModule],
 })

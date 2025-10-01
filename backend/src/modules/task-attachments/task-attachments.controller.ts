@@ -53,8 +53,10 @@ export class TaskAttachmentsController {
   @ApiResponse({ status: 404, description: 'Task not found' })
   @ApiResponse({ status: 400, description: 'Invalid file data' })
   @ApiBody({ type: CreateTaskAttachmentDto })
-
-  create(@Body() createTaskAttachmentDto: CreateTaskAttachmentDto, @CurrentUser() user: any) {
+  create(
+    @Body() createTaskAttachmentDto: CreateTaskAttachmentDto,
+    @CurrentUser() user: any,
+  ) {
     return this.taskAttachmentsService.create(createTaskAttachmentDto, user.id);
   }
 
@@ -145,7 +147,7 @@ export class TaskAttachmentsController {
   async uploadFile(
     @Param('taskId', ParseUUIDPipe) taskId: string,
     @UploadedFile() file: Express.Multer.File,
-    @CurrentUser() user: any
+    @CurrentUser() user: any,
   ) {
     if (!file) {
       throw new BadRequestException('No file provided');

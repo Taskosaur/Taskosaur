@@ -8,7 +8,7 @@ import {
   IsUUID,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { ProjectStatus, ProjectPriority } from '@prisma/client';
+import { ProjectStatus, ProjectPriority, ProjectVisibility } from '@prisma/client';
 
 export class CreateProjectDto {
   @ApiProperty({
@@ -136,4 +136,15 @@ export class CreateProjectDto {
   @IsUUID()
   @IsOptional()
   workflowId?: string;
+
+  @ApiProperty({
+    description: 'Project visibility level',
+    enum: ProjectVisibility,
+    example: ProjectVisibility.PRIVATE,
+    required: false,
+    default: ProjectVisibility.PRIVATE,
+  })
+  @IsEnum(ProjectVisibility)
+  @IsOptional()
+  visibility?: ProjectVisibility;
 }

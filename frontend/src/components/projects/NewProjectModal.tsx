@@ -23,15 +23,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import  ActionButton  from "@/components/common/ActionButton";
 import { toast } from "sonner";
-import { 
-  HiChevronDown, 
-  HiCheck, 
+import {
+  HiChevronDown,
+  HiCheck,
   HiFolderPlus,
   HiBuildingOffice2,
   HiDocumentText,
   HiSparkles,
   HiRocketLaunch,
-  HiCog
+  HiCog,
+  HiGlobeAlt
 } from "react-icons/hi2";
 import { HiColorSwatch } from "react-icons/hi";
 import { useWorkspace } from "@/contexts/workspace-context";
@@ -68,9 +69,10 @@ export function NewProjectModal({
     name: "",
     description: "",
     workspace: null as any,
-    color: "#3B82F6", 
-    category: "operational", 
+    color: "#3B82F6",
+    category: "operational",
     workflowId: "",
+    visibility: "PRIVATE" as const,
   });
 
   const generateSlug = (name: string) => {
@@ -111,6 +113,7 @@ export function NewProjectModal({
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [workflowOpen, setWorkflowOpen] = useState(false);
   const [workflowSearch, setWorkflowSearch] = useState("");
+  const [visibilityOpen, setVisibilityOpen] = useState(false);
 
   const filteredWorkspaces = allWorkspaces.filter(workspace =>
     workspace.name.toLowerCase().includes(workspaceSearch.toLowerCase())
@@ -121,6 +124,27 @@ export function NewProjectModal({
     wf.name.toLowerCase().includes(workflowSearch.toLowerCase())
   );
   const selectedWorkflow = workflows.find(wf => wf.id === formData.workflowId);
+
+  const VISIBILITY_OPTIONS = [
+    {
+      value: 'PRIVATE',
+      label: 'Private',
+      description: 'Only members can access this project',
+      icon: '🔒'
+    },
+    {
+      value: 'INTERNAL',
+      label: 'Internal',
+      description: 'Workspace members can view, members can edit',
+      icon: '🏢'
+    },
+    {
+      value: 'PUBLIC',
+      label: 'Public',
+      description: 'Anyone can view, members can edit',
+      icon: '🌍'
+    }
+  ];
 
   // Extract statuses from selected workflow
   const selectedWorkflowStatuses = selectedWorkflow?.statuses || [];
@@ -256,6 +280,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       color: formData.color,
       status: "ACTIVE" as const,
       priority: "MEDIUM" as const,
+      visibility: formData.visibility,
       startDate: new Date().toISOString(),
       endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       workspaceId: formData.workspace.id,
@@ -289,7 +314,8 @@ const handleSubmit = async (e: React.FormEvent) => {
       workspace: null,
       color: "#1a3b4d",
       category: "operational",
-      workflowId: ""
+      workflowId: "",
+      visibility: "PRIVATE"
     });
     setWorkspaceSearch("");
     setAllWorkspaces([]);
@@ -297,6 +323,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     setCategoryOpen(false);
     setWorkflowOpen(false);
     setWorkflowSearch("");
+    setVisibilityOpen(false);
     onClose();
   };
 
@@ -491,11 +518,91 @@ const handleSubmit = async (e: React.FormEvent) => {
               </PopoverContent>
             </Popover>
             <p className="projects-form-hint">
-              <HiCog 
-                className="projects-form-hint-icon" 
+              <HiCog
+                className="projects-form-hint-icon"
                 style={{ color: 'var(--dynamic-primary)' }}
               />
               Choose a workflow for your project's process.
+            </p>
+          </div>
+
+          {/* Visibility - Dropdown */}
+          <div className="projects-form-field">
+            <Label className="projects-form-label">
+              <HiGlobeAlt
+                className="projects-form-label-icon"
+                style={{ color: 'var(--dynamic-primary)' }}
+              />
+              Visibility <span className="projects-form-label-required">*</span>
+            </Label>
+            <Popover open={visibilityOpen} onOpenChange={setVisibilityOpen} modal={true}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className="projects-workspace-button border-none"
+                  style={{ borderColor: 'var(--border)' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--dynamic-primary-20)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  onFocus={e => {
+                    e.currentTarget.style.borderColor = 'var(--dynamic-primary)';
+                    e.currentTarget.style.boxShadow = `0 0 0 3px var(--dynamic-primary-20)`;
+                  }}
+                  onBlur={e => {
+                    e.currentTarget.style.borderColor = 'var(--border)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <span className="projects-workspace-selected">
+                    {VISIBILITY_OPTIONS.find(v => v.value === formData.visibility)?.icon}{' '}
+                    {VISIBILITY_OPTIONS.find(v => v.value === formData.visibility)?.label || 'Select visibility'}
+                  </span>
+                  <HiChevronDown className="projects-workspace-dropdown-icon" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="projects-workspace-popover border-none"
+                align="start"
+              >
+                <Command className="projects-workspace-command border-none">
+                  <CommandEmpty className="projects-workspace-command-empty">
+                    No visibility options found.
+                  </CommandEmpty>
+                  <CommandGroup className="projects-workspace-command-group">
+                    {VISIBILITY_OPTIONS.map((option) => (
+                      <CommandItem
+                        key={option.value}
+                        value={option.value}
+                        onSelect={() => {
+                          setFormData(prev => ({ ...prev, visibility: option.value as any }));
+                          setVisibilityOpen(false);
+                        }}
+                        className="projects-workspace-command-item"
+                      >
+                        <div className="flex flex-col flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{option.icon}</span>
+                            <span className="text-[14px] font-medium">{option.label}</span>
+                          </div>
+                          <p className="text-[12px] text-muted-foreground ml-7">
+                            {option.description}
+                          </p>
+                        </div>
+                        {formData.visibility === option.value && (
+                          <HiCheck className="projects-workspace-command-item-check" />
+                        )}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <p className="projects-form-hint">
+              <HiGlobeAlt
+                className="projects-form-hint-icon"
+                style={{ color: 'var(--dynamic-primary)' }}
+              />
+              Control who can access this project.
             </p>
           </div>
 

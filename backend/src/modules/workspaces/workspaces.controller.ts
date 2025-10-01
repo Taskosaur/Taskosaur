@@ -14,7 +14,13 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -25,7 +31,11 @@ import { Role } from '@prisma/client';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { Scope } from 'src/common/decorator/scope.decorator';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
-import { GetWorkspaceChartsQueryDto, WorkspaceChartDataResponse, WorkspaceChartType } from './dto/get-workspace-charts-query.dto';
+import {
+  GetWorkspaceChartsQueryDto,
+  WorkspaceChartDataResponse,
+  WorkspaceChartType,
+} from './dto/get-workspace-charts-query.dto';
 import { WorkspaceChartsService } from './workspace-charts.service';
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -36,8 +46,7 @@ export class WorkspacesController {
     private readonly workspacesService: WorkspacesService,
     private readonly activityLogService: ActivityLogService,
     private readonly workspaceChartsService: WorkspaceChartsService,
-
-  ) { }
+  ) {}
 
   // Only ORG MANAGER/OWNER can create workspaces
   @Post()
@@ -166,18 +175,19 @@ export class WorkspacesController {
   @Get('organization/:organizationId/workspace/:slug/charts')
   @ApiOperation({
     summary: 'Get workspace charts data',
-    description: 'Retrieve multiple workspace chart data types in a single request'
+    description:
+      'Retrieve multiple workspace chart data types in a single request',
   })
   @ApiParam({
     name: 'organizationId',
     description: 'Organization UUID',
     type: 'string',
-    format: 'uuid'
+    format: 'uuid',
   })
   @ApiParam({
     name: 'slug',
     description: 'Workspace slug',
-    type: 'string'
+    type: 'string',
   })
   @ApiQuery({
     name: 'types',
@@ -186,7 +196,10 @@ export class WorkspacesController {
     isArray: true,
     style: 'form',
     explode: true,
-    example: [WorkspaceChartType.KPI_METRICS, WorkspaceChartType.PROJECT_STATUS]
+    example: [
+      WorkspaceChartType.KPI_METRICS,
+      WorkspaceChartType.PROJECT_STATUS,
+    ],
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -198,22 +211,22 @@ export class WorkspacesController {
         'kpi-metrics': {
           totalProjects: 8,
           activeProjects: 5,
-          completionRate: 37.5
+          completionRate: 37.5,
         },
         'project-status': [
           { status: 'ACTIVE', _count: { status: 5 } },
-          { status: 'COMPLETED', _count: { status: 3 } }
-        ]
-      }
-    }
+          { status: 'COMPLETED', _count: { status: 3 } },
+        ],
+      },
+    },
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'Invalid chart type or missing parameters'
+    description: 'Invalid chart type or missing parameters',
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
-    description: 'Workspace not found'
+    description: 'Workspace not found',
   })
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))

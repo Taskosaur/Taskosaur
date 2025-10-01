@@ -1,3 +1,9 @@
+export enum ProjectVisibility {
+  PRIVATE = 'PRIVATE',
+  INTERNAL = 'INTERNAL',
+  PUBLIC = 'PUBLIC'
+}
+
 export interface ProjectSettings {
   methodology?: string;
   defaultTaskType?: string;
@@ -14,6 +20,7 @@ export interface Project {
   color?: string;
   status?: string;
   priority?: string;
+  visibility?: ProjectVisibility | string;
   startDate?: string;
   endDate?: string;
   workspaceId?: string;
@@ -51,6 +58,7 @@ export interface ProjectData {
   description: string;
   status: string;
   priority: string;
+  visibility?: ProjectVisibility | string;
   startDate: string;
   endDate: string;
   settings: ProjectSettings;

@@ -33,7 +33,7 @@ import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @Public()
   @Get('exists')
@@ -128,7 +128,6 @@ export class UsersController {
     @Body() changePasswordDto: ChangePasswordDto,
     @Req() req: any,
   ): Promise<{ success: boolean; message: string }> {
-    
     return this.usersService.changePassword(req.user.id, changePasswordDto);
   }
 

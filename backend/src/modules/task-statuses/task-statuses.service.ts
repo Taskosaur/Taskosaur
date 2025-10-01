@@ -13,7 +13,6 @@ import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 
 @Injectable()
 export class TaskStatusesService {
-  
   async findDefaultWorkflowByOrganizationId(organizationId: string) {
     return this.prisma.workflow.findFirst({
       where: {

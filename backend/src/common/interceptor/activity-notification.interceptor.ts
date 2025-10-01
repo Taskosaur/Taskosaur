@@ -18,7 +18,7 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     private activityLogService: ActivityLogService,
     private notificationsService: NotificationsService,
     private reflector: Reflector,
-  ) { }
+  ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
@@ -55,7 +55,7 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
               organizationId,
               originalData,
               result,
-              activityConfig.entityIdName
+              activityConfig.entityIdName,
             );
           }
 
@@ -82,7 +82,7 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     organizationId: string | undefined,
     oldValue: any,
     newValue: any,
-    entityIdName?: string
+    entityIdName?: string,
   ) {
     let finalOrganizationId = organizationId;
     const entityId =
@@ -90,7 +90,6 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
       newValue?.id ||
       oldValue?.id;
     if (!finalOrganizationId) {
-
       if (entityId) {
         finalOrganizationId =
           await this.activityLogService.getOrganizationIdFromEntity(
