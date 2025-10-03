@@ -47,7 +47,7 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
       priority: 'HIGH' as any,
       taskNumber: 1,
       projectId: 'project-1',
-      reporterId: 'user-1',
+      // reporterId: 'user-1',
       reporter: {
         id: 'user-1',
         firstName: 'John',
@@ -76,7 +76,7 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
       priority: 'MEDIUM' as any,
       taskNumber: 2,
       projectId: 'project-1',
-      reporterId: 'user-1',
+      // reporterId: 'user-1',
       reporter: {
         id: 'user-1',
         firstName: 'John',

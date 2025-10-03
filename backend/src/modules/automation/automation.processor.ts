@@ -19,7 +19,7 @@ export class AutomationProcessor {
   constructor(
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
-  ) {}
+  ) { }
 
   @Process('execute-rule')
   async handleRuleExecution(job: Job<AutomationJobData>) {
@@ -181,24 +181,50 @@ export class AutomationProcessor {
     }
   }
 
-  private async assignTask(taskId: string, assigneeId: string): Promise<any> {
+  private async assignTask(taskId: string, assigneeIds: string[]): Promise<any> {
     const task = await this.prisma.task.update({
       where: { id: taskId },
-      data: { assigneeId },
+      data: {
+        assignees: {
+          set: assigneeIds.map(id => ({ id })) // Replace all assignees with new ones
+        }
+      },
       include: {
         project: { select: { id: true } },
-        assignee: { select: { id: true, firstName: true, lastName: true } },
+        assignees: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            avatar: true
+          }
+        },
       },
     });
 
-    // Send real-time notification
-    this.eventsGateway.emitTaskAssigned(task.project.id, taskId, {
-      assigneeId,
-      assignee: task.assignee,
+    // Send real-time notification to each assignee
+    task.assignees.forEach(assignee => {
+      this.eventsGateway.emitTaskAssigned(task.project.id, taskId, {
+        assigneeId: assignee.id,
+        assignee: {
+          id: assignee.id,
+          firstName: assignee.firstName,
+          lastName: assignee.lastName,
+          email: assignee.email,
+          avatar: assignee.avatar,
+        },
+      });
     });
 
-    return { success: true, taskId, assigneeId };
+    return {
+      success: true,
+      taskId,
+      assigneeIds, // Return array instead of single ID
+      assignees: task.assignees // Include full assignee data
+    };
   }
+
 
   private async changeTaskStatus(
     taskId: string,

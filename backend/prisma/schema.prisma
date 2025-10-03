@@ -59,8 +59,6 @@ model User {
   ruleExecutions           RuleExecution[]
   taskComments             TaskComment[]
   taskWatchers             TaskWatcher[]
-  assignedTasks            Task[]               @relation("TaskAssignee")
-  reportedTasks            Task[]               @relation("TaskReporter")
   createdTasks             Task[]               @relation("TaskCreatedBy")
   updatedTasks             Task[]               @relation("TaskUpdatedBy")
   createdTaskComments      TaskComment[]        @relation("TaskCommentCreatedBy")
@@ -89,6 +87,8 @@ model User {
   timeEntries              TimeEntry[]
   workspaceMembers         WorkspaceMember[]
   sentInvitations          Invitation[]         @relation("InvitationInviter")
+  assignedTasks            Task[]               @relation("TaskAssignees")
+  reportedTasks            Task[]               @relation("TaskReporters")
 
   @@map("users")
 }
@@ -187,32 +187,32 @@ model WorkspaceMember {
 }
 
 model Project {
-  id              String           @id @default(uuid()) @db.Uuid
+  id              String            @id @default(uuid()) @db.Uuid
   name            String
-  slug            String           @unique
+  slug            String            @unique
   description     String?
   avatar          String? // Made required (removed ?)
   color           String // Made required (removed ?)
-  status          ProjectStatus    @default(PLANNING)
-  priority        ProjectPriority  @default(MEDIUM)
+  status          ProjectStatus     @default(PLANNING)
+  priority        ProjectPriority   @default(MEDIUM)
   visibility      ProjectVisibility @default(PRIVATE)
-  startDate       DateTime?        @map("start_date")
-  endDate         DateTime?        @map("end_date")
+  startDate       DateTime?         @map("start_date")
+  endDate         DateTime?         @map("end_date")
   settings        Json?
-  workflowId      String           @map("workflow_id") @db.Uuid
-  workspaceId     String           @map("workspace_id") @db.Uuid
-  createdBy       String?          @map("created_by_id") @db.Uuid
-  updatedBy       String?          @map("updated_by_id") @db.Uuid
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
-  archive         Boolean          @default(false)
+  workflowId      String            @map("workflow_id") @db.Uuid
+  workspaceId     String            @map("workspace_id") @db.Uuid
+  createdBy       String?           @map("created_by_id") @db.Uuid
+  updatedBy       String?           @map("updated_by_id") @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  archive         Boolean           @default(false)
   automationRules AutomationRule[]
   labels          Label[]
   members         ProjectMember[]
-  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workflow        Workflow?        @relation(fields: [workflowId], references: [id])
-  createdByUser   User?            @relation("ProjectCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser   User?            @relation("ProjectUpdatedBy", fields: [updatedBy], references: [id])
+  workspace       Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflow        Workflow?         @relation(fields: [workflowId], references: [id])
+  createdByUser   User?             @relation("ProjectCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser   User?             @relation("ProjectUpdatedBy", fields: [updatedBy], references: [id])
   sprints         Sprint[]
   tasks           Task[]
   Invitation      Invitation[]
@@ -256,8 +256,6 @@ model Task {
   remainingEstimate Int?         @map("remaining_estimate")
   customFields      Json?        @map("custom_fields")
   projectId         String       @map("project_id") @db.Uuid
-  assigneeId        String?      @map("assignee_id") @db.Uuid
-  reporterId        String?      @map("reporter_id") @db.Uuid
   statusId          String       @map("status_id") @db.Uuid
   sprintId          String?      @map("sprint_id") @db.Uuid
   parentTaskId      String?      @map("parent_task_id") @db.Uuid
@@ -273,16 +271,16 @@ model Task {
   dependsOn     TaskDependency[] @relation("DependentTask")
   labels        TaskLabel[]
   watchers      TaskWatcher[]
-  assignee      User?            @relation("TaskAssignee", fields: [assigneeId], references: [id])
   parentTask    Task?            @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
   childTasks    Task[]           @relation("TaskHierarchy")
   project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  reporter      User?            @relation("TaskReporter", fields: [reporterId], references: [id])
   createdByUser User?            @relation("TaskCreatedBy", fields: [createdBy], references: [id])
   updatedByUser User?            @relation("TaskUpdatedBy", fields: [updatedBy], references: [id])
   sprint        Sprint?          @relation(fields: [sprintId], references: [id])
   status        TaskStatus       @relation(fields: [statusId], references: [id], onDelete: Cascade)
   timeEntries   TimeEntry[]
+  assignees     User[]           @relation("TaskAssignees")
+  reporters     User[]           @relation("TaskReporters")
 
   @@unique([projectId, taskNumber])
   @@map("tasks")
@@ -810,14 +808,14 @@ enum RuleStatus {
 }
 
 model Settings {
-  id            String   @id @default(uuid()) @db.Uuid
-  key           String   @unique
-  value         String?
-  description   String?
-  category      String   @default("general")
-  isEncrypted   Boolean  @default(false) @map("is_encrypted")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  value       String?
+  description String?
+  category    String   @default("general")
+  isEncrypted Boolean  @default(false) @map("is_encrypted")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("settings")
 }

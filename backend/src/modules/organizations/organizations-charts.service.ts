@@ -165,7 +165,7 @@ export class OrganizationChartsService {
       },
       taskForUser: {
         project: { workspace: { organizationId: orgId }, archive: false },
-        OR: [{ assigneeId: userId }, { reporterId: userId }],
+        OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
       },
       sprintForUser: {
         archive: false,
@@ -420,7 +420,7 @@ export class OrganizationChartsService {
         project: { workspace: { organizationId: orgId, archive: false } },
         ...(isElevated
           ? {}
-          : { OR: [{ assigneeId: userId }, { reporterId: userId }] }),
+          : { OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }] }),
       },
       select: { id: true, priority: true },
     });
@@ -444,7 +444,7 @@ export class OrganizationChartsService {
     };
     const where = isElevated
       ? base
-      : { ...base, OR: [{ assigneeId: userId }, { reporterId: userId }] };
+      : { ...base, OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }] };
 
     return this.prisma.task.groupBy({
       by: ['type'],
@@ -494,7 +494,7 @@ export class OrganizationChartsService {
     };
     const where = isElevated
       ? base
-      : { ...base, OR: [{ assigneeId: userId }, { reporterId: userId }] };
+      : { ...base, OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }] };
 
     const [totalBugs, resolvedBugs, criticalBugs, resolvedCriticalBugs] =
       await Promise.all([

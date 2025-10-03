@@ -147,7 +147,9 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
   };
 
   const isFormValid = () => {
-    return taskForm.title.trim() && taskForm.reporterId;
+  // Validation for reporter/assignee is commented out below:
+  // return taskForm.title.trim() && taskForm.reporterId;
+  return taskForm.title.trim();
   };
 
   const save = () => {
@@ -346,7 +348,7 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
                 </div>
 
                 {/* Reporter / assignee */}
-                <div className="kanban-create-task-assignee-field">
+                {/* <div className="kanban-create-task-assignee-field">
                   <label className="kanban-create-task-label">Assign to</label>
                   {loading ? (
                     <div className="kanban-create-task-loading">
@@ -362,7 +364,7 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
                       placeholder="Select team member"
                     />
                   )}
-                </div>
+                </div> */}
 
                 {/* actions */}
                 <div className="kanban-create-task-actions">

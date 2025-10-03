@@ -26,6 +26,8 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
 
   // Create a mapping of checkbox indices to actual line numbers
   const checkboxLineMapping = useMemo(() => {
+    if (!value) return [];
+    
     const lines = value.split("\n");
     const taskLineRegex = /^(\s*-\s+)\[([x ])\](.*)$/i;
     const mapping: number[] = [];
@@ -44,7 +46,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
     (checkboxIndex: number) => {
       const actualLineIndex = checkboxLineMapping[checkboxIndex];
 
-      if (actualLineIndex === undefined) {
+      if (actualLineIndex === undefined || !value) {
         return;
       }
 
@@ -69,6 +71,8 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
 
   // Extract checkbox states from markdown for proper indexing
   const checkboxStates = useMemo(() => {
+    if (!value) return [];
+    
     const lines = value.split("\n");
     const taskLineRegex = /^(\s*-\s+)\[([x ])\](.*)$/i;
     const states: boolean[] = [];
@@ -87,6 +91,8 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
   // Custom markdown renderer that handles checkboxes properly
   const MarkdownWithInteractiveTasks: React.FC<{ md: string }> = ({ md }) => {
     const processedMarkdown = useMemo(() => {
+      if (!md) return [];
+      
       const lines = md.split("\n");
       const taskLineRegex = /^(\s*-\s+)\[([x ])\](.*)$/i;
       let checkboxIndex = 0;
@@ -161,7 +167,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
     return (
       <div className="space-y-4" data-color-mode={colorMode}>
         <MDEditor
-          value={value}
+          value={value || ""}
           onChange={(val) => onChange(val || "")}
           hideToolbar={false}
           className="task-md-editor"

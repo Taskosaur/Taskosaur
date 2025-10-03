@@ -259,10 +259,10 @@ export class SearchService {
               workspace: { select: { id: true, organizationId: true } },
             },
           },
-          assignee: {
+          assignees: {
             select: { id: true, firstName: true, lastName: true, email: true },
           },
-          reporter: {
+          reporters: {
             select: { id: true, firstName: true, lastName: true, email: true },
           },
           status: {
@@ -302,8 +302,8 @@ export class SearchService {
         key: task.slug,
         type: task.type,
         priority: task.priority,
-        assignee: task.assignee,
-        reporter: task.reporter,
+        assignee: task.assignees,
+        reporter: task.reporters,
         status: task.status,
         labels: task.labels.map((tl) => tl.label),
         sprint: task.sprint,

@@ -17,7 +17,7 @@ export class WorkspacesService {
   constructor(
     private prisma: PrismaService,
     private accessControl: AccessControlService,
-  ) {}
+  ) { }
 
   async create(
     createWorkspaceDto: CreateWorkspaceDto,
@@ -143,9 +143,9 @@ export class WorkspacesService {
         },
         members: userId
           ? {
-              where: { userId },
-              select: { role: true },
-            }
+            where: { userId },
+            select: { role: true },
+          }
           : false,
         _count: { select: { members: true, projects: true } },
       },
@@ -207,9 +207,9 @@ export class WorkspacesService {
         },
         members: userId
           ? {
-              where: { userId },
-              select: { role: true },
-            }
+            where: { userId },
+            select: { role: true },
+          }
           : false,
         _count: { select: { members: true, projects: true } },
       },
@@ -259,9 +259,9 @@ export class WorkspacesService {
           where: isElevated
             ? { archive: false }
             : {
-                archive: false,
-                members: { some: { userId } },
-              },
+              archive: false,
+              members: { some: { userId } },
+            },
           select: {
             id: true,
             name: true,
@@ -304,9 +304,9 @@ export class WorkspacesService {
         },
         members: userId
           ? {
-              where: { userId },
-              select: { role: true },
-            }
+            where: { userId },
+            select: { role: true },
+          }
           : false,
         _count: { select: { members: true, projects: true } },
       },
@@ -449,7 +449,12 @@ export class WorkspacesService {
       },
       ...(isElevated
         ? {}
-        : { OR: [{ assigneeId: userId }, { reporterId: userId }] }),
+        : {
+          OR: [
+            { assignees: { some: { id: userId } } },
+            { reporters: { some: { id: userId } } },
+          ]
+        }),
     };
 
     return this.prisma.task.groupBy({
@@ -486,7 +491,12 @@ export class WorkspacesService {
       project: projectBase,
       ...(isElevated
         ? {}
-        : { OR: [{ assigneeId: userId }, { reporterId: userId }] }),
+        : {
+          OR: [
+            { assignees: { some: { id: userId } } },
+            { reporters: { some: { id: userId } } },
+          ]
+        }),
     };
 
     const [
@@ -545,7 +555,12 @@ export class WorkspacesService {
       },
       ...(isElevated
         ? {}
-        : { OR: [{ assigneeId: userId }, { reporterId: userId }] }),
+        : {
+          OR: [
+            { assignees: { some: { id: userId } } },
+            { reporters: { some: { id: userId } } },
+          ]
+        }),
     };
 
     return this.prisma.task.groupBy({
@@ -614,7 +629,12 @@ export class WorkspacesService {
       completedAt: { not: null },
       ...(isElevated
         ? {}
-        : { OR: [{ assigneeId: userId }, { reporterId: userId }] }),
+        : {
+          OR: [
+            { assignees: { some: { id: userId } } },
+            { reporters: { some: { id: userId } } },
+          ]
+        }),
     };
 
     const tasks = await this.prisma.task.findMany({

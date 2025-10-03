@@ -19,7 +19,7 @@ export class EmailService {
     @InjectQueue('email') private emailQueue: Queue,
     private prisma: PrismaService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   async sendEmail(emailDto: SendEmailDto): Promise<void> {
     const jobData: EmailJobData = {
@@ -77,15 +77,15 @@ export class EmailService {
   // Notification helpers
   async sendTaskAssignedEmail(
     taskId: string,
-    assigneeId: string,
+    assigneeIds: string[], // Changed from single assigneeId to array
     assignedById: string,
   ): Promise<void> {
     try {
       const task = await this.prisma.task.findUnique({
         where: { id: taskId },
         include: {
-          assignee: true,
-          reporter: true,
+          assignees: true, // Changed from assignee to assignees
+          reporters: true, // Changed from reporter to reporters
           project: {
             include: {
               workspace: {
@@ -98,54 +98,70 @@ export class EmailService {
         },
       });
 
-      if (!task?.assignee?.email) {
-        this.logger.warn(`No email found for assignee ${assigneeId}`);
+      if (!task?.assignees?.length) {
+        this.logger.warn(`No assignees found for task ${taskId}`);
         return;
       }
 
-      await this.sendEmail({
-        to: task.assignee.email,
-        subject: `Task Assigned: ${task.title}`,
-        template: EmailTemplate.TASK_ASSIGNED,
-        data: {
-          task: {
-            id: task.id,
-            key: task.slug,
-            title: task.title,
-            description: task.description,
-            priority: task.priority,
-            dueDate: task.dueDate,
-          },
-          assignee: {
-            name: `${task.assignee.firstName} ${task.assignee.lastName}`,
-            email: task.assignee.email,
-          },
-          assignedBy: {
-            name: `${task.reporter?.firstName} ${task.reporter?.lastName}`,
-            email: task.reporter?.email,
-          },
-          project: {
-            name: task.project.name,
-            key: task.project.slug,
-          },
-          organization: {
-            name: task.project.workspace.organization.name,
-          },
-          taskUrl: `${this.configService.get('FRONTEND_URL')}/tasks/${task.slug}`,
-        },
-        priority: EmailPriority.HIGH,
+      // Get the user who assigned the task
+      const assignedByUser = await this.prisma.user.findUnique({
+        where: { id: assignedById },
       });
+
+      // Send email to each assignee
+      for (const assignee of task.assignees) {
+        if (!assignee.email) {
+          this.logger.warn(`No email found for assignee ${assignee.id}`);
+          continue;
+        }
+
+        await this.sendEmail({
+          to: assignee.email,
+          subject: `Task Assigned: ${task.title}`,
+          template: EmailTemplate.TASK_ASSIGNED,
+          data: {
+            task: {
+              id: task.id,
+              key: task.slug,
+              title: task.title,
+              description: task.description,
+              priority: task.priority,
+              dueDate: task.dueDate,
+            },
+            assignee: {
+              name: `${assignee.firstName} ${assignee.lastName}`,
+              email: assignee.email,
+            },
+            assignedBy: {
+              name: assignedByUser
+                ? `${assignedByUser.firstName} ${assignedByUser.lastName}`
+                : 'System',
+              email: assignedByUser?.email,
+            },
+            project: {
+              name: task.project.name,
+              key: task.project.slug,
+            },
+            organization: {
+              name: task.project.workspace.organization.name,
+            },
+            taskUrl: `${this.configService.get('FRONTEND_URL')}/tasks/${task.slug}`,
+          },
+          priority: EmailPriority.HIGH,
+        });
+      }
     } catch (error) {
       this.logger.error(`Failed to send task assigned email: ${error.message}`);
     }
   }
+
 
   async sendDueDateReminderEmail(taskId: string): Promise<void> {
     try {
       const task = await this.prisma.task.findUnique({
         where: { id: taskId },
         include: {
-          assignee: true,
+          assignees: true, // Changed from assignee to assignees
           project: {
             include: {
               workspace: {
@@ -158,7 +174,7 @@ export class EmailService {
         },
       });
 
-      if (!task?.assignee?.email || !task.dueDate) {
+      if (!task?.assignees?.length || !task.dueDate) {
         return;
       }
 
@@ -166,38 +182,46 @@ export class EmailService {
         (task.dueDate.getTime() - Date.now()) / (1000 * 60 * 60),
       );
 
-      await this.sendEmail({
-        to: task.assignee.email,
-        subject: `Task Due Soon: ${task.title}`,
-        template: EmailTemplate.DUE_DATE_REMINDER,
-        data: {
-          task: {
-            id: task.id,
-            key: task.slug,
-            title: task.title,
-            description: task.description,
-            priority: task.priority,
-            dueDate: task.dueDate,
-            hoursUntilDue,
-          },
-          assignee: {
-            name: `${task.assignee.firstName} ${task.assignee.lastName}`,
-          },
-          project: {
-            name: task.project.name,
-            key: task.project.slug,
-          },
-          taskUrl: `${this.configService.get('FRONTEND_URL')}/tasks/${task.slug}`,
-        },
-        priority:
-          hoursUntilDue <= 2 ? EmailPriority.HIGH : EmailPriority.NORMAL,
-      });
+      // Send reminder to all assignees
+      const emailPromises = task.assignees
+        .filter(assignee => assignee.email) // Only assignees with email
+        .map(assignee =>
+          this.sendEmail({
+            to: assignee.email,
+            subject: `Task Due Soon: ${task.title}`,
+            template: EmailTemplate.DUE_DATE_REMINDER,
+            data: {
+              task: {
+                id: task.id,
+                key: task.slug,
+                title: task.title,
+                description: task.description,
+                priority: task.priority,
+                dueDate: task.dueDate,
+                hoursUntilDue,
+              },
+              assignee: {
+                name: `${assignee.firstName} ${assignee.lastName}`,
+              },
+              project: {
+                name: task.project.name,
+                key: task.project.slug,
+              },
+              taskUrl: `${this.configService.get('FRONTEND_URL')}/tasks/${task.slug}`,
+            },
+            priority: hoursUntilDue <= 2 ? EmailPriority.HIGH : EmailPriority.NORMAL,
+          })
+        );
+
+      // Send all emails concurrently
+      await Promise.all(emailPromises);
     } catch (error) {
       this.logger.error(
         `Failed to send due date reminder email: ${error.message}`,
       );
     }
   }
+
 
   async sendTaskStatusChangedEmail(
     taskId: string,
@@ -208,7 +232,8 @@ export class EmailService {
       const task = await this.prisma.task.findUnique({
         where: { id: taskId },
         include: {
-          assignee: true,
+          assignees: true, // Changed from assignee to assignees
+          reporters: true, // Changed from reporter to reporters
           status: true,
           project: {
             include: {
@@ -235,13 +260,24 @@ export class EmailService {
         return;
       }
 
-      // Send to assignee and all watchers
+      // Collect all recipients (assignees, reporters, watchers)
       const recipients = new Set<string>();
 
-      if (task.assignee?.email) {
-        recipients.add(task.assignee.email);
-      }
+      // Add all assignees' emails
+      task.assignees?.forEach((assignee) => {
+        if (assignee.email) {
+          recipients.add(assignee.email);
+        }
+      });
 
+      // Add all reporters' emails
+      task.reporters?.forEach((reporter) => {
+        if (reporter.email) {
+          recipients.add(reporter.email);
+        }
+      });
+
+      // Add watchers' emails
       task.watchers.forEach((watcher) => {
         if (watcher.user.email) {
           recipients.add(watcher.user.email);
@@ -286,6 +322,7 @@ export class EmailService {
     }
   }
 
+
   async sendWeeklySummaryEmail(userId: string): Promise<void> {
     try {
       const user = await this.prisma.user.findUnique({
@@ -299,44 +336,48 @@ export class EmailService {
       const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
       // Get user's tasks summary for the past week
-      const [tasksCompleted, tasksAssigned, totalTimeSpent] = await Promise.all(
-        [
-          this.prisma.task.count({
-            where: {
-              assigneeId: userId,
-              status: {
-                category: 'DONE',
-              },
-              updatedAt: {
-                gte: oneWeekAgo,
-              },
+      const [tasksCompleted, tasksAssigned, totalTimeSpent] = await Promise.all([
+        this.prisma.task.count({
+          where: {
+            assignees: { // Changed from assigneeId to assignees relation
+              some: { id: userId }
             },
-          }),
-          this.prisma.task.count({
-            where: {
-              assigneeId: userId,
-              createdAt: {
-                gte: oneWeekAgo,
-              },
+            status: {
+              category: 'DONE',
             },
-          }),
-          this.prisma.timeEntry.aggregate({
-            where: {
-              userId,
-              date: {
-                gte: oneWeekAgo,
-              },
+            updatedAt: {
+              gte: oneWeekAgo,
             },
-            _sum: {
-              timeSpent: true,
+          },
+        }),
+        this.prisma.task.count({
+          where: {
+            assignees: { // Changed from assigneeId to assignees relation
+              some: { id: userId }
             },
-          }),
-        ],
-      );
+            createdAt: {
+              gte: oneWeekAgo,
+            },
+          },
+        }),
+        this.prisma.timeEntry.aggregate({
+          where: {
+            userId,
+            date: {
+              gte: oneWeekAgo,
+            },
+          },
+          _sum: {
+            timeSpent: true,
+          },
+        }),
+      ]);
 
       const overdueTasks = await this.prisma.task.findMany({
         where: {
-          assigneeId: userId,
+          assignees: { // Changed from assigneeId to assignees relation
+            some: { id: userId }
+          },
           dueDate: {
             lt: new Date(),
           },
@@ -383,6 +424,7 @@ export class EmailService {
       );
     }
   }
+
 
   private getPriorityNumber(priority: EmailPriority): number {
     switch (priority) {

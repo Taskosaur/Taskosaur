@@ -3,15 +3,24 @@ import { Task } from "./tasks";
 export interface CreateTaskRequest {
   title: string;
   description?: string;
-  priority?: "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
+  type?: "TASK" | "STORY" | "BUG" | "EPIC";  
+  priority?: "LOW" | "MEDIUM" | "HIGH" | "HIGHEST"; 
   startDate?: string;
   dueDate?: string;
+  storyPoints?: number;
+  originalEstimate?: number;
+  remainingEstimate?: number;
+  customFields?: Record<string, any>; 
   projectId: string;
-  assigneeId?: string;
-  reporterId?: string;
+  assigneeIds?: string[];
+  reporterIds?: string[];
   statusId: string;
-  parentTaskId?: string;
+  sprintId?: string;             
+  parentTaskId?: string;         
+  completedAt?: string | null; 
 }
+
+
 
 export interface CreateSubtaskRequest extends CreateTaskRequest {
   parentTaskId: string;
@@ -24,8 +33,8 @@ export interface UpdateTaskRequest {
   startDate?: string;
   dueDate?: string;
   remainingEstimate?: number;
-  assigneeId?: string;
-  reporterId?: string;
+  assigneeIds?: string[];
+  reporterIds?: string[];
   statusId?: string;
   projectId?: string;
 }

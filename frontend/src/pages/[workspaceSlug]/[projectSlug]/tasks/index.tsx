@@ -731,6 +731,8 @@ function ProjectTasksContent() {
             addTaskStatuses={availableStatuses}
             addTaskPriorities={addTaskPriorities}
             projectMembers={projectMembers}
+            showAddTaskRow={hasAccess}
+
           />
         );
     }

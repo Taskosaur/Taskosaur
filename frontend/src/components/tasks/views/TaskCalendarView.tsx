@@ -600,16 +600,16 @@ export default function TaskCalendarView({
                   return (
                     <div
                       key={task.id}
-                      className={`block p-2 rounded-md transition-all duration-200 hover:shadow-sm group cursor-pointer ${
+                      className={`block py-3 px-4 rounded-md transition-all duration-200 hover:shadow-sm group cursor-pointer bg-[var(--mini-sidebar)] capitalize ${
                         isOverdue
-                          ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                          : "bg-card text-foreground dark:bg-card dark:text-foreground"
+                          ? " text-red-800  dark:text-red-300"
+                          : " text-foreground  dark:text-foreground"
                       }`}
                       onClick={() => router.push(getTaskUrl(task.id))}
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start justify-between gap-3 ">
                         <div className="flex-1">
-                          <h5 className="font-semibold text-xs mb-1">
+                          <h5 className="font-semibold text-xs mb-1 text-[var(--foreground)]">
                             {task.title || "Untitled Task"}
                           </h5>
                           <div className="flex items-center gap-1 mb-1">
@@ -626,8 +626,8 @@ export default function TaskCalendarView({
                             )}
                           </div>
                           {task.description && (
-                            <div className="text-xs text-muted-foreground line-clamp-1">
-                              <MDEditor.Markdown source={task.description} className="prose max-w-none" />
+                            <div className="text-xs text-[var(--muted-foreground)] line-clamp-1">
+                           {task.description}
                             </div>
                           )}
                         </div>

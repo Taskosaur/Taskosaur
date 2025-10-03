@@ -516,6 +516,7 @@ const SprintTasksTable = () => {
             projectMembers={projectMembers}
             addTaskStatuses={availableTaskStatuses}
             onTaskRefetch={handleTaskRefetch}
+            showAddTaskRow={false}
           />
         );
     }

@@ -27,7 +27,7 @@ export class ProjectsService {
   constructor(
     private prisma: PrismaService,
     private accessControl: AccessControlService,
-  ) {}
+  ) { }
 
   async create(
     createProjectDto: CreateProjectDto,
@@ -593,26 +593,31 @@ export class ProjectsService {
         // Show tasks based on access level
         tasks: isElevated
           ? {
-              select: {
-                id: true,
-                title: true,
-                type: true,
-                priority: true,
-                status: true,
-              },
-              take: 10,
-            }
-          : {
-              select: {
-                id: true,
-                title: true,
-                type: true,
-                priority: true,
-                status: true,
-              },
-              where: { OR: [{ assigneeId: userId }, { reporterId: userId }] },
-              take: 10,
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              priority: true,
+              status: true,
             },
+            take: 10,
+          }
+          : {
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              priority: true,
+              status: true,
+            },
+            where: {
+              OR: [
+                { assignees: { some: { id: userId } } },
+                { reporters: { some: { id: userId } } },
+              ]
+            },
+            take: 10,
+          },
       },
     });
 

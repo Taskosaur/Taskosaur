@@ -8,11 +8,12 @@ export interface GanttTask {
   end: Date | null;
   progress: number;
   dependencies: string[];
-  assignee: {
+  assignees?: {
     id: string;
-    name: string;
-    avatar?: string | null;
-  } | null;
+    firstName: string;
+    lastName: string;
+    avatar?: string;
+  }[] | undefined;
   priority: string;
   status: {
     name: string;
@@ -42,7 +43,7 @@ export interface GanttData {
 
 @Injectable()
 export class GanttService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getProjectGanttData(projectId: string): Promise<GanttData> {
     // Fetch all project data
@@ -54,7 +55,7 @@ export class GanttService {
       this.prisma.task.findMany({
         where: { projectId },
         include: {
-          assignee: {
+          assignees: {
             select: { id: true, firstName: true, lastName: true, avatar: true },
           },
           status: {
@@ -108,13 +109,14 @@ export class GanttService {
         end: task.dueDate,
         progress,
         dependencies,
-        assignee: task.assignee
-          ? {
-              id: task.assignee.id,
-              name: `${task.assignee.firstName} ${task.assignee.lastName}`,
-              avatar: task.assignee.avatar || undefined,
-            }
-          : null,
+        assignees: task.assignees
+          ? task.assignees.map((assignee) => ({
+            id: assignee.id,
+            firstName: assignee.firstName,
+            lastName: assignee.lastName,
+            avatar: assignee.avatar || undefined,
+          }))
+          : undefined,
         priority: task.priority,
         status: task.status,
         type: task.type,
@@ -171,7 +173,7 @@ export class GanttService {
       this.prisma.task.findMany({
         where: { sprintId },
         include: {
-          assignee: {
+          assignees: {
             select: { id: true, firstName: true, lastName: true, avatar: true },
           },
           status: {
@@ -200,13 +202,14 @@ export class GanttService {
       end: task.dueDate || sprint.endDate,
       progress: this.calculateTaskProgress(task.status.name),
       dependencies: task.dependsOn.map((dep) => dep.blockingTask.id),
-      assignee: task.assignee
-        ? {
-            id: task.assignee.id,
-            name: `${task.assignee.firstName} ${task.assignee.lastName}`,
-            avatar: task.assignee.avatar || undefined,
-          }
-        : null,
+      assignees: task.assignees
+        ? task.assignees.map((assignee) => ({
+          id: assignee.id,
+          firstName: assignee.firstName,
+          lastName: assignee.lastName,
+          avatar: assignee.avatar || undefined,
+        }))
+        : undefined,
       priority: task.priority,
       status: task.status,
       type: task.type,
@@ -241,51 +244,60 @@ export class GanttService {
     const tasks = await this.prisma.task.findMany({
       where: {
         projectId,
-        assigneeId: { not: null },
+        assignees: {
+          some: {} // Tasks that have at least one assignee
+        },
         startDate: { not: null },
         dueDate: { not: null },
       },
       include: {
-        assignee: {
+        assignees: {
           select: { id: true, firstName: true, lastName: true, avatar: true },
         },
       },
     });
 
-    // Group tasks by assignee
+    // Group tasks by assignee using Map
     const resourceMap = new Map();
 
     tasks.forEach((task) => {
-      if (!task.assignee) return;
+      // Since each task can have multiple assignees, iterate through all of them
+      task.assignees.forEach((assignee) => {
+        const assigneeId = assignee.id;
 
-      const assigneeId = task.assignee.id;
-      if (!resourceMap.has(assigneeId)) {
-        resourceMap.set(assigneeId, {
-          assignee: {
-            id: task.assignee.id,
-            name: `${task.assignee.firstName} ${task.assignee.lastName}`,
-            avatar: task.assignee.avatar,
-          },
-          tasks: [],
-          workload: 0,
+        // Initialize assignee in map if not exists
+        if (!resourceMap.has(assigneeId)) {
+          resourceMap.set(assigneeId, {
+            assignee: {
+              id: assignee.id,
+              name: `${assignee.firstName} ${assignee.lastName}`,
+              avatar: assignee.avatar,
+            },
+            tasks: [],
+            workload: 0,
+          });
+        }
+
+        const resource = resourceMap.get(assigneeId);
+
+        // Add task to this assignee's list
+        resource.tasks.push({
+          id: task.id,
+          title: task.title,
+          start: task.startDate,
+          end: task.dueDate,
+          storyPoints: task.storyPoints || 1,
         });
-      }
 
-      const resource = resourceMap.get(assigneeId);
-      resource.tasks.push({
-        id: task.id,
-        title: task.title,
-        start: task.startDate,
-        end: task.dueDate,
-        storyPoints: task.storyPoints || 1,
+        // Calculate workload (story points divided by number of assignees for fair distribution)
+        const storyPointsPerAssignee = (task.storyPoints || 1) / task.assignees.length;
+        resource.workload += storyPointsPerAssignee;
       });
-
-      // Calculate workload (could be based on story points, time estimates, etc.)
-      resource.workload += task.storyPoints || 1;
     });
 
     return Array.from(resourceMap.values());
   }
+
 
   private calculateTaskProgress(statusName: string): number {
     // Map status names to progress percentages

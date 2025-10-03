@@ -221,17 +221,18 @@ export interface TasksByStatus {
     description?: string;
     priority: TaskPriority;
     taskNumber: number;
-    assignee?: {
+    assignees?: {
       id: string;
       firstName: string;
       lastName: string;
       avatar?: string;
-    };
-    reporter?: {
+    }[] | undefined;
+    reporters?: {
       id: string;
       firstName: string;
       lastName: string;
-    };
+      avatar?: string;
+    }[] | undefined;
     dueDate?: string;
     createdAt: string;
     updatedAt: string;

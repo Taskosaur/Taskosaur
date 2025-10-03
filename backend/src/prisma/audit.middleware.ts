@@ -35,7 +35,7 @@ const AUDITABLE_MODELS = [
 // Fields that should be excluded from automatic updatedBy setting
 const EXCLUDED_UPDATE_FIELDS = ['createdAt', 'updatedAt', 'createdBy'];
 
-export function createAuditMiddleware(): Prisma.Middleware {
+export function createAuditMiddleware(): any {
   return async (params, next) => {
     let currentUserId = RequestContextService.getCurrentUserId();
 

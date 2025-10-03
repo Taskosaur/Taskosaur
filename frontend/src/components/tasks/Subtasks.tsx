@@ -242,8 +242,7 @@ export default function Subtasks({
         startDate: new Date().toISOString(),
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         projectId,
-        assigneeId: currentUser.id,
-        reporterId: currentUser.id,
+        assigneeIds: [currentUser.id],
         statusId: defaultStatus.id,
         parentTaskId: taskId,
       };

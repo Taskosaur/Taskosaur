@@ -579,15 +579,13 @@ const handleSubmit = async (e: React.FormEvent) => {
                         }}
                         className="projects-workspace-command-item"
                       >
-                        <div className="flex flex-col flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl">{option.icon}</span>
-                            <span className="text-[14px] font-medium">{option.label}</span>
-                          </div>
-                          <p className="text-[12px] text-muted-foreground ml-7">
-                            {option.description}
-                          </p>
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-xl">{option.icon}</span>
+                          <span className="text-[14px] font-medium">{option.label}</span>
                         </div>
+                        <span className="text-[12px] text-muted-foreground ml-7">
+                          {option.description}
+                        </span>
                         {formData.visibility === option.value && (
                           <HiCheck className="projects-workspace-command-item-check" />
                         )}

@@ -116,7 +116,8 @@ export default function SprintPlanning({
       priority: "HIGH",
       taskNumber: 5,
       projectId,
-      reporterId: "user-1",
+  // reporterId: "user-1",
+
       reporter: {
         id: "user-1",
         firstName: "John",
@@ -147,7 +148,7 @@ export default function SprintPlanning({
       priority: "MEDIUM",
       taskNumber: 6,
       projectId,
-      reporterId: "user-2",
+  // reporterId: "user-2",
       reporter: {
         id: "user-2",
         firstName: "Jane",
@@ -178,7 +179,7 @@ export default function SprintPlanning({
       priority: "LOW",
       taskNumber: 7,
       projectId,
-      reporterId: "user-3",
+  // reporterId: "user-3",
       reporter: {
         id: "user-3",
         firstName: "Alice",
@@ -213,7 +214,7 @@ export default function SprintPlanning({
       taskNumber: 1,
       projectId,
       sprintId: "sprint-1",
-      reporterId: "user-1",
+  // reporterId: "user-1",
       reporter: {
         id: "user-1",
         firstName: "John",

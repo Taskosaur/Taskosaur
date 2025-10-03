@@ -234,7 +234,7 @@ export class TaskWatchersService {
                 category: true,
               },
             },
-            assignee: {
+            assignees: {
               select: {
                 id: true,
                 firstName: true,
@@ -242,7 +242,7 @@ export class TaskWatchersService {
                 avatar: true,
               },
             },
-            reporter: {
+            reporters: {
               select: {
                 id: true,
                 firstName: true,
@@ -338,7 +338,7 @@ export class TaskWatchersService {
                 category: true,
               },
             },
-            assignee: {
+            assignees: {
               select: {
                 id: true,
                 firstName: true,

@@ -15,7 +15,7 @@ export class TasksService {
   constructor(
     private prisma: PrismaService,
     private accessControl: AccessControlService,
-  ) {}
+  ) { }
 
   async create(createTaskDto: CreateTaskDto, userId: string): Promise<Task> {
     const project = await this.prisma.project.findUnique({
@@ -80,14 +80,21 @@ export class TasksService {
 
     const taskNumber = lastTask ? lastTask.taskNumber + 1 : 1;
     const key = `${project.slug}-${taskNumber}`;
-
+    const { assigneeIds, reporterIds, ...taskData } = createTaskDto;
     return this.prisma.task.create({
       data: {
-        ...createTaskDto,
+        ...taskData,
         createdBy: userId,
         taskNumber,
         slug: key,
         sprintId: sprintId,
+        assignees: assigneeIds?.length ? {
+          connect: assigneeIds.map(id => ({ id }))
+        } : undefined,
+        // Connect multiple reporters  
+        reporters: reporterIds?.length ? {
+          connect: reporterIds.map(id => ({ id }))
+        } : undefined,
       },
       include: {
         project: {
@@ -106,7 +113,7 @@ export class TasksService {
             },
           },
         },
-        assignee: {
+        assignees: {
           select: {
             id: true,
             email: true,
@@ -115,7 +122,7 @@ export class TasksService {
             avatar: true,
           },
         },
-        reporter: {
+        reporters: {
           select: {
             id: true,
             email: true,
@@ -261,8 +268,8 @@ export class TasksService {
     if (!isElevated) {
       andConditions.push({
         OR: [
-          { assigneeId: userId },
-          { reporterId: userId },
+          { assignees: { some: { id: userId } } },
+          { reporters: { some: { id: userId } } },
           { createdBy: userId },
         ],
       });
@@ -309,17 +316,23 @@ export class TasksService {
               },
             },
           },
-          assignee: {
+          assignees: {
             select: {
               id: true,
+              email: true,
               firstName: true,
               lastName: true,
               avatar: true,
-              email: true,
             },
           },
-          reporter: {
-            select: { id: true, firstName: true, lastName: true, avatar: true },
+          reporters: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+            },
           },
           status: {
             select: { id: true, name: true, color: true, category: true },
@@ -437,8 +450,8 @@ export class TasksService {
     if (!isElevated) {
       andConditions.push({
         OR: [
-          { assigneeId: userId },
-          { reporterId: userId },
+          { assignees: { some: { id: userId } } },
+          { reporters: { some: { id: userId } } },
           { createdBy: userId },
         ],
       });
@@ -470,17 +483,23 @@ export class TasksService {
             },
           },
         },
-        assignee: {
+        assignees: {
           select: {
             id: true,
+            email: true,
             firstName: true,
             lastName: true,
             avatar: true,
-            email: true,
           },
         },
-        reporter: {
-          select: { id: true, firstName: true, lastName: true, avatar: true },
+        reporters: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
         },
         status: {
           select: { id: true, name: true, color: true, category: true },
@@ -531,7 +550,7 @@ export class TasksService {
             },
           },
         },
-        assignee: {
+        assignees: {
           select: {
             id: true,
             email: true,
@@ -540,7 +559,7 @@ export class TasksService {
             avatar: true,
           },
         },
-        reporter: {
+        reporters: {
           select: {
             id: true,
             email: true,
@@ -566,52 +585,63 @@ export class TasksService {
         },
         childTasks: isElevated
           ? {
-              select: {
-                id: true,
-                title: true,
-                slug: true,
-                type: true,
-                priority: true,
-                status: {
-                  select: { name: true, color: true, category: true },
-                },
-                assignee: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    avatar: true,
-                  },
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              type: true,
+              priority: true,
+              status: {
+                select: { name: true, color: true, category: true },
+              },
+              assignees: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                  avatar: true,
                 },
               },
-            }
-          : {
-              select: {
-                id: true,
-                title: true,
-                slug: true,
-                type: true,
-                priority: true,
-                status: {
-                  select: { name: true, color: true, category: true },
+              reporters: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                  avatar: true,
                 },
-                assignee: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    avatar: true,
-                  },
-                },
-              },
-              where: {
-                OR: [
-                  { assigneeId: userId },
-                  { reporterId: userId },
-                  { createdBy: userId },
-                ],
               },
             },
+          }
+          : {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              type: true,
+              priority: true,
+              status: {
+                select: { name: true, color: true, category: true },
+              },
+              assignees: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                  avatar: true,
+                },
+              },
+            },
+            where: {
+              OR: [
+                { assignees: { some: { id: userId } } },
+                { reporters: { some: { id: userId } } },
+                { createdBy: userId },
+              ],
+            },
+          },
         labels: {
           include: {
             label: {
@@ -720,18 +750,22 @@ export class TasksService {
     // Check if user can update this task
     const task = await this.prisma.task.findUnique({
       where: { id },
-      select: { assigneeId: true, reporterId: true, createdBy: true },
+      include: {
+        assignees: { select: { id: true } },
+        reporters: { select: { id: true } },
+      },
     });
 
     if (!task) {
       throw new NotFoundException('Task not found');
     }
-
+    const isAssignee = task.assignees.some(assignee => assignee.id === userId);
+    const isReporter = task.reporters.some(reporter => reporter.id === userId);
     // Allow update if user is elevated OR is the assignee/reporter/creator
     const canUpdate =
       isElevated ||
-      task.assigneeId === userId ||
-      task.reporterId === userId ||
+      isAssignee ||
+      isReporter ||
       task.createdBy === userId;
 
     if (!canUpdate) {
@@ -759,18 +793,33 @@ export class TasksService {
       } else if (taskStatus) {
         updateTaskDto.completedAt = null;
       }
+      const { assigneeIds, reporterIds, ...taskData } = updateTaskDto;
+      const updateData: any = { ...taskData };
 
+      // Handle assignees update
+      if (assigneeIds !== undefined) {
+        updateData.assignees = {
+          set: assigneeIds.map(id => ({ id }))
+        };
+      }
+
+      // Handle reporters update  
+      if (reporterIds !== undefined) {
+        updateData.reporters = {
+          set: reporterIds.map(id => ({ id }))
+        };
+      }
       const updatedTask = await this.prisma.task.update({
         where: { id },
-        data: updateTaskDto,
+        data: updateData,
         include: {
           project: {
             select: { id: true, name: true, slug: true },
           },
-          assignee: {
+          assignees: {
             select: { id: true, firstName: true, lastName: true, avatar: true },
           },
-          reporter: {
+          reporters: {
             select: { id: true, firstName: true, lastName: true, avatar: true },
           },
           status: {
@@ -961,7 +1010,7 @@ export class TasksService {
       include: {
         labels: { include: { label: true } },
         project: { select: { id: true, name: true, slug: true } },
-        assignee: {
+        assignees: {
           select: {
             id: true,
             firstName: true,
@@ -970,7 +1019,7 @@ export class TasksService {
             email: true,
           },
         },
-        reporter: {
+        reporters: {
           select: { id: true, firstName: true, lastName: true, avatar: true },
         },
         status: {
@@ -1141,7 +1190,7 @@ export class TasksService {
               },
             },
           },
-          assignee: {
+          assignees: {
             select: {
               id: true,
               firstName: true,
@@ -1150,7 +1199,7 @@ export class TasksService {
               email: true,
             },
           },
-          reporter: {
+          reporters: {
             select: {
               id: true,
               firstName: true,
@@ -1273,10 +1322,10 @@ export class TasksService {
               position: true,
             },
           },
-          assignee: {
+          assignees: {
             select: { id: true, firstName: true, lastName: true, avatar: true },
           },
-          reporter: {
+          reporters: {
             select: { id: true, firstName: true, lastName: true },
           },
         },
@@ -1309,20 +1358,20 @@ export class TasksService {
             description: task.description || undefined,
             priority: task.priority,
             taskNumber: task.taskNumber,
-            assignee: task.assignee
-              ? {
-                  id: task.assignee.id,
-                  firstName: task.assignee.firstName,
-                  lastName: task.assignee.lastName,
-                  avatar: task.assignee.avatar || undefined,
-                }
+            assignees: task.assignees
+              ? task.assignees.map((assignee) => ({
+                  id: assignee.id,
+                  firstName: assignee.firstName,
+                  lastName: assignee.lastName,
+                  avatar: assignee.avatar || undefined,
+                }))
               : undefined,
-            reporter: task.reporter
-              ? {
-                  id: task.reporter.id,
-                  firstName: task.reporter.firstName,
-                  lastName: task.reporter.lastName,
-                }
+            reporters: task.reporters
+              ? task.reporters.map((reporter) => ({
+                  id: reporter.id,
+                  firstName: reporter.firstName,
+                  lastName: reporter.lastName
+                }))
               : undefined,
             dueDate: task.dueDate ? task.dueDate.toISOString() : undefined,
             createdAt: task.createdAt.toISOString(),
@@ -1372,7 +1421,7 @@ export class TasksService {
         project: {
           select: { id: true, name: true, slug: true },
         },
-        assignee: {
+        assignees: {
           select: {
             id: true,
             firstName: true,
@@ -1381,7 +1430,7 @@ export class TasksService {
             email: true,
           },
         },
-        reporter: {
+        reporters: {
           select: { id: true, firstName: true, lastName: true, avatar: true },
         },
         status: {
@@ -1479,7 +1528,7 @@ export class TasksService {
         project: {
           select: { id: true, name: true, slug: true },
         },
-        assignee: {
+        assignees: {
           select: {
             id: true,
             firstName: true,
@@ -1488,7 +1537,7 @@ export class TasksService {
             email: true,
           },
         },
-        reporter: {
+        reporters: {
           select: { id: true, firstName: true, lastName: true, avatar: true },
         },
         status: {

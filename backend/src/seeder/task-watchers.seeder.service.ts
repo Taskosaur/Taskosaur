@@ -78,17 +78,9 @@ export class TaskWatchersSeederService {
     const taskType = task.type;
 
     // Always add assignee and reporter as watchers (if they exist in available users)
-    if (task.assigneeId) {
-      const assignee = availableUsers.find((u) => u.id === task.assigneeId);
-      if (assignee) watchers.push(assignee);
-    }
+   
 
-    if (task.reporterId) {
-      const reporter = availableUsers.find((u) => u.id === task.reporterId);
-      if (reporter && !watchers.find((w) => w.id === reporter.id)) {
-        watchers.push(reporter);
-      }
-    }
+   
 
     // Add role-based watchers based on task content
     const remainingUsers = availableUsers.filter(

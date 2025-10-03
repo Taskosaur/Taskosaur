@@ -63,12 +63,15 @@ export class ActivityLogService {
       const task = await this.prisma.task.findUnique({
         where: { id: taskId },
         select: {
-          assigneeId: true,
-          reporterId: true,
+          assignees: true,
+          reporters: true,
         },
       });
 
-      return [task?.assigneeId, task?.reporterId].filter(Boolean) as string[];
+      return [
+        ...task?.assignees.map((assignee) => assignee.id) || [],
+        ...task?.reporters.map((reporter) => reporter.id) || [],
+      ].filter(Boolean) as string[];
     } catch (error) {
       console.error('Error getting task participants:', error);
       return [];

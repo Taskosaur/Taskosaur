@@ -46,7 +46,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tasks')
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(private readonly tasksService: TasksService) { }
 
   @Post()
   @Scope('PROJECT', 'projectId')
@@ -423,28 +423,21 @@ export class TasksController {
     return this.tasksService.update(id, { statusId }, user.id);
   }
 
-  @Patch(':id/assignee')
+  @Patch(':id/assignees')
   @LogActivity({
     type: 'TASK_ASSIGNED',
     entityType: 'Task',
-    description: 'Changed task assignee',
+    description: 'Updated task assignees',
     includeOldValue: true,
     includeNewValue: true,
   })
-  @AutoNotify({
-    type: NotificationType.TASK_ASSIGNED,
-    entityType: 'Task',
-    priority: NotificationPriority.HIGH,
-    title: 'Task Assigned',
-    message: 'You have been assigned to a new task',
-  })
-  updateAssignee(
+  updateAssignees(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body('assigneeId', ParseUUIDPipe) assigneeId: string,
+    @Body('assigneeIds') assigneeIds: string[],
     @Req() req: Request,
   ) {
     const user = getAuthUser(req);
-    return this.tasksService.update(id, { assigneeId }, user.id);
+    return this.tasksService.update(id, { assigneeIds }, user.id);
   }
 
   @Patch(':id/unassign')
@@ -464,7 +457,7 @@ export class TasksController {
   })
   unassignTask(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
     const user = getAuthUser(req);
-    return this.tasksService.update(id, { assigneeId: undefined }, user.id);
+    return this.tasksService.update(id, { assigneeIds: [] }, user.id);
   }
 
   @Delete(':id')

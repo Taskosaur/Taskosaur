@@ -13,7 +13,7 @@ import slugify from 'slugify';
 
 @Injectable()
 export class TasksSeederService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async seed(projects: Project[], users: User[]) {
     console.log('🌱 Seeding tasks...');
@@ -88,23 +88,34 @@ export class TasksSeederService {
                 strict: true,
               }),
               statusId: taskWithStatus.status.id,
-              reporterId: availableUsers[0]?.id || users[0].id,
-              assigneeId: this.getAssigneeForTask(
-                taskWithStatus.taskData,
-                availableUsers,
-              ),
               createdBy: availableUsers[0]?.id || users[0].id,
               updatedBy: availableUsers[0]?.id || users[0].id,
               // Set completedAt for DONE tasks
               completedAt:
                 taskWithStatus.status.category === StatusCategory.DONE
                   ? this.getCompletedDate(
-                      taskWithStatus.taskData.startDate,
-                      taskWithStatus.taskData.dueDate,
-                    )
+                    taskWithStatus.taskData.startDate,
+                    taskWithStatus.taskData.dueDate,
+                  )
                   : null,
+
+              // Connect multiple reporters (instead of single reporterId)
+              reporters: {
+                connect: [
+                  { id: availableUsers[0]?.id || users[0].id } // You can add more reporters here
+                ]
+              },
+
+              // Connect multiple assignees (instead of single assigneeId)
+              assignees: {
+                connect: this.getAssigneesForTask(
+                  taskWithStatus.taskData,
+                  availableUsers,
+                )
+              }
             },
           });
+
 
           createdTasks.push(task);
           console.log(
@@ -647,7 +658,7 @@ export class TasksSeederService {
           ...baseTasks[taskIndex],
           remainingEstimate: Math.floor(
             baseTasks[taskIndex].remainingEstimate *
-              (0.3 + Math.random() * 0.6),
+            (0.3 + Math.random() * 0.6),
           ),
         };
         tasksWithStatuses.push({ taskData, status });
@@ -659,7 +670,7 @@ export class TasksSeederService {
     while (taskIndex < baseTasks.length) {
       const status =
         todoStatuses[
-          (taskIndex - doneCount - inProgressCount) % todoStatuses.length
+        (taskIndex - doneCount - inProgressCount) % todoStatuses.length
         ] ||
         sortedStatuses.find((s) => s.category === StatusCategory.TODO) ||
         sortedStatuses[0]; // fallback to first status
@@ -675,32 +686,28 @@ export class TasksSeederService {
     return tasksWithStatuses;
   }
 
-  private getAssigneeForTask(
+  private getAssigneesForTask(
     taskData: any,
-    availableUsers: User[],
-  ): string | null {
-    if (availableUsers.length === 0) return null;
+    availableUsers: any[]
+  ): { id: string }[] {
+    // Logic to determine multiple assignees
+    const assignees: { id: string }[] = [];
 
-    // Assign based on task priority and type
-    if (
-      taskData.priority === TaskPriority.HIGH ||
-      taskData.type === TaskType.BUG
-    ) {
-      // High priority tasks go to first user (usually admin/manager)
-      return availableUsers[0].id;
-    }
-
-    if (taskData.type === TaskType.EPIC) {
-      // Epics typically assigned to managers
-      const manager = availableUsers.find(
-        (u) => u.role === 'MANAGER' || u.role === 'SUPER_ADMIN',
+    // Example logic - you can customize based on your needs
+    if (taskData.complexity === 'HIGH') {
+      // Assign multiple users for high complexity tasks
+      assignees.push(
+        { id: availableUsers[0]?.id },
+        { id: availableUsers[1]?.id }
       );
-      return manager?.id || availableUsers[0].id;
+    } else {
+      // Single assignee for normal tasks
+      assignees.push({ id: availableUsers[0]?.id });
     }
 
-    // Random assignment for other tasks
-    return availableUsers[Math.floor(Math.random() * availableUsers.length)].id;
+    return assignees.filter(assignee => assignee.id); // Remove any null/undefined ids
   }
+
 
   private getCompletedDate(startDate: Date, dueDate: Date): Date {
     // Completed tasks should be completed between start and due date, or slightly after
@@ -781,14 +788,14 @@ export class TasksSeederService {
             },
           },
         },
-        assignee: {
+        assignees: {
           select: {
             firstName: true,
             lastName: true,
             email: true,
           },
         },
-        reporter: {
+        reporters: {
           select: {
             firstName: true,
             lastName: true,

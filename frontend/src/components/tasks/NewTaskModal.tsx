@@ -430,7 +430,9 @@ export function NewTaskModal({
           title: formData.title.trim(),
           description: "",
           priority: formData.priority as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
-          type: formData.type as "TASK" | "BUG" | "EPIC" | "STORY" | "SUBTASK",
+          type: ["TASK", "BUG", "EPIC", "STORY"].includes(formData.type)
+            ? (formData.type as "TASK" | "BUG" | "EPIC" | "STORY")
+            : "TASK",
           dueDate: formData.dueDate
             ? new Date(formData.dueDate).toISOString()
             : undefined,

@@ -28,8 +28,8 @@ export interface Task {
   remainingEstimate?: number;
   customFields?: any;
   projectId?: string;
-  assigneeId?: string;
-  reporterId?: string;
+  assignees?: User[];
+  reporters?: User[];
   statusId?: string;
   sprintId?: string;
   parentTaskId?: string;
@@ -298,8 +298,8 @@ export interface CreateTaskDto {
   type: TaskType;
   priority: TaskPriority;
   projectId: string;
-  assigneeId?: string;
-  reporterId: string;
+  assigneeIds?: string[];
+  reporterIds?: string[];
   statusId: string;
   sprintId?: string;
   parentTaskId?: string;

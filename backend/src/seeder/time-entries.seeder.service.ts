@@ -171,20 +171,20 @@ export class TimeEntriesSeederService {
     const workingUsers: User[] = [];
 
     // Always include assignee if available
-    if (task.assigneeId) {
-      const assignee = availableUsers.find((u) => u.id === task.assigneeId);
-      if (assignee) workingUsers.push(assignee);
-    }
+    // if (task.assigneeId) {
+    //   const assignee = availableUsers.find((u) => u.id === task.assigneeId);
+    //   if (assignee) workingUsers.push(assignee);
+    // }
 
     // 30% chance to include additional collaborators
-    if (Math.random() < 0.3 && availableUsers.length > 1) {
-      const otherUsers = availableUsers.filter((u) => u.id !== task.assigneeId);
-      if (otherUsers.length > 0) {
-        const randomUser =
-          otherUsers[Math.floor(Math.random() * otherUsers.length)];
-        workingUsers.push(randomUser);
-      }
-    }
+    // if (Math.random() < 0.3 && availableUsers.length > 1) {
+    //   const otherUsers = availableUsers.filter((u) => u.id !== task.assigneeId);
+    //   if (otherUsers.length > 0) {
+    //     const randomUser =
+    //       otherUsers[Math.floor(Math.random() * otherUsers.length)];
+    //     workingUsers.push(randomUser);
+    //   }
+    // }
 
     // Fallback to random user if no assignee
     if (workingUsers.length === 0) {

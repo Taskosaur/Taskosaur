@@ -21,12 +21,13 @@ import { Label } from "@/components/ui/label";
 import { Maximize2 } from "lucide-react";
 import Tooltip from "../common/ToolTip";
 import ConfirmationModal from "../modals/ConfirmationModal";
-import UserAvatar from "../ui/avatars/UserAvatar";
 import { Badge } from "../ui";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
 import TaskActivities from "./TaskActivities";
 import { TaskPriorities } from "@/utils/data/taskData";
 import { formatDateForApi } from "@/utils/handleDateChange";
+import MemberSelect from "../common/MemberSelect";
+
 interface TaskDetailClientProps {
   task: any;
   taskId: string;
@@ -64,6 +65,7 @@ export default function TaskDetailClient({
     getProjectLabels,
     assignLabelToTask,
     removeLabelFromTask,
+    assignTaskAssignees,
   } = useTask();
 
   const { getProjectMembers, getTaskStatusByProject } = useProjectContext();
@@ -111,10 +113,8 @@ export default function TaskDetailClient({
     dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
   });
 
-  const [assignment, setAssignment] = useState({
-    assignee: task.assignee,
-    reporter: task.reporter,
-  });
+  const [assignees, setAssignees] = useState<any[]>(task.assignees || (task.assignee ? [task.assignee] : []));
+  const [reporters, setReporters] = useState<any[]>(task.reporters || (task.reporter ? [task.reporter] : []));
 
   const [labels, setLabels] = useState(task.labels || task.tags || []);
   const [availableLabels, setAvailableLabels] = useState<any[]>([]);
@@ -135,8 +135,8 @@ export default function TaskDetailClient({
   const today = new Date().toISOString().split("T")[0];
   // Exception: Assignee or reporter has access to all actions except Assignment section
   const isAssigneeOrReporter =
-    currentUser?.id === assignment.assignee?.id ||
-    currentUser?.id === assignment.reporter?.id;
+    currentUser?.id === assignees[0]?.id ||
+    currentUser?.id === reporters[0]?.id;
 
   const handleStatusChange = async (item: any) => {
     if (!item) return;
@@ -620,8 +620,8 @@ export default function TaskDetailClient({
           ? new Date(editTaskData.dueDate + "T00:00:00.000Z").toISOString()
           : undefined,
         remainingEstimate: task.remainingEstimate || 0,
-        assigneeId: assignment.assignee?.id || task.assigneeId,
-        reporterId: assignment.reporter?.id || task.reporterId,
+        assigneeIds: assignees.map((a) => a.id),
+        reporterIds: reporters.map((r) => r.id),
         statusId: task.status?.id || task.statusId,
         projectId: task.projectId || task.project?.id,
       });
@@ -700,48 +700,26 @@ export default function TaskDetailClient({
     });
   };
 
-  const handleAssignmentChange = async (
-    item: any,
-    type: "assignee" | "reporter"
-  ) => {
-    try {
-      const userId = item?.user?.id || item?.id || null;
-      const updateData =
-        type === "assignee" ? { assigneeId: userId } : { reporterId: userId };
-      await updateTask(taskId, updateData);
-      setAssignment((prev) => ({ ...prev, [type]: item }));
 
-      toast.success(
-        type === "assignee"
-          ? "Assignee updated successfully."
-          : "Reporter updated successfully."
-      );
-    } catch (error) {
-      toast.error(
-        type === "assignee"
-          ? "Failed to update assignee. Please try again."
-          : "Failed to update reporter. Please try again."
-      );
-    }
-  };
 
   useEffect(() => {
     if (projectMembers.length > 0) {
-      let updatedAssignee = assignment.assignee;
-      let updatedReporter = assignment.reporter;
+      let updatedAssignee = assignees;
+      let updatedReporter = reporters;
       if (task.assigneeId) {
         const foundAssignee = projectMembers.find(
           (member) => member.id === task.assigneeId
         );
-        if (foundAssignee) updatedAssignee = foundAssignee;
+        if (foundAssignee) updatedAssignee = [foundAssignee];
       }
       if (task.reporterId) {
         const foundReporter = projectMembers.find(
           (member) => member.id === task.reporterId
         );
-        if (foundReporter) updatedReporter = foundReporter;
+        if (foundReporter) updatedReporter = [foundReporter];
       }
-      setAssignment({ assignee: updatedAssignee, reporter: updatedReporter });
+      setAssignees(updatedAssignee);
+      setReporters(updatedReporter);
     }
   }, [projectMembers, task.assigneeId, task.reporterId]);
 
@@ -1069,141 +1047,40 @@ export default function TaskDetailClient({
               <SectionHeader icon={HiCog} title="Assignment" />
               <div className="space-y-4">
                 <div>
-                  <Label className="text-sm mb-2 block">Assignee</Label>
-                  {/* Assignment section: Only allow if hasAccess and NOT assignee/reporter exception */}
-                  {hasAccess ? (
-                    <DropdownAction
-                      currentItem={assignment.assignee}
-                      availableItems={projectMembers}
-                      loading={loadingMembers}
-                      onItemSelect={(item) =>
-                        handleAssignmentChange(item, "assignee")
+                  <MemberSelect
+                    label="Assignees"
+                    selectedMembers={assignees}
+                    onChange={async (newAssignees) => {
+                      setAssignees(newAssignees);
+                      try {
+                        await assignTaskAssignees(taskId, newAssignees.map((a) => a.id));
+                        toast.success("Assignees updated successfully.");
+                      } catch {
+                        toast.error("Failed to update assignees.");
                       }
-                      placeholder="Select assignee..."
-                      showUnassign={true}
-                      hideAvatar={false}
-                      itemType="projectMember"
-                      onDropdownOpen={async () => {
-                        if (projectMembers.length === 0) {
-                          const projectId = task.projectId || task.project?.id;
-                          if (projectId) {
-                            try {
-                              const members = await getProjectMembers(
-                                projectId
-                              );
-                              if (Array.isArray(members)) {
-                                setProjectMembers(members);
-                              }
-                            } catch (error) {
-                              toast.error("Failed to fetch project members");
-                            }
-                          }
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      {assignment.assignee?.id ? (
-                        <UserAvatar
-                          user={{
-                            firstName: assignment.assignee.firstName || "",
-                            lastName: assignment.assignee.lastName || "",
-                            avatar: assignment.assignee.avatar,
-                          }}
-                          size="sm"
-                        />
-                      ) : assignment.assignee?.color ? (
-                        <div
-                          className="w-6 h-6 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: assignment.assignee.color }}
-                        >
-                          <div className="w-3 h-3 bg-white rounded-full opacity-80" />
-                        </div>
-                      ) : (
-                        <div className="w-6 h-6 bg-[var(--muted)] rounded-full flex items-center justify-center">
-                          <div className="w-3 h-3 bg-[var(--muted-foreground)] rounded-full opacity-60" />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs flex items-start font-medium text-[var(--foreground)] truncate">
-                          {assignment.assignee?.firstName}{" "}
-                          {assignment.assignee?.lastName}
-                        </div>
-                        <div className="text-[12px] text-[var(--muted-foreground)] truncate">
-                          {assignment.assignee?.email}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                    }}
+                    members={projectMembers}
+                    disabled={!hasAccess}
+                    placeholder={projectMembers.length === 0 ? "No members" : "Select assignees..."}
+                  />
                 </div>
                 <div>
-                  <Label className="text-sm mb-2 block">Reporter</Label>
-                  {hasAccess ? (
-                    <DropdownAction
-                      currentItem={assignment.reporter}
-                      availableItems={projectMembers}
-                      loading={loadingMembers}
-                      onItemSelect={(item) =>
-                        handleAssignmentChange(item, "reporter")
+                  <MemberSelect
+                    label="Reporters"
+                    selectedMembers={reporters}
+                    onChange={async (newReporters) => {
+                      setReporters(newReporters);
+                      try {
+                        await updateTask(taskId, { reporterIds: newReporters.map((r) => r.id) });
+                        toast.success("Reporters updated successfully.");
+                      } catch {
+                        toast.error("Failed to update reporters.");
                       }
-                      placeholder="Select reporter..."
-                      showUnassign={true}
-                      hideAvatar={false}
-                      itemType="projectMember"
-                      onDropdownOpen={async () => {
-                        if (projectMembers.length === 0) {
-                          const projectId = task.projectId || task.project?.id;
-                          if (projectId) {
-                            try {
-                              const members = await getProjectMembers(
-                                projectId
-                              );
-                              if (Array.isArray(members)) {
-                                setProjectMembers(members);
-                              }
-                            } catch (error) {
-                              toast.error("Failed to fetch project members");
-                            }
-                          }
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      {assignment.reporter?.id ? (
-                        <UserAvatar
-                          user={{
-                            firstName: assignment.reporter?.firstName || "",
-                            lastName: assignment.reporter?.lastName || "",
-                            avatar: assignment.reporter?.avatar,
-                          }}
-                          size="sm"
-                        />
-                      ) : assignment.reporter?.color ? (
-                        <div
-                          className="w-6 h-6 rounded-full flex items-center justify-center"
-                          style={{
-                            backgroundColor: assignment.reporter?.color,
-                          }}
-                        >
-                          <div className="w-3 h-3 bg-white rounded-full opacity-80" />
-                        </div>
-                      ) : (
-                        <div className="w-6 h-6 bg-[var(--muted)] rounded-full flex items-center justify-center">
-                          <div className="w-3 h-3 bg-[var(--muted-foreground)] rounded-full opacity-60" />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs flex items-start font-medium text-[var(--foreground)] truncate">
-                          {assignment.reporter?.firstName}{" "}
-                          {assignment.reporter?.lastName}
-                        </div>
-                        <div className="text-[12px] text-[var(--muted-foreground)] truncate">
-                          {assignment.reporter?.email}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                    }}
+                    members={projectMembers}
+                    disabled={!hasAccess}
+                    placeholder={projectMembers.length === 0 ? "No members" : "Select reporters..."}
+                  />
                 </div>
               </div>
             </div>

@@ -163,7 +163,7 @@ export class LabelsService {
                     category: true,
                   },
                 },
-                assignee: {
+                assignees: {
                   select: {
                     id: true,
                     firstName: true,

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+
 import {
   Select,
   SelectContent,
@@ -18,7 +19,7 @@ import router from "next/router";
 import ActionButton from "./ActionButton";
 import { useProject } from "@/contexts/project-context";
 import { formatDateForApi, getTodayDate } from "@/utils/handleDateChange";
-
+import MemberSelect from "./MemberSelect";
 interface CreateTaskProps {
   workspaceSlug?: string;
   projectSlug?: string;
@@ -42,10 +43,9 @@ export default function CreateTask({
   projectSlug,
   workspace,
   projects,
-
 }: CreateTaskProps) {
   const { createTask } = useTask();
-  const { getProjectMembers,getTaskStatusByProject } = useProject();
+  const { getProjectMembers, getTaskStatusByProject } = useProject();
 
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
@@ -59,17 +59,16 @@ export default function CreateTask({
     type: "TASK",
     dueDate: "",
   });
-  const [assignee, setAssignee] = useState<any>(null);
-  const [reporter, setReporter] = useState<any>(null);
+  const [assignees, setAssignees] = useState<any[]>([]);
+  const [reporters, setReporters] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
 
   const isFormValid = (): boolean => {
     const hasTitle = formData.title.trim().length > 0;
     const hasProject = selectedProject?.id;
     const hasStatus = formData.status.length > 0;
     const hasPriority = formData.priority.length > 0;
-    const hasAssignment = assignee || reporter;
+    const hasAssignment = assignees.length > 0 || reporters.length > 0;
     return hasTitle && hasProject && hasStatus && hasPriority && hasAssignment;
   };
 
@@ -80,8 +79,8 @@ export default function CreateTask({
   const handleProjectChange = (projectId: string) => {
     const project = projects.find((p) => p.id === projectId);
     setSelectedProject(project);
-    setAssignee(null);
-    setReporter(null);
+    setAssignees([]);
+    setReporters([]);
   };
 
   useEffect(() => {
@@ -113,7 +112,7 @@ export default function CreateTask({
       }
     };
 
-     const fetchProjectStatuses = async (projectId: string) =>{
+    const fetchProjectStatuses = async (projectId: string) => {
       if (!projectId || !getTaskStatusByProject) return;
 
       try {
@@ -144,7 +143,6 @@ export default function CreateTask({
     } else if (projects.length === 1 && !selectedProject) {
       setSelectedProject(projects[0]);
     }
-      
   }, [projectSlug, projects, selectedProject?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -164,14 +162,16 @@ export default function CreateTask({
         type: formData.type as "TASK" | "BUG" | "EPIC" | "STORY" | "SUBTASK",
         startDate: new Date().toISOString(),
         dueDate: formData.dueDate
-  ? formatDateForApi(formData.dueDate)
-  : formatDateForApi(getTodayDate()),
+          ? formatDateForApi(formData.dueDate)
+          : formatDateForApi(getTodayDate()),
         projectId: selectedProject.id,
         statusId: formData.status,
       };
 
-      if (assignee?.id) taskData.assigneeId = assignee.id;
-      if (reporter?.id) taskData.reporterId = reporter.id;
+      if (assignees.length > 0)
+        taskData.assigneeIds = assignees.map((a) => a.id);
+      if (reporters.length > 0)
+        taskData.reporterIds = reporters.map((r) => r.id);
 
       const newTask = await createTask(taskData);
 
@@ -183,7 +183,6 @@ export default function CreateTask({
       setIsSubmitting(false);
     }
   };
-
 
   return (
     <div className="dashboard-container">
@@ -234,7 +233,10 @@ export default function CreateTask({
                   editMode={true}
                 />
 
-                <div className="flex items-center justify-start gap-3 " id="submit-form-button">
+                <div
+                  className="flex items-center justify-start gap-3 "
+                  id="submit-form-button"
+                >
                   <ActionButton
                     onClick={handleSubmit}
                     showPlusIcon
@@ -439,32 +441,30 @@ export default function CreateTask({
               ) : (
                 <>
                   <MemberSelect
-                    label="Assignee *"
-                    selectedMember={assignee}
-                    onChange={setAssignee}
+                    label="Assignees *"
+                    selectedMembers={assignees}
+                    onChange={setAssignees}
                     members={members}
                     disabled={!selectedProject?.id || members.length === 0}
                     placeholder={
                       !selectedProject?.id
                         ? "Select a project first"
-                        : "Select assignee..."
+                        : "Select assignees..."
                     }
                   />
 
                   <MemberSelect
-                    label="Reporter"
-                    selectedMember={reporter}
-                    onChange={setReporter}
+                    label="Reporters"
+                    selectedMembers={reporters}
+                    onChange={setReporters}
                     members={members}
                     disabled={!selectedProject?.id || members.length === 0}
                     placeholder={
                       !selectedProject?.id
                         ? "Select a project first"
-                        : "Select reporter..."
+                        : "Select reporters..."
                     }
                   />
-
-               
                 </>
               )}
             </CardContent>
@@ -475,41 +475,4 @@ export default function CreateTask({
   );
 }
 
-  const MemberSelect = ({
-    label,
-    selectedMember,
-    onChange,
-    members,
-    disabled,
-    placeholder,
-  }: {
-    label: string;
-    selectedMember: any;
-    onChange: (member: any) => void;
-    members: any[];
-    disabled: boolean;
-    placeholder: string;
-  }) => (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <Select
-        value={selectedMember?.id || ""}
-        onValueChange={(userId) => {
-          const user = members.find((m) => m.id === userId);
-          onChange(user);
-        }}
-        disabled={disabled}
-      >
-        <SelectTrigger className="w-full border-[var(--border)] bg-[var(--background)]">
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent className="border-[var(--border)] bg-[var(--popover)]">
-          {members.map((member) => (
-            <SelectItem key={member.id} value={member.id}>
-              {member.firstName} {member.lastName} ({member.email})
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
+

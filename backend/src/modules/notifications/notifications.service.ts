@@ -5,7 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async createNotification(data: {
     title: string;
@@ -138,7 +138,7 @@ export class NotificationsService {
   // Notification creators for different events
   async notifyTaskAssigned(
     taskId: string,
-    assigneeId: string,
+    assigneeIds: string[], // Changed from single assigneeId to array
     assignedBy: string,
   ) {
     const task = await this.prisma.task.findUnique({
@@ -154,21 +154,28 @@ export class NotificationsService {
       },
     });
 
-    if (!task || !assigneeId) return;
+    if (!task || !assigneeIds?.length) return;
 
-    return this.createNotification({
-      title: 'New Task Assignment',
-      message: `You have been assigned to task "${task.title}"`,
-      type: NotificationType.TASK_ASSIGNED,
-      userId: assigneeId,
-      organizationId: task.project.workspace.organizationId,
-      entityType: 'Task',
-      entityId: taskId,
-      actionUrl: `/tasks/${taskId}`,
-      createdBy: assignedBy,
-      priority: NotificationPriority.HIGH,
-    });
+    // Create notifications for all assignees concurrently
+    const notificationPromises = assigneeIds.map(assigneeId =>
+      this.createNotification({
+        title: 'New Task Assignment',
+        message: `You have been assigned to task "${task.title}"`,
+        type: NotificationType.TASK_ASSIGNED,
+        userId: assigneeId,
+        organizationId: task.project.workspace.organizationId,
+        entityType: 'Task',
+        entityId: taskId,
+        actionUrl: `/tasks/${taskId}`,
+        createdBy: assignedBy,
+        priority: NotificationPriority.HIGH,
+      })
+    );
+
+    // Execute all notifications concurrently and return results
+    return Promise.all(notificationPromises);
   }
+
 
   async notifyTaskStatusChanged(
     taskId: string,
@@ -179,8 +186,8 @@ export class NotificationsService {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: {
-        assignee: true,
-        reporter: true,
+        assignees: true, // Multiple assignees
+        reporters: true, // Multiple reporters
         project: {
           include: {
             workspace: {
@@ -193,17 +200,32 @@ export class NotificationsService {
 
     if (!task) return;
 
-    // Notify assignee and reporter
-    const usersToNotify = [task.assigneeId, task.reporterId].filter(
-      (userId) => userId && userId !== changedBy,
-    );
+    // Collect all users to notify (assignees and reporters, excluding the person who made the change)
+    const usersToNotify = new Set<string>();
 
-    const notifications = usersToNotify.map((userId) =>
+    // Add all assignees
+    task.assignees?.forEach(assignee => {
+      if (assignee.id !== changedBy) {
+        usersToNotify.add(assignee.id);
+      }
+    });
+
+    // Add all reporters
+    task.reporters?.forEach(reporter => {
+      if (reporter.id !== changedBy) {
+        usersToNotify.add(reporter.id);
+      }
+    });
+
+    if (usersToNotify.size === 0) return [];
+
+    // Create notifications for all unique users
+    const notifications = Array.from(usersToNotify).map((userId) =>
       this.createNotification({
         title: 'Task Status Updated',
         message: `Task "${task.title}" status changed from ${oldStatus} to ${newStatus}`,
         type: NotificationType.TASK_STATUS_CHANGED,
-        userId: userId!,
+        userId: userId,
         organizationId: task.project.workspace.organizationId,
         entityType: 'Task',
         entityId: taskId,
@@ -215,10 +237,12 @@ export class NotificationsService {
     return Promise.all(notifications);
   }
 
+
   async notifyTaskDueSoon(taskId: string) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: {
+        assignees: true, // Multiple assignees instead of single assignee
         project: {
           include: {
             workspace: {
@@ -229,20 +253,26 @@ export class NotificationsService {
       },
     });
 
-    if (!task || !task.assigneeId || !task.dueDate) return;
+    if (!task || !task.assignees?.length || !task.dueDate) return;
 
-    return this.createNotification({
-      title: 'Task Due Soon',
-      message: `Task "${task.title}" is due soon`,
-      type: NotificationType.TASK_DUE_SOON,
-      userId: task.assigneeId,
-      organizationId: task.project.workspace.organizationId,
-      entityType: 'Task',
-      entityId: taskId,
-      actionUrl: `/tasks/${taskId}`,
-      priority: NotificationPriority.HIGH,
-    });
+    // Create notifications for all assignees
+    const notifications = task.assignees.map((assignee) =>
+      this.createNotification({
+        title: 'Task Due Soon',
+        message: `Task "${task.title}" is due soon`,
+        type: NotificationType.TASK_DUE_SOON,
+        userId: assignee.id,
+        organizationId: task.project.workspace.organizationId,
+        entityType: 'Task',
+        entityId: taskId,
+        actionUrl: `/tasks/${taskId}`,
+        priority: NotificationPriority.HIGH,
+      })
+    );
+
+    return Promise.all(notifications);
   }
+
   // Add these methods to your notifications.service.ts
 
   async getNotificationById(notificationId: string, userId: string) {

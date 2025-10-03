@@ -159,7 +159,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
       taskNumber: 1,
       projectId,
       sprintId: 'sprint-1',
-      reporterId: 'user-1',
+  // reporter: 'user-1',
       reporter: {
         id: 'user-1',
         firstName: 'John',
@@ -168,7 +168,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
       },
       statusId: 'status-2',
       status: mockStatuses[1],
-      assigneeId: 'user-2',
+  // assigneeId: 'user-2',
       assignee: {
         id: 'user-2',
         firstName: 'Jane',
@@ -190,7 +190,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
       taskNumber: 2,
       projectId,
       sprintId: 'sprint-1',
-      reporterId: 'user-1',
+  // reporter: 'user-1',
       reporter: {
         id: 'user-1',
         firstName: 'John',
@@ -199,7 +199,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
       },
       statusId: 'status-4',
       status: mockStatuses[3],
-      assigneeId: 'user-3',
+  // assigneeId: 'user-3',
       assignee: {
         id: 'user-3',
         firstName: 'Alice',
@@ -222,7 +222,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
       taskNumber: 3,
       projectId,
       sprintId: 'sprint-1',
-      reporterId: 'user-2',
+  // reporter: 'user-2',
       reporter: {
         id: 'user-2',
         firstName: 'Jane',
@@ -231,7 +231,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
       },
       statusId: 'status-1',
       status: mockStatuses[0],
-      assigneeId: 'user-1',
+  // assigneeId: 'user-1',
       assignee: {
         id: 'user-1',
         firstName: 'John',
@@ -253,7 +253,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
       taskNumber: 4,
       projectId,
       sprintId: 'sprint-1',
-      reporterId: 'user-3',
+  // reporter: 'user-3',
       reporter: {
         id: 'user-3',
         firstName: 'Alice',
@@ -262,7 +262,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
       },
       statusId: 'status-3',
       status: mockStatuses[2],
-      assigneeId: 'user-2',
+  // assigneeId: 'user-2',
       assignee: {
         id: 'user-2',
         firstName: 'Jane',

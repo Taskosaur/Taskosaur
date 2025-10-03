@@ -208,6 +208,9 @@ interface TaskContextType extends TaskState {
     subtaskData: UpdateTaskRequest
   ) => Promise<Task>;
   deleteSubtask: (subtaskId: string) => Promise<void>;
+
+  // Add assignTaskAssignees to context type
+  assignTaskAssignees: (taskId: string, assigneeIds: string[]) => Promise<any>;
 }
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -1055,6 +1058,10 @@ export function TaskProvider({ children }: TaskProviderProps) {
           );
         }
         return await contextValue.getProjectLabels(projectId);
+      },
+ 
+      assignTaskAssignees: async (taskId: string, assigneeIds: string[]): Promise<any> => {
+        return await handleApiOperation(() => taskApi.assignTaskAssignees(taskId, assigneeIds), false);
       },
     }),
     [taskState, handleApiOperation]

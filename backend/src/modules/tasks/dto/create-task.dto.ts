@@ -7,6 +7,8 @@ import {
   IsInt,
   IsUUID,
   IsObject,
+  IsArray,
+  ArrayUnique,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { TaskType, TaskPriority } from '@prisma/client';
@@ -129,24 +131,37 @@ export class CreateTaskDto {
   @IsNotEmpty()
   projectId: string;
 
-  @ApiProperty({
-    description: 'ID of the user assigned to this task',
-    example: '123e4567-e89b-12d3-a456-426614174002',
+   @ApiProperty({
+    description: 'IDs of users assigned to this task',
+    example: [
+      '123e4567-e89b-12d3-a456-426614174002',
+      '223e4567-e89b-12d3-a456-426614174003',
+    ],
+    type: [String],
     format: 'uuid',
     required: false,
   })
-  @IsUUID()
+  @IsArray()
+  @IsUUID('all', { each: true })
+  @ArrayUnique()
   @IsOptional()
-  assigneeId?: string;
+  assigneeIds?: string[];
 
   @ApiProperty({
-    description: 'ID of the user who reported/created this task',
-    example: '123e4567-e89b-12d3-a456-426614174003',
+    description: 'IDs of users who reported/created this task',
+    example: [
+      '323e4567-e89b-12d3-a456-426614174004',
+      '423e4567-e89b-12d3-a456-426614174005',
+    ],
+    type: [String],
     format: 'uuid',
+    required: false,
   })
-  @IsUUID()
+  @IsArray()
+  @IsUUID('all', { each: true })
+  @ArrayUnique()
   @IsOptional()
-  reporterId?: string;
+  reporterIds?: string[];
 
   @ApiProperty({
     description: 'ID of the current task status',

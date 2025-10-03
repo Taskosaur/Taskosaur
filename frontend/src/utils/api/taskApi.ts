@@ -784,4 +784,14 @@ export const taskApi = {
       throw error;
     }
   },
+
+  assignTaskAssignees: async (taskId: string, assigneeIds: string[]) => {
+    try {
+      const response = await api.patch(`/tasks/${taskId}/assignees`, { assigneeIds });
+      return response.data;
+    } catch (error) {
+      console.error("Assign task assignees error:", error);
+      throw error;
+    }
+  },
 };

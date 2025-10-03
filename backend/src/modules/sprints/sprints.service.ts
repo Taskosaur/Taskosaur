@@ -210,7 +210,7 @@ export class SprintsService {
         },
         tasks: {
           include: {
-            assignee: {
+            assignees: {
               select: {
                 id: true,
                 firstName: true,
@@ -218,7 +218,7 @@ export class SprintsService {
                 avatar: true,
               },
             },
-            reporter: {
+            reporters: {
               select: {
                 id: true,
                 firstName: true,
@@ -276,7 +276,7 @@ export class SprintsService {
         },
         tasks: {
           include: {
-            assignee: {
+            assignees: {
               select: {
                 id: true,
                 firstName: true,

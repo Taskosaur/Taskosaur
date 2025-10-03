@@ -22,7 +22,7 @@ export class ProjectChartsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accessControl: AccessControlService,
-  ) {}
+  ) { }
 
   /**
    * Get multiple project chart data types in a single request
@@ -162,11 +162,11 @@ export class ProjectChartsService {
                         ...(isElevated
                           ? {}
                           : {
-                              OR: [
-                                { assigneeId: userId },
-                                { reporterId: userId },
-                              ],
-                            }),
+                            OR: [
+                              { assignees: { some: { id: userId } } },
+                              { reporters: { some: { id: userId } } },
+                            ],
+                          }),
                       },
                     },
                   },
@@ -209,7 +209,12 @@ export class ProjectChartsService {
       projectId: project.id,
       ...(isElevated
         ? {}
-        : { OR: [{ assigneeId: userId }, { reporterId: userId }] }),
+        : {
+          OR: [
+            { assignees: { some: { id: userId } } },
+            { reporters: { some: { id: userId } } },
+          ]
+        }),
     };
 
     return this.prisma.task.groupBy({
@@ -235,7 +240,12 @@ export class ProjectChartsService {
       projectId: project.id,
       ...(isElevated
         ? {}
-        : { OR: [{ assigneeId: userId }, { reporterId: userId }] }),
+        : {
+          OR: [
+            { assignees: { some: { id: userId } } },
+            { reporters: { some: { id: userId } } },
+          ]
+        }),
     };
 
     const [totalTasks, completedTasks, activeSprints, totalBugs, resolvedBugs] =
@@ -281,7 +291,12 @@ export class ProjectChartsService {
       projectId: project.id,
       ...(isElevated
         ? {}
-        : { OR: [{ assigneeId: userId }, { reporterId: userId }] }),
+        : {
+          OR: [
+            { assignees: { some: { id: userId } } },
+            { reporters: { some: { id: userId } } },
+          ]
+        }),
     };
 
     return this.prisma.task.groupBy({
@@ -315,7 +330,12 @@ export class ProjectChartsService {
             completedAt: { not: null },
             ...(isElevated
               ? {}
-              : { OR: [{ assigneeId: userId }, { reporterId: userId }] }),
+              : {
+                OR: [
+                  { assignees: { some: { id: userId } } },
+                  { reporters: { some: { id: userId } } },
+                ]
+              }),
           },
           select: { storyPoints: true },
         },
@@ -355,7 +375,12 @@ export class ProjectChartsService {
         sprint: { archive: false },
         ...(isElevated
           ? {}
-          : { OR: [{ assigneeId: userId }, { reporterId: userId }] }),
+          : {
+            OR: [
+              { assignees: { some: { id: userId } } },
+              { reporters: { some: { id: userId } } },
+            ]
+          }),
       },
       select: {
         completedAt: true,

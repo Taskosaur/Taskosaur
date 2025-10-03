@@ -668,6 +668,7 @@ function WorkspaceTasksContent() {
             onTaskRefetch={memoizedTaskRefetch}
             addTaskStatuses={addTaskStatuses}
             workspaceMembers={workspaceMembers}
+            showAddTaskRow={hasAccess}
           />
         );
     }

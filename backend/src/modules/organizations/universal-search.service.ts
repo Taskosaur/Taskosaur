@@ -56,7 +56,7 @@ export class UniversalSearchService {
   constructor(
     private prisma: PrismaService,
     private accessControl: AccessControlService,
-  ) {}
+  ) { }
 
   async search(
     query: string,
@@ -215,9 +215,9 @@ export class UniversalSearchService {
         updatedAt: workspace.updatedAt,
         createdBy: workspace.createdByUser
           ? {
-              id: workspace.createdByUser.id,
-              name: `${workspace.createdByUser.firstName} ${workspace.createdByUser.lastName}`,
-            }
+            id: workspace.createdByUser.id,
+            name: `${workspace.createdByUser.firstName} ${workspace.createdByUser.lastName}`,
+          }
           : undefined,
       },
     }));
@@ -300,9 +300,9 @@ export class UniversalSearchService {
         priority: project.priority,
         createdBy: project.createdByUser
           ? {
-              id: project.createdByUser.id,
-              name: `${project.createdByUser.firstName} ${project.createdByUser.lastName}`,
-            }
+            id: project.createdByUser.id,
+            name: `${project.createdByUser.firstName} ${project.createdByUser.lastName}`,
+          }
           : undefined,
       },
     }));
@@ -433,7 +433,7 @@ export class UniversalSearchService {
         status: {
           select: { name: true },
         },
-        assignee: {
+        assignees: {
           select: { id: true, firstName: true, lastName: true },
         },
         createdByUser: {
@@ -470,17 +470,18 @@ export class UniversalSearchService {
         updatedAt: task.updatedAt,
         status: task.status.name,
         priority: task.priority,
-        assignee: task.assignee
-          ? {
-              id: task.assignee.id,
-              name: `${task.assignee.firstName} ${task.assignee.lastName}`,
-            }
+        assignees: task.assignees
+          ? task.assignees.map((assignee) => ({
+            id: assignee.id,
+            firstName: assignee.firstName,
+            lastName: assignee.lastName,
+          }))
           : undefined,
         createdBy: task.createdByUser
           ? {
-              id: task.createdByUser.id,
-              name: `${task.createdByUser.firstName} ${task.createdByUser.lastName}`,
-            }
+            id: task.createdByUser.id,
+            name: `${task.createdByUser.firstName} ${task.createdByUser.lastName}`,
+          }
           : undefined,
         labels: task.labels.map((tl) => tl.label),
       },
@@ -691,9 +692,9 @@ export class UniversalSearchService {
         status: sprint.status,
         createdBy: sprint.createdByUser
           ? {
-              id: sprint.createdByUser.id,
-              name: `${sprint.createdByUser.firstName} ${sprint.createdByUser.lastName}`,
-            }
+            id: sprint.createdByUser.id,
+            name: `${sprint.createdByUser.firstName} ${sprint.createdByUser.lastName}`,
+          }
           : undefined,
       },
     }));

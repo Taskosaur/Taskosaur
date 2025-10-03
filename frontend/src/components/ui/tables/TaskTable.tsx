@@ -28,6 +28,7 @@ import {
   Clock,
   Plus,
   Check,
+  Users,
 } from "lucide-react";
 import {
   Pagination,
@@ -54,6 +55,20 @@ import { useTask } from "@/contexts/task-context";
 import { useProject } from "@/contexts/project-context";
 import { toast } from "sonner";
 import Tooltip from "@/components/common/ToolTip";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 // Data extraction utility functions
 function extractTaskValue(task: Task, columnId: string): any {
@@ -239,12 +254,13 @@ const TaskTable: React.FC<TaskTableProps> = ({
     title: "",
     priority: "MEDIUM" as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
     statusId: "",
-    assigneeId: "",
+    assigneeIds: [] as string[], // Changed from assigneeId to assigneeIds array
     dueDate: "",
     projectId: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [titleTouched, setTitleTouched] = useState(false);
+  const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false); // For multi-select popover
 
   const [localAddTaskStatuses, setLocalAddTaskStatuses] = useState<
     Array<{ id: string; name: string }>
@@ -312,6 +328,248 @@ const TaskTable: React.FC<TaskTableProps> = ({
     return `${firstName?.charAt(0) || ""}${
       lastName?.charAt(0) || ""
     }`.toUpperCase();
+  };
+
+  // Helper function to render multiple assignees
+  const renderMultipleAssignees = (assignees: any[], maxVisible = 3) => {
+    if (!assignees || assignees.length === 0) {
+      return (
+        <div className="flex items-center gap-2">
+          <User className="w-4 h-4" />
+          <span className="tasktable-assignee-unassigned">Unassigned</span>
+        </div>
+      );
+    }
+
+    const maxToShow = 3;
+    const visibleAssignees = assignees.slice(0, maxToShow);
+    const remainingCount = assignees.length - maxToShow;
+
+    return (
+      <div className="flex items-center gap-1">
+        <div className="flex -space-x-2">
+          {visibleAssignees.map((assignee, index) => (
+            <Tooltip
+              key={assignee.id}
+              content={`${assignee.firstName} ${assignee.lastName}`}
+              position="top"
+            >
+              <Avatar className="tasktable-assignee-avatar w-6 h-6 border-2 border-white">
+                <AvatarImage
+                  src={assignee.avatar || "/placeholder.svg"}
+                  alt={`${assignee.firstName} ${assignee.lastName}`}
+                />
+                <AvatarFallback className="tasktable-assignee-fallback text-xs">
+                  {getInitials(assignee.firstName, assignee.lastName)}
+                </AvatarFallback>
+              </Avatar>
+            </Tooltip>
+          ))}
+          {remainingCount > 0 && (
+            <Tooltip
+              content={`+${remainingCount} more`}
+              position="top"
+            >
+              <div className="w-6 h-6 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center">
+                <span className="text-xs font-medium text-gray-600">
+                  +{remainingCount}
+                </span>
+              </div>
+            </Tooltip>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Helper function to render multiple reporters (future use)
+  const renderMultipleReporters = (reporters: any[], maxVisible = 3) => {
+    if (!reporters || reporters.length === 0) {
+      return (
+        <div className="flex items-center gap-2">
+          <User className="w-4 h-4" />
+          <span className="tasktable-assignee-unassigned">Unassigned</span>
+        </div>
+      );
+    }
+
+    const maxToShow = 3;
+    const visibleReporters = reporters.slice(0, maxToShow);
+    const remainingCount = reporters.length - maxToShow;
+
+    return (
+      <div className="flex items-center gap-1">
+        <div className="flex -space-x-2">
+          {visibleReporters.map((reporter, index) => (
+            <Tooltip
+              key={reporter.id}
+              content={`${reporter.firstName} ${reporter.lastName}`}
+              position="top"
+            >
+              <Avatar className="tasktable-assignee-avatar w-6 h-6 border-2 border-white">
+                <AvatarImage
+                  src={reporter.avatar || "/placeholder.svg"}
+                  alt={`${reporter.firstName} ${reporter.lastName}`}
+                />
+                <AvatarFallback className="tasktable-assignee-fallback text-xs">
+                  {getInitials(reporter.firstName, reporter.lastName)}
+                </AvatarFallback>
+              </Avatar>
+            </Tooltip>
+          ))}
+          {remainingCount > 0 && (
+            <Tooltip
+              content={`+${remainingCount} more`}
+              position="top"
+            >
+              <div className="w-6 h-6 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center">
+                <span className="text-xs font-medium text-gray-600">
+                  +{remainingCount}
+                </span>
+              </div>
+            </Tooltip>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Helper function to get selected assignees for display
+  const getSelectedAssignees = () => {
+    const availableMembers = projectSlug && projectMembers && projectMembers.length > 0
+      ? projectMembers
+      : localAddTaskProjectMembers;
+
+    return availableMembers.filter((member) =>
+      newTaskData.assigneeIds.includes(member.user?.id || member.id)
+    );
+  };
+
+  // Multi-select assignee component
+  const MultiSelectAssignee = () => {
+    const availableMembers = projectSlug && projectMembers && projectMembers.length > 0
+      ? projectMembers
+      : localAddTaskProjectMembers;
+
+    const selectedAssignees = getSelectedAssignees();
+
+    const handleAssigneeToggle = (memberId: string) => {
+      setNewTaskData((prev) => ({
+        ...prev,
+        assigneeIds: prev.assigneeIds.includes(memberId)
+          ? prev.assigneeIds.filter((id) => id !== memberId)
+          : [...prev.assigneeIds, memberId],
+      }));
+    };
+
+    return (
+      <Popover open={assigneePopoverOpen} onOpenChange={setAssigneePopoverOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            role="combobox"
+            aria-expanded={assigneePopoverOpen}
+            className="border-none shadow-none bg-transparent justify-start p-0 h-auto min-h-[2rem] hover:bg-transparent"
+            disabled={isSubmitting}
+          >
+            {selectedAssignees.length === 0 ? (
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                <span className="text-sm text-gray-500">Select assignees...</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <div className="flex -space-x-2">
+                  {selectedAssignees.slice(0, 3).map((assignee) => (
+                    <Avatar
+                      key={assignee.user?.id || assignee.id}
+                      className="w-6 h-6 border-2 border-white"
+                    >
+                      <AvatarImage
+                        src={assignee.user?.avatar || assignee.avatar || "/placeholder.svg"}
+                        alt={`${assignee.user?.firstName || assignee.firstName} ${assignee.user?.lastName || assignee.lastName}`}
+                      />
+                      <AvatarFallback className="text-xs">
+                        {getInitials(
+                          assignee.user?.firstName || assignee.firstName,
+                          assignee.user?.lastName || assignee.lastName
+                        )}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                  {selectedAssignees.length > 3 && (
+                    <div className="w-6 h-6 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center">
+                      <span className="text-xs font-medium text-gray-600">
+                        +{selectedAssignees.length - 3}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {selectedAssignees.length === 1 && (
+                  <span className="text-sm ml-2">
+                    {selectedAssignees[0].user?.firstName || selectedAssignees[0].firstName} {selectedAssignees[0].user?.lastName || selectedAssignees[0].lastName}
+                  </span>
+                )}
+                {selectedAssignees.length > 1 && (
+                  <span className="text-sm ml-2">
+                    {selectedAssignees.length} assignees
+                  </span>
+                )}
+              </div>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[300px] p-0 bg-[var(--card)] border-none" align="start">
+          <Command>
+            <CommandInput placeholder="Search assignees..." />
+            <CommandList>
+              <CommandEmpty>No assignees found.</CommandEmpty>
+              <CommandGroup>
+                {availableMembers.map((member) => {
+                  const memberId = member.user?.id || member.id;
+                  const isSelected = newTaskData.assigneeIds.includes(memberId);
+                  
+                  return (
+                    <CommandItem
+                      key={memberId}
+                      value={`${member.user?.firstName || member.firstName} ${member.user?.lastName || member.lastName}`}
+                      onSelect={() => handleAssigneeToggle(memberId)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        className="pointer-events-none"
+                      />
+                      <Avatar className="w-6 h-6">
+                        <AvatarImage
+                          src={member.user?.avatar || member.avatar || "/placeholder.svg"}
+                          alt={`${member.user?.firstName || member.firstName} ${member.user?.lastName || member.lastName}`}
+                        />
+                        <AvatarFallback className="text-xs">
+                          {getInitials(
+                            member.user?.firstName || member.firstName,
+                            member.user?.lastName || member.lastName
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="text-sm">
+                          {member.user?.firstName || member.firstName}{" "}
+                          {member.user?.lastName || member.lastName}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {member.user?.email || member.email}
+                        </span>
+                      </div>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    );
   };
 
   const getTaskTypeIcon = (type: string) => {
@@ -515,7 +773,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
       title: "",
       priority: "MEDIUM",
       statusId: "",
-      assigneeId: "",
+      assigneeIds: [], // Reset to empty array
       dueDate: "",
       projectId: "",
     });
@@ -560,7 +818,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         priority: newTaskData.priority,
         projectId,
         statusId: newTaskData.statusId,
-        assigneeId: newTaskData.assigneeId || undefined,
+        assigneeIds: newTaskData.assigneeIds.length > 0 ? newTaskData.assigneeIds : undefined, // Send array of assignee IDs
         dueDate: newTaskData.dueDate
           ? new Date(newTaskData.dueDate + "T00:00:00.000Z").toISOString()
           : undefined,
@@ -642,8 +900,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
                 <TableHead className="tasktable-header-cell-status ">
                   <p className="ml-3">Status</p>
                 </TableHead>
-                <TableHead className="tasktable-header-cell-assignee ">
-                  Assignee
+                <TableHead className="tasktable-header-cell-assignee w-32 text-center min-w-[64px] max-w-[96px] ">
+                  <span>Assignees</span>
                 </TableHead>
                 <TableHead className="tasktable-header-cell-date">
                   Due Date
@@ -756,7 +1014,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                             >
                               <SelectValue placeholder="Select project *" />
                             </SelectTrigger>
-                            <SelectContent className="overflow-y-auto bg-white border-none text-black">
+                            <SelectContent className="overflow-y-auto bg-[var(--card)] border-none text-[var(--foreground)]">
                               {Array.isArray(projectsOfCurrentWorkspace) &&
                               projectsOfCurrentWorkspace.length > 0 ? (
                                 projectsOfCurrentWorkspace.map(
@@ -764,7 +1022,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                                     <SelectItem
                                       key={project.id}
                                       value={project.id}
-                                      className="text-black"
+                                      
                                     >
                                       {project.name}
                                     </SelectItem>
@@ -774,7 +1032,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                                 <SelectItem
                                   value="no-projects"
                                   disabled
-                                  className="text-black"
+                                 
                                 >
                                   No projects found
                                 </SelectItem>
@@ -819,7 +1077,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           <SelectValue />
                         </SelectTrigger>
 
-                        <SelectContent className="bg-white border-none text-black">
+                        <SelectContent className="bg-[var(--card)] border-none text-[var(--foreground)]">
                           {(TaskPriorities || TaskPriorities || []).map(
                             (priority) => {
                               const value = priority.value ?? "undefined";
@@ -828,7 +1086,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                                 <SelectItem
                                   key={value}
                                   value={value}
-                                  className="text-black"
+                                 
                                 >
                                   {label}
                                 </SelectItem>
@@ -860,13 +1118,13 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           >
                             <SelectValue placeholder="Select status *" />
                           </SelectTrigger>
-                          <SelectContent className="bg-white border-none text-black">
+                          <SelectContent className="bg-[var(--card)] border-none text-[var(--foreground)]">
                             {localAddTaskStatuses.length > 0 ? (
                               localAddTaskStatuses.map((status) => (
                                 <SelectItem
                                   key={status.id}
                                   value={status.id}
-                                  className="text-black"
+                                 
                                 >
                                   {status.name}
                                 </SelectItem>
@@ -875,7 +1133,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                               <SelectItem
                                 value="no-status"
                                 disabled
-                                className="text-black"
+                              
                               >
                                 No statuses found
                               </SelectItem>
@@ -888,62 +1146,12 @@ const TaskTable: React.FC<TaskTableProps> = ({
                         </span>
                       )}
                     </TableCell>
-                    {/* Assignee - only show if projectId is selected */}
+                    {/* Assignees - Multi-select */}
                     <TableCell className="tasktable-cell-assignee">
                       {newTaskData.projectId ||
                       projectSlug ||
                       currentProject?.id ? (
-                        <Select
-                          value={newTaskData.assigneeId || ""}
-                          onValueChange={(value) =>
-                            setNewTaskData((prev) => ({
-                              ...prev,
-                              assigneeId: value === "unassigned" ? "" : value,
-                            }))
-                          }
-                          disabled={isSubmitting}
-                        >
-                          <SelectTrigger className="border-none shadow-none bg-transparent -ml-3">
-                            <SelectValue placeholder="Select assignee..." />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border-none text-black">
-                            {(projectSlug &&
-                            projectMembers &&
-                            projectMembers.length > 0
-                              ? projectMembers
-                              : localAddTaskProjectMembers
-                            ).length > 0 ? (
-                              (projectSlug &&
-                              projectMembers &&
-                              projectMembers.length > 0
-                                ? projectMembers
-                                : localAddTaskProjectMembers
-                              ).map((member) => (
-                                <SelectItem
-                                  key={member.id}
-                                  value={member.user?.id || member.id}
-                                  className="text-black"
-                                >
-                                  <p>
-                                    {member.user?.firstName}{" "}
-                                    {member.user?.lastName}
-                                  </p>
-                                  <p className="text-[13px]">
-                                    ({member.user?.email})
-                                  </p>
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem
-                                value="no-assignee"
-                                disabled
-                                className="text-black"
-                              >
-                                No members found
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
+                        <MultiSelectAssignee />
                       ) : (
                         <span className="text-sm text-gray-400">
                           Select project first
@@ -1079,33 +1287,12 @@ const TaskTable: React.FC<TaskTableProps> = ({
                     <StatusBadge status={task.status} />
                   </TableCell>
 
-                  <TableCell className="tasktable-cell-assignee">
-                    {task.assignee ? (
-                      <div className="tasktable-assignee-container">
-                        <Avatar className="tasktable-assignee-avatar">
-                          <AvatarImage
-                            src={task.assignee.avatar || "/placeholder.svg"}
-                            alt={`${task.assignee.firstName} ${task.assignee.lastName}`}
-                          />
-                          <AvatarFallback className="tasktable-assignee-fallback">
-                            {getInitials(
-                              task.assignee.firstName,
-                              task.assignee.lastName
-                            )}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="tasktable-assignee-name">
-                          {task.assignee.firstName} {task.assignee.lastName}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4" />
-                        <span className="tasktable-assignee-unassigned">
-                          Unassigned
-                        </span>
-                      </div>
-                    )}
+                  <TableCell className="tasktable-cell-assignee w-32 min-w-[64px] max-w-[96px] text-center align-middle">
+                    <div className="flex justify-center items-center">
+                      {renderMultipleAssignees(
+                        task.assignees || (task.assignee ? [task.assignee] : [])
+                      )}
+                    </div>
                   </TableCell>
 
                   <TableCell className="tasktable-cell-date">

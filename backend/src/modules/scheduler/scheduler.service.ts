@@ -10,7 +10,7 @@ export class SchedulerService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   @Cron(CronExpression.EVERY_HOUR)
   async checkDueDateReminders() {
@@ -27,8 +27,8 @@ export class SchedulerService {
             gte: new Date(),
             lte: oneDayFromNow,
           },
-          assigneeId: {
-            not: null,
+          assignees: {
+            some: {} // At least one assignee
           },
           status: {
             category: {
@@ -37,7 +37,7 @@ export class SchedulerService {
           },
         },
         include: {
-          assignee: true,
+          assignees: true,
         },
       });
 
@@ -48,8 +48,8 @@ export class SchedulerService {
             gte: new Date(),
             lte: oneHourFromNow,
           },
-          assigneeId: {
-            not: null,
+          assignees: {
+            some: {} // At least one assignee
           },
           status: {
             category: {
@@ -58,7 +58,7 @@ export class SchedulerService {
           },
         },
         include: {
-          assignee: true,
+          assignees: true,
         },
       });
 
@@ -86,8 +86,8 @@ export class SchedulerService {
           dueDate: {
             lt: new Date(),
           },
-          assigneeId: {
-            not: null,
+          assignees: {
+            some: {} // At least one assignee
           },
           status: {
             category: {
@@ -96,7 +96,7 @@ export class SchedulerService {
           },
         },
         include: {
-          assignee: true,
+          assignees: true, // Multiple assignees instead of single assignee
           project: {
             include: {
               workspace: {
@@ -109,24 +109,35 @@ export class SchedulerService {
         },
       });
 
-      // Group overdue tasks by assignee
-      const tasksByAssignee = new Map<string, any[]>();
+      // Group overdue tasks by assignee using Map
+      const tasksByAssignee = new Map<string, { assignee: any, tasks: any[] }>();
 
+      // Process each task and its assignees
       for (const task of overdueTasks) {
-        if (!task.assignee?.email) continue;
+        // Iterate through all assignees for each task
+        for (const assignee of task.assignees) {
+          if (!assignee?.email) continue;
 
-        const assigneeId = task.assignee.id;
-        if (!tasksByAssignee.has(assigneeId)) {
-          tasksByAssignee.set(assigneeId, []);
+          const assigneeId = assignee.id;
+
+          // Initialize assignee entry if not exists
+          if (!tasksByAssignee.has(assigneeId)) {
+            tasksByAssignee.set(assigneeId, {
+              assignee: assignee,
+              tasks: []
+            });
+          }
+
+          // Add task to this assignee's list
+          tasksByAssignee.get(assigneeId)!.tasks.push(task);
         }
-        tasksByAssignee.get(assigneeId)!.push(task);
       }
 
-      // Send overdue notifications
-      for (const [assigneeId, tasks] of tasksByAssignee) {
-        const assignee = tasks[0].assignee;
+      // Send overdue notifications to each assignee
+      const emailPromises: any = [];
 
-        await this.emailService.sendEmail({
+      for (const [assigneeId, { assignee, tasks }] of tasksByAssignee) {
+        const emailPromise = this.emailService.sendEmail({
           to: assignee.email,
           subject: `Overdue Tasks (${tasks.length})`,
           template: 'task-overdue' as any,
@@ -136,7 +147,7 @@ export class SchedulerService {
             },
             tasks: tasks.map((task) => ({
               id: task.id,
-              key: task.key,
+              key: task.slug, // Changed from task.key to task.slug based on schema
               title: task.title,
               dueDate: task.dueDate,
               project: task.project.name,
@@ -144,11 +155,22 @@ export class SchedulerService {
               daysOverdue: Math.ceil(
                 (Date.now() - task.dueDate.getTime()) / (1000 * 60 * 60 * 24),
               ),
+              // Additional info for shared tasks
+              isShared: task.assignees.length > 1,
+              coAssignees: task.assignees
+                .filter(a => a.id !== assignee.id)
+                .map(a => `${a.firstName} ${a.lastName}`)
+                .join(', '),
             })),
           },
           priority: 'high' as any,
         });
+
+        emailPromises.push(emailPromise);
       }
+
+      // Send all emails concurrently
+      await Promise.all(emailPromises);
 
       this.logger.log(
         `Sent overdue notifications to ${tasksByAssignee.size} users for ${overdueTasks.length} tasks`,
@@ -157,6 +179,7 @@ export class SchedulerService {
       this.logger.error('Failed to check overdue tasks:', error);
     }
   }
+
 
   @Cron('0 9 * * 1') // Monday at 9 AM
   async sendWeeklySummaries() {
@@ -232,8 +255,8 @@ export class SchedulerService {
 
       this.logger.log(
         `Cleanup completed: ${deletedNotifications.count} notifications, ` +
-          `${deletedActivityLogs.count} activity logs, ` +
-          `${deletedRuleExecutions.count} rule executions`,
+        `${deletedActivityLogs.count} activity logs, ` +
+        `${deletedRuleExecutions.count} rule executions`,
       );
     } catch (error) {
       this.logger.error('Failed to cleanup old data:', error);
@@ -275,7 +298,7 @@ export class SchedulerService {
 
       this.logger.log(
         `Sprint status updates: ${sprintsToActivate.count} activated, ` +
-          `${sprintsToComplete.count} completed`,
+        `${sprintsToComplete.count} completed`,
       );
     } catch (error) {
       this.logger.error('Failed to update sprint statuses:', error);
