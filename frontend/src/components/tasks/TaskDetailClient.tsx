@@ -10,15 +10,15 @@ import { useProjectContext } from "@/contexts/project-context";
 import { useAuth } from "@/contexts/auth-context";
 import { TokenManager } from "@/lib/api";
 import ActionButton from "@/components/common/ActionButton";
-import { DynamicBadge } from "@/components/common/DynamicBadge";
+import { CgArrowsExpandRight } from "react-icons/cg";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
-import { HiDocumentText, HiCog, HiPencil, HiTrash } from "react-icons/hi2";
-import { HiAdjustments } from "react-icons/hi";
+import {  HiPencil, HiTrash } from "react-icons/hi2";
+import { PriorityBadge } from "@/components/badges/PriorityBadge";
+import { StatusBadge } from "@/components/badges/StatusBadge";
 import { Input } from "@/components/ui/input";
 import TaskDescription from "@/components/tasks/views/TaskDescription";
 import { Label } from "@/components/ui/label";
-import { Maximize2 } from "lucide-react";
 import Tooltip from "../common/ToolTip";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import { Badge } from "../ui";
@@ -27,6 +27,7 @@ import TaskActivities from "./TaskActivities";
 import { TaskPriorities } from "@/utils/data/taskData";
 import { formatDateForApi } from "@/utils/handleDateChange";
 import MemberSelect from "../common/MemberSelect";
+import Divider from "../common/Divider";
 
 interface TaskDetailClientProps {
   task: any;
@@ -75,7 +76,13 @@ export default function TaskDetailClient({
 
   const [attachments, setAttachments] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [isEditingTask, setIsEditingTask] = useState(false);
+  const [isEditingTask, setIsEditingTask] = useState({
+    title: false,
+    description: false,
+    priority: false,
+    status: false,
+    dueDate: false,
+  });
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [loadingAttachments, setLoadingAttachments] = useState(true);
@@ -113,8 +120,12 @@ export default function TaskDetailClient({
     dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
   });
 
-  const [assignees, setAssignees] = useState<any[]>(task.assignees || (task.assignee ? [task.assignee] : []));
-  const [reporters, setReporters] = useState<any[]>(task.reporters || (task.reporter ? [task.reporter] : []));
+  const [assignees, setAssignees] = useState<any[]>(
+    task.assignees || (task.assignee ? [task.assignee] : [])
+  );
+  const [reporters, setReporters] = useState<any[]>(
+    task.reporters || (task.reporter ? [task.reporter] : [])
+  );
 
   const [labels, setLabels] = useState(task.labels || task.tags || []);
   const [availableLabels, setAvailableLabels] = useState<any[]>([]);
@@ -194,22 +205,21 @@ export default function TaskDetailClient({
   }, [task.projectId, task.project?.id]);
 
   const handleDueDateChange = async (newDueDate: string) => {
-  try {
-    const updateData: UpdateTaskRequest = {
-      dueDate: formatDateForApi(newDueDate) || undefined,
-    };
+    try {
+      const updateData: UpdateTaskRequest = {
+        dueDate: formatDateForApi(newDueDate) || undefined,
+      };
 
-    await updateTask(taskId, updateData);
-    handleTaskFieldChange("dueDate", newDueDate);
+      await updateTask(taskId, updateData);
+      handleTaskFieldChange("dueDate", newDueDate);
 
-    
-    task.dueDate = formatDateForApi(newDueDate);
+      task.dueDate = formatDateForApi(newDueDate);
 
-    toast.success("Task due date updated successfully.");
-  } catch (error) {
-    toast.error("Failed to update task due date.");
-  }
-};
+      toast.success("Task due date updated successfully.");
+    } catch (error) {
+      toast.error("Failed to update task due date.");
+    }
+  };
 
   const findProjectBySlug = (projects: any[], slug: string) => {
     return projects.find((project) => project.slug === slug);
@@ -315,8 +325,7 @@ export default function TaskDetailClient({
           name: folderName,
           id: folderId,
         });
-        
-        // Main logic: access from API, but override for assignee/reporter
+
         setHasAccess(accessData?.canChange || isAssigneeOrReporter || false);
         setHasAccessLoaded(true);
       } catch (error) {
@@ -594,7 +603,13 @@ export default function TaskDetailClient({
   };
 
   const handleEditTask = () => {
-    setIsEditingTask(true);
+    setIsEditingTask({
+      title: true,
+      description: true,
+      priority: false,
+      status: false,
+      dueDate: false,
+    });
   };
 
   const handleSaveTaskEdit = async (
@@ -627,7 +642,13 @@ export default function TaskDetailClient({
       });
 
       Object.assign(task, updatedTask);
-      setIsEditingTask(false);
+      setIsEditingTask({
+        title: false,
+        description: false,
+        priority: false,
+        status: false,
+        dueDate: false,
+      });
       toast.success("Task updated successfully.");
     } catch (error) {
       toast.error("Failed to update the task. Please try again.");
@@ -661,12 +682,24 @@ export default function TaskDetailClient({
                 : task.priority,
             dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
           });
-          setIsEditingTask(false);
+          setIsEditingTask({
+            title: false,
+            description: false,
+            priority: false,
+            status: false,
+            dueDate: false,
+          });
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         },
       });
     } else {
-      setIsEditingTask(false);
+      setIsEditingTask({
+        title: false,
+        description: false,
+        priority: false,
+        status: false,
+        dueDate: false,
+      });
     }
   };
 
@@ -699,8 +732,6 @@ export default function TaskDetailClient({
       },
     });
   };
-
-
 
   useEffect(() => {
     if (projectMembers.length > 0) {
@@ -754,45 +785,22 @@ export default function TaskDetailClient({
   }
 
   return (
-    <div className="dashboard-container pt-0">
+    <div className="dashboard-container">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-md font-bold text-[var(--foreground)]">
+            <h1 className="text-xl font-bold text-[var(--foreground)] capitalize">
               {task.title}
             </h1>
             <div className="flex items-center gap-2">
-              <DynamicBadge
-                label={
-                  typeof task.status === "object"
-                    ? typeof task.status.name === "string"
-                      ? task.status.name
-                      : task.status.name?.name || "Unknown"
-                    : task.status || "Unknown"
-                }
-                bgColor={
-                  task.status?.color || task.status?.name?.color || "#6B7280"
-                }
-                size="sm"
-              />
-              <DynamicBadge
-                label={`${
-                  typeof task.priority === "object"
-                    ? typeof task.priority.name === "string"
-                      ? task.priority.name
-                      : task.priority.name?.name || "Unknown"
-                    : task.priority || "Unknown"
-                } Priority`}
-                bgColor={getPriorityBgColor(task.priority)}
-                size="sm"
-              />
-
               {open === "modal" && (
-                <Tooltip content="Expand to full screen" position="right">
-                  <div onClick={() => router.push(detailUrl)}>
-                    <Maximize2 className="w-7 h-7 pl-2 cursor-pointer" />
-                  </div>
-                </Tooltip>
+                <div className="absolute -top-[26px] right-10 z-50">
+                  <Tooltip content="Expand to full screen" position="left">
+                    <div onClick={() => router.push(detailUrl)}>
+                      <CgArrowsExpandRight className="size-[17px] stroke-[0.5px] cursor-pointer" />
+                    </div>
+                  </Tooltip>
+                </div>
               )}
             </div>
           </div>
@@ -821,11 +829,10 @@ export default function TaskDetailClient({
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 ">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-0">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-[var(--card)] rounded-[var(--card-radius)] shadow-sm p-6">
-              <SectionHeader icon={HiDocumentText} title="Description" />
-              {isEditingTask ? (
+            <div className="border-none ">
+              {isEditingTask.title || isEditingTask.description ? (
                 <div className="space-y-4">
                   <Input
                     value={editTaskData.title}
@@ -873,7 +880,7 @@ export default function TaskDetailClient({
             </div>
 
             {!task.parentTaskId && (
-              <div className="bg-[var(--card)] rounded-[var(--card-radius)] shadow-sm p-6">
+              <div className="">
                 <Subtasks
                   taskId={taskId}
                   projectId={task.projectId || task.project?.id}
@@ -885,7 +892,7 @@ export default function TaskDetailClient({
               </div>
             )}
 
-            <div className="bg-[var(--card)] rounded-[var(--card-radius)] shadow-sm p-6">
+            <div className="">
               <TaskAttachments
                 attachments={attachments}
                 isUploading={isUploading}
@@ -897,7 +904,9 @@ export default function TaskDetailClient({
               />
             </div>
 
-            <div className="bg-[var(--card)] rounded-[var(--card-radius)] shadow-sm p-6">
+            <TaskActivities taskId={taskId} />
+
+            <div className="">
               <TaskComments
                 taskId={taskId}
                 onCommentAdded={() => {}}
@@ -908,14 +917,34 @@ export default function TaskDetailClient({
             </div>
           </div>
 
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-4">
             {/* Task Settings Section */}
-            <div className="bg-[var(--card)] rounded-[var(--card-radius)] shadow-sm p-6">
-              <SectionHeader icon={HiAdjustments} title="Task Settings" />
-              <div className="space-y-4">
+            <div className="">
+              <div className="space-y-2">
+                {/* Priority */}
                 <div>
-                  <Label className="text-sm mb-2 block">Priority</Label>
-                  {hasAccess ? (
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm">Priority</Label>
+                    {hasAccess && (
+                      <button
+                        type="button"
+                        className="rounded transition flex items-center cursor-pointer hover:bg-[var(--accent)] p-1"
+                        onClick={() =>
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            priority: !prev.priority,
+                          }))
+                        }
+                        tabIndex={0}
+                        aria-label="Edit Priority"
+                        style={{ lineHeight: 0 }}
+                      >
+                        <HiPencil className="w-3 h-3 text-[var(--muted-foreground)]" />
+                        <span className="sr-only">Edit</span>
+                      </button>
+                    )}
+                  </div>
+                  {isEditingTask.priority ? (
                     <DropdownAction
                       currentItem={{
                         id: editTaskData.priority || "MEDIUM",
@@ -938,11 +967,14 @@ export default function TaskDetailClient({
                           };
                           await updateTask(taskId, updateData);
                           handleTaskFieldChange("priority", item.id);
-                          // Update the task object's priority
                           task.priority = {
                             name: item,
                             id: item.id,
                           };
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            priority: false,
+                          }));
                           toast.success("Task priority updated successfully.");
                         } catch (error) {
                           toast.error("Failed to update task priority.");
@@ -955,22 +987,47 @@ export default function TaskDetailClient({
                       itemType="user"
                     />
                   ) : (
-                    <Badge
-                      variant="outline"
-                      className="text-xs bg-[var(--muted)] border-[var(--border)] ml-auto flex-shrink-0"
-                    >
-                      {editTaskData?.priority}
-                    </Badge>
+                    <div className="flex items-center justify-between">
+                      <PriorityBadge priority={editTaskData?.priority} />
+                    </div>
                   )}
                 </div>
+
+                {/* Status */}
                 <div>
-                  <Label className="text-sm mb-2 block">Status</Label>
-                  {hasAccess ? (
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm">Status</Label>
+                    {hasAccess && (
+                      <button
+                        type="button"
+                        className="rounded transition flex items-center cursor-pointer hover:bg-[var(--accent)] p-1"
+                        onClick={() =>
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            status: !prev.status,
+                          }))
+                        }
+                        tabIndex={0}
+                        aria-label="Edit Status"
+                        style={{ lineHeight: 0 }}
+                      >
+                        <HiPencil className="w-3 h-3 text-[var(--muted-foreground)]" />
+                        <span className="sr-only">Edit</span>
+                      </button>
+                    )}
+                  </div>
+                  {isEditingTask.status ? (
                     <DropdownAction
                       currentItem={currentStatus}
                       availableItems={statuses}
                       loading={loadingStatuses}
-                      onItemSelect={handleStatusChange}
+                      onItemSelect={async (item) => {
+                        await handleStatusChange(item);
+                        setIsEditingTask((prev) => ({
+                          ...prev,
+                          status: false,
+                        }));
+                      }}
                       placeholder="Select status..."
                       showUnassign={false}
                       hideAvatar={true}
@@ -993,26 +1050,51 @@ export default function TaskDetailClient({
                       }}
                     />
                   ) : (
-                    <Badge
-                      variant="outline"
-                      className="text-xs bg-[var(--muted)] border-[var(--border)] ml-auto flex-shrink-0"
-                    >
-                      {currentStatus?.name}
-                    </Badge>
+                    <div className="flex items-center justify-between">
+                      <StatusBadge status={currentStatus} />
+                    </div>
                   )}
                 </div>
 
+                {/* Due Date */}
                 <div>
-                  <Label className="text-sm mb-2 block">Due Date</Label>
-                  {hasAccess ? (
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm">Due Date</Label>
+                    {hasAccess && (
+                      <button
+                        type="button"
+                        className="rounded transition flex items-center cursor-pointer hover:bg-[var(--accent)] p-1"
+                        onClick={() =>
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            dueDate: !prev.dueDate,
+                          }))
+                        }
+                        tabIndex={0}
+                        aria-label="Edit Due Date"
+                        style={{ lineHeight: 0 }}
+                      >
+                        <HiPencil className="w-3 h-3 text-[var(--muted-foreground)]" />
+                        <span className="sr-only">Edit</span>
+                      </button>
+                    )}
+                  </div>
+                  {isEditingTask.dueDate ? (
                     <div className="relative">
                       <Input
                         type="date"
                         value={editTaskData.dueDate}
                         min={today}
                         onChange={(e) => handleDueDateChange(e.target.value)}
+                        onBlur={() =>
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            dueDate: false,
+                          }))
+                        }
                         className="text-xs bg-[var(--background)] border-[var(--border)] w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                         placeholder="Select due date..."
+                        autoFocus
                       />
                       {editTaskData.dueDate && (
                         <button
@@ -1020,6 +1102,10 @@ export default function TaskDetailClient({
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDueDateChange("");
+                            setIsEditingTask((prev) => ({
+                              ...prev,
+                              dueDate: false,
+                            }));
                           }}
                           className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs z-10"
                           title="Clear due date"
@@ -1029,31 +1115,35 @@ export default function TaskDetailClient({
                       )}
                     </div>
                   ) : (
-                    <Badge
-                      variant="outline"
-                      className="text-xs bg-[var(--muted)] border-[var(--border)] ml-auto flex-shrink-0"
-                    >
-                      {editTaskData.dueDate
-                        ? new Date(editTaskData.dueDate).toLocaleDateString()
-                        : "No due date"}
-                    </Badge>
+                    <div className="flex items-center justify-between">
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
+                      >
+                        {editTaskData.dueDate
+                          ? new Date(editTaskData.dueDate).toLocaleDateString()
+                          : "No due date"}
+                      </Badge>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
-
+            <Divider label="Assignment" />
             {/* Assignment Section */}
-            <div className="bg-[var(--card)] rounded-[var(--card-radius)] shadow-sm p-6">
-              <SectionHeader icon={HiCog} title="Assignment" />
-              <div className="space-y-4">
+           <div className="space-y-4">
                 <div>
                   <MemberSelect
                     label="Assignees"
+                    editMode={true}
                     selectedMembers={assignees}
                     onChange={async (newAssignees) => {
                       setAssignees(newAssignees);
                       try {
-                        await assignTaskAssignees(taskId, newAssignees.map((a) => a.id));
+                        await assignTaskAssignees(
+                          taskId,
+                          newAssignees.map((a) => a.id)
+                        );
                         toast.success("Assignees updated successfully.");
                       } catch {
                         toast.error("Failed to update assignees.");
@@ -1061,17 +1151,24 @@ export default function TaskDetailClient({
                     }}
                     members={projectMembers}
                     disabled={!hasAccess}
-                    placeholder={projectMembers.length === 0 ? "No members" : "Select assignees..."}
+                    placeholder={
+                      projectMembers.length === 0
+                        ? "No members"
+                        : "Select assignees..."
+                    }
                   />
                 </div>
                 <div>
                   <MemberSelect
                     label="Reporters"
                     selectedMembers={reporters}
+                    editMode={true}
                     onChange={async (newReporters) => {
                       setReporters(newReporters);
                       try {
-                        await updateTask(taskId, { reporterIds: newReporters.map((r) => r.id) });
+                        await updateTask(taskId, {
+                          reporterIds: newReporters.map((r) => r.id),
+                        });
                         toast.success("Reporters updated successfully.");
                       } catch {
                         toast.error("Failed to update reporters.");
@@ -1079,27 +1176,24 @@ export default function TaskDetailClient({
                     }}
                     members={projectMembers}
                     disabled={!hasAccess}
-                    placeholder={projectMembers.length === 0 ? "No members" : "Select reporters..."}
+                    placeholder={
+                      projectMembers.length === 0
+                        ? "No members"
+                        : "Select reporters..."
+                    }
                   />
                 </div>
               </div>
-            </div>
-
+            <Divider label="Labels" />
             {/* Labels Section */}
-            <div className="bg-[var(--card)] rounded-[var(--card-radius)] shadow-sm p-6">
-              <TaskLabels
-                labels={labels}
-                availableLabels={availableLabels}
-                onAddLabel={handleAddLabel}
-                onAssignExistingLabel={handleAssignExistingLabel}
-                onRemoveLabel={handleRemoveLabel}
-                hasAccess={hasAccess}
-              />
-            </div>
-
-            <div className="bg-[var(--card)] rounded-[var(--card-radius)] shadow-sm">
-              <TaskActivities taskId={taskId} />
-            </div>
+            <TaskLabels
+              labels={labels}
+              availableLabels={availableLabels}
+              onAddLabel={handleAddLabel}
+              onAssignExistingLabel={handleAssignExistingLabel}
+              onRemoveLabel={handleRemoveLabel}
+              hasAccess={hasAccess}
+            />
           </div>
         </div>
       </div>

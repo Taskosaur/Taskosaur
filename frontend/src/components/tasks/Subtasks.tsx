@@ -418,7 +418,7 @@ export default function Subtasks({
   return (
     <>
       {selectedSubtask && router.query.taskId === selectedSubtask.id && (
-        <div className="mb-6">
+        <div className="">
           <TaskDetailClient
             task={selectedSubtask}
             taskId={selectedSubtask.id}

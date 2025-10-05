@@ -186,18 +186,18 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
     );
   }
 
-  return (
-    <div
-      className="prose max-w-none bg-[var(--background)] text-sm text-[var(--foreground)] p-2 rounded-md border border-[var(--border)] markdown-body"
-      data-color-mode={colorMode}
-    >
-      {value ? (
-        <MarkdownWithInteractiveTasks md={value} />
-      ) : (
-        <div>No description provided</div>
-      )}
-    </div>
-  );
+ return (
+  <div
+    className="task-description-view prose max-w-none bg-[var(--background)] text-sm text-[var(--foreground)] p-2 rounded-md border border-[var(--border)]"
+    data-color-mode={colorMode}
+  >
+    {value ? (
+      <MarkdownWithInteractiveTasks md={value} />
+    ) : (
+      <div>No description provided</div>
+    )}
+  </div>
+);
 };
 
 export default TaskDescription;

@@ -16,6 +16,9 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [showAll, setShowAll] = useState(false);
+
+  const INITIAL_DISPLAY_COUNT = 3;
 
   useEffect(() => {
     fetchActivities(1);
@@ -49,7 +52,12 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
   const loadMore = () => {
     if (page < totalPages) {
       fetchActivities(page + 1, true);
+      setShowAll(true);
     }
+  };
+
+  const toggleShowAll = () => {
+    setShowAll(!showAll);
   };
 
   const generateSimpleMessage = (activity: TaskActivityType): string => {
@@ -95,40 +103,59 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
-    const diffInHours = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-    );
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    const diffInMonths = Math.floor(diffInDays / 30);
 
-    if (diffInHours < 1) {
+    if (diffInMinutes < 1) {
       return "Just now";
+    } else if (diffInMinutes < 60) {
+      return `${diffInMinutes} ${
+        diffInMinutes === 1 ? "minute" : "minutes"
+      } ago`;
     } else if (diffInHours < 24) {
-      return `${diffInHours}h ago`;
+      return `${diffInHours} ${diffInHours === 1 ? "hour" : "hours"} ago`;
+    } else if (diffInDays < 30) {
+      return `${diffInDays} ${diffInDays === 1 ? "day" : "days"} ago`;
+    } else if (diffInMonths < 12) {
+      return `${diffInMonths} ${diffInMonths === 1 ? "month" : "months"} ago`;
     } else {
-      return date.toLocaleDateString();
+      return date.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
     }
   };
 
+  // Determine which activities to display
+  const displayedActivities = showAll
+    ? activities
+    : activities.slice(0, INITIAL_DISPLAY_COUNT);
+
+  const hasMoreToShow = activities.length > INITIAL_DISPLAY_COUNT;
+  const canLoadMorePages = page < totalPages;
+
   if (loading && activities.length === 0) {
     return (
-      <div className="w-full max-w-md h-74 rounded-xl p-4 flex flex-col">
-        <div className="flex items-center gap-1 mb-3">
+      <div className="w-full rounded-xl p-4 flex flex-col bg-[var(--card)]">
+        <div className="flex items-center gap-2 mb-4">
           <div className="p-1 rounded-md">
-            <HiOutlineBolt className="size-5 text-[var(--primary)]" />
+            <HiOutlineBolt className="w-4 h-4 text-[var(--primary)]" />
           </div>
           <h3 className="text-sm font-semibold text-[var(--foreground)]">
             Activities
           </h3>
         </div>
-        <div className="flex-1 overflow-y-auto pr-2">
+        <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="rounded-xl px-3 py-2 flex items-start gap-2 animate-pulse"
-            >
-              <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
+            <div key={i} className="flex items-start gap-3 animate-pulse">
+              <div className="w-6 h-6 bg-[var(--muted)] rounded-full flex-shrink-0"></div>
               <div className="flex-1 space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                <div className="h-4 bg-[var(--muted)] rounded w-3/4"></div>
+                <div className="h-3 bg-[var(--muted)] rounded w-1/4"></div>
               </div>
             </div>
           ))}
@@ -139,16 +166,16 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
 
   if (error && activities.length === 0) {
     return (
-      <div className="w-full max-w-md h-74 rounded-xl p-4 flex flex-col">
-        <div className="flex items-center gap-1 mb-3">
+      <div className="w-full rounded-xl flex flex-col">
+        <div className="flex items-center gap-2 mb-4">
           <div className="p-1 rounded-md">
-            <HiOutlineBolt size={16} className="text-[var(--primary)]" />
+            <HiOutlineBolt className="w-4 h-4 text-[var(--primary)]" />
           </div>
           <h3 className="text-sm font-semibold text-[var(--foreground)]">
             Activities
           </h3>
         </div>
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex items-center justify-center py-8">
           <p className="text-sm text-[var(--muted-foreground)]">{error}</p>
         </div>
       </div>
@@ -156,28 +183,36 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
   }
 
   return (
-    <div className="w-full max-w-md h-74 rounded-xl p-4 flex flex-col">
-      <div className="flex items-center gap-1 mb-3">
+    <div className="w-full rounded-xl flex flex-col">
+      <div className="flex items-center gap-2 mb-4">
         <div className="p-1 rounded-md">
-          <HiOutlineBolt size={18} className="text-[var(--primary)]" />
+          <HiOutlineBolt className="w-4 h-4 text-[var(--primary)]" />
         </div>
         <h3 className="text-sm font-semibold text-[var(--foreground)]">
           Activities
         </h3>
       </div>
-      <div className="flex-1 overflow-y-auto pr-2">
-        {activities.length === 0 ? (
-          <div className="text-center py-4">
-            <p className="text-sm text-[var(--muted-foreground)]">
-              No activities yet
-            </p>
+
+      {activities.length === 0 ? (
+        <div className="text-center py-6 bg-[var(--muted)]/10 rounded-lg border border-dashed border-[var(--border)]">
+          <div className="p-2 rounded-full w-fit mx-auto mb-2">
+            <HiOutlineBolt className="w-5 h-5 text-[var(--muted-foreground)]" />
           </div>
-        ) : (
-          <>
-            {activities.map((activity) => (
+          <h4 className="text-[15px] font-medium text-[var(--foreground)] mb-1">
+            No activities yet
+          </h4>
+          <p className="text-[13px] text-[var(--muted-foreground)]">
+            All activity on this task will show up here.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Activities List */}
+          <div className="space-y-3">
+            {displayedActivities.map((activity) => (
               <div
                 key={activity.id}
-                className="rounded-xl px-3 py-2 flex items-center gap-2 hover:bg-[var(--background-secondary)] transition-colors"
+                className="flex items-start gap-3 group hover:bg-[var(--accent)]/30 rounded-lg p-2 -mx-2 transition-colors"
               >
                 <UserAvatar
                   user={{
@@ -187,31 +222,52 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
                   }}
                   size="xs"
                 />
-                <div className="flex-1 flex items-center justify-between min-w-0">
-                  <span className="text-[13px] text-[var(--foreground)] truncate">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[15px] text-[var(--foreground)] leading-relaxed">
                     {generateSimpleMessage(activity)}
-                  </span>
-                  <span className="text-[11px] text-[var(--muted-foreground)] ml-2 flex-shrink-0">
+                  </div>
+                  <div className="text-[13px] text-[var(--muted-foreground)] mt-1">
                     {formatTimestamp(activity.createdAt)}
-                  </span>
+                  </div>
                 </div>
               </div>
             ))}
+          </div>
 
-            {hasMore && (
-              <div className="w-full flex justify-center mt-2">
+          {/* View More / Show Less Buttons */}
+          {(hasMoreToShow || canLoadMorePages) && (
+            <div className="flex justify-center pt-2">
+              {!showAll && hasMoreToShow && (
                 <button
-                  className="text-[13px] text-[var(--primary)] font-medium py-1 px-3 rounded hover:text-blue-500 focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="text-sm text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] focus:outline-none cursor-pointer transition-colors"
+                  onClick={toggleShowAll}
+                >
+                  View more ({activities.length - INITIAL_DISPLAY_COUNT} more)
+                </button>
+              )}
+
+              {showAll && hasMoreToShow && (
+                <button
+                  className="text-sm text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] focus:outline-none cursor-pointer transition-colors"
+                  onClick={toggleShowAll}
+                >
+                  Show less
+                </button>
+              )}
+
+              {showAll && canLoadMorePages && (
+                <button
+                  className="text-sm text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors ml-2"
                   onClick={loadMore}
                   disabled={loading}
                 >
-                  {loading ? "Loading..." : "View more"}
+                  {loading ? "Loading..." : "Load more activities"}
                 </button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

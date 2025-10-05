@@ -83,7 +83,7 @@ function TaskDetailContent() {
   }
 
   return (
-    <div className="p-4">
+    <div className="">
       <TaskDetailClient
         task={task}
         workspaceSlug={workspaceSlug as string}

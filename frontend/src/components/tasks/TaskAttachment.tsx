@@ -94,6 +94,7 @@ export default function TaskAttachments({
     }
   };
 
+  // Loading state - early return is fine
   if (loadingAttachments) {
     return (
       <div>
@@ -108,71 +109,18 @@ export default function TaskAttachments({
     );
   }
 
-  if (!loadingAttachments && attachments.length === 0) {
-    return (
-      <div>
-        <SectionHeader icon={HiPaperClip} title="Attachments" />
-        <div className="flex flex-col items-center pb-2 justify-center text-[var(--muted-foreground)]">
-          <p className="text-sm">No attachments yet</p>
-        </div>
-        {hasAccess && (
-          <div className="space-y-3">
-            <input
-              type="file"
-              id="file-upload"
-              multiple
-              onChange={onFileUpload}
-              disabled={isUploading}
-              className="hidden"
-              accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv"
-            />
-
-            <label
-              htmlFor="file-upload"
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`block w-full p-6 border-2 border-dashed rounded-lg text-sm cursor-pointer transition-colors ${
-                dragActive
-                  ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
-                  : isUploading
-                  ? "text-[var(--muted-foreground)] cursor-not-allowed border-[var(--muted)]"
-                  : "text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5"
-              }`}
-            >
-              <div className="flex flex-col items-center gap-3">
-                <HiPaperClip className="w-6 h-6" />
-                <div className="text-center">
-                  <span className="font-medium">
-                    {isUploading
-                      ? "Uploading files..."
-                      : dragActive
-                      ? "Drop files to upload"
-                      : "Click or drag files to upload"}
-                  </span>
-                  <div className="text-xs text-[var(--muted-foreground)] mt-1">
-                    PNG, JPG, PDF, DOC, XLS up to 10MB each
-                  </div>
-                </div>
-              </div>
-            </label>
-          </div>
-        )}
-      </div>
-    );
-  }
-
+  // Main render - single source of truth
   return (
     <div>
       <SectionHeader
         icon={HiPaperClip}
-        title={`Attachments (${attachments.length})`}
+        title={attachments.length > 0 ? `Attachments (${attachments.length})` : "Attachments"}
       />
 
-      <div className="space-y-4">
-        {/* Existing attachments */}
+  <div className="space-y-4">
+        {/* Existing attachments list */}
         {attachments.length > 0 && (
-          <div className="space-y-3 mb-6">
+          <div className="space-y-3">
             {attachments.map((attachment) => (
               <div
                 key={attachment.id}
@@ -181,10 +129,10 @@ export default function TaskAttachments({
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <HiPaperClip className="w-4 h-4 text-[var(--muted-foreground)]" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-[var(--foreground)] truncate">
+                    <p className="text-[15px] font-medium text-[var(--foreground)] truncate">
                       {attachment.fileName}
                     </p>
-                    <p className="text-xs text-[var(--muted-foreground)]">
+                    <p className="text-[13px] text-[var(--muted-foreground)]">
                       {formatFileSize(attachment.fileSize)} •{" "}
                       {formatDate(attachment.createdAt)}
                     </p>
@@ -221,7 +169,7 @@ export default function TaskAttachments({
           </div>
         )}
 
-        {/* Upload area */}
+        {/* Upload area - always at bottom if hasAccess */}
         {hasAccess && (
           <div className="space-y-3">
             <input
@@ -239,11 +187,11 @@ export default function TaskAttachments({
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`block w-full p-6 border-2 border-dashed rounded-lg text-sm cursor-pointer transition-colors ${
+              className={`block w-full p-6 bg-[var(--muted)]/10 rounded-lg border border-dashed border-[var(--border)] text-[15px] cursor-pointer transition-colors ${
                 dragActive
                   ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
                   : isUploading
-                  ? "text-[var(--muted-foreground)] cursor-not-allowed border-[var(--muted)]"
+                  ? "text-[var(--muted-foreground)] cursor-not-allowed"
                   : "text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5"
               }`}
             >
@@ -253,19 +201,29 @@ export default function TaskAttachments({
                     <div className="w-6 h-6 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
                     <div className="text-center">
                       <span className="font-medium">Uploading files...</span>
-                      <div className="text-xs text-[var(--muted-foreground)] mt-1">
+                      <div className="text-[13px] text-[var(--muted-foreground)] mt-1">
                         Please wait while your files are being uploaded
                       </div>
                     </div>
                   </>
                 ) : dragActive ? (
-                  <span className="font-medium">Drop files to upload</span>
+                  <>
+                    <HiPaperClip className="w-6 h-6" />
+                    <span className="font-medium">Drop files to upload</span>
+                  </>
                 ) : (
                   <>
                     <HiPaperClip className="w-6 h-6" />
                     <div className="text-center">
-                      <span className="font-medium">Click or drag files here</span>
-                      <div className="text-xs text-[var(--muted-foreground)] mt-1">
+                      {attachments.length === 0 && (
+                        <div className="mb-1">
+                          <p className="text-[15px] font-medium text-[var(--foreground)]">
+                            No attachments yet
+                          </p>
+                        </div>
+                      )}
+                      <span className="font-medium">Click or drag files to upload</span>
+                      <div className="text-[13px] text-[var(--muted-foreground)] mt-1">
                         PNG, JPG, PDF, DOC, XLS up to 10MB each
                       </div>
                     </div>

@@ -1099,3 +1099,287 @@
 }
 
 
+/* Scoped markdown rendering ONLY for comments */
+.comment-markdown .wmde-markdown {
+  background-color: transparent !important;
+  font-size: 13px !important;
+  color: var(--foreground) !important;
+  padding: 0 !important;
+  overflow: hidden ;
+}
+
+.comment-markdown .wmde-markdown p {
+  margin: 0 0 0.5em 0;
+  font-size: 13px !important;
+}
+
+.comment-markdown .wmde-markdown strong {
+  font-weight: 600;
+  color: var(--foreground) !important;
+}
+
+.comment-markdown .wmde-markdown em {
+  font-style: italic;
+}
+
+.comment-markdown .wmde-markdown code {
+  font-size: 12px !important;
+  background-color: var(--muted) !important;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
+.comment-markdown .wmde-markdown pre {
+  background-color: var(--muted) !important;
+  padding: 0.5em;
+  border-radius: 4px;
+  font-size: 12px !important;
+}
+
+.comment-markdown .wmde-markdown ul,
+.comment-markdown .wmde-markdown ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.comment-markdown .wmde-markdown blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 1em;
+  margin: 0.5em 0;
+  color: var(--muted-foreground);
+}
+
+/* Hide the edit icon and add "Edit" text */
+.w-md-editor-toolbar button[data-name="edit"] svg {
+  display: none;
+}
+
+.w-md-editor-toolbar button[data-name="edit"]::after {
+  content: "Edit";
+  font-size: 13px;
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+/* Hide the preview icon and add "Preview" text */
+.w-md-editor-toolbar button[data-name="preview"] svg {
+  display: none;
+}
+
+.w-md-editor-toolbar button[data-name="preview"]::after {
+  content: "Preview";
+  font-size: 13px;
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+/* Hide the fullscreen toggle button completely */
+.w-md-editor-toolbar button[data-name="fullscreen"] {
+  display: none !important;
+}
+
+/* Optional: Add some spacing for better readability */
+.w-md-editor-toolbar button[data-name="edit"]::after,
+.w-md-editor-toolbar button[data-name="preview"]::after {
+  padding: 0 5px;
+}
+
+/* Ensure buttons maintain consistent sizing */
+.w-md-editor-toolbar button[data-name="edit"],
+.w-md-editor-toolbar button[data-name="preview"] {
+  min-width: 60px;
+  justify-content: center;
+}
+
+/* Active state styling for Edit/Preview buttons */
+.w-md-editor-toolbar button[data-name="edit"].active::after,
+.w-md-editor-toolbar button[data-name="preview"].active::after {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ====================================
+   Task Description Markdown Rendering
+   ==================================== */
+
+.task-description-view .wmde-markdown,
+.task-description-view .markdown-content {
+  background-color: transparent !important;
+  font-size: 14px !important;
+  color: var(--foreground) !important;
+  padding: 0 !important;
+  line-height: 1.6 !important;
+}
+
+.task-description-view .wmde-markdown p,
+.task-description-view .markdown-content p {
+  margin: 0.75em 0 !important;
+  font-size: 14px !important;
+  color: var(--foreground) !important;
+}
+
+.task-description-view .wmde-markdown h1,
+.task-description-view .markdown-content h1 {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  margin: 1.5em 0 0.5em 0 !important;
+  color: var(--foreground) !important;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.3em;
+}
+
+.task-description-view .wmde-markdown h2,
+.task-description-view .markdown-content h2 {
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  margin: 1.25em 0 0.5em 0 !important;
+  color: var(--foreground) !important;
+}
+
+.task-description-view .wmde-markdown h3,
+.task-description-view .markdown-content h3 {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  margin: 1em 0 0.5em 0 !important;
+  color: var(--foreground) !important;
+}
+
+.task-description-view .wmde-markdown h4,
+.task-description-view .markdown-content h4,
+.task-description-view .wmde-markdown h5,
+.task-description-view .markdown-content h5,
+.task-description-view .wmde-markdown h6,
+.task-description-view .markdown-content h6 {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  margin: 1em 0 0.5em 0 !important;
+  color: var(--foreground) !important;
+}
+
+.task-description-view .wmde-markdown strong,
+.task-description-view .markdown-content strong {
+  font-weight: 600 !important;
+  color: var(--foreground) !important;
+}
+
+.task-description-view .wmde-markdown em,
+.task-description-view .markdown-content em {
+  font-style: italic !important;
+}
+
+.task-description-view .wmde-markdown code,
+.task-description-view .markdown-content code {
+  font-size: 13px !important;
+  background-color: var(--muted) !important;
+  color: var(--foreground) !important;
+  padding: 0.2em 0.4em !important;
+  border-radius: 3px !important;
+  font-family: 'Monaco', 'Courier New', monospace !important;
+}
+
+.task-description-view .wmde-markdown pre,
+.task-description-view .markdown-content pre {
+  background-color: var(--muted) !important;
+  padding: 1em !important;
+  border-radius: 6px !important;
+  overflow-x: auto !important;
+  margin: 1em 0 !important;
+  border: 1px solid var(--border);
+}
+
+.task-description-view .wmde-markdown pre code,
+.task-description-view .markdown-content pre code {
+  background-color: transparent !important;
+  padding: 0 !important;
+  font-size: 13px !important;
+}
+
+.task-description-view .wmde-markdown ul,
+.task-description-view .markdown-content ul,
+.task-description-view .wmde-markdown ol,
+.task-description-view .markdown-content ol {
+  padding-left: 2em !important;
+  margin: 0.75em 0 !important;
+}
+
+.task-description-view .wmde-markdown li,
+.task-description-view .markdown-content li {
+  margin: 0.25em 0 !important;
+  font-size: 14px !important;
+  color: var(--foreground) !important;
+}
+
+.task-description-view .wmde-markdown blockquote,
+.task-description-view .markdown-content blockquote {
+  border-left: 4px solid var(--primary) !important;
+  padding-left: 1em !important;
+  margin: 1em 0 !important;
+  color: var(--muted-foreground) !important;
+  font-style: italic !important;
+}
+
+.task-description-view .wmde-markdown a,
+.task-description-view .markdown-content a {
+  color: var(--primary) !important;
+  text-decoration: underline !important;
+}
+
+.task-description-view .wmde-markdown a:hover,
+.task-description-view .markdown-content a:hover {
+  color: var(--primary) !important;
+  opacity: 0.8;
+}
+
+.task-description-view .wmde-markdown hr,
+.task-description-view .markdown-content hr {
+  border: none !important;
+  border-top: 1px solid var(--border) !important;
+  margin: 1.5em 0 !important;
+}
+
+.task-description-view .wmde-markdown table,
+.task-description-view .markdown-content table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 1em 0 !important;
+}
+
+.task-description-view .wmde-markdown th,
+.task-description-view .markdown-content th,
+.task-description-view .wmde-markdown td,
+.task-description-view .markdown-content td {
+  border: 1px solid var(--border) !important;
+  padding: 0.5em !important;
+  font-size: 14px !important;
+  color: var(--foreground) !important;
+}
+
+.task-description-view .wmde-markdown th,
+.task-description-view .markdown-content th {
+  background-color: var(--muted) !important;
+  font-weight: 600 !important;
+}
+
+/* Checkbox styling for task lists */
+.task-description-view .markdown-content input[type="checkbox"] {
+  margin-right: 0.5em !important;
+  cursor: pointer !important;
+  width: 16px !important;
+  height: 16px !important;
+  accent-color: var(--primary) !important;
+}
+
+.task-description-view .markdown-content .checkbox-line {
+  display: flex !important;
+  align-items: flex-start !important;
+  margin: 0.25em 0 !important;
+  font-size: 14px !important;
+  color: var(--foreground) !important;
+}
+
+/* Empty state styling */
+.task-description-view > div:first-child:last-child {
+  color: var(--muted-foreground) !important;
+  font-style: italic !important;
+  font-size: 14px !important;
+}

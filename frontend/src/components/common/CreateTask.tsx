@@ -423,8 +423,10 @@ export default function CreateTask({
           </Card>
 
           <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
-            <CardHeader>
+            <CardHeader className="flex">
               <TaskSectionHeader icon={HiUsers} title="Assignment" />
+                  <span className="projects-form-label-required">*</span>
+
             </CardHeader>
             <CardContent className="space-y-4">
               {membersLoading ? (
@@ -441,7 +443,7 @@ export default function CreateTask({
               ) : (
                 <>
                   <MemberSelect
-                    label="Assignees *"
+                    label="Assignees"
                     selectedMembers={assignees}
                     onChange={setAssignees}
                     members={members}

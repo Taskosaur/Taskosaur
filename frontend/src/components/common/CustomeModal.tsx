@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
+import { RxCross2 } from "react-icons/rx";
 import Portal from "./Portal";
 
 interface ModalProps {
@@ -110,22 +111,10 @@ export function CustomModal({
         >
           <button
             onClick={onClose}
-            className="absolute -top-8 right-0 z-10 w-full h-8 cursor-pointer rounded-none bg-[var(--background)] flex items-end justify-end transition-colors pointer-events-auto"
+            className="absolute -top-8 right-0 pr-3 z-10 w-full h-8 cursor-pointer rounded-none bg-[var(--background)] flex items-end justify-end transition-colors pointer-events-auto"
             aria-label="Close modal"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <RxCross2 className="size-[24px]" />
           </button>
 
           <div className="overflow-y-auto">{children}</div>

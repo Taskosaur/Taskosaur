@@ -21,13 +21,13 @@ function getConfig() {
         
         // Backend configuration (with BE_ prefix)
         BE_HOST = '127.0.0.1',
-        BE_PORT = '9102',
+        BE_PORT = '9101',
         BE_UNIX_SOCKET = '1',
         BE_UNIX_SOCKET_PATH = path.join(process.cwd(), 'backend', 'tmp', 'taskosaur-backend.sock'),
         
         // Frontend configuration (with FE_ prefix)
         FE_HOST = '127.0.0.1',
-        FE_PORT = '9101',
+        FE_PORT = '9102',
         FE_UNIX_SOCKET = '1',
         FE_UNIX_SOCKET_PATH = path.join(process.cwd(), 'frontend', 'tmp', 'taskosaur-frontend.sock'),
         

@@ -67,11 +67,11 @@ interface TaskContextType extends TaskState {
       limit?: number;
     }
   ) => Promise<Task[]>;
-  
+
   getTaskStatusByProject: (params: {
     projectId: string;
   }) => Promise<{ data: TaskStatus[] }>;
-  
+
   getFilteredTasks: (params: {
     projectId?: string;
     sprintId?: string;
@@ -1059,9 +1059,33 @@ export function TaskProvider({ children }: TaskProviderProps) {
         }
         return await contextValue.getProjectLabels(projectId);
       },
- 
-      assignTaskAssignees: async (taskId: string, assigneeIds: string[]): Promise<any> => {
-        return await handleApiOperation(() => taskApi.assignTaskAssignees(taskId, assigneeIds), false);
+
+      assignTaskAssignees: async (
+        taskId: string,
+        assigneeIds: string[]
+      ): Promise<any> => {
+        const result = await handleApiOperation(
+          () => taskApi.assignTaskAssignees(taskId, assigneeIds),
+          false
+        );
+
+        setTaskState((prev) => ({
+          ...prev,
+          currentTask:
+            prev.currentTask?.id === taskId
+              ? {
+                  ...prev.currentTask,
+                  assignees: result.assignees || [],
+                }
+              : prev.currentTask,
+          tasks: prev.tasks.map((task) =>
+            task.id === taskId
+              ? { ...task, assignees: result.assignees || [] }
+              : task
+          ),
+        }));
+
+        return result;
       },
     }),
     [taskState, handleApiOperation]

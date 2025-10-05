@@ -1290,7 +1290,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
                   <TableCell className="tasktable-cell-assignee w-32 min-w-[64px] max-w-[96px] text-center align-middle">
                     <div className="flex justify-center items-center">
                       {renderMultipleAssignees(
-                        task.assignees || (task.assignee ? [task.assignee] : [])
+                        currentTask && currentTask.id === task.id
+                          ? currentTask.assignees || (currentTask.assignee ? [currentTask.assignee] : [])
+                          : task.assignees || (task.assignee ? [task.assignee] : [])
                       )}
                     </div>
                   </TableCell>
