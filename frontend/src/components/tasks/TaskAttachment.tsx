@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useRef } from "react";
 import ActionButton from "@/components/common/ActionButton";
-import { ArrowDownToLine } from "lucide-react";
+import { ArrowDownToLine, Upload } from "lucide-react";
 import { HiPaperClip, HiTrash } from "react-icons/hi2";
 import Tooltip from "../common/ToolTip";
 import { useAuth } from "@/contexts/auth-context";
@@ -46,8 +46,7 @@ export default function TaskAttachments({
 }: TaskAttachmentsProps) {
   const { getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
-
-  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
@@ -69,32 +68,11 @@ export default function TaskAttachments({
     }
   };
 
-  // Handle drag & drop
-  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    setDragActive(true);
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
   };
 
-  const handleDragLeave = () => {
-    setDragActive(false);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const fileList = e.dataTransfer.files as FileList;
-      const event = {
-        target: { files: fileList },
-      } as unknown as React.ChangeEvent<HTMLInputElement>;
-
-      onFileUpload(event);
-      e.dataTransfer.clearData();
-    }
-  };
-
-  // Loading state - early return is fine
+  // Loading state
   if (loadingAttachments) {
     return (
       <div>
@@ -109,15 +87,8 @@ export default function TaskAttachments({
     );
   }
 
-  // Main render - single source of truth
   return (
-    <div>
-      <SectionHeader
-        icon={HiPaperClip}
-        title={attachments.length > 0 ? `Attachments (${attachments.length})` : "Attachments"}
-      />
-
-  <div className="space-y-4">
+     <div className="space-y-4">
         {/* Existing attachments list */}
         {attachments.length > 0 && (
           <div className="space-y-3">
@@ -155,11 +126,11 @@ export default function TaskAttachments({
                   {attachment.createdBy === currentUser?.id && (
                     <Tooltip content="Delete" position="top" color="primary">
                       <ActionButton
-                        variant="outline"
                         onClick={() => onDeleteAttachment(attachment.id)}
-                        className="border-none cursor-pointer bg-[var(--destructive)]/5 hover:bg-[var(--destructive)]/10 text-[var(--destructive)]"
+                        secondary
+                        className="px-3  cursor-pointer"
                       >
-                        <HiTrash className="w-4 h-4" />
+                        <HiTrash className="w-4 h-4 text-[var(--destructive)]" />
                       </ActionButton>
                     </Tooltip>
                   )}
@@ -169,10 +140,11 @@ export default function TaskAttachments({
           </div>
         )}
 
-        {/* Upload area - always at bottom if hasAccess */}
+        {/* Upload button - only show if hasAccess */}
         {hasAccess && (
-          <div className="space-y-3">
+          <div>
             <input
+              ref={fileInputRef}
               type="file"
               id="file-upload"
               multiple
@@ -182,58 +154,30 @@ export default function TaskAttachments({
               accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv"
             />
 
-            <label
-              htmlFor="file-upload"
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`block w-full p-6 bg-[var(--muted)]/10 rounded-lg border border-dashed border-[var(--border)] text-[15px] cursor-pointer transition-colors ${
-                dragActive
-                  ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
-                  : isUploading
-                  ? "text-[var(--muted-foreground)] cursor-not-allowed"
-                  : "text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5"
-              }`}
-            >
-              <div className="flex flex-col items-center gap-3">
+            <div className="flex justify-end items-center w-full">
+              <ActionButton
+                onClick={handleButtonClick}
+                disabled={isUploading}
+                secondary
+                showPlusIcon={!isUploading}
+                className="w-32 cursor-pointer"
+              >
                 {isUploading ? (
-                  <>
-                    <div className="w-6 h-6 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
-                    <div className="text-center">
-                      <span className="font-medium">Uploading files...</span>
-                      <div className="text-[13px] text-[var(--muted-foreground)] mt-1">
-                        Please wait while your files are being uploaded
-                      </div>
-                    </div>
-                  </>
-                ) : dragActive ? (
-                  <>
-                    <HiPaperClip className="w-6 h-6" />
-                    <span className="font-medium">Drop files to upload</span>
-                  </>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Uploading...
+                  </div>
                 ) : (
                   <>
-                    <HiPaperClip className="w-6 h-6" />
-                    <div className="text-center">
-                      {attachments.length === 0 && (
-                        <div className="mb-1">
-                          <p className="text-[15px] font-medium text-[var(--foreground)]">
-                            No attachments yet
-                          </p>
-                        </div>
-                      )}
-                      <span className="font-medium">Click or drag files to upload</span>
-                      <div className="text-[13px] text-[var(--muted-foreground)] mt-1">
-                        PNG, JPG, PDF, DOC, XLS up to 10MB each
-                      </div>
-                    </div>
+                    Upload Files
                   </>
                 )}
-              </div>
-            </label>
+              </ActionButton>
+            </div>
+
+            {/* Helper text removed as per request */}
           </div>
         )}
       </div>
-    </div>
   );
 }

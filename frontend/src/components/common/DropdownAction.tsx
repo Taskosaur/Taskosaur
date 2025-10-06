@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
 import { HiChevronDown, HiMagnifyingGlass, HiXMark } from "react-icons/hi2";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 // Base interfaces for different entity types
 export interface User {
@@ -87,11 +87,9 @@ export interface ProjectMember {
   };
 }
 
-// Union type for all possible item types
 export type DropdownItem = User | TaskStatus | ProjectMember;
 
 interface DropdownActionProps {
-  // Generic props that work for all types
   currentItem: DropdownItem | null;
   availableItems: DropdownItem[];
   onItemSelect: (item: DropdownItem | null) => Promise<void>;
@@ -100,15 +98,14 @@ interface DropdownActionProps {
   showUnassign?: boolean;
   hideAvatar?: boolean;
   hideSubtext?: boolean;
-
-  // Optional data fetching function - called when dropdown opens
   onDropdownOpen?: () => Promise<void>;
-
-  // Type indicator to handle different display logic
   itemType: "user" | "status" | "projectMember";
+  forceOpen?: boolean;
+  onOpenStateChange?: (isOpen: boolean) => void;
+  
 }
 
-// Type guards to determine item type
+// Type guards
 const isUser = (item: DropdownItem): item is User => {
   return "email" in item && !("user" in item) && !("name" in item);
 };
@@ -121,7 +118,6 @@ const isProjectMember = (item: DropdownItem): item is ProjectMember => {
   return "user" in item && "role" in item && "projectId" in item;
 };
 
-// Helper function to extract user data from ProjectMember
 const getUserFromProjectMember = (member: ProjectMember): User => {
   return {
     id: member.user.id,
@@ -134,7 +130,6 @@ const getUserFromProjectMember = (member: ProjectMember): User => {
   };
 };
 
-// Helper function to get display data for any item type
 const getDisplayData = (item: DropdownItem | null) => {
   if (!item) return null;
 
@@ -169,7 +164,6 @@ const getDisplayData = (item: DropdownItem | null) => {
   return null;
 };
 
-// Helper function to get search text for filtering
 const getSearchText = (item: DropdownItem): string => {
   if (isUser(item)) {
     const name = `${item.firstName} ${item.lastName}`.toLowerCase();
@@ -261,7 +255,6 @@ const ItemDisplay = ({
   );
 };
 
-
 export default function DropdownAction({
   currentItem,
   availableItems,
@@ -273,6 +266,8 @@ export default function DropdownAction({
   hideSubtext = false,
   onDropdownOpen,
   itemType,
+  forceOpen = false,
+  onOpenStateChange,
 }: DropdownActionProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -288,8 +283,18 @@ export default function DropdownAction({
     });
   }, [availableItems, searchQuery]);
 
+  // Handle forceOpen prop
+  useEffect(() => {
+    if (forceOpen && !isOpen) {
+      handleOpenChange(true);
+    }
+  }, [forceOpen]);
+
   const handleOpenChange = async (open: boolean) => {
     setIsOpen(open);
+    
+    // Notify parent of state change
+    onOpenStateChange?.(open);
 
     if (open && onDropdownOpen) {
       setIsFetching(true);

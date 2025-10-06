@@ -104,7 +104,7 @@ const CommentItem = React.memo(
                   <div className="flex items-start">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center">
-                        <span className="text-xs font-medium text-[var(--foreground)]">
+                        <span className="text-sm font-medium text-[var(--foreground)]">
                           {displayName}
                         </span>
                         {timestamp.isEdited && (
@@ -474,17 +474,7 @@ export default function TaskComments({
             )}
           </>
         ) : (
-          <div className="text-center py-6 bg-[var(--muted)]/10 rounded-lg border border-dashed border-[var(--border)]">
-            <div className="p-2 rounded-full w-fit mx-auto mb-2">
-              <HiChatBubbleLeftRight className="w-5 h-5 text-[var(--muted-foreground)]" />
-            </div>
-            <h4 className="text-sm font-medium text-[var(--foreground)] mb-1">
-              No comments yet
-            </h4>
-            <p className="text-xs text-[var(--muted-foreground)]">
-              Be the first to share your thoughts!
-            </p>
-          </div>
+          <></>
         )}
       </div>
     );
@@ -518,17 +508,18 @@ export default function TaskComments({
           <div className="flex items-start gap-2">
             <div className="p-1 rounded-md">
               <HiChatBubbleLeftRight
-                size={18}
+                size={20}
                 className="text-[var(--primary)]"
               />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-[var(--foreground)]">
+              <h3 className="text-md font-semibold text-[var(--foreground)]">
                 Comments
               </h3>
               <p className="text-xs text-[var(--muted-foreground)]">
-                {comments.length}{" "}
-                {comments.length === 1 ? "comment" : "comments"}
+                {comments.length === 0
+                  ? "No comments"
+                  : `${comments.length} ${comments.length === 1 ? "comment" : "comments"}`}
               </p>
             </div>
           </div>

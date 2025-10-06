@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { RxCross2 } from "react-icons/rx";
 import Portal from "./Portal";
+import Tooltip from "./ToolTip";
 
 interface ModalProps {
   isOpen: boolean;
@@ -109,14 +110,17 @@ export function CustomModal({
           aria-modal="true"
           onClick={(e) => e.stopPropagation()}
         >
-          <button
-            onClick={onClose}
-            className="absolute -top-8 right-0 pr-3 z-10 w-full h-8 cursor-pointer rounded-none bg-[var(--background)] flex items-end justify-end transition-colors pointer-events-auto"
-            aria-label="Close modal"
-          >
-            <RxCross2 className="size-[24px]" />
-          </button>
+            <button
+              onClick={onClose}
+              className="absolute -top-8 right-0 pr-3 z-10 w-full h-8 cursor-pointer rounded-none bg-[var(--background)] flex items-end justify-end transition-colors pointer-events-auto"
+              aria-label="Close modal"
+            >
+          <Tooltip content="Close modal" position="left" >
 
+              <RxCross2 className="size-[24px]" />
+          </Tooltip>
+
+            </button>
           <div className="overflow-y-auto">{children}</div>
         </div>
       </div>

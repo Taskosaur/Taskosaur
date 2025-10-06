@@ -239,7 +239,6 @@ export default function CreateTask({
                 >
                   <ActionButton
                     onClick={handleSubmit}
-                    showPlusIcon
                     disabled={!isFormValid() || isSubmitting}
                     primary
                   >

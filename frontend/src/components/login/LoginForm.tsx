@@ -224,7 +224,7 @@ export function LoginForm() {
             {isLoading ? (
               <>
                 <Loader2 className="login-loading-spinner" />
-                Logiing you in...
+                Logging you in...
               </>
             ) : (
               <>

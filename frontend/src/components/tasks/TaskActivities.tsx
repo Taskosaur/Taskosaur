@@ -99,7 +99,6 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
     }
   };
 
-  // Helper function to format timestamp
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -130,7 +129,6 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
     }
   };
 
-  // Determine which activities to display
   const displayedActivities = showAll
     ? activities
     : activities.slice(0, INITIAL_DISPLAY_COUNT);
@@ -167,14 +165,14 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
   if (error && activities.length === 0) {
     return (
       <div className="w-full rounded-xl flex flex-col">
-        <div className="flex items-center gap-2 mb-4">
+        {/* <div className="flex items-center gap-2 mb-4">
           <div className="p-1 rounded-md">
             <HiOutlineBolt className="w-4 h-4 text-[var(--primary)]" />
           </div>
-          <h3 className="text-sm font-semibold text-[var(--foreground)]">
+          <h3 className="text-lg font-semibold text-[var(--foreground)]">
             Activities
           </h3>
-        </div>
+        </div> */}
         <div className="flex items-center justify-center py-8">
           <p className="text-sm text-[var(--muted-foreground)]">{error}</p>
         </div>
@@ -184,49 +182,53 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
 
   return (
     <div className="w-full rounded-xl flex flex-col">
-      <div className="flex items-center gap-2 mb-4">
+      {/* <div className="flex items-center gap-2 mb-4">
         <div className="p-1 rounded-md">
           <HiOutlineBolt className="w-4 h-4 text-[var(--primary)]" />
         </div>
-        <h3 className="text-sm font-semibold text-[var(--foreground)]">
+        <h3 className="text-lg font-semibold text-[var(--foreground)]">
           Activities
         </h3>
-      </div>
+      </div> */}
 
       {activities.length === 0 ? (
-        <div className="text-center py-6 bg-[var(--muted)]/10 rounded-lg border border-dashed border-[var(--border)]">
-          <div className="p-2 rounded-full w-fit mx-auto mb-2">
-            <HiOutlineBolt className="w-5 h-5 text-[var(--muted-foreground)]" />
+        <div className="flex items-center justify-between border-none">
+          {/* Left side: icon + text in one line */}
+          <div className="flex items-center gap-2 text-[var(--muted-foreground)] text-sm">
+            <HiOutlineBolt className="size-4" />
+            <h4 className="font-medium text-[var(--muted-foreground)] text-sm tracking-wide">
+              No activities yet
+            </h4>
           </div>
-          <h4 className="text-[15px] font-medium text-[var(--foreground)] mb-1">
-            No activities yet
-          </h4>
-          <p className="text-[13px] text-[var(--muted-foreground)]">
-            All activity on this task will show up here.
-          </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {/* Activities List */}
-          <div className="space-y-3">
-            {displayedActivities.map((activity) => (
-              <div
-                key={activity.id}
-                className="flex items-start gap-3 group hover:bg-[var(--accent)]/30 rounded-lg p-2 -mx-2 transition-colors"
-              >
-                <UserAvatar
-                  user={{
-                    firstName: activity.user.firstName,
-                    lastName: activity.user.lastName,
-                    avatar: activity.user.avatar,
-                  }}
-                  size="xs"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[15px] text-[var(--foreground)] leading-relaxed">
+        <div className="space-y-0">
+          {/* Activities List with Timeline */}
+          <div className="activity-timeline-container">
+            {displayedActivities.map((activity, index) => (
+              <div key={activity.id} className="activity-timeline-item">
+                {/* Timeline Connector */}
+                <div className="activity-timeline">
+                  {/* Top Line */}
+                  {index !== 0 && <div className="timeline-line-top" />}
+
+                  {/* Bullet Point */}
+                  <div className="timeline-bullet">
+                    <div className="timeline-bullet-inner" />
+                  </div>
+
+                  {/* Bottom Line */}
+                  {index !== displayedActivities.length - 1 && (
+                    <div className="timeline-line-bottom" />
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="activity-content">
+                  <div className="text-sm text-[var(--foreground)] font-medium">
                     {generateSimpleMessage(activity)}
                   </div>
-                  <div className="text-[13px] text-[var(--muted-foreground)] mt-1">
+                  <div className="text-[12px] text-[var(--muted-foreground)] mt-0.5">
                     {formatTimestamp(activity.createdAt)}
                   </div>
                 </div>
@@ -236,10 +238,10 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
 
           {/* View More / Show Less Buttons */}
           {(hasMoreToShow || canLoadMorePages) && (
-            <div className="flex justify-center pt-2">
+            <div className="flex justify-center pt-4">
               {!showAll && hasMoreToShow && (
                 <button
-                  className="text-sm text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] focus:outline-none cursor-pointer transition-colors"
+                  className="text-xs text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] focus:outline-none cursor-pointer transition-colors"
                   onClick={toggleShowAll}
                 >
                   View more ({activities.length - INITIAL_DISPLAY_COUNT} more)
@@ -248,7 +250,7 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
 
               {showAll && hasMoreToShow && (
                 <button
-                  className="text-sm text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] focus:outline-none cursor-pointer transition-colors"
+                  className="text-xs text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] focus:outline-none cursor-pointer transition-colors"
                   onClick={toggleShowAll}
                 >
                   Show less
@@ -257,7 +259,7 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
 
               {showAll && canLoadMorePages && (
                 <button
-                  className="text-sm text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors ml-2"
+                  className="text-xs text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors ml-2"
                   onClick={loadMore}
                   disabled={loading}
                 >

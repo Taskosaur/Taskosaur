@@ -13,7 +13,7 @@ import ActionButton from "@/components/common/ActionButton";
 import { CgArrowsExpandRight } from "react-icons/cg";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
-import {  HiPencil, HiTrash } from "react-icons/hi2";
+import { HiPencil, HiTrash } from "react-icons/hi2";
 import { PriorityBadge } from "@/components/badges/PriorityBadge";
 import { StatusBadge } from "@/components/badges/StatusBadge";
 import { Input } from "@/components/ui/input";
@@ -82,6 +82,7 @@ export default function TaskDetailClient({
     priority: false,
     status: false,
     dueDate: false,
+    startDate: false,
   });
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
@@ -118,7 +119,21 @@ export default function TaskDetailClient({
     priority:
       typeof task.priority === "object" ? task.priority?.name : task.priority,
     dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
+    startDate: task.startDate ? task.startDate.split("T")[0] : "",
   });
+  const handleStartDateChange = async (newStartDate: string) => {
+    try {
+      const updateData: UpdateTaskRequest = {
+        startDate: formatDateForApi(newStartDate) || undefined,
+      };
+      await updateTask(taskId, updateData);
+      handleTaskFieldChange("startDate", newStartDate);
+      task.startDate = formatDateForApi(newStartDate);
+      toast.success("Task start date updated successfully.");
+    } catch (error) {
+      toast.error("Failed to update task start date.");
+    }
+  };
 
   const [assignees, setAssignees] = useState<any[]>(
     task.assignees || (task.assignee ? [task.assignee] : [])
@@ -142,7 +157,10 @@ export default function TaskDetailClient({
   const [projectData, setProjectData] = useState<any>(null);
   const [hasAccess, setHasAccess] = useState(false);
   const [hasAccessLoaded, setHasAccessLoaded] = useState(false);
-
+  const [autoOpenDropdown, setAutoOpenDropdown] = useState({
+    priority: false,
+    status: false,
+  });
   const today = new Date().toISOString().split("T")[0];
   // Exception: Assignee or reporter has access to all actions except Assignment section
   const isAssigneeOrReporter =
@@ -609,6 +627,7 @@ export default function TaskDetailClient({
       priority: false,
       status: false,
       dueDate: false,
+      startDate: false,
     });
   };
 
@@ -648,6 +667,7 @@ export default function TaskDetailClient({
         priority: false,
         status: false,
         dueDate: false,
+        startDate: false,
       });
       toast.success("Task updated successfully.");
     } catch (error) {
@@ -681,6 +701,7 @@ export default function TaskDetailClient({
                 ? task.priority?.name
                 : task.priority,
             dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
+            startDate: task.startDate ? task.startDate.split("T")[0] : "",
           });
           setIsEditingTask({
             title: false,
@@ -688,6 +709,7 @@ export default function TaskDetailClient({
             priority: false,
             status: false,
             dueDate: false,
+            startDate: false,
           });
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         },
@@ -699,6 +721,7 @@ export default function TaskDetailClient({
         priority: false,
         status: false,
         dueDate: false,
+        startDate: false,
       });
     }
   };
@@ -829,8 +852,8 @@ export default function TaskDetailClient({
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-0">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-16 p-0 justify-between">
+          <div className="lg:col-span-2  space-y-6">
             <div className="border-none ">
               {isEditingTask.title || isEditingTask.description ? (
                 <div className="space-y-4">
@@ -879,8 +902,18 @@ export default function TaskDetailClient({
               )}
             </div>
 
+            <TaskAttachments
+              attachments={attachments}
+              isUploading={isUploading}
+              loadingAttachments={loadingAttachments}
+              onFileUpload={handleFileUpload}
+              onDownloadAttachment={handleDownloadAttachment}
+              onDeleteAttachment={handleDeleteAttachment}
+              hasAccess={hasAccess}
+            />
+
             {!task.parentTaskId && (
-              <div className="">
+              <div className="-mt-5">
                 <Subtasks
                   taskId={taskId}
                   projectId={task.projectId || task.project?.id}
@@ -893,20 +926,6 @@ export default function TaskDetailClient({
             )}
 
             <div className="">
-              <TaskAttachments
-                attachments={attachments}
-                isUploading={isUploading}
-                loadingAttachments={loadingAttachments}
-                onFileUpload={handleFileUpload}
-                onDownloadAttachment={handleDownloadAttachment}
-                onDeleteAttachment={handleDeleteAttachment}
-                hasAccess={hasAccess}
-              />
-            </div>
-
-            <TaskActivities taskId={taskId} />
-
-            <div className="">
               <TaskComments
                 taskId={taskId}
                 onCommentAdded={() => {}}
@@ -917,7 +936,7 @@ export default function TaskDetailClient({
             </div>
           </div>
 
-          <div className="lg:col-span-1 space-y-4">
+          <div className="lg:col-span-1 space-y-4 max-w-[18vw] w-full">
             {/* Task Settings Section */}
             <div className="">
               <div className="space-y-2">
@@ -928,24 +947,35 @@ export default function TaskDetailClient({
                     {hasAccess && (
                       <button
                         type="button"
-                        className="rounded transition flex items-center cursor-pointer hover:bg-[var(--accent)] p-1"
-                        onClick={() =>
+                        className="rounded transition flex items-center cursor-pointer text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs p-1"
+                        onClick={() => {
                           setIsEditingTask((prev) => ({
                             ...prev,
-                            priority: !prev.priority,
-                          }))
-                        }
+                            priority: true,
+                          }));
+                          setAutoOpenDropdown((prev) => ({
+                            ...prev,
+                            priority: true,
+                          }));
+                        }}
                         tabIndex={0}
                         aria-label="Edit Priority"
                         style={{ lineHeight: 0 }}
                       >
-                        <HiPencil className="w-3 h-3 text-[var(--muted-foreground)]" />
-                        <span className="sr-only">Edit</span>
+                        Edit
                       </button>
                     )}
                   </div>
-                  {isEditingTask.priority ? (
-                    <DropdownAction
+
+                  {/* Always show badge */}
+                  <div className="flex items-center justify-between">
+                    <PriorityBadge priority={editTaskData?.priority} className="text-[13px]" />
+                  </div>
+
+                  {/* Dropdown overlay when editing */}
+                  {isEditingTask.priority && (
+                   <div className="mt-2">
+                     <DropdownAction
                       currentItem={{
                         id: editTaskData.priority || "MEDIUM",
                         name:
@@ -956,6 +986,19 @@ export default function TaskDetailClient({
                       }}
                       availableItems={TaskPriorities}
                       loading={false}
+                      forceOpen={autoOpenDropdown.priority}
+                      onOpenStateChange={(isOpen) => {
+                        if (!isOpen) {
+                          setAutoOpenDropdown((prev) => ({
+                            ...prev,
+                            priority: false,
+                          }));
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            priority: false,
+                          }));
+                        }
+                      }}
                       onItemSelect={async (item) => {
                         try {
                           const updateData: UpdateTaskRequest = {
@@ -975,6 +1018,10 @@ export default function TaskDetailClient({
                             ...prev,
                             priority: false,
                           }));
+                          setAutoOpenDropdown((prev) => ({
+                            ...prev,
+                            priority: false,
+                          }));
                           toast.success("Task priority updated successfully.");
                         } catch (error) {
                           toast.error("Failed to update task priority.");
@@ -986,10 +1033,7 @@ export default function TaskDetailClient({
                       hideSubtext={true}
                       itemType="user"
                     />
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <PriorityBadge priority={editTaskData?.priority} />
-                    </div>
+                   </div>
                   )}
                 </div>
 
@@ -1000,30 +1044,58 @@ export default function TaskDetailClient({
                     {hasAccess && (
                       <button
                         type="button"
-                        className="rounded transition flex items-center cursor-pointer hover:bg-[var(--accent)] p-1"
-                        onClick={() =>
+                        className="rounded transition flex items-center cursor-pointer text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs p-1"
+                        onClick={() => {
                           setIsEditingTask((prev) => ({
                             ...prev,
-                            status: !prev.status,
-                          }))
-                        }
+                            status: true,
+                          }));
+                          setAutoOpenDropdown((prev) => ({
+                            ...prev,
+                            status: true,
+                          }));
+                        }}
                         tabIndex={0}
                         aria-label="Edit Status"
                         style={{ lineHeight: 0 }}
                       >
-                        <HiPencil className="w-3 h-3 text-[var(--muted-foreground)]" />
-                        <span className="sr-only">Edit</span>
+                        Edit
                       </button>
                     )}
                   </div>
-                  {isEditingTask.status ? (
-                    <DropdownAction
+
+                  {/* Always show badge */}
+                  <div className="flex items-center justify-between">
+                    <StatusBadge status={currentStatus} className="text-[13px]" />
+                  </div>
+
+                  {/* Dropdown overlay when editing */}
+                  {isEditingTask.status && (
+                   <div className="mt-2">
+                     <DropdownAction
                       currentItem={currentStatus}
                       availableItems={statuses}
                       loading={loadingStatuses}
+                      forceOpen={autoOpenDropdown.status}
+                      onOpenStateChange={(isOpen) => {
+                        if (!isOpen) {
+                          setAutoOpenDropdown((prev) => ({
+                            ...prev,
+                            status: false,
+                          }));
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            status: false,
+                          }));
+                        }
+                      }}
                       onItemSelect={async (item) => {
                         await handleStatusChange(item);
                         setIsEditingTask((prev) => ({
+                          ...prev,
+                          status: false,
+                        }));
+                        setAutoOpenDropdown((prev) => ({
                           ...prev,
                           status: false,
                         }));
@@ -1049,13 +1121,80 @@ export default function TaskDetailClient({
                         }
                       }}
                     />
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <StatusBadge status={currentStatus} />
-                    </div>
+                   </div>
                   )}
                 </div>
 
+                {/* Start Date */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm">Start Date</Label>
+                    {hasAccess && (
+                      <button
+                        type="button"
+                        className="rounded transition flex items-center cursor-pointer  p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-[13px]"
+                        onClick={() =>
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            startDate: !prev.startDate,
+                          }))
+                        }
+                        tabIndex={0}
+                        aria-label="Edit Start Date"
+                        style={{ lineHeight: 0 }}
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                  {isEditingTask.startDate ? (
+                    <div className="relative">
+                      <Input
+                        type="date"
+                        value={editTaskData.startDate}
+                        min={today}
+                        onChange={(e) => handleStartDateChange(e.target.value)}
+                        onBlur={() =>
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            startDate: false,
+                          }))
+                        }
+                        className="text-xs bg-[var(--background)] border-[var(--border)] w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        placeholder="Select start date..."
+                        autoFocus
+                      />
+                      {editTaskData.startDate && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartDateChange("");
+                            setIsEditingTask((prev) => ({
+                              ...prev,
+                              startDate: false,
+                            }));
+                          }}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs z-10"
+                          title="Clear start date"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <Badge
+                        variant="outline"
+                        className="text-[13px] h-5 min-h-0 px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
+                      >
+                        {editTaskData.startDate
+                          ? new Date(editTaskData.startDate).toLocaleDateString()
+                          : "No start date"}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
                 {/* Due Date */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1063,7 +1202,7 @@ export default function TaskDetailClient({
                     {hasAccess && (
                       <button
                         type="button"
-                        className="rounded transition flex items-center cursor-pointer hover:bg-[var(--accent)] p-1"
+                        className="rounded transition flex items-center cursor-pointer  p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs"
                         onClick={() =>
                           setIsEditingTask((prev) => ({
                             ...prev,
@@ -1074,8 +1213,7 @@ export default function TaskDetailClient({
                         aria-label="Edit Due Date"
                         style={{ lineHeight: 0 }}
                       >
-                        <HiPencil className="w-3 h-3 text-[var(--muted-foreground)]" />
-                        <span className="sr-only">Edit</span>
+                        Edit
                       </button>
                     )}
                   </div>
@@ -1118,7 +1256,7 @@ export default function TaskDetailClient({
                     <div className="flex items-center justify-between">
                       <Badge
                         variant="outline"
-                        className="text-xs bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
+                        className="text-[13px] h-5 min-h-0 px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
                       >
                         {editTaskData.dueDate
                           ? new Date(editTaskData.dueDate).toLocaleDateString()
@@ -1131,59 +1269,59 @@ export default function TaskDetailClient({
             </div>
             <Divider label="Assignment" />
             {/* Assignment Section */}
-           <div className="space-y-4">
-                <div>
-                  <MemberSelect
-                    label="Assignees"
-                    editMode={true}
-                    selectedMembers={assignees}
-                    onChange={async (newAssignees) => {
-                      setAssignees(newAssignees);
-                      try {
-                        await assignTaskAssignees(
-                          taskId,
-                          newAssignees.map((a) => a.id)
-                        );
-                        toast.success("Assignees updated successfully.");
-                      } catch {
-                        toast.error("Failed to update assignees.");
-                      }
-                    }}
-                    members={projectMembers}
-                    disabled={!hasAccess}
-                    placeholder={
-                      projectMembers.length === 0
-                        ? "No members"
-                        : "Select assignees..."
+            <div className="space-y-4">
+              <div>
+                <MemberSelect
+                  label="Assignees"
+                  editMode={true}
+                  selectedMembers={assignees}
+                  onChange={async (newAssignees) => {
+                    setAssignees(newAssignees);
+                    try {
+                      await assignTaskAssignees(
+                        taskId,
+                        newAssignees.map((a) => a.id)
+                      );
+                      toast.success("Assignees updated successfully.");
+                    } catch {
+                      toast.error("Failed to update assignees.");
                     }
-                  />
-                </div>
-                <div>
-                  <MemberSelect
-                    label="Reporters"
-                    selectedMembers={reporters}
-                    editMode={true}
-                    onChange={async (newReporters) => {
-                      setReporters(newReporters);
-                      try {
-                        await updateTask(taskId, {
-                          reporterIds: newReporters.map((r) => r.id),
-                        });
-                        toast.success("Reporters updated successfully.");
-                      } catch {
-                        toast.error("Failed to update reporters.");
-                      }
-                    }}
-                    members={projectMembers}
-                    disabled={!hasAccess}
-                    placeholder={
-                      projectMembers.length === 0
-                        ? "No members"
-                        : "Select reporters..."
-                    }
-                  />
-                </div>
+                  }}
+                  members={projectMembers}
+                  disabled={!hasAccess}
+                  placeholder={
+                    projectMembers.length === 0
+                      ? "No members"
+                      : "Select assignees..."
+                  }
+                />
               </div>
+              <div>
+                <MemberSelect
+                  label="Reporters"
+                  selectedMembers={reporters}
+                  editMode={true}
+                  onChange={async (newReporters) => {
+                    setReporters(newReporters);
+                    try {
+                      await updateTask(taskId, {
+                        reporterIds: newReporters.map((r) => r.id),
+                      });
+                      toast.success("Reporters updated successfully.");
+                    } catch {
+                      toast.error("Failed to update reporters.");
+                    }
+                  }}
+                  members={projectMembers}
+                  disabled={!hasAccess}
+                  placeholder={
+                    projectMembers.length === 0
+                      ? "No members"
+                      : "Select reporters..."
+                  }
+                />
+              </div>
+            </div>
             <Divider label="Labels" />
             {/* Labels Section */}
             <TaskLabels
@@ -1194,6 +1332,9 @@ export default function TaskDetailClient({
               onRemoveLabel={handleRemoveLabel}
               hasAccess={hasAccess}
             />
+            <Divider label="Activities" />
+
+            <TaskActivities taskId={taskId} />
           </div>
         </div>
       </div>

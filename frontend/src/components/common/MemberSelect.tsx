@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { HiPencil } from "react-icons/hi2";
@@ -37,6 +37,15 @@ function MemberSelect({
   const [isOpen, setIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [search, setSearch] = useState("");
+  const [autoOpenDropdown, setAutoOpenDropdown] = useState(false);
+
+  // Auto-open dropdown when edit button is clicked
+  useEffect(() => {
+    if (autoOpenDropdown && isEditing && !isOpen) {
+      setIsOpen(true);
+      setAutoOpenDropdown(false);
+    }
+  }, [autoOpenDropdown, isEditing, isOpen]);
 
   const handleMemberToggle = (member: any) => {
     const isSelected = selectedMembers.some((m) => m.id === member.id);
@@ -55,7 +64,7 @@ function MemberSelect({
         : `${selectedMembers.length} members selected`;
   } else if (label && selectedMembers.length === 0) {
     const baseLabel = label.endsWith("s") ? label.slice(0, -1) : label;
-    displayText = `No ${baseLabel.toLowerCase()} selected`;
+    displayText = `Select ${baseLabel.toLowerCase()}...`;
   }
 
   // Filter members by search
@@ -72,26 +81,38 @@ function MemberSelect({
     const maxToShow = 3;
     const shownMembers = selectedMembers.slice(0, maxToShow);
     const extraCount = selectedMembers.length - maxToShow;
+
+    // Get proper label text
+    const baseLabel = label.endsWith("s") ? label.slice(0, -1) : label;
+    const displayLabel =
+      selectedMembers.length === 0
+        ? `No ${baseLabel.toLowerCase()} selected`
+        : undefined;
+
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label>{label}</Label>
           <button
             type="button"
-            className="ml-2 rounded transition flex items-center cursor-pointer hover:bg-[var(--accent)] p-1"
-            onClick={() => setIsEditing((prev) => !prev)}
+            className="ml-2 rounded transition flex items-center cursor-pointer  p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs"
+            onClick={() => {
+              if (isEditing && isOpen) {
+                // Close dropdown if already open
+                setIsOpen(false);
+                setIsEditing(false);
+                setAutoOpenDropdown(false);
+              } else {
+                // Open dropdown
+                setIsEditing(true);
+                setAutoOpenDropdown(true);
+              }
+            }}
             tabIndex={0}
             aria-label="Edit"
             style={{ lineHeight: 0 }}
           >
-            <HiPencil
-              className={`w-3 h-3 ${
-                isEditing
-                  ? "text-[var(--primary)]"
-                  : "text-[var(--muted-foreground)]"
-              }`}
-            />
-            <span className="sr-only">Edit</span>
+            Edit
           </button>
         </div>
         <div className="flex items-center gap-2 min-h-[28px]">
@@ -118,34 +139,40 @@ function MemberSelect({
             </>
           ) : (
             <span className="text-xs text-[var(--muted-foreground)]">
-              0 selected
+              {displayLabel}
             </span>
           )}
         </div>
         {/* Show dropdowns (default or edit mode) only when editing */}
         {isEditing && (
           <div className="mt-2">
-            <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+            <DropdownMenu
+              open={isOpen}
+              onOpenChange={(open) => {
+                setIsOpen(open);
+                if (!open) {
+                  setAutoOpenDropdown(false);
+                  setIsEditing(false);
+                }
+              }}
+            >
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-between border-[var(--border)] bg-[var(--background)] text-left"
-                  disabled={disabled}
-                >
-                  <span
-                    className={
-                      selectedMembers.length === 0
-                        ? "text-muted-foreground"
-                        : ""
-                    }
+                <div className="w-full h-0 opacity-0 pointer-events-none">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={disabled}
                   >
                     {displayText}
-                  </span>
-                  <ChevronDown className="h-4 w-4 opacity-50" />
-                </Button>
+                  </Button>
+                </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-full min-w-[var(--radix-dropdown-menu-trigger-width)] border-[var(--border)] bg-[var(--popover)]">
-                <div className="p-2 pb-0">
+              <DropdownMenuContent
+                className="w-full border-[var(--border)] bg-[var(--popover)]"
+                align="start"
+                sideOffset={0}
+              >
+                <div className=" pb-0">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)] pointer-events-none" />
                     <Input
@@ -157,7 +184,6 @@ function MemberSelect({
                     />
                   </div>
                 </div>
-
                 <div className="max-h-48 overflow-y-auto">
                   {filteredMembers.length === 0 ? (
                     <div className="p-2 text-sm text-muted-foreground">

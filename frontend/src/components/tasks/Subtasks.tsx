@@ -52,8 +52,8 @@ interface PaginationInfo {
 
 const SectionHeader = ({ icon: Icon, title }: { icon: any; title: string }) => (
   <div className="flex items-center gap-2 mb-4">
-    <Icon size={16} className="text-[var(--primary)]" />
-    <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
+    <Icon size={20} className="text-[var(--primary)]" />
+    <h2 className="text-md font-semibold text-[var(--foreground)]">{title}</h2>
   </div>
 );
 
@@ -455,7 +455,7 @@ export default function Subtasks({
             {subtTask.map((subtask) => (
               <div
                 key={subtask.id}
-                className="flex items-start gap-3 group p-3 rounded-lg hover:bg-[var(--accent)] border-none transition-colors shadow-sm hover:shadow-md cursor-pointer"
+                className="flex items-start gap-3 group p-3 rounded-lg bg-[var(--card)] hover:bg-[var(--accent)] border-none transition-colors shadow-sm hover:shadow-md cursor-pointer"
                 onClick={(e) => {
                   if (
                     (e.target as HTMLElement).closest("button") ||
@@ -600,7 +600,7 @@ export default function Subtasks({
                           }
                           bgColor={getPriorityColor(subtask.priority)}
                           size="sm"
-                          className="px-2 py-0.5 text-xs"
+                          className="px-1.5 py-0.5 text-[10px] h-5 min-h-0"
                         />
                         <DynamicBadge
                           label={
@@ -609,7 +609,7 @@ export default function Subtasks({
                           }
                           bgColor={getStatusColor(subtask.statusId)}
                           size="sm"
-                          className="px-2 py-0.5 text-xs"
+                          className="px-1.5 py-0.5 text-[10px] h-5 min-h-0"
                         />
                         {subtask.dueDate && (
                           <Tooltip
@@ -680,16 +680,18 @@ export default function Subtasks({
               disabled={isLoading}
             />
             <div className="flex items-center gap-2">
+
               {hasAccess && (
-                <ActionButton
-                  type="submit"
-                  disabled={!newSubtaskTitle.trim() || isLoading}
-                  primary
-                  className="flex-1 cursor-pointer"
-                  showPlusIcon
-                >
-                  {isLoading ? "Adding..." : "Add Subtask"}
-                </ActionButton>
+                <div className="flex justify-end w-full">
+                  <ActionButton
+                    type="submit"
+                    disabled={!newSubtaskTitle.trim() || isLoading}
+                    primary
+                    showPlusIcon
+                  >
+                    {isLoading ? "Adding..." : "Add Subtask"}
+                  </ActionButton>
+                </div>
               )}
 
               <ActionButton
@@ -705,16 +707,18 @@ export default function Subtasks({
             </div>
           </form>
         ) : hasAccess ? (
-          <ActionButton
-            onClick={() => setIsAddingSubtask(true)}
-            variant="outline"
-            disabled={isLoading}
-            showPlusIcon
-            secondary
-            className="min-w-[140px] cursor-pointer"
-          >
-            Add subtask
-          </ActionButton>
+          <div className="flex justify-end w-full">
+            <ActionButton
+              onClick={() => setIsAddingSubtask(true)}
+              variant="outline"
+              disabled={isLoading}
+              showPlusIcon
+              secondary
+              className="min-w-[140px] cursor-pointer"
+            >
+              Add subtask
+            </ActionButton>
+          </div>
         ) : null}
       </div>
     </>

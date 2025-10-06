@@ -1383,3 +1383,114 @@
   font-style: italic !important;
   font-size: 14px !important;
 }
+
+/* TaskActivity styling */
+/* src/styles/components/activity-timeline.css */
+
+.activity-timeline-container {
+  position: relative;
+}
+
+.activity-timeline-item {
+  display: flex;
+  gap: 0.75rem;
+  position: relative;
+  padding: 0.5rem 0;
+}
+
+.activity-timeline-item:first-child {
+  padding-top: 0;
+}
+
+/* Timeline connector column */
+.activity-timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+/* Vertical connecting lines */
+.timeline-line-top,
+.timeline-line-bottom {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background: var(--border);
+}
+
+.timeline-line-top {
+  top: 0;
+  bottom: 50%;
+}
+
+.timeline-line-bottom {
+  top: 50%;
+  bottom: -0.5rem;
+}
+
+/* Bullet point container */
+.timeline-bullet {
+  position: relative;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* Inner filled circle */
+.timeline-bullet-inner {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted-foreground);
+}
+
+/* Content area */
+.activity-content {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0.125rem;
+}
+
+/* Dark mode adjustments */
+.dark .timeline-line-top,
+.dark .timeline-line-bottom {
+  background: var(--border);
+  opacity: 0.5;
+}
+
+.dark .timeline-bullet {
+  background: var(--card);
+  border-color: var(--border);
+}
+
+.dark .timeline-bullet-inner {
+  background: var(--muted-foreground);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .activity-timeline {
+    width: 16px;
+  }
+  
+  .timeline-bullet {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .timeline-bullet-inner {
+    width: 6px;
+    height: 6px;
+  }
+}

@@ -103,7 +103,9 @@ export default function TaskLabels({
       {labels.length > 0 ? (
         <div>
           <div className="flex items-center justify-between mb-1">
-            <div className="text-sm font-medium text-[var(--foreground)]">Current labels:</div>
+            <div className="text-sm font-medium text-[var(--foreground)]">
+              Current labels:
+            </div>
             {hasAccess && (
               <button
                 type="button"
@@ -138,29 +140,28 @@ export default function TaskLabels({
           </div>
         </div>
       ) : (
-        <div className="text-center py-6 bg-[var(--muted)]/10 rounded-lg border border-dashed border-[var(--border)]">
-          <div className="p-2 rounded-full w-fit mx-auto mb-2">
-            <HiTag className="w-5 h-5 text-[var(--muted-foreground)]" />
+        <div className="text-center rounded-lg border-none">
+          <div className="flex items-center justify-between">
+            {/* Left side: icon + text */}
+            <div className="flex items-center gap-2 text-[var(--muted-foreground)] text-sm">
+              <HiTag className="size-3 text-[var(--muted-foreground)]" />
+              <span>No current labels</span>
+            </div>
+
+            {/* Right side: edit icon (only if access) */}
+            {hasAccess && (
+              <button
+                type="button"
+                className="rounded transition flex items-center cursor-pointer p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs"
+                onClick={() => setIsEditing((prev) => !prev)}
+                tabIndex={0}
+                aria-label="Edit"
+                style={{ lineHeight: 0 }}
+              >
+                Edit
+              </button>
+            )}
           </div>
-          <h4 className="text-sm font-medium text-[var(--foreground)] mb-1">
-            No current labels
-          </h4>
-          <p className="text-xs text-[var(--muted-foreground)]">
-            Add a label to organize this task.
-          </p>
-          {hasAccess && (
-            <button
-              type="button"
-              className="rounded transition flex items-center cursor-pointer mx-auto mt-3 hover:bg-[var(--accent)] p-1"
-              onClick={() => setIsEditing((prev) => !prev)}
-              tabIndex={0}
-              aria-label="Edit"
-              style={{ lineHeight: 0 }}
-            >
-              <HiPencil className="w-3 h-3 text-[var(--muted-foreground)]" />
-              <span className="sr-only">Edit</span>
-            </button>
-          )}
         </div>
       )}
 
