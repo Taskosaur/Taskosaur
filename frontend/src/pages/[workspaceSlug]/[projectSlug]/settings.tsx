@@ -12,8 +12,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import DangerZoneModal from "@/components/common/DangerZoneModal";
-import { HiExclamationTriangle } from "react-icons/hi2";
+import { HiExclamationTriangle, HiCog, HiEnvelope } from "react-icons/hi2";
 import { PageHeader } from "@/components/common/PageHeader";
+import EmailIntegrationSettings from "@/components/inbox/EmailIntegrationSettings";
+import EmailRulesManager from "@/components/inbox/EmailRulesManager";
+import { Select } from "@/components/ui";
+import {
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Cog } from "lucide-react";
+import { IoWarning } from "react-icons/io5";
+import ActionButton from "@/components/common/ActionButton";
 
 function ProjectSettingsContent() {
   const router = useRouter();
@@ -32,6 +44,7 @@ function ProjectSettingsContent() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("general");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -275,6 +288,12 @@ function ProjectSettingsContent() {
     );
   }
 
+  const tabs = [
+    { id: "general", name: "General", icon: HiCog },
+    { id: "email", name: "Email Setup", icon: HiEnvelope },
+    { id: "rules", name: "Rules", icon: IoWarning },
+  ];
+
   return (
     <div className="dashboard-container space-y-6">
       <PageHeader
@@ -283,8 +302,8 @@ function ProjectSettingsContent() {
       />
 
       {success && (
-        <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-          <AlertDescription className="text-green-800 dark:text-green-200">
+        <Alert className="bg-green-50 border-green-200">
+          <AlertDescription className="text-green-800">
             {success}
           </AlertDescription>
         </Alert>
@@ -297,136 +316,246 @@ function ProjectSettingsContent() {
         </Alert>
       )}
 
-      <Card className="border-none bg-[var(--card)]">
-        <CardHeader>
-          <CardTitle>General Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Project Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleInputChange("name", e.target.value)}
-              placeholder="Enter project name"
-              disabled={saving || !hasAccess}
-            />
-          </div>
+      <div className="space-y-6">
+        <div className=" rounded-[var(--card-radius)] border-none">
+          <div className="border-b border-[var(--border)]">
+            <nav className="flex gap-1">
+              {tabs.map((tab) => {
+                const IconComponent = tab.icon;
+                const isActive = activeTab === tab.id;
 
-          <div className="space-y-2">
-            <Label htmlFor="slug">Project Slug</Label>
-            <Input
-              id="slug"
-              value={project?.slug || ""}
-              placeholder="project-slug"
-              disabled={true}
-              readOnly
-            />
-            <p className="text-xs text-[var(--muted-foreground)]">
-              Used in URLs and should be unique. This field cannot be edited.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange("description", e.target.value)}
-              placeholder="Describe your project..."
-              rows={3}
-              disabled={saving || !hasAccess}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <select
-              id="status"
-              value={formData.status}
-              onChange={(e) => handleInputChange("status", e.target.value)}
-              disabled={saving || !hasAccess}
-              className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] text-sm ${
-                !hasAccess || saving ? "cursor-not-allowed" : "cursor-pointer"
-              }`}
-            >
-              <option value="ACTIVE">Active</option>
-              <option value="ON_HOLD">On Hold</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="visibility">Visibility</Label>
-            <select
-              id="visibility"
-              value={formData.visibility}
-              onChange={(e) => handleInputChange("visibility", e.target.value)}
-              disabled={saving || !hasAccess}
-              className={`w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] text-sm ${
-                !hasAccess || saving ? "cursor-not-allowed" : "cursor-pointer"
-              }`}
-            >
-              <option value="PRIVATE">🔒 Private - Only members</option>
-              <option value="INTERNAL">🏢 Internal - Workspace members can view</option>
-              <option value="PUBLIC">🌍 Public - Anyone can view</option>
-            </select>
-            <p className="text-xs text-[var(--muted-foreground)]">
-              Control who can access this project. Members always have full access based on their role.
-            </p>
-          </div>
-
-          {hasAccess && (
-            <div className="flex justify-end pt-4">
-              <Button
-                onClick={handleSave}
-                disabled={saving || !formData.name.trim() || !hasAccess}
-                className="h-9 px-4 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] shadow-sm hover:shadow-md transition-all duration-200 font-medium cursor-pointer rounded-lg flex items-center gap-2"
-              >
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-none bg-[var(--card)]">
-        <CardContent className="p-6">
-          <div className="bg-red-50 dark:bg-red-950/20 border-none  rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <HiExclamationTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h4 className="font-medium text-red-800 dark:text-red-400 mb-2">
-                  Danger Zone
-                </h4>
-                <p className="text-sm text-red-700 dark:text-red-500 mb-4">
-                  These actions cannot be undone. Please proceed with caution.
-                </p>
-                <DangerZoneModal
-                  entity={{
-                    type: "project",
-                    name: project?.slug || "",
-                    displayName: project?.name || "",
-                  }}
-                  actions={dangerZoneActions}
-                  onRetry={retryFetch}
-                >
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                    disabled={!hasAccess}
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex cursor-pointer items-center gap-2 px-3 py-2 border-b-2 text-sm font-medium transition-all duration-200 ease-in-out ${
+                      isActive
+                        ? "border-b-[var(--primary)] text-[var(--primary)]"
+                        : "border-b-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                    }`}
                   >
-                    <HiExclamationTriangle className="w-4 h-4 mr-2" />
-                    Delete Project
-                  </Button>
-                </DangerZoneModal>
-              </div>
-            </div>
+                    <IconComponent className="w-4 h-4" />
+                    <span>{tab.name}</span>
+                  </button>
+                );
+              })}
+            </nav>
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="mt-6">
+            {activeTab === "general" && (
+              <div className="space-y-6">
+                <Card className="border-none bg-[var(--card)]">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Cog className="w-5 h-5 mr-2" />
+                      General Information
+                    </CardTitle>
+                    <p className="text-sm text-[var(--muted-foreground)]">
+                      Manage general information of your project
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Project Name</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) =>
+                          handleInputChange("name", e.target.value)
+                        }
+                        placeholder="Enter project name"
+                        disabled={saving || !hasAccess}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="slug">Project Slug</Label>
+                      <Input
+                        id="slug"
+                        value={project?.slug || ""}
+                        placeholder="project-slug"
+                        disabled={true}
+                        readOnly
+                        className="cursor-not-allowed"
+                      />
+                     
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) =>
+                          handleInputChange("description", e.target.value)
+                        }
+                        placeholder="Describe your project..."
+                        rows={3}
+                        disabled={saving || !hasAccess}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Status */}
+                      <div className="space-y-2">
+                        <Label htmlFor="status">Status</Label>
+                        <Select
+                          value={formData.status}
+                          onValueChange={(value) =>
+                            handleInputChange("status", value)
+                          }
+                          disabled={saving || !hasAccess}
+                        >
+                          <SelectTrigger
+                            id="status"
+                            className={`w-full border border-[var(--border)] ${
+                              !hasAccess || saving
+                                ? "cursor-not-allowed"
+                                : "cursor-pointer"
+                            }`}
+                          >
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[var(--card)] border border-[var(--border)] ">
+                            <SelectItem
+                              className="hover:bg-[var(--hover-bg)]"
+                              value="ACTIVE"
+                            >
+                              Active
+                            </SelectItem>
+                            <SelectItem
+                              className="hover:bg-[var(--hover-bg)]"
+                              value="ON_HOLD"
+                            >
+                              On Hold
+                            </SelectItem>
+                            <SelectItem
+                              className="hover:bg-[var(--hover-bg)]"
+                              value="COMPLETED"
+                            >
+                              Completed
+                            </SelectItem>
+                            <SelectItem
+                              className="hover:bg-[var(--hover-bg)]"
+                              value="ARCHIVED"
+                            >
+                              Archived
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Visibility */}
+                      <div className="space-y-2">
+                        <Label htmlFor="visibility">Visibility</Label>
+                        <Select
+                          value={formData.visibility}
+                          onValueChange={(value) =>
+                            handleInputChange("visibility", value)
+                          }
+                          disabled={saving || !hasAccess}
+                        >
+                          <SelectTrigger
+                            id="visibility"
+                            className={`w-full border border-[var(--border)] ${
+                              !hasAccess || saving
+                                ? "cursor-not-allowed"
+                                : "cursor-pointer"
+                            }`}
+                          >
+                            <SelectValue placeholder="Select visibility" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[var(--card)] border border-[var(--border)]">
+                            <SelectItem
+                              className="hover:bg-[var(--hover-bg)]"
+                              value="PRIVATE"
+                            >
+                              🔒 Private - Only members
+                            </SelectItem>
+                            <SelectItem
+                              className="hover:bg-[var(--hover-bg)]"
+                              value="INTERNAL"
+                            >
+                              🏢 Internal - Workspace members can view
+                            </SelectItem>
+                            <SelectItem
+                              className="hover:bg-[var(--hover-bg)]"
+                              value="PUBLIC"
+                            >
+                              🌍 Public - Anyone can view
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-[var(--muted-foreground)]">
+                          Control who can access this project. Members always
+                          have full access based on their role.
+                        </p>
+                      </div>
+                    </div>
+
+                    {hasAccess && (
+                      <div className="flex justify-end pt-4">
+                        <ActionButton
+                          onClick={handleSave}
+                          disabled={
+                            saving || !formData.name.trim() || !hasAccess
+                          }
+                          primary
+                        >
+                          {saving ? "Saving..." : "Save Changes"}
+                        </ActionButton>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <div className="bg-red-50 dark:bg-red-950/20 border-none rounded-md px-4 py-6">
+                  <div className="flex items-start gap-3">
+                    <HiExclamationTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-1" />
+                    <div className="flex-1">
+                      <h4 className="font-medium text-red-800 dark:text-red-400">
+                        Danger Zone
+                      </h4>
+                      <p className="text-sm text-red-700 dark:text-red-500 mb-4">
+                        These actions cannot be undone. Please proceed with
+                        caution.
+                      </p>
+                      <DangerZoneModal
+                        entity={{
+                          type: "project",
+                          name: project?.slug || "",
+                          displayName: project?.name || "",
+                        }}
+                        actions={dangerZoneActions}
+                        onRetry={retryFetch}
+                      >
+                        <ActionButton
+                          leftIcon={
+                            <HiExclamationTriangle className="w-4 h-4" />
+                          }
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          disabled={!hasAccess}
+                        >
+                          Delete Project
+                        </ActionButton>
+                      </DangerZoneModal>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "email" && project && (
+              <EmailIntegrationSettings projectId={project.id} />
+            )}
+
+            {activeTab === "rules" && project && (
+              <EmailRulesManager projectId={project.id} />
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

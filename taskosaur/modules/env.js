@@ -197,6 +197,11 @@ async function createSimpleEnvFile() {
         config.BE_JWT_EXPIRES_IN = `"${await askQuestion(rl, 'JWT Expiration Time', '15m')}"`;
         config.BE_JWT_REFRESH_EXPIRES_IN = `"${await askQuestion(rl, 'JWT Refresh Expiration Time', '7d')}"`;
         
+        // Email Configuration
+        console.log('\n🔴 Email Configuration:');
+        config.BE_ENCRYPTION_KEY = await askQuestion(rl, 'Email Encryption Key', '851244b23bd99bc32b28ab104da1a6ae4e338a872bd9e98a4ba89097796152b1405355162a1cf568e14689ba51dd55377d36041c5f63bb4bfecf7e1199d37cb0');
+        config.BE_EMAIL_DOMAIN = await askQuestion(rl, 'Email Domain', 'taskosaur.com');
+
         // Redis Configuration
         console.log('\n🔴 Redis Configuration:');
         config.BE_REDIS_HOST = await askQuestion(rl, 'Redis Host', 'localhost');

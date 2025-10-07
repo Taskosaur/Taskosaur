@@ -94,3 +94,28 @@ export const PROJECT_CATEGORIES = [
       variant: "secondary" as const,
     },
   ];
+
+
+export const ACTION_TYPES = [
+  { value: "setPriority", label: "Set Priority" },
+  { value: "assignTo", label: "Assign To" },
+  { value: "addLabels", label: "Add Labels" },
+  { value: "markAsSpam", label: "Mark as Spam" },
+  { value: "autoReply", label: "Auto Reply" },
+];
+
+export const EMAIL_FIELDS = [
+  { value: "subject", label: "Subject" },
+  { value: "from", label: "From" },
+  { value: "to", label: "To" },
+  { value: "cc", label: "CC" },
+  { value: "body", label: "Body" },
+];
+
+export const EMAIL_OPERATORS = [
+  { value: "contains", label: "Contains" },
+  { value: "equals", label: "Equals" },
+  { value: "matches", label: "Matches" },
+  { value: "startsWith", label: "Starts With" },
+  { value: "endsWith", label: "Ends With" },
+];

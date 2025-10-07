@@ -8,10 +8,11 @@ import { TaskComment } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskCommentDto } from './dto/create-task-comment.dto';
 import { UpdateTaskCommentDto } from './dto/update-task-comment.dto';
+import { EmailReplyService } from '../inbox/services/email-reply.service';
 
 @Injectable()
 export class TaskCommentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService,  private emailReply: EmailReplyService) {}
 
   async create(
     createTaskCommentDto: CreateTaskCommentDto,
@@ -56,7 +57,7 @@ export class TaskCommentsService {
       }
     }
 
-    return this.prisma.taskComment.create({
+    const comment = await this.prisma.taskComment.create({
       data: createTaskCommentDto,
       include: {
         author: {
@@ -95,6 +96,9 @@ export class TaskCommentsService {
         },
       },
     });
+    const result = await this.emailReply.sendCommentAsEmail(comment.id);
+
+    return comment;
   }
 
   async findAll(taskId?: string): Promise<TaskComment[]> {

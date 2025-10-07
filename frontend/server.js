@@ -8,7 +8,7 @@ import fs from 'fs'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const port = parseInt(process.env.PORT || '9102', 10)
+const port = parseInt(process.env.PORT || '9101', 10)
 const hostname = process.env.HOST || '0.0.0.0'
 const dev = process.env.NODE_ENV !== 'production'
 const app = next({ dev })

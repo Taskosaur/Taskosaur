@@ -16,6 +16,8 @@ import { TaskDependenciesSeederService } from './task-dependencies.seeder.servic
 import { TaskWatchersSeederService } from './task-watchers.seeder.service';
 import { TimeEntriesSeederService } from './time-entries.seeder.service';
 import { AdminSeederService } from './admin-seeder.service';
+import { InboxRulesSeederService } from './inbox-rules.seeder.service';
+import { EmailTemplatesService } from './email-templates.service';
 
 @Module({
   imports: [PrismaModule],
@@ -36,6 +38,8 @@ import { AdminSeederService } from './admin-seeder.service';
     TaskWatchersSeederService,
     TimeEntriesSeederService,
     AdminSeederService,
+    InboxRulesSeederService,
+    EmailTemplatesService,
   ],
   exports: [SeederService],
 })

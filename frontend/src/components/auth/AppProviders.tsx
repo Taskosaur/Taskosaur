@@ -7,7 +7,7 @@ import TaskProvider from "@/contexts/task-context";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import Breadcrumb from "@/components/layout/Breadcrumb";
-
+import InboxProvider from "@/contexts/inbox-context";
 
 interface CommonProvidersProps {
   children: ReactNode;
@@ -25,36 +25,38 @@ export default function AppProviders({ children }: CommonProvidersProps) {
       <OrganizationProvider>
         <WorkspaceProvider>
           <ProjectProvider>
-            <SprintProvider>
-              <TaskProvider>
-                <div
-                  className="min-h-screen bg-[var(--background)]"
-                  style={{ scrollbarGutter: "stable" }}
-                >
-                  <div className="flex h-screen">
-                    <Sidebar />
-                    <div className="flex-1 flex flex-col overflow-hidden ">
-                      <Header />
-                      <div
-                        className="flex-1 overflow-y-scroll scrollbar-none "
-                        style={{ scrollbarGutter: "stable" }}
-                      >
-                        {mounted && (
-                          <div
-                            id="modal-root"
-                            className="fixed z-[1000] inset-0 pointer-events-none"
-                          />
-                        )}
-                        <div className="max-w-[1400px] mx-auto">
-                          <Breadcrumb />
-                          {children}
+            <InboxProvider>
+              <SprintProvider>
+                <TaskProvider>
+                  <div
+                    className="min-h-screen bg-[var(--background)]"
+                    style={{ scrollbarGutter: "stable" }}
+                  >
+                    <div className="flex h-screen">
+                      <Sidebar />
+                      <div className="flex-1 flex flex-col overflow-hidden ">
+                        <Header />
+                        <div
+                          className="flex-1 overflow-y-scroll scrollbar-none "
+                          style={{ scrollbarGutter: "stable" }}
+                        >
+                          {mounted && (
+                            <div
+                              id="modal-root"
+                              className="fixed z-[1000] inset-0 pointer-events-none"
+                            />
+                          )}
+                          <div className="max-w-[1400px] mx-auto">
+                            <Breadcrumb />
+                            {children}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </TaskProvider>
-            </SprintProvider>
+                </TaskProvider>
+              </SprintProvider>
+            </InboxProvider>
           </ProjectProvider>
         </WorkspaceProvider>
       </OrganizationProvider>

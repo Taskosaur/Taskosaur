@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { HiPencil } from "react-icons/hi2";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -12,32 +11,47 @@ import {
 } from "@/components/ui/DropdownMenu";
 import { ChevronDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useProject } from "@/contexts/project-context";
+import { toast } from "sonner";
 
 interface MemberSelectProps {
   label: string;
   selectedMembers: any[];
   onChange: (members: any[]) => void;
-  members: any[];
+  members: any[]; // Initial members for create mode
   disabled?: boolean;
   placeholder?: string;
   editMode?: boolean;
   type?: "assignee" | "reporter";
+  projectId?: string; // Required for server-side search
 }
 
 function MemberSelect({
   label,
   selectedMembers,
   onChange,
-  members,
+  members: initialMembers,
   disabled = false,
   placeholder = "Select members...",
   editMode = false,
   type = "assignee",
+  projectId,
 }: MemberSelectProps) {
+  const { getProjectMembers } = useProject();
+  
   const [isOpen, setIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [search, setSearch] = useState("");
   const [autoOpenDropdown, setAutoOpenDropdown] = useState(false);
+  
+  // Server-side search states
+  const [members, setMembers] = useState<any[]>(initialMembers);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  
+  // Refs for cleanup and debouncing
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Auto-open dropdown when edit button is clicked
   useEffect(() => {
@@ -46,6 +60,86 @@ function MemberSelect({
       setAutoOpenDropdown(false);
     }
   }, [autoOpenDropdown, isEditing, isOpen]);
+
+  // Fetch members from server with debouncing
+  useEffect(() => {
+    // Only fetch if we have a projectId and dropdown is open
+    if (!projectId || !isOpen) return;
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Debounce search (300ms)
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      setSearchError(null);
+
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+
+      try {
+        // Call API with search parameter (empty string for initial load)
+        const fetchedMembers = await getProjectMembers(
+          projectId,
+          search.trim() || undefined
+        );
+
+        // Normalize member data
+        const normalizedMembers = Array.isArray(fetchedMembers)
+          ? fetchedMembers
+              .filter((m) => m?.user)
+              .map((m) => ({
+                id: m.user.id,
+                firstName: m.user.firstName || "",
+                lastName: m.user.lastName || "",
+                email: m.user.email || "",
+                avatarUrl: m.user.avatar || m.user.avatarUrl,
+                role: m.role,
+              }))
+          : [];
+
+        setMembers(normalizedMembers);
+      } catch (error: any) {
+        // Don't show error if request was aborted
+        if (error.name !== "AbortError") {
+          console.error("Failed to fetch project members:", error);
+          setSearchError("Failed to load members");
+          toast.error("Failed to load project members");
+        }
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300); // 300ms debounce delay
+
+    // Cleanup
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [search, projectId, isOpen]);
+
+  // Reset search when dropdown closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSearch("");
+      setSearchError(null);
+      // Reset to initial members if in create mode
+      if (!editMode && initialMembers.length > 0) {
+        setMembers(initialMembers);
+      }
+    }
+  }, [isOpen, editMode, initialMembers]);
 
   const handleMemberToggle = (member: any) => {
     const isSelected = selectedMembers.some((m) => m.id === member.id);
@@ -67,22 +161,11 @@ function MemberSelect({
     displayText = `Select ${baseLabel.toLowerCase()}...`;
   }
 
-  // Filter members by search
-  const filteredMembers = members.filter((member) => {
-    const searchLower = search.toLowerCase();
-    return (
-      member.firstName?.toLowerCase().includes(searchLower) ||
-      member.lastName?.toLowerCase().includes(searchLower) ||
-      member.email?.toLowerCase().includes(searchLower)
-    );
-  });
-
   if (editMode) {
     const maxToShow = 3;
     const shownMembers = selectedMembers.slice(0, maxToShow);
     const extraCount = selectedMembers.length - maxToShow;
 
-    // Get proper label text
     const baseLabel = label.endsWith("s") ? label.slice(0, -1) : label;
     const displayLabel =
       selectedMembers.length === 0
@@ -95,15 +178,13 @@ function MemberSelect({
           <Label>{label}</Label>
           <button
             type="button"
-            className="ml-2 rounded transition flex items-center cursor-pointer  p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs"
+            className="ml-2 rounded transition flex items-center cursor-pointer p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs"
             onClick={() => {
               if (isEditing && isOpen) {
-                // Close dropdown if already open
                 setIsOpen(false);
                 setIsEditing(false);
                 setAutoOpenDropdown(false);
               } else {
-                // Open dropdown
                 setIsEditing(true);
                 setAutoOpenDropdown(true);
               }
@@ -123,10 +204,7 @@ function MemberSelect({
                   key={member.id}
                   user={{
                     ...member,
-                    avatar:
-                      member.avatarUrl ||
-                      member.avatar ||
-                      "/default-avatar.png",
+                    avatar: member.avatarUrl || member.avatar || "/default-avatar.png",
                   }}
                   size="sm"
                 />
@@ -143,7 +221,7 @@ function MemberSelect({
             </span>
           )}
         </div>
-        {/* Show dropdowns (default or edit mode) only when editing */}
+        
         {isEditing && (
           <div className="mt-2">
             <DropdownMenu
@@ -158,11 +236,7 @@ function MemberSelect({
             >
               <DropdownMenuTrigger asChild>
                 <div className="w-full h-0 opacity-0 pointer-events-none">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    disabled={disabled}
-                  >
+                  <Button variant="outline" className="w-full" disabled={disabled}>
                     {displayText}
                   </Button>
                 </div>
@@ -172,7 +246,7 @@ function MemberSelect({
                 align="start"
                 sideOffset={0}
               >
-                <div className=" pb-0">
+                <div className="pb-0">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)] pointer-events-none" />
                     <Input
@@ -184,16 +258,26 @@ function MemberSelect({
                     />
                   </div>
                 </div>
+                
                 <div className="max-h-48 overflow-y-auto">
-                  {filteredMembers.length === 0 ? (
+                  {isSearching ? (
+                    <div className="p-4 text-center">
+                      <div className="animate-spin h-5 w-5 border-2 border-[var(--primary)] border-t-transparent rounded-full mx-auto mb-2" />
+                      <p className="text-sm text-[var(--muted-foreground)]">
+                        Searching members...
+                      </p>
+                    </div>
+                  ) : searchError ? (
+                    <div className="p-2 text-sm text-red-500 text-center">
+                      {searchError}
+                    </div>
+                  ) : members.length === 0 ? (
                     <div className="p-2 text-sm text-muted-foreground">
                       No members found.
                     </div>
                   ) : (
-                    filteredMembers.map((member) => {
-                      const isSelected = selectedMembers.some(
-                        (m) => m.id === member.id
-                      );
+                    members.map((member) => {
+                      const isSelected = selectedMembers.some((m) => m.id === member.id);
                       return (
                         <div
                           key={member.id}
@@ -207,10 +291,7 @@ function MemberSelect({
                           <UserAvatar
                             user={{
                               ...member,
-                              avatar:
-                                member.avatarUrl ||
-                                member.avatar ||
-                                "/default-avatar.png",
+                              avatar: member.avatarUrl || member.avatar || "/default-avatar.png",
                             }}
                             size="sm"
                           />
@@ -235,6 +316,7 @@ function MemberSelect({
     );
   }
 
+  // Create mode (non-edit)
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
@@ -245,11 +327,7 @@ function MemberSelect({
             className="w-full justify-between border-[var(--border)] bg-[var(--background)] text-left"
             disabled={disabled}
           >
-            <span
-              className={
-                selectedMembers.length === 0 ? "text-muted-foreground" : ""
-              }
-            >
+            <span className={selectedMembers.length === 0 ? "text-muted-foreground" : ""}>
               {displayText}
             </span>
             <ChevronDown className="h-4 w-4 opacity-50" />
@@ -268,16 +346,26 @@ function MemberSelect({
               />
             </div>
           </div>
+          
           <div className="max-h-48 overflow-y-auto">
-            {filteredMembers.length === 0 ? (
+            {isSearching ? (
+              <div className="p-4 text-center">
+                <div className="animate-spin h-5 w-5 border-2 border-[var(--primary)] border-t-transparent rounded-full mx-auto mb-2" />
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  Searching members...
+                </p>
+              </div>
+            ) : searchError ? (
+              <div className="p-2 text-sm text-red-500 text-center">
+                {searchError}
+              </div>
+            ) : members.length === 0 ? (
               <div className="p-2 text-sm text-muted-foreground">
                 No members found.
               </div>
             ) : (
-              filteredMembers.map((member) => {
-                const isSelected = selectedMembers.some(
-                  (m) => m.id === member.id
-                );
+              members.map((member) => {
+                const isSelected = selectedMembers.some((m) => m.id === member.id);
                 return (
                   <div
                     key={member.id}
@@ -291,10 +379,7 @@ function MemberSelect({
                     <UserAvatar
                       user={{
                         ...member,
-                        avatar:
-                          member.avatarUrl ||
-                          member.avatar ||
-                          "/default-avatar.png",
+                        avatar: member.avatarUrl || member.avatar || "/default-avatar.png",
                       }}
                       size="sm"
                     />
@@ -302,9 +387,7 @@ function MemberSelect({
                       <span className="text-sm">
                         {member.firstName} {member.lastName}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        {member.email}
-                      </span>
+                      <span className="text-xs text-gray-500">{member.email}</span>
                     </div>
                   </div>
                 );

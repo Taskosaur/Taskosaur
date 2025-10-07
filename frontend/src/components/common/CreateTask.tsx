@@ -424,8 +424,7 @@ export default function CreateTask({
           <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
             <CardHeader className="flex">
               <TaskSectionHeader icon={HiUsers} title="Assignment" />
-                  <span className="projects-form-label-required">*</span>
-
+              <span className="projects-form-label-required">*</span>
             </CardHeader>
             <CardContent className="space-y-4">
               {membersLoading ? (
@@ -446,6 +445,7 @@ export default function CreateTask({
                     selectedMembers={assignees}
                     onChange={setAssignees}
                     members={members}
+                    projectId={selectedProject?.id} // Add this
                     disabled={!selectedProject?.id || members.length === 0}
                     placeholder={
                       !selectedProject?.id
@@ -459,6 +459,7 @@ export default function CreateTask({
                     selectedMembers={reporters}
                     onChange={setReporters}
                     members={members}
+                    projectId={selectedProject?.id} // Add this
                     disabled={!selectedProject?.id || members.length === 0}
                     placeholder={
                       !selectedProject?.id
@@ -475,5 +476,3 @@ export default function CreateTask({
     </div>
   );
 }
-
-

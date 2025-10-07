@@ -1,0 +1,780 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { CryptoService } from '../../../common/crypto.service';
+import { S3UploadService } from '../../../common/s3-upload.service';
+import { EmailAccount, MessageStatus, SyncStatus } from '@prisma/client';
+import { simpleParser } from 'mailparser';
+import * as nodemailer from 'nodemailer';
+import { ImapFlow } from 'imapflow';
+import { threadId } from 'worker_threads';
+
+// For now, using simplified email handling
+// In production, you'd use proper IMAP libraries like 'imap' or 'imapflow'
+interface EmailMessage {
+  messageId: string;
+  threadId: string;
+  inReplyTo?: string;
+  references?: string[];
+  subject: string;
+  from: string;
+  to: string[];
+  cc: string[];
+  bcc: string[];
+  text?: string;
+  html?: string;
+  date: Date;
+  headers: any;
+  attachments?: any[];
+}
+
+@Injectable()
+export class EmailSyncService {
+  private readonly logger = new Logger(EmailSyncService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private crypto: CryptoService,
+    private s3Upload: S3UploadService,
+  ) { }
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async syncAllInboxes() {
+    this.logger.log('Starting scheduled email sync for all inboxes');
+
+    const now = new Date();
+
+    const accounts = await this.prisma.emailAccount.findMany({
+      where: {
+        syncEnabled: true,
+        projectInbox: {
+          enabled: true,
+          syncInterval: { not: null }
+        }
+      },
+      include: {
+        projectInbox: {
+          include: {
+            project: true
+          }
+        }
+      },
+    });
+
+    this.logger.log(`Found ${accounts.length} inboxes ready for sync check`);
+
+    for (const account of accounts) {
+      try {
+        const syncIntervalMinutes = account.projectInbox.syncInterval || 5;
+
+        // Check if enough time has passed since last sync
+        const shouldSync = !account.lastSyncAt ||
+          (now.getTime() - account.lastSyncAt.getTime()) >= (syncIntervalMinutes * 60 * 1000);
+
+        if (!shouldSync) {
+          continue;
+        }
+
+        // Perform the sync
+        await this.syncInbox(account);
+
+        // Update email account sync status
+        await this.prisma.emailAccount.update({
+          where: { id: account.id },
+          data: {
+            lastSyncAt: now,
+            lastSyncError: null,
+          },
+        });
+
+        const nextSyncTime = new Date(now.getTime() + (syncIntervalMinutes * 60 * 1000));
+        this.logger.log(
+          `Successfully synced inbox for ${account.emailAddress}. Next sync at: ${nextSyncTime.toISOString()}`
+        );
+
+      } catch (error) {
+        this.logger.error(`Failed to sync inbox for ${account.emailAddress}:`, error.message);
+
+        await this.prisma.emailAccount.update({
+          where: { id: account.id },
+          data: {
+            lastSyncAt: now,
+            lastSyncError: error.message,
+          },
+        });
+      }
+    }
+
+    this.logger.log('Completed scheduled email sync for all inboxes');
+  }
+
+
+  async syncInbox(account: EmailAccount & { projectInbox?: any }) {
+    const log = await this.prisma.emailSyncLog.create({
+      data: {
+        projectId: account.projectInbox?.projectId || 'unknown',
+        startedAt: new Date(),
+        status: SyncStatus.FAILED,
+      },
+    });
+
+    try {
+      this.logger.log(`Starting sync for ${account.emailAddress}`);
+
+      // Get IMAP connection based on auth type
+      const messages = await this.fetchMessagesBasic(account);
+      let processed = 0;
+      for (const message of messages) {
+        try {
+          await this.processMessage(message, account);
+          processed++;
+        } catch (error) {
+          this.logger.error(
+            `Failed to process message ${message.messageId}:`,
+            error.message,
+          );
+        }
+      }
+
+      // Update sync log
+      await this.prisma.emailSyncLog.update({
+        where: { id: log.id },
+        data: {
+          completedAt: new Date(),
+          status: SyncStatus.SUCCESS,
+          messagesProcessed: processed,
+        },
+      });
+
+      // Update account sync state
+      await this.prisma.emailAccount.update({
+        where: { id: account.id },
+        data: {
+          lastSyncAt: new Date(),
+          lastSyncError: null,
+        },
+      });
+
+      this.logger.log(
+        `Sync completed for ${account.emailAddress}. Processed ${processed} messages.`,
+      );
+    } catch (error) {
+      this.logger.error(`Sync failed for ${account.emailAddress}:`, error.message);
+
+      await this.prisma.emailSyncLog.update({
+        where: { id: log.id },
+        data: {
+          completedAt: new Date(),
+          error: error.message,
+        },
+      });
+
+      await this.prisma.emailAccount.update({
+        where: { id: account.id },
+        data: { lastSyncError: error.message },
+      });
+
+      throw error;
+    }
+  }
+
+  private async fetchMessagesBasic(account: EmailAccount): Promise<EmailMessage[]> {
+    this.logger.log(`Fetching IMAP messages for ${account.emailAddress}`);
+
+    let client: ImapFlow | null = null;
+
+    try {
+      const password = await this.crypto.decrypt(account.imapPassword!);
+
+      client = new ImapFlow({
+        host: account.imapHost!,
+        port: account.imapPort || 993,
+        secure: account.imapUseSsl !== false,
+        auth: {
+          user: account.imapUsername!,
+          pass: password,
+        },
+        logger: false,
+
+        /** ✅ Timeout safety */
+        socketTimeout: 120000,
+        greetingTimeout: 60000,
+        connectionTimeout: 60000,
+        disableAutoIdle: true,
+      });
+
+      /** ✅ Catch unhandled internal errors (prevents Node crash) */
+      client.on('error', (err) => {
+        this.logger.error(`IMAP client error for ${account.emailAddress}: ${err.message}`);
+      });
+
+      /** ✅ Connect safely with timeout */
+      await Promise.race([
+        client.connect(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('IMAP connect timeout')), 60000)
+        ),
+      ]);
+
+      this.logger.log(`Connected to IMAP server for ${account.emailAddress}`);
+
+      // Lock mailbox
+      const mailbox = await client.getMailboxLock(account.imapFolder || 'INBOX');
+
+      try {
+
+        const searchCriteria = account.lastSyncAt
+          ? { since: account.lastSyncAt }
+          : { all: true };
+
+        const messagesIterable = client.fetch(
+          searchCriteria,
+          { envelope: true, bodyStructure: true, source: true, uid: true },
+          { uid: true },
+        );
+
+        const emailMessages: EmailMessage[] = [];
+        let count = 0;
+
+        for await (const message of messagesIterable) {
+
+          try {
+            const parsed = await simpleParser(message.source);
+
+            /** ✅ Defensive parsing of references */
+            let references: string[] = [];
+            const refValue = parsed.references;
+            if (Array.isArray(refValue)) references = refValue;
+            else if (typeof refValue === 'string') references = refValue.trim().split(/\s+/);
+            else if (refValue instanceof Set) references = Array.from(refValue);
+
+            emailMessages.push({
+              messageId: parsed.messageId || `${Date.now()}-${Math.random()}`,
+              threadId: this.extractThreadIdFromParsed(parsed),
+              inReplyTo: parsed.inReplyTo || undefined,
+              references,
+              subject: parsed.subject || 'No Subject',
+              from: this.formatAddress(parsed.from?.text || parsed.from?.value?.[0]?.address),
+              to: parsed.to ? this.formatAddressList(parsed.to) : [],
+              cc: parsed.cc ? this.formatAddressList(parsed.cc) : [],
+              bcc: parsed.bcc ? this.formatAddressList(parsed.bcc) : [],
+              text: parsed.text,
+              html: parsed.html,
+              date: parsed.date || new Date(),
+              headers: parsed.headers || {},
+              attachments: parsed.attachments || [],
+            });
+          } catch (parseError: any) {
+            this.logger.error(`Failed to parse message: ${parseError.message}`);
+          }
+        }
+
+        this.logger.log(`Fetched ${emailMessages.length} messages from ${account.emailAddress}`);
+        return emailMessages;
+
+      } finally {
+        await mailbox.release();
+        this.logger.log('Mailbox lock released');
+      }
+
+    } catch (error: any) {
+      if (error.code === 'ETIMEOUT') {
+        this.logger.warn(`IMAP socket timeout for ${account.emailAddress}`);
+      } else {
+        this.logger.error(`IMAP connection failed for ${account.emailAddress}: ${error.message}`);
+      }
+      return []; // gracefully return empty instead of throwing hard error
+    } finally {
+      if (client) {
+        try {
+          await Promise.race([
+            client.logout(),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('IMAP logout timeout')), 5000)
+            ),
+          ]);
+          this.logger.log('IMAP client logged out');
+        } catch (logoutError: any) {
+          this.logger.warn(`Failed to logout IMAP client: ${logoutError.message}`);
+        }
+      }
+    }
+  }
+
+
+
+  async processMessage(message: EmailMessage, account: EmailAccount) {
+    // Check if message already exists
+    this.logger.log(`Checking if message ${message.messageId} exists`);
+    console.log("reply to id", message.inReplyTo)
+
+    const existing = await this.prisma.inboxMessage.findUnique({
+      where: { messageId: message.messageId },
+    });
+
+    if (existing) {
+      this.logger.debug(`Message ${message.messageId} already exists, skipping `);
+      return;
+    }
+
+    this.logger.log(`Processing new message: ${message.subject}`);
+
+    // Extract thread ID
+    const threadId = this.extractThreadId(message);
+
+    // Create inbox message
+    const inboxMessage = await this.prisma.inboxMessage.create({
+      data: {
+        projectInboxId: account.projectInboxId,
+        messageId: message.messageId,
+        threadId,
+        inReplyTo: message.inReplyTo,
+        references: message.references || [],
+        subject: message.subject,
+        fromEmail: this.extractEmail(message.from),
+        fromName: this.extractName(message.from),
+        toEmails: message.to.map(this.extractEmail),
+        ccEmails: message.cc.map(this.extractEmail),
+        bccEmails: message.bcc.map(this.extractEmail),
+        bodyText: message.text,
+        bodyHtml: message.html,
+        snippet: this.createSnippet(message.text || message.html || ''),
+        headers: message.headers || {},
+        hasAttachments: (message.attachments?.length ?? 0) > 0,
+        emailDate: message.date,
+        status: MessageStatus.PENDING,
+      },
+    });
+
+    // Process attachments
+    if (message.attachments?.length) {
+      await this.processAttachments(message.attachments, inboxMessage.id);
+    }
+
+    // Apply rules
+    await this.applyRules(inboxMessage);
+
+    // Auto-create task if enabled
+    const inbox = await this.prisma.projectInbox.findUnique({
+      where: { id: account.projectInboxId },
+    });
+
+    if (inbox && inbox.autoCreateTask && inboxMessage.status === MessageStatus.PENDING) {
+      await this.autoCreateTask(inboxMessage, inbox);
+    }
+  }
+
+  private extractThreadId(message: EmailMessage): string {
+    // Use In-Reply-To or first reference for threading
+    if (message.references?.length) {
+      return message.references[0];
+    }
+    if (message.inReplyTo) {
+      return message.inReplyTo;
+    }
+    return message.messageId;
+  }
+
+  private extractEmail(addr: string | { name?: string; address?: string }): string {
+    if (!addr) return '';
+    if (typeof addr === 'string') {
+      const match = addr.match(/<(.+)>/) || addr.match(/([^\s]+@[^\s]+)/);
+      return match ? match[1] : addr;
+    }
+    return addr.address || '';
+  }
+
+
+  private extractName(addr: string | { name?: string; address?: string }): string {
+    if (!addr) return '';
+    if (typeof addr === 'string') {
+      const match = addr.match(/^(.+?)\s*<.+>$/);
+      return match ? match[1].replace(/['"]/g, '').trim() : '';
+    }
+    return addr.name || '';
+  }
+
+  private createSnippet(content: string): string {
+    if (!content) return '';
+
+    // Strip HTML tags and get first 200 characters
+    const text = content.replace(/<[^>]*>/g, '').trim();
+    return text.length > 200 ? text.substring(0, 197) + '...' : text;
+  }
+
+  private async processAttachments(attachments: any[], messageId: string) {
+    const attachmentData: any[] = [];
+
+    for (const attachment of attachments) {
+      try {
+        // Upload to S3
+        const uploadResult = await this.s3Upload.uploadEmailAttachment(messageId, attachment);
+
+        attachmentData.push({
+          messageId,
+          filename: attachment.filename || 'unnamed',
+          mimeType: attachment.contentType || 'application/octet-stream',
+          size: uploadResult.size,
+          contentId: attachment.cid,
+          storagePath: uploadResult.key,
+          storageUrl: uploadResult.url,
+        });
+      } catch (error) {
+        this.logger.error(`Failed to upload attachment ${attachment.filename}:`, error.message);
+        // Continue with other attachments, but log the failure
+      }
+    }
+
+    if (attachmentData.length > 0) {
+      await this.prisma.messageAttachment.createMany({
+        data: attachmentData,
+      });
+    }
+  }
+
+  private async applyRules(message: any) {
+    // Get rules for this inbox, ordered by priority
+    const rules = await this.prisma.inboxRule.findMany({
+      where: {
+        projectInboxId: message.projectInboxId,
+        enabled: true,
+      },
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+    });
+
+    for (const rule of rules) {
+      try {
+        const matches = this.evaluateRuleConditions(rule.conditions, message);
+
+        if (matches) {
+          this.logger.log(`Rule "${rule.name}" matched for message ${message.messageId}`);
+          await this.executeRuleActions(rule.actions, message);
+
+          if (rule.stopOnMatch) {
+            this.logger.log(`Stopping rule processing due to stopOnMatch`);
+            break;
+          }
+        }
+      } catch (error) {
+        this.logger.error(`Error applying rule ${rule.name}:`, error.message);
+      }
+    }
+  }
+
+  private evaluateRuleConditions(conditions: any, message: any): boolean {
+    // Simple rule evaluation logic
+    // In production, you'd want a more sophisticated rule engine
+
+    if (conditions.any) {
+      return conditions.any.some(condition => this.evaluateCondition(condition, message));
+    }
+
+    if (conditions.all) {
+      return conditions.all.every(condition => this.evaluateCondition(condition, message));
+    }
+
+    return this.evaluateCondition(conditions, message);
+  }
+
+  private evaluateCondition(condition: any, message: any): boolean {
+    for (const [field, rules] of Object.entries(condition)) {
+      const fieldValue = this.getFieldValue(field, message);
+
+      if (typeof rules === 'object' && rules !== null) {
+        for (const [operator, value] of Object.entries(rules)) {
+          switch (operator) {
+            case 'contains':
+              return fieldValue?.toLowerCase().includes((value as string).toLowerCase());
+            case 'equals':
+              return fieldValue === value;
+            case 'matches':
+              return new RegExp(value as string, 'i').test(fieldValue);
+            case 'startsWith':
+              return fieldValue?.toLowerCase().startsWith((value as string).toLowerCase());
+            case 'endsWith':
+              return fieldValue?.toLowerCase().endsWith((value as string).toLowerCase());
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
+  private getFieldValue(field: string, message: any): string {
+    switch (field) {
+      case 'from':
+        return message.fromEmail;
+      case 'subject':
+        return message.subject;
+      case 'body':
+        return message.bodyText || message.bodyHtml;
+      case 'to':
+        return message.toEmails.join(',');
+      case 'cc':
+        return message.ccEmails.join(',');
+      default:
+        return '';
+    }
+  }
+
+  private async executeRuleActions(actions: any, message: any) {
+    // Execute rule actions
+    for (const [action, value] of Object.entries(actions)) {
+      try {
+        switch (action) {
+          case 'setPriority':
+            // Set priority when converting to task
+            message._rulePriority = value;
+            break;
+          case 'assignTo':
+            // Set assignee when converting to task
+            message._ruleAssignee = value;
+            break;
+          case 'addLabels':
+            // Store labels to add when converting to task
+            message._ruleLabels = Array.isArray(value) ? value : [value];
+            break;
+          case 'markAsSpam':
+            await this.prisma.inboxMessage.update({
+              where: { id: message.id },
+              data: { isSpam: true, status: MessageStatus.IGNORED },
+            });
+            break;
+          case 'autoReply':
+            await this.sendAutoReplyFromRule(message, value as string);
+            break;
+        }
+      } catch (error) {
+        this.logger.error(`Error executing action ${action}:`, error.message);
+      }
+    }
+  }
+
+  private async autoCreateTask(message: any, inbox: any) {
+    try {
+      // Check for existing thread
+      console.log("Thread ID:", message.threadId);
+      const existingTask = await this.prisma.task.findFirst({
+        where: { emailThreadId: message.threadId },
+        include: {
+          project: {
+            include: {
+              members: {
+                where: {
+                  role: { in: ['OWNER', 'SUPER_ADMIN', 'MANAGER'] },
+                },
+              },
+            },
+          },
+        },
+      });
+      if (existingTask) {
+        // Add as comment to existing task
+        const defaultAuthorId = inbox.defaultAuthorId || existingTask.project.members[0]?.userId;
+        await this.prisma.taskComment.create({
+          data: {
+            taskId: existingTask.id,
+            authorId: defaultAuthorId,
+            content: message.bodyText || message.bodyHtml || message.subject,
+            emailMessageId: message.messageId,
+          },
+        });
+
+        // Update message
+        await this.prisma.inboxMessage.update({
+          where: { id: message.id },
+          data: {
+            status: MessageStatus.CONVERTED,
+            converted: true,
+            convertedAt: new Date(),
+          },
+        });
+
+        this.logger.log(`Added message as comment to existing task ${existingTask.id}`);
+        return;
+      }
+
+      // Create new task
+      const taskNumber = await this.getNextTaskNumber(inbox.projectId);
+      const slug = await this.generateTaskSlug(message.subject, inbox.projectId);
+      const sprintResult = await this.prisma.sprint.findFirst({
+        where: { projectId: inbox.projectId, isDefault: true },
+      });
+      const sprintId = sprintResult?.id || null;
+      const taskData: any = {
+        projectId: inbox.projectId,
+        title: message.subject,
+        sprintId,
+        description: message.bodyText || message.bodyHtml,
+        type: message._ruleTaskType || inbox.defaultTaskType,
+        priority: message._rulePriority || inbox.defaultPriority,
+        statusId: inbox.defaultStatusId,
+        emailThreadId: message.threadId,
+        allowEmailReplies: true,
+        inboxMessageId: message.id,
+        taskNumber,
+        slug,
+      };
+      if (message._ruleAssignee || inbox.defaultAssigneeId) {
+        taskData.assignees = {
+          connect: { id: message._ruleAssignee || inbox.defaultAssigneeId }
+        };
+      }
+
+      // Only add labels if they exist
+      if (message._ruleLabels && message._ruleLabels.length > 0) {
+        taskData.labels = {
+          connect: message._ruleLabels.map(labelId => ({ id: labelId }))
+        };
+      }
+      const task = await this.prisma.task.create({
+        data: taskData,
+      });
+
+      // Update message
+      await this.prisma.inboxMessage.update({
+        where: { id: message.id },
+        data: {
+          status: MessageStatus.CONVERTED,
+          converted: true,
+          convertedAt: new Date(),
+        },
+      });
+
+      this.logger.log(`Auto-created task ${task.id} from message ${message.messageId}`);
+    } catch (error) {
+      this.logger.error(`Failed to auto-create task:`, error.message);
+    }
+  }
+
+  private async getNextTaskNumber(projectId: string): Promise<number> {
+    const lastTask = await this.prisma.task.findFirst({
+      where: { projectId },
+      orderBy: { taskNumber: 'desc' },
+    });
+    return (lastTask?.taskNumber || 0) + 1;
+  }
+
+  private async generateTaskSlug(title: string, projectId: string): Promise<string> {
+    const baseSlug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 50);
+
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (await this.prisma.task.findFirst({ where: { projectId, slug } })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    return slug;
+  }
+
+  private extractThreadIdFromParsed(parsed: any): string {
+    if (parsed.inReplyTo) return parsed.inReplyTo;
+    if (parsed.references) {
+      const refs = typeof parsed.references === 'string' ? parsed.references.split(/\s+/) : parsed.references;
+      if (refs.length > 0) return refs[0];
+    }
+    return parsed.messageId || `${Date.now()}-${Math.random()}`;
+  }
+
+
+  private formatAddress(address: any): string {
+    if (!address) return '';
+
+    // If already a string, return as-is
+    if (typeof address === 'string') return address;
+
+    // If array, take the first and format
+    if (Array.isArray(address)) {
+      return address
+        .map((a) => this.formatAddress(a))
+        .join(', ');
+    }
+
+    // If object with name/address
+    if (typeof address === 'object') {
+      if (address.address) {
+        return address.name
+          ? `${address.name} <${address.address}>`
+          : address.address;
+      }
+    }
+
+    return '';
+  }
+  private formatAddressList(addresses: any): string[] {
+    if (!addresses) return [];
+    if (Array.isArray(addresses)) {
+      return addresses.map(addr => {
+        if (typeof addr === 'string') return addr;
+        return addr.address || '';
+      });
+    }
+    if (typeof addresses === 'object') return [addresses.address || ''];
+    if (typeof addresses === 'string') return [addresses];
+    return [];
+  }
+
+  private async sendAutoReplyFromRule(message: any, template: string) {
+    try {
+      // Get project inbox with email account
+      const inbox = await this.prisma.projectInbox.findUnique({
+        where: { id: message.projectInboxId },
+        include: { emailAccount: true },
+      });
+
+      if (!inbox?.emailAccount) {
+        this.logger.warn(`No email account configured for auto-reply`);
+        return;
+      }
+
+      // Create SMTP transporter
+      const password = await this.crypto.decrypt(inbox.emailAccount.smtpPassword!);
+      const transporter = nodemailer.createTransport({
+        host: inbox.emailAccount.smtpHost!,
+        port: inbox.emailAccount.smtpPort!,
+        secure: inbox.emailAccount.smtpPort === 465,
+        auth: {
+          user: inbox.emailAccount.smtpUsername!,
+          pass: password,
+        },
+      });
+
+      // Generate reply email
+      const mailOptions = {
+        from: `${inbox.name} <${inbox.emailAccount.emailAddress}>`,
+        to: message.fromEmail,
+        subject: `Re: ${message.subject}`,
+        text: template,
+        html: template.replace(/\n/g, '<br>'),
+        inReplyTo: message.messageId,
+        messageId: `<${Date.now()}.${Math.random().toString(36)}@${process.env.EMAIL_DOMAIN || 'taskosaur.com'}>`,
+      };
+
+      await transporter.sendMail(mailOptions);
+      this.logger.log(`Auto-reply sent to ${message.fromEmail} for message ${message.messageId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send auto-reply:`, error.message);
+    }
+  }
+
+  // Method to manually trigger sync for a specific inbox
+  async triggerSync(projectId: string) {
+    const account = await this.prisma.emailAccount.findFirst({
+      where: { projectInbox: { projectId } },
+      include: { projectInbox: true },
+    });
+
+    if (!account) {
+      throw new Error('No email account found for this project');
+    }
+
+    return this.syncInbox(account);
+  }
+}

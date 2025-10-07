@@ -521,7 +521,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         </PopoverTrigger>
         <PopoverContent className="w-[300px] p-0 bg-[var(--card)] border-none" align="start">
           <Command>
-            <CommandInput placeholder="Search assignees..." />
+            <CommandInput placeholder="Search assignees..."/>
             <CommandList>
               <CommandEmpty>No assignees found.</CommandEmpty>
               <CommandGroup>

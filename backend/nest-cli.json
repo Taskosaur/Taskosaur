@@ -7,7 +7,7 @@
     "assets": [
       {
         "include": "../docs/**/*",
-        "outDir": "dist/docs",
+        "outDir": "../dist/docs",
         "watchAssets": true
       }
     ],

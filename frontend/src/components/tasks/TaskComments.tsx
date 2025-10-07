@@ -9,14 +9,19 @@ import {
   HiClock,
   HiPencil,
   HiTrash,
-} from "react-icons/hi2";
-import { TaskComment, User } from "@/types";
-import ActionButton from "../common/ActionButton";
-import ConfirmationModal from "../modals/ConfirmationModal";
+  HiEnvelope,
+  HiCheckCircle
+} from 'react-icons/hi2';
+import { TaskComment, User } from '@/types';
+import ActionButton from '../common/ActionButton';
+import ConfirmationModal from '../modals/ConfirmationModal';
+import { inboxApi } from '@/utils/api/inboxApi';
 import MDEditor from "@uiw/react-md-editor";
 
 interface TaskCommentsProps {
   taskId: string;
+  projectId: string;
+  allowEmailReplies?: boolean;
   onCommentAdded?: (comment: TaskComment) => void;
   onCommentUpdated?: (commentId: string, content: string) => void;
   onCommentDeleted?: (commentId: string) => void;
@@ -25,6 +30,10 @@ interface TaskCommentsProps {
 }
 
 interface CommentWithAuthor extends TaskComment {
+
+  emailMessageId?: string,
+  sentAsEmail?: string,
+  emailRecipients?: string[],
   author: {
     id: string;
     firstName: string;
@@ -34,48 +43,45 @@ interface CommentWithAuthor extends TaskComment {
   };
 }
 
-// Memoized comment item component
-const CommentItem = React.memo(
-  ({
-    comment,
-    currentUser,
-    onEdit,
-    onDelete,
-    formatTimestamp,
-    colorMode,
-  }: {
-    comment: CommentWithAuthor;
-    currentUser: User;
-    onEdit: (commentId: string, content: string) => void;
-    onDelete: (commentId: string) => void;
-    formatTimestamp: (
-      createdAt: string,
-      updatedAt: string
-    ) => {
-      text: string;
-      isEdited: boolean;
-      fullDate: string;
-    };
-    colorMode: "light" | "dark";
-  }) => {
-    const [isHovered, setIsHovered] = useState(false);
-    const timestamp = useMemo(
-      () => formatTimestamp(comment.createdAt, comment.updatedAt),
-      [comment.createdAt, comment.updatedAt, formatTimestamp]
-    );
+const CommentItem = React.memo(({
+  comment,
+  currentUser,
+  allowEmailReplies,
+  onEdit,
+  onDelete,
+  onSendAsEmail,
+  formatTimestamp, colorMode
+}: {
+  comment: CommentWithAuthor;
+  currentUser: User;
+  allowEmailReplies?: boolean;
+  onEdit: (commentId: string, content: string) => void;
+  onDelete: (commentId: string) => void;
+  onSendAsEmail?: (commentId: string) => void;
+  formatTimestamp: (createdAt: string, updatedAt: string) => {
+    text: string;
+    isEdited: boolean;
+    fullDate: string
+  };
+  colorMode: "light" | "dark";
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const timestamp = useMemo(() => 
+    formatTimestamp(comment.createdAt, comment.updatedAt), 
+    [comment.createdAt, comment.updatedAt, formatTimestamp]
+  );
+  
+  const canEdit = comment.authorId === currentUser.id;
+  const displayName = useMemo(() => {
+    if (comment.author?.firstName || comment.author?.lastName) {
+      return `${comment.author.firstName || ''} ${comment.author.lastName || ''}`.trim();
+    }
+    if (comment.author?.email) {
+      return comment.author.email.split('@')[0];
+    }
+    return `User ${comment.author?.id?.slice(0, 8) || 'Unknown'}`;
+  }, [comment.author]);
 
-    const canEdit = comment.authorId === currentUser.id;
-    const displayName = useMemo(() => {
-      if (comment.author?.firstName || comment.author?.lastName) {
-        return `${comment.author.firstName || ""} ${
-          comment.author.lastName || ""
-        }`.trim();
-      }
-      if (comment.author?.email) {
-        return comment.author.email.split("@")[0];
-      }
-      return `User ${comment.author?.id?.slice(0, 8) || "Unknown"}`;
-    }, [comment.author]);
 
     const avatarProps = useMemo(
       () => ({
@@ -139,14 +145,55 @@ const CommentItem = React.memo(
                   </span>
                 </div>
               </div>
+              
+              {/* Meta info row */}
+              <div className="flex items-center gap-2 text-[12px] text-[var(--muted-foreground)]">
+                <div className="flex items-center gap-1">
+                  <HiClock className="size-2.5" />
+                  <span
+                    className="cursor-default"
+                    title={timestamp.fullDate}
+                  >
+                    {timestamp.text}
+                  </span>
+                </div>
 
-              {/* Action Buttons */}
-              {canEdit && (
-                <div
-                  className={`flex items-center gap-1 transition-opacity ${
-                    isHovered ? "opacity-100" : "opacity-0"
-                  }`}
+                {/* Email indicators */}
+                {comment.emailMessageId && (
+                  <div className="flex items-center gap-1 text-blue-600" title="From email">
+                    <HiEnvelope className="size-2.5" />
+                    <span>via email</span>
+                  </div>
+                )}
+
+                {comment.sentAsEmail && (
+                  <div className="flex items-center gap-1 text-green-600" title={`Sent as email to: ${comment.emailRecipients?.join(', ') || 'recipients'}`}>
+                    <HiCheckCircle className="size-2.5" />
+                    <span>sent as email</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div
+              className={`flex items-center gap-1 transition-opacity ${
+                isHovered ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              {/* Send as Email button */}
+              {allowEmailReplies && !comment.sentAsEmail && onSendAsEmail && (
+                <button
+                  onClick={() => onSendAsEmail(comment.id)}
+                  className="p-1.5 text-[var(--muted-foreground)] cursor-pointer hover:text-blue-600 hover:bg-[var(--muted)]/30 rounded-full transition-colors"
+                  title="Send as email reply"
                 >
+                  <HiEnvelope className="w-3 h-3" />
+                </button>
+              )}
+
+              {canEdit && (
+                <>
                   <button
                     onClick={() => onEdit(comment.id, comment.content)}
                     className="p-1.5 text-[var(--muted-foreground)] cursor-pointer hover:text-[var(--foreground)] hover:bg-[var(--muted)]/30 rounded-full transition-colors"
@@ -161,7 +208,7 @@ const CommentItem = React.memo(
                   >
                     <HiTrash className="w-3 h-3" />
                   </button>
-                </div>
+                </>
               )}
             </div>
           </div>
@@ -175,6 +222,8 @@ CommentItem.displayName = "CommentItem";
 
 export default function TaskComments({
   taskId,
+  projectId,
+  allowEmailReplies = false,
   onCommentAdded,
   onCommentUpdated,
   onCommentDeleted,
@@ -207,6 +256,7 @@ export default function TaskComments({
   const [editingContent, setEditingContent] = useState("");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loadingComments, setLoadingComments] = useState(true);
+  const [sendingEmailCommentId, setSendingEmailCommentId] = useState<string | null>(null);
 
   // Get current user from localStorage
   useEffect(() => {
@@ -414,6 +464,22 @@ export default function TaskComments({
     setEditingContent("");
   }, []);
 
+  const handleSendAsEmail = useCallback(async (commentId: string) => {
+    if (!allowEmailReplies) return;
+
+    setSendingEmailCommentId(commentId);
+    try {
+      await inboxApi.sendCommentAsEmail(taskId, commentId);
+      await refreshComments();
+      toast.success('Comment sent as email successfully');
+    } catch (error) {
+      console.error('Failed to send comment as email:', error);
+      toast.error('Failed to send comment as email');
+    } finally {
+      setSendingEmailCommentId(null);
+    }
+  }, [allowEmailReplies, taskId, refreshComments]);
+
   // Memoize comments list to prevent unnecessary re-renders
   const commentsList = useMemo(() => {
     if (loadingComments) {
@@ -446,8 +512,10 @@ export default function TaskComments({
                 key={comment.id}
                 comment={comment}
                 currentUser={currentUser!}
+                allowEmailReplies={allowEmailReplies}
                 onEdit={handleEditComment}
                 onDelete={handleDeleteComment}
+                onSendAsEmail={handleSendAsEmail}
                 formatTimestamp={formatTimestamp}
                 colorMode={colorMode}
               />
@@ -513,9 +581,17 @@ export default function TaskComments({
               />
             </div>
             <div>
-              <h3 className="text-md font-semibold text-[var(--foreground)]">
-                Comments
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-[var(--foreground)]">
+                  Comments
+                </h3>
+                {allowEmailReplies && (
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                    <HiEnvelope className="w-3 h-3" />
+                    <span>Email enabled</span>
+                  </div>
+                )}
+              </div>
               <p className="text-xs text-[var(--muted-foreground)]">
                 {comments.length === 0
                   ? "No comments"

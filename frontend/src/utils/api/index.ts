@@ -5,3 +5,4 @@ export * from './projectApi';
 export * from './taskApi';
 export * from './workspaceApi';
 export * from './orgChartsApi';
+export * from './inboxApi';

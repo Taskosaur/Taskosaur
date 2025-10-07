@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Task, TaskType, TaskPriority } from "@/types/tasks";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
 import TaskDetailModal from "./TaskDetailModal";
+import { HiEnvelope } from "react-icons/hi2";
 
 interface TaskCardProps {
   task: Task;
@@ -174,6 +175,21 @@ export default function TaskCard({
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center space-x-2">
             {getTypeIcon(task.type)}
+            {/* Email indicator */}
+            {task.inboxMessageId && (
+              <div className="flex items-center space-x-1" title="Created from email">
+                <HiEnvelope className="w-3 h-3 text-blue-500" />
+                <span className="text-xs text-blue-600 bg-blue-100 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">
+                  Email
+                </span>
+              </div>
+            )}
+            {/* Email replies enabled indicator */}
+            {task.allowEmailReplies && (
+              <div className="flex items-center" title="Email replies enabled">
+                <HiEnvelope className="w-3 h-3 text-green-500" />
+              </div>
+            )}
           </div>
           <div className="flex items-center space-x-1">
             <span

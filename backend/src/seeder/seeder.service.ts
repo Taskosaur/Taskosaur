@@ -15,6 +15,7 @@ import { TaskDependenciesSeederService } from './task-dependencies.seeder.servic
 import { TaskWatchersSeederService } from './task-watchers.seeder.service';
 import { TimeEntriesSeederService } from './time-entries.seeder.service';
 import { AdminSeederService } from './admin-seeder.service';
+import { InboxRulesSeederService } from './inbox-rules.seeder.service';
 
 @Injectable()
 export class SeederService {
@@ -35,6 +36,7 @@ export class SeederService {
     private taskDependenciesSeeder: TaskDependenciesSeederService,
     private taskWatchersSeeder: TaskWatchersSeederService,
     private timeEntriesSeeder: TimeEntriesSeederService,
+    private inboxRulesSeeder: InboxRulesSeederService,
   ) {}
 
   async seedCoreModules() {
@@ -61,30 +63,33 @@ export class SeederService {
       const projects = await this.projectsSeeder.seed(workspaces, users);
       console.log('✅ Projects seeded');
 
-      // 5. Seed Tasks (depends on projects, users, and task statuses)
+      // 5. Seed Inbox Rules (depends on projects with inboxes)
+      await this.seedInboxRules();
+
+      // 7. Seed Tasks (depends on projects, users, and task statuses)
       const tasks = await this.tasksSeeder.seed(projects, users);
       console.log('✅ Tasks seeded');
 
-      // 6. Seed Labels (depends on projects and users)
+      // 8. Seed Labels (depends on projects and users)
       const labels = await this.labelsSeeder.seed(projects, users);
       console.log('✅ Labels seeded');
 
-      // 7. Seed Task Comments (depends on tasks and users)
+      // 9. Seed Task Comments (depends on tasks and users)
       const taskComments = await this.taskCommentsSeeder.seed(tasks, users);
       console.log('✅ Task comments seeded');
 
-      // 8. Seed Task Dependencies (depends on tasks and users)
+      // 10. Seed Task Dependencies (depends on tasks and users)
       const taskDependencies = await this.taskDependenciesSeeder.seed(
         tasks,
         users,
       );
       console.log('✅ Task dependencies seeded');
 
-      // 9. Seed Task Watchers (depends on tasks and users)
+      // 11. Seed Task Watchers (depends on tasks and users)
       const taskWatchers = await this.taskWatchersSeeder.seed(tasks, users);
       console.log('✅ Task watchers seeded');
 
-      // 10. Seed Time Entries (depends on tasks and users)
+      // 12. Seed Time Entries (depends on tasks and users)
       const timeEntries = await this.timeEntriesSeeder.seed(tasks, users);
       console.log('✅ Time entries seeded');
 
@@ -121,6 +126,19 @@ export class SeederService {
       };
     } catch (error) {
       console.error('❌ Error seeding core modules:', error);
+      throw error;
+    }
+  }
+
+  async seedInboxRules() {
+    console.log('📧 Starting inbox rules seeding...');
+
+    try {
+      const result = await this.inboxRulesSeeder.seedRulesForAllInboxes();
+      console.log(`✅ Inbox rules seeded: ${result.totalCreated} rules created across ${result.inboxesProcessed} inboxes`);
+      return result;
+    } catch (error) {
+      console.error('❌ Error seeding inbox rules:', error);
       throw error;
     }
   }

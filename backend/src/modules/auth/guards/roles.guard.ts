@@ -17,7 +17,7 @@ export class RolesGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private prisma: PrismaService,
-  ) {}
+  ) { }
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const req = ctx.switchToHttp().getRequest();
@@ -52,10 +52,13 @@ export class RolesGuard implements CanActivate {
     if (type === 'PROJECT' && idParam === 'slug') {
       const project = await this.prisma.project.findUnique({
         where: { slug: scopeId },
-        select: { id: true },
+        select: { id: true, visibility: true },
       });
       if (!project) throw new ForbiddenException('Project not found');
       resolvedScopeId = project.id;
+      if (project.visibility === 'PUBLIC') {
+        return true;
+      }
     }
     const memberRole = await this.getMemberRole(type, user.id, resolvedScopeId);
     if (!memberRole) throw new ForbiddenException('Not a member of this scope');

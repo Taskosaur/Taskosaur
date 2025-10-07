@@ -37,6 +37,10 @@ export interface Task {
   updatedBy?: string;
   createdAt?: string;
   updatedAt?: string;
+  // Email integration fields
+  inboxMessageId?: string;
+  emailThreadId?: string;
+  allowEmailReplies?: boolean;
   project?: Project;
   assignee?: User | null;
   reporter?: User;
@@ -256,6 +260,11 @@ export interface TaskComment {
   taskId: string;
   createdAt: string;
   updatedAt: string;
+  // Email integration fields
+  emailMessageId?: string;
+  sentAsEmail?: boolean;
+  emailRecipients?: string[];
+  emailSentAt?: string;
 }
 
 export interface TaskAttachment {

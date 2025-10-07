@@ -90,6 +90,10 @@ model User {
   assignedTasks            Task[]               @relation("TaskAssignees")
   reportedTasks            Task[]               @relation("TaskReporters")
 
+  // Project Inbox Relations
+  defaultInboxes         ProjectInbox[] @relation("InboxDefaultAssignee")
+  convertedInboxMessages InboxMessage[]
+
   @@map("users")
 }
 
@@ -216,6 +220,7 @@ model Project {
   sprints         Sprint[]
   tasks           Task[]
   Invitation      Invitation[]
+  inbox           ProjectInbox?
 
   @@unique([workspaceId, slug])
   @@map("projects")
@@ -264,9 +269,15 @@ model Task {
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
 
+  // Inbox Integration
+  inboxMessageId    String? @unique @map("inbox_message_id") @db.Uuid
+  emailThreadId     String? @map("email_thread_id")
+  allowEmailReplies Boolean @default(false) @map("allow_email_replies")
+
   // Relations
   attachments   TaskAttachment[]
   comments      TaskComment[]
+  inboxMessage  InboxMessage?    @relation(fields: [inboxMessageId], references: [id])
   blocks        TaskDependency[] @relation("BlockingTask")
   dependsOn     TaskDependency[] @relation("DependentTask")
   labels        TaskLabel[]
@@ -342,6 +353,7 @@ model TaskStatus {
   createdByUser   User?              @relation("TaskStatusCreatedBy", fields: [createdBy], references: [id])
   updatedByUser   User?              @relation("TaskStatusUpdatedBy", fields: [updatedBy], references: [id])
   tasks           Task[]
+  defaultInboxes  ProjectInbox[]
 
   @@unique([workflowId, name])
   @@map("task_statuses")
@@ -443,21 +455,28 @@ model TaskWatcher {
 }
 
 model TaskComment {
-  id              String        @id @default(uuid()) @db.Uuid
+  id              String   @id @default(uuid()) @db.Uuid
   content         String
-  taskId          String        @map("task_id") @db.Uuid
-  authorId        String        @map("author_id") @db.Uuid
-  parentCommentId String?       @map("parent_comment_id") @db.Uuid
-  createdBy       String?       @map("created_by_id") @db.Uuid
-  updatedBy       String?       @map("updated_by_id") @db.Uuid
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
-  author          User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdByUser   User?         @relation("TaskCommentCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser   User?         @relation("TaskCommentUpdatedBy", fields: [updatedBy], references: [id])
-  parentComment   TaskComment?  @relation("CommentReplies", fields: [parentCommentId], references: [id])
-  replies         TaskComment[] @relation("CommentReplies")
-  task            Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId          String   @map("task_id") @db.Uuid
+  authorId        String   @map("author_id") @db.Uuid
+  parentCommentId String?  @map("parent_comment_id") @db.Uuid
+  createdBy       String?  @map("created_by_id") @db.Uuid
+  updatedBy       String?  @map("updated_by_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Email Integration
+  emailMessageId  String?   @unique @map("email_message_id")
+  sentAsEmail     Boolean   @default(false) @map("sent_as_email")
+  emailRecipients String[]  @map("email_recipients")
+  emailSentAt     DateTime? @map("email_sent_at")
+
+  author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdByUser User?         @relation("TaskCommentCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?         @relation("TaskCommentUpdatedBy", fields: [updatedBy], references: [id])
+  parentComment TaskComment?  @relation("CommentReplies", fields: [parentCommentId], references: [id])
+  replies       TaskComment[] @relation("CommentReplies")
+  task          Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@map("task_comments")
 }
@@ -807,6 +826,199 @@ enum RuleStatus {
   DRAFT
 }
 
+// ============= PROJECT INBOX MODELS =============
+model ProjectInbox {
+  id        String @id @default(uuid()) @db.Uuid
+  projectId String @unique @map("project_id") @db.Uuid
+
+  // Basic Configuration
+  enabled     Boolean @default(true)
+  name        String
+  description String?
+
+  // Email Settings
+  emailAddress      String? @unique @map("email_address")
+  emailSignature    String? @map("email_signature")
+  autoReplyEnabled  Boolean @default(false) @map("auto_reply_enabled")
+  autoReplyTemplate String? @map("auto_reply_template")
+
+  // Processing Rules
+  autoCreateTask    Boolean      @default(true) @map("auto_create_task")
+  defaultTaskType   TaskType     @default(TASK) @map("default_task_type")
+  defaultPriority   TaskPriority @default(MEDIUM) @map("default_priority")
+  defaultStatusId   String       @map("default_status_id") @db.Uuid
+  defaultAssigneeId String?      @map("default_assignee_id") @db.Uuid
+  syncInterval      Int?         @map("sync_interval")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project         Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  defaultStatus   TaskStatus     @relation(fields: [defaultStatusId], references: [id])
+  defaultAssignee User?          @relation("InboxDefaultAssignee", fields: [defaultAssigneeId], references: [id])
+  emailAccount    EmailAccount?
+  messages        InboxMessage[]
+  rules           InboxRule[]
+
+  @@map("project_inboxes")
+}
+
+model EmailAccount {
+  id             String @id @default(uuid()) @db.Uuid
+  projectInboxId String @unique @map("project_inbox_id") @db.Uuid
+
+  emailAddress String  @unique @map("email_address")
+  displayName  String? @map("display_name")
+
+  // Basic Auth (IMAP/SMTP)
+  imapHost     String? @map("imap_host")
+  imapPort     Int?    @default(993) @map("imap_port")
+  imapUsername String? @map("imap_username")
+  imapPassword String? @map("imap_password") // Encrypted
+  imapUseSsl   Boolean @default(true) @map("imap_use_ssl")
+  imapFolder   String  @default("INBOX") @map("imap_folder")
+
+  smtpHost     String? @map("smtp_host")
+  smtpPort     Int?    @default(587) @map("smtp_port")
+  smtpUsername String? @map("smtp_username")
+  smtpPassword String? @map("smtp_password") // Encrypted
+  smtpUseTls   Boolean @default(true) @map("smtp_use_tls")
+
+  // Sync State
+  syncEnabled   Boolean   @default(true) @map("sync_enabled")
+  lastSyncAt    DateTime? @map("last_sync_at")
+  lastSyncError String?   @map("last_sync_error")
+
+  // IMAP State
+  uidValidity   String? @map("uid_validity")
+  uidNext       Int?    @map("uid_next")
+  highestModSeq String? @map("highest_mod_seq")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  projectInbox ProjectInbox @relation(fields: [projectInboxId], references: [id], onDelete: Cascade)
+
+  @@map("email_accounts")
+}
+
+model InboxMessage {
+  id             String @id @default(uuid()) @db.Uuid
+  projectInboxId String @map("project_inbox_id") @db.Uuid
+
+  // Email Identity
+  messageId  String   @unique @map("message_id")
+  threadId   String   @map("thread_id")
+  inReplyTo  String?  @map("in_reply_to")
+  references String[]
+
+  // Content
+  subject   String
+  fromEmail String   @map("from_email")
+  fromName  String?  @map("from_name")
+  toEmails  String[] @map("to_emails")
+  ccEmails  String[] @map("cc_emails")
+  bccEmails String[] @map("bcc_emails")
+  replyTo   String?  @map("reply_to")
+
+  bodyText String? @map("body_text") @db.Text
+  bodyHtml String? @map("body_html") @db.Text
+  snippet  String? @db.Text
+
+  // Metadata
+  headers        Json
+  rawSize        Int?    @map("raw_size")
+  hasAttachments Boolean @default(false) @map("has_attachments")
+  importance     String?
+  converted      Boolean @default(false)
+
+  // Processing
+  status    MessageStatus @default(PENDING)
+  isSpam    Boolean       @default(false) @map("is_spam")
+  spamScore Float?        @map("spam_score")
+
+  convertedAt DateTime? @map("converted_at")
+  convertedBy String?   @map("converted_by") @db.Uuid
+
+  // Timestamps
+  emailDate   DateTime  @map("email_date")
+  receivedAt  DateTime  @default(now()) @map("received_at")
+  processedAt DateTime? @map("processed_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  projectInbox    ProjectInbox        @relation(fields: [projectInboxId], references: [id], onDelete: Cascade)
+  task            Task?
+  convertedByUser User?               @relation(fields: [convertedBy], references: [id])
+  attachments     MessageAttachment[]
+
+  @@index([threadId])
+  @@index([status])
+  @@index([emailDate])
+  @@map("inbox_messages")
+}
+
+model MessageAttachment {
+  id        String @id @default(uuid()) @db.Uuid
+  messageId String @map("message_id") @db.Uuid
+
+  filename  String
+  mimeType  String  @map("mime_type")
+  size      Int
+  contentId String? @map("content_id")
+
+  storagePath String  @map("storage_path")
+  storageUrl  String? @map("storage_url")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  message InboxMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("message_attachments")
+}
+
+model InboxRule {
+  id             String @id @default(uuid()) @db.Uuid
+  projectInboxId String @map("project_inbox_id") @db.Uuid
+
+  name        String
+  description String?
+  priority    Int     @default(0)
+  enabled     Boolean @default(true)
+
+  conditions Json
+  actions    Json
+
+  stopOnMatch Boolean @default(false) @map("stop_on_match")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  projectInbox ProjectInbox @relation(fields: [projectInboxId], references: [id], onDelete: Cascade)
+
+  @@index([projectInboxId, enabled, priority])
+  @@map("inbox_rules")
+}
+
+model EmailSyncLog {
+  id        String @id @default(uuid()) @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+
+  startedAt         DateTime   @map("started_at")
+  completedAt       DateTime?  @map("completed_at")
+  status            SyncStatus
+  error             String?    @db.Text
+  messagesProcessed Int        @default(0) @map("messages_processed")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([projectId, startedAt])
+  @@map("email_sync_logs")
+}
+
 model Settings {
   id          String   @id @default(uuid()) @db.Uuid
   key         String   @unique
@@ -818,4 +1030,18 @@ model Settings {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("settings")
+}
+
+// ============= PROJECT INBOX ENUMS =============
+enum MessageStatus {
+  PENDING
+  PROCESSING
+  CONVERTED
+  IGNORED
+  FAILED
+}
+
+enum SyncStatus {
+  SUCCESS
+  FAILED
 }

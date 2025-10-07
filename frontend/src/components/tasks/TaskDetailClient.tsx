@@ -928,6 +928,8 @@ export default function TaskDetailClient({
             <div className="">
               <TaskComments
                 taskId={taskId}
+                projectId={task?.projectId || ''}
+                allowEmailReplies={task?.allowEmailReplies || false}
                 onCommentAdded={() => {}}
                 onCommentUpdated={() => {}}
                 onCommentDeleted={() => {}}
@@ -1275,6 +1277,7 @@ export default function TaskDetailClient({
                   label="Assignees"
                   editMode={true}
                   selectedMembers={assignees}
+                  projectId={task.projectId || task.project?.id}
                   onChange={async (newAssignees) => {
                     setAssignees(newAssignees);
                     try {
@@ -1301,6 +1304,7 @@ export default function TaskDetailClient({
                   label="Reporters"
                   selectedMembers={reporters}
                   editMode={true}
+                  projectId={task.projectId || task.project?.id}
                   onChange={async (newReporters) => {
                     setReporters(newReporters);
                     try {

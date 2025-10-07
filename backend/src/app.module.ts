@@ -39,11 +39,23 @@ import { InvitationsModule } from './modules/invitations/invitations.module';
 import { TaskLabelsModule } from './modules/task-label/task-labels.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { AiChatModule } from './modules/ai-chat/ai-chat.module';
+import { InboxModule } from './modules/inbox/inbox.module';
+import { BullModule } from '@nestjs/bullmq';
+
 // import { EmailModule } from './modules/email/email.module';
 // import { SchedulerModule } from './modules/scheduler/scheduler.module';
 
 @Module({
   imports: [
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        retryDelayOnFailover: 100,
+        enableReadyCheck: false,
+        maxRetriesPerRequest: null,
+      },
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig],
@@ -81,6 +93,7 @@ import { AiChatModule } from './modules/ai-chat/ai-chat.module';
           TaskLabelsModule,
           SettingsModule,
           AiChatModule,
+          InboxModule,
         ],
       },
     ]),
@@ -116,6 +129,7 @@ import { AiChatModule } from './modules/ai-chat/ai-chat.module';
     TaskLabelsModule,
     SettingsModule,
     AiChatModule,
+    InboxModule,
     // EmailModule,
     // SchedulerModule,
   ],
@@ -132,4 +146,4 @@ import { AiChatModule } from './modules/ai-chat/ai-chat.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
