@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import MDEditor from "@uiw/react-md-editor";
+import { DangerouslyHTMLComment } from "@/components/common/DangerouslyHTMLComment";
 
 interface TaskDescriptionProps {
   value: string;
   onChange: (value: string) => void;
   editMode?: boolean;
   onSaveRequest?: (newValue: string) => void;
+  emailThreadId?: boolean | null;
 }
 
 const TaskDescription: React.FC<TaskDescriptionProps> = ({
@@ -13,6 +15,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
   onChange,
   editMode = true,
   onSaveRequest,
+  emailThreadId,
 }) => {
   const [colorMode, setColorMode] = useState<"light" | "dark">("light");
 
@@ -27,7 +30,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
   // Create a mapping of checkbox indices to actual line numbers
   const checkboxLineMapping = useMemo(() => {
     if (!value) return [];
-    
+
     const lines = value.split("\n");
     const taskLineRegex = /^(\s*-\s+)\[([x ])\](.*)$/i;
     const mapping: number[] = [];
@@ -72,7 +75,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
   // Extract checkbox states from markdown for proper indexing
   const checkboxStates = useMemo(() => {
     if (!value) return [];
-    
+
     const lines = value.split("\n");
     const taskLineRegex = /^(\s*-\s+)\[([x ])\](.*)$/i;
     const states: boolean[] = [];
@@ -92,7 +95,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
   const MarkdownWithInteractiveTasks: React.FC<{ md: string }> = ({ md }) => {
     const processedMarkdown = useMemo(() => {
       if (!md) return [];
-      
+
       const lines = md.split("\n");
       const taskLineRegex = /^(\s*-\s+)\[([x ])\](.*)$/i;
       let checkboxIndex = 0;
@@ -148,7 +151,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
           } else if (item.content.trim()) {
             return (
               <MDEditor.Markdown
-               key={`content-${item.lineIndex}-${idx}`}
+                key={`content-${item.lineIndex}-${idx}`}
                 source={item.content}
                 className="prose max-w-none"
               />
@@ -186,18 +189,20 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
     );
   }
 
- return (
-  <div
-    className="task-description-view prose max-w-none bg-[var(--background)] text-sm text-[var(--foreground)] p-2 rounded-md border border-[var(--border)]"
-    data-color-mode={colorMode}
-  >
-    {value ? (
-      <MarkdownWithInteractiveTasks md={value} />
-    ) : (
-      <div>No description provided</div>
-    )}
-  </div>
-);
+  return (
+    <div
+      className="task-description-view prose max-w-none bg-[var(--background)] text-sm text-[var(--foreground)] p-2 rounded-md border border-[var(--border)]"
+      data-color-mode={colorMode}
+    >
+      {emailThreadId ? (
+        <DangerouslyHTMLComment comment={value} />
+      ) : value ? (
+        <MarkdownWithInteractiveTasks md={value} />
+      ) : (
+        <div>No description provided</div>
+      )}
+    </div>
+  );
 };
 
 export default TaskDescription;

@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { EditorState, convertToRaw, ContentState } from "draft-js";
+import draftToHtml from "draftjs-to-html";
+import "draft-js/dist/Draft.css";
 import { toast } from "sonner";
 import { useTask } from "../../contexts/task-context";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -10,15 +13,26 @@ import {
   HiPencil,
   HiTrash,
   HiEnvelope,
-  HiCheckCircle
-} from 'react-icons/hi2';
-import { TaskComment, User } from '@/types';
-import ActionButton from '../common/ActionButton';
-import ConfirmationModal from '../modals/ConfirmationModal';
-import { inboxApi } from '@/utils/api/inboxApi';
+  HiCheckCircle,
+} from "react-icons/hi2";
+import { TaskComment, User } from "@/types";
+import ActionButton from "../common/ActionButton";
+import ConfirmationModal from "../modals/ConfirmationModal";
+import { inboxApi } from "@/utils/api/inboxApi";
 import MDEditor from "@uiw/react-md-editor";
 import { useAuth } from "@/contexts/auth-context";
+import { DangerouslyHTMLComment, decodeHtml } from "../common/DangerouslyHTMLComment";
+import dynamic from "next/dynamic";
+import Tooltip from "../common/ToolTip";
+const RichTextEditor = dynamic(() => import("../common/RichTextEditor"), {
+  ssr: false,
+});
 
+let htmlToDraft: any;
+if (typeof window !== "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  htmlToDraft = require("html-to-draftjs").default;
+}
 interface TaskCommentsProps {
   taskId: string;
   projectId: string;
@@ -31,10 +45,9 @@ interface TaskCommentsProps {
 }
 
 interface CommentWithAuthor extends TaskComment {
-
-  emailMessageId?: string,
-  sentAsEmail?: boolean,
-  emailRecipients?: string[],
+  emailMessageId?: string;
+  sentAsEmail?: boolean;
+  emailRecipients?: string[];
   author: {
     id: string;
     firstName: string;
@@ -44,57 +57,53 @@ interface CommentWithAuthor extends TaskComment {
   };
 }
 
-const CommentItem = React.memo(({
-  comment,
-  currentUser,
-  allowEmailReplies,
-  onEdit,
-  onDelete,
-  onSendAsEmail,
-  formatTimestamp, colorMode,
-  isAuth
-}: {
-  comment: CommentWithAuthor;
-  currentUser: User;
-  allowEmailReplies?: boolean;
-  onEdit: (commentId: string, content: string) => void;
-  onDelete: (commentId: string) => void;
-  onSendAsEmail?: (commentId: string) => void;
-  formatTimestamp: (createdAt: string, updatedAt: string) => {
-    text: string;
-    isEdited: boolean;
-    fullDate: string
-  };
-  colorMode: "light" | "dark";
-  isAuth: boolean
-}) => {
-  console.log(allowEmailReplies)
-  const [isHovered, setIsHovered] = useState(false);
-  const timestamp = useMemo(() => 
-    formatTimestamp(comment.createdAt, comment.updatedAt), 
-    [comment.createdAt, comment.updatedAt, formatTimestamp]
-  );
-  
-  const canEdit = !isAuth && comment.authorId === currentUser.id;
-  const displayName = useMemo(() => {
-    if (comment.author?.firstName || comment.author?.lastName) {
-      return `${comment.author.firstName || ''} ${comment.author.lastName || ''}`.trim();
-    }
-    if (comment.author?.email) {
-      return comment.author.email.split('@')[0];
-    }
-    return `User ${comment.author?.id?.slice(0, 8) || 'Unknown'}`;
-  }, [comment.author]);
-
-
-    const avatarProps = useMemo(
-      () => ({
-        firstName: comment.author?.firstName || "",
-        lastName: comment.author?.lastName || "",
-        avatar: comment.author?.avatar,
-      }),
-      [comment.author]
+const CommentItem = React.memo(
+  ({
+    comment,
+    currentUser,
+    allowEmailReplies,
+    onEdit,
+    onDelete,
+    onSendAsEmail,
+    formatTimestamp,
+    colorMode,
+    isAuth,
+  }: {
+    comment: CommentWithAuthor;
+    currentUser: User;
+    allowEmailReplies?: boolean;
+    onEdit: (commentId: string, content: string) => void;
+    onDelete: (commentId: string) => void;
+    onSendAsEmail?: (commentId: string) => void;
+    formatTimestamp: (
+      createdAt: string,
+      updatedAt: string
+    ) => {
+      text: string;
+      isEdited: boolean;
+      fullDate: string;
+    };
+    colorMode: "light" | "dark";
+    isAuth: boolean;
+  }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const timestamp = useMemo(
+      () => formatTimestamp(comment.createdAt, comment.updatedAt),
+      [comment.createdAt, comment.updatedAt, formatTimestamp]
     );
+
+    const canEdit = !isAuth && comment.authorId === currentUser.id;
+    const displayName = useMemo(() => {
+      if (comment.author?.firstName || comment.author?.lastName) {
+        return `${comment.author.firstName || ""} ${
+          comment.author.lastName || ""
+        }`.trim();
+      }
+      if (comment.author?.email) {
+        return comment.author.email.split("@")[0];
+      }
+      return `User ${comment.author?.id?.slice(0, 8) || "Unknown"}`;
+    }, [comment.author]);
 
     return (
       <div
@@ -104,85 +113,79 @@ const CommentItem = React.memo(({
       >
         <div className="flex gap-2 items-start">
           <div className="flex-shrink-0 mt-1">
-            <UserAvatar user={avatarProps} size="xs" />
+            <UserAvatar
+              user={{
+                firstName: comment.author.firstName,
+                lastName: comment.author.lastName,
+                avatar: comment.author.avatar,
+              }}
+              size="xs"
+            />
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-1 pb-1">
               <div className="flex-1">
-                <div className="rounded-xl inline-block">
-                  <div className="flex items-start">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center">
-                        <span className="text-sm font-medium text-[var(--foreground)]">
-                          {displayName}
-                        </span>
-                        {timestamp.isEdited && (
-                          <span className="text-[12px] text-[var(--muted-foreground)] ml-1">
-                            (edited)
-                          </span>
-                        )}
-                      </div>
-                      <div
-                        className="comment-markdown text-[13px] text-[var(--foreground)] leading-relaxed"
-                        data-color-mode={colorMode}
-                      >
-                        <MDEditor.Markdown
-                          source={comment.content}
-                          style={{
-                            backgroundColor: "transparent",
-                            fontSize: "13px",
-                            color: "var(--foreground)",
-                            padding: 0,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                <div className="flex items-center">
+                  <span className="text-sm font-medium text-[var(--foreground)]">
+                    {displayName}
+                  </span>
+                  {timestamp.isEdited && (
+                    <span className="text-[12px] text-[var(--muted-foreground)] ml-1">
+                      (edited)
+                    </span>
+                  )}
                 </div>
 
-                {/* Meta info row */}
-                <div className="flex items-center gap-1 text-[12px] text-[var(--muted-foreground)]">
+                {/* Render HTML content safely */}
+                <DangerouslyHTMLComment comment={comment.content} />
+
+                <div className="flex items-center gap-1 text-[12px] text-[var(--muted-foreground)] mt-1">
                   <HiClock className="size-2.5" />
                   <span className="cursor-default" title={timestamp.fullDate}>
                     {timestamp.text}
                   </span>
                 </div>
               </div>
-              
+
               {/* Meta info row */}
               <div className="flex items-center gap-2 text-[12px] text-[var(--muted-foreground)]">
                 <div className="flex items-center gap-1">
                   <HiClock className="size-2.5" />
-                  <span
-                    className="cursor-default"
-                    title={timestamp.fullDate}
-                  >
+                  <span className="cursor-default" title={timestamp.fullDate}>
                     {timestamp.text}
                   </span>
                 </div>
 
                 {/* Email indicators */}
                 {comment.emailMessageId && (
-                  <div className="flex items-center gap-1 text-blue-600" title="From email">
+                  <div
+                    className="flex items-center gap-1 text-blue-600"
+                    title="From email"
+                  >
                     <HiEnvelope className="size-2.5" />
                     <span>via email</span>
                   </div>
                 )}
 
                 {comment.sentAsEmail && (
-                  <div className="flex items-center gap-1 text-green-600" title={`Sent as email to: ${comment.emailRecipients?.join(', ') || 'recipients'}`}>
+                  <div
+                    className="flex items-center gap-1 text-green-600"
+                    title={`Sent as email to: ${
+                      comment.emailRecipients?.join(", ") || "recipients"
+                    }`}
+                  >
                     <HiCheckCircle className="size-2.5" />
                     <span>sent as email</span>
                   </div>
                 )}
               </div>
             </div>
-            
+
             {/* Action Buttons */}
             <div
               className={`flex items-center gap-1 transition-opacity ${
-                isHovered ? 'opacity-100' : 'opacity-0'
+                isHovered ? "opacity-100" : "opacity-0"
               }`}
             >
               {/* Send as Email button */}
@@ -240,14 +243,6 @@ export default function TaskComments({
   const [showAll, setShowAll] = useState(false);
   const INITIAL_DISPLAY_COUNT = 3;
 
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      setColorMode(
-        document.documentElement.classList.contains("dark") ? "dark" : "light"
-      );
-    }
-  }, []);
-
   const {
     getTaskComments,
     createTaskComment,
@@ -256,101 +251,60 @@ export default function TaskComments({
   } = useTask();
 
   const [comments, setComments] = useState<CommentWithAuthor[]>([]);
-  const [newComment, setNewComment] = useState("");
+  const [editorState, setEditorState] = useState(EditorState.createEmpty());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState("");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loadingComments, setLoadingComments] = useState(true);
-  const [sendingEmailCommentId, setSendingEmailCommentId] = useState<string | null>(null);
+  const [sendingEmailCommentId, setSendingEmailCommentId] = useState<
+    string | null
+  >(null);
 
-  // Get current user from localStorage
   useEffect(() => {
-    const getUserFromStorage = () => {
-      try {
-        const userString = localStorage.getItem("user");
-        if (userString) {
-          const user: User = JSON.parse(userString);
-          setCurrentUser(user);
-        }
-      } catch (error) {
-        console.error("Error parsing user from localStorage:", error);
-      }
-    };
-    getUserFromStorage();
+    const userString = localStorage.getItem("user");
+    if (userString) setCurrentUser(JSON.parse(userString));
   }, []);
 
-  // Format timestamp with smart logic for created vs updated
   const formatTimestamp = useCallback(
     (createdAt: string, updatedAt: string) => {
       if (!createdAt)
         return { text: "Unknown time", isEdited: false, fullDate: "" };
-
-      try {
-        const created = new Date(createdAt);
-        const updated = new Date(updatedAt);
-        const now = new Date();
-
-        const timeDiff = Math.abs(updated.getTime() - created.getTime());
-        const isOriginalComment = timeDiff < 1000;
-
-        const timeToUse = isOriginalComment ? created : updated;
-        const action = isOriginalComment ? "commented" : "updated";
-
-        const diffInMs = now.getTime() - timeToUse.getTime();
-        const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-        const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-        const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-        let timeAgo;
-        if (diffInMinutes < 1) {
-          timeAgo = "just now";
-        } else if (diffInMinutes < 60) {
-          timeAgo = `${diffInMinutes}m ago`;
-        } else if (diffInHours < 24) {
-          timeAgo = `${diffInHours}h ago`;
-        } else if (diffInDays < 7) {
-          timeAgo = `${diffInDays}d ago`;
-        } else {
-          timeAgo = timeToUse.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year:
-              timeToUse.getFullYear() !== now.getFullYear()
-                ? "numeric"
-                : undefined,
-          });
-        }
-
-        return {
-          text: `${action} ${timeAgo}`,
-          isEdited: !isOriginalComment,
-          fullDate: timeToUse.toLocaleString(),
-        };
-      } catch {
-        return { text: "Unknown time", isEdited: false, fullDate: "" };
-      }
+      const created = new Date(createdAt);
+      const updated = new Date(updatedAt);
+      const isEdited = updated.getTime() - created.getTime() > 1000;
+      const diff =
+        (Date.now() - (isEdited ? updated : created).getTime()) / 1000;
+      const mins = Math.floor(diff / 60);
+      const hours = Math.floor(mins / 60);
+      const days = Math.floor(hours / 24);
+      const timeAgo =
+        mins < 1
+          ? "just now"
+          : mins < 60
+          ? `${mins}m ago`
+          : hours < 24
+          ? `${hours}h ago`
+          : `${days}d ago`;
+      return {
+        text: `${isEdited ? "updated" : "commented"} ${timeAgo}`,
+        isEdited,
+        fullDate: (isEdited ? updated : created).toLocaleString(),
+      };
     },
     []
   );
 
-  // Fetch comments when component mounts or taskId changes
   useEffect(() => {
     if (!taskId) return;
-
     const fetchComments = async () => {
       setLoadingComments(true);
       try {
         const taskComments = await getTaskComments(taskId, isAuth);
         setComments(taskComments || []);
-      } catch (error) {
-        console.error("Failed to fetch comments:", error);
-        setComments([]);
       } finally {
         setLoadingComments(false);
       }
     };
-
     fetchComments();
   }, [taskId]);
 
@@ -366,125 +320,96 @@ export default function TaskComments({
     }
   }, [taskId, getTaskComments, onTaskRefetch]);
 
-  const handleAddComment = useCallback(async () => {
-    if (!newComment.trim() || isSubmitting || !currentUser) return;
+  const handleAddOrEdit = async () => {
+    if (!currentUser || isSubmitting) return;
 
+    const htmlContent = draftToHtml(
+      convertToRaw(editorState.getCurrentContent())
+    ).trim();
+    if (!htmlContent || htmlContent === "<p></p>") return;
+    const cleanHtml = decodeHtml(htmlContent)
     setIsSubmitting(true);
     try {
-      const commentData = {
-        content: newComment.trim(),
-        taskId,
-        authorId: currentUser.id,
-      };
-
-      const createdComment = await createTaskComment(commentData);
+      if (editingCommentId) {
+        await updateTaskComment(editingCommentId, currentUser.id, {
+          content: htmlContent,
+        });
+        toast.success("Comment updated successfully");
+        onCommentUpdated?.(editingCommentId, cleanHtml);
+      } else {
+        const createdComment = await createTaskComment({
+          taskId,
+          authorId: currentUser.id,
+          content: cleanHtml,
+        });
+        toast.success("Comment added successfully");
+        onCommentAdded?.(createdComment);
+      }
       await refreshComments();
-      setNewComment("");
-      onCommentAdded?.(createdComment);
-      toast.success("Comment added successfully");
-    } catch (error) {
-      console.error("Failed to add comment:", error);
-      toast.error("Failed to add comment");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [
-    newComment,
-    isSubmitting,
-    currentUser,
-    taskId,
-    createTaskComment,
-    refreshComments,
-    onCommentAdded,
-  ]);
-
-  const handleEditComment = useCallback(
-    (commentId: string, content: string) => {
-      setEditingCommentId(commentId);
-      setEditingContent(content);
-      setNewComment("");
-    },
-    []
-  );
-
-  const handleSaveEdit = useCallback(async () => {
-    if (!editingContent.trim() || !currentUser || !editingCommentId) return;
-
-    setIsSubmitting(true);
-    try {
-      await updateTaskComment(editingCommentId, currentUser.id, {
-        content: editingContent.trim(),
-      });
-      await refreshComments();
+      setEditorState(EditorState.createEmpty());
       setEditingCommentId(null);
-      setEditingContent("");
-      onCommentUpdated?.(editingCommentId, editingContent.trim());
-      toast.success("Comment updated successfully");
-    } catch (error) {
-      toast.error("Failed to update comment");
-      console.error("Failed to edit comment:", error);
+    } catch {
+      toast.error("Failed to save comment");
     } finally {
       setIsSubmitting(false);
     }
-  }, [
-    editingCommentId,
-    editingContent,
-    currentUser,
-    updateTaskComment,
-    refreshComments,
-    onCommentUpdated,
-  ]);
+  };
+
+  const handleEditComment = (id: string, content: string) => {
+    const blocksFromHtml = htmlToDraft(content || "");
+    const { contentBlocks, entityMap } = blocksFromHtml;
+    const contentState = ContentState.createFromBlockArray(
+      contentBlocks,
+      entityMap
+    );
+    setEditorState(EditorState.createWithContent(contentState));
+    setEditingCommentId(id);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditorState(EditorState.createEmpty());
+  };
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
 
-  const handleDeleteComment = useCallback((commentId: string) => {
-    setCommentToDelete(commentId);
+  const handleDeleteComment = (id: string) => {
+    setCommentToDelete(id);
     setDeleteModalOpen(true);
-  }, []);
+  };
 
-  const confirmDeleteComment = useCallback(async () => {
+  const confirmDeleteComment = async () => {
     if (!commentToDelete || !currentUser) return;
     try {
       await deleteTaskComment(commentToDelete, currentUser.id);
+      toast.success("Comment deleted");
       await refreshComments();
       onCommentDeleted?.(commentToDelete);
-      toast.success("Comment deleted successfully");
-    } catch (error) {
-      console.error("Failed to delete comment:", error);
-      toast.error("Failed to delete comment");
     } finally {
       setDeleteModalOpen(false);
       setCommentToDelete(null);
     }
-  }, [
-    commentToDelete,
-    currentUser,
-    deleteTaskComment,
-    refreshComments,
-    onCommentDeleted,
-  ]);
+  };
 
-  const handleCancelEdit = useCallback(() => {
-    setEditingCommentId(null);
-    setEditingContent("");
-  }, []);
+  const handleSendAsEmail = useCallback(
+    async (commentId: string) => {
+      if (!allowEmailReplies) return;
 
-  const handleSendAsEmail = useCallback(async (commentId: string) => {
-    if (!allowEmailReplies) return;
-
-    setSendingEmailCommentId(commentId);
-    try {
-      await inboxApi.sendCommentAsEmail(taskId, commentId);
-      await refreshComments();
-      toast.success('Comment sent as email successfully');
-    } catch (error) {
-      console.error('Failed to send comment as email:', error);
-      toast.error('Failed to send comment as email');
-    } finally {
-      setSendingEmailCommentId(null);
-    }
-  }, [allowEmailReplies, taskId, refreshComments]);
+      setSendingEmailCommentId(commentId);
+      try {
+        await inboxApi.sendCommentAsEmail(taskId, commentId);
+        await refreshComments();
+        toast.success("Comment sent as email successfully");
+      } catch (error) {
+        console.error("Failed to send comment as email:", error);
+        toast.error("Failed to send comment as email");
+      } finally {
+        setSendingEmailCommentId(null);
+      }
+    },
+    [allowEmailReplies, taskId, refreshComments]
+  );
 
   // Memoize comments list to prevent unnecessary re-renders
   const commentsList = useMemo(() => {
@@ -529,26 +454,6 @@ export default function TaskComments({
                 isAuth
               />
             ))}
-            {/* View More / Show Less Button */}
-            {comments.length > INITIAL_DISPLAY_COUNT && (
-              <div className="flex justify-center pt-2">
-                {!showAll ? (
-                  <button
-                    className="text-sm text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] focus:outline-none cursor-pointer transition-colors"
-                    onClick={() => setShowAll(true)}
-                  >
-                    View more ({comments.length - INITIAL_DISPLAY_COUNT} more)
-                  </button>
-                ) : (
-                  <button
-                    className="text-sm text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] focus:outline-none cursor-pointer transition-colors"
-                    onClick={() => setShowAll(false)}
-                  >
-                    Show less
-                  </button>
-                )}
-              </div>
-            )}
           </>
         ) : (
           <></>
@@ -580,7 +485,6 @@ export default function TaskComments({
   return (
     <>
       <div className="space-y-4">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-start gap-2">
             <div className="p-1 rounded-md">
@@ -604,78 +508,68 @@ export default function TaskComments({
               <p className="text-xs text-[var(--muted-foreground)]">
                 {comments.length === 0
                   ? "No comments"
-                  : `${comments.length} ${comments.length === 1 ? "comment" : "comments"}`}
+                  : `${comments.length} ${
+                      comments.length === 1 ? "comment" : "comments"
+                    }`}
               </p>
             </div>
           </div>
         </div>
 
         {/* Comments List */}
-        {commentsList}
+        <div className="space-y-2">
+          {commentsList}
+          {comments.length > INITIAL_DISPLAY_COUNT && (
+            <div className="flex justify-center pt-2">
+              <button
+                className="text-sm text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] cursor-pointer transition"
+                onClick={() => setShowAll((v) => !v)}
+              >
+                {showAll
+                  ? "Show less"
+                  : `View more (${
+                      comments.length - INITIAL_DISPLAY_COUNT
+                    } more)`}
+              </button>
+            </div>
+          )}
+        </div>
 
-        {/* Unified Comment Form - Add/Edit */}
+        {/* Draft.js Rich Text Editor */}
         {hasAccess && (
           <div>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <div className="relative" data-color-mode={colorMode}>
-                  <MDEditor
-                    value={editingCommentId ? editingContent : newComment}
-                    onChange={(val) =>
-                      editingCommentId
-                        ? setEditingContent(val || "")
-                        : setNewComment(val || "")
-                    }
-                    hideToolbar={false}
-                    className="task-md-editor"
-                    textareaProps={{
-                      placeholder: editingCommentId
-                        ? "Edit your comment..."
-                        : "Add a comment...",
-                      className:
-                        "bg-[var(--background)] text-[var(--foreground)] border-none focus:outline-none",
-                      disabled: isSubmitting,
-                    }}
-                    height={200}
-                    preview="edit"
-                    visibleDragbar={false}
-                    commandsFilter={(command) =>
-                      command && command.name === "live" ? false : command
-                    }
-                  />
-                </div>
-                <div className="flex justify-end gap-2 mt-2 cursor-pointer">
-                  {editingCommentId && (
-                    <ActionButton
-                      variant="outline"
-                      secondary
-                      onClick={handleCancelEdit}
-                      disabled={isSubmitting}
-                    >
-                      Cancel
-                    </ActionButton>
-                  )}
-                  <ActionButton
-                    showPlusIcon
-                    secondary
-                    onClick={
-                      editingCommentId ? handleSaveEdit : handleAddComment
-                    }
-                    disabled={
-                      isSubmitting ||
-                      (editingCommentId
-                        ? !editingContent.trim()
-                        : !newComment.trim())
-                    }
-                  >
-                    {isSubmitting
-                      ? "Posting..."
-                      : editingCommentId
-                      ? "Update"
-                      : "Add Comment"}
-                  </ActionButton>
-                </div>
-              </div>
+            <div className="border border-[var(--border)] rounded-md p-2 bg-[var(--background)]">
+              <RichTextEditor
+                editorState={editorState}
+                onChange={setEditorState}
+                placeholder={
+                  editingCommentId ? "Edit your comment..." : "Add a comment..."
+                }
+              />
+            </div>
+            <div className="flex justify-end gap-2 mt-2">
+              {editingCommentId && (
+                <ActionButton
+                  variant="outline"
+                  secondary
+                  onClick={handleCancelEdit}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </ActionButton>
+              )}
+              <ActionButton
+                showPlusIcon
+                secondary
+                onClick={handleAddOrEdit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting
+                  ? "Saving..."
+                  : editingCommentId
+                  ? "Update"
+                  : "Add Comment"}
+              </ActionButton>
             </div>
           </div>
         )}
@@ -683,10 +577,7 @@ export default function TaskComments({
 
       <ConfirmationModal
         isOpen={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setCommentToDelete(null);
-        }}
+        onClose={() => setDeleteModalOpen(false)}
         onConfirm={confirmDeleteComment}
         title="Delete Comment"
         message="Are you sure you want to delete this comment? This action cannot be undone."

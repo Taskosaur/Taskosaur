@@ -346,19 +346,7 @@ export default function EmailRulesManager({
     return "bg-gray-100 text-gray-800";
   };
 
-  if (loading) {
-    return (
-      <Card className="border-[var(--border)]">
-        <CardContent className="p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+
 
   return (
     <div className="space-y-6">

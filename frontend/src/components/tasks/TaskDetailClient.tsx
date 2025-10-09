@@ -39,13 +39,6 @@ interface TaskDetailClientProps {
   onClose?: () => void;
 }
 
-const SectionHeader = ({ icon: Icon, title }: { icon: any; title: string }) => (
-  <div className="flex items-center gap-2 mb-4">
-    <Icon size={16} className="text-[var(--primary)]" />
-    <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
-  </div>
-);
-
 export default function TaskDetailClient({
   task,
   workspaceSlug,
@@ -810,17 +803,19 @@ export default function TaskDetailClient({
           </div>
           {task.createdBy === currentUser?.id && (
             <div className=" flex gap-2">
-              <Tooltip content="Edit task" position="left" color="primary">
-                <ActionButton
-                  onClick={handleEditTask}
-                  variant="outline"
-                  secondary
-                  className="cursor-pointer justify-center px-3"
-                >
-                  <HiPencil className="w-4 h-4" />
-                </ActionButton>
-              </Tooltip>
-              <Tooltip content="Delete task" position="left" color="primary">
+              {!task.emailThreadId && (
+                <Tooltip content="Edit task" position="left">
+                  <ActionButton
+                    onClick={handleEditTask}
+                    variant="outline"
+                    secondary
+                    className="cursor-pointer justify-center px-3"
+                  >
+                    <HiPencil className="w-4 h-4" />
+                  </ActionButton>
+                </Tooltip>
+              )}
+              <Tooltip content="Delete task" position="left">
                 <ActionButton
                   onClick={handleDeleteTask}
                   variant="outline"
@@ -879,6 +874,7 @@ export default function TaskDetailClient({
                     handleTaskFieldChange("description", value)
                   }
                   onSaveRequest={handleCheckboxSave}
+                  emailThreadId={task.emailThreadId}
                 />
               )}
             </div>
@@ -950,17 +946,9 @@ export default function TaskDetailClient({
                     )}
                   </div>
 
-                  {/* Always show badge */}
-                  <div className="flex items-center justify-between">
-                    <PriorityBadge
-                      priority={editTaskData?.priority}
-                      className="text-[13px]"
-                    />
-                  </div>
-
-                  {/* Dropdown overlay when editing */}
-                  {isEditingTask.priority && (
-                    <div className="mt-2">
+                  {/* Conditionally render badge or dropdown */}
+                  <div className="mt-2">
+                    {isEditingTask.priority ? (
                       <DropdownAction
                         currentItem={{
                           id: editTaskData.priority || "MEDIUM",
@@ -1021,8 +1009,13 @@ export default function TaskDetailClient({
                         hideSubtext={true}
                         itemType="user"
                       />
-                    </div>
-                  )}
+                    ) : (
+                      <PriorityBadge
+                        priority={editTaskData?.priority}
+                        className="text-[13px]"
+                      />
+                    )}
+                  </div>
                 </div>
 
                 {/* Status */}
@@ -1052,17 +1045,9 @@ export default function TaskDetailClient({
                     )}
                   </div>
 
-                  {/* Always show badge */}
-                  <div className="flex items-center justify-between">
-                    <StatusBadge
-                      status={currentStatus}
-                      className="text-[13px]"
-                    />
-                  </div>
-
-                  {/* Dropdown overlay when editing */}
-                  {isEditingTask.status && (
-                    <div className="mt-2">
+                  {/* Conditionally render badge or dropdown */}
+                  <div className="mt-2">
+                    {isEditingTask.status ? (
                       <DropdownAction
                         currentItem={currentStatus}
                         availableItems={statuses}
@@ -1112,69 +1097,71 @@ export default function TaskDetailClient({
                           }
                         }}
                       />
-                    </div>
-                  )}
+                    ) : (
+                      <StatusBadge
+                        status={currentStatus}
+                        className="text-[13px]"
+                      />
+                    )}
+                  </div>
                 </div>
 
-                {/* Start Date */}
+                {/* Date Range Section */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <Label className="text-sm">Start Date</Label>
+                    <Label className="text-sm">Date Range</Label>
                     {hasAccess && (
                       <button
                         type="button"
-                        className="rounded transition flex items-center cursor-pointer  p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs"
+                        className="rounded transition flex items-center cursor-pointer p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs"
                         onClick={() =>
                           setIsEditingTask((prev) => ({
                             ...prev,
                             startDate: !prev.startDate,
+                            dueDate: !prev.dueDate,
                           }))
                         }
                         tabIndex={0}
-                        aria-label="Edit Start Date"
+                        aria-label="Edit Dates"
                         style={{ lineHeight: 0 }}
                       >
-                        Edit
+                        {isEditingTask.startDate ? "Done" : "Edit"}
                       </button>
                     )}
                   </div>
-                  {isEditingTask.startDate ? (
-                    <div className="relative">
-                      <Input
-                        type="date"
-                        value={editTaskData.startDate}
-                        min={today}
-                        onChange={(e) => handleStartDateChange(e.target.value)}
-                        onBlur={() =>
-                          setIsEditingTask((prev) => ({
-                            ...prev,
-                            startDate: false,
-                          }))
-                        }
-                        className="text-xs bg-[var(--background)] border-[var(--border)] w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                        placeholder="Select start date..."
-                        autoFocus
-                      />
-                      {editTaskData.startDate && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStartDateChange("");
-                            setIsEditingTask((prev) => ({
-                              ...prev,
-                              startDate: false,
-                            }));
+
+                  {/* Start Date */}
+                  <div className="mb-3">
+                    <Label className="text-xs text-[var(--muted-foreground)] mb-1.5 block">
+                      Start Date
+                    </Label>
+                    {isEditingTask.startDate ? (
+                      <div className="relative">
+                        <Input
+                          type="date"
+                          value={editTaskData.startDate}
+                          min={today}
+                          onChange={(e) => {
+                            handleStartDateChange(e.target.value);
                           }}
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs z-10"
-                          title="Clear start date"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
+                          className="text-xs bg-[var(--background)] border-[var(--border)] w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                          placeholder="Select start date..."
+                        />
+                        {editTaskData.startDate && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartDateChange("");
+                            }}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs z-10"
+                            title="Clear start date"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ) : (
                       <Badge
                         variant="outline"
                         className="text-[13px] h-5 min-h-0 px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
@@ -1185,68 +1172,41 @@ export default function TaskDetailClient({
                             ).toLocaleDateString()
                           : "No start date"}
                       </Badge>
-                    </div>
-                  )}
-                </div>
-                {/* Due Date */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label className="text-sm">Due Date</Label>
-                    {hasAccess && (
-                      <button
-                        type="button"
-                        className="rounded transition flex items-center cursor-pointer  p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs"
-                        onClick={() =>
-                          setIsEditingTask((prev) => ({
-                            ...prev,
-                            dueDate: !prev.dueDate,
-                          }))
-                        }
-                        tabIndex={0}
-                        aria-label="Edit Due Date"
-                        style={{ lineHeight: 0 }}
-                      >
-                        Edit
-                      </button>
                     )}
                   </div>
-                  {isEditingTask.dueDate ? (
-                    <div className="relative">
-                      <Input
-                        type="date"
-                        value={editTaskData.dueDate}
-                        min={today}
-                        onChange={(e) => handleDueDateChange(e.target.value)}
-                        onBlur={() =>
-                          setIsEditingTask((prev) => ({
-                            ...prev,
-                            dueDate: false,
-                          }))
-                        }
-                        className="text-xs bg-[var(--background)] border-[var(--border)] w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                        placeholder="Select due date..."
-                        autoFocus
-                      />
-                      {editTaskData.dueDate && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDueDateChange("");
-                            setIsEditingTask((prev) => ({
-                              ...prev,
-                              dueDate: false,
-                            }));
+
+                  {/* Due Date */}
+                  <div>
+                    <Label className="text-xs text-[var(--muted-foreground)] mb-1.5 block">
+                      Due Date
+                    </Label>
+                    {isEditingTask.dueDate ? (
+                      <div className="relative">
+                        <Input
+                          type="date"
+                          value={editTaskData.dueDate}
+                          min={today}
+                          onChange={(e) => {
+                            handleDueDateChange(e.target.value);
                           }}
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs z-10"
-                          title="Clear due date"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
+                          className="text-xs bg-[var(--background)] border-[var(--border)] w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                          placeholder="Select due date..."
+                        />
+                        {editTaskData.dueDate && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDueDateChange("");
+                            }}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs z-10"
+                            title="Clear due date"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ) : (
                       <Badge
                         variant="outline"
                         className="text-[13px] h-5 min-h-0 px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
@@ -1255,8 +1215,8 @@ export default function TaskDetailClient({
                           ? new Date(editTaskData.dueDate).toLocaleDateString()
                           : "No due date"}
                       </Badge>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

@@ -322,7 +322,7 @@ export default function DropdownAction({
     }
   };
 
-  const shouldShowSearch = availableItems.length > 5;
+  const shouldShowSearch = true;
   const isLoading = loading || isFetching;
 
   return (

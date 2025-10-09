@@ -54,6 +54,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "helmet": "^8.1.0",
+    "html-entities": "^2.6.0",
     "imap": "^0.8.19",
     "imapflow": "^1.0.198",
     "ioredis": "^5.6.1",

@@ -922,9 +922,11 @@ model InboxMessage {
   bccEmails String[] @map("bcc_emails")
   replyTo   String?  @map("reply_to")
 
-  bodyText String? @map("body_text") @db.Text
-  bodyHtml String? @map("body_html") @db.Text
-  snippet  String? @db.Text
+  bodyText      String? @map("body_text") @db.Text
+  bodyHtml      String? @map("body_html") @db.Text
+  textSignature String? @map("text_signature") @db.Text
+  htmlSignature String? @map("html_signature") @db.Text
+  snippet       String? @db.Text
 
   // Metadata
   headers        Json

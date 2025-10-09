@@ -101,7 +101,9 @@ export function CustomModal({
   return (
     <Portal>
       <div
-        className={`fixed inset-0 ${zIndex} flex ${position} py-4 ${getOverlayClass()} ${getTransitionClass()} ${isVisible ? "opacity-100" : "opacity-0"}`}
+        className={`fixed inset-0 ${zIndex} flex ${position} py-4 ${getOverlayClass()} ${getTransitionClass()} ${
+          isVisible ? "opacity-100" : "opacity-0"
+        }`}
         onClick={closeOnOverlayClick ? onClose : undefined}
       >
         <div
@@ -110,17 +112,15 @@ export function CustomModal({
           aria-modal="true"
           onClick={(e) => e.stopPropagation()}
         >
-            <button
-              onClick={onClose}
-              className="absolute -top-8 right-0 pr-3 z-10 w-full h-8 cursor-pointer rounded-none bg-[var(--background)] flex items-end justify-end transition-colors pointer-events-auto"
-              aria-label="Close modal"
-            >
-          <Tooltip content="Close modal" position="left" >
-
+          <button
+            onClick={onClose}
+            className="absolute -top-8 right-0 pr-3 z-10 w-full h-8 cursor-pointer rounded-none bg-[var(--background)] flex items-end justify-end transition-colors pointer-events-auto"
+            aria-label="Close modal"
+          >
+            <Tooltip content="Close modal" position="left">
               <RxCross2 className="size-[24px]" />
-          </Tooltip>
-
-            </button>
+            </Tooltip>
+          </button>
           <div className="overflow-y-auto">{children}</div>
         </div>
       </div>

@@ -7,7 +7,7 @@ import { EmailAccount, MessageStatus, SyncStatus } from '@prisma/client';
 import { simpleParser } from 'mailparser';
 import * as nodemailer from 'nodemailer';
 import { ImapFlow } from 'imapflow';
-import { threadId } from 'worker_threads';
+import { EmailSyncUtils } from '../utils/email-sync.utils';
 
 // For now, using simplified email handling
 // In production, you'd use proper IMAP libraries like 'imap' or 'imapflow'
@@ -26,6 +26,8 @@ interface EmailMessage {
   date: Date;
   headers: any;
   attachments?: any[];
+  htmlSignature?: string,
+  textSignature?: string
 }
 
 @Injectable()
@@ -38,7 +40,7 @@ export class EmailSyncService {
     private s3Upload: S3UploadService,
   ) { }
 
-  // @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async syncAllInboxes() {
     this.logger.log('Starting scheduled email sync for all inboxes');
 
@@ -247,22 +249,27 @@ export class EmailSyncService {
             if (Array.isArray(refValue)) references = refValue;
             else if (typeof refValue === 'string') references = refValue.trim().split(/\s+/);
             else if (refValue instanceof Set) references = Array.from(refValue);
-
+            const cleanText = EmailSyncUtils.extractVisibleReply(parsed.text || '', false);
+            const cleanHtml = EmailSyncUtils.extractVisibleReply(parsed.html || '', true);
+            const { body: textBody, signature: textSignature } = EmailSyncUtils.extractSignature(cleanText);
+            const { body: htmlBody, signature: htmlSignature } = EmailSyncUtils.extractSignatureHtml(cleanHtml);
             emailMessages.push({
               messageId: parsed.messageId || `${Date.now()}-${Math.random()}`,
               threadId: this.extractThreadIdFromParsed(parsed),
               inReplyTo: parsed.inReplyTo || undefined,
               references,
               subject: parsed.subject || 'No Subject',
-              from: this.formatAddress(parsed.from?.text || parsed.from?.value?.[0]?.address),
-              to: parsed.to ? this.formatAddressList(parsed.to) : [],
-              cc: parsed.cc ? this.formatAddressList(parsed.cc) : [],
-              bcc: parsed.bcc ? this.formatAddressList(parsed.bcc) : [],
-              text: parsed.text,
-              html: parsed.html,
+              from: EmailSyncUtils.formatAddress(parsed.from?.text || parsed.from?.value?.[0]?.address),
+              to: parsed.to ? EmailSyncUtils.formatAddressList(parsed.to) : [],
+              cc: parsed.cc ? EmailSyncUtils.formatAddressList(parsed.cc) : [],
+              bcc: parsed.bcc ? EmailSyncUtils.formatAddressList(parsed.bcc) : [],
+              text: cleanText,
+              html: cleanHtml,
               date: parsed.date || new Date(),
               headers: parsed.headers || {},
               attachments: parsed.attachments || [],
+              htmlSignature,
+              textSignature
             });
           } catch (parseError: any) {
             this.logger.error(`Failed to parse message: ${parseError.message}`);
@@ -301,6 +308,7 @@ export class EmailSyncService {
     }
   }
 
+
   async processMessage(message: EmailMessage, account: EmailAccount) {
     // Check if message already exists
     this.logger.log(`Checking if message ${message.messageId} exists`);
@@ -317,7 +325,7 @@ export class EmailSyncService {
     this.logger.log(`Processing new message: ${message.subject}`);
 
     // Extract thread ID
-    const threadId = this.extractThreadId(message);
+    const threadId = EmailSyncUtils.extractThreadId(message);
 
     // Create inbox message
     const inboxMessage = await this.prisma.inboxMessage.create({
@@ -328,18 +336,20 @@ export class EmailSyncService {
         inReplyTo: message.inReplyTo,
         references: message.references || [],
         subject: message.subject,
-        fromEmail: this.extractEmail(message.from),
-        fromName: this.extractName(message.from),
-        toEmails: message.to.map(this.extractEmail),
-        ccEmails: message.cc.map(this.extractEmail),
-        bccEmails: message.bcc.map(this.extractEmail),
+        fromEmail: EmailSyncUtils.extractEmail(message.from),
+        fromName: EmailSyncUtils.extractName(message.from),
+        toEmails: message.to.map(EmailSyncUtils.extractEmail),
+        ccEmails: message.cc.map(EmailSyncUtils.extractEmail),
+        bccEmails: message.bcc.map(EmailSyncUtils.extractEmail),
         bodyText: message.text,
         bodyHtml: message.html,
-        snippet: this.createSnippet(message.text || message.html || ''),
+        snippet: EmailSyncUtils.createSnippet(message.text || message.html || ''),
         headers: message.headers || {},
         hasAttachments: (message.attachments?.length ?? 0) > 0,
         emailDate: message.date,
         status: MessageStatus.PENDING,
+        htmlSignature: message.htmlSignature,
+        textSignature : message.textSignature
       },
     });
 
@@ -361,43 +371,6 @@ export class EmailSyncService {
     }
   }
 
-  private extractThreadId(message: EmailMessage): string {
-    // Use In-Reply-To or first reference for threading
-    if (message.references?.length) {
-      return message.references[0];
-    }
-    if (message.inReplyTo) {
-      return message.inReplyTo;
-    }
-    return message.messageId;
-  }
-
-  private extractEmail(addr: string | { name?: string; address?: string }): string {
-    if (!addr) return '';
-    if (typeof addr === 'string') {
-      const match = addr.match(/<(.+)>/) || addr.match(/([^\s]+@[^\s]+)/);
-      return match ? match[1] : addr;
-    }
-    return addr.address || '';
-  }
-
-
-  private extractName(addr: string | { name?: string; address?: string }): string {
-    if (!addr) return '';
-    if (typeof addr === 'string') {
-      const match = addr.match(/^(.+?)\s*<.+>$/);
-      return match ? match[1].replace(/['"]/g, '').trim() : '';
-    }
-    return addr.name || '';
-  }
-
-  private createSnippet(content: string): string {
-    if (!content) return '';
-
-    // Strip HTML tags and get first 200 characters
-    const text = content.replace(/<[^>]*>/g, '').trim();
-    return text.length > 200 ? text.substring(0, 197) + '...' : text;
-  }
 
   private async processAttachments(attachments: any[], messageId: string) {
     const attachmentData: any[] = [];
@@ -571,7 +544,7 @@ export class EmailSyncService {
           data: {
             taskId: existingTask.id,
             authorId: defaultAuthorId,
-            content: message.bodyText || message.bodyHtml || message.subject,
+            content: message.bodyHtml || message.bodyText || message.subject,
             emailMessageId: message.messageId,
           },
         });
@@ -591,8 +564,8 @@ export class EmailSyncService {
       }
 
       // Create new task
-      const taskNumber = await this.getNextTaskNumber(inbox.projectId);
-      const slug = await this.generateTaskSlug(message.subject, inbox.projectId);
+      const taskNumber = await EmailSyncUtils.getNextTaskNumber(inbox.projectId, this.prisma);
+      const slug = await EmailSyncUtils.generateTaskSlug(message.subject, inbox.projectId, this.prisma, );
       const sprintResult = await this.prisma.sprint.findFirst({
         where: { projectId: inbox.projectId, isDefault: true },
       });
@@ -601,7 +574,7 @@ export class EmailSyncService {
         projectId: inbox.projectId,
         title: message.subject,
         sprintId,
-        description: message.bodyText || message.bodyHtml,
+        description: message.bodyHtml || message.bodyText,
         type: message._ruleTaskType || inbox.defaultTaskType,
         priority: message._rulePriority || inbox.defaultPriority,
         statusId: inbox.defaultStatusId,
@@ -643,31 +616,6 @@ export class EmailSyncService {
     }
   }
 
-  private async getNextTaskNumber(projectId: string): Promise<number> {
-    const lastTask = await this.prisma.task.findFirst({
-      where: { projectId },
-      orderBy: { taskNumber: 'desc' },
-    });
-    return (lastTask?.taskNumber || 0) + 1;
-  }
-
-  private async generateTaskSlug(title: string, projectId: string): Promise<string> {
-    const baseSlug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .substring(0, 50);
-
-    let slug = baseSlug;
-    let counter = 1;
-
-    while (await this.prisma.task.findFirst({ where: { projectId, slug } })) {
-      slug = `${baseSlug}-${counter}`;
-      counter++;
-    }
-
-    return slug;
-  }
 
   private extractThreadIdFromParsed(parsed: any): string {
     if (parsed.inReplyTo) return parsed.inReplyTo;
@@ -678,43 +626,6 @@ export class EmailSyncService {
     return parsed.messageId || `${Date.now()}-${Math.random()}`;
   }
 
-
-  private formatAddress(address: any): string {
-    if (!address) return '';
-
-    // If already a string, return as-is
-    if (typeof address === 'string') return address;
-
-    // If array, take the first and format
-    if (Array.isArray(address)) {
-      return address
-        .map((a) => this.formatAddress(a))
-        .join(', ');
-    }
-
-    // If object with name/address
-    if (typeof address === 'object') {
-      if (address.address) {
-        return address.name
-          ? `${address.name} <${address.address}>`
-          : address.address;
-      }
-    }
-
-    return '';
-  }
-  private formatAddressList(addresses: any): string[] {
-    if (!addresses) return [];
-    if (Array.isArray(addresses)) {
-      return addresses.map(addr => {
-        if (typeof addr === 'string') return addr;
-        return addr.address || '';
-      });
-    }
-    if (typeof addresses === 'object') return [addresses.address || ''];
-    if (typeof addresses === 'string') return [addresses];
-    return [];
-  }
 
   private async sendAutoReplyFromRule(message: any, template: string) {
     try {

@@ -26,7 +26,7 @@ export class ProjectInboxService {
       where: { projectId },
     });
     if (existingInbox) {
-      throw new BadRequestException('Inbox already exists for this project');
+      return existingInbox;
     }
     const synncInterval = data.syncInterval ? parseInt(data.syncInterval, 10) : 5;
     return this.prisma.projectInbox.create({
@@ -116,7 +116,7 @@ export class ProjectInboxService {
         name: data.name,
         description: data.description,
         emailAddress: data.emailAddress,
-        emailSignature: data.emailSignature,
+        emailSignature: `${data.emailSignature}`,
         autoReplyEnabled: data.autoReplyEnabled,
         autoReplyTemplate: data.autoReplyTemplate,
         autoCreateTask: data.autoCreateTask,
