@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { HiExclamationTriangle, HiArrowLeft } from "react-icons/hi2";
 import { useRouter } from "next/router";
 import Loader from "@/components/common/Loader";
+import { useAuth } from "@/contexts/auth-context";
 function TaskDetailContent() {
   const [task, setTask] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,10 +22,12 @@ function TaskDetailContent() {
   const router = useRouter();
   const { taskId } = router.query;
   const { getTaskById } = useTask();
+  const { isAuthenticated } = useAuth();
 
   const fetchData = async () => {
+    
     try {
-      const taskData = await getTaskById(taskId as string);
+        const taskData = await getTaskById(taskId as string, isAuthenticated());
       if (!taskData) throw new Error("Task not found");
 
       const enhancedTask = {

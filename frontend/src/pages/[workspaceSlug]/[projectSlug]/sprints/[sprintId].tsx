@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { ColumnManager } from "@/components/tasks/ColumnManager";
 import { ViewMode } from "@/types";
 import { TokenManager } from "@/lib/api";
+import { useAuth } from "@/contexts/auth-context";
+import { useWorkspaceContext } from "@/contexts/workspace-context";
 import {
   FilterDropdown,
   useGenericFilters,
@@ -27,7 +29,6 @@ import SortingManager, {
 import { useProjectContext } from "@/contexts/project-context";
 import Tooltip from "@/components/common/ToolTip";
 import Pagination from "@/components/common/Pagination";
-
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -44,15 +45,17 @@ const SprintTasksTable = () => {
   const router = useRouter();
   const { sprintId, projectSlug, workspaceSlug } = router.query;
 
-  
+  const { isAuthenticated, getUserAccess } = useAuth();
+  const workspaceContext = useWorkspaceContext();
   const {
     getAllTasks,
     getCalendarTask,
     getTaskKanbanStatus,
-    tasks, 
+    getPublicProjectTasks,
+    tasks,
     isLoading,
-    error: contextError, 
-    taskResponse, 
+    error: contextError,
+    taskResponse,
   } = useTask();
 
   const projectApi = useProjectContext();
@@ -61,6 +64,7 @@ const SprintTasksTable = () => {
   const [currentView, setCurrentView] = useState<"list" | "kanban" | "gantt">(
     "list"
   );
+  const isAuth = isAuthenticated();
   const [searchInput, setSearchInput] = useState("");
   const [columns, setColumns] = useState<ColumnConfig[]>([]);
   const [kabBanSettingModal, setKabBanSettingModal] = useState(false);
@@ -102,6 +106,16 @@ const SprintTasksTable = () => {
     };
   }, [taskResponse]);
 
+  // Show pagination if there are tasks and multiple pages
+  const showPagination = useMemo(() => {
+    return tasks.length > 0 && pagination.totalPages > 1;
+  }, [tasks.length, pagination.totalPages]);
+
+  // Search handlers
+  const clearSearch = useCallback(() => {
+    setSearchInput("");
+  }, []);
+
   const debouncedSearchQuery = useDebounce(searchInput, 500);
   const currentOrganizationId = TokenManager.getCurrentOrgId();
   const { createSection } = useGenericFilters();
@@ -110,24 +124,69 @@ const SprintTasksTable = () => {
   const [availableTaskStatuses, setAvailableTaskStatuses] = useState<any[]>([]);
   const [statusesLoaded, setStatusesLoaded] = useState(false);
   const [project, setProject] = useState<any>(null);
+  const [hasAccess, setHasAccess] = useState(false);
+  const [workspace, setWorkspace] = useState<any>(null);
 
   useEffect(() => {
     if (!workspaceSlug || !projectSlug || project) return;
-    const fetchProject = async () => {
+    const fetchData = async () => {
       try {
-        const proj = await projectApi.getProjectBySlug(projectSlug as string);
-        setProject(proj);
+        const isAuth = isAuthenticated();
+
+        if (isAuth) {
+          // Authenticated flow - get workspace first, then project
+          const ws = await workspaceContext.getWorkspaceBySlug(
+            workspaceSlug as string
+          );
+          setWorkspace(ws);
+
+          if (ws) {
+            const projects = await projectApi.getProjectsByWorkspace(ws.id);
+            const proj = projects.find((p: any) => p.slug === projectSlug);
+            setProject(proj || null);
+          }
+        } else {
+          // Public flow - get project directly
+          const proj = await projectApi.getProjectBySlug(
+            projectSlug as string,
+            false, // isAuthenticated = false
+            workspaceSlug as string
+          );
+          setProject(proj);
+        }
       } catch (error) {
+        console.error("Error fetching project data:", error);
         setProject(null);
       }
     };
-    fetchProject();
+    fetchData();
   }, [workspaceSlug, projectSlug, projectApi, project]);
 
+  // Check user access for authenticated users
+  useEffect(() => {
+    if (!project?.id) return;
+
+    const isAuth = isAuthenticated();
+    if (isAuth) {
+      getUserAccess({ name: "project", id: project.id })
+        .then((data) => {
+          setHasAccess(data?.canChange || false);
+        })
+        .catch((error) => {
+          console.error("Error fetching user access:", error);
+          setHasAccess(false);
+        });
+    } else {
+      // Public users have no edit access
+      setHasAccess(false);
+    }
+  }, [project?.id]);
+
   const loadTasks = useCallback(async () => {
-    if (!sprintId || !currentOrganizationId) return;
+    if (!sprintId) return;
 
     setLocalError(null);
+    const isAuth = isAuthenticated();
 
     try {
       const params = {
@@ -146,8 +205,20 @@ const SprintTasksTable = () => {
         page: currentPage,
         limit: pageSize,
       };
-
-      await getAllTasks(currentOrganizationId, params);
+      console.log("isAuth Params", isAuth);
+      if (isAuth && currentOrganizationId) {
+        // Authenticated flow
+        await getAllTasks(currentOrganizationId, params);
+      } else {
+        // Public flow - use public task API
+        if (workspaceSlug && projectSlug) {
+          await getPublicProjectTasks(
+            workspaceSlug as string,
+            projectSlug as string,
+            params
+          );
+        }
+      }
       const uniqueStatuses = Array.from(
         new Map(
           tasks
@@ -170,12 +241,15 @@ const SprintTasksTable = () => {
     debouncedSearchQuery,
     selectedStatuses,
     selectedPriorities,
-    getAllTasks,
     tasks,
+    workspaceSlug,
+    projectSlug,
   ]);
 
   const loadKanbanData = useCallback(async () => {
     if (!projectSlug) return;
+    const isAuth = isAuthenticated();
+
     try {
       const data = await getTaskKanbanStatus({
         type: "project",
@@ -186,10 +260,12 @@ const SprintTasksTable = () => {
     } catch (err) {
       console.error("Failed to load kanban data", err);
     }
-  }, [projectSlug, getTaskKanbanStatus]);
+  }, [projectSlug, workspaceSlug]);
 
   const loadGanttData = useCallback(async () => {
-    if (!sprintId || !currentOrganizationId) return;
+    if (!sprintId) return;
+    const isAuth = isAuthenticated();
+
     try {
       const params = {
         ...(project?.id && { projectId: project.id }),
@@ -207,7 +283,12 @@ const SprintTasksTable = () => {
         page: currentPage,
         limit: pageSize,
       };
-      await getCalendarTask(currentOrganizationId, params);
+
+      if (isAuth && currentOrganizationId) {
+        await getCalendarTask(currentOrganizationId, params);
+      } else {
+        console.warn("Gantt view not available for public access");
+      }
     } catch (err) {
       console.error("Failed to load Gantt data", err);
     }
@@ -225,13 +306,22 @@ const SprintTasksTable = () => {
 
   useEffect(() => {
     if (!project?.id || membersLoaded) return;
+    const isAuth = isAuthenticated();
+
     const fetchMembers = async () => {
       try {
-        const members = await projectApi.getProjectMembers(project.id);
-        setProjectMembers(members || []);
+        if (isAuth) {
+          // Only load members for authenticated users
+          const members = await projectApi.getProjectMembers(project.id);
+          setProjectMembers(members || []);
+        } else {
+          // Public users don't need member data
+          setProjectMembers([]);
+        }
         setMembersLoaded(true);
       } catch (error) {
         setProjectMembers([]);
+        setMembersLoaded(true);
       }
     };
     fetchMembers();
@@ -239,13 +329,22 @@ const SprintTasksTable = () => {
 
   useEffect(() => {
     if (!project?.id || statusesLoaded) return;
+    const isAuth = isAuthenticated();
+
     const fetchStatuses = async () => {
       try {
-        const statuses = await projectApi.getTaskStatusByProject(project.id);
-        setAvailableTaskStatuses(statuses || []);
+        if (isAuth) {
+          // Load full task statuses for authenticated users
+          const statuses = await projectApi.getTaskStatusByProject(project.id);
+          setAvailableTaskStatuses(statuses || []);
+        } else {
+          // Public users get basic statuses from task data
+          setAvailableTaskStatuses([]);
+        }
         setStatusesLoaded(true);
       } catch (error) {
         setAvailableTaskStatuses([]);
+        setStatusesLoaded(true);
       }
     };
     fetchStatuses();
@@ -453,10 +552,6 @@ const SprintTasksTable = () => {
     return sorted;
   }, [tasks, sortOrder, sortField]);
 
-  const clearSearch = useCallback(() => {
-    setSearchInput("");
-  }, []);
-
   const renderContent = () => {
     if (isLoading) {
       return <Loader text="Fetching sprint tasks..." className="py-20" />;
@@ -475,6 +570,20 @@ const SprintTasksTable = () => {
       );
     }
 
+    if (!isAuth) {
+      // Only show list view for public users
+      return (
+        <TaskListView
+          tasks={sortedTasks}
+          columns={columns}
+          projectSlug={projectSlug as string}
+          projectMembers={projectMembers}
+          addTaskStatuses={availableTaskStatuses}
+          onTaskRefetch={handleTaskRefetch}
+          showAddTaskRow={false}
+        />
+      );
+    }
     switch (currentView) {
       case "kanban":
         return kanban?.length ? (
@@ -522,9 +631,6 @@ const SprintTasksTable = () => {
     }
   };
 
-  const showPagination =
-    currentView === "list" && tasks.length > 0 && pagination.totalPages > 1;
-
   return (
     <div className="dashboard-container h-[86vh] flex flex-col space-y-3">
       {/* Sticky PageHeader */}
@@ -553,7 +659,7 @@ const SprintTasksTable = () => {
                     </button>
                   )}
                 </div>
-                {currentView === "list" && (
+                {currentView === "list" && isAuth && (
                   <FilterDropdown
                     sections={filterSections}
                     title="Advanced Filters"
@@ -575,10 +681,11 @@ const SprintTasksTable = () => {
         <TabView
           currentView={currentView}
           onViewChange={(v) => setCurrentView(v)}
-          viewKanban={true}
+          viewKanban={isAuth}
+          viewGantt={isAuth}
           rightContent={
             <>
-              {currentView === "gantt" && (
+              {currentView === "gantt" && isAuth && (
                 <div className="flex items-center bg-[var(--odd-row)] rounded-lg p-1 shadow-sm">
                   {(["days", "weeks", "months"] as const).map((mode) => (
                     <button
@@ -625,7 +732,7 @@ const SprintTasksTable = () => {
                   </Tooltip>
                 </div>
               )}
-              {currentView === "kanban" && (
+              {currentView === "kanban" && isAuthenticated() && hasAccess && (
                 <div className="flex items-center gap-2">
                   <Tooltip
                     content="Manage Columns"

@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import type React from "react";
 import {
   Table,
   TableHeader,
@@ -69,6 +68,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { useAuth } from "@/contexts/auth-context";
 
 // Data extraction utility functions
 function extractTaskValue(task: Task, columnId: string): any {
@@ -246,7 +246,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const { createTask, getTaskById, currentTask } = useTask();
   const { getTaskStatusByProject } = useProject();
   const { getProjectMembers } = useProject();
-
+  const { isAuthenticated } = useAuth();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
@@ -730,7 +730,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   const handleRowClick = async (task: Task) => {
-    await getTaskById(task.id);
+    await getTaskById(task.id, isAuthenticated());
     setSelectedTask(task);
     setIsEditModalOpen(true);
   };

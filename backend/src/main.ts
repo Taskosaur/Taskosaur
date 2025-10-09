@@ -23,15 +23,17 @@ async function bootstrap() {
     origin: process.env.CORS_ORIGINS
       ? process.env.CORS_ORIGINS.split(',')
       : [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://0.0.0.0:3000',
-        'http://0.0.0.0:4000',
-        'http://127.0.0.1:3000',
-        'http://localhost:8080',
-        'http://0.0.0.0:9101',
-        'http://localhost:9101',
-      ],
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://0.0.0.0:3000',
+          'http://0.0.0.0:4000',
+          'http://127.0.0.1:3000',
+          'http://localhost:8080',
+          'http://0.0.0.0:9101',
+          'http://localhost:9101',
+          'http://localhost:9102',
+          'http://0.0.0.0:9102',
+        ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
   });

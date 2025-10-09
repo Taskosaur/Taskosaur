@@ -29,7 +29,7 @@ function TaskDetailContent() {
       }
 
       try {
-        const taskData = await getTaskById(taskId as string);
+        const taskData = await getTaskById(taskId as string, isAuthenticated());
 
         if (!taskData) {
           setError("Task not found");

@@ -37,16 +37,21 @@ function SprintsPageContent() {
   const [editingSprint, setEditingSprint] = useState<Sprint | null>(null);
   const [deletingSprint, setDeletingSprint] = useState<Sprint | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { getUserAccess } = useAuth();
+  const { getUserAccess, isAuthenticated } = useAuth();
   const [hasAccess, setHasAccess] = useState(false);
   const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
-    if (projectSlug) {
-      listSprints({ slug: projectSlug as string });
+    if (projectSlug && workspaceSlug) {
+      const isAuth = isAuthenticated();
+      listSprints(
+        { slug: projectSlug as string }, 
+        isAuth, 
+        workspaceSlug as string
+      );
     }
-  }, [projectSlug]);
+  }, [projectSlug, workspaceSlug]);
 
   useEffect(() => {
     loadData();
@@ -61,11 +66,8 @@ function SprintsPageContent() {
 
   const loadData = async () => {
     try {
-      if (!authContext.isAuthenticated()) {
-        router.push("/auth/login");
-        return;
-      }
-
+      const isAuth = authContext.isAuthenticated();
+      
       if (
         typeof workspaceSlug !== "string" ||
         typeof projectSlug !== "string"
@@ -73,22 +75,39 @@ function SprintsPageContent() {
         return;
       }
 
-      const workspace = await workspaceContext.getWorkspaceBySlug(
-        workspaceSlug
-      );
-      if (!workspace) {
-        return;
-      }
+      if (isAuth) {
+        // Authenticated flow - use existing logic
+        const workspace = await workspaceContext.getWorkspaceBySlug(
+          workspaceSlug
+        );
+        if (!workspace) {
+          return;
+        }
 
-      const projects = await projectContext.getProjectsByWorkspace(
-        workspace.id
-      );
-      const project = findProjectBySlug(projects || [], projectSlug);
+        const projects = await projectContext.getProjectsByWorkspace(
+          workspace.id
+        );
+        const project = findProjectBySlug(projects || [], projectSlug);
 
-      if (!project) {
-        return;
+        if (!project) {
+          return;
+        }
+        setProjectData(project);
+      } else {
+        // Public flow - get project directly by slug
+        try {
+          const project = await projectContext.getProjectBySlug(
+            projectSlug,
+            false, // isAuthenticated = false
+            workspaceSlug
+          );
+          setProjectData(project);
+        } catch (error) {
+          console.error("Error loading public project data:", error);
+          // If public access fails, could redirect to login or show error
+          // For now, just log the error and continue
+        }
       }
-      setProjectData(project);
     } catch (err) {
       console.error("Error loading page data:", err);
     }
@@ -96,13 +115,21 @@ function SprintsPageContent() {
 
   useEffect(() => {
     if (!projectData?.id) return;
-    getUserAccess({ name: "project", id: projectData?.id })
-      .then((data) => {
-        setHasAccess(data?.canChange);
-      })
-      .catch((error) => {
-        console.error("Error fetching user access:", error);
-      });
+    
+    const isAuth = authContext.isAuthenticated();
+    if (isAuth) {
+      // Only check user access for authenticated users
+      getUserAccess({ name: "project", id: projectData?.id })
+        .then((data) => {
+          setHasAccess(data?.canChange);
+        })
+        .catch((error) => {
+          console.error("Error fetching user access:", error);
+        });
+    } else {
+      // Public users have no edit access
+      setHasAccess(false);
+    }
   }, [projectData?.id]);
 
   const handleSaveSprint = async (data: any) => {
@@ -119,8 +146,13 @@ function SprintsPageContent() {
         await createSprint(payload);
       }
 
-      if (projectSlug) {
-        await listSprints({ slug: projectSlug as string });
+      if (projectSlug && workspaceSlug) {
+        const isAuth = isAuthenticated();
+        await listSprints(
+          { slug: projectSlug as string }, 
+          isAuth, 
+          workspaceSlug as string
+        );
       }
 
       setIsSprintModalOpen(false);
@@ -139,8 +171,13 @@ function SprintsPageContent() {
       setDeletingSprint(null);
       setIsDeleteModalOpen(false);
 
-      if (projectSlug) {
-        await listSprints({ slug: projectSlug as string });
+      if (projectSlug && workspaceSlug) {
+        const isAuth = isAuthenticated();
+        await listSprints(
+          { slug: projectSlug as string }, 
+          isAuth, 
+          workspaceSlug as string
+        );
       }
     } catch (error) {
       console.error("Error deleting sprint:", error);
@@ -160,8 +197,13 @@ function SprintsPageContent() {
         await completeSprint(sprintId);
       }
 
-      if (projectSlug) {
-        await listSprints({ slug: projectSlug as string });
+      if (projectSlug && workspaceSlug) {
+        const isAuth = isAuthenticated();
+        await listSprints(
+          { slug: projectSlug as string }, 
+          isAuth, 
+          workspaceSlug as string
+        );
       }
     } catch (error) {
       console.error(`Error ${action}ing sprint:`, error);

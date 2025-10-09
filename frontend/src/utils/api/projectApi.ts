@@ -43,9 +43,15 @@ export const projectApi = {
     }
   },
 
-  getProjectBySlug: async (slug: string): Promise<Project> => {
+  getProjectBySlug: async (slug: string, isAuthenticated: boolean, workspaceSlug?: string): Promise<Project> => {
     try {
-      const response = await api.get<Project>(`/projects/by-slug/${slug}`);
+      console.log("Fetching project by slug:", slug, "Authenticated:", isAuthenticated);
+      let response;
+      if (isAuthenticated) {
+        response = await api.get<Project>(`/projects/by-slug/${slug}`);
+      } else {
+        response = await api.get<Project>(`/public/workspaces/${workspaceSlug}/projects/${slug}`);
+      }
       return response.data;
     } catch (error) {
       console.error("Get project by slug error:", error);
@@ -206,8 +212,7 @@ export const projectApi = {
   ): Promise<ProjectMember[]> => {
     try {
       const response = await api.get<ProjectMember[]>(
-        `/project-members?projectId=${projectId}${
-          search ? `&search=${encodeURIComponent(search)}` : ""
+        `/project-members?projectId=${projectId}${search ? `&search=${encodeURIComponent(search)}` : ""
         }`
       );
       return response.data;
@@ -294,15 +299,23 @@ export const projectApi = {
   },
   getMultipleCharts: async (
     projectSlug: string,
-    chartTypes: ProjectChartType[]
+    chartTypes: ProjectChartType[],
+    isAuthenticated: boolean
   ): Promise<ProjectChartDataResponse> => {
     try {
       const params = new URLSearchParams();
       chartTypes.forEach((type) => params.append("types", type));
+      let response
+      if (isAuthenticated) {
+        response = await api.get(
+          `/projects/${projectSlug}/charts?${params.toString()}`
+        );
+      } else {
+        response = await api.get(
+          `/public/workspaces/${projectSlug}/charts?${params.toString()}`
+        );
+      }
 
-      const response = await api.get(
-        `/projects/${projectSlug}/charts?${params.toString()}`
-      );
       return response.data;
     } catch (error) {
       console.error("Get multiple project charts error:", error);
@@ -324,11 +337,11 @@ export const projectApi = {
     }
   },
   getAllCharts: async (
-    projectSlug: string
+    projectSlug: string, isAuthenticated: boolean
   ): Promise<ProjectChartDataResponse> => {
     try {
       const allChartTypes = Object.values(ProjectChartType);
-      return await projectApi.getMultipleCharts(projectSlug, allChartTypes);
+      return await projectApi.getMultipleCharts(projectSlug, allChartTypes, isAuthenticated);
     } catch (error) {
       console.error("Get all project charts error:", error);
       throw error;

@@ -28,12 +28,18 @@ function formatUUID(id: string) {
   return id.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
 }
 export const taskApi = {
-  getTaskStatusByProject: async ({ projectId }: { projectId: string }): Promise<{ data: TaskStatus[] }> => {
+  getTaskStatusByProject: async ({
+    projectId,
+  }: {
+    projectId: string;
+  }): Promise<{ data: TaskStatus[] }> => {
     try {
       if (!projectId) {
         throw new Error("projectId is required");
       }
-      const response = await api.get<{ data: TaskStatus[] }>(`/task-statuses/project?projectId=${projectId}`);
+      const response = await api.get<{ data: TaskStatus[] }>(
+        `/task-statuses/project?projectId=${projectId}`
+      );
       return response.data;
     } catch (error) {
       console.error("Get task statuses by project error:", error);
@@ -85,17 +91,22 @@ export const taskApi = {
       queryParams.append("organizationId", organizationId);
 
       // Optional filters
-      if (params?.workspaceId) queryParams.append("workspaceId", params.workspaceId);
+      if (params?.workspaceId)
+        queryParams.append("workspaceId", params.workspaceId);
       if (params?.projectId) queryParams.append("projectId", params.projectId);
       if (params?.sprintId) queryParams.append("sprintId", params.sprintId);
-      if (params?.parentTaskId) queryParams.append("parentTaskId", params.parentTaskId);
-      if (params?.priorities) queryParams.append("priorities", params.priorities);
+      if (params?.parentTaskId)
+        queryParams.append("parentTaskId", params.parentTaskId);
+      if (params?.priorities)
+        queryParams.append("priorities", params.priorities);
       if (params?.statuses) queryParams.append("statuses", params.statuses);
       if (params?.search) queryParams.append("search", params.search);
 
       // Pagination
-      if (params?.page !== undefined) queryParams.append("page", String(params.page));
-      if (params?.limit !== undefined) queryParams.append("limit", String(params.limit));
+      if (params?.page !== undefined)
+        queryParams.append("page", String(params.page));
+      if (params?.limit !== undefined)
+        queryParams.append("limit", String(params.limit));
 
       const query = queryParams.toString();
       const url = `/tasks${query ? `?${query}` : ""}`;
@@ -128,17 +139,22 @@ export const taskApi = {
       queryParams.append("organizationId", organizationId);
 
       // Optional filters
-      if (params?.workspaceId) queryParams.append("workspaceId", params.workspaceId);
+      if (params?.workspaceId)
+        queryParams.append("workspaceId", params.workspaceId);
       if (params?.projectId) queryParams.append("projectId", params.projectId);
       if (params?.sprintId) queryParams.append("sprintId", params.sprintId);
-      if (params?.parentTaskId) queryParams.append("parentTaskId", params.parentTaskId);
-      if (params?.priorities) queryParams.append("priorities", params.priorities);
+      if (params?.parentTaskId)
+        queryParams.append("parentTaskId", params.parentTaskId);
+      if (params?.priorities)
+        queryParams.append("priorities", params.priorities);
       if (params?.statuses) queryParams.append("statuses", params.statuses);
       if (params?.search) queryParams.append("search", params.search);
 
       // Pagination
-      if (params?.page !== undefined) queryParams.append("page", String(params.page));
-      if (params?.limit !== undefined) queryParams.append("limit", String(params.limit));
+      if (params?.page !== undefined)
+        queryParams.append("page", String(params.page));
+      if (params?.limit !== undefined)
+        queryParams.append("limit", String(params.limit));
 
       const query = queryParams.toString();
       const url = `/tasks/all-tasks${query ? `?${query}` : ""}`;
@@ -151,15 +167,81 @@ export const taskApi = {
     }
   },
 
-  getTasksByProject: async (projectId: string, organizationId: string): Promise<Task[]> => {
+  getPublicCalendarTask: async (
+    workspaceSlug: string,
+    projectSlug: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<Task[]> => {
+    try {
+      const queryParams = new URLSearchParams();
+
+      // Optional date filters
+      if (startDate) queryParams.append("startDate", startDate);
+      if (endDate) queryParams.append("endDate", endDate);
+
+      const query = queryParams.toString();
+      const url = `/public/workspaces/${workspaceSlug}/projects/${projectSlug}/calendar${
+        query ? `?${query}` : ""
+      }`;
+
+      const response = await api.get<Task[]>(url);
+      return response.data;
+    } catch (error) {
+      console.error("Get public calendar tasks error:", error);
+      throw error;
+    }
+  },
+
+  getTasksByProject: async (
+    projectId: string,
+    organizationId: string
+  ): Promise<Task[]> => {
     try {
       if (!organizationId) {
         throw new Error("organizationId is required");
       }
-      const response = await api.get<Task[]>(`/tasks?organizationId=${organizationId}&projectId=${projectId}`);
+      const response = await api.get<Task[]>(
+        `/tasks?organizationId=${organizationId}&projectId=${projectId}`
+      );
       return response.data;
     } catch (error) {
       console.error("Get tasks by project error:", error);
+      throw error;
+    }
+  },
+
+  getPublicProjectTasks: async (
+    workspaceSlug: string,
+    projectSlug: string,
+    filters?: {
+      limit?: number;
+      offset?: number;
+      status?: string;
+      priority?: string;
+      type?: string;
+    }
+  ): Promise<Task[]> => {
+    try {
+      if (!workspaceSlug || !projectSlug) {
+        throw new Error("workspaceSlug and projectSlug are required");
+      }
+
+      const params = new URLSearchParams();
+
+      if (filters?.limit) params.append("limit", filters.limit.toString());
+      if (filters?.offset) params.append("offset", filters.offset.toString());
+      if (filters?.status) params.append("status", filters.status);
+      if (filters?.priority) params.append("priority", filters.priority);
+      if (filters?.type) params.append("type", filters.type);
+
+      const response = await api.get<Task[]>(
+        `/public/project-tasks/${workspaceSlug}/projects/${projectSlug}/tasks?${params.toString()}`
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error fetching public project tasks:", error);
       throw error;
     }
   },
@@ -207,8 +289,9 @@ export const taskApi = {
       if (params.search) queryParams.append("search", params.search); // ✅ Add search
 
       const queryString = queryParams.toString();
-      const url = `/tasks/organization/${organizationId}${queryString ? `?${queryString}` : ""
-        }`;
+      const url = `/tasks/organization/${organizationId}${
+        queryString ? `?${queryString}` : ""
+      }`;
 
       const response = await api.get<TasksResponse>(url);
       return response.data;
@@ -220,28 +303,48 @@ export const taskApi = {
 
   getSubtasksByParent: async (
     parentTaskId: string,
+    isAuth: boolean,
+    workspaceSlug?: string,
+    projectSlug?: string,
     options?: { page?: number; limit?: number }
   ): Promise<PaginatedTaskResponse> => {
     try {
       const uuid = formatUUID(parentTaskId);
 
-      let organizationId: string | null = null;
-      if (typeof window !== "undefined") {
-        organizationId = localStorage.getItem("currentOrganizationId");
-      }
-      if (!organizationId) {
-        throw new Error("Organization ID not found in localStorage");
-      }
-
-      // default pagination values
+      // Default pagination
       const page = options?.page ?? 1;
       const limit = options?.limit ?? 10;
 
-      const response = await api.get<PaginatedTaskResponse>(
-        `/tasks?organizationId=${encodeURIComponent(organizationId)}&parentTaskId=${encodeURIComponent(
-          uuid
-        )}&page=${page}&limit=${limit}`
-      );
+      let response;
+      if (isAuth) {
+
+        // Get organizationId from localStorage (only in browser)
+        let organizationId: string | null = null;
+        if (typeof window !== "undefined") {
+          organizationId = localStorage.getItem("currentOrganizationId");
+        }
+        if (!organizationId) {
+          throw new Error("Organization ID not found in localStorage");
+        }
+
+        // Authenticated users: call normal tasks endpoint
+        response = await api.get<PaginatedTaskResponse>(
+          `/tasks?organizationId=${encodeURIComponent(
+            organizationId
+          )}&parentTaskId=${encodeURIComponent(uuid)}&page=${page}&limit=${limit}`
+        );
+      } else {
+        // Public users: call public project tasks endpoint
+        if (!workspaceSlug || !projectSlug) {
+          throw new Error("WorkspaceSlug and ProjectSlug are required for public tasks");
+        }
+
+        response = await api.get<PaginatedTaskResponse>(
+          `/public/project-tasks/${encodeURIComponent(workspaceSlug)}/projects/${encodeURIComponent(
+            projectSlug
+          )}/tasks?parentTaskId=${encodeURIComponent(uuid)}&page=${page}&limit=${limit}`
+        );
+      }
 
       return response.data;
     } catch (error) {
@@ -249,6 +352,7 @@ export const taskApi = {
       throw error;
     }
   },
+
 
 
   getTasksOnly: async (projectId?: string): Promise<Task[]> => {
@@ -275,9 +379,16 @@ export const taskApi = {
     }
   },
 
-  getTaskById: async (taskId: string): Promise<Task> => {
+  getTaskById: async (taskId: string, isAuth: boolean): Promise<Task> => {
     try {
-      const response = await api.get<Task>(`/tasks/${taskId}`);
+      console.log("Fetching task with ID:", taskId, "isAuth:", isAuth);
+      let response;
+      if (isAuth) {
+        response = await api.get<Task>(`/tasks/${taskId}`)
+      }
+      else {
+        response = await api.get<Task>(`/public/project-tasks/${taskId}`)
+      }
       return response.data;
     } catch (error) {
       console.error("Get task by ID error:", error);
@@ -307,13 +418,18 @@ export const taskApi = {
     }
   },
 
-  getAllTaskStatuses: async (params?: { workflowId?: string; organizationId?: string }): Promise<TaskStatus[]> => {
+  getAllTaskStatuses: async (params?: {
+    workflowId?: string;
+    organizationId?: string;
+  }): Promise<TaskStatus[]> => {
     try {
       let query = "";
       if (params) {
         const queryParams = new URLSearchParams();
-        if (params.workflowId) queryParams.append("workflowId", params.workflowId);
-        if (params.organizationId) queryParams.append("organizationId", params.organizationId);
+        if (params.workflowId)
+          queryParams.append("workflowId", params.workflowId);
+        if (params.organizationId)
+          queryParams.append("organizationId", params.organizationId);
         query = queryParams.toString();
       }
       const url = `/task-statuses${query ? `?${query}` : ""}`;
@@ -325,11 +441,19 @@ export const taskApi = {
     }
   },
 
-  getTaskActivity: async (taskId: string, page: number = 1, limit: number = 10): Promise<any> => {
+  getTaskActivity: async (taskId: string, isAuth: boolean, page: number = 1, limit: number = 10): Promise<any> => {
     try {
-      const response = await api.get<Task[]>(
-        `/activity-logs/task/${taskId}/activities?limit=${limit}&page=${page}`
-      );
+      let response;
+      if (isAuth) {
+        response = await api.get<Task[]>(
+          `/activity-logs/task/${taskId}/activities?limit=${limit}&page=${page}`
+        );
+      }
+      else {
+        response = await api.get<Task[]>(
+          `/public/project-tasks/activities/${taskId}?limit=${limit}&page=${page}`
+        );
+      }
       return response.data;
     } catch (error) {
       console.error("Get tasks by workspace error:", error);
@@ -365,11 +489,19 @@ export const taskApi = {
     }
   },
 
-  getTaskComments: async (taskId: string): Promise<TaskComment[]> => {
+  getTaskComments: async (taskId: string, isAuth: boolean): Promise<TaskComment[]> => {
     try {
-      const response = await api.get<TaskComment[]>(
-        `/task-comments?taskId=${taskId}`
-      );
+      let response;
+      if (isAuth) {
+        response = await api.get<TaskComment[]>(
+          `/task-comments?taskId=${taskId}`
+        );
+      }
+      else {
+        response = await api.get<TaskComment[]>(
+          `/public/project-tasks/comments/${taskId}`
+        );
+      }
       return response.data;
     } catch (error) {
       console.error("Get task comments error:", error);
@@ -448,11 +580,19 @@ export const taskApi = {
     }
   },
 
-  getTaskAttachments: async (taskId: string): Promise<TaskAttachment[]> => {
+  getTaskAttachments: async (taskId: string, isAuth: boolean): Promise<TaskAttachment[]> => {
     try {
-      const response = await api.get<TaskAttachment[]>(
-        `/task-attachments/task/${taskId}`
-      );
+      let response;
+      if (isAuth) {
+        response = await api.get<TaskAttachment[]>(
+          `/task-attachments/task/${taskId}`
+        );
+      }
+      else {
+        response = await api.get<TaskAttachment[]>(
+          `/public/project-tasks/attachments/${taskId}`
+        );
+      }
       return response.data;
     } catch (error) {
       console.error("Get task attachments error:", error);
@@ -787,7 +927,9 @@ export const taskApi = {
 
   assignTaskAssignees: async (taskId: string, assigneeIds: string[]) => {
     try {
-      const response = await api.patch(`/tasks/${taskId}/assignees`, { assigneeIds });
+      const response = await api.patch(`/tasks/${taskId}/assignees`, {
+        assigneeIds,
+      });
       return response.data;
     } catch (error) {
       console.error("Assign task assignees error:", error);

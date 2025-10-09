@@ -68,6 +68,13 @@ interface TaskContextType extends TaskState {
     }
   ) => Promise<Task[]>;
 
+  getPublicCalendarTask: (
+    workspaceSlug: string,
+    projectSlug: string,
+    startDate?: string,
+    endDate?: string
+  ) => Promise<Task[]>;
+
   getTaskStatusByProject: (params: {
     projectId: string;
   }) => Promise<{ data: TaskStatus[] }>;
@@ -116,21 +123,36 @@ interface TaskContextType extends TaskState {
     projectId: string,
     organizationId: string
   ) => Promise<Task[]>;
+  getPublicProjectTasks: (
+    workspaceSlug: string,
+    projectSlug: string,
+    filters?: {
+      limit?: number;
+      offset?: number;
+      status?: string;
+      priority?: string;
+      type?: string;
+    }
+  ) => Promise<Task[]>;
   getTasksBySprint: (
     organizationId: string,
     sprintId: string
   ) => Promise<Task[]>;
   getSubtasksByParent: (
     parentTaskId: string,
+    isAuth: boolean,
+    workspaceSlug?: string,
+    projectSlug?: string,
     options?: { page?: number; limit?: number }
   ) => Promise<PaginatedTaskResponse>;
   getTasksOnly: (projectId?: string) => Promise<Task[]>;
   getSubtasksOnly: (projectId?: string) => Promise<Task[]>;
-  getTaskById: (taskId: string) => Promise<Task>;
+  getTaskById: (taskId: string, isAuth: boolean) => Promise<Task>;
   updateTask: (taskId: string, taskData: UpdateTaskRequest) => Promise<Task>;
   deleteTask: (taskId: string) => Promise<void>;
   getTaskActivity: (
     taskId: string,
+    isAth:boolean,
     pageNum: number
   ) => Promise<ActivityApiResponse>;
   getAllTaskStatuses: (params?: {
@@ -151,7 +173,7 @@ interface TaskContextType extends TaskState {
   createTaskComment: (
     commentData: CreateTaskCommentRequest
   ) => Promise<TaskComment>;
-  getTaskComments: (taskId: string) => Promise<TaskComment[]>;
+  getTaskComments: (taskId: string, isAuth: boolean) => Promise<TaskComment[]>;
   updateTaskComment: (
     commentId: string,
     userId: string,
@@ -164,7 +186,7 @@ interface TaskContextType extends TaskState {
   createAttachment: (
     attachmentData: CreateAttachmentRequest
   ) => Promise<TaskAttachment>;
-  getTaskAttachments: (taskId: string) => Promise<TaskAttachment[]>;
+  getTaskAttachments: (taskId: string, isAuth: boolean) => Promise<TaskAttachment[]>;
   getAttachmentById: (attachmentId: string) => Promise<TaskAttachment>;
   downloadAttachment: (attachmentId: string) => Promise<Blob>;
   previewFile: (attachmentId: string) => Promise<Blob>;
@@ -194,8 +216,8 @@ interface TaskContextType extends TaskState {
   // State management
   setCurrentTask: (task: Task | null) => void;
   refreshTasks: (projectId?: string) => Promise<void>;
-  refreshTaskComments: (taskId: string) => Promise<void>;
-  refreshTaskAttachments: (taskId: string) => Promise<void>;
+  refreshTaskComments: (taskId: string, isAuth: boolean) => Promise<void>;
+  refreshTaskAttachments: (taskId: string, isAuth: boolean) => Promise<void>;
   refreshTaskLabels: (taskId: string) => Promise<void>;
   clearError: () => void;
 
@@ -488,6 +510,25 @@ export function TaskProvider({ children }: TaskProviderProps) {
         return Array.isArray(result) ? result : [];
       },
 
+      getPublicCalendarTask: async (
+        workspaceSlug: string,
+        projectSlug: string,
+        startDate?: string,
+        endDate?: string
+      ): Promise<Task[]> => {
+        const result = await handleApiOperation(
+          () =>
+            taskApi.getPublicCalendarTask(
+              workspaceSlug,
+              projectSlug,
+              startDate,
+              endDate
+            ),
+          false
+        );
+        return Array.isArray(result) ? result : [];
+      },
+
       getTasksByProject: async (
         projectId: string,
         organizationId: string
@@ -499,6 +540,28 @@ export function TaskProvider({ children }: TaskProviderProps) {
           ...prev,
           tasks: result,
         }));
+        return result;
+      },
+      getPublicProjectTasks: async (
+        workspaceSlug: string,
+        projectSlug: string,
+        filters?: {
+          limit?: number;
+          offset?: number;
+          status?: string;
+          priority?: string;
+          type?: string;
+        }
+      ): Promise<Task[]> => {
+        const result = await handleApiOperation(() =>
+          taskApi.getPublicProjectTasks(workspaceSlug, projectSlug, filters)
+        );
+
+        setTaskState((prev) => ({
+          ...prev,
+          tasks: result,
+        }));
+
         return result;
       },
 
@@ -518,10 +581,20 @@ export function TaskProvider({ children }: TaskProviderProps) {
 
       getSubtasksByParent: async (
         parentTaskId: string,
+        isAuth: boolean,
+        workspaceSlug?: string,
+        projectSlug?: string,
         options?: { page?: number; limit?: number }
       ): Promise<PaginatedTaskResponse> => {
         const result = await handleApiOperation(
-          () => taskApi.getSubtasksByParent(parentTaskId, options),
+          () =>
+            taskApi.getSubtasksByParent(
+              parentTaskId,
+              isAuth,
+              workspaceSlug,
+              projectSlug,
+              options
+            ),
           false
         );
         setTaskState((prev) => ({
@@ -543,9 +616,9 @@ export function TaskProvider({ children }: TaskProviderProps) {
       getSubtasksOnly: (projectId?: string): Promise<Task[]> =>
         handleApiOperation(() => taskApi.getSubtasksOnly(projectId), false),
 
-      getTaskById: async (taskId: string): Promise<Task> => {
+      getTaskById: async (taskId: string, isAuth: boolean): Promise<Task> => {
         const result = await handleApiOperation(
-          () => taskApi.getTaskById(taskId),
+          () => taskApi.getTaskById(taskId, isAuth),
           false
         );
 
@@ -637,10 +710,11 @@ export function TaskProvider({ children }: TaskProviderProps) {
 
       getTaskActivity: async (
         taskId: string,
+        isAuth: boolean,
         pageNum: number
       ): Promise<ActivityApiResponse> => {
         const result = await handleApiOperation(
-          () => taskApi.getTaskActivity(taskId),
+          () => taskApi.getTaskActivity(taskId, isAuth, pageNum),
           false
         );
 
@@ -695,9 +769,9 @@ export function TaskProvider({ children }: TaskProviderProps) {
         return result;
       },
 
-      getTaskComments: async (taskId: string): Promise<TaskComment[]> => {
+      getTaskComments: async (taskId: string, isAuth:boolean): Promise<TaskComment[]> => {
         const result = await handleApiOperation(
-          () => taskApi.getTaskComments(taskId),
+          () => taskApi.getTaskComments(taskId, isAuth),
           false
         );
 
@@ -779,9 +853,9 @@ export function TaskProvider({ children }: TaskProviderProps) {
           false
         ),
 
-      getTaskAttachments: async (taskId: string): Promise<TaskAttachment[]> => {
+      getTaskAttachments: async (taskId: string, isAuth:boolean): Promise<TaskAttachment[]> => {
         const result = await handleApiOperation(
-          () => taskApi.getTaskAttachments(taskId),
+          () => taskApi.getTaskAttachments(taskId, isAuth),
           false
         );
 
@@ -921,12 +995,12 @@ export function TaskProvider({ children }: TaskProviderProps) {
         }
       },
 
-      refreshTaskComments: async (taskId: string): Promise<void> => {
-        await contextValue.getTaskComments(taskId);
+      refreshTaskComments: async (taskId: string, isAuth: boolean): Promise<void> => {
+        await contextValue.getTaskComments(taskId, isAuth);
       },
 
-      refreshTaskAttachments: async (taskId: string): Promise<void> => {
-        await contextValue.getTaskAttachments(taskId);
+      refreshTaskAttachments: async (taskId: string, isAuth: boolean): Promise<void> => {
+        await contextValue.getTaskAttachments(taskId, isAuth);
       },
 
       refreshTaskLabels: async (taskId: string): Promise<void> => {

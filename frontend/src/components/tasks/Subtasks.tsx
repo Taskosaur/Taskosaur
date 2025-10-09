@@ -140,7 +140,7 @@ export default function Subtasks({
     subtaskPagination,
   } = useTask();
 
-  const { getUserAccess } = useAuth();
+  const { getUserAccess, isAuthenticated } = useAuth();
   const [hasAccess, setHasAccess] = useState(false);
   const [taskStatuses, setTaskStatuses] = useState<any[]>([]);
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
@@ -154,7 +154,7 @@ export default function Subtasks({
 
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
-
+  const isAuth = isAuthenticated();
   // Get current user from localStorage
   useEffect(() => {
     const getUserFromStorage = () => {
@@ -174,7 +174,7 @@ export default function Subtasks({
 
   // Check user access
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId || !isAuth) return;
 
     getUserAccess({ name: "project", id: projectId })
       .then((data) => {
@@ -187,6 +187,7 @@ export default function Subtasks({
 
   // Fetch task statuses
   useEffect(() => {
+    if (!isAuth) return;
     const fetchStatuses = async () => {
       try {
         const statuses = await getAllTaskStatuses();
@@ -205,10 +206,16 @@ export default function Subtasks({
 
     const fetchSubtasks = async () => {
       try {
-        await getSubtasksByParent(taskId, {
-          page: currentPage,
-          limit: pageSize,
-        });
+        await getSubtasksByParent(
+          taskId,
+          isAuth,
+          workspaceSlug as string,
+          projectSlug as string,
+          {
+            page: currentPage,
+            limit: pageSize,
+          }
+        );
       } catch (error) {
         console.error("Failed to fetch subtasks:", error);
       }
@@ -401,19 +408,21 @@ export default function Subtasks({
     );
   };
 
-  const completedCount = subtTask.filter((s) => isSubtaskCompleted(s)).length;
+  const completedCount = Array.isArray(subtTask)
+    ? subtTask.filter((s) => isSubtaskCompleted(s)).length
+    : 0;
 
-  if (!currentUser) {
-    return (
-      <div className="space-y-4">
-        <SectionHeader icon={HiListBullet} title="Subtasks" />
-        <Alert className="bg-[var(--muted)]/50 border-[var(--border)] text-[var(--muted-foreground)]">
-          <HiExclamationTriangle className="h-4 w-4" />
-          <AlertDescription>Please log in to manage subtasks.</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  // if (!currentUser) {
+  //   return (
+  //     <div className="space-y-4">
+  //       <SectionHeader icon={HiListBullet} title="Subtasks" />
+  //       <Alert className="bg-[var(--muted)]/50 border-[var(--border)] text-[var(--muted-foreground)]">
+  //         <HiExclamationTriangle className="h-4 w-4" />
+  //         <AlertDescription>Please log in to manage subtasks.</AlertDescription>
+  //       </Alert>
+  //     </div>
+  //   );
+  // }
 
   return (
     <>
@@ -433,7 +442,7 @@ export default function Subtasks({
         <SectionHeader
           icon={HiListBullet}
           title={`Subtasks (${completedCount}/${
-            subtaskPagination?.total || subtTask.length
+            subtaskPagination?.total || Array.isArray(subtTask) ? subtTask.length:0
           })`}
         />
 
@@ -450,13 +459,14 @@ export default function Subtasks({
         )}
 
         {/* Subtasks List */}
-        {subtTask.length > 0 && (
+        {Array.isArray(subtTask) && subtTask.length > 0 && (
           <div className="space-y-2">
             {subtTask.map((subtask) => (
               <div
                 key={subtask.id}
                 className="flex items-start gap-3 group p-3 rounded-lg bg-[var(--card)] hover:bg-[var(--accent)] border-none transition-colors shadow-sm hover:shadow-md cursor-pointer"
                 onClick={(e) => {
+                  if (!isAuth) return;
                   if (
                     (e.target as HTMLElement).closest("button") ||
                     (e.target as HTMLElement).closest(".action-button") ||
@@ -556,40 +566,46 @@ export default function Subtasks({
                           </div>
                         </div>
 
-                        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity flex-shrink-0">
-                          <Tooltip
-                            content="Edit"
-                            position="top"
-                            color="primary"
-                          >
-                            <ActionButton
-                              onClick={(e) =>
-                                handleEditSubtask(subtask.id, subtask.title, e)
-                              }
-                              variant="ghost"
-                              className="text-[var(--muted-foreground)] hover:text-[var(--primary)] cursor-pointer p-1"
-                              disabled={isLoading}
+                        {isAuth && (
+                          <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity flex-shrink-0">
+                            <Tooltip
+                              content="Edit"
+                              position="top"
+                              color="primary"
                             >
-                              <HiPencilSquare className="w-4 h-4" />
-                            </ActionButton>
-                          </Tooltip>
-                          <Tooltip
-                            content="Delete"
-                            position="top"
-                            color="primary"
-                          >
-                            <ActionButton
-                              onClick={(e) =>
-                                handleDeleteSubtask(subtask.id, e)
-                              }
-                              variant="ghost"
-                              className="text-[var(--muted-foreground)] hover:text-[var(--destructive)] cursor-pointer p-1"
-                              disabled={isLoading}
+                              <ActionButton
+                                onClick={(e) =>
+                                  handleEditSubtask(
+                                    subtask.id,
+                                    subtask.title,
+                                    e
+                                  )
+                                }
+                                variant="ghost"
+                                className="text-[var(--muted-foreground)] hover:text-[var(--primary)] cursor-pointer p-1"
+                                disabled={isLoading}
+                              >
+                                <HiPencilSquare className="w-4 h-4" />
+                              </ActionButton>
+                            </Tooltip>
+                            <Tooltip
+                              content="Delete"
+                              position="top"
+                              color="primary"
                             >
-                              <HiXMark className="w-4 h-4" />
-                            </ActionButton>
-                          </Tooltip>
-                        </div>
+                              <ActionButton
+                                onClick={(e) =>
+                                  handleDeleteSubtask(subtask.id, e)
+                                }
+                                variant="ghost"
+                                className="text-[var(--muted-foreground)] hover:text-[var(--destructive)] cursor-pointer p-1"
+                                disabled={isLoading}
+                              >
+                                <HiXMark className="w-4 h-4" />
+                              </ActionButton>
+                            </Tooltip>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2 pl-6">
@@ -640,7 +656,7 @@ export default function Subtasks({
         )}
 
         {/* Pagination Component */}
-        {subtaskPagination && (
+        {Array.isArray(subtTask) && subtTask.length>0 && subtaskPagination && (
           <Pagination
             pagination={subtaskPagination}
             onPageChange={handlePageChange}
@@ -649,7 +665,7 @@ export default function Subtasks({
         )}
 
         {/* Empty State */}
-        {!isLoading && subtTask.length === 0 && (
+        {!isLoading && Array.isArray(subtTask) && subtTask.length === 0 && (
           <div className="text-center py-8 bg-[var(--muted)]/30 rounded-lg border border-[var(--border)]">
             <HiListBullet className="w-8 h-8 mx-auto mb-3 text-[var(--muted-foreground)]" />
             <p className="text-sm font-medium text-[var(--foreground)] mb-2">
@@ -706,15 +722,14 @@ export default function Subtasks({
               </ActionButton>
             </div>
           </form>
-        ) : hasAccess ? (
-          <div className="flex justify-end w-full">
+        ) : hasAccess && isAuth ? (
+          <div className="flex justify-end">
             <ActionButton
               onClick={() => setIsAddingSubtask(true)}
               variant="outline"
               disabled={isLoading}
               showPlusIcon
               secondary
-              className="min-w-[140px] cursor-pointer"
             >
               Add subtask
             </ActionButton>

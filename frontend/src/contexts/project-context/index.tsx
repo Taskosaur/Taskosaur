@@ -58,7 +58,7 @@ interface ProjectContextType extends ProjectState {
       search?: string;
     }
   ) => Promise<Project[]>;
-  getProjectBySlug: (slug: string) => Promise<Project>;
+  getProjectBySlug: (slug: string, isAuthenticated: boolean, workspaceSlug?: string) => Promise<Project>;
   archiveProject: (
     projectId: string
   ) => Promise<{ success: boolean; message: string }>;
@@ -128,7 +128,7 @@ interface ProjectContextType extends ProjectState {
     statusId: string,
     taskStatusData: UpdateTaskStatusDto
   ) => Promise<TaskStatus>;
-  fetchAnalyticsData: (organizationId: string) => Promise<void>;
+  fetchAnalyticsData: (organizationId: string, isAuthenticated:boolean) => Promise<void>;
   clearAnalyticsError: () => void;
 }
 
@@ -194,7 +194,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
   },
   []);
   const fetchAnalyticsData = useCallback(
-    async (projectSlug: string): Promise<void> => {
+    async (projectSlug: string, isAuthenticated:boolean): Promise<void> => {
       try {
         setProjectState((prev) => ({
           ...prev,
@@ -203,7 +203,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
           refreshingAnalytics: true,
         }));
 
-        const results = await projectApi.getAllCharts(projectSlug);
+        const results = await projectApi.getAllCharts(projectSlug, isAuthenticated);
 
         // Process each chart and handle individual errors
         const processChartData = (data: any, chartName: string) => {
@@ -315,9 +315,9 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
         return result;
       },
-      getProjectBySlug: async (slug: string): Promise<Project> => {
+      getProjectBySlug: async (slug: string, isAuthenticated:boolean, workspaceSlug?: string): Promise<Project> => {
         const result = await handleApiOperation(
-          () => projectApi.getProjectBySlug(slug),
+          () => projectApi.getProjectBySlug(slug, isAuthenticated, workspaceSlug),
           false
         );
         // Optionally update currentProject if slug matches

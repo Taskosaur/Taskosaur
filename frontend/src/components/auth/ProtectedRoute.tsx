@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState, useCallback } from "react";
 import AppProviders from "./AppProviders";
 import OrgProviders from "./OrgProvider";
+import PublicProviders from "./PublicProviders";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -30,6 +31,14 @@ export default function ProtectedRoute({
 
   const isPublicRoute = publicRoutes.includes(router.pathname);
 
+  //For Public
+  const isProjectRoute = router.pathname.includes('/[workspaceSlug]/[projectSlug]');
+
+  // Check the actual path to exclude settings and members routes
+  const actualPath = router.asPath.split('?')[0]; // Remove query params
+  const isSettingsOrMembersRoute = actualPath.endsWith('/settings') || actualPath.endsWith('/members');
+  const isPublicProjectRoute = isProjectRoute && !isSettingsOrMembersRoute;
+
   const checkAuthStatus = useCallback(async (): Promise<{
     isAuth: boolean;
     redirectPath?: string;
@@ -43,7 +52,8 @@ export default function ProtectedRoute({
 
       const isAuth = !!(accessToken && currentUser && contextAuth);
       if (!isAuth) {
-        if (isPublicRoute) {
+        // Allow unauthenticated access to public routes and public project routes
+        if (isPublicRoute || isPublicProjectRoute) {
           return { isAuth: false, isOrg: false };
         }
         return { isAuth: false, redirectPath: redirectTo, isOrg: false };
@@ -130,8 +140,14 @@ export default function ProtectedRoute({
     );
   }
 
+  // For public routes (login, register, etc.)
   if (isPublicRoute) {
     return <>{children}</>;
+  }
+
+  // For public project routes (allow unauthenticated access with limited providers)
+  if (isPublicProjectRoute && !isAuthenticated) {
+    return <PublicProviders>{children}</PublicProviders>;
   }
 
   if (isAuthenticated && hasOrganization) {

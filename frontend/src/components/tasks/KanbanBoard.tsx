@@ -6,6 +6,7 @@ import StatusSettingsModal from "../kanban/StatusSettingsModal";
 import TaskDetailClient from "./TaskDetailClient";
 import { Task } from "@/types";
 import { CustomModal } from "../common/CustomeModal";
+import { useAuth } from "@/contexts/auth-context";
 interface TasksByStatus {
   statusId: string;
   statusName: string;
@@ -70,6 +71,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const { updateTaskStatus, createTask, getTaskById, currentTask } = useTask();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   const {
     dragState,
@@ -121,7 +123,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     onRefresh?.();
   };
   const handleRowClick = async (task: Task) => {
-    await getTaskById(task.id);
+    await getTaskById(task.id,isAuthenticated());
     setSelectedTask(task);
     setIsEditModalOpen(true);
   };

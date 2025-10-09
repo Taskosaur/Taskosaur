@@ -1,10 +1,11 @@
 import Link from "next/link";
-
 import { useEffect, useState, useMemo } from "react";
 import {
   getSidebarCollapsedState,
   toggleSidebar as toggleSidebarUtil,
 } from "@/utils/sidebarUtils";
+import { useAuth } from "@/contexts/auth-context";
+import { useRouter } from "next/router";
 import ResizableSidebar from "./ResizableSidebar";
 import WorkspaceSelector from "./WorkspaceSelector";
 import ProjectSelector from "./ProjectSelector";
@@ -20,7 +21,6 @@ import {
   HiLightningBolt,
   HiViewBoards,
 } from "react-icons/hi";
-import { useRouter } from "next/router";
 
 // Type definitions
 interface NavItem {
@@ -28,6 +28,7 @@ interface NavItem {
   href: string;
   icon: React.ReactNode;
   title?: string;
+  disabled?: boolean;
 }
 
 const usePathnameParsing = (pathname: string, isMounted: boolean) => {
@@ -57,6 +58,7 @@ const usePathnameParsing = (pathname: string, isMounted: boolean) => {
       "analytics",
       "settings",
     ];
+    
     if (parts.length === 0 || globalRoutes.includes(parts[0])) {
       return { currentWorkspaceSlug: null, currentProjectSlug: null };
     }
@@ -80,6 +82,8 @@ const usePathnameParsing = (pathname: string, isMounted: boolean) => {
 export default function Sidebar() {
   const router = useRouter();
   const pathname = router.asPath.split("?")[0];
+  const { isAuthenticated } = useAuth();
+  const isAuth = isAuthenticated();
 
   const [isMounted, setIsMounted] = useState(false);
   const [miniPathName, setMiniPathName] = useState("");
@@ -95,6 +99,7 @@ export default function Sidebar() {
     pathname,
     isMounted
   );
+
   useEffect(() => {
     setIsMounted(true);
     const storedState = getSidebarCollapsedState();
@@ -130,6 +135,12 @@ export default function Sidebar() {
     return () => window.removeEventListener("resize", handleResize);
   }, [isSidebarCollapsed, hasUserInteracted]);
 
+  // Handle disabled navigation click
+  const handleDisabledClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    router.push("/login");
+  };
+
   const globalNavItems = useMemo(
     () => [
       {
@@ -137,39 +148,48 @@ export default function Sidebar() {
         href: "/dashboard",
         icon: <HiHome size={16} />,
         title: "Global Dashboard",
+        disabled: !isAuth,
       },
       {
         name: "Workspaces",
         href: "/workspaces",
         icon: <HiViewGrid size={16} />,
         title: "All Workspaces",
+        disabled: !isAuth,
       },
       {
         name: "Projects",
         href: "/projects",
         icon: <HiViewBoards size={16} />,
         title: "All Projects",
+        disabled: !isAuth,
       },
       {
         name: "Tasks",
         href: "/tasks",
         icon: <HiClipboardList size={16} />,
         title: "All Tasks",
+        disabled: !isAuth,
       },
       {
         name: "Activities",
         href: "/activities",
         icon: <HiCalendar size={16} />,
         title: "All Activities",
+        disabled: !isAuth,
       },
-      {
-        name: "Settings",
-        href: "/settings",
-        icon: <HiCog size={16} />,
-        title: "All Settings",
-      },
+      // Settings only shown to authenticated users
+      ...(isAuth ? [
+        {
+          name: "Settings",
+          href: "/settings",
+          icon: <HiCog size={16} />,
+          title: "All Settings",
+          disabled: false,
+        }
+      ] : []),
     ],
-    []
+    [isAuth]
   );
 
   const workspaceNavItems = useMemo(
@@ -181,102 +201,180 @@ export default function Sidebar() {
               href: `/${currentWorkspaceSlug}`,
               icon: <HiViewGrid size={16} />,
               title: "Workspace Overview",
+              disabled: !isAuth,
             },
             {
               name: "Projects",
               href: `/${currentWorkspaceSlug}/projects`,
               icon: <HiViewBoards size={16} />,
               title: "Workspace Projects",
+              disabled: !isAuth,
             },
             {
               name: "Members",
               href: `/${currentWorkspaceSlug}/members`,
               icon: <HiUsers size={16} />,
               title: "Workspace Members",
+              disabled: !isAuth,
             },
             {
               name: "Activities",
               href: `/${currentWorkspaceSlug}/activities`,
               icon: <HiCalendar size={16} />,
               title: "Workspace Activity",
+              disabled: !isAuth,
             },
             {
               name: "Tasks",
               href: `/${currentWorkspaceSlug}/tasks`,
               icon: <HiClipboardList size={16} />,
               title: "Workspace Tasks",
+              disabled: !isAuth,
             },
-            // { name: 'Analytics', href: `/${currentWorkspaceSlug}/analytics`, icon: <HiChartBar size={16} />, title: 'Workspace Analytics' },
-            {
-              name: "Settings",
-              href: `/${currentWorkspaceSlug}/settings`,
-              icon: <HiCog size={16} />,
-              title: "Workspace Settings",
-            },
+            // Settings only shown to authenticated users
+            ...(isAuth ? [
+              {
+                name: "Settings",
+                href: `/${currentWorkspaceSlug}/settings`,
+                icon: <HiCog size={16} />,
+                title: "Workspace Settings",
+                disabled: false,
+              }
+            ] : []),
           ]
         : [],
-    [currentWorkspaceSlug]
+    [currentWorkspaceSlug, isAuth]
   );
 
+  // Default project navigation items for unauthenticated users (all disabled)
+  const defaultProjectNavItems = useMemo(
+  () => [
+    {
+      name: "Overview",
+      href: `/${currentWorkspaceSlug || ""}/${currentProjectSlug || ""}`,
+      icon: <HiViewBoards size={16} />,
+      title: "Project Overview",
+      disabled: false, // usually for unauthenticated users
+    },
+    {
+      name: "Tasks",
+      href: `/${currentWorkspaceSlug || ""}/${currentProjectSlug || ""}/tasks`,
+      icon: <HiClipboardList size={16} />,
+      title: "Tasks",
+      disabled: false,
+    },
+    {
+      name: "Sprints",
+      href: `/${currentWorkspaceSlug || ""}/${currentProjectSlug || ""}/sprints`,
+      icon: <HiLightningBolt size={16} />,
+      title: "Sprints",
+      disabled: false,
+    },
+    // {
+    //   name: "Calendar",
+    //   href: `/${currentWorkspaceSlug || ""}/${currentProjectSlug || ""}/calendar`,
+    //   icon: <HiCalendar size={16} />,
+    //   title: "Calendar",
+    //   disabled: false,
+    // },
+    // {
+    //   name: "Members",
+    //   href: `/${currentWorkspaceSlug || ""}/${currentProjectSlug || ""}/members`,
+    //   icon: <HiUsers size={16} />,
+    //   title: "Members",
+    //   disabled: false,
+    // },
+  ],
+  [currentWorkspaceSlug, currentProjectSlug]
+);
+
+
   const projectNavItems = useMemo(
-    () =>
-      currentWorkspaceSlug && currentProjectSlug
+    () => {
+      // If user is not authenticated, show default project items (disabled)
+      if (!isAuth) {
+        return defaultProjectNavItems;
+      }
+      
+      // If user is authenticated, show actual project items
+      return currentWorkspaceSlug && currentProjectSlug
         ? [
             {
               name: "Overview",
               href: `/${currentWorkspaceSlug}/${currentProjectSlug}`,
               icon: <HiViewBoards size={16} />,
               title: "Project Overview",
+              disabled: false,
             },
             {
               name: "Tasks",
               href: `/${currentWorkspaceSlug}/${currentProjectSlug}/tasks`,
               icon: <HiClipboardList size={16} />,
               title: "Tasks",
+              disabled: false,
             },
             {
               name: "Sprints",
               href: `/${currentWorkspaceSlug}/${currentProjectSlug}/sprints`,
               icon: <HiLightningBolt size={16} />,
               title: "Sprints",
+              disabled: false,
             },
             {
               name: "Calendar",
               href: `/${currentWorkspaceSlug}/${currentProjectSlug}/calendar`,
               icon: <HiCalendar size={16} />,
               title: "Calendar",
+              disabled: false,
             },
-            // { name: 'Time', href: `/${currentWorkspaceSlug}/${currentProjectSlug}/time`, icon: <HiClock size={16} />, title: 'Time Tracking' },
-            // { name: 'Analytics', href: `/${currentWorkspaceSlug}/${currentProjectSlug}/analytics`, icon: <HiChartBar size={16} />, title: 'Analytics' },
             {
               name: "Members",
               href: `/${currentWorkspaceSlug}/${currentProjectSlug}/members`,
               icon: <HiUsers size={16} />,
               title: "Members",
+              disabled: false,
             },
             {
               name: "Settings",
               href: `/${currentWorkspaceSlug}/${currentProjectSlug}/settings`,
               icon: <HiCog size={16} />,
               title: "Settings",
+              disabled: false,
             },
           ]
-        : [],
-    [currentWorkspaceSlug, currentProjectSlug]
+        : [];
+    },
+    [currentWorkspaceSlug, currentProjectSlug, isAuth, defaultProjectNavItems]
   );
 
   const navigationItems: NavItem[] = useMemo(() => {
+    // For unauthenticated users, always show project navigation (disabled)
+    if (!isAuth) {
+      return defaultProjectNavItems;
+    }
+    
+    // For authenticated users, use existing logic
     if (currentWorkspaceSlug && currentProjectSlug) return projectNavItems;
     if (currentWorkspaceSlug) return workspaceNavItems;
     return globalNavItems;
   }, [
+    isAuth,
     currentWorkspaceSlug,
     currentProjectSlug,
     globalNavItems,
     workspaceNavItems,
     projectNavItems,
+    defaultProjectNavItems,
   ]);
+
   const miniSidebarNavItems = useMemo(() => {
+    // For unauthenticated users, use global nav items for mini sidebar (disabled)
+    if (!isAuth) {
+      setMiniPathName("/workspaces");
+      return globalNavItems;
+    }
+    
+    // For authenticated users, use existing logic
     if (currentWorkspaceSlug && currentProjectSlug) {
       setMiniPathName(`/${currentWorkspaceSlug}`);
       return workspaceNavItems;
@@ -287,11 +385,13 @@ export default function Sidebar() {
     }
     return [];
   }, [
+    isAuth,
     currentWorkspaceSlug,
     currentProjectSlug,
     globalNavItems,
     workspaceNavItems,
   ]);
+
   // Listen for sidebar state changes from other components
   useEffect(() => {
     const handleSidebarStateChange = (event: CustomEvent) => {
@@ -327,63 +427,106 @@ export default function Sidebar() {
   const renderFullSidebar = () => (
     <div className="layout-sidebar-full">
       <div className="layout-sidebar-header">
-        {/* Global Dashboard */}
-        {!currentWorkspaceSlug &&
-          globalNavItems.length > 0 &&
-          (() => {
-            const activeItem = globalNavItems.find(
-              (item) =>
-                pathname.replace(/\/$/, "") === item.href.replace(/\/$/, "")
-            );
-
-            return (
-              <div className="layout-sidebar-header-dashboard">
-                <div className="layout-sidebar-header-dashboard-content">
-                  <div className="layout-sidebar-header-dashboard-icon">
-                    {activeItem ? activeItem.icon : "TS"}
-                  </div>
-                  <span className="layout-sidebar-header-dashboard-title">
-                    {activeItem ? activeItem.name : "Taskosaur"}
-                  </span>
-                </div>
+        {/* Unauthenticated State - Show "Project" Header */}
+        {!isAuth && (
+          <div className="layout-sidebar-header-dashboard">
+            <div className="layout-sidebar-header-dashboard-content">
+              <div className="layout-sidebar-header-dashboard-icon">
+                <HiViewBoards size={16} />
               </div>
-            );
-          })()}
-
-        {/* Workspace Level */}
-        {currentWorkspaceSlug && !currentProjectSlug && (
-          <WorkspaceSelector currentWorkspaceSlug={currentWorkspaceSlug} />
+              <span className="layout-sidebar-header-dashboard-title">
+                Project
+              </span>
+            </div>
+          </div>
         )}
 
-        {/* Project Level */}
-        {currentWorkspaceSlug && currentProjectSlug && (
-          <ProjectSelector
-            currentWorkspaceSlug={currentWorkspaceSlug}
-            currentProjectSlug={currentProjectSlug}
-          />
+        {/* Authenticated State - Original Logic */}
+        {isAuth && (
+          <>
+            {/* Global Dashboard */}
+            {!currentWorkspaceSlug &&
+              globalNavItems.length > 0 &&
+              (() => {
+                const activeItem = globalNavItems.find(
+                  (item) =>
+                    pathname.replace(/\/$/, "") === item.href.replace(/\/$/, "")
+                );
+
+                return (
+                  <div className="layout-sidebar-header-dashboard">
+                    <div className="layout-sidebar-header-dashboard-content">
+                      <div className="layout-sidebar-header-dashboard-icon">
+                        {activeItem ? activeItem.icon : "TS"}
+                      </div>
+                      <span className="layout-sidebar-header-dashboard-title">
+                        {activeItem ? activeItem.name : "Taskosaur"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+            {/* Workspace Level */}
+            {currentWorkspaceSlug && !currentProjectSlug && (
+              <WorkspaceSelector currentWorkspaceSlug={currentWorkspaceSlug} />
+            )}
+
+            {/* Project Level */}
+            {currentWorkspaceSlug && currentProjectSlug && (
+              <ProjectSelector
+                currentWorkspaceSlug={currentWorkspaceSlug}
+                currentProjectSlug={currentProjectSlug}
+              />
+            )}
+          </>
         )}
       </div>
 
       <nav className="layout-sidebar-nav">
         <ul className="layout-sidebar-nav-list">
           {navigationItems.map((item) => {
+            const isItemActive = isActive(pathname, item.href, item.name === "Overview");
+            
             return (
               <li key={item.name} className="layout-sidebar-nav-item">
-                <Link
-                  href={item.href}
-                  className={`layout-sidebar-nav-link ${
-                    isActive(pathname, item.href, item.name === "Overview")
-                      ? "layout-sidebar-nav-link-active"
-                      : "layout-sidebar-nav-link-inactive"
-                  }`}
-                >
-                  <span className="layout-sidebar-nav-link-icon">
-                    {item.icon}
-                  </span>
-                  <span className="layout-sidebar-nav-link-text">
-                    {item.name}
-                  </span>
-                </Link>
+                {item.disabled ? (
+                  // Disabled navigation item
+                  <div
+                    className={`layout-sidebar-nav-link layout-sidebar-nav-link-disabled ${
+                      isItemActive
+                        ? "layout-sidebar-nav-link-active"
+                        : "layout-sidebar-nav-link-inactive"
+                    }`}
+                    onClick={handleDisabledClick}
+                    style={{ cursor: "pointer", opacity: 0.6 }}
+                    title="Login required to access this feature"
+                  >
+                    <span className="layout-sidebar-nav-link-icon">
+                      {item.icon}
+                    </span>
+                    <span className="layout-sidebar-nav-link-text">
+                      {item.name}
+                    </span>
+                  </div>
+                ) : (
+                  // Enabled navigation item
+                  <Link
+                    href={item.href}
+                    className={`layout-sidebar-nav-link ${
+                      isItemActive
+                        ? "layout-sidebar-nav-link-active"
+                        : "layout-sidebar-nav-link-inactive"
+                    }`}
+                  >
+                    <span className="layout-sidebar-nav-link-icon">
+                      {item.icon}
+                    </span>
+                    <span className="layout-sidebar-nav-link-text">
+                      {item.name}
+                    </span>
+                  </Link>
+                )}
               </li>
             );
           })}
@@ -415,7 +558,27 @@ export default function Sidebar() {
 
         <div className="layout-sidebar-mini-nav">
           {miniSidebarNavItems.map((item) => {
-            return (
+            const linkProps = item.disabled
+              ? {
+                  onClick: handleDisabledClick,
+                  style: { cursor: "pointer", opacity: 0.6 },
+                }
+              : {};
+
+            return item.disabled ? (
+              <div
+                key={item.name}
+                className={`layout-sidebar-mini-nav-link layout-sidebar-mini-nav-link-disabled ${
+                  miniPathName === item.href
+                    ? "layout-sidebar-nav-link-active"
+                    : "layout-sidebar-mini-nav-link-inactive"
+                }`}
+                title="Login required to access this feature"
+                {...linkProps}
+              >
+                {item.icon}
+              </div>
+            ) : (
               <Link
                 key={item.name}
                 href={item.href}

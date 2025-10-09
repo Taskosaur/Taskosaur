@@ -13,6 +13,7 @@ import {
   SprintStatus,
   SprintStats,
 } from "@/types";
+
 interface SprintState {
   sprints: Sprint[];
   currentSprint: Sprint | null;
@@ -23,14 +24,27 @@ interface SprintState {
 
 interface SprintContextType extends SprintState {
   // Sprint methods
-  listSprints: (filters?: {
-    slug?: string;
-    status?: SprintStatus;
-  }) => Promise<Sprint[]>;
+  listSprints: (
+    filters?: {
+      slug?: string;
+      status?: SprintStatus;
+    },
+    isAuthenticated?: boolean,
+    workspaceSlug?: string
+  ) => Promise<Sprint[]>;
   createSprint: (sprintData: CreateSprintData) => Promise<Sprint>;
   getSprintById: (sprintId: string) => Promise<Sprint>;
-  getSprintsByProject: (slug: string) => Promise<Sprint[]>;
-  getSprintsByStatus: (status: SprintStatus) => Promise<Sprint[]>;
+  getSprintsByProject: (
+    slug: string,
+    isAuthenticated?: boolean,
+    workspaceSlug?: string
+  ) => Promise<Sprint[]>;
+  getSprintsByStatus: (
+    status: SprintStatus,
+    isAuthenticated?: boolean,
+    workspaceSlug?: string,
+    projectSlug?: string
+  ) => Promise<Sprint[]>;
   getActiveSprint: (projectId: string) => Promise<Sprint | null>;
   updateSprint: (
     sprintId: string,
@@ -49,10 +63,14 @@ interface SprintContextType extends SprintState {
   bulkDeleteSprints: (sprintIds: string[]) => Promise<void>;
   // State management
   setCurrentSprint: (sprint: Sprint | null) => void;
-  refreshSprints: (filters?: {
-    slug?: string;
-    status?: SprintStatus;
-  }) => Promise<void>;
+  refreshSprints: (
+    filters?: {
+      slug?: string;
+      status?: SprintStatus;
+    },
+    isAuthenticated?: boolean,
+    workspaceSlug?: string
+  ) => Promise<void>;
   clearError: () => void;
 }
 
@@ -110,9 +128,13 @@ export function SprintProvider({ children }: SprintProviderProps) {
     () => ({
       ...sprintState,
 
-      listSprints: async (filters = {}): Promise<Sprint[]> => {
+      listSprints: async (
+        filters = {},
+        isAuthenticated = true,
+        workspaceSlug?: string
+      ): Promise<Sprint[]> => {
         const result = await handleApiOperation(() =>
-          sprintApi.getSprints(filters)
+          sprintApi.getSprints(filters, isAuthenticated, workspaceSlug)
         );
         setSprintState((prev) => ({ ...prev, sprints: result }));
         return result;
@@ -142,17 +164,26 @@ export function SprintProvider({ children }: SprintProviderProps) {
         return result;
       },
 
-      getSprintsByProject: async (slug: string): Promise<Sprint[]> => {
+      getSprintsByProject: async (
+        slug: string,
+        isAuthenticated = true,
+        workspaceSlug?: string
+      ): Promise<Sprint[]> => {
         const result = await handleApiOperation(() =>
-          sprintApi.getSprintsByProject(slug)
+          sprintApi.getSprintsByProject(slug, isAuthenticated, workspaceSlug)
         );
         setSprintState((prev) => ({ ...prev, sprints: result }));
         return result;
       },
 
-      getSprintsByStatus: async (status: SprintStatus): Promise<Sprint[]> => {
+      getSprintsByStatus: async (
+        status: SprintStatus,
+        isAuthenticated = true,
+        workspaceSlug?: string,
+        projectSlug?: string
+      ): Promise<Sprint[]> => {
         const result = await handleApiOperation(() =>
-          sprintApi.getSprintsByStatus(status)
+          sprintApi.getSprintsByStatus(status, isAuthenticated, workspaceSlug, projectSlug)
         );
         setSprintState((prev) => ({ ...prev, sprints: result }));
         return result;
@@ -279,8 +310,12 @@ export function SprintProvider({ children }: SprintProviderProps) {
         setSprintState((prev) => ({ ...prev, currentSprint: sprint }));
       },
 
-      refreshSprints: async (filters = {}): Promise<void> => {
-        await contextValue.listSprints(filters);
+      refreshSprints: async (
+        filters = {},
+        isAuthenticated = true,
+        workspaceSlug?: string
+      ): Promise<void> => {
+        await contextValue.listSprints(filters, isAuthenticated, workspaceSlug);
       },
 
       clearError: (): void => {

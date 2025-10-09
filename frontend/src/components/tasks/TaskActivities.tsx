@@ -3,6 +3,7 @@ import UserAvatar from "@/components/ui/avatars/UserAvatar";
 import { HiOutlineBolt } from "react-icons/hi2";
 import { useTask } from "@/contexts/task-context";
 import { TaskActivityType } from "@/types/tasks";
+import { useAuth } from "@/contexts/auth-context";
 
 interface TaskActivitiesProps {
   taskId: string;
@@ -10,6 +11,7 @@ interface TaskActivitiesProps {
 
 function TaskActivities({ taskId }: TaskActivitiesProps) {
   const { getTaskActivity } = useTask();
+  const {isAuthenticated} = useAuth()
   const [activities, setActivities] = useState<TaskActivityType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +19,7 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showAll, setShowAll] = useState(false);
-
+  const isAuth = isAuthenticated();
   const INITIAL_DISPLAY_COUNT = 3;
 
   useEffect(() => {
@@ -27,7 +29,7 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
   const fetchActivities = async (pageNum: number, append = false) => {
     try {
       setLoading(true);
-      const response = await getTaskActivity(taskId, pageNum);
+      const response = await getTaskActivity(taskId, isAuth, pageNum);
 
       if (response && response.activities) {
         if (append) {

@@ -70,8 +70,9 @@ export default function TaskDetailClient({
   } = useTask();
 
   const { getProjectMembers, getTaskStatusByProject } = useProjectContext();
-  const { getCurrentUser } = useAuth();
+  const { getCurrentUser, isAuthenticated } = useAuth();
   const currentUser = getCurrentUser();
+  const isAuth = isAuthenticated();
   const router = useRouter();
 
   const [attachments, setAttachments] = useState<any[]>([]);
@@ -185,7 +186,7 @@ export default function TaskDetailClient({
 
   useEffect(() => {
     const projectId = task.projectId || task.project?.id;
-    if (!projectId) return;
+    if (!projectId || !isAuth) return;
 
     const fetchProjectMembers = async () => {
       setLoadingMembers(true);
@@ -247,7 +248,6 @@ export default function TaskDetailClient({
     const loadWorkspaceAndProjectData = async () => {
       try {
         if (!authContext.isAuthenticated()) {
-          router.push("/auth/login");
           return;
         }
 
@@ -285,7 +285,6 @@ export default function TaskDetailClient({
     const loadWorkspaceAndProjectData = async () => {
       try {
         if (!authContext.isAuthenticated()) {
-          router.push("/auth/login");
           return;
         }
 
@@ -321,6 +320,7 @@ export default function TaskDetailClient({
   }, [workspaceSlug, projectSlug]);
 
   useEffect(() => {
+    if (!isAuth) return;
     const loadUserAccess = async () => {
       let folderName: string;
       let folderId: string;
@@ -360,13 +360,14 @@ export default function TaskDetailClient({
   }, [workspaceData, projectData, currentOrganization, hasAccessLoaded]);
 
   useEffect(() => {
+    if (!isAuth) return;
     setHasAccessLoaded(false);
     setHasAccess(false);
   }, [workspaceData?.id, projectData?.id]);
 
   useEffect(() => {
     const projectId = task.projectId || task.project?.id;
-    if (!projectId) return;
+    if (!projectId || !isAuth) return;
 
     const fetchProjectLabels = async () => {
       try {
@@ -394,7 +395,7 @@ export default function TaskDetailClient({
     const fetchAttachments = async () => {
       setLoadingAttachments(true);
       try {
-        const taskAttachments = await getTaskAttachments(taskId);
+        const taskAttachments = await getTaskAttachments(taskId, isAuth);
         const attachmentsData = taskAttachments || [];
         setAttachments(attachmentsData);
       } catch (error) {
@@ -410,7 +411,7 @@ export default function TaskDetailClient({
 
   useEffect(() => {
     const projectId = task.projectId || task.project?.id;
-    if (!projectId) return;
+    if (!projectId || !isAuth) return;
 
     const fetchTaskStatuses = async () => {
       setLoadingStatuses(true);
@@ -486,7 +487,7 @@ export default function TaskDetailClient({
       const successfulUploads = results.filter(Boolean);
 
       if (successfulUploads.length > 0) {
-        const updatedAttachments = await getTaskAttachments(taskId);
+        const updatedAttachments = await getTaskAttachments(taskId, isAuth);
         setAttachments(updatedAttachments || []);
         toast.success(
           `${successfulUploads.length} file(s) uploaded successfully.`
@@ -607,7 +608,7 @@ export default function TaskDetailClient({
         onConfirm: async () => {
           try {
             await deleteAttachment(attachmentId, currentUser.id);
-            const updatedAttachments = await getTaskAttachments(taskId);
+            const updatedAttachments = await getTaskAttachments(taskId, isAuth);
             setAttachments(updatedAttachments || []);
             toast.success("Attachment deleted successfully.");
           } catch (error) {
@@ -784,28 +785,6 @@ export default function TaskDetailClient({
       ? `/${workspaceSlug}/tasks/${task.id}`
       : `/tasks/${task.id}`;
 
-  function getPriorityBgColor(priority: any): string {
-    if (typeof priority === "object") {
-      if (typeof priority.name === "string") {
-        const found = TaskPriorities.find(
-          (p) =>
-            p.name.toLowerCase() === priority.name.toLowerCase() ||
-            p.id === priority.name
-        );
-        return found?.color || "#6B7280";
-      }
-      return priority.name?.color || "#6B7280";
-    }
-
-    if (typeof priority === "string") {
-      const found = TaskPriorities.find(
-        (p) =>
-          p.name.toLowerCase() === priority.toLowerCase() || p.id === priority
-      );
-      return found?.color || "#6B7280";
-    }
-    return "#6B7280";
-  }
 
   return (
     <div className="dashboard-container">
@@ -818,11 +797,13 @@ export default function TaskDetailClient({
             <div className="flex items-center gap-2">
               {open === "modal" && (
                 <div className="absolute -top-[26px] right-10 z-50">
-                  <Tooltip content="Expand to full screen" position="left">
-                    <div onClick={() => router.push(detailUrl)}>
-                      <CgArrowsExpandRight className="size-[17px] stroke-[0.5px] cursor-pointer" />
-                    </div>
-                  </Tooltip>
+                  {isAuth && (
+                    <Tooltip content="Expand to full screen" position="left">
+                      <div onClick={() => router.push(detailUrl)}>
+                        <CgArrowsExpandRight className="size-[17px] stroke-[0.5px] cursor-pointer" />
+                      </div>
+                    </Tooltip>
+                  )}
                 </div>
               )}
             </div>
@@ -928,7 +909,7 @@ export default function TaskDetailClient({
             <div className="">
               <TaskComments
                 taskId={taskId}
-                projectId={task?.projectId || ''}
+                projectId={task?.projectId || ""}
                 allowEmailReplies={task?.allowEmailReplies || false}
                 onCommentAdded={() => {}}
                 onCommentUpdated={() => {}}
@@ -971,71 +952,76 @@ export default function TaskDetailClient({
 
                   {/* Always show badge */}
                   <div className="flex items-center justify-between">
-                    <PriorityBadge priority={editTaskData?.priority} className="text-[13px]" />
+                    <PriorityBadge
+                      priority={editTaskData?.priority}
+                      className="text-[13px]"
+                    />
                   </div>
 
                   {/* Dropdown overlay when editing */}
                   {isEditingTask.priority && (
-                   <div className="mt-2">
-                     <DropdownAction
-                      currentItem={{
-                        id: editTaskData.priority || "MEDIUM",
-                        name:
-                          editTaskData.priority?.charAt(0).toUpperCase() +
-                            editTaskData.priority?.slice(1).toLowerCase() ||
-                          "Medium",
-                        color: task.priority?.color || "#F59E0B",
-                      }}
-                      availableItems={TaskPriorities}
-                      loading={false}
-                      forceOpen={autoOpenDropdown.priority}
-                      onOpenStateChange={(isOpen) => {
-                        if (!isOpen) {
-                          setAutoOpenDropdown((prev) => ({
-                            ...prev,
-                            priority: false,
-                          }));
-                          setIsEditingTask((prev) => ({
-                            ...prev,
-                            priority: false,
-                          }));
-                        }
-                      }}
-                      onItemSelect={async (item) => {
-                        try {
-                          const updateData: UpdateTaskRequest = {
-                            priority: item.id as
-                              | "LOW"
-                              | "MEDIUM"
-                              | "HIGH"
-                              | "HIGHEST",
-                          };
-                          await updateTask(taskId, updateData);
-                          handleTaskFieldChange("priority", item.id);
-                          task.priority = {
-                            name: item,
-                            id: item.id,
-                          };
-                          setIsEditingTask((prev) => ({
-                            ...prev,
-                            priority: false,
-                          }));
-                          setAutoOpenDropdown((prev) => ({
-                            ...prev,
-                            priority: false,
-                          }));
-                          toast.success("Task priority updated successfully.");
-                        } catch (error) {
-                          toast.error("Failed to update task priority.");
-                        }
-                      }}
-                      placeholder="Select priority..."
-                      showUnassign={false}
-                      hideAvatar={true}
-                      hideSubtext={true}
-                      itemType="user"
-                    />
-                   </div>
+                    <div className="mt-2">
+                      <DropdownAction
+                        currentItem={{
+                          id: editTaskData.priority || "MEDIUM",
+                          name:
+                            editTaskData.priority?.charAt(0).toUpperCase() +
+                              editTaskData.priority?.slice(1).toLowerCase() ||
+                            "Medium",
+                          color: task.priority?.color || "#F59E0B",
+                        }}
+                        availableItems={TaskPriorities}
+                        loading={false}
+                        forceOpen={autoOpenDropdown.priority}
+                        onOpenStateChange={(isOpen) => {
+                          if (!isOpen) {
+                            setAutoOpenDropdown((prev) => ({
+                              ...prev,
+                              priority: false,
+                            }));
+                            setIsEditingTask((prev) => ({
+                              ...prev,
+                              priority: false,
+                            }));
+                          }
+                        }}
+                        onItemSelect={async (item) => {
+                          try {
+                            const updateData: UpdateTaskRequest = {
+                              priority: item.id as
+                                | "LOW"
+                                | "MEDIUM"
+                                | "HIGH"
+                                | "HIGHEST",
+                            };
+                            await updateTask(taskId, updateData);
+                            handleTaskFieldChange("priority", item.id);
+                            task.priority = {
+                              name: item,
+                              id: item.id,
+                            };
+                            setIsEditingTask((prev) => ({
+                              ...prev,
+                              priority: false,
+                            }));
+                            setAutoOpenDropdown((prev) => ({
+                              ...prev,
+                              priority: false,
+                            }));
+                            toast.success(
+                              "Task priority updated successfully."
+                            );
+                          } catch (error) {
+                            toast.error("Failed to update task priority.");
+                          }
+                        }}
+                        placeholder="Select priority..."
+                        showUnassign={false}
+                        hideAvatar={true}
+                        hideSubtext={true}
+                        itemType="user"
+                      />
+                    </div>
                   )}
                 </div>
 
@@ -1068,62 +1054,65 @@ export default function TaskDetailClient({
 
                   {/* Always show badge */}
                   <div className="flex items-center justify-between">
-                    <StatusBadge status={currentStatus} className="text-[13px]" />
+                    <StatusBadge
+                      status={currentStatus}
+                      className="text-[13px]"
+                    />
                   </div>
 
                   {/* Dropdown overlay when editing */}
                   {isEditingTask.status && (
-                   <div className="mt-2">
-                     <DropdownAction
-                      currentItem={currentStatus}
-                      availableItems={statuses}
-                      loading={loadingStatuses}
-                      forceOpen={autoOpenDropdown.status}
-                      onOpenStateChange={(isOpen) => {
-                        if (!isOpen) {
-                          setAutoOpenDropdown((prev) => ({
-                            ...prev,
-                            status: false,
-                          }));
+                    <div className="mt-2">
+                      <DropdownAction
+                        currentItem={currentStatus}
+                        availableItems={statuses}
+                        loading={loadingStatuses}
+                        forceOpen={autoOpenDropdown.status}
+                        onOpenStateChange={(isOpen) => {
+                          if (!isOpen) {
+                            setAutoOpenDropdown((prev) => ({
+                              ...prev,
+                              status: false,
+                            }));
+                            setIsEditingTask((prev) => ({
+                              ...prev,
+                              status: false,
+                            }));
+                          }
+                        }}
+                        onItemSelect={async (item) => {
+                          await handleStatusChange(item);
                           setIsEditingTask((prev) => ({
                             ...prev,
                             status: false,
                           }));
-                        }
-                      }}
-                      onItemSelect={async (item) => {
-                        await handleStatusChange(item);
-                        setIsEditingTask((prev) => ({
-                          ...prev,
-                          status: false,
-                        }));
-                        setAutoOpenDropdown((prev) => ({
-                          ...prev,
-                          status: false,
-                        }));
-                      }}
-                      placeholder="Select status..."
-                      showUnassign={false}
-                      hideAvatar={true}
-                      hideSubtext={true}
-                      itemType="status"
-                      onDropdownOpen={async () => {
-                        if (statuses.length === 0) {
-                          const projectId = task.projectId || task.project?.id;
-                          if (projectId) {
-                            try {
-                              const allStatuses = await getTaskStatusByProject(
-                                projectId
-                              );
-                              setStatuses(allStatuses || []);
-                            } catch (error) {
-                              toast.error("Failed to fetch task statuses");
+                          setAutoOpenDropdown((prev) => ({
+                            ...prev,
+                            status: false,
+                          }));
+                        }}
+                        placeholder="Select status..."
+                        showUnassign={false}
+                        hideAvatar={true}
+                        hideSubtext={true}
+                        itemType="status"
+                        onDropdownOpen={async () => {
+                          if (statuses.length === 0) {
+                            const projectId =
+                              task.projectId || task.project?.id;
+                            if (projectId) {
+                              try {
+                                const allStatuses =
+                                  await getTaskStatusByProject(projectId);
+                                setStatuses(allStatuses || []);
+                              } catch (error) {
+                                toast.error("Failed to fetch task statuses");
+                              }
                             }
                           }
-                        }
-                      }}
-                    />
-                   </div>
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
 
@@ -1134,7 +1123,7 @@ export default function TaskDetailClient({
                     {hasAccess && (
                       <button
                         type="button"
-                        className="rounded transition flex items-center cursor-pointer  p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-[13px]"
+                        className="rounded transition flex items-center cursor-pointer  p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs"
                         onClick={() =>
                           setIsEditingTask((prev) => ({
                             ...prev,
@@ -1191,7 +1180,9 @@ export default function TaskDetailClient({
                         className="text-[13px] h-5 min-h-0 px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
                       >
                         {editTaskData.startDate
-                          ? new Date(editTaskData.startDate).toLocaleDateString()
+                          ? new Date(
+                              editTaskData.startDate
+                            ).toLocaleDateString()
                           : "No start date"}
                       </Badge>
                     </div>
@@ -1275,7 +1266,7 @@ export default function TaskDetailClient({
               <div>
                 <MemberSelect
                   label="Assignees"
-                  editMode={true}
+                  editMode={isAuth}
                   selectedMembers={assignees}
                   projectId={task.projectId || task.project?.id}
                   onChange={async (newAssignees) => {

@@ -19,6 +19,7 @@ import { PageHeaderSkeleton } from "../common/PageHeaderSkeleton";
 import { useProject } from "@/contexts/project-context";
 import ErrorState from "../common/ErrorState";
 import Tooltip from "../common/ToolTip";
+import { useAuth } from "@/contexts/auth-context";
 
 interface ProjectAnalyticsProps {
   projectSlug: string;
@@ -52,6 +53,9 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
     fetchAnalyticsData,
     clearAnalyticsError,
   } = useProject();
+  const { isAuthenticated } = useAuth();
+  const isAuth = isAuthenticated();
+
   // Widget configuration
   const [widgets, setWidgets] = useState<Widget[]>([
     {
@@ -116,7 +120,7 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
   };
   const handleFetchData = () => {
     if (error) clearAnalyticsError();
-    fetchAnalyticsData(projectSlug);
+    fetchAnalyticsData(projectSlug, isAuth);
   };
   useEffect(() => {
     if (projectSlug) {

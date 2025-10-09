@@ -23,16 +23,46 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
-
 import { NewProjectModal } from "@/components/projects/NewProjectModal";
 import NewWorkspaceDialog from "../workspace/NewWorkspaceDialogProps";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 import Tooltip from "../common/ToolTip";
 import SearchManager from "../header/SearchManager";
 
+// Logo component for unauthenticated state
+const Logo = () => (
+  <div className="flex items-center">
+    {/* Replace with your actual logo */}
+    <div className="flex items-center space-x-2">
+      <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+        <span className="text-primary-foreground font-bold text-sm">L</span>
+      </div>
+      <span className="font-semibold text-lg hidden sm:inline">YourApp</span>
+    </div>
+  </div>
+);
+
+// Login button component
+const LoginButton = () => {
+  const router = useRouter();
+  
+  const handleLogin = () => {
+    router.push('/login');
+  };
+
+  return (
+    <Button
+      onClick={handleLogin}
+      variant="default"
+      className="header-login-button"
+    >
+      Login
+    </Button>
+  );
+};
+
 export default function Header() {
   const router = useRouter();
-
   const { workspaceSlug, projectSlug } = router.query;
   const { getCurrentOrganizationId } = useWorkspaceContext();
   const { getUserAccess } = useAuth();
@@ -42,7 +72,8 @@ export default function Header() {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [hasOrganizationAccess, setHasOrganizationAccess] = useState(false);
   const [isWorkspaceDialogOpen, setIsWorkspaceDialogOpen] = useState(false);
-  const { getCurrentUser, logout, checkOrganizationAndRedirect } = useAuth();
+  const { getCurrentUser, logout, checkOrganizationAndRedirect, isAuthenticated } = useAuth();
+  const isAuth = isAuthenticated();
   const { getWorkspacesByOrganization } = useWorkspaceContext();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const currentOrganizationId = getCurrentOrganizationId();
@@ -51,6 +82,7 @@ export default function Header() {
   const toggleChat = chatContext?.toggleChat;
   const isChatOpen = chatContext?.isChatOpen;
   const [isAIEnabled, setIsAIEnabled] = useState(false);
+
   const refetchWorkspaces = useCallback(async () => {
     try {
       if (currentOrganizationId) {
@@ -113,6 +145,7 @@ export default function Header() {
       );
     };
   }, []);
+
   const pathname = router.pathname;
   const pathParts = pathname?.split("/").filter(Boolean);
 
@@ -269,10 +302,29 @@ export default function Header() {
     },
     { content: "Toggle Theme", component: <ModeToggle /> },
     {
-      content: "Search", component: <div className="search-manager-header"><SearchManager /></div>, noTooltip: true
+      content: "Search", 
+      component: <div className="search-manager-header"><SearchManager /></div>, 
+      noTooltip: true
     }
   ];
 
+  // Render unauthenticated header
+  if (!isAuth) {
+    return (
+      <header className="header-container">
+        <div className="header-content">
+
+          {/* Right Section - Login button only */}
+          <div className="justify-end w-full flex items-center space-x-4">
+            <LoginButton />
+            <ModeToggle /> 
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  // Render authenticated header (existing functionality)
   return (
     <>
       <header className="header-container">

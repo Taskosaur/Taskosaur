@@ -26,5 +26,7 @@ export interface ProjectMember {
     status: string;
     avatar: string;
     lastLoginAt: string;
+    avatarUrl?: string;
+
   };
 }

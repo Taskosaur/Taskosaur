@@ -17,6 +17,7 @@ import ActionButton from '../common/ActionButton';
 import ConfirmationModal from '../modals/ConfirmationModal';
 import { inboxApi } from '@/utils/api/inboxApi';
 import MDEditor from "@uiw/react-md-editor";
+import { useAuth } from "@/contexts/auth-context";
 
 interface TaskCommentsProps {
   taskId: string;
@@ -32,7 +33,7 @@ interface TaskCommentsProps {
 interface CommentWithAuthor extends TaskComment {
 
   emailMessageId?: string,
-  sentAsEmail?: string,
+  sentAsEmail?: boolean,
   emailRecipients?: string[],
   author: {
     id: string;
@@ -50,7 +51,8 @@ const CommentItem = React.memo(({
   onEdit,
   onDelete,
   onSendAsEmail,
-  formatTimestamp, colorMode
+  formatTimestamp, colorMode,
+  isAuth
 }: {
   comment: CommentWithAuthor;
   currentUser: User;
@@ -64,14 +66,16 @@ const CommentItem = React.memo(({
     fullDate: string
   };
   colorMode: "light" | "dark";
+  isAuth: boolean
 }) => {
+  console.log(allowEmailReplies)
   const [isHovered, setIsHovered] = useState(false);
   const timestamp = useMemo(() => 
     formatTimestamp(comment.createdAt, comment.updatedAt), 
     [comment.createdAt, comment.updatedAt, formatTimestamp]
   );
   
-  const canEdit = comment.authorId === currentUser.id;
+  const canEdit = !isAuth && comment.authorId === currentUser.id;
   const displayName = useMemo(() => {
     if (comment.author?.firstName || comment.author?.lastName) {
       return `${comment.author.firstName || ''} ${comment.author.lastName || ''}`.trim();
@@ -230,6 +234,8 @@ export default function TaskComments({
   onTaskRefetch,
   hasAccess = false,
 }: TaskCommentsProps) {
+  const { isAuthenticated } = useAuth();
+  const isAuth = isAuthenticated();
   const [colorMode, setColorMode] = useState<"light" | "dark">("light");
   const [showAll, setShowAll] = useState(false);
   const INITIAL_DISPLAY_COUNT = 3;
@@ -335,7 +341,7 @@ export default function TaskComments({
     const fetchComments = async () => {
       setLoadingComments(true);
       try {
-        const taskComments = await getTaskComments(taskId);
+        const taskComments = await getTaskComments(taskId, isAuth);
         setComments(taskComments || []);
       } catch (error) {
         console.error("Failed to fetch comments:", error);
@@ -350,7 +356,7 @@ export default function TaskComments({
 
   const refreshComments = useCallback(async () => {
     try {
-      const taskComments = await getTaskComments(taskId);
+      const taskComments = await getTaskComments(taskId, isAuth);
       setComments(taskComments || []);
       if (onTaskRefetch) {
         await onTaskRefetch();
@@ -501,7 +507,9 @@ export default function TaskComments({
       );
     }
 
-    const displayedComments = showAll ? comments : comments.slice(0, INITIAL_DISPLAY_COUNT);
+    const displayedComments = showAll
+      ? comments
+      : comments.slice(0, INITIAL_DISPLAY_COUNT);
 
     return (
       <div className="space-y-0">
@@ -518,6 +526,7 @@ export default function TaskComments({
                 onSendAsEmail={handleSendAsEmail}
                 formatTimestamp={formatTimestamp}
                 colorMode={colorMode}
+                isAuth
               />
             ))}
             {/* View More / Show Less Button */}
@@ -557,16 +566,16 @@ export default function TaskComments({
     showAll,
   ]);
 
-  if (!currentUser) {
-    return (
-      <Alert className="bg-[var(--muted)]/50 border-[var(--border)] text-[var(--muted-foreground)]">
-        <HiExclamationTriangle className="h-4 w-4" />
-        <AlertDescription>
-          Please log in to view and add comments.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  // if (!currentUser) {
+  //   return (
+  //     <Alert className="bg-[var(--muted)]/50 border-[var(--border)] text-[var(--muted-foreground)]">
+  //       <HiExclamationTriangle className="h-4 w-4" />
+  //       <AlertDescription>
+  //         Please log in to view and add comments.
+  //       </AlertDescription>
+  //     </Alert>
+  //   );
+  // }
 
   return (
     <>
@@ -608,7 +617,6 @@ export default function TaskComments({
         {hasAccess && (
           <div>
             <div className="flex gap-2">
-             
               <div className="flex-1">
                 <div className="relative" data-color-mode={colorMode}>
                   <MDEditor
@@ -648,7 +656,7 @@ export default function TaskComments({
                     </ActionButton>
                   )}
                   <ActionButton
-                  showPlusIcon
+                    showPlusIcon
                     secondary
                     onClick={
                       editingCommentId ? handleSaveEdit : handleAddComment

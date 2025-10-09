@@ -12,7 +12,7 @@ import { EmailReplyService } from '../inbox/services/email-reply.service';
 
 @Injectable()
 export class TaskCommentsService {
-  constructor(private prisma: PrismaService,  private emailReply: EmailReplyService) {}
+  constructor(private prisma: PrismaService, private emailReply: EmailReplyService) { }
 
   async create(
     createTaskCommentDto: CreateTaskCommentDto,
@@ -74,6 +74,7 @@ export class TaskCommentsService {
             id: true,
             title: true,
             slug: true,
+            allowEmailReplies: true,
           },
         },
         parentComment: {
@@ -96,7 +97,10 @@ export class TaskCommentsService {
         },
       },
     });
-    const result = await this.emailReply.sendCommentAsEmail(comment.id);
+    if (comment.task.allowEmailReplies) {
+      await this.emailReply.sendCommentAsEmail(comment.id);
+
+    }
 
     return comment;
   }

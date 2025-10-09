@@ -42,6 +42,7 @@ import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { InboxModule } from './modules/inbox/inbox.module';
 import { BullModule } from '@nestjs/bullmq';
 
+import { PublicModule } from './modules/public/public.module';
 // import { EmailModule } from './modules/email/email.module';
 // import { SchedulerModule } from './modules/scheduler/scheduler.module';
 
@@ -94,6 +95,7 @@ import { BullModule } from '@nestjs/bullmq';
           SettingsModule,
           AiChatModule,
           InboxModule,
+          PublicModule,
         ],
       },
     ]),
@@ -130,6 +132,7 @@ import { BullModule } from '@nestjs/bullmq';
     SettingsModule,
     AiChatModule,
     InboxModule,
+    PublicModule,
     // EmailModule,
     // SchedulerModule,
   ],

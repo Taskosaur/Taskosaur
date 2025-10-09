@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import  { useRef } from "react";
 import ActionButton from "@/components/common/ActionButton";
 import { ArrowDownToLine, Upload } from "lucide-react";
 import { HiPaperClip, HiTrash } from "react-icons/hi2";
@@ -160,7 +160,6 @@ export default function TaskAttachments({
                 disabled={isUploading}
                 secondary
                 showPlusIcon={!isUploading}
-                className="w-32 cursor-pointer"
               >
                 {isUploading ? (
                   <div className="flex items-center gap-2">
@@ -169,13 +168,17 @@ export default function TaskAttachments({
                   </div>
                 ) : (
                   <>
-                    Upload Files
+                    <div className="text-center">
+                    
+                                              Add Attachment
+
+                      
+                    </div>
                   </>
                 )}
               </ActionButton>
             </div>
 
-            {/* Helper text removed as per request */}
           </div>
         )}
       </div>

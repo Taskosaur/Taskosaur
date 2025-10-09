@@ -38,7 +38,7 @@ export class EmailSyncService {
     private s3Upload: S3UploadService,
   ) { }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  // @Cron(CronExpression.EVERY_5_MINUTES)
   async syncAllInboxes() {
     this.logger.log('Starting scheduled email sync for all inboxes');
 
@@ -301,12 +301,9 @@ export class EmailSyncService {
     }
   }
 
-
-
   async processMessage(message: EmailMessage, account: EmailAccount) {
     // Check if message already exists
     this.logger.log(`Checking if message ${message.messageId} exists`);
-    console.log("reply to id", message.inReplyTo)
 
     const existing = await this.prisma.inboxMessage.findUnique({
       where: { messageId: message.messageId },
@@ -553,8 +550,6 @@ export class EmailSyncService {
 
   private async autoCreateTask(message: any, inbox: any) {
     try {
-      // Check for existing thread
-      console.log("Thread ID:", message.threadId);
       const existingTask = await this.prisma.task.findFirst({
         where: { emailThreadId: message.threadId },
         include: {

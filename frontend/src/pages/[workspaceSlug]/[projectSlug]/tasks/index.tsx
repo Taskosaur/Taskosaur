@@ -31,6 +31,7 @@ import SortingManager, {
   SortField,
 } from "@/components/tasks/SortIngManager";
 import Tooltip from "@/components/common/ToolTip";
+import { TokenManager } from "@/lib/api";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -54,13 +55,15 @@ function ProjectTasksContent() {
     getAllTasks,
     getTaskKanbanStatus,
     getCalendarTask,
+    getPublicProjectTasks,
     tasks,
     isLoading,
     error: contextError,
     taskResponse,
   } = useTask();
 
-  const { getUserAccess } = useAuth();
+  const { getUserAccess, isAuthenticated } = useAuth();
+  const isAuth = isAuthenticated();
 
   const [hasAccess, setHasAccess] = useState(false);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -95,10 +98,37 @@ function ProjectTasksContent() {
   const [addTaskPriorities, setAddTaskPriorities] = useState<any[]>([]);
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [sortField, setSortField] = useState<SortField>("createdAt");
+  
+  // Public tasks state for unauthenticated users
+  const [publicTasks, setPublicTasks] = useState<any[]>([]);
+  const [publicTasksTotal, setPublicTasksTotal] = useState(0);
+  const [isLoadingPublic, setIsLoadingPublic] = useState(false);
+  
   const error = contextError || localError;
 
-  // Create pagination info from context
+  // Authentication check only for action-based functions (create, update, delete)
+  const checkAuthForAction = (action: () => void) => {
+    if (!isAuth) {
+      router.push("/login");
+      return;
+    }
+    action();
+  };
+
+  // Create pagination info - different for authenticated and unauthenticated users
   const pagination = useMemo(() => {
+    if (!isAuth) {
+      // For public users, use simple pagination based on publicTasks
+      const totalPages = Math.ceil(publicTasksTotal / pageSize);
+      return {
+        currentPage,
+        totalPages,
+        totalCount: publicTasksTotal,
+        hasNextPage: currentPage < totalPages,
+        hasPrevPage: currentPage > 1,
+      };
+    }
+
     if (!taskResponse) {
       return {
         currentPage: 1,
@@ -116,19 +146,18 @@ function ProjectTasksContent() {
       hasNextPage: taskResponse.page < taskResponse.totalPages,
       hasPrevPage: taskResponse.page > 1,
     };
-  }, [taskResponse]);
+  }, [taskResponse, isAuth, publicTasksTotal, pageSize, currentPage]);
 
   const routeRef = useRef<string>("");
   const firstRenderRef = useRef(true);
   const debouncedSearchQuery = useDebounce(searchInput, 500);
-  const hasValidAuth =
-    !!auth.isAuthenticated() && !!workspaceSlug && !!projectSlug;
-
+  const hasValidAuth = !!isAuth && !!workspaceSlug && !!projectSlug;
+  const currentOrganizationId = TokenManager.getCurrentOrgId()
   const { createSection } = useGenericFilters();
 
-  // Load user access
+  // Load user access (only for authenticated users)
   useEffect(() => {
-    if (project) {
+    if (project && isAuth) {
       getUserAccess({ name: "project", id: project.id })
         .then((data) => {
           setHasAccess(data?.canChange);
@@ -137,11 +166,11 @@ function ProjectTasksContent() {
           console.error("Error fetching user access:", error);
         });
     }
-  }, [project]);
+  }, [project, isAuth]);
 
-  // Initialize filter states from URL
+  // Initialize filter states from URL (only for authenticated users)
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && isAuth) {
       const params = new URLSearchParams(window.location.search);
       const statusParams = params.get("statuses");
       const priorityParams = params.get("priorities");
@@ -153,12 +182,12 @@ function ProjectTasksContent() {
         setSelectedPriorities(priorityParams.split(","));
       }
     }
-  }, []);
+  }, [isAuth]);
 
-  // Load task priorities for Add Task row
+  // Load task priorities for Add Task row (only for authenticated users)
   useEffect(() => {
     const fetchMeta = async () => {
-      if (!project?.id) return;
+      if (!project?.id || !isAuth) return;
       try {
         setAddTaskPriorities(TaskPriorities || []);
       } catch (error) {
@@ -167,13 +196,15 @@ function ProjectTasksContent() {
       }
     };
     fetchMeta();
-  }, [project?.id]);
+  }, [project?.id, isAuth]);
 
   const validateRequiredData = useCallback(() => {
+    if (!isAuth) return true; // Skip validation for public users
+
     const issues = [];
 
     if (!workspace?.id) issues.push("Missing workspace ID");
-    if (!workspace?.organizationId) issues.push("Missing organization ID");
+    if (!currentOrganizationId) issues.push("Missing organization ID");
     if (!project?.id) issues.push("Missing project ID");
 
     if (issues.length > 0) {
@@ -183,33 +214,35 @@ function ProjectTasksContent() {
     }
 
     return true;
-  }, [workspace?.id, workspace?.organizationId, project?.id]);
+  }, [workspace?.id, currentOrganizationId, project?.id, isAuth]);
 
   const loadInitialData = useCallback(async () => {
-    if (!hasValidAuth) return;
-
     try {
       setLocalError(null);
 
-      if (!auth.isAuthenticated()) {
-        router.push("/auth/login");
-        return;
+      let ws: Workspace | null = null;
+      if (hasValidAuth) {
+        ws = await workspaceApi.getWorkspaceBySlug(workspaceSlug as string);
+        if (!ws) {
+          throw new Error(`Workspace "${workspaceSlug}" not found`);
+        }
+        setWorkspace(ws);
       }
 
-      const ws = await workspaceApi.getWorkspaceBySlug(workspaceSlug as string);
-      if (!ws) {
-        throw new Error(`Workspace "${workspaceSlug}" not found`);
-      }
-
-      setWorkspace(ws);
-
-      const proj = await projectApi.getProjectBySlug(projectSlug as string);
+      const proj = await projectApi.getProjectBySlug(
+        projectSlug as string, 
+        isAuth, 
+        workspaceSlug as string
+      );
+      
+      console.log("Fetched project:", proj);
       if (!proj) {
         throw new Error(
           `Project "${projectSlug}" not found in workspace "${workspaceSlug}"`
         );
       }
-
+      
+      setWorkspace(proj.workspace as Workspace || null);
       setProject(proj);
 
       return { ws, proj };
@@ -220,17 +253,17 @@ function ProjectTasksContent() {
       );
     }
   }, [
-    auth.isAuthenticated,
+    hasValidAuth,
     workspaceSlug,
     projectSlug,
     workspaceApi,
     projectApi,
-    router,
+    isAuth,
   ]);
 
-  // Load task statuses
+  // Load task statuses (only for authenticated users)
   const loadStatusData = useCallback(async () => {
-    if (!project?.id || statusesLoaded) return;
+    if (!project?.id || statusesLoaded || !isAuth) return;
     try {
       const statuses = await projectApi.getTaskStatusByProject(project.id);
       setAvailableStatuses(statuses || []);
@@ -239,11 +272,11 @@ function ProjectTasksContent() {
       console.error("Failed to load task statuses:", error);
       setAvailableStatuses([]);
     }
-  }, [project?.id, statusesLoaded, projectApi]);
+  }, [project?.id, statusesLoaded, projectApi, isAuth]);
 
-  // Load project members
+  // Load project members (only for authenticated users)
   const loadProjectMembers = useCallback(async () => {
-    if (!project?.id || membersLoaded) return;
+    if (!project?.id || membersLoaded || !isAuth) return;
     try {
       const members = await projectApi.getProjectMembers(project.id);
       setProjectMembers(members || []);
@@ -252,11 +285,46 @@ function ProjectTasksContent() {
       console.error("Failed to load project members:", error);
       setProjectMembers([]);
     }
-  }, [project?.id, membersLoaded, projectApi]);
+  }, [project?.id, membersLoaded, projectApi, isAuth]);
 
-  // Updated loadTasks using getAllTasks with proper parameters
+  // Load public tasks for unauthenticated users
+  const loadPublicTasks = useCallback(async () => {
+    if (isAuth || !workspaceSlug || !projectSlug) return;
+
+    try {
+      setIsLoadingPublic(true);
+      setLocalError(null);
+
+      const filters = {
+        limit: pageSize,
+        offset: (currentPage - 1) * pageSize,
+      };
+
+      const tasks = await getPublicProjectTasks(
+        workspaceSlug as string,
+        projectSlug as string,
+        filters
+      );
+
+      setPublicTasks(tasks || []);
+      // For now, we'll estimate total based on returned tasks
+      // You might want to modify the API to return total count
+      setPublicTasksTotal(tasks?.length || 0);
+    } catch (error) {
+      console.error("Failed to load public tasks:", error);
+      setLocalError(
+        error instanceof Error ? error.message : "Failed to load public tasks"
+      );
+    } finally {
+      setIsLoadingPublic(false);
+    }
+  }, [isAuth, workspaceSlug, projectSlug, pageSize, currentPage, getPublicProjectTasks]);
+
+  // Updated loadTasks for authenticated users only
   const loadTasks = useCallback(async () => {
-    if (!workspace?.organizationId || !project?.id) {
+    if (!isAuth) return; // Skip for unauthenticated users
+
+    if (!currentOrganizationId || !project?.id) {
       return;
     }
 
@@ -285,7 +353,7 @@ function ProjectTasksContent() {
       };
 
       // Call getAllTasks - this will update tasks and taskResponse in context
-      await getAllTasks(workspace.organizationId, params);
+      await getAllTasks(currentOrganizationId, params);
     } catch (error) {
       console.error("Failed to load tasks:", error);
       setLocalError(
@@ -293,7 +361,8 @@ function ProjectTasksContent() {
       );
     }
   }, [
-    workspace?.organizationId,
+    isAuth,
+    currentOrganizationId,
     workspace?.id,
     project?.id,
     currentPage,
@@ -302,35 +371,34 @@ function ProjectTasksContent() {
     selectedStatuses,
     selectedPriorities,
     validateRequiredData,
+    getAllTasks,
   ]);
 
-  
   useEffect(() => {
     if (currentView === "gantt") {
-      
       if (project && projectSlug) {
-        loadGanttData();
+        if (isAuth) {
+          loadGanttData();
+        }
       }
       return;
     }
-    if (
-      currentView === "list" &&
-      workspace?.organizationId &&
-      project?.id
-    ) {
-      loadTasks();
+    if (currentView === "list") {
+      if (isAuth && currentOrganizationId && project?.id) {
+        loadTasks();
+      } else if (!isAuth) {
+        loadPublicTasks();
+      }
     }
-    if (
-      currentView === "kanban" &&
-      project &&
-      projectSlug
-    ) {
+    if (currentView === "kanban" && project && projectSlug && isAuth) {
       loadKanbanData(projectSlug as string);
     }
-  }, [currentView, workspace?.organizationId, project?.id, projectSlug]);
+  }, [currentView, currentOrganizationId, project?.id, projectSlug, isAuth]);
 
   const loadKanbanData = useCallback(
     async (projSlug: string) => {
+      if (!isAuth) return; // Skip for unauthenticated users
+      
       try {
         const data = await getTaskKanbanStatus({
           type: "project",
@@ -342,22 +410,20 @@ function ProjectTasksContent() {
         console.error("Failed to load kanban data:", error);
       }
     },
-    [getTaskKanbanStatus]
+    [getTaskKanbanStatus, isAuth]
   );
 
- 
   const loadGanttData = useCallback(async () => {
-  if (!workspace?.organizationId || !project?.id) return;
-  try {
-    await getCalendarTask(workspace.organizationId, {
-      projectId: project.id,
-      workspaceId: workspace.id,
-     
-    });
-  } catch (error) {
-    console.error("Failed to load Gantt data:", error);
-  }
-}, [ workspace?.organizationId, workspace?.id, project?.id]);
+    if (!currentOrganizationId || !project?.id || !isAuth) return;
+    try {
+      await getCalendarTask(currentOrganizationId, {
+        projectId: project.id,
+        workspaceId: workspace.id,
+      });
+    } catch (error) {
+      console.error("Failed to load Gantt data:", error);
+    }
+  }, [currentOrganizationId, workspace?.id, project?.id, isAuth]);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -369,22 +435,26 @@ function ProjectTasksContent() {
     }
   }, [router.isReady, workspaceSlug, projectSlug]);
 
-  
   useEffect(() => {
-    if (workspace?.organizationId && project?.id) {
-      loadTasks();
+    console.log(isAuth)
+    if (isAuth) {
+      if (currentOrganizationId && project?.id) {
+        loadTasks();
+      }
+    } else {
+      loadPublicTasks();
     }
-  }, [workspace?.organizationId, project?.id]);
+  }, [currentOrganizationId, project?.id, isAuth]);
 
-  // Load supplementary data when project is available
+  // Load supplementary data when project is available (only for authenticated users)
   useEffect(() => {
-    if (project?.id) {
+    if (project?.id && isAuth) {
       loadStatusData();
       loadProjectMembers();
     }
-  }, [project?.id]);
+  }, [project?.id, isAuth]);
 
-  // Handle filter changes
+  // Handle filter changes (only for authenticated users)
   const previousFiltersRef = useRef({
     page: currentPage,
     pageSize,
@@ -394,7 +464,8 @@ function ProjectTasksContent() {
   });
 
   useEffect(() => {
-    if (!workspace?.organizationId || !project?.id) return;
+    if (!isAuth) return; // Skip for unauthenticated users
+    if (!currentOrganizationId || !project?.id) return;
 
     const currentFilters = {
       page: currentPage,
@@ -418,22 +489,30 @@ function ProjectTasksContent() {
       loadTasks();
     }
   }, [
-    workspace?.organizationId,
+    isAuth,
+    currentOrganizationId,
     project?.id,
     currentPage,
     pageSize,
     debouncedSearchQuery,
     selectedStatuses,
     selectedPriorities,
-    validateRequiredData
   ]);
 
+  // Handle pagination changes for public users
+  useEffect(() => {
+    if (!isAuth && project) {
+      loadPublicTasks();
+    }
+  }, [currentPage, pageSize, isAuth, project]);
 
-
+  // Get the appropriate tasks based on authentication status
+  const displayTasks = isAuth ? tasks : publicTasks;
+  const displayLoading = isAuth ? isLoading : isLoadingPublic;
 
   // Sorting logic for tasks
   const sortedTasks = useMemo(() => {
-    const sorted = [...tasks].sort((a, b) => {
+    const sorted = [...displayTasks].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
       // Handle date fields
@@ -459,36 +538,43 @@ function ProjectTasksContent() {
       return 0;
     });
     return sorted;
-  }, [tasks, sortOrder, sortField]);
+  }, [displayTasks, sortOrder, sortField]);
 
-  // Filter configurations
+  // Filter configurations (only for authenticated users)
   const statusFilters = useMemo(
     () =>
-      availableStatuses.map((status) => ({
-        id: status.id,
-        label: status.name,
-        value: status.id,
-        selected: selectedStatuses.includes(status.id),
-        count: status._count?.tasks || 0,
-        color: status.color || "#6b7280",
-      })),
-    [availableStatuses, selectedStatuses]
+      isAuth
+        ? availableStatuses.map((status) => ({
+            id: status.id,
+            label: status.name,
+            value: status.id,
+            selected: selectedStatuses.includes(status.id),
+            count: status._count?.tasks || 0,
+            color: status.color || "#6b7280",
+          }))
+        : [],
+    [availableStatuses, selectedStatuses, isAuth]
   );
 
   const priorityFilters = useMemo(
     () =>
-      availablePriorities.map((priority) => ({
-        id: priority.id,
-        name: priority.name,
-        value: priority.value,
-        selected: selectedPriorities.includes(priority.value),
-        count: tasks.filter((task) => task.priority === priority.value).length,
-        color: priority.color,
-      })),
-    [availablePriorities, selectedPriorities, tasks]
+      isAuth
+        ? availablePriorities.map((priority) => ({
+            id: priority.id,
+            name: priority.name,
+            value: priority.value,
+            selected: selectedPriorities.includes(priority.value),
+            count: displayTasks.filter((task) => task.priority === priority.value).length,
+            color: priority.color,
+          }))
+        : [],
+    [availablePriorities, selectedPriorities, displayTasks, isAuth]
   );
-// Sorting logic for tasks
+
+  // Filter actions - Only for authenticated users
   const safeToggleStatus = useCallback((id: string) => {
+    if (!isAuth) return;
+    
     try {
       setSelectedStatuses((prev) => {
         const newSelection = prev.includes(id)
@@ -509,9 +595,11 @@ function ProjectTasksContent() {
     } catch (error) {
       console.error("Error toggling status filter:", error);
     }
-  }, []);
+  }, [isAuth]);
 
   const safeTogglePriority = useCallback((id: string) => {
+    if (!isAuth) return;
+    
     try {
       setSelectedPriorities((prev) => {
         const newSelection = prev.includes(id)
@@ -532,48 +620,56 @@ function ProjectTasksContent() {
     } catch (error) {
       console.error("Error toggling priority filter:", error);
     }
-  }, []);
+  }, [isAuth]);
 
   const filterSections = useMemo(
-    () => [
-      createSection({
-        id: "status",
-        title: "Status",
-        icon: CheckSquare,
-        data: statusFilters,
-        selectedIds: selectedStatuses,
-        searchable: false,
-        onToggle: safeToggleStatus,
-        onSelectAll: () => setSelectedStatuses(statusFilters.map((s) => s.id)),
-        onClearAll: () => setSelectedStatuses([]),
-      }),
-      createSection({
-        id: "priority",
-        title: "Priority",
-        icon: Flame,
-        data: priorityFilters,
-        selectedIds: selectedPriorities,
-        searchable: false,
-        onToggle: safeTogglePriority,
-        onSelectAll: () =>
-          setSelectedPriorities(priorityFilters.map((p) => p.id)),
-        onClearAll: () => setSelectedPriorities([]),
-      }),
-    ],
+    () =>
+      isAuth
+        ? [
+            createSection({
+              id: "status",
+              title: "Status",
+              icon: CheckSquare,
+              data: statusFilters,
+              selectedIds: selectedStatuses,
+              searchable: false,
+              onToggle: safeToggleStatus,
+              onSelectAll: () => setSelectedStatuses(statusFilters.map((s) => s.id)),
+              onClearAll: () => setSelectedStatuses([]),
+            }),
+            createSection({
+              id: "priority",
+              title: "Priority",
+              icon: Flame,
+              data: priorityFilters,
+              selectedIds: selectedPriorities,
+              searchable: false,
+              onToggle: safeTogglePriority,
+              onSelectAll: () =>
+                setSelectedPriorities(priorityFilters.map((p) => p.id)),
+              onClearAll: () => setSelectedPriorities([]),
+            }),
+          ]
+        : [],
     [
+      isAuth,
       statusFilters,
       priorityFilters,
       selectedStatuses,
       selectedPriorities,
       safeToggleStatus,
       safeTogglePriority,
+      createSection,
     ]
   );
 
-  const totalActiveFilters =
-    selectedStatuses.length + selectedPriorities.length;
+  const totalActiveFilters = isAuth
+    ? selectedStatuses.length + selectedPriorities.length
+    : 0;
 
   const clearAllFilters = useCallback(() => {
+    if (!isAuth) return;
+    
     setSelectedStatuses([]);
     setSelectedPriorities([]);
     setCurrentPage(1);
@@ -584,9 +680,9 @@ function ProjectTasksContent() {
     params.delete("priorities");
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState({}, "", newUrl);
-  }, []);
+  }, [isAuth]);
 
-  // Column management
+  // Column management - Keep original functionality (no auth check)
   const handleAddColumn = (columnId: string) => {
     const columnConfigs: Record<
       string,
@@ -631,8 +727,10 @@ function ProjectTasksContent() {
     setColumns((prev) => prev.filter((col) => col.id !== columnId));
   };
 
-  // Task operations
+  // Task operations - ONLY these require authentication
   const handleTaskCreated = useCallback(async () => {
+    if (!isAuth) return;
+    
     try {
       await loadTasks();
 
@@ -648,21 +746,27 @@ function ProjectTasksContent() {
       console.error("Error refreshing tasks:", error);
       throw error;
     }
-  }, [loadTasks, currentView, projectSlug, getTaskKanbanStatus]);
+  }, [isAuth, loadTasks, currentView, projectSlug, getTaskKanbanStatus]);
 
   const handleTaskRefetch = useCallback(async () => {
-    await loadTasks();
-  }, [loadTasks]);
+    if (isAuth) {
+      await loadTasks();
+    } else {
+      await loadPublicTasks();
+    }
+  }, [isAuth, loadTasks, loadPublicTasks]);
 
   const handleRetry = useCallback(() => {
     setLocalError(null);
     loadInitialData();
-    if (workspace?.organizationId && project?.id) {
+    if (isAuth && currentOrganizationId && project?.id) {
       loadTasks();
+    } else if (!isAuth) {
+      loadPublicTasks();
     }
-  }, [loadInitialData, loadTasks, workspace?.organizationId, project?.id]);
+  }, [loadInitialData, isAuth, currentOrganizationId, project?.id, loadTasks, loadPublicTasks]);
 
-  // Pagination handlers
+  // Pagination handlers - Work for both authenticated and unauthenticated users
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
   }, []);
@@ -678,10 +782,10 @@ function ProjectTasksContent() {
 
   // Render content based on current view
   const renderContent = () => {
-    if (isLoading)
+    if (displayLoading)
       return <Loader text="Fetching project tasks..." className="py-20" />;
 
-    if (!tasks.length) {
+    if (!displayTasks.length) {
       return (
         <EmptyState
           searchQuery={debouncedSearchQuery}
@@ -692,6 +796,16 @@ function ProjectTasksContent() {
 
     switch (currentView) {
       case "kanban":
+        // Only show kanban for authenticated users
+        if (!isAuth) {
+          return (
+            <div className="text-center py-12">
+              <p className="text-[var(--muted-foreground)]">
+                Kanban view is available for authenticated users only. Please log in to access this view.
+              </p>
+            </div>
+          );
+        }
         return kanban.length ? (
           <KanbanBoard
             kanbanData={kanban}
@@ -711,9 +825,19 @@ function ProjectTasksContent() {
           </div>
         );
       case "gantt":
+        // Only show gantt for authenticated users
+        if (!isAuth) {
+          return (
+            <div className="text-center py-12">
+              <p className="text-[var(--muted-foreground)]">
+                Gantt view is available for authenticated users only. Please log in to access this view.
+              </p>
+            </div>
+          );
+        }
         return (
           <TaskGanttView
-            tasks={tasks}
+            tasks={displayTasks}
             workspaceSlug={workspaceSlug as string}
             projectSlug={projectSlug as string}
             viewMode={ganttViewMode}
@@ -731,15 +855,14 @@ function ProjectTasksContent() {
             addTaskStatuses={availableStatuses}
             addTaskPriorities={addTaskPriorities}
             projectMembers={projectMembers}
-            showAddTaskRow={hasAccess}
-
+            showAddTaskRow={hasAccess && isAuth}
           />
         );
     }
   };
 
   const showPagination =
-    currentView === "list" && tasks.length > 0 && pagination.totalPages > 1;
+    currentView === "list" && displayTasks.length > 0 && pagination.totalPages > 1;
 
   if (error) return <ErrorState error={error} onRetry={handleRetry} />;
 
@@ -755,25 +878,30 @@ function ProjectTasksContent() {
           actions={
             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
               <div className="flex items-center gap-2">
-                <div className="relative w-full sm:max-w-xs">
-                  <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
-                  <Input
-                    type="text"
-                    placeholder="Search tasks..."
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    className="pl-10 rounded-md border border-[var(--border)]"
-                  />
-                  {searchInput && (
-                    <button
-                      onClick={clearSearch}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
-                    >
-                      <HiXMark size={16} />
-                    </button>
-                  )}
-                </div>
-                {currentView === "list" && (
+                {/* Hide search for unauthenticated users */}
+                {isAuth && (
+                  <div className="relative w-full sm:max-w-xs">
+                    <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
+                    <Input
+                      type="text"
+                      placeholder="Search tasks..."
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      className="pl-10 rounded-md border border-[var(--border)]"
+                    />
+                    {searchInput && (
+                      <button
+                        onClick={clearSearch}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+                      >
+                        <HiXMark size={16} />
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {/* Hide filters for unauthenticated users */}
+                {isAuth && currentView === "list" && (
                   <FilterDropdown
                     sections={filterSections}
                     title="Advanced Filters"
@@ -786,13 +914,16 @@ function ProjectTasksContent() {
                 )}
               </div>
 
-              {hasAccess && (
+              {/* ONLY Create Task requires authentication */}
+              {hasAccess && isAuth && (
                 <ActionButton
                   primary
                   showPlusIcon
-                  onClick={() =>
-                    router.push(`/${workspaceSlug}/${projectSlug}/tasks/new`)
-                  }
+                  onClick={() => {
+                    checkAuthForAction(() => 
+                      router.push(`/${workspaceSlug}/${projectSlug}/tasks/new`)
+                    );
+                  }}
                   disabled={!workspace?.id || !project?.id}
                 >
                   Create Task
@@ -813,7 +944,9 @@ function ProjectTasksContent() {
                         ? error.message
                         : "Failed to refresh tasks";
                     console.error("Error creating task:", errorMessage);
-                    await loadTasks();
+                    if (isAuth) {
+                      await loadTasks();
+                    }
                   }
                 }}
                 workspaceSlug={workspaceSlug as string}
@@ -824,11 +957,15 @@ function ProjectTasksContent() {
         />
       </div>
 
-      {/* Sticky TabView */}
+      {/* Sticky TabView - Limited for unauthenticated users */}
       <div className="sticky top-[64px] z-20 bg-[var(--background)]">
         <TabView
           currentView={currentView}
           onViewChange={(v) => {
+            // For unauthenticated users, only allow list view
+            if (!isAuth && v !== "list") {
+              return;
+            }
             setCurrentView(v);
             router.push(
               `/${workspaceSlug}/${projectSlug}/tasks?type=${v}`,
@@ -836,10 +973,12 @@ function ProjectTasksContent() {
               { shallow: true }
             );
           }}
-          viewKanban={true}
+          viewKanban={isAuth} // Only show kanban option for authenticated users
+          viewGantt={isAuth} // Only show gantt option for authenticated users
           rightContent={
             <>
-              {currentView === "gantt" && (
+              {/* Hide most controls for unauthenticated users */}
+              {isAuth && currentView === "gantt" && (
                 <div className="flex items-center bg-[var(--odd-row)] rounded-lg p-1 shadow-sm">
                   {(["days", "weeks", "months"] as const).map((mode) => (
                     <button
@@ -857,6 +996,7 @@ function ProjectTasksContent() {
                   ))}
                 </div>
               )}
+              {/* List view controls - Available for all users */}
               {currentView === "list" && (
                 <div className="flex items-center gap-2">
                   <Tooltip
@@ -886,7 +1026,8 @@ function ProjectTasksContent() {
                   </Tooltip>
                 </div>
               )}
-              {currentView === "kanban" && (
+              {/* Kanban view controls - Only for authenticated users */}
+              {isAuth && currentView === "kanban" && (
                 <div className="flex items-center gap-2">
                   <Tooltip
                     content="Manage Columns"
@@ -908,10 +1049,10 @@ function ProjectTasksContent() {
         />
       </div>
 
-      {/* Scrollable KanbanBoard/content */}
+      {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto rounded-md">{renderContent()}</div>
 
-      {/* Sticky Pagination */}
+      {/* Sticky Pagination - Available for all users */}
       {showPagination && (
         <div className="sticky bottom-0 z-10 bg-[var(--background)]">
           <Pagination

@@ -1,11 +1,17 @@
 import api from "@/lib/api";
-import { CreateSprintData, Sprint, SprintFilters, SprintStats, SprintStatus, UpdateSprintData } from "@/types";
+import {
+  CreateSprintData,
+  Sprint,
+  SprintFilters,
+  SprintStats,
+  SprintStatus,
+  UpdateSprintData,
+} from "@/types";
 
 export const sprintApi = {
   // Sprint CRUD operations
   createSprint: async (sprintData: CreateSprintData): Promise<Sprint> => {
     try {
-      
       const response = await api.post<Sprint>("/sprints", sprintData);
       return response.data;
     } catch (error) {
@@ -14,14 +20,35 @@ export const sprintApi = {
     }
   },
 
-  getSprints: async (filters: SprintFilters = {}): Promise<Sprint[]> => {
+  getSprints: async (
+    filters: SprintFilters = {},
+    isAuthenticated: boolean,
+    workspaceSlug?: string
+  ): Promise<Sprint[]> => {
     try {
       const params = new URLSearchParams();
-      
-      if (filters.slug) params.append('slug', filters.slug);
-      if (filters.status) params.append('status', filters.status);
 
-      const response = await api.get<Sprint[]>(`/sprints/slug?${params.toString()}`);
+      if (filters.slug) params.append("slug", filters.slug);
+      if (filters.status) params.append("status", filters.status);
+
+      let response;
+      if (isAuthenticated) {
+        response = await api.get<Sprint[]>(
+          `/sprints/slug?${params.toString()}`
+        );
+      } else {
+        if (!workspaceSlug || !filters.slug) {
+          throw new Error(
+            "workspaceSlug and projectSlug (filters.slug) are required for public access"
+          );
+        }
+        response = await api.get<Sprint[]>(
+          `/public/workspaces/${workspaceSlug}/projects/${
+            filters.slug
+          }/sprints`
+        );
+      }
+
       return response.data;
     } catch (error) {
       console.error("Get sprints error:", error);
@@ -42,12 +69,17 @@ export const sprintApi = {
   getActiveSprint: async (projectId: string): Promise<Sprint | null> => {
     try {
       // Validate projectId format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(projectId)) {
-        throw new Error(`Invalid projectId format: ${projectId}. Expected UUID format.`);
+        throw new Error(
+          `Invalid projectId format: ${projectId}. Expected UUID format.`
+        );
       }
 
-      const response = await api.get<Sprint>(`/sprints/project/${projectId}/active`);
+      const response = await api.get<Sprint>(
+        `/sprints/project/${projectId}/active`
+      );
       return response.data;
     } catch (error) {
       // Return null if no active sprint found (404)
@@ -59,9 +91,15 @@ export const sprintApi = {
     }
   },
 
-  updateSprint: async (sprintId: string, sprintData: UpdateSprintData): Promise<Sprint> => {
+  updateSprint: async (
+    sprintId: string,
+    sprintData: UpdateSprintData
+  ): Promise<Sprint> => {
     try {
-      const response = await api.patch<Sprint>(`/sprints/${sprintId}`, sprintData);
+      const response = await api.patch<Sprint>(
+        `/sprints/${sprintId}`,
+        sprintData
+      );
       return response.data;
     } catch (error) {
       console.error("Update sprint error:", error);
@@ -89,10 +127,12 @@ export const sprintApi = {
     }
   },
 
-  deleteSprint: async (sprintId: string): Promise<{ success: boolean; message: string }> => {
+  deleteSprint: async (
+    sprintId: string
+  ): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await api.delete(`/sprints/${sprintId}`);
-      
+
       const contentType = response.headers?.["content-type"] || "";
       const status = response.status;
 
@@ -112,19 +152,35 @@ export const sprintApi = {
   },
 
   // Sprint filtering and querying
-  getSprintsByProject: async (slug: string): Promise<Sprint[]> => {
+  getSprintsByProject: async (
+    slug: string,
+    isAuthenticated: boolean,
+    workspaceSlug?: string
+  ): Promise<Sprint[]> => {
     try {
-      
-      return await sprintApi.getSprints({ slug });
+      return await sprintApi.getSprints(
+        { slug },
+        isAuthenticated,
+        workspaceSlug
+      );
     } catch (error) {
       console.error("Get sprints by project error:", error);
       throw error;
     }
   },
 
-  getSprintsByStatus: async (status: SprintStatus): Promise<Sprint[]> => {
+  getSprintsByStatus: async (
+    status: SprintStatus,
+    isAuthenticated: boolean,
+    workspaceSlug?: string,
+    projectSlug?: string
+  ): Promise<Sprint[]> => {
     try {
-      return await sprintApi.getSprints({ status });
+      return await sprintApi.getSprints(
+        { status, slug: projectSlug },
+        isAuthenticated,
+        workspaceSlug
+      );
     } catch (error) {
       console.error("Get sprints by status error:", error);
       throw error;
@@ -183,12 +239,13 @@ export const sprintApi = {
     const completedTasks = sprint._count?.completedTasks || 0;
     const inProgressTasks = sprint._count?.inProgressTasks || 0;
     const todoTasks = sprint._count?.todoTasks || 0;
-    
-    const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-    
+
+    const completionRate =
+      totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
     let daysRemaining: number | undefined;
     let isOverdue = false;
-    
+
     if (sprint.endDate) {
       const endDate = new Date(sprint.endDate);
       const now = new Date();
@@ -204,7 +261,7 @@ export const sprintApi = {
       todoTasks,
       completionRate: Math.round(completionRate * 100) / 100,
       daysRemaining,
-      isOverdue
+      isOverdue,
     };
   },
 
@@ -240,50 +297,58 @@ export const sprintApi = {
   // Date formatting utilities
   formatSprintDuration: (sprint: Sprint): string => {
     if (!sprint.startDate || !sprint.endDate) return "No dates set";
-    
+
     const start = new Date(sprint.startDate);
     const end = new Date(sprint.endDate);
-    
+
     const startFormatted = start.toLocaleDateString();
     const endFormatted = end.toLocaleDateString();
-    
+
     return `${startFormatted} - ${endFormatted}`;
   },
 
   getSprintDurationInDays: (sprint: Sprint): number | null => {
     if (!sprint.startDate || !sprint.endDate) return null;
-    
+
     const start = new Date(sprint.startDate);
     const end = new Date(sprint.endDate);
     const diffTime = end.getTime() - start.getTime();
-    
+
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   },
 
   // Validation utilities
-  validateSprintDates: (startDate: string, endDate: string): { isValid: boolean; error?: string } => {
+  validateSprintDates: (
+    startDate: string,
+    endDate: string
+  ): { isValid: boolean; error?: string } => {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return { isValid: false, error: "Invalid date format" };
     }
-    
+
     if (start >= end) {
       return { isValid: false, error: "Start date must be before end date" };
     }
-    
+
     if (start < new Date(new Date().setHours(0, 0, 0, 0))) {
       return { isValid: false, error: "Start date cannot be in the past" };
     }
-    
+
     return { isValid: true };
   },
 
   // Bulk operations
-  bulkUpdateSprints: async (sprintIds: string[], updateData: UpdateSprintData): Promise<Sprint[]> => {
+  bulkUpdateSprints: async (
+    sprintIds: string[],
+    updateData: UpdateSprintData
+  ): Promise<Sprint[]> => {
     try {
-      const updatePromises = sprintIds.map(id => sprintApi.updateSprint(id, updateData));
+      const updatePromises = sprintIds.map((id) =>
+        sprintApi.updateSprint(id, updateData)
+      );
       return await Promise.all(updatePromises);
     } catch (error) {
       console.error("Bulk update sprints error:", error);
@@ -293,7 +358,7 @@ export const sprintApi = {
 
   bulkDeleteSprints: async (sprintIds: string[]): Promise<void> => {
     try {
-      const deletePromises = sprintIds.map(id => sprintApi.deleteSprint(id));
+      const deletePromises = sprintIds.map((id) => sprintApi.deleteSprint(id));
       await Promise.all(deletePromises);
     } catch (error) {
       console.error("Bulk delete sprints error:", error);
@@ -305,12 +370,12 @@ export const sprintApi = {
   getCurrentProject: (): string | null => {
     try {
       if (typeof window === "undefined") return null;
-      
+
       const projectId = localStorage.getItem("currentProjectId");
       return projectId;
     } catch (error) {
       console.error("Error getting current project:", error);
       return null;
     }
-  }
+  },
 };

@@ -282,7 +282,6 @@ export class TasksService {
 
     // Pagination calculation
     const skip = (page - 1) * limit;
-
     // Execute query and count in transaction
     const [tasks, total] = await this.prisma.$transaction([
       this.prisma.task.findMany({
@@ -363,7 +362,6 @@ export class TasksService {
         description: taskLabel.label.description,
       })),
     }));
-
     return {
       data: transformedTasks,
       total,

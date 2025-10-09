@@ -6,6 +6,7 @@ interface TaskViewTabsProps {
   currentView: "list" | "kanban" | "gantt";
   onViewChange: (view: "list" | "kanban" | "gantt") => void;
   viewKanban?: boolean;
+  viewGantt?: boolean;
   rightContent?: ReactNode;
 }
 
@@ -13,6 +14,7 @@ export default function TabView({
   currentView,
   onViewChange,
   viewKanban = false,
+  viewGantt = true,
   rightContent,
 }: TaskViewTabsProps) {
   const tabs = [
@@ -20,7 +22,9 @@ export default function TabView({
     ...(viewKanban
       ? [{ id: "kanban" as const, label: "Kanban", icon: HiViewColumns }]
       : []),
-    { id: "gantt" as const, label: "Gantt", icon: HiCalendarDays },
+    ...(viewGantt
+      ? [{ id: "gantt" as const, label: "Gantt", icon: HiCalendarDays }]
+      : []),
   ];
 
   return (

@@ -33,7 +33,7 @@ function NewTaskPageContent() {
       try {
         const ws = await getWorkspaceBySlug(typeof workspaceSlug === "string" ? workspaceSlug : Array.isArray(workspaceSlug) ? workspaceSlug[0] : "");
         setWorkspace(ws);
-        const proj = await getProjectBySlug(typeof projectSlug === "string" ? projectSlug : Array.isArray(projectSlug) ? projectSlug[0] : "");
+        const proj = await getProjectBySlug(typeof projectSlug === "string" ? projectSlug : Array.isArray(projectSlug) ? projectSlug[0] : "",isAuthenticated());
         setProject(proj);
        
              
