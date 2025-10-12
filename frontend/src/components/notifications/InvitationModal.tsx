@@ -126,11 +126,11 @@ export function InvitationModal({ userId, isOpen, onAccept }: InvitationModalPro
                         {getEntityName(invite)}
                       </h4>
                       <p className="text-sm text-muted-foreground">
-                        Role: {invite.role} • 
-                        Expires: {formatInviteDate(invite.expiresAt)}
+                        Role: {invite.role}
                       </p>
                       <div className="flex gap-2 mt-3">
                         <Button
+                        className="bg-red-500"
                           size="sm"
                           onClick={() => handleInviteAction(invite.token, "decline")}
                           disabled={processingInvite === invite.token}

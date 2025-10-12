@@ -349,7 +349,7 @@ export class EmailSyncService {
         emailDate: message.date,
         status: MessageStatus.PENDING,
         htmlSignature: message.htmlSignature,
-        textSignature : message.textSignature
+        textSignature: message.textSignature
       },
     });
 
@@ -523,6 +523,11 @@ export class EmailSyncService {
 
   private async autoCreateTask(message: any, inbox: any) {
     try {
+      const inboxMessage = await this.prisma.inboxMessage.findUnique({ where: { id: message.id } })
+      if (inboxMessage?.status === MessageStatus.IGNORED) {
+        this.logger.log(`Skipping message ${message.messageId} as its status is IGNORE`);
+        return;
+      }
       const existingTask = await this.prisma.task.findFirst({
         where: { emailThreadId: message.threadId },
         include: {
@@ -546,6 +551,7 @@ export class EmailSyncService {
             authorId: defaultAuthorId,
             content: message.bodyHtml || message.bodyText || message.subject,
             emailMessageId: message.messageId,
+            emailRecipientNames: message.fromName
           },
         });
 
@@ -565,11 +571,14 @@ export class EmailSyncService {
 
       // Create new task
       const taskNumber = await EmailSyncUtils.getNextTaskNumber(inbox.projectId, this.prisma);
-      const slug = await EmailSyncUtils.generateTaskSlug(message.subject, inbox.projectId, this.prisma, );
+      const slug = await EmailSyncUtils.generateTaskSlug(message.subject, inbox.projectId, this.prisma,);
       const sprintResult = await this.prisma.sprint.findFirst({
         where: { projectId: inbox.projectId, isDefault: true },
       });
       const sprintId = sprintResult?.id || null;
+      const now = new Date();
+      const dueDate = new Date(now);
+      dueDate.setDate(now.getDate() + 7);
       const taskData: any = {
         projectId: inbox.projectId,
         title: message.subject,
@@ -583,6 +592,8 @@ export class EmailSyncService {
         inboxMessageId: message.id,
         taskNumber,
         slug,
+        startDate: now,
+        dueDate
       };
       if (message._ruleAssignee || inbox.defaultAssigneeId) {
         taskData.assignees = {
@@ -596,6 +607,7 @@ export class EmailSyncService {
           connect: message._ruleLabels.map(labelId => ({ id: labelId }))
         };
       }
+
       const task = await this.prisma.task.create({
         data: taskData,
       });

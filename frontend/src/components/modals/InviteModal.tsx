@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ActionButton from "../common/ActionButton";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +10,7 @@ import {
 } from "../ui/dialog";
 import { invitationApi } from "@/utils/api/invitationsApi";
 import { HiMail } from "react-icons/hi";
-import { Button, Input, Label, Select } from "../ui";
+import { Input, Label, Select } from "../ui";
 import {
   SelectContent,
   SelectItem,
@@ -58,12 +59,13 @@ const InviteModal = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-[var(--card)] border-none rounded-[var(--card-radius)] shadow-lg max-w-md">
+    <div automation-id="invite-modal">
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="bg-[var(--card)] border-none rounded-[var(--card-radius)] shadow-lg max-w-md">
         <DialogHeader>
           <DialogTitle className="text-[var(--foreground)] flex items-center gap-2">
             <HiMail className="w-5 h-5 text-[var(--primary)]" />
-            Invite Member
+            Invite Member to Workspace
           </DialogTitle>
           <DialogDescription className="text-[var(--muted-foreground)]">
             Send an invitation to join this workspace.
@@ -75,8 +77,7 @@ const InviteModal = ({
               htmlFor="invite-email"
               className="text-sm font-medium text-[var(--foreground)]"
             >
-              Email Address{" "}
-              <span className="text-red-500">*</span>
+              Email Address
             </Label>
             <Input
               id="invite-email"
@@ -84,7 +85,7 @@ const InviteModal = ({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter email address"
-              className="mt-1 border-input bg-background text-[var(--foreground)]"
+              className="mt-1 border-none bg-background text-[var(--foreground)]"
               required
             />
             {email && !isEmailValid && (
@@ -99,15 +100,33 @@ const InviteModal = ({
               Role
             </Label>
             <Select value={role} onValueChange={setRole}>
-              <SelectTrigger className="mt-1 border-input bg-background text-[var(--foreground)]">
-                <SelectValue />
+              <SelectTrigger
+                className="projects-workspace-button border-none mt-1"
+                onFocus={(e) => {
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                <SelectValue placeholder="Select a role">
+                  {role && (
+                    <span className="text-[var(--foreground)]">{role}</span>
+                  )}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="border-none bg-[var(--card)]">
                 {availableRoles.map((r) => (
-                  <SelectItem key={r.id} value={r.name}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{r.name}</span>
-                      <span className="text-xs text-[var(--muted-foreground)]">
+                  <SelectItem
+                    key={r.id}
+                    value={r.name}
+                    className="hover:bg-[var(--hover-bg)]"
+                  >
+                    <div className="flex flex-col items-start py-1">
+                      <span className="font-medium text-[var(--foreground)]">
+                        {r.name}
+                      </span>
+                      <span className="text-xs text-[var(--muted-foreground)] mt-0.5">
                         {r.description}
                       </span>
                     </div>
@@ -115,36 +134,36 @@ const InviteModal = ({
                 ))}
               </SelectContent>
             </Select>
+            {!role && (
+              <p className="text-xs text-[var(--muted-foreground)] mt-1">
+                Please select a role for the member
+              </p>
+            )}
           </div>
 
           <DialogFooter className="flex justify-end gap-3">
-            <Button
+            <ActionButton
+              secondary
               type="button"
-              variant="outline"
               onClick={handleClose}
               disabled={inviting}
-              className="h-8 border-none bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)] transition-all duration-200"
+              className="w-20"
             >
               Cancel
-            </Button>
-            <Button
+            </ActionButton>
+            <ActionButton
+              primary
               type="submit"
-              disabled={inviting || !email.trim() || !isEmailValid}
-              className="h-8 bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 hover:shadow-md transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={inviting || !email.trim() || !isEmailValid || !role}
+              className="w-28"
             >
-              {inviting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-[var(--primary-foreground)] border-t-transparent rounded-full animate-spin mr-2"></div>
-                  Sending...
-                </>
-              ) : (
-                "Send Invitation"
-              )}
-            </Button>
+              {inviting ? "Inviting..." : "Send Invite"}
+            </ActionButton>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

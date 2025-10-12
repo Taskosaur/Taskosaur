@@ -318,15 +318,15 @@ function OrganizationManagePageContent() {
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
-          className="space-y-4"
+          className=""
         >
           <div className="border-b border-[var(--border)]">
-            <TabsList className="relative grid w-full grid-cols-4 bg-transparent p-0 h-auto">
+            <TabsList className="relative grid w-full grid-cols-3 bg-transparent p-0 h-auto">
               {/* Sliding indicator */}
               <div
                 className="absolute bottom-0 h-0.5 bg-[var(--primary)] transition-all duration-300 ease-in-out"
                 style={{
-                  width: "25%", // 1/4 of the width
+                  width: "33.33%",
                   transform: `translateX(${
                     activeTab === "settings"
                       ? "0%"

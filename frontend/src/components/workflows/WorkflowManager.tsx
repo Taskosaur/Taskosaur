@@ -415,33 +415,20 @@ export default function WorkflowManager({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
-            <HiViewGrid className="w-5 h-5 text-[var(--primary)]" />
-            {isProjectLevel ? "Project Workflows" : "Workflows"}
-          </h3>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">
-            {isProjectLevel
-              ? "Manage workflows and task statuses for this project"
-              : "Manage workflow templates and task statuses"}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => setShowCreateForm(true)}
-            disabled={isUpdating}
-            className="h-8 bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 hover:shadow-md transition-all duration-200 font-medium"
-          >
-            {isUpdating ? (
-              <div className="w-4 h-4 border-2 border-[var(--primary-foreground)] border-t-transparent rounded-full animate-spin mr-2"></div>
-            ) : (
-              <HiPlus className="w-4 h-4" />
-            )}
-            Create
-          </Button>
-        </div>
+    <div>
+      <div className="flex justify-end items-center">
+        <Button
+          onClick={() => setShowCreateForm(true)}
+          disabled={isUpdating}
+          className="h-8 bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 hover:shadow-md transition-all duration-200 font-medium"
+        >
+          {isUpdating ? (
+            <div className="w-4 h-4 border-2 border-[var(--primary-foreground)] border-t-transparent rounded-full animate-spin mr-2"></div>
+          ) : (
+            <HiPlus className="w-4 h-4" />
+          )}
+          Create
+        </Button>
       </div>
 
       {validationErrors.length > 0 && workflows.length > 0 && (
@@ -467,8 +454,8 @@ export default function WorkflowManager({
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <div className="lg:col-span-1">
-          <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
-            <CardHeader className="pb-3">
+          <Card className="bg-[var(--sidebar)]  border-none shadow-sm">
+            <CardHeader className="">
               <CardTitle className="text-sm font-semibold text-[var(--foreground)]">
                 Workflows ({workflows.length})
               </CardTitle>
@@ -482,7 +469,7 @@ export default function WorkflowManager({
                   return (
                     <div
                       key={workflow.id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                      className={`p-3 rounded-lg border-none cursor-pointer transition-all duration-200 ${
                         selectedWorkflow?.id === workflow.id
                           ? "border-[var(--primary)] bg-[var(--primary)]/5"
                           : "border-[var(--border)] hover:bg-[var(--accent)]"
@@ -491,12 +478,12 @@ export default function WorkflowManager({
                         setSelectedWorkflow(workflow);
                       }}
                     >
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-2 gap-2">
                         <h4 className="text-sm font-medium text-[var(--foreground)] truncate">
                           {workflow.name || "Unnamed Workflow"}
                         </h4>
                         {workflow.isDefault && (
-                          <Badge className="bg-[var(--primary)]/10 text-[var(--primary)] border-none text-xs flex items-center gap-1">
+                          <Badge className="bg-[var(--primary)]/10  text-[var(--primary)] border-none text-xs flex items-center gap-1">
                             <HiCheck className="w-3 h-3" />
                             Default
                           </Badge>
@@ -537,7 +524,7 @@ export default function WorkflowManager({
                             : "border-b-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                         }`}
                       >
-                        <IconComponent className="w-4 h-4" />
+                        <IconComponent className="size-3.5" />
                         {tab.label}
                       </button>
                     );
@@ -548,9 +535,9 @@ export default function WorkflowManager({
               <div className="min-h-[400px]">
                 {activeTab === "overview" && (
                   <div className="space-y-4">
-                    <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
+                    <Card className="bg-[var(--sidebar)] rounded-[var(--card-radius)] border-none shadow-sm">
                       <CardContent>
-                        <div className="flex justify-between items-start">
+                        <div className="flex justify-between  items-start">
                           <div>
                             <h3 className="text-md font-semibold text-[var(--foreground)] mb-2">
                               {selectedWorkflow.name || "Unnamed Workflow"}

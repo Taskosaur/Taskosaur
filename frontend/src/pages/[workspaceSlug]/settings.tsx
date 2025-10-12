@@ -346,42 +346,39 @@ function WorkspaceSettingsContent() {
           </CardContent>
         </Card>
 
-        <Card className="border-none bg-[var(--card)]">
-          <CardContent className="p-6">
-            <div className="bg-red-50 dark:bg-red-950/20   rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <HiExclamationTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h4 className="font-medium text-red-800 dark:text-red-400 mb-2">
-                    Danger Zone
-                  </h4>
-                  <p className="text-sm text-red-700 dark:text-red-500 mb-4">
-                    These actions cannot be undone. Please proceed with caution.
-                  </p>
-                  <DangerZoneModal
-                    entity={{
-                      type: "workspace",
-                      name: workspace?.slug || "",
-                      displayName: workspace?.name || "",
-                    }}
-                    actions={dangerZoneActions}
-                    onRetry={retryFetch}
-                  >
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={!hasAccess}
-                      className="bg-red-600 hover:bg-red-700 text-white"
-                    >
-                      <HiExclamationTriangle className="w-4 h-4 mr-2" />
-                      Delete Workspace
-                    </Button>
-                  </DangerZoneModal>
-                </div>
-              </div>
+        <div className="bg-red-50 dark:bg-red-950/20 border-none rounded-md px-4 py-6">
+          <div className="flex items-start gap-3">
+            <HiExclamationTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-1" />
+            <div className="flex-1">
+              <h4 className="font-medium text-red-800 dark:text-red-400">
+                Danger Zone
+              </h4>
+              <p className="text-sm text-red-700 dark:text-red-500 mb-4">
+                These actions cannot be undone. Please proceed with
+                caution.
+              </p>
+              <DangerZoneModal
+                entity={{
+                  type: "workspace",
+                  name: workspace?.slug || "",
+                  displayName: workspace?.name || "",
+                }}
+                actions={dangerZoneActions}
+                onRetry={retryFetch}
+              >
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={!hasAccess}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  <HiExclamationTriangle className="w-4 h-4 mr-2" />
+                  Delete Workspace
+                </Button>
+              </DangerZoneModal>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </>
   );

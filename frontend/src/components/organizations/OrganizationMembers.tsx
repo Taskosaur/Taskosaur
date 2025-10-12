@@ -53,13 +53,31 @@ export default function OrganizationMembers({
   const [isLoading, setIsLoading] = useState(false);
   const [inviteData, setInviteData] = useState({
     email: "",
-    role: OrganizationRole.MEMBER,
+    role: "",
     message: "",
   });
 
+  const availableRoles = [
+    {
+      id: "viewer",
+      name: OrganizationRole.VIEWER,
+      description: "Can view organization content"
+    },
+    {
+      id: "member", 
+      name: OrganizationRole.MEMBER,
+      description: "Can contribute to projects"
+    },
+    {
+      id: "manager",
+      name: OrganizationRole.MANAGER, 
+      description: "Can manage projects and members"
+    }
+  ];
+
   const canManageMembers =
     currentUserRole === OrganizationRole.SUPER_ADMIN ||
-    currentUserRole === OrganizationRole.MANAGER;
+    currentUserRole === OrganizationRole.MANAGER || OrganizationRole.OWNER;
 
   const getRoleBadgeClass = (role: OrganizationRole) => {
     switch (role) {
@@ -190,7 +208,7 @@ export default function OrganizationMembers({
       <CardHeader className="organizations-members-header">
         <div className="organizations-members-header-content">
           <div className="organizations-members-header-info">
-            <CardTitle className="organizations-members-title">
+            <CardTitle className="flex  gap-2 text-md">
               <HiUsers className="organizations-members-title-icon" />
               Members ({members.length})
             </CardTitle>
@@ -281,17 +299,34 @@ export default function OrganizationMembers({
                         }
                         disabled={isLoading}
                       >
-                        <SelectTrigger className="h-7 text-xs border-input border-[var(--border)] bg-background text-[var(--foreground)]">
+                        <SelectTrigger 
+                          className="h-7 text-xs border-none shadow-none bg-background text-[var(--foreground)]"
+                          onFocus={(e) => {
+                            e.currentTarget.style.boxShadow = "none";
+                          }}
+                          onBlur={(e) => {
+                            e.currentTarget.style.boxShadow = "none";
+                          }}
+                        >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="border-none bg-[var(--card)]">
-                          <SelectItem value={OrganizationRole.MANAGER}>
+                          <SelectItem 
+                            value={OrganizationRole.MANAGER}
+                            className="hover:bg-[var(--hover-bg)]"
+                          >
                             Manager
                           </SelectItem>
-                          <SelectItem value={OrganizationRole.MEMBER}>
+                          <SelectItem 
+                            value={OrganizationRole.MEMBER}
+                            className="hover:bg-[var(--hover-bg)]"
+                          >
                             Member
                           </SelectItem>
-                          <SelectItem value={OrganizationRole.VIEWER}>
+                          <SelectItem 
+                            value={OrganizationRole.VIEWER}
+                            className="hover:bg-[var(--hover-bg)]"
+                          >
                             Viewer
                           </SelectItem>
                         </SelectContent>
@@ -380,7 +415,7 @@ export default function OrganizationMembers({
                 onChange={(e) =>
                   setInviteData((prev) => ({ ...prev, email: e.target.value }))
                 }
-                className="mt-1 border-input bg-background text-[var(--foreground)]"
+                className="mt-1 border-none bg-background text-[var(--foreground)]"
                 placeholder="Enter email address"
                 required
               />
@@ -396,45 +431,51 @@ export default function OrganizationMembers({
               <Label className="text-sm font-medium text-[var(--foreground)]">
                 Role
               </Label>
-              <Select
-                value={inviteData.role}
-                onValueChange={(value) =>
-                  setInviteData((prev) => ({
-                    ...prev,
-                    role: value as OrganizationRole,
-                  }))
-                }
-              >
-                <SelectTrigger className="mt-1 border-input bg-background text-[var(--foreground)]">
-                  <SelectValue />
+              <Select value={inviteData.role} onValueChange={(value) =>
+                setInviteData((prev) => ({
+                  ...prev,
+                  role: value,
+                }))
+              }>
+                <SelectTrigger
+                  className="projects-workspace-button border-none mt-1"
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  <SelectValue placeholder="Select a role">
+                    {inviteData.role && (
+                      <span className="text-[var(--foreground)]">{inviteData.role}</span>
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="border-none bg-[var(--card)]">
-                  <SelectItem value={OrganizationRole.VIEWER}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">Viewer</span>
-                      <span className="text-xs text-[var(--muted-foreground)]">
-                        Can view organization content
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value={OrganizationRole.MEMBER}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">Member</span>
-                      <span className="text-xs text-[var(--muted-foreground)]">
-                        Can contribute to projects
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value={OrganizationRole.MANAGER}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">Manager</span>
-                      <span className="text-xs text-[var(--muted-foreground)]">
-                        Can manage projects and members
-                      </span>
-                    </div>
-                  </SelectItem>
+                  {availableRoles.map((r) => (
+                    <SelectItem
+                      key={r.id}
+                      value={r.name}
+                      className="hover:bg-[var(--hover-bg)]"
+                    >
+                      <div className="flex flex-col items-start py-1">
+                        <span className="font-medium text-[var(--foreground)]">
+                          {r.name}
+                        </span>
+                        <span className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                          {r.description}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              {!inviteData.role && (
+                <p className="text-xs text-[var(--muted-foreground)] mt-1">
+                  Please select a role for the member
+                </p>
+              )}
             </div>
 
             {/* Keep message field for UI but note it won't be sent */}
@@ -455,7 +496,7 @@ export default function OrganizationMembers({
                   }))
                 }
                 rows={3}
-                className="mt-1 border-input bg-background text-[var(--foreground)]"
+                className="mt-1 border-none bg-background text-[var(--foreground)]"
                 placeholder="Personal message for the invitation..."
                 maxLength={500}
               />

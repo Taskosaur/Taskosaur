@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HiPlus, HiPencil, HiTrash, HiCheckCircle } from "react-icons/hi2";
+import { HiPencil, HiTrash, HiCheckCircle } from "react-icons/hi2";
 import { IoWarning } from "react-icons/io5";
 import { inboxApi } from "@/utils/api/inboxApi";
 import { InboxRule } from "@/types/inbox";
@@ -30,6 +30,7 @@ import { useProject } from "@/contexts/project-context";
 import { useTask } from "@/contexts/task-context";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import { ActionValueSelector } from "../projects/ActionValueSelector";
+import { useInbox } from "@/contexts/inbox-context";
 
 interface EmailRulesManagerProps {
   projectId: string;
@@ -78,7 +79,6 @@ export default function EmailRulesManager({
   projectId,
 }: EmailRulesManagerProps) {
   const [rules, setRules] = useState<InboxRule[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingRule, setEditingRule] = useState<InboxRule | null>(null);
   const [formData, setFormData] = useState<RuleFormData>(defaultRule);
@@ -93,13 +93,30 @@ export default function EmailRulesManager({
 
   const { getProjectMembers } = useProject();
   const { getProjectLabels } = useTask();
+  const { currentInbox, getInbox, setCurrentInbox } = useInbox();
+
+  const loadInboxData = async () => {
+    try {
+      const inbox = await getInbox(projectId); // assuming this sets currentInbox internally
+      if (inbox) {
+        await loadRules(); // only load rules if inbox exists
+      } else {
+        setCurrentInbox(null);
+      }
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        setCurrentInbox(null);
+      } else {
+        toast.error("Failed to load email integration settings");
+      }
+    }
+  };
 
   useEffect(() => {
-    loadRules();
+    loadInboxData();
   }, [projectId]);
 
   useEffect(() => {
-    // Handle assignTo action - fetch members
     if (formData.actions.some((a) => a.type === "assignTo")) {
       setMembersLoading(true);
       getProjectMembers(projectId)
@@ -134,7 +151,6 @@ export default function EmailRulesManager({
       setMembersLoading(false);
     }
 
-    // Handle addLabels action - fetch labels
     if (formData.actions.some((a) => a.type === "addLabels")) {
       setLabelsLoading(true);
       getProjectLabels(projectId)
@@ -154,13 +170,10 @@ export default function EmailRulesManager({
 
   const loadRules = async () => {
     try {
-      setLoading(true);
       const rulesData = await inboxApi.getRules(projectId);
       setRules(rulesData);
     } catch (error) {
       toast.error("Failed to load rules");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -212,7 +225,6 @@ export default function EmailRulesManager({
   const handleEditRule = (rule: InboxRule) => {
     setEditingRule(rule);
 
-    // Convert rule back to form format
     const conditions: RuleCondition[] = [];
     if (rule.conditions && typeof rule.conditions === "object") {
       const conditionsObj = rule.conditions as any;
@@ -346,107 +358,133 @@ export default function EmailRulesManager({
     return "bg-gray-100 text-gray-800";
   };
 
-
-
   return (
     <div className="space-y-6">
       <Card className="border-none bg-[var(--card)] rounded-md gap-2">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-md font-bold flex items-center gap-2">
-                <IoWarning className="w-5 h-5" />
-                <span>Email Processing Rules</span>
-              </CardTitle>
-              <p className="text-sm text-[var(--muted-foreground)]/60 mt-1">
-                Automatically process incoming emails based on conditions
-              </p>
-            </div>
-            <ActionButton
-              primary
-              showPlusIcon
-              onClick={() => {
-                setShowForm(true);
-                setEditingRule(null);
-                setFormData(defaultRule);
-              }}
-            >
-              Add Rule
-            </ActionButton>
+        <CardHeader className="border-b border-[var(--border)]">
+          <div className="flex w-full items-start justify-between">
+            <CardTitle className="flex items-start gap-3">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <IoWarning className="w-5 h-5 text-[var(--primary)]" />
+                  <span className="text-md font-semibold">
+                    Email Processing Rules
+                  </span>
+                </div>
+                <p className="text-sm font-normal text-[var(--muted-foreground)]/60 mt-2">
+                  Automatically process incoming emails based on conditions
+                </p>
+              </div>
+            </CardTitle>
+            {currentInbox && (
+              <ActionButton
+                primary
+                showPlusIcon
+                onClick={() => {
+                  setShowForm(true);
+                  setEditingRule(null);
+                  setFormData(defaultRule);
+                }}
+              >
+                Add Rule
+              </ActionButton>
+            )}
           </div>
         </CardHeader>
         <CardContent>
-          {rules.length === 0 && !showForm ? (
-            <div className="text-center py-8">
-              <IoWarning className="w-7 h-7 mx-auto text-[var(--muted-foreground)]/40 mb-2" />
-              <h3 className="text-sm font-semibold">No Rules Configured</h3>
-              <p className="text-[var(--muted-foreground)]/60 text-sm">
-                Create rules to automatically process incoming emails
-              </p>
-            </div>
+          {currentInbox ? (
+            <>
+              {rules.length === 0 && !showForm ? (
+                <div className="text-center py-8">
+                  <IoWarning className="w-7 h-7 mx-auto text-[var(--muted-foreground)]/40 mb-2" />
+                  <h3 className="text-sm font-semibold">No Rules Configured</h3>
+                  <p className="text-[var(--muted-foreground)]/60 text-sm">
+                    Create rules to automatically process incoming emails
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {Array.isArray(rules) &&
+                    rules.map((rule) => (
+                      <div
+                        key={rule.id}
+                        className="border border-[var(--border)] rounded-lg p-4"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <h4 className="text-sm">{rule.name}</h4>
+                              <Badge
+                                className={getPriorityColor(rule.priority)}
+                              >
+                                Priority {rule.priority}
+                              </Badge>
+                              {rule.enabled ? (
+                                <Badge className="bg-green-100 text-green-800 ">
+                                  <HiCheckCircle className="w-3 h-3 mr-1" />
+                                  Enabled
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">Disabled</Badge>
+                              )}
+                            </div>
+                            {rule.description && (
+                              <p className="text-xs text-[var(--muted-foreground)]/60">
+                                {rule.description}
+                              </p>
+                            )}
+                            <div className="text-[13px] text-[var(--muted-foreground)]/50">
+                              Stop on match: {rule.stopOnMatch ? "Yes" : "No"}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Tooltip
+                              content="Edit"
+                              position="top"
+                              color="primary"
+                            >
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditRule(rule)}
+                                className="border border-[var(--border)]"
+                              >
+                                <HiPencil className="size-3" />
+                              </Button>
+                            </Tooltip>
+                            <Tooltip
+                              content="Delete"
+                              position="top"
+                              color="primary"
+                            >
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openDeleteModal(rule)}
+                                className="border border-[var(--border)] text-red-400"
+                              >
+                                <HiTrash className="size-3" />
+                              </Button>
+                            </Tooltip>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </>
           ) : (
-            <div className="space-y-4">
-              {Array.isArray(rules) &&
-                rules.map((rule) => (
-                  <div
-                    key={rule.id}
-                    className="border border-[var(--border)] rounded-lg p-4"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="text-sm">{rule.name}</h4>
-                          <Badge className={getPriorityColor(rule.priority)}>
-                            Priority {rule.priority}
-                          </Badge>
-                          {rule.enabled ? (
-                            <Badge className="bg-green-100 text-green-800 ">
-                              <HiCheckCircle className="w-3 h-3 mr-1" />
-                              Enabled
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary">Disabled</Badge>
-                          )}
-                        </div>
-                        {rule.description && (
-                          <p className="text-xs text-[var(--muted-foreground)]/60">
-                            {rule.description}
-                          </p>
-                        )}
-                        <div className="text-[13px] text-[var(--muted-foreground)]/50">
-                          Stop on match: {rule.stopOnMatch ? "Yes" : "No"}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Tooltip content="Edit" position="top" color="primary">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditRule(rule)}
-                            className="border border-[var(--border)]"
-                          >
-                            <HiPencil className="size-3" />
-                          </Button>
-                        </Tooltip>
-                        <Tooltip
-                          content="Delete"
-                          position="top"
-                          color="primary"
-                        >
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openDeleteModal(rule)}
-                            className="border border-[var(--border)] text-red-400"
-                          >
-                            <HiTrash className="size-3"  />
-                          </Button>
-                        </Tooltip>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-            </div>
+            <>
+              <div className="text-center py-8">
+                <IoWarning className="w-7 h-7 mx-auto text-[var(--muted-foreground)]/40 mb-2" />
+                <h3 className="text-sm font-semibold">
+                  No Project Inbox Configured
+                </h3>
+                <p className="text-[var(--muted-foreground)]/60 text-sm">
+                  Please set up a project inbox before adding rules.
+                </p>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -780,11 +818,7 @@ export default function EmailRulesManager({
               >
                 Cancel
               </ActionButton>
-              <ActionButton
-                onClick={handleSaveRule}
-                disabled={saving}
-                primary
-              >
+              <ActionButton onClick={handleSaveRule} disabled={saving} primary>
                 {saving
                   ? "Saving..."
                   : editingRule

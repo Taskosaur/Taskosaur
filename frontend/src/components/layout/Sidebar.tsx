@@ -374,13 +374,26 @@ export default function Sidebar() {
       return globalNavItems;
     }
     
-    // For authenticated users, use existing logic
+    
     if (currentWorkspaceSlug && currentProjectSlug) {
+      if (isSidebarCollapsed) {
+        setMiniPathName(`/${currentWorkspaceSlug}/${currentProjectSlug}`);
+        return projectNavItems;
+      }
       setMiniPathName(`/${currentWorkspaceSlug}`);
       return workspaceNavItems;
     }
+  
     if (currentWorkspaceSlug) {
-      setMiniPathName("/workspaces");
+      if (isSidebarCollapsed) {
+        setMiniPathName(`/${currentWorkspaceSlug}`);
+        return workspaceNavItems;
+      }
+      return globalNavItems;
+    }
+    
+    if (isSidebarCollapsed) {
+      setMiniPathName("/dashboard");
       return globalNavItems;
     }
     return [];
@@ -390,6 +403,7 @@ export default function Sidebar() {
     currentProjectSlug,
     globalNavItems,
     workspaceNavItems,
+    isSidebarCollapsed,
   ]);
 
   // Listen for sidebar state changes from other components
@@ -558,6 +572,7 @@ export default function Sidebar() {
 
         <div className="layout-sidebar-mini-nav">
           {miniSidebarNavItems.map((item) => {
+            const isItemActive = isActive(pathname, item.href, item.name === "Overview");
             const linkProps = item.disabled
               ? {
                   onClick: handleDisabledClick,
@@ -569,7 +584,7 @@ export default function Sidebar() {
               <div
                 key={item.name}
                 className={`layout-sidebar-mini-nav-link layout-sidebar-mini-nav-link-disabled ${
-                  miniPathName === item.href
+                  isItemActive
                     ? "layout-sidebar-nav-link-active"
                     : "layout-sidebar-mini-nav-link-inactive"
                 }`}
@@ -583,7 +598,7 @@ export default function Sidebar() {
                 key={item.name}
                 href={item.href}
                 className={`layout-sidebar-mini-nav-link ${
-                  miniPathName === item.href
+                  isItemActive
                     ? "layout-sidebar-nav-link-active"
                     : "layout-sidebar-mini-nav-link-inactive"
                 }`}

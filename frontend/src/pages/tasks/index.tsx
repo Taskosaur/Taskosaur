@@ -251,8 +251,8 @@ const [currentView, setCurrentView] = useState<ViewType>(() => {
     try {
       setGanttError(null);
       setGanttLoading(true);
-      const data = await getCalendarTask(currentOrganizationId);
-      setGanttTasks(data || []);
+      // const data = await getCalendarTask(currentOrganizationId);
+      // setGanttTasks(data || []);
     } catch (error) {
       setGanttError(
         error instanceof Error ? error.message : "Failed to load Gantt data"
@@ -286,7 +286,7 @@ const [currentView, setCurrentView] = useState<ViewType>(() => {
   // Load Gantt data when Gantt tab is active
   useEffect(() => {
     if (currentView === "gantt" && currentOrganizationId) {
-      loadGanttData();
+      // loadGanttData();
     }
   }, [currentView, currentOrganizationId, loadGanttData]);
 
@@ -602,7 +602,7 @@ const [currentView, setCurrentView] = useState<ViewType>(() => {
       }
       return (
         <TaskGanttView
-          tasks={ganttTasks}
+          tasks={sortedTasks}
           workspaceSlug={defaultWorkspace.slug}
           projectSlug={defaultProject.slug}
           viewMode={ganttViewMode}
@@ -639,7 +639,7 @@ const [currentView, setCurrentView] = useState<ViewType>(() => {
     }
   };
   const showPagination =
-    currentView === "list" && tasks.length > 0 && pagination.totalPages > 1;
+    tasks.length > 0 && pagination.totalPages > 1;
 
   return (
     <div className="dashboard-container h-[91vh] flex flex-col space-y-3">
@@ -765,7 +765,7 @@ const [currentView, setCurrentView] = useState<ViewType>(() => {
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto rounded-md">
+      <div className="overflow-y-auto rounded-md">
         {error ? (
           <ErrorState error={error} onRetry={handleRetry} />
         ) : (

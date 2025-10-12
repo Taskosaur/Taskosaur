@@ -1,7 +1,5 @@
-// src/components/inbox/shared/SearchableAssigneeDropdown.tsx
-
 import React, { useState, useRef } from "react";
-import { Users } from "lucide-react";
+import { Users, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -71,7 +69,7 @@ export default function SearchableAssigneeDropdown({
           variant="outline"
           role="combobox"
           aria-expanded={popoverOpen}
-          className="w-full justify-between border-[var(--border)] bg-[var(--background)] text-sm font-normal h-10"
+          className="w-full justify-between border-[var(--border)] bg-[var(--background)] text-sm font-normal h-9"
         >
           {selectedUser ? (
             <div className="flex items-center gap-2">
@@ -91,10 +89,11 @@ export default function SearchableAssigneeDropdown({
             </div>
           ) : (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Users className="w-4 h-4" />
+            
               <span>Select default assignee</span>
             </div>
           )}
+          <ChevronDown className="w-4 h-4 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
 

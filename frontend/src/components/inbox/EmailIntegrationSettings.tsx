@@ -1,5 +1,3 @@
-// src/components/inbox/EmailIntegrationSettings.tsx
-
 import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,9 +25,7 @@ export default function EmailIntegrationSettings({
 }: EmailIntegrationSettingsProps) {
   const {
     currentInbox,
-    isLoading,
     isSyncing,
-    error,
     createInbox,
     getInbox,
     updateInbox,
@@ -39,15 +35,18 @@ export default function EmailIntegrationSettings({
   } = useInbox();
 
   const projectContext = useProjectContext();
-
-  // Stepper state - now simplified to 3 steps
-  // Step 1: Inbox Configuration
-  // Step 2: Email Setup (Provider, Credentials, Connection Test - all handled in one component)
-  // Step 3: Success
   const [currentStep, setCurrentStep] = useState<number>(1);
-
-  // Form state
-  const [formData, setFormData] = useState<InboxFormData>({
+  const [availableStatuses, setAvailableStatuses] = useState<any[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [assigneeSearchTerm, setAssigneeSearchTerm] = useState("");
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const debouncedAssigneeSearchTerm = useDebounce(assigneeSearchTerm, 500);
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [isReconfiguring, setIsReconfiguring] = useState(false);
+    const [formData, setFormData] = useState<InboxFormData>({
     name: "",
     description: "",
     emailAddress: "",
@@ -62,20 +61,6 @@ export default function EmailIntegrationSettings({
     syncInterval: 5,
   });
 
-  // UI state
-  const [availableStatuses, setAvailableStatuses] = useState<any[]>([]);
-  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [assigneeSearchTerm, setAssigneeSearchTerm] = useState("");
-  const [allUsers, setAllUsers] = useState<any[]>([]);
-  const debouncedAssigneeSearchTerm = useDebounce(assigneeSearchTerm, 500);
-  const [setupLoading, setSetupLoading] = useState(false);
-  const [isReconfiguring, setIsReconfiguring] = useState(false);
-
-  // Load initial data
   useEffect(() => {
     const loadData = async () => {
       await Promise.all([loadInboxData(), loadProjectData("")]);
@@ -83,7 +68,6 @@ export default function EmailIntegrationSettings({
     loadData();
   }, [projectId]);
 
-  // Update form data when inbox loads
   useEffect(() => {
     if (currentInbox) {
       const newFormData: InboxFormData = {
@@ -252,7 +236,7 @@ export default function EmailIntegrationSettings({
       } else {
         await createInbox(projectId, inboxData);
         toast.success("Inbox created successfully");
-        setCurrentStep(2); // Move to Email Setup step
+        setCurrentStep(2);
       }
     } catch (error: any) {
       toast.error(
@@ -266,7 +250,6 @@ export default function EmailIntegrationSettings({
   const handleEmailSetupSubmit = async (emailSetupData: EmailSetupData) => {
     setSetupLoading(true);
     try {
-      // Ensure usernames are set (fallback to email address)
       const completeEmailData = {
         ...emailSetupData,
         imapUsername: emailSetupData.imapUsername || emailSetupData.emailAddress,
@@ -276,12 +259,12 @@ export default function EmailIntegrationSettings({
       await inboxApi.setupEmailAccount(projectId, completeEmailData);
 
       toast.success("Email account configured successfully!");
-      setCurrentStep(3); // Move to Success step
+      setCurrentStep(3);
     } catch (error: any) {
       toast.error(
         error.response?.data?.message || "Failed to setup email account"
       );
-      throw error; // Re-throw to let the component handle it
+      throw error;
     } finally {
       setSetupLoading(false);
     }
@@ -290,7 +273,7 @@ export default function EmailIntegrationSettings({
   const finishSetup = () => {
     loadInboxData();
     toast.success("Email integration is now active!");
-    setCurrentStep(4); // Move to completed view
+    setCurrentStep(4);
   };
 
   const handleTriggerSync = async () => {
@@ -329,11 +312,10 @@ export default function EmailIntegrationSettings({
 
   const handleReconfigure = () => {
     setIsReconfiguring(true);
-    setCurrentStep(2); // Go back to Email Setup step
+    setCurrentStep(2);
   };
 
 
-  // Show completed configuration view
   if (currentStep === 4 && currentInbox?.emailAccount) {
     return (
       <CompletedConfigView
@@ -355,28 +337,20 @@ export default function EmailIntegrationSettings({
     );
   }
 
-  // Unified Stepper View
   return (
     <Card className="border-none bg-[var(--card)]">
       <CardHeader className="border-b border-[var(--border)]">
         <div className="flex w-full items-start">
           <CardTitle className="flex items-start gap-3">
-         
-
-
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <HiEnvelope className="w-5 h-5 text-[var(--primary)]" />
-
                 <span className="text-md font-semibold">
                   Email Integration Setup
-
                 </span>
-
               </div>
               <p className="text-sm font-normal text-[var(--muted-foreground)]/60 mt-2">
                 Configure your email account to sync with tasks
-
               </p>
             </div>
           </CardTitle>

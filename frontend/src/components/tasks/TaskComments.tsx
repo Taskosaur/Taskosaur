@@ -4,11 +4,9 @@ import draftToHtml from "draftjs-to-html";
 import "draft-js/dist/Draft.css";
 import { toast } from "sonner";
 import { useTask } from "../../contexts/task-context";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
 import {
   HiChatBubbleLeftRight,
-  HiExclamationTriangle,
   HiClock,
   HiPencil,
   HiTrash,
@@ -19,11 +17,12 @@ import { TaskComment, User } from "@/types";
 import ActionButton from "../common/ActionButton";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import { inboxApi } from "@/utils/api/inboxApi";
-import MDEditor from "@uiw/react-md-editor";
 import { useAuth } from "@/contexts/auth-context";
-import { DangerouslyHTMLComment, decodeHtml } from "../common/DangerouslyHTMLComment";
+import {
+  DangerouslyHTMLComment,
+  decodeHtml,
+} from "../common/DangerouslyHTMLComment";
 import dynamic from "next/dynamic";
-import Tooltip from "../common/ToolTip";
 const RichTextEditor = dynamic(() => import("../common/RichTextEditor"), {
   ssr: false,
 });
@@ -48,6 +47,7 @@ interface CommentWithAuthor extends TaskComment {
   emailMessageId?: string;
   sentAsEmail?: boolean;
   emailRecipients?: string[];
+  emailRecipientNames?: string;
   author: {
     id: string;
     firstName: string;
@@ -92,18 +92,33 @@ const CommentItem = React.memo(
       [comment.createdAt, comment.updatedAt, formatTimestamp]
     );
 
-    const canEdit = !isAuth && comment.authorId === currentUser.id;
+    const canEdit = isAuth && comment.authorId === currentUser.id;
     const displayName = useMemo(() => {
-      if (comment.author?.firstName || comment.author?.lastName) {
-        return `${comment.author.firstName || ""} ${
-          comment.author.lastName || ""
-        }`.trim();
+      if (comment.emailMessageId && comment.emailRecipientNames) {
+        // Join multiple recipient names (e.g. "John, Jane")
+        return comment.emailRecipientNames;
       }
+
+      const firstName = comment.author?.firstName?.trim() || "";
+      const lastName = comment.author?.lastName?.trim() || "";
+
+      if (firstName || lastName) {
+        return `${firstName} ${lastName}`.trim();
+      }
+
       if (comment.author?.email) {
         return comment.author.email.split("@")[0];
       }
+
       return `User ${comment.author?.id?.slice(0, 8) || "Unknown"}`;
-    }, [comment.author]);
+    }, [
+      comment.emailMessageId,
+      comment.emailRecipientNames,
+      comment.author?.firstName,
+      comment.author?.lastName,
+      comment.author?.email,
+      comment.author?.id,
+    ]);
 
     return (
       <div
@@ -113,43 +128,66 @@ const CommentItem = React.memo(
       >
         <div className="flex gap-2 items-start">
           <div className="flex-shrink-0 mt-1">
-            <UserAvatar
-              user={{
-                firstName: comment.author.firstName,
-                lastName: comment.author.lastName,
-                avatar: comment.author.avatar,
-              }}
-              size="xs"
-            />
+            {comment.emailMessageId ? (
+              <UserAvatar
+                user={{
+                  name: comment.emailRecipientNames,
+                }}
+                size="xs"
+              />
+            ) : (
+              <UserAvatar
+                user={{
+                  firstName: comment.author.firstName,
+                  lastName: comment.author.lastName,
+                  avatar: comment.author.avatar,
+                }}
+                size="xs"
+              />
+            )}
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-1 pb-1">
-              <div className="flex-1">
-                <div className="flex items-center">
-                  <span className="text-sm font-medium text-[var(--foreground)]">
-                    {displayName}
-                  </span>
-                  {timestamp.isEdited && (
-                    <span className="text-[12px] text-[var(--muted-foreground)] ml-1">
-                      (edited)
-                    </span>
-                  )}
-                </div>
+            <div className="flex items-center justify-between gap-2 pb-1">
+              <div className="flex items-center gap-2">
+                {/* Username */}
+                <span className="text-sm font-medium text-[var(--foreground)]">
+                  {displayName}
+                </span>
 
-                {/* Render HTML content safely */}
-                <DangerouslyHTMLComment comment={comment.content} />
-
-                <div className="flex items-center gap-1 text-[12px] text-[var(--muted-foreground)] mt-1">
-                  <HiClock className="size-2.5" />
-                  <span className="cursor-default" title={timestamp.fullDate}>
-                    {timestamp.text}
+                {/* Edit indicator */}
+                {timestamp.isEdited && (
+                  <span className="text-[12px] text-[var(--muted-foreground)]">
+                    (edited)
                   </span>
-                </div>
+                )}
+
+                {canEdit && (
+                  <div
+                    className={`flex items-center  transition-opacity ${
+                      isHovered ? "opacity-100" : "opacity-0"
+                    }`}
+                  >
+                    <button
+                      onClick={() => onEdit(comment.id, comment.content)}
+                      className="p-1 text-[var(--muted-foreground)] cursor-pointer hover:text-[var(--foreground)] hover:bg-[var(--muted)]/30 rounded transition-colors"
+                      title="Edit comment"
+                    >
+                      <HiPencil className="size-3" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(comment.id)}
+                      className="p-1 text-[var(--muted-foreground)] cursor-pointer hover:text-[var(--destructive)] hover:bg-[var(--muted)]/30 rounded transition-colors"
+                      title="Delete comment"
+                    >
+                      <HiTrash className="size-3" />
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Meta info row */}
-              <div className="flex items-center gap-2 text-[12px] text-[var(--muted-foreground)]">
+              {/* Right side: Timestamp and Email indicators */}
+              <div className="flex items-center gap-2 text-[12px] text-[var(--muted-foreground)] flex-shrink-0">
                 <div className="flex items-center gap-1">
                   <HiClock className="size-2.5" />
                   <span className="cursor-default" title={timestamp.fullDate}>
@@ -160,7 +198,7 @@ const CommentItem = React.memo(
                 {/* Email indicators */}
                 {comment.emailMessageId && (
                   <div
-                    className="flex items-center gap-1 text-blue-600"
+                    className="flex items-center gap-1 text-blue-600 dark:text-blue-400"
                     title="From email"
                   >
                     <HiEnvelope className="size-2.5" />
@@ -170,7 +208,7 @@ const CommentItem = React.memo(
 
                 {comment.sentAsEmail && (
                   <div
-                    className="flex items-center gap-1 text-green-600"
+                    className="flex items-center gap-1 text-green-600 dark:text-green-400"
                     title={`Sent as email to: ${
                       comment.emailRecipients?.join(", ") || "recipients"
                     }`}
@@ -182,42 +220,26 @@ const CommentItem = React.memo(
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div
-              className={`flex items-center gap-1 transition-opacity ${
-                isHovered ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              {/* Send as Email button */}
-              {allowEmailReplies && !comment.sentAsEmail && onSendAsEmail && (
+            {/* Comment content */}
+            <DangerouslyHTMLComment comment={comment.content} />
+
+            {/* Send as Email button - positioned below content */}
+            {allowEmailReplies && !comment.sentAsEmail && onSendAsEmail && (
+              <div
+                className={`mt-2 transition-opacity ${
+                  isHovered ? "opacity-100" : "opacity-0"
+                }`}
+              >
                 <button
                   onClick={() => onSendAsEmail(comment.id)}
-                  className="p-1.5 text-[var(--muted-foreground)] cursor-pointer hover:text-blue-600 hover:bg-[var(--muted)]/30 rounded-full transition-colors"
+                  className="text-xs px-2 py-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex items-center gap-1"
                   title="Send as email reply"
                 >
                   <HiEnvelope className="w-3 h-3" />
+                  <span>Send as email</span>
                 </button>
-              )}
-
-              {canEdit && (
-                <>
-                  <button
-                    onClick={() => onEdit(comment.id, comment.content)}
-                    className="p-1.5 text-[var(--muted-foreground)] cursor-pointer hover:text-[var(--foreground)] hover:bg-[var(--muted)]/30 rounded-full transition-colors"
-                    title="Edit comment"
-                  >
-                    <HiPencil className="w-3 h-3" />
-                  </button>
-                  <button
-                    onClick={() => onDelete(comment.id)}
-                    className="p-1.5 text-[var(--muted-foreground)] cursor-pointer hover:text-[var(--destructive)] hover:bg-[var(--muted)]/30 rounded-full transition-colors"
-                    title="Delete comment"
-                  >
-                    <HiTrash className="w-3 h-3" />
-                  </button>
-                </>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -327,7 +349,7 @@ export default function TaskComments({
       convertToRaw(editorState.getCurrentContent())
     ).trim();
     if (!htmlContent || htmlContent === "<p></p>") return;
-    const cleanHtml = decodeHtml(htmlContent)
+    const cleanHtml = decodeHtml(htmlContent);
     setIsSubmitting(true);
     try {
       if (editingCommentId) {
@@ -470,17 +492,6 @@ export default function TaskComments({
     colorMode,
     showAll,
   ]);
-
-  // if (!currentUser) {
-  //   return (
-  //     <Alert className="bg-[var(--muted)]/50 border-[var(--border)] text-[var(--muted-foreground)]">
-  //       <HiExclamationTriangle className="h-4 w-4" />
-  //       <AlertDescription>
-  //         Please log in to view and add comments.
-  //       </AlertDescription>
-  //     </Alert>
-  //   );
-  // }
 
   return (
     <>

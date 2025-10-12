@@ -1,5 +1,3 @@
-// src/components/inbox/shared/Stepper.tsx
-
 import React from "react";
 import { HiCheck } from "react-icons/hi2";
 
@@ -38,15 +36,10 @@ export default function Stepper({ currentStep, hasInbox }: StepperProps) {
         </div>
 
         {/* Step Items */}
-        {/* Step Items with connecting lines */}
         {visibleSteps.map((stepItem, index) => {
-          const displayNumber = stepItem.number; // Use actual step number, not sequential
+          const displayNumber = stepItem.number;
           const isCompleted = currentStep > stepItem.number;
           const isCurrent = currentStep === stepItem.number;
-          
-          // If this is the first visible step and there are hidden completed steps before it, show as completed
-          const hasCompletedHiddenSteps = index === 0 && stepItem.number > 1 && hasInbox;
-          const shouldShowAsCompleted = isCompleted || (hasCompletedHiddenSteps && currentStep >= stepItem.number);
           
           return (
             <div

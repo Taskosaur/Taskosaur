@@ -72,6 +72,7 @@ function useDebounce<T>(value: T, delay: number): T {
 const ProjectsContent: React.FC<ProjectsContentProps> = ({
   contextType,
   contextId,
+  
   workspaceSlug,
   title,
   description,
@@ -85,14 +86,13 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 
   const {
     projects,
-    isLoading,
     error,
+    isLoading,
     getProjectsByWorkspace,
     getProjectsByOrganization,
     refreshProjects,
     clearError,
   } = useProjectContext();
-
   const [hasAccess, setHasAccess] = useState(false);
   const [workspace, setWorkspace] = useState<any>(null);
   const [searchInput, setSearchInput] = useState("");
@@ -329,7 +329,8 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
             toast.error("Authentication required. Please log in again.");
           } else {
             toast.error(
-              `Failed to load ${contextType === "workspace" ? "workspace" : "organization"
+              `Failed to load ${
+                contextType === "workspace" ? "workspace" : "organization"
               } projects`
             );
           }
@@ -384,15 +385,17 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
       currentContextRef.current = contextKey;
     }
 
-    
     if (contextId && (!dataLoaded || isInitializedRef.current)) {
-      const shouldDelay = !isInitializedRef.current; 
-      const timeoutId = setTimeout(() => {
-        if (isInitializedRef.current) {
-          setCurrentPage(1);
-        }
-        fetchData(1, true);
-      }, shouldDelay ? 50 : 0);
+      const shouldDelay = !isInitializedRef.current;
+      const timeoutId = setTimeout(
+        () => {
+          if (isInitializedRef.current) {
+            setCurrentPage(1);
+          }
+          fetchData(1, true);
+        },
+        shouldDelay ? 50 : 0
+      );
 
       return () => clearTimeout(timeoutId);
     }
@@ -402,7 +405,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     dataLoaded,
     selectedStatuses,
     selectedPriorities,
-    debouncedSearchQuery
+    debouncedSearchQuery,
   ]);
   // Effect for pagination
   useEffect(() => {
@@ -479,6 +482,13 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 
   if (error) {
     return <ErrorState error={error} onRetry={retryFetch} />;
+  }
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center ">
+        <Loader text="Fetching all project..." />
+      </div>
+    );
   }
 
   const displayTitle =
@@ -565,9 +575,9 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
           }
         />
 
-        {isLoading && projects.length > 0 && (
+        {/* {isLoading && projects.length > 0 && (
           <Loader />
-        )}
+        )} */}
 
         {/* Projects Grid - Use context projects */}
         {projects.length === 0 ? (
@@ -575,10 +585,13 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
             <EmptyState
               icon={<HiSearch size={24} />}
               title="No projects found"
-              description={`No projects match your current search${totalActiveFilters > 0 ? " and filters" : ""
-                }. Try adjusting your criteria.`}
+              description={`No projects match your current search${
+                totalActiveFilters > 0 ? " and filters" : ""
+              }. Try adjusting your criteria.`}
               action={
-                <ActionButton onClick={clearAllFilters}>Clear All</ActionButton>
+                <ActionButton primary onClick={clearAllFilters}>
+                  Back
+                </ActionButton>
               }
             />
           ) : (
@@ -671,15 +684,13 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                   {projects.length !== 1 ? "s" : ""}
                   {searchInput && ` matching "${searchInput}"`}
                   {totalActiveFilters > 0 &&
-                    ` with ${totalActiveFilters} filter${totalActiveFilters !== 1 ? "s" : ""
+                    ` with ${totalActiveFilters} filter${
+                      totalActiveFilters !== 1 ? "s" : ""
                     } applied`}
                   {(searchInput || totalActiveFilters > 0) && (
-                    <button
-                      onClick={clearAllFilters}
-                      className="ml-2 text-[var(--primary)] hover:underline"
-                    >
-                      Clear all
-                    </button>
+                    <ActionButton onClick={clearAllFilters} primary>
+                      Back
+                    </ActionButton>
                   )}
                 </p>
               </div>

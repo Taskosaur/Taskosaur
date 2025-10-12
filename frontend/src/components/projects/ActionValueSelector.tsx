@@ -1,13 +1,22 @@
 import React from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ActionValueSelectorProps {
-  actionType: "setPriority" | "assignTo" | "addLabels" | "markAsSpam" | "autoReply";
+  actionType:
+    | "setPriority"
+    | "assignTo"
+    | "addLabels"
+    | "markAsSpam"
+    | "autoReply";
   value: string | string[];
   onChange: (value: string | string[]) => void;
-  
-  // Data options
+
   options?: Array<{
     id: string;
     value: string;
@@ -16,16 +25,10 @@ interface ActionValueSelectorProps {
     avatar?: string | null;
     email?: string;
   }>;
-  
-  // Loading states
   isLoading?: boolean;
-  
-  // Display options
   showAvatar?: boolean;
   showEmail?: boolean;
   showColorIndicator?: boolean;
-  
-  // Placeholders
   placeholder?: string;
   loadingText?: string;
   emptyText?: string;
@@ -44,8 +47,6 @@ export function ActionValueSelector({
   loadingText = "Loading...",
   emptyText = "No options available",
 }: ActionValueSelectorProps) {
-  
-  // Static message for markAsSpam
   if (actionType === "markAsSpam") {
     return (
       <div className="flex-1 text-sm text-[var(--muted-foreground)]/60">
@@ -54,7 +55,6 @@ export function ActionValueSelector({
     );
   }
 
-  // Yes/No for autoReply
   if (actionType === "autoReply") {
     return (
       <Select value={value as string} onValueChange={onChange}>
@@ -70,10 +70,16 @@ export function ActionValueSelector({
           </SelectValue>
         </SelectTrigger>
         <SelectContent className="bg-[var(--card)] border border-[var(--border)]">
-          <SelectItem value="yes" className="hover:bg-[var(--hover-bg)] cursor-pointer">
+          <SelectItem
+            value="yes"
+            className="hover:bg-[var(--hover-bg)] cursor-pointer"
+          >
             Yes
           </SelectItem>
-          <SelectItem value="no" className="hover:bg-[var(--hover-bg)] cursor-pointer">
+          <SelectItem
+            value="no"
+            className="hover:bg-[var(--hover-bg)] cursor-pointer"
+          >
             No
           </SelectItem>
         </SelectContent>
@@ -91,16 +97,20 @@ export function ActionValueSelector({
       );
     }
 
-    const selected = options.find((opt) => opt.id === value || opt.value === value);
+    const selected = options.find(
+      (opt) => opt.id === value || opt.value === value
+    );
     if (!selected) {
-      return <span className="text-[var(--muted-foreground)]">{placeholder}</span>;
+      return (
+        <span className="text-[var(--muted-foreground)]">{placeholder}</span>
+      );
     }
 
     return (
       <div className="flex items-center gap-2">
         {/* Avatar */}
-        {showAvatar && (
-          selected.avatar ? (
+        {showAvatar &&
+          (selected.avatar ? (
             <img
               src={selected.avatar}
               alt={selected.label}
@@ -110,9 +120,8 @@ export function ActionValueSelector({
             <div className="w-5 h-5 rounded-full bg-[var(--primary)] text-white text-[10px] flex items-center justify-center font-medium">
               {selected.label.charAt(0).toUpperCase()}
             </div>
-          )
-        )}
-        
+          ))}
+
         {/* Color indicator */}
         {showColorIndicator && (
           <div
@@ -120,19 +129,19 @@ export function ActionValueSelector({
             style={{ backgroundColor: selected.color || "#6b7280" }}
           />
         )}
-        
+
         <span className="truncate">{selected.label}</span>
       </div>
     );
   };
 
   // Render dropdown items
-  const renderDropdownItem = (option: typeof options[0]) => {
+  const renderDropdownItem = (option: (typeof options)[0]) => {
     return (
       <div className="flex items-center gap-2 py-1">
         {/* Avatar */}
-        {showAvatar && (
-          option.avatar ? (
+        {showAvatar &&
+          (option.avatar ? (
             <img
               src={option.avatar}
               alt={option.label}
@@ -142,9 +151,8 @@ export function ActionValueSelector({
             <div className="w-6 h-6 rounded-full bg-[var(--primary)] text-white text-xs flex items-center justify-center font-medium flex-shrink-0">
               {option.label.charAt(0).toUpperCase()}
             </div>
-          )
-        )}
-        
+          ))}
+
         {/* Color indicator */}
         {showColorIndicator && (
           <div
@@ -152,10 +160,14 @@ export function ActionValueSelector({
             style={{ backgroundColor: option.color || "#6b7280" }}
           />
         )}
-        
+
         {/* Label and email */}
         <div className="flex flex-col min-w-0 flex-1">
-          <span className={`font-medium text-sm truncate ${showColorIndicator ? 'capitalize' : ''}`}>
+          <span
+            className={`font-medium text-sm truncate ${
+              showColorIndicator ? "capitalize" : ""
+            }`}
+          >
             {option.label}
           </span>
           {showEmail && option.email && (
@@ -175,9 +187,7 @@ export function ActionValueSelector({
       disabled={isLoading}
     >
       <SelectTrigger className="flex-1 border border-[var(--border)]">
-        <SelectValue asChild>
-          {renderSelectedValue()}
-        </SelectValue>
+        <SelectValue asChild>{renderSelectedValue()}</SelectValue>
       </SelectTrigger>
 
       <SelectContent className="bg-[var(--card)] border border-[var(--border)]">

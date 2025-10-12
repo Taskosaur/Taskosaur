@@ -466,10 +466,11 @@ model TaskComment {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Email Integration
-  emailMessageId  String?   @unique @map("email_message_id")
-  sentAsEmail     Boolean   @default(false) @map("sent_as_email")
-  emailRecipients String[]  @map("email_recipients")
-  emailSentAt     DateTime? @map("email_sent_at")
+  emailMessageId      String?   @unique @map("email_message_id")
+  sentAsEmail         Boolean   @default(false) @map("sent_as_email")
+  emailRecipients     String[]  @map("email_recipients")
+  emailRecipientNames String?    @map("email_recipient_names")
+  emailSentAt         DateTime? @map("email_sent_at")
 
   author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
   createdByUser User?         @relation("TaskCommentCreatedBy", fields: [createdBy], references: [id])

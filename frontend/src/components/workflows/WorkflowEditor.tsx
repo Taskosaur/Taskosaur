@@ -251,10 +251,10 @@ export default function WorkflowEditor({
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Workflow Details Section */}
       <Card className="bg-[var(--card)] border-[var(--border)]">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-md font-semibold text-[var(--foreground)]">
             Workflow Details
           </CardTitle>

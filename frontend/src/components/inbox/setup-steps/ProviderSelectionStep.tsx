@@ -1,13 +1,21 @@
-// src/components/inbox/setup-steps/ProviderSelectionStep.tsx
-
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { HiArrowRight, HiArrowLeft, HiCog, HiExclamationCircle } from "react-icons/hi2";
+import {
+  HiArrowRight,
+  HiArrowLeft,
+  HiCog,
+  HiExclamationCircle,
+} from "react-icons/hi2";
 import { EMAIL_PROVIDERS } from "@/utils/data/emailProviders";
 import ActionButton from "@/components/common/ActionButton";
 
@@ -54,7 +62,8 @@ export default function ProviderSelectionStep({
   isReconfiguring = false,
 }: ProviderSelectionStepProps) {
   const [step, setStep] = useState(1);
-  const [selectedProvider, setSelectedProvider] = useState<EmailProvider | null>(null);
+  const [selectedProvider, setSelectedProvider] =
+    useState<EmailProvider | null>(null);
   const [emailData, setEmailData] = useState<EmailSetupData>({
     emailAddress: "",
     displayName: "",
@@ -72,7 +81,7 @@ export default function ProviderSelectionStep({
   });
 
   const handleProviderSelect = (providerId: string) => {
-    const provider = EMAIL_PROVIDERS.find(p => p.id === providerId);
+    const provider = EMAIL_PROVIDERS.find((p) => p.id === providerId);
     if (!provider) return;
 
     setSelectedProvider(provider);
@@ -88,7 +97,6 @@ export default function ProviderSelectionStep({
   const handleContinue = () => {
     if (!isStep1Valid()) return;
 
-    // Auto-fill usernames if not provided
     if (!emailData.imapUsername) {
       setEmailData((prev) => ({ ...prev, imapUsername: prev.emailAddress }));
     }
@@ -113,7 +121,6 @@ export default function ProviderSelectionStep({
       setStep(step - 1);
     } else if (onBack) {
       if (isReconfiguring) {
-        // If reconfiguring, go back to completed view (step 4 in parent)
         onBack();
       } else {
         onBack();
@@ -121,18 +128,19 @@ export default function ProviderSelectionStep({
     }
   };
 
-  // Validation
   const isStep1Valid = () => {
-    if (!emailData.emailAddress || !emailData.displayName || !selectedProvider) {
+    if (
+      !emailData.emailAddress ||
+      !emailData.displayName ||
+      !selectedProvider
+    ) {
       return false;
     }
 
-    // For non-custom providers, only password is required
     if (selectedProvider.id !== "custom") {
       return !!emailData.imapPassword;
     }
 
-    // For custom provider, all fields must be filled
     return !!(
       emailData.imapHost &&
       emailData.imapPort &&
@@ -149,17 +157,6 @@ export default function ProviderSelectionStep({
   const renderStep1 = () => (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex items-center justify-between">
-        {/* <div>
-          <h3 className="text-lg font-semibold mb-2">
-            {selectedProvider ? "Enter Email Credentials" : "Choose Your Email Provider"}
-          </h3>
-          <p className="text-sm text-[var(--muted-foreground)]/60">
-            {selectedProvider
-              ? "Provide your email account details to establish the connection"
-              : "Select your email provider and enter basic information"}
-          </p>
-        </div> */}
-
         {selectedProvider && (
           <Badge
             className="bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 px-3 py-1"
@@ -181,7 +178,10 @@ export default function ProviderSelectionStep({
             type="email"
             value={emailData.emailAddress}
             onChange={(e) =>
-              setEmailData((prev) => ({ ...prev, emailAddress: e.target.value }))
+              setEmailData((prev) => ({
+                ...prev,
+                emailAddress: e.target.value,
+              }))
             }
             placeholder="support@company.com"
             required
@@ -215,14 +215,20 @@ export default function ProviderSelectionStep({
         <Select
           value={selectedProvider?.id || ""}
           onValueChange={handleProviderSelect}
-          
         >
           <SelectTrigger className="w-full h-10 bg-[var(--background)] border-[var(--border)]">
-            <SelectValue placeholder="Select provider" className="bg-[var(--background)]" />
+            <SelectValue
+              placeholder="Select provider"
+              className="bg-[var(--background)]"
+            />
           </SelectTrigger>
           <SelectContent className="bg-[var(--background)] border-[var(--border)]">
             {EMAIL_PROVIDERS.map((provider) => (
-              <SelectItem key={provider.id} value={provider.id} className="hover:bg-[var(--muted)]" >
+              <SelectItem
+                key={provider.id}
+                value={provider.id}
+                className="hover:bg-[var(--muted)]"
+              >
                 {provider.name}
               </SelectItem>
             ))}
@@ -235,10 +241,9 @@ export default function ProviderSelectionStep({
         <>
           {/* Provider-specific alert */}
           {selectedProvider.requiresAppPassword && (
-         <p className="text-sm text-red-600 flex items-center gap-2">
-             <HiExclamationCircle />   {selectedProvider.setupInstructions}
-
-         </p>
+            <p className="text-sm text-red-600 flex items-center gap-2">
+              <HiExclamationCircle /> {selectedProvider.setupInstructions}
+            </p>
           )}
 
           {/* For Gmail and Outlook - Show only Password field */}
@@ -263,7 +268,7 @@ export default function ProviderSelectionStep({
                   setEmailData((prev) => ({
                     ...prev,
                     imapPassword: e.target.value,
-                    smtpPassword: e.target.value, // Use same password for both
+                    smtpPassword: e.target.value,
                   }))
                 }
                 placeholder={
@@ -287,7 +292,10 @@ export default function ProviderSelectionStep({
                   id="imapHost"
                   value={emailData.imapHost}
                   onChange={(e) =>
-                    setEmailData((prev) => ({ ...prev, imapHost: e.target.value }))
+                    setEmailData((prev) => ({
+                      ...prev,
+                      imapHost: e.target.value,
+                    }))
                   }
                   placeholder="imap.example.com"
                   className="h-10"
@@ -314,17 +322,20 @@ export default function ProviderSelectionStep({
               </div>
 
               <div>
-                <Label className="pb-2 text-sm font-medium" htmlFor="imapUsername">
+                <Label
+                  className="pb-2 text-sm font-medium"
+                  htmlFor="imapUsername"
+                >
                   Username <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="imapUsername"
                   value={emailData.imapUsername}
                   onChange={(e) =>
-                    setEmailData((prev) => ({ 
-                      ...prev, 
+                    setEmailData((prev) => ({
+                      ...prev,
                       imapUsername: e.target.value,
-                      smtpUsername: e.target.value // Auto-sync SMTP username
+                      smtpUsername: e.target.value,
                     }))
                   }
                   placeholder="username@example.com"
@@ -333,7 +344,10 @@ export default function ProviderSelectionStep({
               </div>
 
               <div>
-                <Label className="pb-2 text-sm font-medium" htmlFor="imapPassword">
+                <Label
+                  className="pb-2 text-sm font-medium"
+                  htmlFor="imapPassword"
+                >
                   Password <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -344,7 +358,7 @@ export default function ProviderSelectionStep({
                     setEmailData((prev) => ({
                       ...prev,
                       imapPassword: e.target.value,
-                      smtpPassword: e.target.value, // Auto-fill SMTP password
+                      smtpPassword: e.target.value,
                     }))
                   }
                   placeholder="Your password"
@@ -356,28 +370,22 @@ export default function ProviderSelectionStep({
         </>
       )}
 
-      <div className="flex justify-between pt-4">
-        <Button
-          className="border-[var(--border)] hover:bg-[var(--muted)]"
-          variant="outline"
-          type="button"
-          onClick={handlePrevStep}
-        >
-          <HiArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-
+      <div className="flex gap-2 pt-4 justify-end">
         {selectedProvider && (
-          <Button
-            variant="outline"
-            type="button"
+          <ActionButton
+            primary
             onClick={handleContinue}
             disabled={!isStep1Valid()}
-            className="border-[var(--border)] hover:bg-[var(--muted)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Continue <HiArrowRight className="w-4 h-4 ml-2" />
-          </Button>
+            Continue
+          </ActionButton>
         )}
+
+        <ActionButton 
+        secondary 
+        onClick={handlePrevStep}>
+          Back
+        </ActionButton>
       </div>
     </div>
   );
@@ -433,38 +441,21 @@ export default function ProviderSelectionStep({
         </div>
       </div>
 
-   
       <p className="text-sm text-blue-800 flex items-center gap-2">
-             <HiExclamationCircle />            We'll test both incoming (IMAP) and outgoing (SMTP) connections to ensure everything works properly.
+        <HiExclamationCircle /> We'll test both incoming (IMAP) and outgoing
+        (SMTP) connections to ensure everything works properly.
+      </p>
 
-
-         </p>
-
-      <div className="flex justify-between pt-4">
-        <Button
-          className="border-[var(--border)] hover:bg-[var(--muted)]"
-          variant="outline"
-          onClick={handlePrevStep}
-          disabled={setupLoading}
-        >
-          <HiArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
+      <div className="flex justify-end gap-2">
         <ActionButton
           onClick={handleTestConnection}
           disabled={setupLoading}
           primary
         >
-          {setupLoading ? (
-            <>
-              <HiCog className="w-4 h-4 mr-2 animate-spin" />
-              Testing Connection...
-            </>
-          ) : (
-            <>
-              Test Connection
-            </>
-          )}
+          {setupLoading ? <>Testing Connection...</> : <>Test Connection</>}
+        </ActionButton>
+        <ActionButton onClick={handlePrevStep} disabled={setupLoading} secondary>
+          Back
         </ActionButton>
       </div>
     </div>

@@ -37,6 +37,7 @@ export interface UpdateTaskRequest {
   reporterIds?: string[];
   statusId?: string;
   projectId?: string;
+  allowEmailReplies?: boolean;
 }
 export interface TasksResponse {
   tasks: Task[];

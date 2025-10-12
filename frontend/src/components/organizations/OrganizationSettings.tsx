@@ -604,7 +604,8 @@ export default function OrganizationSettingsComponent({
   return (
     <div className="space-y-4">
       <CardHeader className="pb-3">
-        <CardTitle className="text-md font-semibold text-[var(--foreground)]">
+        <CardTitle className="text-md flex gap-2 items-center font-semibold text-[var(--foreground)]">
+          <HiCog size={23} />
           Organization Settings
         </CardTitle>
         <p className="text-sm text-[var(--muted-foreground)]">

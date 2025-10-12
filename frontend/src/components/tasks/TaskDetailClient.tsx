@@ -28,6 +28,7 @@ import { TaskPriorities } from "@/utils/data/taskData";
 import { formatDateForApi } from "@/utils/handleDateChange";
 import MemberSelect from "../common/MemberSelect";
 import Divider from "../common/Divider";
+import { ToggleSwitch } from "../common/ToggleButton";
 
 interface TaskDetailClientProps {
   task: any;
@@ -155,6 +156,10 @@ export default function TaskDetailClient({
     priority: false,
     status: false,
   });
+  const [allowEmailReplies, setAllowEmailReplies] = useState(
+    task.allowEmailReplies || false
+  );
+
   const today = new Date().toISOString().split("T")[0];
   // Exception: Assignee or reporter has access to all actions except Assignment section
   const isAssigneeOrReporter =
@@ -491,6 +496,23 @@ export default function TaskDetailClient({
     } finally {
       setIsUploading(false);
       event.target.value = "";
+    }
+  };
+
+   const handleEmailRepliesToggle = async (enabled: boolean) => {
+    try {
+      await updateTask(taskId, {
+        allowEmailReplies: enabled,
+      });
+      setAllowEmailReplies(enabled);
+      task.allowEmailReplies = enabled;
+      toast.success(
+        `Email replies ${enabled ? 'enabled' : 'disabled'} successfully.`
+      );
+    } catch (error) {
+      toast.error("Failed to update email replies setting.");
+      // Revert the state if the update failed
+      setAllowEmailReplies(!enabled);
     }
   };
 
@@ -919,6 +941,18 @@ export default function TaskDetailClient({
             {/* Task Settings Section */}
             <div className="">
               <div className="space-y-2">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="text-sm">Email Replies</Label>
+                    <ToggleSwitch
+                      checked={allowEmailReplies}
+                      onChange={handleEmailRepliesToggle}
+                      disabled={!hasAccess}
+                      label="Allow email replies"
+                      size="sm"
+                    />
+                  </div>
+                </div>
                 {/* Priority */}
                 <div>
                   <div className="flex items-center justify-between mb-2">

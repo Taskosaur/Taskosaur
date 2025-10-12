@@ -46,7 +46,6 @@ export default function WorkspacesPageContent({
     clearError,
     getCurrentOrganizationId,
   } = useWorkspaceContext();
-
   const { getUserAccess } = useAuth();
 
   // State management
@@ -136,9 +135,14 @@ export default function WorkspacesPageContent({
   const clearSearch = useCallback(() => {
     setSearchQuery("");
   }, []);
-  if (isLoading && workspaces.length === 0) {
-    return <Loader text="Fetching workspace details..." />;
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center ">
+        <Loader text="Fetching workspace details..." />
+      </div>
+    );
   }
+
   if (error) {
     return <ErrorState error={error} onRetry={retryFetch} />;
   }
@@ -161,14 +165,13 @@ export default function WorkspacesPageContent({
                   onChange={handleSearchChange}
                   className="pl-10 pr-10 rounded-md border border-[var(--border)]"
                 />
-     
+
                 {isLoading && searchQuery && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
                     <div className="animate-spin h-4 w-4 border-2 border-[var(--primary)] border-t-transparent rounded-full" />
                   </div>
                 )}
 
-                
                 {searchQuery && !isLoading && (
                   <button
                     onClick={clearSearch}
@@ -198,12 +201,6 @@ export default function WorkspacesPageContent({
             </>
           }
         />
-
-        {isLoading && workspaces.length > 0 && (
-          <div className="flex justify-center py-4">
-            <div className="animate-spin h-5 w-5 border-2 border-[var(--primary)] border-t-transparent rounded-full" />
-          </div>
-        )}
         {workspaces.length === 0 ? (
           searchQuery ? (
             <EmptyState
@@ -261,11 +258,6 @@ export default function WorkspacesPageContent({
                       {ws._count?.members ?? ws.memberCount ?? 0} members
                     </span>
                   </div>
-                }
-                className={
-                  currentWorkspace?.id === ws.id
-                    ? "ring-2 ring-[var(--primary)] ring-opacity-50"
-                    : undefined
                 }
               />
             ))}

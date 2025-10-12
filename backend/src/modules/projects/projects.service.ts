@@ -384,7 +384,6 @@ export class ProjectsService {
         userId,
         workspaceId, // Pass workspace filter if provided
       );
-      console.log(JSON.stringify(accessibleProjectIds));
       if (accessibleProjectIds.length === 0) {
         // No accessible projects, return empty result
         return [];
@@ -491,7 +490,6 @@ export class ProjectsService {
         // Get workspace-level access for this user
         const { isElevated: wsIsElevated } =
           await this.accessControl.getWorkspaceAccess(workspace.id, userId);
-        console.log(workspace.id, wsIsElevated);
         if (wsIsElevated) {
           // If elevated at workspace level, get all projects in this workspace
           const workspaceProjects = await this.prisma.project.findMany({
@@ -516,7 +514,6 @@ export class ProjectsService {
             },
             select: { id: true },
           });
-          console.log(memberProjects);
           accessibleProjectIds.push(...memberProjects.map((p) => p.id));
         }
       } catch (error) {
@@ -701,7 +698,6 @@ export class ProjectsService {
 
   async remove(id: string, userId: string): Promise<void> {
     const { role } = await this.accessControl.getProjectAccess(id, userId);
-    console.log(role);
     if (role !== Role.OWNER && role !== Role.SUPER_ADMIN) {
       throw new ForbiddenException('Only owners can delete projects');
     }

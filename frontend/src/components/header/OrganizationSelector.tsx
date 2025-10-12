@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { Building } from "lucide-react";
 import { Organization, User } from "@/types";
 import { mcpServer } from "@/lib/mcp-server";
+import Loader from "../common/Loader";
 
 export default function OrganizationSelector({
   onOrganizationChange,
@@ -203,10 +204,7 @@ export default function OrganizationSelector({
         <div className="header-org-list-container">
           {isFetchingOnOpen ? (
             <div className="header-org-loading-state">
-              <div className="header-org-loading-spinner" />
-              <p className="header-org-loading-text">
-                Loading organizations...
-              </p>
+              <Loader/>
             </div>
           ) : organizations.length === 0 ? (
             <div className="header-org-empty-state">

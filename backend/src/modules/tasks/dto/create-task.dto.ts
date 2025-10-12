@@ -9,6 +9,7 @@ import {
   IsObject,
   IsArray,
   ArrayUnique,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { TaskType, TaskPriority } from '@prisma/client';
@@ -200,4 +201,14 @@ export class CreateTaskDto {
     required: false,
   })
   completedAt?: string | null;
+
+  @ApiProperty({
+    description: 'Whether to allow email replies for this task',
+    example: true,
+    required: false,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  allowEmailReplies?: boolean;
 }

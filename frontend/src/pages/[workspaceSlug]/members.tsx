@@ -812,7 +812,7 @@ function WorkspaceMembersContent() {
 
                           {/* Invited Date */}
                           <div className="col-span-3">
-                            <span className="text-sm text-[var(--muted-foreground)]">
+                            <span className="text-xs text-[var(--muted-foreground)]">
                               {member.joinedAt
                                 ? formatDate(
                                     new Date(member.joinedAt).toISOString()

@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -379,7 +378,6 @@ function ProjectSettingsContent() {
                         readOnly
                         className="cursor-not-allowed"
                       />
-                     
                     </div>
 
                     <div className="space-y-2">
@@ -471,19 +469,19 @@ function ProjectSettingsContent() {
                               className="hover:bg-[var(--hover-bg)]"
                               value="PRIVATE"
                             >
-                              🔒 Private - Only members
+                              Private - Only members
                             </SelectItem>
                             <SelectItem
                               className="hover:bg-[var(--hover-bg)]"
                               value="INTERNAL"
                             >
-                              🏢 Internal - Workspace members can view
+                              Internal - Workspace members can view
                             </SelectItem>
                             <SelectItem
                               className="hover:bg-[var(--hover-bg)]"
                               value="PUBLIC"
                             >
-                              🌍 Public - Anyone can view
+                              Public - Anyone can view
                             </SelectItem>
                           </SelectContent>
                         </Select>

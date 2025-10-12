@@ -3,7 +3,7 @@ import { useProjectContext } from "@/contexts/project-context";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
 import { useAuth } from "@/contexts/auth-context";
 import { useGlobalFetchPrevention } from "@/hooks/useGlobalFetchPrevention";
-import { invitationApi } from "@/utils/api/invitationsApi"; // Add this import
+import { invitationApi } from "@/utils/api/invitationsApi";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +37,6 @@ import { HiChevronDown } from "react-icons/hi2";
 import { HiCheck } from "react-icons/hi2";
 import { HiUsers } from "react-icons/hi2";
 
-// Types
 export interface Member {
   id: string;
   role: string;
@@ -144,8 +143,6 @@ const MembersManagerComponent = memo(function MembersManager({
     const roleConfig = roles.find((r) => r.value === role);
     return roleConfig?.label || role;
   };
-
-  // ... (keep all existing functions unchanged until handleInviteMember)
 
   const fetchMembers = useCallback(async () => {
     const fetchKey = `${type}-${entityId}-${organizationId}`;
@@ -294,8 +291,6 @@ const MembersManagerComponent = memo(function MembersManager({
     workspaceContext,
   ]);
 
-  // Keep all existing useEffect hooks unchanged...
-
   useEffect(() => {
     mountedRef.current = true;
 
@@ -353,7 +348,6 @@ const MembersManagerComponent = memo(function MembersManager({
     }
   };
 
-  // Updated handleInviteMember function with invitation API integration
   const handleInviteMember = async () => {
     try {
       if (!inviteEmail.trim()) return;
@@ -362,23 +356,19 @@ const MembersManagerComponent = memo(function MembersManager({
       setInviteMessage(null);
       setError(null);
 
-      // Prepare invitation data based on entity type
       const inviteData: any = {
         inviteeEmail: inviteEmail.trim(),
         role: selectedRole,
       };
 
-      // Set the appropriate entity ID
       if (type === "workspace") {
         inviteData.workspaceId = entityId;
       } else {
         inviteData.projectId = entityId;
       }
 
-      // Call the invitation API
       await invitationApi.createInvitation(inviteData);
 
-      // Success - show success message and reset form
       setInviteMessage("Invitation sent successfully!");
       setInviteEmail("");
       setSelectedRole(type === "workspace" ? "MEMBER" : "DEVELOPER");
@@ -390,7 +380,6 @@ const MembersManagerComponent = memo(function MembersManager({
 
       await fetchMembers();
     } catch (error: any) {
-      // Handle specific error messages from the backend
       const errorMessage = error?.response?.data?.message || error?.message;
       
       if (errorMessage) {

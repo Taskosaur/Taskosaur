@@ -1,7 +1,4 @@
-// src/components/inbox/setup-steps/InboxConfigurationStep.tsx
-
 import React from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HiArrowRight, HiCog } from "react-icons/hi2";
 import { InboxFormData } from "@/types/emailIntegration";
 import SearchableAssigneeDropdown from "@/components/shared/SearchableAssigneeDropdown";
 import ActionButton from "@/components/common/ActionButton";
@@ -41,8 +37,6 @@ export default function InboxConfigurationStep({
 }: InboxConfigurationStepProps) {
   return (
     <div className=" mt-0 animate-fadeIn">
-     
-
       <div className="space-y-5">
         <div>
           <Label className="pb-2 text-sm font-medium" htmlFor="inboxName">
@@ -56,9 +50,7 @@ export default function InboxConfigurationStep({
             className={`h-10 ${validationErrors.name ? "border-red-500" : ""}`}
           />
           {validationErrors.name && (
-            <p className="text-sm text-red-600 mt-1">
-              {validationErrors.name}
-            </p>
+            <p className="text-sm text-red-600 mt-1">{validationErrors.name}</p>
           )}
         </div>
 
@@ -98,7 +90,10 @@ export default function InboxConfigurationStep({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label className="pb-2 text-sm font-medium" htmlFor="defaultTaskType">
+            <Label
+              className="pb-2 text-sm font-medium"
+              htmlFor="defaultTaskType"
+            >
               Default Task Type
             </Label>
             <Select
@@ -126,10 +121,7 @@ export default function InboxConfigurationStep({
                 <SelectItem className="hover:bg-[var(--muted)]" value="STORY">
                   Story
                 </SelectItem>
-                <SelectItem
-                  className="hover:bg-[var(--muted)]"
-                  value="SUBTASK"
-                >
+                <SelectItem className="hover:bg-[var(--muted)]" value="SUBTASK">
                   Subtask
                 </SelectItem>
               </SelectContent>
@@ -137,7 +129,10 @@ export default function InboxConfigurationStep({
           </div>
 
           <div>
-            <Label className="pb-2 text-sm font-medium" htmlFor="defaultPriority">
+            <Label
+              className="pb-2 text-sm font-medium"
+              htmlFor="defaultPriority"
+            >
               Default Priority
             </Label>
             <Select
@@ -214,7 +209,10 @@ export default function InboxConfigurationStep({
           </div>
 
           <div>
-            <Label className="pb-2 text-sm font-medium" htmlFor="defaultAssignee">
+            <Label
+              className="pb-2 text-sm font-medium"
+              htmlFor="defaultAssignee"
+            >
               Default Assignee
             </Label>
             <SearchableAssigneeDropdown
@@ -272,7 +270,10 @@ export default function InboxConfigurationStep({
 
         {formData.autoReplyEnabled && (
           <div>
-            <Label className="pb-2 text-sm font-medium" htmlFor="autoReplyTemplate">
+            <Label
+              className="pb-2 text-sm font-medium"
+              htmlFor="autoReplyTemplate"
+            >
               Auto-reply Message <span className="text-red-500">*</span>
             </Label>
             <Textarea
@@ -297,22 +298,8 @@ export default function InboxConfigurationStep({
       </div>
 
       <div className="flex justify-end pt-4">
-        <ActionButton
-          onClick={onSubmit}
-          disabled={isSaving}
-          primary
-        >
-          {isSaving ? (
-            <>
-              {/* <HiCog className="w-4 h-4 mr-2 animate-spin" /> */}
-              Creating...
-            </>
-          ) : (
-            <>
-              {"Next"}
-              {/* <HiArrowRight className="w-4 h-4 ml-2" /> */}
-            </>
-          )}
+        <ActionButton onClick={onSubmit} disabled={isSaving} primary>
+          {isSaving ? <>Creating...</> : <>{"Next"}</>}
         </ActionButton>
       </div>
     </div>

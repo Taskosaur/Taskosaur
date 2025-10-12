@@ -12,6 +12,7 @@
         "start:dev": "node taskosaur.js run --dev",
         "build:dist": "rm -rf dist && npm run be:build:dist && npm run fe:build:dist && rm -rf backend/public && cp -rvf dist/public backend/public",
         "db:migrate": "node taskosaur.js be:npm run prisma:migrate:dev",
+        "db:migrate:deploy": "node taskosaur.js be:npm run prisma:migrate:deploy",
         "db:reset": "node taskosaur.js be:npm run prisma:reset",
         "db:seed": "node taskosaur.js be:npm run seed:core seed",
         "db:generate": "node taskosaur.js be:npm run prisma:generate",

@@ -81,7 +81,11 @@ function OrganizationSettingsPageContent() {
   };
 
   if (isLoading) {
-    return <Loader text="fetching your organization data" />;
+    return (
+      <div className="fixed inset-0 flex items-center justify-center ">
+        <Loader text="Fetching all project..." />
+      </div>
+    );
   }
 
   if (error) {
