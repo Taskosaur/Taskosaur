@@ -7,12 +7,12 @@ import { EntityCard } from "@/components/common/EntityCard";
 import { EmptyState } from "@/components/ui";
 import { HiUsers, HiFolder, HiSearch } from "react-icons/hi";
 import { HiViewGrid } from "react-icons/hi";
-import Loader from "@/components/common/Loader";
 import ErrorState from "@/components/common/ErrorState";
 import NewWorkspaceDialog from "@/components/workspace/NewWorkspaceDialogProps";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { HiXMark } from "react-icons/hi2";
+import { CardsSkeleton } from "../skeletons/CardsSkeleton";
 
 interface WorkspacesPageContentProps {
   organizationId: string;
@@ -135,11 +135,10 @@ export default function WorkspacesPageContent({
   const clearSearch = useCallback(() => {
     setSearchQuery("");
   }, []);
+
   if (isLoading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center ">
-        <Loader text="Fetching workspace details..." />
-      </div>
+      <CardsSkeleton />
     );
   }
 

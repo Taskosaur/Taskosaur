@@ -4,13 +4,11 @@ import {
   ConflictException,
   ForbiddenException,
 } from '@nestjs/common';
-import { Workspace } from '@prisma/client';
+import { Role, Workspace } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { AccessControlService } from 'src/common/access-control.utils';
-
-type Role = 'OWNER' | 'MANAGER' | 'MEMBER' | 'VIEWER';
 
 @Injectable()
 export class WorkspacesService {
@@ -32,7 +30,25 @@ export class WorkspacesService {
         'Insufficient permissions to create workspace',
       );
     }
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: createWorkspaceDto.organizationId },
+      select: {
+        id: true,
+        ownerId: true,
+        members: {
+          where: {
+            role: {
+              in: [Role.OWNER, Role.MANAGER]
+            }
+          },
+          select: { userId: true , role: true},
+        },
+      },
+    });
 
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
+    }
     // Generate unique slug
     const uniqueSlug = await this.generateUniqueSlug(
       createWorkspaceDto.slug,
@@ -70,16 +86,27 @@ export class WorkspacesService {
           _count: { select: { members: true, projects: true } },
         },
       });
-
-      await tx.workspaceMember.create({
-        data: {
-          userId,
-          workspaceId: workspace.id,
-          role: 'OWNER',
-          createdBy: userId,
-          updatedBy: userId,
-        },
-      });
+      const membersToAdd = new Map<string, Role>();
+      membersToAdd.set(userId, Role.OWNER);
+      membersToAdd.set(organization.ownerId, Role.OWNER);
+      organization.members.forEach((member) => {
+          if (!membersToAdd.has(member.userId)) {
+            membersToAdd.set(member.userId, member.role);
+          }
+        });;
+      await Promise.all(
+        Array.from(membersToAdd.entries()).map(([memberId, memberRole]) =>
+          tx.workspaceMember.create({
+            data: {
+              userId: memberId,
+              workspaceId: workspace.id,
+              role: memberRole,
+              createdBy: userId,
+              updatedBy: userId,
+            },
+          }),
+        ),
+      );
 
       return workspace;
     });

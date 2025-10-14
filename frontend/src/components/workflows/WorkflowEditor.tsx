@@ -253,7 +253,7 @@ export default function WorkflowEditor({
   return (
     <div className="space-y-4">
       {/* Workflow Details Section */}
-      <Card className="bg-[var(--card)] border-[var(--border)]">
+      <Card className="bg-[var(--sidebar)] border-none">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-md font-semibold text-[var(--foreground)]">
             Workflow Details
@@ -428,7 +428,7 @@ export default function WorkflowEditor({
         </Alert>
       )}
       {/* Workflow Visual */}
-      <Card className="bg-[var(--card)] border-[var(--border)] p-6">
+      <Card className="bg-[var(--sidebar)] border-none p-6">
         {sortedStatuses.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 mx-auto mb-4 rounded-lg bg-[var(--muted)] flex items-center justify-center">
@@ -581,12 +581,12 @@ export default function WorkflowEditor({
       </Card>
 
       {/* Workflow Rules */}
-      <Card className="bg-[var(--card)] border-[var(--border)] p-6">
+      <Card className="bg-[var(--sidebar)] border-none p-6">
         <h3 className="text-md font-semibold text-[var(--foreground)] mb-4">
           Workflow Rules
         </h3>
         <div className="space-y-4">
-          <div className="p-4 bg-[var(--category-blue-10)] rounded-lg border border-[var(--category-blue-20)]">
+          <div className="p-4 bg-[var(--category-blue-10)] rounded-lg border-none">
             <h4 className="font-medium text-[var(--category-blue)] mb-2">
               Transition Rules
             </h4>
@@ -600,7 +600,7 @@ export default function WorkflowEditor({
             </ul>
           </div>
 
-          <div className="p-4 bg-[var(--category-lime-10)] rounded-lg border border-[var(--category-lime-20)]">
+          <div className="p-4 bg-[var(--category-lime-10)] rounded-lg border-none">
             <h4 className="font-medium text-[var(--category-lime)] mb-2">
               Status Requirements
             </h4>

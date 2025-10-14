@@ -9,13 +9,14 @@ import { EmailService } from '../email/email.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import * as crypto from 'crypto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { InvitationStatus } from '@prisma/client';
 
 @Injectable()
 export class InvitationsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   async createInvitation(dto: CreateInvitationDto, inviterId: string) {
     const targetCount = [
@@ -50,19 +51,6 @@ export class InvitationsService {
         throw new NotFoundException('Project not found');
       }
       owningOrgId = project.workspace.organizationId;
-    }
-    if (dto.workspaceId || dto.projectId) {
-      const membership = await this.prisma.organizationMember.findFirst({
-        where: {
-          organizationId: owningOrgId,
-          user: { email: dto.inviteeEmail },
-        },
-      });
-      if (!membership) {
-        throw new ForbiddenException(
-          'User Email does not belong to this organization',
-        );
-      }
     }
     await this.checkExistingMembership(dto);
 
@@ -104,7 +92,14 @@ export class InvitationsService {
       },
     });
 
-    await this.sendInvitationEmail(invitation);
+    // Try to send the invitation email, but don't fail the entire operation if email fails
+    try {
+      await this.sendInvitationEmail(invitation);
+    } catch (error) {
+      console.error('Failed to send invitation email:', error);
+      // Continue execution - the invitation was created successfully
+    }
+
     return invitation;
   }
 
@@ -113,10 +108,18 @@ export class InvitationsService {
       where: { token },
       include: {
         organization: true,
-        workspace: true,
+        workspace: {
+          include: {
+            organization: true, // Include organization info for workspace invitations
+          },
+        },
         project: {
           include: {
-            workspace: true, // Include workspace info for project invitations
+            workspace: {
+              include: {
+                organization: true, // Include organization info for project invitations
+              },
+            },
           },
         },
       },
@@ -152,6 +155,7 @@ export class InvitationsService {
 
     // Use transaction to ensure data consistency
     await this.prisma.$transaction(async (prisma) => {
+      // Handle organization invitation
       if (invitation.organizationId) {
         const existingOrgMember = await prisma.organizationMember.findFirst({
           where: {
@@ -170,7 +174,29 @@ export class InvitationsService {
             },
           });
         }
-      } else if (invitation.workspaceId) {
+      }
+      // Handle workspace invitation - add to organization first, then workspace
+      else if (invitation.workspaceId && invitation.workspace) {
+        const organizationId = invitation.workspace.organizationId;
+        const existingOrgMember = await prisma.organizationMember.findFirst({
+          where: {
+            userId,
+            organizationId: organizationId,
+          },
+        });
+
+        if (!existingOrgMember) {
+          await prisma.organizationMember.create({
+            data: {
+              userId,
+              organizationId: organizationId,
+              role: "MEMBER",
+              createdBy: invitation.inviterId,
+            },
+          });
+        }
+
+        // Then add to workspace
         const existingWorkspaceMember = await prisma.workspaceMember.findFirst({
           where: {
             userId,
@@ -188,7 +214,50 @@ export class InvitationsService {
             },
           });
         }
-      } else if (invitation.projectId && invitation.project) {
+      }
+      // Handle project invitation - add to organization, workspace, then project
+      else if (invitation.projectId && invitation.project) {
+        // Add to organization first (top level)
+        const organizationId = invitation.project.workspace.organizationId;
+        const existingOrgMember = await prisma.organizationMember.findFirst({
+          where: {
+            userId,
+            organizationId: organizationId,
+          },
+        });
+
+        if (!existingOrgMember) {
+          await prisma.organizationMember.create({
+            data: {
+              userId,
+              organizationId: organizationId,
+              role: "MEMBER",
+              createdBy: invitation.inviterId,
+            },
+          });
+        }
+
+        // Then add to workspace (middle level)
+        const workspaceId = invitation.project.workspace.id;
+        const existingWorkspaceMember = await prisma.workspaceMember.findFirst({
+          where: {
+            userId,
+            workspaceId: workspaceId,
+          },
+        });
+
+        if (!existingWorkspaceMember) {
+          await prisma.workspaceMember.create({
+            data: {
+              userId,
+              workspaceId: workspaceId,
+              role: "MEMBER",
+              createdBy: invitation.inviterId,
+            },
+          });
+        }
+
+        // Finally add to project (bottom level)
         const existingProjectMember = await prisma.projectMember.findFirst({
           where: {
             userId,
@@ -202,28 +271,6 @@ export class InvitationsService {
               userId,
               projectId: invitation.projectId,
               role: invitation.role as any,
-              createdBy: invitation.inviterId,
-            },
-          });
-        }
-        const workspaceId = invitation.project.workspace.id;
-        const existingWorkspaceMember = await prisma.workspaceMember.findFirst({
-          where: {
-            userId,
-            workspaceId: workspaceId,
-          },
-        });
-
-        if (!existingWorkspaceMember) {
-          const workspaceRole = this.getWorkspaceRoleFromProjectRole(
-            invitation.role,
-          );
-
-          await prisma.workspaceMember.create({
-            data: {
-              userId,
-              workspaceId: workspaceId,
-              role: workspaceRole as any,
               createdBy: invitation.inviterId,
             },
           });
@@ -255,21 +302,8 @@ export class InvitationsService {
       },
     };
   }
-  private getWorkspaceRoleFromProjectRole(projectRole: string): string {
-    switch (projectRole.toUpperCase()) {
-      case 'ADMIN':
-        return 'ADMIN';
-      case 'MANAGER':
-        return 'MANAGER';
-      case 'DEVELOPER':
-      case 'MEMBER':
-        return 'MEMBER';
-      case 'VIEWER':
-        return 'VIEWER';
-      default:
-        return 'MEMBER';
-    }
-  }
+
+
 
   async declineInvitation(token: string) {
     const invitation = await this.prisma.invitation.findUnique({
@@ -299,6 +333,66 @@ export class InvitationsService {
         status: 'PENDING',
         expiresAt: { gt: new Date() },
       },
+      include: {
+        inviter: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        workspace: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getEntityInvitations({
+    entityType,
+    entityId,
+  }: {
+    entityType: 'organization' | 'workspace' | 'project';
+    entityId: string;
+  }) {
+    const whereClause: any = {
+      status: { in: [InvitationStatus.PENDING, InvitationStatus.DECLINED] },
+      expiresAt: { gt: new Date() },
+    };
+
+    // Dynamically set the entity filter
+    if (entityType === 'organization') {
+      whereClause.organizationId = entityId;
+    } else if (entityType === 'workspace') {
+      whereClause.workspaceId = entityId;
+    } else if (entityType === 'project') {
+      whereClause.projectId = entityId;
+    } else {
+      throw new Error('Invalid entity type');
+    }
+
+    return await this.prisma.invitation.findMany({
+      where: whereClause,
       include: {
         inviter: {
           select: {
@@ -414,6 +508,74 @@ export class InvitationsService {
     });
   }
   // src/modules/invitations/invitations.service.ts
+
+  async resendInvitation(invitationId: string, userId: string) {
+    const invitation = await this.prisma.invitation.findUnique({
+      where: { id: invitationId },
+      include: {
+        inviter: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        organization: { select: { id: true, name: true, slug: true } },
+        workspace: { select: { id: true, name: true, slug: true } },
+        project: { select: { id: true, name: true, slug: true } },
+      },
+    });
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    // Only allow resending PENDING invitations
+    if (invitation.status !== 'PENDING') {
+      throw new BadRequestException(`Cannot resend ${invitation.status.toLowerCase()} invitation`);
+    }
+
+    // Generate new token and expiration date
+    const newToken = crypto.randomBytes(32).toString('hex');
+    const newExpiresAt = new Date();
+    newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+
+    // Update invitation with new token and expiration
+    const updatedInvitation = await this.prisma.invitation.update({
+      where: { id: invitationId },
+      data: {
+        token: newToken,
+        expiresAt: newExpiresAt,
+        inviterId: userId, // Update to current user who is resending
+      },
+      include: {
+        inviter: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        organization: { select: { id: true, name: true, slug: true } },
+        workspace: { select: { id: true, name: true, slug: true } },
+        project: { select: { id: true, name: true, slug: true } },
+      },
+    });
+
+    // Try to send the invitation email, but don't fail the entire operation if email fails
+    let emailSent = false;
+    let emailError = null;
+
+    try {
+      await this.sendInvitationEmail(updatedInvitation);
+      emailSent = true;
+    } catch (error) {
+      console.error('Failed to send resend invitation email:', error);
+      emailError = error.message;
+      // Continue execution - the invitation was updated successfully
+    }
+
+    return {
+      message: emailSent
+        ? 'Invitation resent successfully'
+        : 'Invitation updated successfully, but email delivery failed',
+      invitation: updatedInvitation,
+      emailSent,
+      emailError: emailSent ? null : emailError,
+    };
+  }
 
   async verifyInvitation(token: string) {
     try {

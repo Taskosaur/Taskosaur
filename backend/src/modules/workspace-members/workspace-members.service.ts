@@ -19,7 +19,7 @@ import { UpdateWorkspaceMemberDto } from './dto/update-workspace-member.dto';
 
 @Injectable()
 export class WorkspaceMembersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(
     createWorkspaceMemberDto: CreateWorkspaceMemberDto,
@@ -417,7 +417,7 @@ export class WorkspaceMembersService {
     const isOrgOwner = member.workspace.organization.ownerId === requestUserId;
     const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
     const isWorkspaceAdmin =
-      requesterWorkspaceMember?.role === WorkspaceRole.OWNER;
+      requesterWorkspaceMember?.role === WorkspaceRole.OWNER || requesterWorkspaceMember?.role === WorkspaceRole.MANAGER;
 
     if (!isSelfRemoval && !isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin) {
       throw new ForbiddenException(
@@ -425,10 +425,31 @@ export class WorkspaceMembersService {
       );
     }
 
-    await this.prisma.workspaceMember.delete({
-      where: { id },
+    // Use transaction to remove member from workspace and all related projects
+    await this.prisma.$transaction(async (prisma) => {
+      // Get all projects in this workspace
+      const projects = await prisma.project.findMany({
+        where: { workspaceId: member.workspaceId },
+        select: { id: true },
+      });
+
+      const projectIds = projects.map((p) => p.id);
+
+      // Remove from all project memberships in this workspace
+      await prisma.projectMember.deleteMany({
+        where: {
+          userId: member.userId,
+          projectId: { in: projectIds },
+        },
+      });
+
+      // Finally, remove the workspace membership
+      await prisma.workspaceMember.delete({
+        where: { id },
+      });
     });
   }
+
 
   async getUserWorkspaces(userId: string): Promise<WorkspaceMember[]> {
     return this.prisma.workspaceMember.findMany({

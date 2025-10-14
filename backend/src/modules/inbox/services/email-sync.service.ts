@@ -1,13 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CryptoService } from '../../../common/crypto.service';
 import { S3UploadService } from '../../../common/s3-upload.service';
-import { EmailAccount, MessageStatus, SyncStatus } from '@prisma/client';
+import { EmailAccount, MessageStatus, SyncStatus, User } from '@prisma/client';
 import { simpleParser } from 'mailparser';
 import * as nodemailer from 'nodemailer';
 import { ImapFlow } from 'imapflow';
 import { EmailSyncUtils } from '../utils/email-sync.utils';
+import * as bcrypt from 'bcrypt';
 
 // For now, using simplified email handling
 // In production, you'd use proper IMAP libraries like 'imap' or 'imapflow'
@@ -40,7 +41,7 @@ export class EmailSyncService {
     private s3Upload: S3UploadService,
   ) { }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  // @Cron(CronExpression.EVERY_5_MINUTES)
   async syncAllInboxes() {
     this.logger.log('Starting scheduled email sync for all inboxes');
 
@@ -318,7 +319,7 @@ export class EmailSyncService {
     });
 
     if (existing) {
-      this.logger.debug(`Message ${message.messageId} already exists, skipping `);
+      this.logger.debug(`Message ${message.messageId} already exists, skipping`);
       return;
     }
 
@@ -326,6 +327,34 @@ export class EmailSyncService {
 
     // Extract thread ID
     const threadId = EmailSyncUtils.extractThreadId(message);
+
+    // Get project inbox with related data
+    const projectInbox = await this.prisma.projectInbox.findUnique({
+      where: { id: account.projectInboxId },
+      include: {
+        project: {
+          include: {
+            workspace: {
+              include: {
+                organization: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!projectInbox) {
+      throw new NotFoundException('Project inbox not found');
+    }
+
+    // Create or get user from email
+    const emailUser = await this.findOrCreateUserFromEmail(
+      message.from,
+      projectInbox.project.workspace.organization.id,
+      projectInbox.project.workspace.id,
+      projectInbox.project.id,
+    );
 
     // Create inbox message
     const inboxMessage = await this.prisma.inboxMessage.create({
@@ -349,7 +378,7 @@ export class EmailSyncService {
         emailDate: message.date,
         status: MessageStatus.PENDING,
         htmlSignature: message.htmlSignature,
-        textSignature: message.textSignature
+        textSignature: message.textSignature,
       },
     });
 
@@ -362,14 +391,147 @@ export class EmailSyncService {
     await this.applyRules(inboxMessage);
 
     // Auto-create task if enabled
-    const inbox = await this.prisma.projectInbox.findUnique({
-      where: { id: account.projectInboxId },
-    });
-
-    if (inbox && inbox.autoCreateTask && inboxMessage.status === MessageStatus.PENDING) {
-      await this.autoCreateTask(inboxMessage, inbox);
+    if (projectInbox.autoCreateTask && inboxMessage.status === MessageStatus.PENDING) {
+      await this.autoCreateTask(inboxMessage, projectInbox, emailUser.id);
     }
   }
+
+  // Helper method to find or create user from email and add to all levels
+  private async findOrCreateUserFromEmail(
+    fromField: string,
+    organizationId: string,
+    workspaceId: string,
+    projectId: string,
+  ): Promise<User> {
+    const email = EmailSyncUtils.extractEmail(fromField);
+    const name = EmailSyncUtils.extractName(fromField);
+
+    // Check if user already exists by email only
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    // If user doesn't exist, create new user
+    if (!user) {
+      const [firstName, ...lastNameParts] = (name || email.split('@')[0]).split(' ');
+      const lastName = lastNameParts.join(' ') || '';
+      const emailPass = 'taskosaur123!';
+      const hashedPassword = await bcrypt.hash(emailPass, 10);
+
+      // Generate unique username
+      const baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+      const uniqueUsername = await this.generateUniqueUsername(baseUsername);
+
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          firstName: firstName || email.split('@')[0],
+          lastName: lastName || '',
+          username: uniqueUsername,
+          emailVerified: false,
+          status: 'ACTIVE',
+          role: 'VIEWER',
+          password: hashedPassword,
+        },
+      });
+
+      this.logger.log(`Created new user from email: ${email} with username: ${uniqueUsername}`);
+    } else {
+      this.logger.log(`User ${email} already exists, skipping creation`);
+    }
+
+    // Add user to organization, workspace, and project with VIEWER role
+    await this.prisma.$transaction(async (tx) => {
+      // Add to organization if not already a member
+      const existingOrgMember = await tx.organizationMember.findUnique({
+        where: {
+          userId_organizationId: {
+            userId: user.id,
+            organizationId: organizationId,
+          },
+        },
+      });
+
+      if (!existingOrgMember) {
+        await tx.organizationMember.create({
+          data: {
+            userId: user.id,
+            organizationId: organizationId,
+            role: 'VIEWER',
+          },
+        });
+        this.logger.log(`Added user ${email} to organization as VIEWER`);
+      }
+
+      // Add to workspace if not already a member
+      const existingWorkspaceMember = await tx.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId: user.id,
+            workspaceId: workspaceId,
+          },
+        },
+      });
+
+      if (!existingWorkspaceMember) {
+        await tx.workspaceMember.create({
+          data: {
+            userId: user.id,
+            workspaceId: workspaceId,
+            role: 'VIEWER',
+          },
+        });
+        this.logger.log(`Added user ${email} to workspace as VIEWER`);
+      }
+
+      // Add to project if not already a member
+      const existingProjectMember = await tx.projectMember.findUnique({
+        where: {
+          userId_projectId: {
+            userId: user.id,
+            projectId: projectId,
+          },
+        },
+      });
+
+      if (!existingProjectMember) {
+        await tx.projectMember.create({
+          data: {
+            userId: user.id,
+            projectId: projectId,
+            role: 'VIEWER',
+          },
+        });
+        this.logger.log(`Added user ${email} to project as VIEWER`);
+      }
+    });
+
+    return user;
+  }
+
+  // Helper method to generate unique username
+  private async generateUniqueUsername(baseUsername: string): Promise<string> {
+    let username = baseUsername;
+    let counter = 1;
+
+    // Keep checking until we find a unique username
+    while (true) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { username },
+      });
+
+      if (!existingUser) {
+        // Username is available
+        return username;
+      }
+
+      // Try next variation
+      username = `${baseUsername}${counter}`;
+      counter++;
+    }
+  }
+
+
 
 
   private async processAttachments(attachments: any[], messageId: string) {
@@ -521,7 +683,7 @@ export class EmailSyncService {
     }
   }
 
-  private async autoCreateTask(message: any, inbox: any) {
+  private async autoCreateTask(message: any, inbox: any, repoterId: string) {
     try {
       const inboxMessage = await this.prisma.inboxMessage.findUnique({ where: { id: message.id } })
       if (inboxMessage?.status === MessageStatus.IGNORED) {
@@ -544,7 +706,7 @@ export class EmailSyncService {
       });
       if (existingTask) {
         // Add as comment to existing task
-        const defaultAuthorId = inbox.defaultAuthorId || existingTask.project.members[0]?.userId;
+        const defaultAuthorId = repoterId || inbox.defaultAuthorId || existingTask.project.members[0]?.userId;
         await this.prisma.taskComment.create({
           data: {
             taskId: existingTask.id,
@@ -593,7 +755,10 @@ export class EmailSyncService {
         taskNumber,
         slug,
         startDate: now,
-        dueDate
+        dueDate,
+        reporters: {
+          connect: [{ id: repoterId || inbox.defaultAuthorId }],
+        },
       };
       if (message._ruleAssignee || inbox.defaultAssigneeId) {
         taskData.assignees = {

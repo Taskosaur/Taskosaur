@@ -101,13 +101,20 @@ interface OrganizationContextType extends OrganizationState {
   // Add analytics methods
   fetchAnalyticsData: (organizationId: string) => Promise<void>;
   clearAnalyticsError: () => void;
-
+  setDefaultOrganization: (
+    organizationId: string
+  ) => Promise<OrganizationMember>;
 
   universalSearch: (
     query: string,
     organizationId: string,
     page?: number,
     limit?: number
+  ) => Promise<any>;
+
+  showPendingInvitations: (
+    entityType: "organization" | "workspace" | "project",
+    entityId: string
   ) => Promise<any>;
 }
 
@@ -144,7 +151,6 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
     }
   );
 
-  
   useEffect(() => {
     const initializeCurrentOrganization = () => {
       try {
@@ -469,6 +475,14 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
         return taskStatusApi.updateTaskStatusPositions(statusUpdates);
       },
 
+      setDefaultOrganization: async (
+        organizationId: string
+      ): Promise<OrganizationMember> => {
+        return handleApiOperation(() =>
+          organizationApi.setDefaultOrganization(organizationId)
+        );
+      },
+
       // Add analytics methods
       fetchAnalyticsData,
 
@@ -478,7 +492,22 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
         page: number = 1,
         limit: number = 20
       ): Promise<any> => {
-        return organizationApi.universalSearch(query, organizationId, page, limit);
+        return organizationApi.universalSearch(
+          query,
+          organizationId,
+          page,
+          limit
+        );
+      },
+
+      showPendingInvitations: async (
+        entityType: "organization" | "workspace" | "project",
+        entityId: string
+      ): Promise<any> => {
+        return handleApiOperation(
+          () => organizationApi.showPendingInvitations(entityType, entityId),
+          false
+        );
       },
     }),
     [handleApiOperation, fetchAnalyticsData]

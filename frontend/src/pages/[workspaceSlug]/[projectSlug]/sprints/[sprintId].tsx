@@ -8,7 +8,6 @@ import TabView from "@/components/tasks/TabView";
 import TaskListView from "@/components/tasks/views/TaskListView";
 import TaskGanttView from "@/components/tasks/views/TaskGanttView";
 import { KanbanBoard } from "@/components/tasks/KanbanBoard";
-import Loader from "@/components/common/Loader";
 import EmptyState from "@/components/common/EmptyState";
 import { Input } from "@/components/ui/input";
 import { ColumnManager } from "@/components/tasks/ColumnManager";
@@ -29,6 +28,7 @@ import SortingManager, {
 import { useProjectContext } from "@/contexts/project-context";
 import Tooltip from "@/components/common/ToolTip";
 import Pagination from "@/components/common/Pagination";
+import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -58,6 +58,10 @@ const SprintTasksTable = () => {
     taskResponse,
   } = useTask();
 
+  const SORT_FIELD_KEY = "tasks_sort_field";
+  const SORT_ORDER_KEY = "tasks_sort_order";
+  const COLUMNS_KEY = "tasks_columns";
+
   const projectApi = useProjectContext();
   const [kanban, setKanban] = useState<any[]>([]);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -66,7 +70,6 @@ const SprintTasksTable = () => {
   );
   const isAuth = isAuthenticated();
   const [searchInput, setSearchInput] = useState("");
-  const [columns, setColumns] = useState<ColumnConfig[]>([]);
   const [kabBanSettingModal, setKabBanSettingModal] = useState(false);
   const [ganttViewMode, setGanttViewMode] = useState<ViewMode>("days");
   const [currentPage, setCurrentPage] = useState(1);
@@ -82,8 +85,25 @@ const SprintTasksTable = () => {
     { id: "HIGHEST", name: "Highest", value: "HIGHEST", color: "#dc2626" },
   ]);
 
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
-  const [sortField, setSortField] = useState<SortField>("createdAt");
+  const [sortField, setSortField] = useState<SortField>(() => {
+    return localStorage.getItem(SORT_FIELD_KEY) || "createdAt";
+  });
+
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    const stored = localStorage.getItem(SORT_ORDER_KEY);
+    return stored === "asc" || stored === "desc" ? stored : "desc";
+  });
+
+  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = localStorage.getItem(COLUMNS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const error = contextError || localError;
 
   const pagination = useMemo(() => {
@@ -106,9 +126,23 @@ const SprintTasksTable = () => {
     };
   }, [taskResponse]);
 
+  useEffect(() => {
+    localStorage.setItem(SORT_FIELD_KEY, sortField);
+  }, [sortField]);
+
+  useEffect(() => {
+    localStorage.setItem(SORT_ORDER_KEY, sortOrder);
+  }, [sortOrder]);
+
+  useEffect(() => {
+    localStorage.setItem(COLUMNS_KEY, JSON.stringify(columns));
+  }, [columns]);
+
   // Show pagination if there are tasks and multiple pages
   const showPagination = useMemo(() => {
-    return tasks.length > 0 && pagination.totalPages > 1;
+    return (
+      currentView !== "kanban" && tasks.length > 0 && pagination.totalPages > 1
+    );
   }, [tasks.length, pagination.totalPages]);
 
   // Search handlers
@@ -246,21 +280,66 @@ const SprintTasksTable = () => {
     projectSlug,
   ]);
 
-  const loadKanbanData = useCallback(async () => {
-    if (!projectSlug) return;
-    const isAuth = isAuthenticated();
+  const loadKanbanData = useCallback(
+    async (
+      projSlug: string,
+      sprintId: string,
+      statusId?: string,
+      page: number = 1
+    ) => {
+      if (!isAuth) return;
 
-    try {
-      const data = await getTaskKanbanStatus({
-        type: "project",
-        slug: projectSlug as string,
-        includeSubtasks: true,
-      });
-      setKanban(data.data || []);
-    } catch (err) {
-      console.error("Failed to load kanban data", err);
-    }
-  }, [projectSlug, workspaceSlug]);
+      try {
+        const response = await getTaskKanbanStatus({
+          slug: projSlug,
+          sprintId: sprintId,
+          includeSubtasks: true,
+          ...(statusId && { statusId, page }),
+        });
+
+        if (page === 1 || !statusId) {
+          // Initial load or full refresh - replace all data
+          setKanban(response.data || []);
+        } else {
+          // Load more for specific status - append tasks
+          setKanban((prevKanban) => {
+            return prevKanban.map((status) => {
+              if (status.statusId === statusId) {
+                const newStatusData = response.data.find(
+                  (s) => s.statusId === statusId
+                );
+                if (newStatusData) {
+                  return {
+                    ...status,
+                    tasks: [...status.tasks, ...newStatusData.tasks], // Append new tasks
+                    pagination: newStatusData.pagination, // Update pagination info
+                  };
+                }
+              }
+              return status;
+            });
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load kanban data:", error);
+        setKanban([]);
+      }
+    },
+    [getTaskKanbanStatus, isAuth]
+  );
+
+  const handleLoadMoreKanbanTasks = useCallback(
+    async (statusId: string, page: number) => {
+      console.log("Loading more tasks for status:", statusId, "page:", page); // Debug log
+      await loadKanbanData(
+        projectSlug as string,
+        sprintId as string,
+        statusId,
+        page
+      );
+    },
+    [loadKanbanData, projectSlug]
+  );
 
   const loadGanttData = useCallback(async () => {
     if (!sprintId) return;
@@ -356,7 +435,7 @@ const SprintTasksTable = () => {
 
   useEffect(() => {
     if (currentView === "kanban") {
-      loadKanbanData();
+      loadKanbanData(projectSlug as string, sprintId as string);
     }
     if (currentView === "gantt") {
       loadGanttData();
@@ -554,7 +633,7 @@ const SprintTasksTable = () => {
 
   const renderContent = () => {
     if (isLoading) {
-      return <Loader text="Fetching sprint tasks..." className="py-20" />;
+      return <TaskTableSkeleton />;
     }
 
     if (error) {
@@ -590,12 +669,16 @@ const SprintTasksTable = () => {
           <div>
             <KanbanBoard
               kanbanData={kanban}
-              projectId={tasks[0]?.project?.id}
-              onRefresh={loadKanbanData}
+              projectId={project?.id || ""}
+              onRefresh={() =>
+                loadKanbanData(projectSlug as string, sprintId as string)
+              }
+              onLoadMore={handleLoadMoreKanbanTasks}
               kabBanSettingModal={kabBanSettingModal}
               setKabBanSettingModal={setKabBanSettingModal}
               workspaceSlug={workspaceSlug as string}
               projectSlug={projectSlug as string}
+              onKanbanUpdate={setKanban}
             />
           </div>
         ) : (

@@ -493,6 +493,17 @@ export default function TaskComments({
     showAll,
   ]);
 
+  const isEditorEmpty = useMemo(() => {
+    const contentState = editorState.getCurrentContent();
+    const plainText = contentState.getPlainText().trim();
+    const hasText = plainText.length > 0;
+    const hasContentBlocks = contentState
+      .getBlockMap()
+      .some((block) => block.getText().trim() !== "");
+
+    return !(hasText || hasContentBlocks);
+  }, [editorState]);
+
   return (
     <>
       <div className="space-y-4">
@@ -506,7 +517,7 @@ export default function TaskComments({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-[var(--foreground)]">
+                <h3 className="text-[20px] font-semibold text-[var(--foreground)]">
                   Comments
                 </h3>
                 {allowEmailReplies && (
@@ -570,10 +581,11 @@ export default function TaskComments({
                 </ActionButton>
               )}
               <ActionButton
-                showPlusIcon
-                secondary
+                primary
                 onClick={handleAddOrEdit}
-                disabled={isSubmitting}
+                secondary
+                showPlusIcon
+                disabled={isSubmitting || isEditorEmpty}
               >
                 {isSubmitting
                   ? "Saving..."

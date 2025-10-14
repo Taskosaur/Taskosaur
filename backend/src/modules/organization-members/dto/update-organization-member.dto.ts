@@ -1,6 +1,7 @@
-import { IsEnum, IsOptional } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsOptional, IsBoolean } from 'class-validator';
 import { Role as OrganizationRole } from '@prisma/client';
+
 
 export class UpdateOrganizationMemberDto {
   @ApiPropertyOptional({
@@ -11,4 +12,13 @@ export class UpdateOrganizationMemberDto {
   @IsEnum(OrganizationRole)
   @IsOptional()
   role?: OrganizationRole;
+
+  @ApiPropertyOptional({
+    description: 'Whether this organization is the default for the user',
+    example: false,
+    type: Boolean,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isDefault: boolean = false; // default value
 }

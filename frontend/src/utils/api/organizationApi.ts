@@ -172,7 +172,18 @@ export const organizationApi = {
       throw error;
     }
   },
-
+  
+  setDefaultOrganization: async (organizationId: string): Promise<any> => {
+    try {
+      const response = await api.patch<any>(
+        `/organization-members/set-default?organizationId=${organizationId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Set default organization error:', error);
+      throw error;
+    }
+  },
   removeOrganizationMember: async (
     memberId: string,
     requestUserId: string
@@ -301,4 +312,24 @@ export const organizationApi = {
       throw error;
     }
   },
+
+showPendingInvitations: async (
+  entityType: "organization" | "workspace" | "project",
+  entityId: string
+) => {
+  try {
+    if (!entityType || !entityId) {
+      return new Error("Both entityType and entityId are required");
+    }
+
+    const response = await api.get(
+      `/invitations/entity/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Show pending invitations error:", error);
+    throw error;
+  }
+},
+
 };

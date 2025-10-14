@@ -30,12 +30,15 @@ import Tooltip from "../common/ToolTip";
 import { X } from "lucide-react";
 import { useOrganization } from "@/contexts/organization-context";
 import { useAuth } from "@/contexts/auth-context";
+import { PendingInvitationsRef } from "@/components/common/PendingInvitations";
 
 interface OrganizationMembersProps {
   organizationId: string;
   members: OrganizationMember[];
   currentUserRole: OrganizationRole;
   onMembersChange: () => void;
+  organization?: any;
+  pendingInvitationsRef?: React.RefObject<PendingInvitationsRef>; // Add ref prop
 }
 
 export default function OrganizationMembers({
@@ -43,6 +46,8 @@ export default function OrganizationMembers({
   members,
   currentUserRole,
   onMembersChange,
+  organization,
+  pendingInvitationsRef,
 }: OrganizationMembersProps) {
   const { updatedOrganizationMemberRole, removeOrganizationMember } =
     useOrganization();
@@ -61,23 +66,29 @@ export default function OrganizationMembers({
     {
       id: "viewer",
       name: OrganizationRole.VIEWER,
-      description: "Can view organization content"
+      description: "Can view organization content",
     },
     {
-      id: "member", 
+      id: "member",
       name: OrganizationRole.MEMBER,
-      description: "Can contribute to projects"
+      description: "Can contribute to projects",
     },
     {
       id: "manager",
-      name: OrganizationRole.MANAGER, 
-      description: "Can manage projects and members"
-    }
+      name: OrganizationRole.MANAGER,
+      description: "Can manage projects and members",
+    },
+    {
+      id: "owner",
+      name: OrganizationRole.OWNER,
+      description: "Can manage all aspects of the organization",
+    },
   ];
 
   const canManageMembers =
     currentUserRole === OrganizationRole.SUPER_ADMIN ||
-    currentUserRole === OrganizationRole.MANAGER || OrganizationRole.OWNER;
+    currentUserRole === OrganizationRole.MANAGER ||
+    OrganizationRole.OWNER;
 
   const getRoleBadgeClass = (role: OrganizationRole) => {
     switch (role) {
@@ -142,10 +153,7 @@ export default function OrganizationMembers({
       return;
     }
     try {
-      await removeOrganizationMember(
-        member.id,
-        currentUser.id
-      );
+      await removeOrganizationMember(member.id, currentUser.id);
       setIsLoading(true);
       toast.success("Member removed successfully");
       setMemberToRemove(null);
@@ -184,7 +192,10 @@ export default function OrganizationMembers({
       toast.success(`Invitation sent to ${inviteData.email}`);
       setInviteData({ email: "", role: OrganizationRole.MEMBER, message: "" });
       setShowInviteModal(false);
-      onMembersChange();
+
+      if (pendingInvitationsRef?.current) {
+        await pendingInvitationsRef.current.refreshInvitations();
+      }
     } catch (error: any) {
       const errorMessage =
         error?.response?.data?.message || "Failed to send invitation";
@@ -282,7 +293,7 @@ export default function OrganizationMembers({
                   </div>
 
                   <div className="col-span-2">
-                    <span className="text-sm text-[var(--muted-foreground)]">
+                    <span className="text-xs text-[var(--muted-foreground)]">
                       {formatDate(
                         typeof member.joinedAt === "string"
                           ? member.joinedAt
@@ -299,7 +310,7 @@ export default function OrganizationMembers({
                         }
                         disabled={isLoading}
                       >
-                        <SelectTrigger 
+                        <SelectTrigger
                           className="h-7 text-xs border-none shadow-none bg-background text-[var(--foreground)]"
                           onFocus={(e) => {
                             e.currentTarget.style.boxShadow = "none";
@@ -311,19 +322,27 @@ export default function OrganizationMembers({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="border-none bg-[var(--card)]">
-                          <SelectItem 
+                          {currentUserRole === "OWNER" && (
+                            <SelectItem
+                              value={OrganizationRole.OWNER}
+                              className="hover:bg-[var(--hover-bg)]"
+                            >
+                              Owner
+                            </SelectItem>
+                          )}
+                          <SelectItem
                             value={OrganizationRole.MANAGER}
                             className="hover:bg-[var(--hover-bg)]"
                           >
                             Manager
                           </SelectItem>
-                          <SelectItem 
+                          <SelectItem
                             value={OrganizationRole.MEMBER}
                             className="hover:bg-[var(--hover-bg)]"
                           >
                             Member
                           </SelectItem>
-                          <SelectItem 
+                          <SelectItem
                             value={OrganizationRole.VIEWER}
                             className="hover:bg-[var(--hover-bg)]"
                           >
@@ -431,12 +450,15 @@ export default function OrganizationMembers({
               <Label className="text-sm font-medium text-[var(--foreground)]">
                 Role
               </Label>
-              <Select value={inviteData.role} onValueChange={(value) =>
-                setInviteData((prev) => ({
-                  ...prev,
-                  role: value,
-                }))
-              }>
+              <Select
+                value={inviteData.role}
+                onValueChange={(value) =>
+                  setInviteData((prev) => ({
+                    ...prev,
+                    role: value,
+                  }))
+                }
+              >
                 <SelectTrigger
                   className="projects-workspace-button border-none mt-1"
                   onFocus={(e) => {
@@ -448,7 +470,9 @@ export default function OrganizationMembers({
                 >
                   <SelectValue placeholder="Select a role">
                     {inviteData.role && (
-                      <span className="text-[var(--foreground)]">{inviteData.role}</span>
+                      <span className="text-[var(--foreground)]">
+                        {inviteData.role}
+                      </span>
                     )}
                   </SelectValue>
                 </SelectTrigger>

@@ -189,7 +189,7 @@
 }
 
 .organizations-members-table {
-  @apply bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm;
+  @apply bg-[var(--card)]  border-none;
 }
 
 .organizations-members-table-header {
@@ -229,11 +229,11 @@
 }
 
 .organizations-member-name {
-  @apply text-sm font-medium text-[var(--foreground)] truncate;
+  @apply text-xs font-medium text-[var(--foreground)] truncate;
 }
 
 .organizations-member-email {
-  @apply text-sm text-[var(--muted-foreground)] truncate;
+  @apply text-xs text-[var(--muted-foreground)] truncate;
 }
 
 .organizations-member-role {

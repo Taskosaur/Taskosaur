@@ -26,7 +26,7 @@ Tables Components Styles
 }
 
 .tasktable-header-cell-checkbox {
-  @apply w-12 border-none;
+  @apply border-none;
 }
 
 .tasktable-header-cell-task {
@@ -177,5 +177,26 @@ Tables Components Styles
   @apply w-3 h-3;
 }
 
+@keyframes slide-in-from-bottom {
+  from {
+    transform: translateY(100%) translateX(-50%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) translateX(-50%);
+    opacity: 1;
+  }
+}
 
+.animate-in {
+  animation-fill-mode: both;
+}
+
+.slide-in-from-bottom-5 {
+  animation-name: slide-in-from-bottom;
+}
+
+.duration-300 {
+  animation-duration: 300ms;
+}
 

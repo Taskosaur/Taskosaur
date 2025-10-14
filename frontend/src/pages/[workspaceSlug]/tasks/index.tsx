@@ -16,7 +16,6 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { HiSearch } from "react-icons/hi";
 import ActionButton from "@/components/common/ActionButton";
 import TabView from "@/components/tasks/TabView";
-import Loader from "@/components/common/Loader";
 import Pagination from "@/components/common/Pagination";
 import { ColumnManager } from "@/components/tasks/ColumnManager";
 import SortingManager, {
@@ -30,6 +29,7 @@ import {
 import { CheckSquare, Flame, Folder } from "lucide-react";
 import { TaskPriorities } from "@/utils/data/taskData";
 import Tooltip from "@/components/common/ToolTip";
+import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -53,19 +53,22 @@ function WorkspaceTasksContent() {
   const { workspaceSlug } = router.query;
   const { getWorkspaceBySlug, getWorkspaceMembers } = useWorkspace();
   const { getProjectsByWorkspace, getTaskStatusByProject } = useProject();
-  
- 
-  const { 
-    getAllTasks, 
-    getCalendarTask, 
-    tasks, 
-    isLoading, 
-    error: contextError, 
-    taskResponse, 
+
+  const SORT_FIELD_KEY = "tasks_sort_field";
+  const SORT_ORDER_KEY = "tasks_sort_order";
+  const COLUMNS_KEY = "tasks_columns";
+
+  const {
+    getAllTasks,
+    getCalendarTask,
+    tasks,
+    isLoading,
+    error: contextError,
+    taskResponse,
   } = useTask();
-  
+
   const { isAuthenticated, getUserAccess } = useAuth();
-  
+
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -81,12 +84,13 @@ function WorkspaceTasksContent() {
         : "list";
     }
   );
-  const [columns, setColumns] = useState<ColumnConfig[]>([]);
   const [ganttViewMode, setGanttViewMode] = useState<ViewMode>("days");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isNewTaskModalOpen, setNewTaskModalOpen] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
+  const [userAccess, setUserAccess] = useState(null);
+
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
@@ -95,14 +99,38 @@ function WorkspaceTasksContent() {
   const [availablePriorities] = useState(TaskPriorities);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [workspaceMembers, setWorkspaceMembers] = useState<any[]>([]);
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
-  const [sortField, setSortField] = useState<SortField>("createdAt");
   const [ganttTasks, setGanttTasks] = useState<any[]>([]);
-
+   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   
+    const handleTaskSelect = (taskId: string) => {
+      setSelectedTasks((prev) =>
+        prev.includes(taskId)
+          ? prev.filter((id) => id !== taskId)
+          : [...prev, taskId]
+      );
+    };
+
+  const [sortField, setSortField] = useState<SortField>(() => {
+    return localStorage.getItem(SORT_FIELD_KEY) || "createdAt";
+  });
+
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    const stored = localStorage.getItem(SORT_ORDER_KEY);
+    return stored === "asc" || stored === "desc" ? stored : "desc";
+  });
+
+  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = localStorage.getItem(COLUMNS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const error = contextError || localError;
 
-  
   const pagination = useMemo(() => {
     if (!taskResponse) {
       return {
@@ -122,6 +150,18 @@ function WorkspaceTasksContent() {
       hasPrevPage: taskResponse.page > 1,
     };
   }, [taskResponse]);
+
+  useEffect(() => {
+    localStorage.setItem(SORT_FIELD_KEY, sortField);
+  }, [sortField]);
+
+  useEffect(() => {
+    localStorage.setItem(SORT_ORDER_KEY, sortOrder);
+  }, [sortOrder]);
+
+  useEffect(() => {
+    localStorage.setItem(COLUMNS_KEY, JSON.stringify(columns));
+  }, [columns]);
 
   useEffect(() => {
     if (workspace?.id && !projectsLoaded) {
@@ -168,6 +208,7 @@ function WorkspaceTasksContent() {
       getUserAccess({ name: "workspace", id: workspace.id })
         .then((data) => {
           setHasAccess(data?.canChange);
+          setUserAccess(data);
         })
         .catch((error) => {
           console.error("Error fetching user access:", error);
@@ -196,12 +237,12 @@ function WorkspaceTasksContent() {
     if (!hasValidAuth) return;
     try {
       setLocalError(null);
-      
+
       if (!isAuthenticated()) {
         router.push("/auth/login");
         return;
       }
-      
+
       const ws = await getWorkspaceBySlug(workspaceSlug as string);
       if (!ws) {
         throw new Error(`Workspace "${workspaceSlug}" not found`);
@@ -230,19 +271,18 @@ function WorkspaceTasksContent() {
     }
   }, [workspace?.id, projectsLoaded, getProjectsByWorkspace]);
 
-  
   const loadTasks = useCallback(async () => {
     if (!workspace?.organizationId) {
       return;
     }
-    
+
     if (!validateRequiredData()) {
       return;
     }
 
     try {
       setLocalError(null);
-      
+
       // Build parameters for getAllTasks
       const params = {
         workspaceId: workspace.id,
@@ -264,10 +304,11 @@ function WorkspaceTasksContent() {
 
       // Call getAllTasks - this will update tasks and taskResponse in context
       await getAllTasks(workspace.organizationId, params);
-      
     } catch (error) {
       console.error("Failed to load tasks:", error);
-      setLocalError(error instanceof Error ? error.message : "Failed to load tasks");
+      setLocalError(
+        error instanceof Error ? error.message : "Failed to load tasks"
+      );
     }
   }, [
     workspace?.organizationId,
@@ -285,7 +326,9 @@ function WorkspaceTasksContent() {
   const loadGanttData = useCallback(async () => {
     if (!workspace?.id) return;
     try {
-      const data = await getCalendarTask(workspace.organizationId, { workspaceId: workspace.id });
+      const data = await getCalendarTask(workspace.organizationId, {
+        workspaceId: workspace.id,
+      });
       setGanttTasks(data || []);
     } catch (error) {
       console.error("Failed to load Gantt data:", error);
@@ -602,7 +645,6 @@ function WorkspaceTasksContent() {
     const sorted = [...tasks].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
-      // Handle date fields
       if (
         ["createdAt", "updatedAt", "completedAt", "timeline"].includes(
           sortField
@@ -611,25 +653,22 @@ function WorkspaceTasksContent() {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
       }
-      // Handle string comparison
       if (typeof aValue === "string" && typeof bValue === "string") {
         return sortOrder === "asc"
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      // Handle number comparison
       if (typeof aValue === "number" && typeof bValue === "number") {
         return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
       }
-      // Fallback
       return 0;
     });
     return sorted;
   }, [tasks, sortOrder, sortField]);
 
   const renderContent = () => {
-    if (isLoading)
-      return <Loader text="Fetching workspace tasks..." className="py-20" />;
+    if (isLoading) return <TaskTableSkeleton />;
+
     if (!sortedTasks.length && currentView !== "gantt") {
       return (
         <EmptyState
@@ -668,7 +707,9 @@ function WorkspaceTasksContent() {
             onTaskRefetch={memoizedTaskRefetch}
             addTaskStatuses={addTaskStatuses}
             workspaceMembers={workspaceMembers}
-            showAddTaskRow={hasAccess}
+            showAddTaskRow={userAccess?.role !== "VIEWER"}
+            selectedTasks={selectedTasks}
+            onTaskSelect={handleTaskSelect}
           />
         );
     }
@@ -720,7 +761,7 @@ function WorkspaceTasksContent() {
                   />
                 )}
               </div>
-              {hasAccess && (
+              {userAccess?.role !== "VIEWER" && (
                 <ActionButton
                   primary
                   showPlusIcon

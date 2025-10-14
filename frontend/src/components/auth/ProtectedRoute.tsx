@@ -15,7 +15,7 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({
   children,
   redirectTo = "/login",
-  publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password"],
+  publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/terms-of-service", "/privacy-policy"],
 }: ProtectedRouteProps) {
   const {
     getCurrentUser,

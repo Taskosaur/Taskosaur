@@ -17,7 +17,6 @@ import {
 import {
   HiMagnifyingGlass,
   HiUsers,
-  HiEnvelope,
   HiExclamationTriangle,
   HiChevronDown,
   HiCheck,
@@ -39,6 +38,8 @@ import { ProjectInviteMemberModal } from "@/components/projects/ProjectInviteMem
 import Tooltip from "@/components/common/ToolTip";
 import { roles } from "@/utils/data/projectData";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
+import PendingInvitations, { PendingInvitationsRef } from "@/components/common/PendingInvitations";
+import WorkspaceMembersSkeleton from "@/components/skeletons/WorkspaceMembersSkeleton";
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -71,32 +72,6 @@ const getStatusBadgeClass = (status: string) => {
   }
 };
 
-const LoadingSkeleton = () => (
-  <div className="min-h-screen bg-[var(--background)]">
-    <div className="p-4">
-      <div className="animate-pulse space-y-4">
-        <div className="h-6 bg-[var(--muted)] rounded w-1/3 mb-6"></div>
-        <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none">
-          <CardContent className="p-4">
-            <div className="h-6 bg-[var(--muted)] rounded w-1/4 mb-4"></div>
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-3 p-2">
-                  <div className="h-8 w-8 bg-[var(--muted)] rounded-full flex-shrink-0"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 bg-[var(--muted)] rounded w-1/2"></div>
-                    <div className="h-3 bg-[var(--muted)] rounded w-2/3"></div>
-                  </div>
-                  <div className="h-6 w-16 bg-[var(--muted)] rounded"></div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  </div>
-);
 
 const EmptyState = ({
   icon: Icon,
@@ -146,22 +121,20 @@ function ProjectMembersContent() {
   const isInitializedRef = useRef(false);
   const fetchPrevention = useGlobalFetchPrevention();
   const [memberToRemove, setMemberToRemove] = useState<any>(null);
+  const pendingInvitationsRef = useRef<PendingInvitationsRef>(null);
 
-  
-
-    const [data, setData] = useState(null);
-    useEffect(() => {
-      if (!workspace?.id) return;
-      getUserAccess({ name: "workspace", id: workspace?.id })
-        .then((data) => {
-          setData(data);
-          // console.log("Access data:", data?.role, data?.canChange);
-          setHasAccess(data?.canChange);
-        })
-        .catch((error) => {
-          console.error("Error fetching user access:", error);
-        });
-    }, [workspace]);
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    if (!workspace?.id) return;
+    getUserAccess({ name: "workspace", id: workspace?.id })
+      .then((data) => {
+        setData(data);
+        setHasAccess(data?.canChange);
+      })
+      .catch((error) => {
+        console.error("Error fetching user access:", error);
+      });
+  }, [workspace]);
 
   const getRoleLabel = (role: string) => {
     const roleConfig = roles.find((r) => r.name === role);
@@ -178,7 +151,11 @@ function ProjectMembersContent() {
 
   const canInviteMembers = () => {
     const userRole = getCurrentUserRole();
-    return userRole === "SUPER_ADMIN" || userRole === "MANAGER" || data?.role === "OWNER";
+    return (
+      userRole === "SUPER_ADMIN" ||
+      userRole === "MANAGER" ||
+      data?.role === "OWNER"
+    );
   };
 
   const fetchMembers = useCallback(
@@ -415,9 +392,9 @@ function ProjectMembersContent() {
     const updateRole = JSON.parse(tampUser);
     const finalUser = {
       ...updateRole,
-      role: newRole
-    }
-    localStorage.setItem("user",JSON.stringify(finalUser));
+      role: newRole,
+    };
+    localStorage.setItem("user", JSON.stringify(finalUser));
   }
 
   const handleRoleUpdate = async (memberId: string, newRole: string) => {
@@ -493,7 +470,11 @@ function ProjectMembersContent() {
       });
 
       toast.success(`Invitation sent to ${email}`);
-      await refreshMembers();
+      
+    
+      if (pendingInvitationsRef.current) {
+        await pendingInvitationsRef.current.refreshInvitations();
+      }
     } catch (error: any) {
       const errorMessage =
         error?.response?.data?.message ||
@@ -537,7 +518,7 @@ function ProjectMembersContent() {
   };
 
   if (loading) {
-    return <LoadingSkeleton />;
+    return <WorkspaceMembersSkeleton />;
   }
 
   if (error && !members.length) {
@@ -563,7 +544,10 @@ function ProjectMembersContent() {
   }
 
   return (
-    <div className="dashboard-container space-y-6" data-automation-id="invite-member-btn">
+    <div
+      className="dashboard-container space-y-6"
+      data-automation-id="invite-member-btn"
+    >
       <PageHeader
         title={`${project?.name || "Project"} Members`}
         description={
@@ -850,21 +834,7 @@ function ProjectMembersContent() {
           </Card>
 
           {/* Pending Invitations */}
-          <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
-                <HiEnvelope className="w-5 h-5 text-[var(--muted-foreground)]" />
-                Pending Invitations
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <EmptyState
-                icon={HiEnvelope}
-                title="No pending invitations"
-                description="All invitations have been accepted or no invitations have been sent"
-              />
-            </CardContent>
-          </Card>
+          {hasAccess && <PendingInvitations ref={pendingInvitationsRef} entity={project} entityType="project" members={members} />}
         </div>
       </div>
 

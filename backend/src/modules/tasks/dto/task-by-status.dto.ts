@@ -8,6 +8,9 @@ import {
   ValidateNested,
   IsNumber,
   IsDateString,
+  IsInt,
+  Min,
+  Max,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -23,9 +26,10 @@ export enum TasksByStatusType {
 export interface TasksByStatusParams {
   type: TasksByStatusType;
   slug: string;
+  organizationId: string;
+  sprintId?: string;
   userId?: string;
   includeSubtasks?: boolean;
-  organizationId: string;
 }
 
 export class GetTasksByStatusQueryDto {
@@ -66,6 +70,14 @@ export class GetTasksByStatusQueryDto {
     return value;
   })
   includeSubtasks?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Filter tasks by sprint ID',
+    example: '123e4567-e89b-12d3-a456-426614174002',
+  })
+  @IsOptional()
+  @IsUUID()
+  sprintId?: string;
 }
 
 // Nested DTOs for task response
@@ -237,9 +249,94 @@ export interface TasksByStatus {
     createdAt: string;
     updatedAt: string;
   }[];
-  _count: number;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
 }
+export class StatusPaginationDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 25;
+}
+export class TasksByStatusParams {
+  @ApiProperty({
+    description: 'Project slug',
+    example: 'my-awesome-project',
+    required: true
+  })
+  @IsString()
+  slug: string;
+  @ApiPropertyOptional({
+    description: 'Filter by specific sprint ID',
+    example: 'sprint-123',
+    type: String
+  })
+  @IsOptional()
+  @IsString()
+  sprintId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Include subtasks in the results',
+    example: false,
+    default: false,
+    type: Boolean
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  includeSubtasks?: boolean = false;
+
+  @ApiPropertyOptional({
+    description: 'Filter by specific status ID. If not provided, returns all statuses',
+    example: 'clx123abc',
+    type: String
+  })
+  @IsOptional()
+  @IsString()
+  statusId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Page number for pagination (works with statusId or applies to all statuses)',
+    example: 1,
+    default: 1,
+    minimum: 1,
+    type: Number
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiPropertyOptional({
+    description: 'Number of tasks per page',
+    example: 25,
+    default: 25,
+    minimum: 1,
+    maximum: 100,
+    type: Number
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 25;
+}
 // Response wrapper (if you want to add metadata)
 export class GetTasksByStatusResponseDto {
   @ApiProperty({

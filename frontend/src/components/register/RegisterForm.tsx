@@ -452,11 +452,11 @@ export function RegisterForm() {
           />
           <Label htmlFor="acceptTerms" className="signup-terms-label">
             I agree to the{" "}
-            <Link href="/terms" className="signup-terms-link">
+            <Link href="/terms-of-service" className="signup-terms-link">
               Terms of Service
             </Link>{" "}
             and{" "}
-            <Link href="/privacy" className="signup-terms-link">
+            <Link href="/privacy-policy" className="signup-terms-link">
               Privacy Policy
             </Link>
           </Label>
@@ -535,9 +535,13 @@ export function RegisterForm() {
         className="signup-footer"
       >
         <p className="signup-footer-text">
-          Need help? Contact our{" "}
-          <Link href="/support" className="signup-footer-link">
-            support team
+          By creating an account, you agree to our{" "}
+          <Link href="/terms-of-service" className="signup-footer-link">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy-policy" className="signup-footer-link">
+            Privacy Policy
           </Link>
         </p>
       </motion.div>

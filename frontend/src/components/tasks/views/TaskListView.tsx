@@ -1,3 +1,4 @@
+import { useState } from "react";
 import TaskTable from "@/components/ui/tables/TaskTable";
 import { ColumnConfig, Task } from "@/types";
 
@@ -14,6 +15,8 @@ interface TaskListViewProps {
   addTaskStatuses?: any[];
   projectMembers?: any[];
   workspaceMembers?: any[];
+  selectedTasks?: string[];
+  onTaskSelect?: (taskId: string) => void;
 }
 
 export default function TaskListView({
@@ -29,9 +32,19 @@ export default function TaskListView({
   addTaskStatuses,
   projectMembers,
   workspaceMembers,
+  selectedTasks: externalSelectedTasks,
+  onTaskSelect: externalOnTaskSelect,
 }: TaskListViewProps) {
 
- 
+  const [internalSelectedTasks, setInternalSelectedTasks] = useState<string[]>([]);
+  const selectedTasks = externalSelectedTasks ?? internalSelectedTasks;
+  const handleTaskSelect = externalOnTaskSelect ?? ((taskId: string) => {
+    setInternalSelectedTasks((prev) =>
+      prev.includes(taskId)
+        ? prev.filter((id) => id !== taskId)
+        : [...prev, taskId]
+    );
+  });
 
   return (
     <div className="rounded-md">
@@ -51,6 +64,8 @@ export default function TaskListView({
         addTaskStatuses={addTaskStatuses}
         projectMembers={projectMembers}
         workspaceMembers={workspaceMembers}
+        selectedTasks={selectedTasks}
+        onTaskSelect={handleTaskSelect}
       />
     </div>
   );

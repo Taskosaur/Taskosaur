@@ -17,16 +17,24 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { getAuthUser } from 'src/common/request.utils';
 import { Request } from 'express';
 import { Public } from '../auth/decorators/public.decorator';
+import { LogActivity } from 'src/common/decorator/log-activity.decorator';
 
 @ApiTags('Invitations')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
 @Controller('invitations')
 export class InvitationsController {
-  constructor(private readonly invitationsService: InvitationsService) {}
+  constructor(private readonly invitationsService: InvitationsService) { }
 
   @Post()
   @ApiOperation({ summary: 'Send invitation' })
+  @LogActivity({
+      type: 'INVITATION_SENT',
+      entityType: 'Invitation',
+      description: 'Sent invitation to join organization/workspace/project',
+      includeNewValue: true,
+      entityIdName:['organizationId', 'workspaceId', 'projectId'],
+    })
   async createInvitation(
     @Body() createInvitationDto: CreateInvitationDto,
     @Req() req: Request,
@@ -57,6 +65,29 @@ export class InvitationsController {
     const user = getAuthUser(req);
     return this.invitationsService.getUserInvitations(user.email);
   }
+  @Get('entity/:entityType/:entityId')
+  @ApiOperation({ summary: 'Get pending and rejected invitations for an entity' })
+  async getEntityInvitations(
+    @Param('entityType') entityType: 'organization' | 'workspace' | 'project',
+    @Param('entityId') entityId: string,
+  ) {
+    return this.invitationsService.getEntityInvitations({ entityType, entityId });
+  }
+
+  @Post(':id/resend')
+  @ApiOperation({ summary: 'Resend invitation' })
+  @LogActivity({
+      type: 'INVITATION_RESENT',
+      entityType: 'Invitation',
+      description: 'Resent invitation',
+      includeNewValue: true,
+      entityIdName:['organizationId', 'workspaceId', 'projectId'],
+    })
+  async resendInvitation(@Param('id') id: string, @Req() req: Request) {
+    const user = getAuthUser(req);
+    return this.invitationsService.resendInvitation(id, user.id);
+  }
+
   @Public()
   @Get('verify/:token')
   @ApiOperation({ summary: 'Verify invitation token' })

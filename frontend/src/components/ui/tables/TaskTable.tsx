@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PriorityBadge } from "@/components/badges/PriorityBadge";
 import { Badge } from "@/components/ui/badge";
-
+import { BulkActionBar } from "@/components/ui/tables/BulkActionBar";
 import {
   CalendarDays,
   User,
@@ -38,7 +38,7 @@ import {
   PaginationNext,
 } from "@/components/ui/pagination";
 import type { Task, ColumnConfig } from "@/types";
-import { TaskPriorities } from "@/utils/data/taskData";
+import { TaskPriorities, TaskTypeIcon } from "@/utils/data/taskData";
 import { StatusBadge } from "@/components/badges";
 import TaskDetailClient from "@/components/tasks/TaskDetailClient";
 import { CustomModal } from "@/components/common/CustomeModal";
@@ -243,7 +243,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   projectMembers,
   currentProject,
 }) => {
-  const { createTask, getTaskById, currentTask } = useTask();
+  const { createTask, getTaskById, currentTask, bulkDeleteTasks } = useTask();
   const { getTaskStatusByProject } = useProject();
   const { getProjectMembers } = useProject();
   const { isAuthenticated } = useAuth();
@@ -330,6 +330,81 @@ const TaskTable: React.FC<TaskTableProps> = ({
     }`.toUpperCase();
   };
 
+  const handleBulkDelete = async () => {
+    if (!selectedTasks || selectedTasks.length === 0) {
+      toast.warning("No tasks selected for deletion");
+      return;
+    }
+
+    try {
+      const loadingToast = toast.loading(
+        `Deleting ${selectedTasks.length} task${
+          selectedTasks.length === 1 ? "" : "s"
+        }...`
+      );
+
+      const result = await bulkDeleteTasks(selectedTasks);
+
+      toast.dismiss(loadingToast);
+
+      if (result.deletedCount > 0) {
+        toast.success(
+          `Successfully deleted ${result.deletedCount} task${
+            result.deletedCount === 1 ? "" : "s"
+          }`
+        );
+      }
+
+      if (result.failedTasks && result.failedTasks.length > 0) {
+        const maxErrorsToShow = 3;
+        result.failedTasks.slice(0, maxErrorsToShow).forEach((failed) => {
+          toast.error(`Failed to delete task: ${failed.reason}`, {
+            duration: 5000,
+          });
+        });
+
+        if (result.failedTasks.length > maxErrorsToShow) {
+          toast.warning(
+            `...and ${result.failedTasks.length - maxErrorsToShow} more task${
+              result.failedTasks.length - maxErrorsToShow === 1 ? "" : "s"
+            } could not be deleted`,
+            { duration: 5000 }
+          );
+        }
+      }
+
+      if (onTaskSelect) {
+        const failedTaskIds = new Set(
+          result.failedTasks?.map((failed) => failed.id) || []
+        );
+        const successfullyDeletedTasks = selectedTasks.filter(
+          (taskId) => !failedTaskIds.has(taskId)
+        );
+
+        successfullyDeletedTasks.forEach((taskId) => {
+          onTaskSelect(taskId);
+        });
+      }
+
+      if (onTaskRefetch) {
+        await onTaskRefetch();
+      }
+    } catch (error: any) {
+      console.error("Failed to delete tasks:", error);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to delete tasks. Please try again.";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleClearSelection = () => {
+    if (onTaskSelect) {
+      selectedTasks.forEach((taskId) => onTaskSelect(taskId));
+    }
+  };
+
   // Helper function to render multiple assignees
   const renderMultipleAssignees = (assignees: any[], maxVisible = 3) => {
     if (!assignees || assignees.length === 0) {
@@ -366,62 +441,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
             </Tooltip>
           ))}
           {remainingCount > 0 && (
-            <Tooltip
-              content={`+${remainingCount} more`}
-              position="top"
-            >
-              <div className="w-6 h-6 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center">
-                <span className="text-xs font-medium text-gray-600">
-                  +{remainingCount}
-                </span>
-              </div>
-            </Tooltip>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // Helper function to render multiple reporters (future use)
-  const renderMultipleReporters = (reporters: any[], maxVisible = 3) => {
-    if (!reporters || reporters.length === 0) {
-      return (
-        <div className="flex items-center gap-2">
-          <User className="w-4 h-4" />
-          <span className="tasktable-assignee-unassigned">Unassigned</span>
-        </div>
-      );
-    }
-
-    const maxToShow = 3;
-    const visibleReporters = reporters.slice(0, maxToShow);
-    const remainingCount = reporters.length - maxToShow;
-
-    return (
-      <div className="flex items-center gap-1">
-        <div className="flex -space-x-2">
-          {visibleReporters.map((reporter, index) => (
-            <Tooltip
-              key={reporter.id}
-              content={`${reporter.firstName} ${reporter.lastName}`}
-              position="top"
-            >
-              <Avatar className="tasktable-assignee-avatar w-6 h-6 border-2 border-white">
-                <AvatarImage
-                  src={reporter.avatar || "/placeholder.svg"}
-                  alt={`${reporter.firstName} ${reporter.lastName}`}
-                />
-                <AvatarFallback className="tasktable-assignee-fallback text-xs">
-                  {getInitials(reporter.firstName, reporter.lastName)}
-                </AvatarFallback>
-              </Avatar>
-            </Tooltip>
-          ))}
-          {remainingCount > 0 && (
-            <Tooltip
-              content={`+${remainingCount} more`}
-              position="top"
-            >
+            <Tooltip content={`+${remainingCount} more`} position="top">
               <div className="w-6 h-6 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center">
                 <span className="text-xs font-medium text-gray-600">
                   +{remainingCount}
@@ -436,9 +456,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
 
   // Helper function to get selected assignees for display
   const getSelectedAssignees = () => {
-    const availableMembers = projectSlug && projectMembers && projectMembers.length > 0
-      ? projectMembers
-      : localAddTaskProjectMembers;
+    const availableMembers =
+      projectSlug && projectMembers && projectMembers.length > 0
+        ? projectMembers
+        : localAddTaskProjectMembers;
 
     return availableMembers.filter((member) =>
       newTaskData.assigneeIds.includes(member.user?.id || member.id)
@@ -447,9 +468,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
 
   // Multi-select assignee component
   const MultiSelectAssignee = () => {
-    const availableMembers = projectSlug && projectMembers && projectMembers.length > 0
-      ? projectMembers
-      : localAddTaskProjectMembers;
+    const availableMembers =
+      projectSlug && projectMembers && projectMembers.length > 0
+        ? projectMembers
+        : localAddTaskProjectMembers;
 
     const selectedAssignees = getSelectedAssignees();
 
@@ -475,7 +497,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
             {selectedAssignees.length === 0 ? (
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                <span className="text-sm text-gray-500">Select assignees...</span>
+                <span className="text-sm text-gray-500">
+                  Select assignees...
+                </span>
               </div>
             ) : (
               <div className="flex items-center gap-1">
@@ -486,8 +510,14 @@ const TaskTable: React.FC<TaskTableProps> = ({
                       className="w-6 h-6 border-2 border-white"
                     >
                       <AvatarImage
-                        src={assignee.user?.avatar || assignee.avatar || "/placeholder.svg"}
-                        alt={`${assignee.user?.firstName || assignee.firstName} ${assignee.user?.lastName || assignee.lastName}`}
+                        src={
+                          assignee.user?.avatar ||
+                          assignee.avatar ||
+                          "/placeholder.svg"
+                        }
+                        alt={`${
+                          assignee.user?.firstName || assignee.firstName
+                        } ${assignee.user?.lastName || assignee.lastName}`}
                       />
                       <AvatarFallback className="text-xs">
                         {getInitials(
@@ -507,7 +537,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
                 </div>
                 {selectedAssignees.length === 1 && (
                   <span className="text-sm ml-2">
-                    {selectedAssignees[0].user?.firstName || selectedAssignees[0].firstName} {selectedAssignees[0].user?.lastName || selectedAssignees[0].lastName}
+                    {selectedAssignees[0].user?.firstName ||
+                      selectedAssignees[0].firstName}{" "}
+                    {selectedAssignees[0].user?.lastName ||
+                      selectedAssignees[0].lastName}
                   </span>
                 )}
                 {selectedAssignees.length > 1 && (
@@ -519,20 +552,25 @@ const TaskTable: React.FC<TaskTableProps> = ({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[300px] p-0 bg-[var(--card)] border-none" align="start">
+        <PopoverContent
+          className="w-[300px] p-0 bg-[var(--card)] border-none"
+          align="start"
+        >
           <Command>
-            <CommandInput placeholder="Search assignees..."/>
+            <CommandInput placeholder="Search assignees..." />
             <CommandList>
               <CommandEmpty>No assignees found.</CommandEmpty>
               <CommandGroup>
                 {availableMembers.map((member) => {
                   const memberId = member.user?.id || member.id;
                   const isSelected = newTaskData.assigneeIds.includes(memberId);
-                  
+
                   return (
                     <CommandItem
                       key={memberId}
-                      value={`${member.user?.firstName || member.firstName} ${member.user?.lastName || member.lastName}`}
+                      value={`${member.user?.firstName || member.firstName} ${
+                        member.user?.lastName || member.lastName
+                      }`}
                       onSelect={() => handleAssigneeToggle(memberId)}
                       className="flex items-center gap-2 cursor-pointer"
                     >
@@ -542,8 +580,14 @@ const TaskTable: React.FC<TaskTableProps> = ({
                       />
                       <Avatar className="w-6 h-6">
                         <AvatarImage
-                          src={member.user?.avatar || member.avatar || "/placeholder.svg"}
-                          alt={`${member.user?.firstName || member.firstName} ${member.user?.lastName || member.lastName}`}
+                          src={
+                            member.user?.avatar ||
+                            member.avatar ||
+                            "/placeholder.svg"
+                          }
+                          alt={`${member.user?.firstName || member.firstName} ${
+                            member.user?.lastName || member.lastName
+                          }`}
                         />
                         <AvatarFallback className="text-xs">
                           {getInitials(
@@ -572,16 +616,14 @@ const TaskTable: React.FC<TaskTableProps> = ({
     );
   };
 
-  const getTaskTypeIcon = (type: string) => {
-    switch (type?.toLowerCase()) {
-      case "story":
-        return <Bookmark className="w-4 h-4 text-green-600" />;
-      case "bug":
-        return <div className="w-4 h-4 rounded-full bg-red-500" />;
-      case "task":
-      default:
-        return <FileText className="w-4 h-4 text-blue-600" />;
-    }
+  const getTaskTypeIcon = (type?: string) => {
+    if (!type) return null;
+
+    const key = type.toUpperCase() as keyof typeof TaskTypeIcon;
+    const taskType = TaskTypeIcon[key] || TaskTypeIcon.TASK;
+    const IconComponent = taskType.icon;
+
+    return <IconComponent className={`w-4 h-4 text-${taskType.color}`} />;
   };
 
   const isOverdue = (dueDate: string) => {
@@ -818,7 +860,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
         priority: newTaskData.priority,
         projectId,
         statusId: newTaskData.statusId,
-        assigneeIds: newTaskData.assigneeIds.length > 0 ? newTaskData.assigneeIds : undefined, // Send array of assignee IDs
+        assigneeIds:
+          newTaskData.assigneeIds.length > 0
+            ? newTaskData.assigneeIds
+            : undefined, // Send array of assignee IDs
         dueDate: newTaskData.dueDate
           ? new Date(newTaskData.dueDate + "T00:00:00.000Z").toISOString()
           : undefined,
@@ -859,48 +904,48 @@ const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   return (
-    <div className="w-full">
+    <div className={cn("w-full", selectedTasks.length > 0 && "pb-24")}>
       <div className="tasktable-container">
         <div className="tasktable-wrapper">
           <Table className="tasktable-table">
             <TableHeader className="tasktable-header">
               <TableRow className="tasktable-header-row">
-                {onTaskSelect && (
-                  <TableHead className="tasktable-header-cell-checkbox w-12 min-w-[3rem] max-w-[3rem]">
-                    <Checkbox
-                      checked={
-                        selectedTasks.length === tasks.length &&
-                        tasks.length > 0
-                      }
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          tasks.forEach((task) => onTaskSelect(task.id));
-                        } else {
-                          tasks.forEach((task) => {
-                            if (selectedTasks.includes(task.id)) {
-                              onTaskSelect(task.id);
-                            }
-                          });
+                <TableHead className="tasktable-header-cell-task">
+                  <div className="flex items-center gap-2">
+                    {onTaskSelect && (
+                      <Checkbox
+                        checked={
+                          selectedTasks.length === tasks.length &&
+                          tasks.length > 0
                         }
-                      }}
-                    />
-                  </TableHead>
-                )}
-                <TableHead className="tasktable-header-cell-task ">
-                  Task
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            tasks.forEach((task) => onTaskSelect(task.id));
+                          } else {
+                            tasks.forEach((task) => {
+                              if (selectedTasks.includes(task.id)) {
+                                onTaskSelect(task.id);
+                              }
+                            });
+                          }
+                        }}
+                      />
+                    )}
+                    <span>Task</span>
+                  </div>
                 </TableHead>
                 {showProject && (
-                  <TableHead className="tasktable-header-cell-project ">
+                  <TableHead className="tasktable-header-cell-project">
                     Project
                   </TableHead>
                 )}
                 <TableHead className="tasktable-header-cell-priority">
                   Priority
                 </TableHead>
-                <TableHead className="tasktable-header-cell-status ">
+                <TableHead className="tasktable-header-cell-status">
                   <p className="ml-3">Status</p>
                 </TableHead>
-                <TableHead className="tasktable-header-cell-assignee w-32 text-center min-w-[64px] max-w-[96px] ">
+                <TableHead className="tasktable-header-cell-assignee w-32 text-center min-w-[120px] max-w-[180px]">
                   <span>Assignees</span>
                 </TableHead>
                 <TableHead className="tasktable-header-cell-date">
@@ -925,14 +970,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
               {showAddTaskRow &&
                 (isCreatingTask ? (
                   <TableRow className="tasktable-add-row h-12 bg-[var(--mini-sidebar)]/50 border-none">
-                    {onTaskSelect && (
-                      <TableCell className="tasktable-cell-checkbox">
-                        <div className="w-4 h-4" />
-                      </TableCell>
-                    )}
                     {/* Task Title */}
-                    <TableCell className="tasktable-cell-task">
-                      <div className="flex items-center">
+                    <TableCell className="tasktable-cell-task gap-0">
+                      <div className="flex items-center gap-2">
+                        {onTaskSelect && <div className="w-4 h-4" />}
                         <Input
                           value={newTaskData.title}
                           onChange={(e) => {
@@ -1022,18 +1063,13 @@ const TaskTable: React.FC<TaskTableProps> = ({
                                     <SelectItem
                                       key={project.id}
                                       value={project.id}
-                                      
                                     >
                                       {project.name}
                                     </SelectItem>
                                   )
                                 )
                               ) : (
-                                <SelectItem
-                                  value="no-projects"
-                                  disabled
-                                 
-                                >
+                                <SelectItem value="no-projects" disabled>
                                   No projects found
                                 </SelectItem>
                               )}
@@ -1083,11 +1119,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                               const value = priority.value ?? "undefined";
                               const label = priority.name ?? "undefined";
                               return (
-                                <SelectItem
-                                  key={value}
-                                  value={value}
-                                 
-                                >
+                                <SelectItem key={value} value={value}>
                                   {label}
                                 </SelectItem>
                               );
@@ -1121,20 +1153,12 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           <SelectContent className="bg-[var(--card)] border-none text-[var(--foreground)]">
                             {localAddTaskStatuses.length > 0 ? (
                               localAddTaskStatuses.map((status) => (
-                                <SelectItem
-                                  key={status.id}
-                                  value={status.id}
-                                 
-                                >
+                                <SelectItem key={status.id} value={status.id}>
                                   {status.name}
                                 </SelectItem>
                               ))
                             ) : (
-                              <SelectItem
-                                value="no-status"
-                                disabled
-                              
-                              >
+                              <SelectItem value="no-status" disabled>
                                 No statuses found
                               </SelectItem>
                             )}
@@ -1207,7 +1231,6 @@ const TaskTable: React.FC<TaskTableProps> = ({
                     <TableCell
                       colSpan={
                         6 + // Base columns
-                        (onTaskSelect ? 1 : 0) +
                         (showProject ? 1 : 0) +
                         visibleColumns.length +
                         1
@@ -1230,18 +1253,17 @@ const TaskTable: React.FC<TaskTableProps> = ({
                   className="tasktable-row h-12 odd:bg-[var(--odd-row)] cursor-pointer"
                   onClick={() => handleRowClick(task)}
                 >
-                  {onTaskSelect && (
-                    <TableCell className="tasktable-cell-checkbox">
-                      <Checkbox
-                        checked={selectedTasks.includes(task.id)}
-                        onCheckedChange={() => onTaskSelect(task.id)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </TableCell>
-                  )}
-
                   <TableCell className="tasktable-cell-task">
                     <div className="flex items-start gap-3">
+                      {onTaskSelect && (
+                        <div className="flex-shrink-0 mt-0.5">
+                          <Checkbox
+                            checked={selectedTasks.includes(task.id)}
+                            onCheckedChange={() => onTaskSelect(task.id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      )}
                       <div className="flex-shrink-0 mt-0.5">
                         {getTaskTypeIcon(task.type)}
                       </div>
@@ -1287,12 +1309,16 @@ const TaskTable: React.FC<TaskTableProps> = ({
                     <StatusBadge status={task.status} />
                   </TableCell>
 
-                  <TableCell className="tasktable-cell-assignee w-32 min-w-[64px] max-w-[96px] text-center align-middle">
+                  <TableCell className="tasktable-cell-assignee w-32 min-w-[120px] max-w-[180px] text-center align-middle">
                     <div className="flex justify-center items-center">
                       {renderMultipleAssignees(
                         currentTask && currentTask.id === task.id
-                          ? currentTask.assignees || (currentTask.assignee ? [currentTask.assignee] : [])
-                          : task.assignees || (task.assignee ? [task.assignee] : [])
+                          ? currentTask.assignees ||
+                              (currentTask.assignee
+                                ? [currentTask.assignee]
+                                : [])
+                          : task.assignees ||
+                              (task.assignee ? [task.assignee] : [])
                       )}
                     </div>
                   </TableCell>
@@ -1411,6 +1437,12 @@ const TaskTable: React.FC<TaskTableProps> = ({
         )}
       </div>
 
+      <BulkActionBar
+        selectedCount={selectedTasks.length}
+        onDelete={handleBulkDelete}
+        onClear={handleClearSelection}
+      />
+
       {isEditModalOpen && (
         <CustomModal
           isOpen={isEditModalOpen}
@@ -1432,6 +1464,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
               taskId={selectedTask.id}
               onTaskRefetch={onTaskRefetch}
               onClose={() => setIsEditModalOpen(false)}
+              showAttachmentSection={false}
             />
           )}
         </CustomModal>

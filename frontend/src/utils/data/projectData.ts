@@ -74,26 +74,32 @@ export const PROJECT_CATEGORIES = [
 ];
 
 
- export const roles = [
-    {
-      id: "1",
-      name: "MANAGER",
-      description: "Can manage project and members",
-      variant: "default" as const,
-    },
-    {
-      id: "2",
-      name: "MEMBER",
-      description: "Can access and work on projects",
-      variant: "default" as const,
-    },
-    {
-      id: "3",
-      name: "VIEWER",
-      description: "Can only view project content",
-      variant: "secondary" as const,
-    },
-  ];
+export const roles = [
+  {
+    id: "0",
+    name: "OWNER",
+    description: "Can manage all",
+    variant: "default" as const,
+  },
+  {
+    id: "1",
+    name: "MANAGER",
+    description: "Can manage project and members",
+    variant: "default" as const,
+  },
+  {
+    id: "2",
+    name: "MEMBER",
+    description: "Can access and work on projects",
+    variant: "default" as const,
+  },
+  {
+    id: "3",
+    name: "VIEWER",
+    description: "Can only view project content",
+    variant: "secondary" as const,
+  },
+];
 
 
 export const ACTION_TYPES = [

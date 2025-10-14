@@ -13,8 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { HiExclamationTriangle, HiArrowLeft } from "react-icons/hi2";
 import { useRouter } from "next/router";
-import Loader from "@/components/common/Loader";
 import { useAuth } from "@/contexts/auth-context";
+import TaskDetailsSkeleton from "@/components/skeletons/TaskDetailsSkeleton";
 function TaskDetailContent() {
   const [task, setTask] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,7 +69,7 @@ function TaskDetailContent() {
   }, [taskId]);
 
   if (isLoading) {
-    return <Loader />;
+    return <TaskDetailsSkeleton />;
   }
 
   if (error || !task) {

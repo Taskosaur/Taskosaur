@@ -76,39 +76,63 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     );
   }
 
-  private async logActivity(
-    config: any,
-    userId: string,
-    organizationId: string | undefined,
-    oldValue: any,
-    newValue: any,
-    entityIdName?: string,
-  ) {
-    let finalOrganizationId = organizationId;
-    const entityId =
-      (entityIdName ? newValue?.[entityIdName] : undefined) ||
-      newValue?.id ||
-      oldValue?.id;
-    if (!finalOrganizationId) {
-      if (entityId) {
-        finalOrganizationId =
-          await this.activityLogService.getOrganizationIdFromEntity(
-            config.entityType,
-            entityId,
-          );
+private async logActivity(
+  config: any,
+  userId: string,
+  organizationId: string | undefined,
+  oldValue: any,
+  newValue: any,
+  entityIdName?: string | string[],
+) {
+  let finalOrganizationId = organizationId;
+  
+  // Handle entityId extraction for both single string and array of strings
+  let entityId: any;
+
+  if (entityIdName) {
+    if (Array.isArray(entityIdName)) {
+      // Try each field name in the array until we find a non-null value
+      for (const fieldName of entityIdName) {
+        const value = newValue?.[fieldName] || oldValue?.[fieldName];
+        if (value) {
+          entityId = value;
+          break;
+        }
       }
+    } else {
+      // Single field name
+      entityId = newValue?.[entityIdName] || oldValue?.[entityIdName];
     }
-    await this.activityLogService.logActivity({
-      type: config.type,
-      description: config.description,
-      entityType: config.entityType,
-      entityId: entityId,
-      userId,
-      organizationId: finalOrganizationId,
-      oldValue: config.includeOldValue ? oldValue : undefined,
-      newValue: config.includeNewValue ? newValue : undefined,
-    });
   }
+
+  // Fallback to id if entityId not found
+  if (!entityId) {
+    entityId = newValue?.id || oldValue?.id;
+  }
+
+  // Get organization ID if not provided
+  if (!finalOrganizationId) {
+    if (entityId) {
+      finalOrganizationId =
+        await this.activityLogService.getOrganizationIdFromEntity(
+          config.entityType,
+          entityId,
+        );
+    }
+  }
+
+  await this.activityLogService.logActivity({
+    type: config.type,
+    description: config.description,
+    entityType: config.entityType,
+    entityId: entityId,
+    userId,
+    organizationId: finalOrganizationId,
+    oldValue: config.includeOldValue ? oldValue : undefined,
+    newValue: config.includeNewValue ? newValue : undefined,
+  });
+}
+
 
   private async sendNotification(
     config: any,
@@ -117,6 +141,7 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     requestData: any,
     responseData: any,
   ) {
+    console.log(responseData)
     let finalOrganizationId = organizationId;
 
     if (!finalOrganizationId) {
@@ -152,7 +177,7 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
           userId: notifyUserId,
           organizationId: finalOrganizationId,
           entityType: config.entityType,
-          entityId: responseData.id || config.entityId,
+          entityId:  responseData?.id || config.entityId,
           actionUrl:
             config.actionUrl ||
             this.generateActionUrl(config.entityType, responseData.id),

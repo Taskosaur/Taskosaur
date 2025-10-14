@@ -17,7 +17,6 @@ import { useAuth } from "@/contexts/auth-context";
 import { Building } from "lucide-react";
 import { Organization, User } from "@/types";
 import { mcpServer } from "@/lib/mcp-server";
-import Loader from "../common/Loader";
 
 export default function OrganizationSelector({
   onOrganizationChange,
@@ -37,9 +36,7 @@ export default function OrganizationSelector({
 
   const currentUser: User | null = getCurrentUser() ?? null;
 
-  
   const getInitials = (name?: string) => name?.charAt(0)?.toUpperCase() || "?";
-
 
   const setAndPersistOrganization = (org: Organization) => {
     setCurrentOrganization(org);
@@ -49,15 +46,12 @@ export default function OrganizationSelector({
     onOrganizationChange?.(org);
   };
 
-  
   useEffect(() => {
     if (!currentUser?.id) return;
 
     const fetchOrganizations = async () => {
       setIsLoading(true);
       try {
-        const savedOrgId = localStorage.getItem("currentOrganizationId");
-        
         const orgs: Organization[] =
           (await getUserOrganizations(currentUser.id)) ?? [];
         setOrganizations(orgs);
@@ -67,26 +61,24 @@ export default function OrganizationSelector({
           return;
         }
 
-       
-        let selectedOrg: Organization;
-        
-        if (savedOrgId) {
-          
-          const matchingOrg = orgs.find((org) => org.id === savedOrgId);
+        let selectedOrg: Organization | undefined;
 
-          if (matchingOrg) {
-            
-            selectedOrg = matchingOrg;
-          } else {
-            
-            selectedOrg = orgs[0];
+        // First try to find the org with isDefault = true
+        selectedOrg = orgs.find((org) => org.isDefault);
+
+        // If no default org, check localStorage
+        if (!selectedOrg) {
+          const savedOrgId = localStorage.getItem("currentOrganizationId");
+          if (savedOrgId) {
+            selectedOrg = orgs.find((org) => org.id === savedOrgId);
           }
-        } else {
-         
+        }
+
+        // If still no selection, pick the first org
+        if (!selectedOrg) {
           selectedOrg = orgs[0];
         }
 
-      
         setAndPersistOrganization(selectedOrg);
       } catch (error) {
         console.error("Error fetching organizations:", error);
@@ -107,15 +99,26 @@ export default function OrganizationSelector({
         (await getUserOrganizations(currentUser.id)) ?? [];
       setOrganizations(orgs);
 
-      const currentOrgId = localStorage.getItem("currentOrganizationId");
-      if (currentOrgId) {
-        const updatedCurrentOrg = orgs.find((org) => org.id === currentOrgId);
-        if (
-          updatedCurrentOrg &&
-          updatedCurrentOrg.id !== currentOrganization?.id
-        ) {
-          setCurrentOrganization(updatedCurrentOrg);
-        }
+      let selectedOrg: Organization | undefined;
+
+      // Try to select the currently saved org from localStorage
+      const savedOrgId = localStorage.getItem("currentOrganizationId");
+      if (savedOrgId) {
+        selectedOrg = orgs.find((org) => org.id === savedOrgId);
+      }
+
+      // If no saved org or saved org no longer exists, pick default org
+      if (!selectedOrg) {
+        selectedOrg = orgs.find((org) => org.isDefault);
+      }
+
+      // If still none, pick the first org
+      if (!selectedOrg) {
+        selectedOrg = orgs[0];
+      }
+
+      if (selectedOrg && selectedOrg.id !== currentOrganization?.id) {
+        setAndPersistOrganization(selectedOrg);
       }
     } catch (error) {
       console.error("Error fetching organizations:", error);
@@ -204,7 +207,20 @@ export default function OrganizationSelector({
         <div className="header-org-list-container">
           {isFetchingOnOpen ? (
             <div className="header-org-loading-state">
-              <Loader/>
+              <div className="header-org-list-container space-y-2 p-2">
+                {[...Array(5)].map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-3 animate-pulse px-2 py-1 rounded-md bg-[var(--dropdown-bg)]"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-gray-300 dark:bg-gray-600" />
+                    <div className="flex-1 space-y-1">
+                      <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-3/4"></div>
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : organizations.length === 0 ? (
             <div className="header-org-empty-state">

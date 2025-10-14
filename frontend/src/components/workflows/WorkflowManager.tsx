@@ -25,6 +25,7 @@ import { CreateWorkflowData, TaskStatus, Workflow } from "@/types";
 import Tooltip from "../common/ToolTip";
 import { Check } from "lucide-react";
 import ConfirmationModal from "../modals/ConfirmationModal";
+import WorkFlowSkeleton from "../skeletons/WorkFlowSkeleton";
 
 interface WorkflowManagerProps {
   organizationId?: string;
@@ -328,12 +329,7 @@ export default function WorkflowManager({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-6 h-6 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mr-3"></div>
-        <span className="text-sm text-[var(--muted-foreground)]">
-          Loading workflows...
-        </span>
-      </div>
+      <WorkFlowSkeleton />
     );
   }
 
@@ -535,7 +531,7 @@ export default function WorkflowManager({
               <div className="min-h-[400px]">
                 {activeTab === "overview" && (
                   <div className="space-y-4">
-                    <Card className="bg-[var(--sidebar)] rounded-[var(--card-radius)] border-none shadow-sm">
+                    <Card className="bg-[var(--sidebar)] border-none shadow-sm">
                       <CardContent>
                         <div className="flex justify-between  items-start">
                           <div>
@@ -604,7 +600,7 @@ export default function WorkflowManager({
                       </CardContent>
                     </Card>
 
-                    <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
+                    <Card className="bg-[var(--sidebar)]  border-none shadow-sm">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-md font-semibold text-[var(--foreground)]">
                           Status Flow

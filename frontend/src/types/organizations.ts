@@ -28,6 +28,7 @@ export interface Organization {
   memberCount?: number;
   workspaceCount?: number;
   workspaces?: Workspace[];
+  isDefault?: boolean
 }
 
 export interface OrganizationResponse {

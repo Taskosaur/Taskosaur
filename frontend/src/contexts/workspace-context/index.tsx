@@ -329,8 +329,13 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       },
 
       getWorkspaces: async (): Promise<Workspace[]> => {
+        // Use organization context if available for better permission handling
+        const orgId = getCurrentOrganizationId();
+        
         const result = await handleApiOperation(() =>
-          workspaceApi.getWorkspaces()
+          orgId 
+            ? workspaceApi.getWorkspacesByOrganization(orgId)
+            : workspaceApi.getWorkspaces()
         );
 
         setWorkspaceState((prev) => ({
@@ -349,8 +354,12 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         );
 
         if (result.success) {
-          // Refresh the workspace list after successful archive
-          await contextValue.getWorkspaces();
+          const orgId = getCurrentOrganizationId();
+          if (orgId) {
+            await contextValue.getWorkspacesByOrganization(orgId);
+          } else {
+            console.warn("No organization ID available for workspace refresh");
+          }
         }
 
         return result;

@@ -212,7 +212,7 @@ export class TaskAttachmentsService {
     });
   }
 
-  async remove(id: string, requestUserId: string): Promise<void> {
+  async remove(id: string, requestUserId: string): Promise<TaskAttachment> {
     // Get attachment info
     const attachment = await this.prisma.taskAttachment.findUnique({
       where: { id },
@@ -291,6 +291,7 @@ export class TaskAttachmentsService {
     await this.prisma.taskAttachment.delete({
       where: { id },
     });
+    return attachment
   }
 
   async getAttachmentStats(taskId?: string): Promise<any> {

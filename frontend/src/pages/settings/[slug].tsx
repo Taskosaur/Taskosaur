@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import { useOrganization } from "@/contexts/organization-context";
@@ -8,7 +8,6 @@ import {
   HiCog,
   HiUsers,
   HiExclamationTriangle,
-  HiSparkles,
 } from "react-icons/hi2";
 import { HiViewGrid, HiOfficeBuilding } from "react-icons/hi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import OrganizationSettingsComponent from "@/components/organizations/OrganizationSettings";
 import OrganizationMembers from "@/components/organizations/OrganizationMembers";
 import WorkflowManager from "@/components/workflows/WorkflowManager";
-import AISettings from "@/components/settings/AISettings";
 import {
   Organization,
   OrganizationMember,
@@ -27,9 +25,21 @@ import {
 } from "@/types/organizations";
 import { Workflow } from "@/types";
 import { PageHeader } from "@/components/common/PageHeader";
-import Loader from "@/components/common/Loader";
 import ErrorState from "@/components/common/ErrorState";
 import { ChartNoAxesGantt } from "lucide-react";
+import PendingInvitations, { PendingInvitationsRef } from "@/components/common/PendingInvitations";
+import OrganizationManageSkeleton from "@/components/skeletons/OrganizationManageSkeleton";
+
+// Define the access structure type
+interface UserAccess {
+  isElevated: boolean;
+  role: string;
+  canChange: boolean;
+  userId: string;
+  scopeId: string;
+  scopeType: string;
+  isSuperAdmin: boolean;
+}
 
 const AccessDenied = ({ onBack }: { onBack: () => void }) => (
   <div className="flex min-h-screen bg-[var(--background)]">
@@ -46,7 +56,7 @@ const AccessDenied = ({ onBack }: { onBack: () => void }) => (
               </h3>
               <p className="text-sm text-[var(--muted-foreground)] mb-4">
                 You don't have permission to manage this organization. Only
-                owners and administrators can access these settings.
+                users with management access can view these settings.
               </p>
               <Button
                 onClick={onBack}
@@ -73,40 +83,26 @@ function OrganizationManagePageContent() {
     getOrganizationWorkFlows,
     isLoading: orgLoading,
   } = useOrganization();
-  const { getCurrentUser } = useAuth();
+  const { getUserAccess } = useAuth();
 
-  const [organization, setOrganization] = useState<
-    import("@/types/organizations").Organization | null
-  >(null);
+  const [organization, setOrganization] = useState<Organization | null>(null);
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
-
+  const [userAccess, setUserAccess] = useState<UserAccess | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    "settings" | "members" | "workflows" | "ai-chat"
+    "settings" | "members" | "workflows"
   >("settings");
+  const pendingInvitationsRef = useRef<PendingInvitationsRef>(null);
 
-  const currentUser = getCurrentUser();
-
-  const getCurrentUserRole = (): OrganizationRole => {
-    if (!currentUser || !organization) return OrganizationRole.MEMBER;
-    if (organization.ownerId === currentUser.id) {
-      return OrganizationRole.OWNER;
-    }
-    const userMember = members.find(
-      (member) => member.userId === currentUser.id
-    );
-    if (currentUser.role === "SUPER_ADMIN") {
-      return OrganizationRole.SUPER_ADMIN;
-    }
-    return userMember?.role || OrganizationRole.MEMBER;
-  };
+  // Helper to check if user has access
+  const hasManagementAccess = userAccess?.canChange || false;
 
   const loadWorkflows = async () => {
-    if (!slug || typeof slug !== "string") return;
+    if (!slug || typeof slug !== "string" || !hasManagementAccess) return;
     try {
       setWorkflowLoading(true);
       setWorkflowError(null);
@@ -144,21 +140,36 @@ function OrganizationManagePageContent() {
     try {
       setIsLoading(true);
       setError(null);
-      if (!currentUser?.id) {
-        setError("User not authenticated");
-        return;
-      }
+
       if (!slug || typeof slug !== "string") {
         setError("Invalid organization slug");
         return;
       }
+
       const orgData = await getOrganizationBySlug(slug);
       if (!orgData) {
         setError("Organization not found");
         return;
       }
+
+      // Check access first
+      const accessData = await getUserAccess({ 
+        name: "organization", 
+        id: orgData.id 
+      }) as UserAccess;
+      
+      setUserAccess(accessData);
+
+      // If no access, stop loading here
+      if (!accessData?.canChange) {
+        setOrganization(orgData);
+        setIsLoading(false);
+        return;
+      }
+
+      // Only load members and workflows if user has access
       const membersData = await getOrganizationMembers(slug);
-      // Ensure orgData has memberCount and workspaceCount
+
       setOrganization({
         id: orgData.id,
         name: orgData.name,
@@ -174,16 +185,19 @@ function OrganizationManagePageContent() {
         updatedAt: orgData.updatedAt,
       });
       setMembers(membersData);
+
+      // Load workflows in background
       loadWorkflows();
     } catch (err) {
       setError("Failed to load organization data");
+      setUserAccess(null);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (slug && currentUser && typeof slug === "string") {
+    if (slug && typeof slug === "string") {
       loadData();
     }
   }, [slug]);
@@ -191,12 +205,14 @@ function OrganizationManagePageContent() {
   const handleOrganizationUpdate = async (
     updatedOrganization: Organization
   ) => {
+    if (!hasManagementAccess) return;
     setOrganization(updatedOrganization);
     await loadData();
   };
 
   const handleTabChange = async (value: string) => {
-    setActiveTab(value as "settings" | "members" | "workflows" | "ai-chat");
+    if (!hasManagementAccess) return;
+    setActiveTab(value as "settings" | "members" | "workflows");
     if (
       value === "workflows" &&
       workflows.length === 0 &&
@@ -209,17 +225,21 @@ function OrganizationManagePageContent() {
 
   const handleWorkflowAction = {
     onCreate: () => {
+      if (!hasManagementAccess) return;
       loadWorkflows();
     },
     onUpdate: (workflow: Workflow) => {
+      if (!hasManagementAccess) return;
       setWorkflows((prev) =>
         prev.map((w) => (w.id === workflow.id ? workflow : w))
       );
     },
     onDelete: (workflowId: string) => {
+      if (!hasManagementAccess) return;
       setWorkflows((prev) => prev.filter((w) => w.id !== workflowId));
     },
     onSetDefault: (workflowId: string) => {
+      if (!hasManagementAccess) return;
       setWorkflows((prev) =>
         prev.map((w) => ({
           ...w,
@@ -233,17 +253,23 @@ function OrganizationManagePageContent() {
     router.push("/settings");
   };
 
-  const getRoleBadgeColor = (role: OrganizationRole) => {
-    switch (role) {
-      case OrganizationRole.SUPER_ADMIN:
-        return "bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20";
-      default:
-        return "bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]";
-    }
+  // Get badge label based on access
+  const getAccessBadgeLabel = () => {
+    if (!userAccess) return "Member";
+    if (userAccess.isSuperAdmin) return "Super Admin";
+    if (userAccess.isElevated) return userAccess?.role || "Manager";
+    return userAccess?.role || "Member";
   };
 
-  if (isLoading || orgLoading) {
-    return <Loader text="fetching your organization details" />;
+  const getAccessBadgeColor = () => {
+    if (!userAccess) return "bg-[var(--muted)] text-[var(--muted-foreground)]";
+    if (userAccess.isSuperAdmin) return "bg-purple-500/10 text-purple-500 border-purple-500/20";
+    if (userAccess.isElevated) return "bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20";
+    return "bg-[var(--muted)] text-[var(--muted-foreground)]";
+  };
+
+  if (isLoading) {
+    return <OrganizationManageSkeleton />;
   }
 
   if (error || !organization) {
@@ -255,10 +281,8 @@ function OrganizationManagePageContent() {
     );
   }
 
-  const canManage =
-    getCurrentUserRole() === OrganizationRole.SUPER_ADMIN ||
-    organization.ownerId === currentUser?.id;
-  if (!canManage) {
+  // Show access denied if user doesn't have permission
+  if (!hasManagementAccess) {
     return <AccessDenied onBack={handleBackToOrganizations} />;
   }
 
@@ -302,24 +326,16 @@ function OrganizationManagePageContent() {
                   Your Role:
                 </span>
                 <Badge
-                  className={`text-xs px-2 py-1 rounded-md border-none ${getRoleBadgeColor(
-                    getCurrentUserRole()
-                  )}`}
+                  className={`${getAccessBadgeColor()} text-xs px-2 py-1 rounded-md border-none`}
                 >
-                  {getCurrentUserRole() === "SUPER_ADMIN"
-                    ? "SUPER ADMIN"
-                    : getCurrentUserRole()}
+                  {getAccessBadgeLabel()}
                 </Badge>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Tabs
-          value={activeTab}
-          onValueChange={handleTabChange}
-          className=""
-        >
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="">
           <div className="border-b border-[var(--border)]">
             <TabsList className="relative grid w-full grid-cols-3 bg-transparent p-0 h-auto">
               {/* Sliding indicator */}
@@ -332,9 +348,7 @@ function OrganizationManagePageContent() {
                       ? "0%"
                       : activeTab === "workflows"
                       ? "100%"
-                      : activeTab === "members"
-                      ? "200%"
-                      : "300%"
+                      : "200%"
                   })`,
                 }}
               />
@@ -436,14 +450,109 @@ function OrganizationManagePageContent() {
           </TabsContent>
 
           <TabsContent value="members" className="space-y-4 mt-4">
-            <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
-              <OrganizationMembers
-                organizationId={organization.id}
-                members={members}
-                currentUserRole={getCurrentUserRole()}
-                onMembersChange={loadData}
-              />
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Members List - Takes most space */}
+              <div className="lg:col-span-2">
+                <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
+                  <OrganizationMembers
+                    organizationId={organization.id}
+                    members={members}
+                    currentUserRole={userAccess?.role as OrganizationRole.MANAGER || "MEMBER" as OrganizationRole.MANAGER}
+                    onMembersChange={loadData}
+                    organization={organization}
+                    pendingInvitationsRef={pendingInvitationsRef}
+                  />
+                </Card>
+              </div>
+
+              {/* Organization Info Sidebar */}
+              <div className="lg:col-span-1 space-y-4">
+                {/* Organization Info Card */}
+                <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
+                      <HiOfficeBuilding className="w-5 h-5 text-[var(--muted-foreground)]" />
+                      Organization Info
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm font-medium text-[var(--foreground)]">
+                          {organization?.name || "Unknown Organization"}
+                        </p>
+                        <p className="text-xs text-[var(--muted-foreground)]">
+                          {organization?.description || "No description available"}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
+                        <span>Members:</span>
+                        <span className="font-medium text-[var(--foreground)]">
+                          {members.length}
+                        </span>
+                      </div>
+                     
+                      <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
+                        <span>Slug:</span>
+                        <span className="font-medium text-[var(--foreground)] font-mono">
+                          {organization?.slug || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Member Roles Summary */}
+                <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
+                      <HiCog className="w-5 h-5 text-[var(--muted-foreground)]" />
+                      Role Distribution
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-2">
+                      {[
+                        { name: "OWNER", variant: "default" },
+                        { name: "MANAGER", variant: "success" },
+                        { name: "MEMBER", variant: "info" },
+                        { name: "VIEWER", variant: "secondary" },
+                      ].map((role) => {
+                        const count = members.filter(
+                          (m) => m.role === role.name
+                        ).length;
+                        return (
+                          <div
+                            key={role.name}
+                            className="flex items-center justify-between text-xs"
+                          >
+                            <span className="text-[var(--muted-foreground)]">
+                              {role.name}
+                            </span>
+                            <Badge
+                              variant={role.variant as any}
+                              className="h-5 px-2 text-xs border-none bg-[var(--primary)]/10 text-[var(--primary)]"
+                            >
+                              {count}
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Pending Invitations */}
+                {hasManagementAccess && (
+                  <PendingInvitations 
+                    ref={pendingInvitationsRef}
+                    entity={organization} 
+                    entityType="organization" 
+                    members={members} 
+                  />
+                )}
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

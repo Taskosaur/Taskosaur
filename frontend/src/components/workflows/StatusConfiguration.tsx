@@ -175,7 +175,7 @@ export default function StatusConfiguration({
       </div>
 
       {/* Status List */}
-      <div className="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--border)] overflow-x-auto">
+      <div className="bg-[var(--sidebar)] rounded-lg shadow-sm border border-none overflow-x-auto">
         <div className="min-w-max">
           {/* Header */}
           <div className="grid grid-cols-12 gap-4 p-4 border-b border-[var(--border)] bg-[var(--muted)] text-sm font-medium">
@@ -197,7 +197,7 @@ export default function StatusConfiguration({
                         style={{ backgroundColor: status.color }}
                       />
                       <div className="min-w-0">
-                        <div className="font-medium text-[var(--foreground)] truncate">
+                        <div className="text-sm text-[var(--foreground)] truncate">
                           {status.name}
                           {status.isDefault && (
                             <span className="text-xs ml-2 bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] p-1 px-2 rounded-lg">
@@ -210,7 +210,7 @@ export default function StatusConfiguration({
                   </div>
                   <div className="col-span-2">
                     <Badge
-                      className={`inline-block px-2 py-1 text-xs rounded-full whitespace-nowrap ${getCategoryColor(
+                      className={`inline-block px-2 py-1 text-xs rounded-full border-none whitespace-nowrap ${getCategoryColor(
                         (status?.category ??
                           StatusCategory.TODO) as StatusCategory
                       )}`}

@@ -94,7 +94,7 @@ export function InvitationModal({ userId, isOpen, onAccept }: InvitationModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="max-w-md border-[var(--border)]" showCloseButton={false}>
+      <DialogContent className="max-w-md border-none" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle className="text-center">
             Pending Invitations

@@ -12,6 +12,7 @@ import { SprintFormModal } from "@/components/sprints/SprintFormModal";
 import { useAuth } from "@/contexts/auth-context";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
 import { useProjectContext } from "@/contexts/project-context";
+import { CardsSkeleton } from "@/components/skeletons/CardsSkeleton";
 
 function SprintsPageContent() {
   const router = useRouter();
@@ -212,14 +213,7 @@ function SprintsPageContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[var(--background)] p-6">
-        <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin mr-3" />
-          <span className="text-[var(--muted-foreground)]">
-            Loading sprints...
-          </span>
-        </div>
-      </div>
+      <CardsSkeleton count={3} />
     );
   }
 

@@ -34,6 +34,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { LogActivity } from 'src/common/decorator/log-activity.decorator';
 
 @ApiTags('Task Attachments')
 @ApiBearerAuth('JWT-auth')
@@ -42,7 +43,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 export class TaskAttachmentsController {
   constructor(
     private readonly taskAttachmentsService: TaskAttachmentsService,
-  ) {}
+  ) { }
 
   @Post()
   @ApiOperation({ summary: 'Create a task attachment record manually' })
@@ -144,6 +145,13 @@ export class TaskAttachmentsController {
       },
     }),
   )
+  @LogActivity({
+    type: 'TASK_ATTACHMENT_ADDED',
+    entityType: 'Task Attchment',
+    description: 'Added attachment to task',
+    includeNewValue: true,
+    entityIdName: 'taskId',
+  })
   async uploadFile(
     @Param('taskId', ParseUUIDPipe) taskId: string,
     @UploadedFile() file: Express.Multer.File,
@@ -248,6 +256,13 @@ export class TaskAttachmentsController {
   }
 
   @Delete(':id')
+  @LogActivity({
+    type: 'TASK_ATTACHMENT_REMOVED',
+    entityType: 'Task Attchment',
+    description: 'Added attachment to task',
+    includeNewValue: true,
+    entityIdName: 'taskId',
+  })
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
     @Param('id', ParseUUIDPipe) id: string,

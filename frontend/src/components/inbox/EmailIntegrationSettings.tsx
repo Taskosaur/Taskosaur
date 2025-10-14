@@ -45,6 +45,7 @@ export default function EmailIntegrationSettings({
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const debouncedAssigneeSearchTerm = useDebounce(assigneeSearchTerm, 500);
   const [setupLoading, setSetupLoading] = useState(false);
+  const [loadingInbox, setLoadingInbox] = useState(true);
   const [isReconfiguring, setIsReconfiguring] = useState(false);
     const [formData, setFormData] = useState<InboxFormData>({
     name: "",
@@ -108,6 +109,7 @@ export default function EmailIntegrationSettings({
   }, [debouncedAssigneeSearchTerm]);
 
   const loadInboxData = async () => {
+    setLoadingInbox(true);
     try {
       await getInbox(projectId);
     } catch (error: any) {
@@ -116,6 +118,8 @@ export default function EmailIntegrationSettings({
       } else {
         toast.error("Failed to load email integration settings");
       }
+    } finally {
+      setLoadingInbox(false);
     }
   };
 
@@ -356,7 +360,7 @@ export default function EmailIntegrationSettings({
           </CardTitle>
         </div>
 
-        <Stepper currentStep={currentStep} hasInbox={!!currentInbox} />
+        {!loadingInbox && <Stepper currentStep={currentStep} hasInbox={!!currentInbox} />}
       </CardHeader>
 
       <CardContent className="">

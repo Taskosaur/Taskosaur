@@ -71,6 +71,7 @@ interface NewTaskModalProps {
   onTaskCreated?: () => Promise<void>;
   workspaceSlug?: string;
   projectSlug?: string;
+  isAuth?: boolean;
 }
 
 export function NewTaskModal({
@@ -79,6 +80,7 @@ export function NewTaskModal({
   onTaskCreated,
   workspaceSlug,
   projectSlug,
+  isAuth,
 }: NewTaskModalProps) {
   const pathname = usePathname();
 
@@ -87,10 +89,9 @@ export function NewTaskModal({
     getCurrentOrganizationId,
     getWorkspaceBySlug,
   } = useWorkspace();
-  const { getProjectsByWorkspace, getTaskStatusByProject } =
-    useProject();
+  const { getProjectsByWorkspace, getTaskStatusByProject } = useProject();
   const { createTask } = useTask();
-  
+  const { fetchAnalyticsData } = useProject();
 
   const [formData, setFormData] = useState<FormData>({
     title: "",
@@ -117,7 +118,7 @@ export function NewTaskModal({
   const [taskStatuses, setTaskStatuses] = useState<any[]>([]);
 
   const getUrlContext = () => {
-    const pathParts = pathname.split("/").filter(Boolean);
+    const pathParts = pathname?.split("/").filter(Boolean);
 
     const globalRoutes = [
       "dashboard",
@@ -239,7 +240,6 @@ export function NewTaskModal({
       }
     }
   }, [isOpen, workspaceSlug, projectSlug]);
-
 
   useEffect(() => {
     if (formData.project?.id) {
@@ -439,8 +439,8 @@ export function NewTaskModal({
           projectId: formData.project!.id,
           statusId: defaultStatus.id,
         };
-
         await createTask(taskData);
+        await fetchAnalyticsData(projectSlug, isAuth);
 
         if (onTaskCreated) {
           try {

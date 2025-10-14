@@ -279,7 +279,7 @@ export default function TaskGanttView({
                 <HiCalendarDays className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
-            <h3 className="text-xl font-semibold text-[var(--foreground)] mb-3 text-sm">
+            <h3 className="font-semibold text-[var(--foreground)] mb-3 text-sm">
               No tasks to display
             </h3>
             <p className="text-sm text-[var(--muted-foreground)] max-w-md mx-auto leading-relaxed">

@@ -61,34 +61,36 @@ model User {
   taskWatchers             TaskWatcher[]
   createdTasks             Task[]               @relation("TaskCreatedBy")
   updatedTasks             Task[]               @relation("TaskUpdatedBy")
-  createdTaskComments      TaskComment[]        @relation("TaskCommentCreatedBy")
-  updatedTaskComments      TaskComment[]        @relation("TaskCommentUpdatedBy")
-  createdTaskAttachments   TaskAttachment[]     @relation("TaskAttachmentCreatedBy")
-  updatedTaskAttachments   TaskAttachment[]     @relation("TaskAttachmentUpdatedBy")
-  createdTimeEntries       TimeEntry[]          @relation("TimeEntryCreatedBy")
-  updatedTimeEntries       TimeEntry[]          @relation("TimeEntryUpdatedBy")
-  createdNotifications     Notification[]       @relation("NotificationCreatedBy")
-  createdActivityLogs      ActivityLog[]        @relation("ActivityLogCreatedBy")
-  updatedActivityLogs      ActivityLog[]        @relation("ActivityLogUpdatedBy")
-  createdRuleExecutions    RuleExecution[]      @relation("RuleExecutionCreatedBy")
-  updatedRuleExecutions    RuleExecution[]      @relation("RuleExecutionUpdatedBy")
-  createdOrgMembers        OrganizationMember[] @relation("OrganizationMemberCreatedBy")
-  updatedOrgMembers        OrganizationMember[] @relation("OrganizationMemberUpdatedBy")
-  createdWorkspaceMembers  WorkspaceMember[]    @relation("WorkspaceMemberCreatedBy")
-  updatedWorkspaceMembers  WorkspaceMember[]    @relation("WorkspaceMemberUpdatedBy")
-  createdProjectMembers    ProjectMember[]      @relation("ProjectMemberCreatedBy")
-  updatedProjectMembers    ProjectMember[]      @relation("ProjectMemberUpdatedBy")
-  createdTaskLabels        TaskLabel[]          @relation("TaskLabelCreatedBy")
-  updatedTaskLabels        TaskLabel[]          @relation("TaskLabelUpdatedBy")
-  createdTaskWatchers      TaskWatcher[]        @relation("TaskWatcherCreatedBy")
-  updatedTaskWatchers      TaskWatcher[]        @relation("TaskWatcherUpdatedBy")
-  createdTaskDependencies  TaskDependency[]     @relation("TaskDependencyCreatedBy")
-  updatedTaskDependencies  TaskDependency[]     @relation("TaskDependencyUpdatedBy")
-  timeEntries              TimeEntry[]
-  workspaceMembers         WorkspaceMember[]
-  sentInvitations          Invitation[]         @relation("InvitationInviter")
-  assignedTasks            Task[]               @relation("TaskAssignees")
-  reportedTasks            Task[]               @relation("TaskReporters")
+  archivedtasks            Task[]               @relation("TaskArchivedBy")
+
+  createdTaskComments     TaskComment[]        @relation("TaskCommentCreatedBy")
+  updatedTaskComments     TaskComment[]        @relation("TaskCommentUpdatedBy")
+  createdTaskAttachments  TaskAttachment[]     @relation("TaskAttachmentCreatedBy")
+  updatedTaskAttachments  TaskAttachment[]     @relation("TaskAttachmentUpdatedBy")
+  createdTimeEntries      TimeEntry[]          @relation("TimeEntryCreatedBy")
+  updatedTimeEntries      TimeEntry[]          @relation("TimeEntryUpdatedBy")
+  createdNotifications    Notification[]       @relation("NotificationCreatedBy")
+  createdActivityLogs     ActivityLog[]        @relation("ActivityLogCreatedBy")
+  updatedActivityLogs     ActivityLog[]        @relation("ActivityLogUpdatedBy")
+  createdRuleExecutions   RuleExecution[]      @relation("RuleExecutionCreatedBy")
+  updatedRuleExecutions   RuleExecution[]      @relation("RuleExecutionUpdatedBy")
+  createdOrgMembers       OrganizationMember[] @relation("OrganizationMemberCreatedBy")
+  updatedOrgMembers       OrganizationMember[] @relation("OrganizationMemberUpdatedBy")
+  createdWorkspaceMembers WorkspaceMember[]    @relation("WorkspaceMemberCreatedBy")
+  updatedWorkspaceMembers WorkspaceMember[]    @relation("WorkspaceMemberUpdatedBy")
+  createdProjectMembers   ProjectMember[]      @relation("ProjectMemberCreatedBy")
+  updatedProjectMembers   ProjectMember[]      @relation("ProjectMemberUpdatedBy")
+  createdTaskLabels       TaskLabel[]          @relation("TaskLabelCreatedBy")
+  updatedTaskLabels       TaskLabel[]          @relation("TaskLabelUpdatedBy")
+  createdTaskWatchers     TaskWatcher[]        @relation("TaskWatcherCreatedBy")
+  updatedTaskWatchers     TaskWatcher[]        @relation("TaskWatcherUpdatedBy")
+  createdTaskDependencies TaskDependency[]     @relation("TaskDependencyCreatedBy")
+  updatedTaskDependencies TaskDependency[]     @relation("TaskDependencyUpdatedBy")
+  timeEntries             TimeEntry[]
+  workspaceMembers        WorkspaceMember[]
+  sentInvitations         Invitation[]         @relation("InvitationInviter")
+  assignedTasks           Task[]               @relation("TaskAssignees")
+  reportedTasks           Task[]               @relation("TaskReporters")
 
   // Project Inbox Relations
   defaultInboxes         ProjectInbox[] @relation("InboxDefaultAssignee")
@@ -137,6 +139,7 @@ model OrganizationMember {
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  isDefault      Boolean      @default(false) @map("is_default")
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdByUser  User?        @relation("OrganizationMemberCreatedBy", fields: [createdBy], references: [id])
   updatedByUser  User?        @relation("OrganizationMemberUpdatedBy", fields: [updatedBy], references: [id])
@@ -268,6 +271,8 @@ model Task {
   updatedBy         String?      @map("updated_by_id") @db.Uuid
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
+  isArchived        Boolean      @default(false) @map("is_archived")
+  archivedBy        String?      @map("archived_by") @db.Uuid
 
   // Inbox Integration
   inboxMessageId    String? @unique @map("inbox_message_id") @db.Uuid
@@ -287,6 +292,7 @@ model Task {
   project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdByUser User?            @relation("TaskCreatedBy", fields: [createdBy], references: [id])
   updatedByUser User?            @relation("TaskUpdatedBy", fields: [updatedBy], references: [id])
+  archiveByUser User?            @relation("TaskArchivedBy", fields: [archivedBy], references: [id])
   sprint        Sprint?          @relation(fields: [sprintId], references: [id])
   status        TaskStatus       @relation(fields: [statusId], references: [id], onDelete: Cascade)
   timeEntries   TimeEntry[]
@@ -469,7 +475,7 @@ model TaskComment {
   emailMessageId      String?   @unique @map("email_message_id")
   sentAsEmail         Boolean   @default(false) @map("sent_as_email")
   emailRecipients     String[]  @map("email_recipients")
-  emailRecipientNames String?    @map("email_recipient_names")
+  emailRecipientNames String?   @map("email_recipient_names")
   emailSentAt         DateTime? @map("email_sent_at")
 
   author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -775,6 +781,7 @@ enum NotificationType {
 }
 
 enum ActivityType {
+  // Task Activities
   TASK_CREATED
   TASK_UPDATED
   TASK_DELETED
@@ -785,14 +792,89 @@ enum ActivityType {
   TASK_STATUS_CHANGED
   TASK_ATTACHMENT_ADDED
   TASK_ATTACHMENT_REMOVED
+  TASK_PRIORITY_CHANGED
+  TASK_DUE_DATE_CHANGED
+  TASK_WATCHER_ADDED
+  TASK_WATCHER_REMOVED
+  TASK_DEPENDENCY_ADDED
+  TASK_DEPENDENCY_REMOVED
+  TASK_MOVED_TO_SPRINT
+  TASK_TIME_LOGGED
+
+  // Project Activities
   PROJECT_CREATED
   PROJECT_UPDATED
   PROJECT_DELETED
+  PROJECT_ARCHIVED
+  PROJECT_MEMBER_ADDED
+  PROJECT_MEMBER_REMOVED
+  PROJECT_STATUS_CHANGED
+
+  // Sprint Activities
   SPRINT_CREATED
+  SPRINT_UPDATED
+  SPRINT_DELETED
   SPRINT_STARTED
   SPRINT_COMPLETED
+  SPRINT_CANCELLED
+
+  // Workspace Activities
+  WORKSPACE_CREATED
+  WORKSPACE_UPDATED
+  WORKSPACE_DELETED
+  WORKSPACE_MEMBER_ADDED
+  WORKSPACE_MEMBER_REMOVED
+
+  // Organization Activities
+  ORGANIZATION_CREATED
+  ORGANIZATION_UPDATED
+  ORGANIZATION_MEMBER_ADDED
+  ORGANIZATION_MEMBER_REMOVED
+
+  // Workflow Activities
+  WORKFLOW_CREATED
+  WORKFLOW_UPDATED
+  WORKFLOW_DELETED
+  STATUS_ADDED
+  STATUS_UPDATED
+  STATUS_DELETED
+  TRANSITION_ADDED
+  TRANSITION_REMOVED
+
+  // Label Activities
+  LABEL_CREATED
+  LABEL_UPDATED
+  LABEL_DELETED
+
+  // Inbox Activities
+  INBOX_CONFIGURED
+  INBOX_MESSAGE_RECEIVED
+  INBOX_MESSAGE_CONVERTED
+  INBOX_RULE_CREATED
+  INBOX_RULE_UPDATED
+  EMAIL_ACCOUNT_CONNECTED
+  EMAIL_SYNC_COMPLETED
+
+  // Automation Activities
+  AUTOMATION_RULE_CREATED
+  AUTOMATION_RULE_UPDATED
+  AUTOMATION_RULE_EXECUTED
+  AUTOMATION_RULE_DELETED
+
+  // Member Activities
   USER_JOINED
   USER_LEFT
+  USER_ROLE_CHANGED
+  INVITATION_SENT
+  INVITATION_RESENT
+  INVITATION_ACCEPTED
+  INVITATION_DECLINED
+
+  // Comment Activities
+  COMMENT_CREATED
+  COMMENT_UPDATED
+  COMMENT_DELETED
+  COMMENT_REPLY_ADDED
 }
 
 enum TriggerType {

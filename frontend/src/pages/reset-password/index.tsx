@@ -1,7 +1,5 @@
-;
-
-import { useAuth } from '@/contexts/auth-context';
-import AuthRedirect from '@/components/auth/AuthRedirect';
+import { useAuth } from "@/contexts/auth-context";
+import AuthRedirect from "@/components/auth/AuthRedirect";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -22,12 +20,12 @@ import {
 } from "lucide-react";
 import { LoginContent } from "@/components/login/LoginContent";
 import { ModeToggle } from "@/components/header/ModeToggle";
-import { ResetPasswordData } from '@/types';
+import { ResetPasswordData } from "@/types";
 
 function ResetPasswordForm() {
   const router = useRouter();
   const { token } = router.query;
-  const { resetPassword, validateResetToken} = useAuth()
+  const { resetPassword, validateResetToken } = useAuth();
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",
@@ -53,16 +51,16 @@ function ResetPasswordForm() {
   useEffect(() => {
     // Validate token on component mount
     const checkToken = async () => {
-      if (!token || typeof token !== 'string') {
+      if (!token || typeof token !== "string") {
         setIsValidToken(false);
         setError("Invalid or missing reset token");
         return;
       }
 
       try {
-        const response = await validateResetToken(token);
-        if (response.success && response.data?.valid) {
-          setIsValidToken(true);
+        const response: any = await validateResetToken(token);
+        if (response) {
+          setIsValidToken(response?.valid);
         } else {
           setIsValidToken(false);
           setError(response.message || "Invalid or expired reset token");
@@ -107,7 +105,7 @@ function ResetPasswordForm() {
       return;
     }
 
-    if (!token || typeof token !== 'string') {
+    if (!token || typeof token !== "string") {
       setError("Invalid reset token");
       setIsLoading(false);
       return;
@@ -135,7 +133,7 @@ function ResetPasswordForm() {
       setIsLoading(false);
     }
   };
-
+  console.log(isValidToken);
   if (!isValidToken) {
     return (
       <motion.div

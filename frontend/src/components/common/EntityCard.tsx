@@ -4,10 +4,11 @@ import { Card } from "@/components/ui/card";
 
 interface EntityCardProps {
   href?: string;
+  onClick?: () => void;
   leading: ReactNode;
-  heading: string;
-  subheading?: string;
-  description?: string;
+  heading: ReactNode;
+  subheading?: ReactNode;
+  description?: ReactNode;
   footer?: ReactNode;
   className?: string;
   role?: string;
@@ -15,6 +16,7 @@ interface EntityCardProps {
 
 export function EntityCard({
   href,
+  onClick,
   leading,
   heading,
   subheading,
@@ -25,15 +27,16 @@ export function EntityCard({
 }: EntityCardProps) {
   const Inner = () => (
     <Card
-      className={`bg-[var(--card)] rounded-md shadow-sm group hover:shadow-lg transition-all duration-200 border-none cursor-pointer p-4 h-44 ${className}`}
+      onClick={onClick}
+      className={`bg-[var(--card)] rounded-md shadow-sm group hover:shadow-lg transition-all duration-200 border-none ${onClick || href ? 'cursor-pointer' : ''} p-4 h-44 ${className}`}
     >
       {/* Top Row */}
       <div className="flex items-start gap-3">
         {leading}
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors line-clamp-1">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors">
             {heading}
-          </h3>
+          </div>
           {subheading && (
             <p className="text-xs text-[var(--muted-foreground)] line-clamp-1">
               {subheading}

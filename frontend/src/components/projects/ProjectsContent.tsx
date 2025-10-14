@@ -31,7 +31,7 @@ import { EmptyState } from "@/components/ui";
 
 import { toast } from "sonner";
 import Tooltip from "../common/ToolTip";
-import Loader from "../common/Loader";
+import { CardsSkeleton } from "../skeletons/CardsSkeleton";
 
 interface ProjectsContentProps {
   contextType: "workspace" | "organization";
@@ -72,7 +72,6 @@ function useDebounce<T>(value: T, delay: number): T {
 const ProjectsContent: React.FC<ProjectsContentProps> = ({
   contextType,
   contextId,
-  
   workspaceSlug,
   title,
   description,
@@ -93,16 +92,20 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     refreshProjects,
     clearError,
   } = useProjectContext();
+  
   const [hasAccess, setHasAccess] = useState(false);
   const [workspace, setWorkspace] = useState<any>(null);
   const [searchInput, setSearchInput] = useState("");
-  const [dataLoaded, setDataLoaded] = useState(false);
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(12);
   const [hasMore, setHasMore] = useState(false);
+  
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
+  
   const isMountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef<string>("");
@@ -112,6 +115,9 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
   const debouncedSearchQuery = useDebounce(searchInput, 500);
 
   const { createSection } = useGenericFilters();
+
+  const showLoader = isInitialLoad || (isFetching && projects.length === 0);
+  const showContent = !showLoader && !error;
 
   // Project icon component
   const ProjectLeadingIcon = ({ project }: { project: any }) => {
@@ -169,6 +175,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     setSelectedStatuses([]);
     setSelectedPriorities([]);
     setSearchInput("");
+    setCurrentPage(1);
   }, []);
 
   // Filter data preparation - always use context projects
@@ -243,7 +250,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     ]
   );
 
-  // Data fetching function - always call API for both search and filters
+  // Data fetching function
   const fetchData = useCallback(
     async (page: number = 1, resetData: boolean = true) => {
       const contextKey = `${contextType}/${contextId}`;
@@ -260,6 +267,13 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
       abortControllerRef.current = new AbortController();
       requestIdRef.current = requestId;
       currentContextRef.current = contextKey;
+
+      if (resetData || page === 1) {
+        setIsFetching(true);
+        if (!isInitializedRef.current) {
+          setIsInitialLoad(true);
+        }
+      }
 
       try {
         const filters = {
@@ -318,7 +332,6 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
           setCurrentPage(page);
         }
 
-        setDataLoaded(true);
         isInitializedRef.current = true;
       } catch (error: any) {
         if (requestIdRef.current === requestId && isMountedRef.current) {
@@ -334,6 +347,11 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
               } projects`
             );
           }
+        }
+      } finally {
+        if (isMountedRef.current && requestIdRef.current === requestId) {
+          setIsFetching(false);
+          setIsInitialLoad(false);
         }
       }
     },
@@ -376,7 +394,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     // Handle context changes
     if (currentContextRef.current !== contextKey) {
       isInitializedRef.current = false;
-      setDataLoaded(false);
+      setIsInitialLoad(true);
       setWorkspace(null);
       setSelectedStatuses([]);
       setSelectedPriorities([]);
@@ -385,34 +403,27 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
       currentContextRef.current = contextKey;
     }
 
-    if (contextId && (!dataLoaded || isInitializedRef.current)) {
-      const shouldDelay = !isInitializedRef.current;
-      const timeoutId = setTimeout(
-        () => {
-          if (isInitializedRef.current) {
-            setCurrentPage(1);
-          }
-          fetchData(1, true);
-        },
-        shouldDelay ? 50 : 0
-      );
+    if (contextId) {
+      const timeoutId = setTimeout(() => {
+        fetchData(1, true);
+      }, isInitializedRef.current ? 0 : 50);
 
       return () => clearTimeout(timeoutId);
     }
   }, [
     contextId,
     contextType,
-    dataLoaded,
     selectedStatuses,
     selectedPriorities,
     debouncedSearchQuery,
   ]);
+
   // Effect for pagination
   useEffect(() => {
-    if (enablePagination && currentPage > 1 && dataLoaded) {
+    if (enablePagination && currentPage > 1 && !isInitialLoad) {
       fetchData(currentPage, false);
     }
-  }, [currentPage, enablePagination, dataLoaded]);
+  }, [currentPage, enablePagination, isInitialLoad]);
 
   // Cleanup effect
   useEffect(() => {
@@ -441,7 +452,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     isInitializedRef.current = false;
     currentContextRef.current = "";
     requestIdRef.current = "";
-    setDataLoaded(false);
+    setIsInitialLoad(true);
     setWorkspace(null);
     setCurrentPage(1);
 
@@ -460,9 +471,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 
   const handleProjectCreated = useCallback(async () => {
     try {
-      // Use context refresh method
       await refreshProjects();
-      // Then refetch with current filters
       await fetchData(1, true);
       toast.success("Project created successfully!");
     } catch (error) {
@@ -472,7 +481,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
   }, [refreshProjects]);
 
   const loadMore = () => {
-    if (hasMore && !isLoading && enablePagination) {
+    if (hasMore && !isFetching && enablePagination) {
       setCurrentPage((prev) => prev + 1);
     }
   };
@@ -483,11 +492,10 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
   if (error) {
     return <ErrorState error={error} onRetry={retryFetch} />;
   }
-  if (isLoading) {
+
+  if (showLoader) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center ">
-        <Loader text="Fetching all project..." />
-      </div>
+      <CardsSkeleton />
     );
   }
 
@@ -523,7 +531,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                     <HiXMark size={16} />
                   </button>
                 )}
-                {isLoading && searchInput && (
+                {isFetching && searchInput && (
                   <div className="absolute right-8 top-1/2 -translate-y-1/2">
                     <div className="animate-spin h-4 w-4 border-2 border-[var(--primary)] border-t-transparent rounded-full" />
                   </div>
@@ -575,125 +583,129 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
           }
         />
 
-        {/* {isLoading && projects.length > 0 && (
-          <Loader />
-        )} */}
-
-        {/* Projects Grid - Use context projects */}
-        {projects.length === 0 ? (
-          searchInput || totalActiveFilters > 0 ? (
-            <EmptyState
-              icon={<HiSearch size={24} />}
-              title="No projects found"
-              description={`No projects match your current search${
-                totalActiveFilters > 0 ? " and filters" : ""
-              }. Try adjusting your criteria.`}
-              action={
-                <ActionButton primary onClick={clearAllFilters}>
-                  Back
-                </ActionButton>
-              }
-            />
-          ) : (
-            <EmptyState
-              icon={<HiFolder size={24} />}
-              title={emptyStateTitle}
-              description={emptyStateDescription}
-              action={
-                hasAccess && (
-                  <ActionButton
-                    primary
-                    showPlusIcon
-                    onClick={() => setIsNewProjectModalOpen(true)}
-                  >
-                    Create Project
-                  </ActionButton>
-                )
-              }
-            />
-          )
-        ) : (
+        {/* Content Area */}
+        {showContent && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-16">
-              {projects.map((project) => {
-                const statusText = formatStatus(project.status);
+            {/* Projects Grid */}
+            {projects.length === 0 ? (
+              searchInput || totalActiveFilters > 0 ? (
+                <EmptyState
+                  icon={<HiSearch size={24} />}
+                  title="No projects found"
+                  description={`No projects match your current search${
+                    totalActiveFilters > 0 ? " and filters" : ""
+                  }. Try adjusting your criteria.`}
+                  action={
+                    <ActionButton primary onClick={clearAllFilters}>
+                      Clear Filters
+                    </ActionButton>
+                  }
+                />
+              ) : (
+                <EmptyState
+                  icon={<HiFolder size={24} />}
+                  title={emptyStateTitle}
+                  description={emptyStateDescription}
+                  action={
+                    hasAccess && (
+                      <ActionButton
+                        primary
+                        showPlusIcon
+                        onClick={() => setIsNewProjectModalOpen(true)}
+                      >
+                        Create Project
+                      </ActionButton>
+                    )
+                  }
+                />
+              )
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-16">
+                  {projects.map((project) => {
+                    const statusText = formatStatus(project.status);
 
-                return (
-                  <EntityCard
-                    key={project.id}
-                    href={generateProjectLink(project, workspaceSlug)}
-                    leading={
-                      <div className="w-10 h-10 flex items-center justify-center text-[var(--primary-foreground)] font-semibold">
-                        <ProjectLeadingIcon project={project} />
-                      </div>
-                    }
-                    heading={project.name}
-                    subheading={project.key || project.slug}
-                    description={project.description}
-                    footer={
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-4">
-                          <span className="flex items-center gap-1">
-                            <HiClipboardDocumentList size={12} />
-                            {project._count?.tasks || 0} tasks
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <HiCalendarDays size={12} />
-                            {formatDate(project.updatedAt)}
-                          </span>
-                        </div>
-                        <DynamicBadge label={statusText} size="sm" />
-                      </div>
-                    }
-                  />
-                );
-              })}
-            </div>
+                    return (
+                      <EntityCard
+                        key={project.id}
+                        href={generateProjectLink(project, workspaceSlug)}
+                        leading={
+                          <div className="w-10 h-10 flex items-center justify-center text-[var(--primary-foreground)] font-semibold">
+                            <ProjectLeadingIcon project={project} />
+                          </div>
+                        }
+                        heading={project.name}
+                        subheading={project.key || project.slug}
+                        description={project.description}
+                        footer={
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-4">
+                              <span className="flex items-center gap-1">
+                                <HiClipboardDocumentList size={12} />
+                                {project._count?.tasks || 0} tasks
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <HiCalendarDays size={12} />
+                                {formatDate(project.updatedAt)}
+                              </span>
+                            </div>
+                            <DynamicBadge label={statusText} size="sm" />
+                          </div>
+                        }
+                      />
+                    );
+                  })}
+                </div>
 
-            {/* Load More Button (for pagination) */}
-            {enablePagination && hasMore && (
-              <div className="flex justify-center">
-                <Button
-                  onClick={loadMore}
-                  disabled={isLoading}
-                  variant="outline"
-                  className="group relative min-w-[140px] h-10 border-[var(--border)] bg-[var(--background)] hover:bg-[var(--muted)] transition-all duration-200 disabled:opacity-50"
-                >
-                  <div className="flex items-center gap-2">
-                    {isLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-                        <span>Loading...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Load More</span>
-                        <HiChevronDown className="w-4 h-4 transition-transform group-hover:translate-y-0.5" />
-                      </>
+                {/* Load More Button (for pagination) */}
+                {enablePagination && hasMore && (
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={loadMore}
+                      disabled={isFetching}
+                      variant="outline"
+                      className="group relative min-w-[140px] h-10 border-[var(--border)] bg-[var(--background)] hover:bg-[var(--muted)] transition-all duration-200 disabled:opacity-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        {isFetching ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+                            <span>Loading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Load More</span>
+                            <HiChevronDown className="w-4 h-4 transition-transform group-hover:translate-y-0.5" />
+                          </>
+                        )}
+                      </div>
+                    </Button>
+                  </div>
+                )}
+
+                {/* Footer Counter */}
+                {projects.length > 0 && (
+                  <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full min-h-[48px] flex items-center justify-center pb-4 pointer-events-none">
+                    <p className="text-sm text-[var(--muted-foreground)] pointer-events-auto">
+                      Showing {projects.length} project
+                      {projects.length !== 1 ? "s" : ""}
+                      {searchInput && ` matching "${searchInput}"`}
+                      {totalActiveFilters > 0 &&
+                        ` with ${totalActiveFilters} filter${
+                          totalActiveFilters !== 1 ? "s" : ""
+                        } applied`}
+                    </p>
+                    {(searchInput || totalActiveFilters > 0) && (
+                      <button
+                        onClick={clearAllFilters}
+                        className="ml-2 text-sm text-[var(--primary)] hover:underline pointer-events-auto"
+                      >
+                        Clear all
+                      </button>
                     )}
                   </div>
-                </Button>
-              </div>
-            )}
-
-            {/* Footer Counter */}
-            {projects.length > 0 && (
-              <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full min-h-[48px] flex items-center justify-center pb-4 pointer-events-none">
-                <p className="text-sm text-[var(--muted-foreground)] pointer-events-auto">
-                  Showing {projects.length} project
-                  {projects.length !== 1 ? "s" : ""}
-                  {searchInput && ` matching "${searchInput}"`}
-                  {totalActiveFilters > 0 &&
-                    ` with ${totalActiveFilters} filter${
-                      totalActiveFilters !== 1 ? "s" : ""
-                    } applied`}
-                  {(searchInput || totalActiveFilters > 0) && (
-                    <ActionButton onClick={clearAllFilters} primary>
-                      Back
-                    </ActionButton>
-                  )}
-                </p>
-              </div>
+                )}
+              </>
             )}
           </>
         )}

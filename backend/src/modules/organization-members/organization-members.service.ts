@@ -15,7 +15,7 @@ import { UpdateOrganizationMemberDto } from './dto/update-organization-member.dt
 
 @Injectable()
 export class OrganizationMembersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(
     createOrganizationMemberDto: CreateOrganizationMemberDto,
@@ -283,7 +283,7 @@ export class OrganizationMembersService {
 
     // Only organization owner or admins can update member roles
     const isOwner = member.organization.ownerId === requestUserId;
-    const isAdmin = requesterMember.role === OrganizationRole.OWNER;
+    const isAdmin = requesterMember.role === OrganizationRole.OWNER || requesterMember.role === OrganizationRole.MANAGER;
 
     if (!isOwner && !isAdmin) {
       throw new ForbiddenException(
@@ -360,7 +360,7 @@ export class OrganizationMembersService {
     // Users can remove themselves, or admins/owners can remove others
     const isSelfRemoval = member.userId === requestUserId;
     const isOwner = member.organization.ownerId === requestUserId;
-    const isAdmin = requesterMember.role === OrganizationRole.OWNER;
+    const isAdmin = requesterMember.role === OrganizationRole.OWNER || requesterMember.role === OrganizationRole.MANAGER;
 
     if (!isSelfRemoval && !isOwner && !isAdmin) {
       throw new ForbiddenException(
@@ -375,8 +375,44 @@ export class OrganizationMembersService {
       );
     }
 
-    await this.prisma.organizationMember.delete({
-      where: { id },
+    // Use transaction to remove member from organization and all related workspaces/projects
+    await this.prisma.$transaction(async (prisma) => {
+      // Get all workspaces in this organization
+      const workspaces = await prisma.workspace.findMany({
+        where: { organizationId: member.organizationId },
+        select: { id: true },
+      });
+
+      const workspaceIds = workspaces.map((w) => w.id);
+
+      // Remove from all workspace memberships in this organization
+      await prisma.workspaceMember.deleteMany({
+        where: {
+          userId: member.userId,
+          workspaceId: { in: workspaceIds },
+        },
+      });
+
+      // Get all projects in these workspaces
+      const projects = await prisma.project.findMany({
+        where: { workspaceId: { in: workspaceIds } },
+        select: { id: true },
+      });
+
+      const projectIds = projects.map((p) => p.id);
+
+      // Remove from all project memberships in this organization
+      await prisma.projectMember.deleteMany({
+        where: {
+          userId: member.userId,
+          projectId: { in: projectIds },
+        },
+      });
+
+      // Finally, remove the organization membership
+      await prisma.organizationMember.delete({
+        where: { id },
+      });
     });
   }
 
@@ -436,6 +472,7 @@ export class OrganizationMembersService {
           website: true,
           ownerId: true,
           createdAt: true,
+
           _count: {
             select: {
               members: true,
@@ -448,6 +485,7 @@ export class OrganizationMembersService {
               id: true,
               role: true,
               joinedAt: true,
+              isDefault: true,
             },
             take: 1,
           },
@@ -479,6 +517,7 @@ export class OrganizationMembersService {
               : memberRecord?.role || 'MEMBER',
         joinedAt: memberRecord?.joinedAt || org.createdAt,
         isOwner,
+        isDefault: memberRecord.isDefault
       };
     });
   }
@@ -529,4 +568,57 @@ export class OrganizationMembersService {
       recentJoins,
     };
   }
+  async setDefaultOrganizationByOrgAndUser(
+    organizationId: string,
+    userId: string,
+  ): Promise<OrganizationMember> {
+    const member = await this.prisma.organizationMember.findFirst({
+      where: {
+        userId,
+        organizationId,
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException(
+        'Organization member not found for the given user and organization',
+      );
+    }
+    const updatedMember = await this.prisma.$transaction(async (tx) => {
+      await tx.organizationMember.updateMany({
+        where: {
+          userId,
+          isDefault: true,
+        },
+        data: { isDefault: false },
+      });
+      return tx.organizationMember.update({
+        where: { id: member.id },
+        data: { isDefault: true },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              status: true,
+            },
+          },
+          organization: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              avatar: true,
+            },
+          },
+        },
+      });
+    });
+
+    return updatedMember;
+  }
+
 }

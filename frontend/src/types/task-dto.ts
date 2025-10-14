@@ -30,6 +30,7 @@ export interface UpdateTaskRequest {
   title?: string;
   description?: string;
   priority?: "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
+  type?: "TASK" | "STORY" | "BUG" | "EPIC" | "SUBTASK";
   startDate?: string;
   dueDate?: string;
   remainingEstimate?: number;

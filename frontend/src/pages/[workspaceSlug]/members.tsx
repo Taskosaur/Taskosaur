@@ -17,11 +17,11 @@ import {
   HiMagnifyingGlass,
   HiPlus,
   HiUsers,
-  HiEnvelope,
   HiChevronDown,
   HiCheck,
   HiUserPlus,
   HiXMark,
+  HiCog,
 } from "react-icons/hi2";
 import Loader from "@/components/common/Loader";
 import ErrorState from "@/components/common/ErrorState";
@@ -34,6 +34,8 @@ import Tooltip from "@/components/common/ToolTip";
 import { roles } from "@/utils/data/projectData";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
 import { ProjectMember } from "@/types";
+import PendingInvitations, { PendingInvitationsRef } from "@/components/common/PendingInvitations";
+import WorkspaceMembersSkeleton from "@/components/skeletons/WorkspaceMembersSkeleton";
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -96,7 +98,7 @@ function WorkspaceMembersContent() {
   } = useWorkspace();
   const { isAuthenticated, getCurrentUser, getUserAccess } = useAuth();
   const [hasAccess, setHasAccess] = useState(false);
-
+  const [userAccess, setUserAccess] = useState(null)
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,22 +116,23 @@ function WorkspaceMembersContent() {
   const requestIdRef = useRef<string>("");
   const currentSlugRef = useRef<string>("");
   const isInitializedRef = useRef(false);
+  const pendingInvitationsRef = useRef<PendingInvitationsRef>(null);
   const contextFunctionsRef = useRef({
     getWorkspaceBySlug,
     getWorkspaceMembers,
     isAuthenticated,
   });
 
- 
-
   const [data, setData] = useState(null);
+
   useEffect(() => {
     if (!workspace?.id) return;
     getUserAccess({ name: "workspace", id: workspace?.id })
       .then((data) => {
         setData(data);
         // console.log("Access data:", data?.role, data?.canChange);
-        setHasAccess(data?.canChange);
+        setHasAccess(data?.canChange || data?.role === "OWNER" || data?.role === "MANAGER");
+        setUserAccess(data)
       })
       .catch((error) => {
         console.error("Error fetching user access:", error);
@@ -153,10 +156,10 @@ function WorkspaceMembersContent() {
   };
 
   const getRoleLabel = (role: string) => {
-  if (!Array.isArray(roles)) return role;
-  const roleConfig = roles.find((r) => r.name === role);
-  return roleConfig?.name || role;
-};
+    if (!Array.isArray(roles)) return role;
+    const roleConfig = roles.find((r) => r.name === role);
+    return roleConfig?.name || role;
+  };
 
   // Get current user's role for permission checks
   const getCurrentUserRole = () => {
@@ -254,9 +257,8 @@ function WorkspaceMembersContent() {
         const processedMembers = (membersData || []).map((member: any) => ({
           id: member.id,
           name:
-            `${member.user?.firstName || ""} ${
-              member.user?.lastName || ""
-            }`.trim() || "Unknown User",
+            `${member.user?.firstName || ""} ${member.user?.lastName || ""
+              }`.trim() || "Unknown User",
           email: member.user?.email || "",
           role: member.role || "Member",
           status: member.user?.status || "Active",
@@ -328,10 +330,6 @@ function WorkspaceMembersContent() {
     (member) => member.status?.toLowerCase() !== "pending"
   );
 
-  const pendingMembers = members.filter(
-    (member) => member.status?.toLowerCase() === "pending"
-  );
-
   const refreshMembers = async () => {
     if (!workspace) return;
 
@@ -344,9 +342,8 @@ function WorkspaceMembersContent() {
       const processedMembers = (membersData || []).map((member: any) => ({
         id: member.id,
         name:
-          `${member.user?.firstName || ""} ${
-            member.user?.lastName || ""
-          }`.trim() || "Unknown User",
+          `${member.user?.firstName || ""} ${member.user?.lastName || ""
+            }`.trim() || "Unknown User",
         email: member.user?.email || "",
         role: member.role || "Member",
         status: member.user?.status || "Active",
@@ -380,9 +377,9 @@ function WorkspaceMembersContent() {
     const updateRole = JSON.parse(tampUser);
     const finalUser = {
       ...updateRole,
-      role: newRole
-    }
-    localStorage.setItem("user",JSON.stringify(finalUser));
+      role: newRole,
+    };
+    localStorage.setItem("user", JSON.stringify(finalUser));
   }
 
   const handleRoleUpdate = async (memberId: string, newRole: string) => {
@@ -460,7 +457,11 @@ function WorkspaceMembersContent() {
       });
 
       toast.success(`Invitation sent to ${email}`);
-      await refreshMembers();
+      
+    
+      if (pendingInvitationsRef.current) {
+        await pendingInvitationsRef.current.refreshInvitations();
+      }
     } catch (error: any) {
       const errorMessage =
         error?.response?.data?.message ||
@@ -490,7 +491,7 @@ function WorkspaceMembersContent() {
   };
 
   if (loading) {
-    return <Loader text="fetching your member details" />;
+    return <WorkspaceMembersSkeleton />;
   }
 
   if (error && !members.length) {
@@ -524,7 +525,7 @@ function WorkspaceMembersContent() {
         description="Manage members and their permissions in this workspace."
         actions={
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            {canInviteMembers() && (
+            {hasAccess && (
               <Button
                 onClick={() => setShowInviteModal(true)}
                 disabled={inviteLoading}
@@ -655,8 +656,8 @@ function WorkspaceMembersContent() {
                           <span className="text-sm text-[var(--muted-foreground)]">
                             {member.joinedAt
                               ? formatDate(
-                                  new Date(member.joinedAt).toISOString()
-                                )
+                                new Date(member.joinedAt).toISOString()
+                              )
                               : "N/A"}
                           </span>
                         </div>
@@ -683,7 +684,7 @@ function WorkspaceMembersContent() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="z-50 border-none bg-[var(--card)] rounded-lg shadow-lg">
-                              {roles.map((role) => (
+                              {roles.filter((role) => !(userAccess?.role === "MANAGER" && role?.name === "OWNER")).map((role) => (
                                 <DropdownMenuItem
                                   key={role.id}
                                   onClick={() =>
@@ -732,102 +733,80 @@ function WorkspaceMembersContent() {
           </Card>
         </div>
 
-        {/* Pending Invitations*/}
-        <div className="lg:col-span-1">
+
+
+
+        <div className="lg:col-span-1 space-y-4">
+          {/* Workspace Info Card */}
           <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
-            <CardHeader className="px-4 py-0">
+            <CardHeader className="pb-2">
               <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
-                <HiEnvelope className="w-5 h-5 text-[var(--muted-foreground)]" />
-                Pending Invitations ({pendingMembers.length})
+                <HiUsers className="w-5 h-5 text-[var(--muted-foreground)]" />
+                Workspace Info
               </CardTitle>
             </CardHeader>
-
-            <CardContent className="p-0">
-              {pendingMembers.length === 0 ? (
-                <div className="p-4">
-                  <div className="text-center py-8">
-                    <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-[var(--muted)] flex items-center justify-center">
-                      <HiEnvelope className="w-6 h-6 text-[var(--muted-foreground)]" />
-                    </div>
-                    <h3 className="text-sm font-medium text-[var(--foreground)] mb-1">
-                      No pending invitations
-                    </h3>
-                    <p className="text-xs text-[var(--muted-foreground)]">
-                      Invited members will appear here until they accept.
-                    </p>
-                  </div>
+            <CardContent className="pt-0">
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-[var(--foreground)]">
+                    {workspace?.name || "Unknown Workspace"}
+                  </p>
+                  <p className="text-xs text-[var(--muted-foreground)]">
+                    {workspace?.description || "No description available"}
+                  </p>
                 </div>
-              ) : (
-                <>
-                  {/* Table Header for Pending Invitations */}
-                  <div className="px-4 py-3 bg-[var(--muted)]/30 border-b border-[var(--border)]">
-                    <div className="grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
-                      <div className="col-span-6">Member</div>
-                      <div className="col-span-3">Status</div>
-                      <div className="col-span-3">Invited</div>
-                    </div>
-                  </div>
-
-                  {/* Pending Members List */}
-                  <div className="divide-y divide-[var(--border)]">
-                    {pendingMembers.map((member) => (
-                      <div
-                        key={member.id}
-                        className="px-4 py-3 hover:bg-[var(--accent)]/30 transition-colors"
-                      >
-                        <div className="grid grid-cols-12 gap-3 items-center">
-                          {/* Member Info */}
-                          <div className="col-span-6">
-                            <div className="flex items-center gap-3">
-                              <UserAvatar
-                                user={{
-                                  firstName: member.name.split(" ")[0] || "",
-                                  lastName: member.name.split(" ")[1] || "",
-                                  avatar: member.avatar,
-                                }}
-                                size="sm"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="text-sm font-medium text-[var(--foreground)] truncate">
-                                  {member.name}
-                                </div>
-                                <div className="text-xs text-[var(--muted-foreground)] truncate">
-                                  {member.email}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Status */}
-                          <div className="col-span-3">
-                            <Badge
-                              variant="outline"
-                              className={`text-xs bg-transparent px-2 py-1 rounded-md border-none ${getStatusBadgeClass(
-                                member.status || "PENDING"
-                              )}`}
-                            >
-                              {member.status || "PENDING"}
-                            </Badge>
-                          </div>
-
-                          {/* Invited Date */}
-                          <div className="col-span-3">
-                            <span className="text-xs text-[var(--muted-foreground)]">
-                              {member.joinedAt
-                                ? formatDate(
-                                    new Date(member.joinedAt).toISOString()
-                                  )
-                                : "Recently"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
+                <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
+                  <span>Members:</span>
+                  <span className="font-medium text-[var(--foreground)]">
+                    {members.length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
+                  <span>Active Members:</span>
+                  <span className="font-medium text-[var(--foreground)]">
+                    {members.filter((m) => m.status === "ACTIVE").length}
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </Card>
+          {/* Role Distribution Card */}
+          <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
+                <HiCog className="w-5 h-5 text-[var(--muted-foreground)]" />
+                Role Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-2">
+                {roles.map((role) => {
+                  // Only count active members
+                  const count = members.filter(
+                    (m) => m.role === role.name && m.status?.toLowerCase() !== "pending"
+                  ).length;
+
+                  return (
+                    <div
+                      key={role.id}
+                      className="flex items-center justify-between text-xs"
+                    >
+                      <span className="text-[var(--muted-foreground)]">{role.name}</span>
+                      <Badge
+                        variant={role.variant}
+                        className="h-5 px-2 text-xs border-none bg-[var(--primary)]/10 text-[var(--primary)]"
+                      >
+                        {count}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+          {/* Pending Invitations*/}
+          {hasAccess && <PendingInvitations ref={pendingInvitationsRef} entity={workspace} entityType="workspace" members={members} />}
+
         </div>
       </div>
 

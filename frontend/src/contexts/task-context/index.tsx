@@ -91,9 +91,11 @@ interface TaskContextType extends TaskState {
 
   updateTaskStatus: (taskId: string, statusId: string) => Promise<Task>;
   getTaskKanbanStatus: (params: {
-    type: "project" | "workspace";
     slug: string;
-    userId?: string;
+    statusId?: string;
+    sprintId?: string;
+    page?: number;
+    limit?: number;
     includeSubtasks?: boolean;
   }) => Promise<any>;
   // Task operations
@@ -150,9 +152,13 @@ interface TaskContextType extends TaskState {
   getTaskById: (taskId: string, isAuth: boolean) => Promise<Task>;
   updateTask: (taskId: string, taskData: UpdateTaskRequest) => Promise<Task>;
   deleteTask: (taskId: string) => Promise<void>;
+  bulkDeleteTasks: (taskIds: string[]) => Promise<{
+    deletedCount: number;
+    failedTasks: Array<{ id: string; reason: string }>;
+  }>;
   getTaskActivity: (
     taskId: string,
-    isAth:boolean,
+    isAth: boolean,
     pageNum: number
   ) => Promise<ActivityApiResponse>;
   getAllTaskStatuses: (params?: {
@@ -186,7 +192,10 @@ interface TaskContextType extends TaskState {
   createAttachment: (
     attachmentData: CreateAttachmentRequest
   ) => Promise<TaskAttachment>;
-  getTaskAttachments: (taskId: string, isAuth: boolean) => Promise<TaskAttachment[]>;
+  getTaskAttachments: (
+    taskId: string,
+    isAuth: boolean
+  ) => Promise<TaskAttachment[]>;
   getAttachmentById: (attachmentId: string) => Promise<TaskAttachment>;
   downloadAttachment: (attachmentId: string) => Promise<Blob>;
   previewFile: (attachmentId: string) => Promise<Blob>;
@@ -355,9 +364,11 @@ export function TaskProvider({ children }: TaskProviderProps) {
         return result;
       },
       getTaskKanbanStatus: async (params: {
-        type: "project" | "workspace";
         slug: string;
-        userId?: string;
+        statusId?: string;
+        sprintId?: string;
+        page?: number;
+        limit?: number;
         includeSubtasks?: boolean;
       }): Promise<any> => {
         const result = await handleApiOperation(
@@ -366,6 +377,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         );
         return result;
       },
+
       createTask: async (taskData: CreateTaskRequest): Promise<Task> => {
         const result = await handleApiOperation(() =>
           taskApi.createTask(taskData)
@@ -686,6 +698,40 @@ export function TaskProvider({ children }: TaskProviderProps) {
         }));
       },
 
+      bulkDeleteTasks: async (taskIds: string[]): Promise<{
+        deletedCount: number;
+        failedTasks: Array<{ id: string; reason: string }>;
+      }> => {
+        const result = await handleApiOperation(
+          () => taskApi.bulkDeleteTasks(taskIds),
+          false
+        );
+        
+        // Only remove successfully deleted tasks from state
+        const successfullyDeletedIds = taskIds.filter(
+          (id) => !result.failedTasks.some((failed) => failed.id === id)
+        );
+        
+        setTaskState((prev) => ({
+          ...prev,
+          tasks: prev.tasks.filter((task) => !successfullyDeletedIds.includes(task.id)),
+          subtTask: prev.subtTask.filter((subtask) => !successfullyDeletedIds.includes(subtask.id)),
+          currentTask:
+            prev.currentTask && successfullyDeletedIds.includes(prev.currentTask.id)
+              ? null
+              : prev.currentTask?.childTasks
+              ? {
+                  ...prev.currentTask,
+                  childTasks: prev.currentTask.childTasks.filter(
+                    (child) => !successfullyDeletedIds.includes(child.id)
+                  ),
+                }
+              : prev.currentTask,
+        }));
+        
+        return result;
+      },
+
       updateTaskStatus: async (
         taskId: string,
         statusId: string
@@ -769,7 +815,10 @@ export function TaskProvider({ children }: TaskProviderProps) {
         return result;
       },
 
-      getTaskComments: async (taskId: string, isAuth:boolean): Promise<TaskComment[]> => {
+      getTaskComments: async (
+        taskId: string,
+        isAuth: boolean
+      ): Promise<TaskComment[]> => {
         const result = await handleApiOperation(
           () => taskApi.getTaskComments(taskId, isAuth),
           false
@@ -853,7 +902,10 @@ export function TaskProvider({ children }: TaskProviderProps) {
           false
         ),
 
-      getTaskAttachments: async (taskId: string, isAuth:boolean): Promise<TaskAttachment[]> => {
+      getTaskAttachments: async (
+        taskId: string,
+        isAuth: boolean
+      ): Promise<TaskAttachment[]> => {
         const result = await handleApiOperation(
           () => taskApi.getTaskAttachments(taskId, isAuth),
           false
@@ -995,11 +1047,17 @@ export function TaskProvider({ children }: TaskProviderProps) {
         }
       },
 
-      refreshTaskComments: async (taskId: string, isAuth: boolean): Promise<void> => {
+      refreshTaskComments: async (
+        taskId: string,
+        isAuth: boolean
+      ): Promise<void> => {
         await contextValue.getTaskComments(taskId, isAuth);
       },
 
-      refreshTaskAttachments: async (taskId: string, isAuth: boolean): Promise<void> => {
+      refreshTaskAttachments: async (
+        taskId: string,
+        isAuth: boolean
+      ): Promise<void> => {
         await contextValue.getTaskAttachments(taskId, isAuth);
       },
 

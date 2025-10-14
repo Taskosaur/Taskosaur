@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useTask } from "@/contexts/task-context";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import StatusColumn from "../kanban/StatusColumn";
@@ -7,13 +7,23 @@ import TaskDetailClient from "./TaskDetailClient";
 import { Task } from "@/types";
 import { CustomModal } from "../common/CustomeModal";
 import { useAuth } from "@/contexts/auth-context";
+
+interface TaskPagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 interface TasksByStatus {
   statusId: string;
   statusName: string;
   statusColor: string;
-  statusCategory: "TODO" | "IN_PROGRESS" | "DONE";
+  statusCategory: "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED";
   tasks: KanbanTask[];
-  _count: number;
+  pagination: TaskPagination;
 }
 
 interface KanbanTask {
@@ -22,17 +32,17 @@ interface KanbanTask {
   description?: string;
   priority: "LOWEST" | "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
   taskNumber: number;
-  assignee?: {
+  assignees?: Array<{
     id: string;
     firstName: string;
     lastName: string;
     avatar?: string;
-  };
-  reporter: {
+  }>;
+  reporters?: Array<{
     id: string;
     firstName: string;
     lastName: string;
-  };
+  }>;
   dueDate?: string;
   createdAt: string;
   updatedAt: string;
@@ -50,11 +60,13 @@ interface KanbanBoardProps {
   projectId: string;
   onTaskMove?: (taskId: string, newStatusId: string) => void;
   onRefresh?: () => void;
+  onLoadMore?: (statusId: string, page: number) => Promise<void>;
   isLoading?: boolean;
   kabBanSettingModal?: boolean;
   setKabBanSettingModal?: (open: boolean) => void;
   workspaceSlug?: string;
   projectSlug?: string;
+  onKanbanUpdate?: (updatedKanban: TasksByStatus[]) => void;
 }
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({
@@ -62,16 +74,58 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   projectId,
   onTaskMove,
   onRefresh,
+  onLoadMore,
   isLoading = false,
   kabBanSettingModal,
   setKabBanSettingModal,
   workspaceSlug,
   projectSlug,
+  onKanbanUpdate,
 }) => {
   const { updateTaskStatus, createTask, getTaskById, currentTask } = useTask();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { isAuthenticated } = useAuth();
+  const [localKanbanData, setLocalKanbanData] = useState<TasksByStatus[]>(kanbanData);
+  
+  const [loadingStatuses, setLoadingStatuses] = useState<Set<string>>(new Set());
+
+
+  useEffect(() => {
+    setLocalKanbanData(kanbanData);
+  }, [kanbanData]);
+
+ 
+  useEffect(() => {
+    if (!currentTask || !isEditModalOpen) return;
+
+    setLocalKanbanData((prevData) => {
+      const updatedData = prevData.map((statusColumn) => ({
+        ...statusColumn,
+        tasks: statusColumn.tasks.map((task) =>
+          task.id === currentTask.id
+            ? {
+                ...task,
+                title: currentTask.title,
+                description: currentTask.description,
+                priority: currentTask.priority as any,
+                dueDate: currentTask.dueDate,
+                assignees: currentTask.assignees,
+                reporters: currentTask.reporters,
+                labels: (currentTask as any).labels || (currentTask as any).tags || task.labels,
+                updatedAt: currentTask.updatedAt,
+              }
+            : task
+        ),
+      }));
+
+      if (onKanbanUpdate) {
+        onKanbanUpdate(updatedData);
+      }
+
+      return updatedData;
+    });
+  }, [currentTask, isEditModalOpen, onKanbanUpdate]);
 
   const {
     dragState,
@@ -122,11 +176,37 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const handleStatusUpdated = () => {
     onRefresh?.();
   };
+
   const handleRowClick = async (task: Task) => {
-    await getTaskById(task.id,isAuthenticated());
+    await getTaskById(task.id, isAuthenticated());
     setSelectedTask(task);
     setIsEditModalOpen(true);
   };
+
+  // Handle scroll-based pagination for individual columns
+  const handleColumnScroll = useCallback(
+    async (statusId: string, currentPage: number) => {
+      if (!onLoadMore || loadingStatuses.has(statusId)) return;
+
+      const status = localKanbanData.find((s) => s.statusId === statusId);
+      if (!status?.pagination.hasNextPage) return;
+
+      try {
+        setLoadingStatuses((prev) => new Set(prev).add(statusId));
+        await onLoadMore(statusId, currentPage + 1);
+      } catch (error) {
+        console.error(`Failed to load more tasks for status ${statusId}:`, error);
+      } finally {
+        setLoadingStatuses((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(statusId);
+          return newSet;
+        });
+      }
+    },
+    [localKanbanData, onLoadMore, loadingStatuses]
+  );
+
   if (isLoading) {
     return (
       <div className="flex gap-4 overflow-x-auto pb-4">
@@ -149,8 +229,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   return (
     <>
-      <div className="flex flex-nowrap gap-4 overflow-x-auto">
-        {kanbanData.map((status) => (
+      <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4">
+        {localKanbanData.map((status) => (
           <StatusColumn
             key={status.statusId}
             status={status}
@@ -162,6 +242,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
             onTaskDragEnd={handleDragEnd}
             onCreateTask={handleCreateTask}
             onTaskClick={handleRowClick}
+            onLoadMore={handleColumnScroll}
+            isLoadingMore={loadingStatuses.has(status.statusId)}
           />
         ))}
       </div>
@@ -172,6 +254,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         projectId={projectId}
         onStatusUpdated={handleStatusUpdated}
       />
+      
       {isEditModalOpen && (
         <CustomModal
           isOpen={isEditModalOpen}
@@ -183,6 +266,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
           width="w-full md:w-[80%] lg:w-[60%]"
           position="items-start justify-end"
           closeOnOverlayClick={true}
+        
         >
           {selectedTask && (
             <TaskDetailClient
@@ -192,6 +276,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
               projectSlug={projectSlug as string}
               taskId={selectedTask.id}
               onClose={() => setIsEditModalOpen(false)}
+              showAttachmentSection={false}
             />
           )}
         </CustomModal>
@@ -201,3 +286,4 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 };
 
 export { KanbanBoard };
+

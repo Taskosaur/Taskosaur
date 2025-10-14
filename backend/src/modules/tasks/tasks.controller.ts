@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiQuery,
   ApiResponse,
@@ -34,13 +35,12 @@ import {
 import { AutoNotify } from 'src/common/decorator/auto-notify.decorator';
 import { LogActivity } from 'src/common/decorator/log-activity.decorator';
 import {
-  GetTasksByStatusQueryDto,
-  GetTasksByStatusResponseDto,
   TasksByStatusParams,
 } from './dto/task-by-status.dto';
 import { Roles } from 'src/common/decorator/roles.decorator';
 import { Scope } from 'src/common/decorator/scope.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { BulkDeleteTasksDto } from './dto/bulk-delete-tasks.dto';
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -69,7 +69,61 @@ export class TasksController {
     const user = getAuthUser(req);
     return this.tasksService.create(createTaskDto, user.id);
   }
+  @Post('bulk-delete')
+  @LogActivity({
+    type: 'TASK_DELETED',
+    entityType: 'Task',
+    description: 'Delete Tasks',
+    includeOldValue: true
+  })
+  @ApiOperation({
+    summary: 'Bulk delete tasks',
+    description:
+      'Delete multiple tasks at once. Only task creators, project managers/owners, or superadmins can delete tasks.',
+  })
+  @ApiBody({ type: BulkDeleteTasksDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Tasks deleted successfully',
+    schema: {
+      example: {
+        deletedCount: 5,
+        failedTasks: [
+          {
+            id: '550e8400-e29b-41d4-a716-446655440002',
+            reason: 'Insufficient permissions to delete this task',
+          },
+          {
+            id: '550e8400-e29b-41d4-a716-446655440003',
+            reason: 'Task not found',
+          },
+        ],
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request data',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+  })
+  async bulkDeleteTasks(
+    @Body() bulkDeleteTasksDto: BulkDeleteTasksDto,
+    @Req() req: Request,
+  ) {
+    const user = getAuthUser(req);
 
+    return this.tasksService.bulkDeleteTasks(
+      bulkDeleteTasksDto.taskIds,
+      user.id,
+    );
+  }
   @Get()
   @ApiOperation({ summary: 'Get all tasks with filters' })
   @ApiQuery({
@@ -264,8 +318,7 @@ export class TasksController {
   }
 
   @Get('by-status')
-  @ApiOperation({ summary: 'Get tasks grouped by status' })
-  @ApiResponse({ status: 200, type: GetTasksByStatusResponseDto })
+  @ApiOperation({ summary: 'Get tasks grouped by status with pagination' })
   @Scope('PROJECT', 'slug')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   async getTasksByStatus(
@@ -278,13 +331,21 @@ export class TasksController {
       user.id,
     );
 
+    // Calculate totals across all statuses
+    const totalTasks = tasks.reduce((sum, status) => sum + status.pagination.total, 0);
+    const loadedTasks = tasks.reduce((sum, status) => sum + status.tasks.length, 0);
+
     return {
       data: tasks,
-      totalTasks: tasks.reduce((sum, status) => sum + status._count, 0),
-      totalStatuses: tasks.length,
-      fetchedAt: new Date().toISOString(),
+      meta: {
+        totalTasks: totalTasks,
+        loadedTasks: loadedTasks,
+        totalStatuses: tasks.length,
+        fetchedAt: new Date().toISOString(),
+      },
     };
   }
+
 
   @Get('today')
   @ApiOperation({

@@ -317,7 +317,6 @@ export const taskApi = {
 
       let response;
       if (isAuth) {
-
         // Get organizationId from localStorage (only in browser)
         let organizationId: string | null = null;
         if (typeof window !== "undefined") {
@@ -331,18 +330,26 @@ export const taskApi = {
         response = await api.get<PaginatedTaskResponse>(
           `/tasks?organizationId=${encodeURIComponent(
             organizationId
-          )}&parentTaskId=${encodeURIComponent(uuid)}&page=${page}&limit=${limit}`
+          )}&parentTaskId=${encodeURIComponent(
+            uuid
+          )}&page=${page}&limit=${limit}`
         );
       } else {
         // Public users: call public project tasks endpoint
         if (!workspaceSlug || !projectSlug) {
-          throw new Error("WorkspaceSlug and ProjectSlug are required for public tasks");
+          throw new Error(
+            "WorkspaceSlug and ProjectSlug are required for public tasks"
+          );
         }
 
         response = await api.get<PaginatedTaskResponse>(
-          `/public/project-tasks/${encodeURIComponent(workspaceSlug)}/projects/${encodeURIComponent(
+          `/public/project-tasks/${encodeURIComponent(
+            workspaceSlug
+          )}/projects/${encodeURIComponent(
             projectSlug
-          )}/tasks?parentTaskId=${encodeURIComponent(uuid)}&page=${page}&limit=${limit}`
+          )}/tasks?parentTaskId=${encodeURIComponent(
+            uuid
+          )}&page=${page}&limit=${limit}`
         );
       }
 
@@ -352,8 +359,6 @@ export const taskApi = {
       throw error;
     }
   },
-
-
 
   getTasksOnly: async (projectId?: string): Promise<Task[]> => {
     try {
@@ -381,13 +386,12 @@ export const taskApi = {
 
   getTaskById: async (taskId: string, isAuth: boolean): Promise<Task> => {
     try {
-      console.log("Fetching task with ID:", taskId, "isAuth:", isAuth);
+      // console.log("Fetching task with ID:", taskId, "isAuth:", isAuth);
       let response;
       if (isAuth) {
-        response = await api.get<Task>(`/tasks/${taskId}`)
-      }
-      else {
-        response = await api.get<Task>(`/public/project-tasks/${taskId}`)
+        response = await api.get<Task>(`/tasks/${taskId}`);
+      } else {
+        response = await api.get<Task>(`/public/project-tasks/${taskId}`);
       }
       return response.data;
     } catch (error) {
@@ -441,15 +445,19 @@ export const taskApi = {
     }
   },
 
-  getTaskActivity: async (taskId: string, isAuth: boolean, page: number = 1, limit: number = 10): Promise<any> => {
+  getTaskActivity: async (
+    taskId: string,
+    isAuth: boolean,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<any> => {
     try {
       let response;
       if (isAuth) {
         response = await api.get<Task[]>(
           `/activity-logs/task/${taskId}/activities?limit=${limit}&page=${page}`
         );
-      }
-      else {
+      } else {
         response = await api.get<Task[]>(
           `/public/project-tasks/activities/${taskId}?limit=${limit}&page=${page}`
         );
@@ -489,15 +497,17 @@ export const taskApi = {
     }
   },
 
-  getTaskComments: async (taskId: string, isAuth: boolean): Promise<TaskComment[]> => {
+  getTaskComments: async (
+    taskId: string,
+    isAuth: boolean
+  ): Promise<TaskComment[]> => {
     try {
       let response;
       if (isAuth) {
         response = await api.get<TaskComment[]>(
           `/task-comments?taskId=${taskId}`
         );
-      }
-      else {
+      } else {
         response = await api.get<TaskComment[]>(
           `/public/project-tasks/comments/${taskId}`
         );
@@ -580,15 +590,17 @@ export const taskApi = {
     }
   },
 
-  getTaskAttachments: async (taskId: string, isAuth: boolean): Promise<TaskAttachment[]> => {
+  getTaskAttachments: async (
+    taskId: string,
+    isAuth: boolean
+  ): Promise<TaskAttachment[]> => {
     try {
       let response;
       if (isAuth) {
         response = await api.get<TaskAttachment[]>(
           `/task-attachments/task/${taskId}`
         );
-      }
-      else {
+      } else {
         response = await api.get<TaskAttachment[]>(
           `/public/project-tasks/attachments/${taskId}`
         );
@@ -829,18 +841,31 @@ export const taskApi = {
   },
 
   getTaskKanbanStatus: async (params: {
-    type: "project" | "workspace";
     slug: string;
-    userId?: string;
+    statusId?: string;
+    sprintId?: string;
+    page?: number;
+    limit?: number;
     includeSubtasks?: boolean;
   }): Promise<any> => {
     try {
       const query = new URLSearchParams();
-      query.append("type", params.type);
       query.append("slug", params.slug);
-      if (params.userId) query.append("userId", params.userId);
-      if (typeof params.includeSubtasks !== "undefined")
+      if (params.statusId) {
+        query.append("statusId", params.statusId);
+      }
+      if (params.sprintId) {
+        query.append("sprintId", params.sprintId);
+      }
+      if (params.page !== undefined) {
+        query.append("page", String(params.page));
+      }
+      if (params.limit !== undefined) {
+        query.append("limit", String(params.limit));
+      }
+      if (params.includeSubtasks !== undefined) {
         query.append("includeSubtasks", String(params.includeSubtasks));
+      }
       const response = await api.get(`/tasks/by-status?${query.toString()}`);
       return response.data;
     } catch (error) {
@@ -933,6 +958,29 @@ export const taskApi = {
       return response.data;
     } catch (error) {
       console.error("Assign task assignees error:", error);
+      throw error;
+    }
+  },
+
+  bulkDeleteTasks: async (
+    taskIds: string[]
+  ): Promise<{
+    deletedCount: number;
+    failedTasks: Array<{ id: string; reason: string }>;
+  }> => {
+    try {
+      const response = await api.request<{
+        deletedCount: number;
+        failedTasks: Array<{ id: string; reason: string }>;
+      }>({
+        url: `/tasks/bulk-delete`,
+        method: "POST",
+        data: { taskIds },
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Bulk delete tasks error:", error?.response || error);
       throw error;
     }
   },

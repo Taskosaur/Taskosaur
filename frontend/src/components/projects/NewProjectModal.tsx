@@ -65,7 +65,7 @@ export function NewProjectModal({
     workspaceContext;
   const { createProject } = projectContext;
   const isWorkspacePreSelected = Boolean(workspaceSlug);
-
+  console.log(workspaceSlug)
   const [formData, setFormData] = useState({
     name: "",
     description: "",

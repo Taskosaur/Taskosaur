@@ -418,11 +418,30 @@ export class NotificationsService {
       this.prisma.notification.findMany({
         where: whereClause,
         include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              username: true,
+              avatar: true,
+            },
+          },
+          organization: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              avatar: true,
+            },
+          },
           createdByUser: {
             select: {
               id: true,
               firstName: true,
               lastName: true,
+              email: true,
               avatar: true,
             },
           },
@@ -436,6 +455,25 @@ export class NotificationsService {
       }),
       this.prisma.notification.count({ where: whereClause }),
     ]);
+
+    // Fetch entity details for each notification
+    const notificationsWithEntities = await Promise.all(
+      notifications.map(async (notification) => {
+        let entityDetails: any = null;
+
+        if (notification.entityId && notification.entityType) {
+          entityDetails = await this.getEntityDetails(
+            notification.entityType,
+            notification.entityId,
+          );
+        }
+
+        return {
+          ...notification,
+          entity: entityDetails,
+        };
+      }),
+    );
 
     // Get summary statistics
     const [unreadCount, typeStats, priorityStats] = await Promise.all([
@@ -457,7 +495,7 @@ export class NotificationsService {
     const totalPages = Math.ceil(totalCount / limit);
 
     return {
-      notifications,
+      notifications: notificationsWithEntities,
       pagination: {
         currentPage: page,
         totalPages,
@@ -485,4 +523,243 @@ export class NotificationsService {
       },
     };
   }
+
+  // Helper method to fetch entity details based on type
+  private async getEntityDetails(entityType: string, entityId: string) {
+    const type = entityType.toLowerCase();
+
+    try {
+      switch (type) {
+        case 'task': {
+          const task = await this.prisma.task.findUnique({
+            where: { id: entityId },
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              description: true,
+              priority: true,
+              taskNumber: true,
+              status: { select: { id: true, name: true, color: true, category: true } },
+              project: { select: { id: true, name: true, slug: true } },
+            },
+          });
+
+          if (!task) return null;
+          return {
+            id: task.id,
+            type: 'task',
+            name: task.title,
+            slug: task.slug,
+            parent: task.project ? { ...task.project } : undefined,
+            extra: {
+              priority: task.priority,
+              taskNumber: task.taskNumber,
+              status: task.status,
+            },
+          };
+        }
+
+        case 'taskcomment':
+        case 'task comment': {
+          const comment = await this.prisma.taskComment.findUnique({
+            where: { id: entityId },
+            select: {
+              id: true,
+              content: true,
+              createdAt: true,
+              task: { select: { id: true, title: true, slug: true, taskNumber: true } },
+            },
+          });
+
+          if (!comment) return null;
+          return {
+            id: comment.id,
+            type: 'task_comment',
+            name: `Comment on ${comment.task?.title ?? 'Task'}`,
+            parent: comment.task ? { ...comment.task } : undefined,
+            extra: {
+              content: comment.content,
+              createdAt: comment.createdAt,
+            },
+          };
+        }
+
+        case 'project': {
+          const project = await this.prisma.project.findUnique({
+            where: { id: entityId },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              description: true,
+              avatar: true,
+              workspace: { select: { id: true, name: true, slug: true } },
+            },
+          });
+
+          if (!project) return null;
+          return {
+            id: project.id,
+            type: 'project',
+            name: project.name,
+            slug: project.slug,
+            parent: project.workspace ? { ...project.workspace } : undefined,
+            extra: {
+              avatar: project.avatar,
+              description: project.description,
+            },
+          };
+        }
+
+        case 'workspace': {
+          const workspace = await this.prisma.workspace.findUnique({
+            where: { id: entityId },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              description: true,
+              avatar: true,
+              organization: { select: { id: true, name: true, slug: true } },
+            },
+          });
+
+          if (!workspace) return null;
+          return {
+            id: workspace.id,
+            type: 'workspace',
+            name: workspace.name,
+            slug: workspace.slug,
+            parent: workspace.organization ? { ...workspace.organization } : undefined,
+            extra: {
+              avatar: workspace.avatar,
+              description: workspace.description,
+            },
+          };
+        }
+
+        case 'organization': {
+          const org = await this.prisma.organization.findUnique({
+            where: { id: entityId },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              description: true,
+              avatar: true,
+            },
+          });
+
+          if (!org) return null;
+          return {
+            id: org.id,
+            type: 'organization',
+            name: org.name,
+            slug: org.slug,
+            extra: {
+              avatar: org.avatar,
+              description: org.description,
+            },
+          };
+        }
+
+        case 'sprint': {
+          const sprint = await this.prisma.sprint.findUnique({
+            where: { id: entityId },
+            select: {
+              id: true,
+              name: true,
+              goal: true,
+              status: true,
+              startDate: true,
+              endDate: true,
+              project: { select: { id: true, name: true, slug: true } },
+            },
+          });
+
+          if (!sprint) return null;
+          return {
+            id: sprint.id,
+            type: 'sprint',
+            name: sprint.name,
+            parent: sprint.project ? { ...sprint.project } : undefined,
+            extra: {
+              goal: sprint.goal,
+              status: sprint.status,
+              startDate: sprint.startDate,
+              endDate: sprint.endDate,
+            },
+          };
+        }
+
+        case 'invitation': {
+          const invitation = await this.prisma.invitation.findUnique({
+            where: { id: entityId },
+            select: {
+              id: true,
+              inviteeEmail: true,
+              role: true,
+              status: true,
+              expiresAt: true,
+              organization: { select: { id: true, name: true, slug: true } },
+              workspace: { select: { id: true, name: true, slug: true } },
+              project: { select: { id: true, name: true, slug: true } },
+            },
+          });
+
+          if (!invitation) return null;
+          return {
+            id: invitation.id,
+            type: 'invitation',
+            name: invitation.inviteeEmail,
+            extra: {
+              role: invitation.role,
+              status: invitation.status,
+              expiresAt: invitation.expiresAt,
+            },
+            parent:
+              invitation.project ||
+              invitation.workspace ||
+              invitation.organization ||
+              undefined,
+          };
+        }
+
+        case 'taskattachment':
+        case 'task attachment': {
+          const attachment = await this.prisma.taskAttachment.findUnique({
+            where: { id: entityId },
+            select: {
+              id: true,
+              fileName: true,
+              fileSize: true,
+              mimeType: true,
+              task: { select: { id: true, title: true, slug: true } },
+            },
+          });
+
+          if (!attachment) return null;
+          return {
+            id: attachment.id,
+            type: 'task_attachment',
+            name: attachment.fileName,
+            parent: attachment.task ? { ...attachment.task } : undefined,
+            extra: {
+              fileSize: attachment.fileSize,
+              mimeType: attachment.mimeType,
+            },
+          };
+        }
+
+        default:
+          return null;
+      }
+    } catch (error) {
+      console.error(`Error fetching ${entityType} with id ${entityId}:`, error);
+      return null;
+    }
+  }
+
+
 }

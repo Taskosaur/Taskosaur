@@ -24,6 +24,15 @@ export const SprintTasksPanel: React.FC<SprintTasksPanelProps> = ({
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+
+  const handleTaskSelect = (taskId: string) => {
+    setSelectedTasks((prev) =>
+      prev.includes(taskId)
+        ? prev.filter((id) => id !== taskId)
+        : [...prev, taskId]
+    );
+  };
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -104,7 +113,11 @@ export const SprintTasksPanel: React.FC<SprintTasksPanelProps> = ({
             ) : error ? (
               <div className="sprints-tasks-error">{error}</div>
             ) : (
-              <TaskTable tasks={tasks} />
+              <TaskTable 
+                tasks={tasks}
+                selectedTasks={selectedTasks}
+                onTaskSelect={handleTaskSelect}
+              />
             )}
           </div>
         </div>

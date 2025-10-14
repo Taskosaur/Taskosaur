@@ -557,8 +557,8 @@ export class ProjectMembersService {
       member.project.workspace.organization.ownerId === requestUserId;
     const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
     const isWorkspaceAdmin =
-      requesterWorkspaceMember?.role === WorkspaceRole.OWNER;
-    const isProjectAdmin = requesterProjectMember?.role === ProjectRole.OWNER;
+      requesterWorkspaceMember?.role === WorkspaceRole.OWNER || requesterWorkspaceMember?.role === WorkspaceRole.MANAGER;
+    const isProjectAdmin = requesterProjectMember?.role === ProjectRole.OWNER || requesterProjectMember?.role === ProjectRole.MANAGER;
 
     if (
       !isSelfRemoval &&

@@ -19,6 +19,14 @@ import {
 import Tooltip from "../common/ToolTip";
 import { useAuth } from "@/contexts/auth-context";
 import { Task } from "@/types";
+import { Label, Select } from "../ui";
+import {
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { PRIORITY_OPTIONS, TASK_TYPE_OPTIONS } from "@/utils/data/taskData";
 
 interface User {
   id: string;
@@ -41,6 +49,7 @@ interface SubtasksProps {
     onConfirm: () => void,
     type?: "danger" | "warning" | "info"
   ) => void;
+  isAssignOrRepoter: boolean;
 }
 
 interface PaginationInfo {
@@ -128,6 +137,7 @@ export default function Subtasks({
   onSubtaskUpdated,
   onSubtaskDeleted,
   showConfirmModal,
+  isAssignOrRepoter,
 }: SubtasksProps) {
   const {
     getSubtasksByParent,
@@ -151,10 +161,13 @@ export default function Subtasks({
   const [selectedSubtask, setSelectedSubtask] = useState<Task | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(5);
+  const [subtaskPriority, setSubtaskPriority] = useState("MEDIUM");
+  const [subtaskType, setSubtaskType] = useState("TASK");
 
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
   const isAuth = isAuthenticated();
+  
   // Get current user from localStorage
   useEffect(() => {
     const getUserFromStorage = () => {
@@ -178,7 +191,7 @@ export default function Subtasks({
 
     getUserAccess({ name: "project", id: projectId })
       .then((data) => {
-        setHasAccess(data?.canChange);
+        setHasAccess(data?.canChange || isAssignOrRepoter);
       })
       .catch((error) => {
         console.error("Error fetching user access:", error);
@@ -245,7 +258,10 @@ export default function Subtasks({
       const subtaskData = {
         title: newSubtaskTitle.trim(),
         description: `Subtask for parent task`,
-        priority: "MEDIUM" as const,
+        priority: subtaskPriority as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
+        type: ["TASK", "BUG", "EPIC", "STORY"].includes(subtaskType)
+          ? (subtaskType as "TASK" | "BUG" | "EPIC" | "STORY")
+          : "TASK",
         startDate: new Date().toISOString(),
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         projectId,
@@ -257,6 +273,10 @@ export default function Subtasks({
       await createSubtask(subtaskData);
 
       setNewSubtaskTitle("");
+      setSubtaskPriority("MEDIUM");
+      setSubtaskType("TASK");
+      setIsAddingSubtask(false);
+      
       if (currentPage > 1 && subtTask.length >= pageSize) {
         setCurrentPage(1);
       }
@@ -301,6 +321,8 @@ export default function Subtasks({
   const handleEditSubtask = (
     subtaskId: string,
     currentTitle: string,
+    currentPriority: string,
+    currentType: string,
     e?: React.MouseEvent
   ) => {
     if (e) {
@@ -309,16 +331,30 @@ export default function Subtasks({
 
     setEditingSubtaskId(subtaskId);
     setEditingTitle(currentTitle);
+    setSubtaskPriority(currentPriority);
+    setSubtaskType(currentType);
   };
 
   const handleSaveEdit = async (subtaskId: string) => {
     if (!editingTitle.trim()) return;
 
     try {
-      await updateSubtask(subtaskId, { title: editingTitle.trim() });
+      const updateData = {
+        title: editingTitle.trim(),
+        priority: subtaskPriority as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
+        type: ["TASK", "BUG", "EPIC", "STORY"].includes(subtaskType)
+          ? (subtaskType as "TASK" | "BUG" | "EPIC" | "STORY")
+          : "TASK",
+      };
+
+      await updateSubtask(subtaskId, updateData);
+      
       setEditingSubtaskId(null);
       setEditingTitle("");
-      onSubtaskUpdated?.(subtaskId, { title: editingTitle.trim() });
+      setSubtaskPriority("MEDIUM");
+      setSubtaskType("TASK");
+      
+      onSubtaskUpdated?.(subtaskId, updateData);
     } catch (error) {
       console.error("Failed to update subtask:", error);
     }
@@ -327,6 +363,8 @@ export default function Subtasks({
   const handleCancelEdit = () => {
     setEditingSubtaskId(null);
     setEditingTitle("");
+    setSubtaskPriority("MEDIUM");
+    setSubtaskType("TASK");
   };
 
   const handleDeleteSubtask = async (
@@ -367,6 +405,8 @@ export default function Subtasks({
   const handleCancelAddSubtask = () => {
     setIsAddingSubtask(false);
     setNewSubtaskTitle("");
+    setSubtaskPriority("MEDIUM");
+    setSubtaskType("TASK");
   };
 
   // Helper function to check if subtask is completed
@@ -387,6 +427,16 @@ export default function Subtasks({
       priorityColors[priority?.toLowerCase() as keyof typeof priorityColors] ||
       "#6B7280"
     );
+  };
+
+  const getTypeColor = (type: string) => {
+    const typeColors = {
+      task: "#3B82F6",
+      bug: "#EF4444",
+      epic: "#8B5CF6",
+      story: "#10B981",
+    };
+    return typeColors[type?.toLowerCase() as keyof typeof typeColors] || "#6B7280";
   };
 
   const getStatusColor = (statusId: string) => {
@@ -412,18 +462,6 @@ export default function Subtasks({
     ? subtTask.filter((s) => isSubtaskCompleted(s)).length
     : 0;
 
-  // if (!currentUser) {
-  //   return (
-  //     <div className="space-y-4">
-  //       <SectionHeader icon={HiListBullet} title="Subtasks" />
-  //       <Alert className="bg-[var(--muted)]/50 border-[var(--border)] text-[var(--muted-foreground)]">
-  //         <HiExclamationTriangle className="h-4 w-4" />
-  //         <AlertDescription>Please log in to manage subtasks.</AlertDescription>
-  //       </Alert>
-  //     </div>
-  //   );
-  // }
-
   return (
     <>
       {selectedSubtask && router.query.taskId === selectedSubtask.id && (
@@ -442,7 +480,9 @@ export default function Subtasks({
         <SectionHeader
           icon={HiListBullet}
           title={`Subtasks (${completedCount}/${
-            subtaskPagination?.total || Array.isArray(subtTask) ? subtTask.length:0
+            subtaskPagination?.total || Array.isArray(subtTask)
+              ? subtTask.length
+              : 0
           })`}
         />
 
@@ -488,14 +528,15 @@ export default function Subtasks({
               >
                 <div className="flex-1 min-w-0 space-y-1.5">
                   {editingSubtaskId === subtask.id ? (
-                    <div className="flex items-center gap-2">
+                    <div className="space-y-3">
                       <Input
                         type="text"
                         value={editingTitle}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setEditingTitle(e.target.value)
                         }
-                        className="flex-1 h-9 border-input bg-background text-[var(--foreground)] focus:ring-2 focus:ring-[var(--primary)]/20"
+                        placeholder="Enter subtask title..."
+                        className="h-9 border-input bg-background text-[var(--foreground)] focus:ring-2 focus:ring-[var(--primary)]/20"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
@@ -505,10 +546,74 @@ export default function Subtasks({
                           }
                         }}
                       />
-                      <div className="flex gap-1">
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="edit-priority"
+                            className="text-xs font-medium"
+                          >
+                            Priority
+                          </Label>
+                          <Select
+                            value={subtaskPriority}
+                            onValueChange={setSubtaskPriority}
+                            disabled={isLoading}
+                          >
+                            <SelectTrigger className="w-full h-8 text-xs  border-[var(--border)] bg-[var(--background)]">
+                              <SelectValue placeholder="Select priority" />
+                            </SelectTrigger>
+                            <SelectContent className="border-none bg-[var(--card)]">
+                              {PRIORITY_OPTIONS.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                  className="hover:bg-[var(--hover-bg)] text-xs"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    {option.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="edit-type"
+                            className="text-xs font-medium"
+                          >
+                            Type
+                          </Label>
+                          <Select
+                            value={subtaskType}
+                            onValueChange={setSubtaskType}
+                            disabled={isLoading}
+                          >
+                            <SelectTrigger className="w-full h-8 text-xs  border-[var(--border)] bg-[var(--background)]">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent className="border-none bg-[var(--card)]">
+                              {TASK_TYPE_OPTIONS.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                  className="hover:bg-[var(--hover-bg)] text-xs"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    {option.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 justify-end">
                         <ActionButton
                           onClick={() => handleSaveEdit(subtask.id)}
-                          disabled={isLoading}
+                          disabled={isLoading || !editingTitle.trim()}
                           primary
                           className="h-8 px-3 cursor-pointer"
                         >
@@ -578,6 +683,8 @@ export default function Subtasks({
                                   handleEditSubtask(
                                     subtask.id,
                                     subtask.title,
+                                    subtask.priority,
+                                    subtask.type,
                                     e
                                   )
                                 }
@@ -620,6 +727,15 @@ export default function Subtasks({
                         />
                         <DynamicBadge
                           label={
+                            subtask.type.charAt(0) +
+                            subtask.type.slice(1).toLowerCase()
+                          }
+                          bgColor={getTypeColor(subtask.type)}
+                          size="sm"
+                          className="px-1.5 py-0.5 text-[10px] h-5 min-h-0"
+                        />
+                        <DynamicBadge
+                          label={
                             taskStatuses.find((s) => s.id === subtask.statusId)
                               ?.name || "Unknown"
                           }
@@ -656,13 +772,15 @@ export default function Subtasks({
         )}
 
         {/* Pagination Component */}
-        {Array.isArray(subtTask) && subtTask.length>0 && subtaskPagination && (
-          <Pagination
-            pagination={subtaskPagination}
-            onPageChange={handlePageChange}
-            isLoading={isLoading}
-          />
-        )}
+        {Array.isArray(subtTask) &&
+          subtTask.length > 0 &&
+          subtaskPagination && (
+            <Pagination
+              pagination={subtaskPagination}
+              onPageChange={handlePageChange}
+              isLoading={isLoading}
+            />
+          )}
 
         {/* Empty State */}
         {!isLoading && Array.isArray(subtTask) && subtTask.length === 0 && (
@@ -695,8 +813,69 @@ export default function Subtasks({
               autoFocus
               disabled={isLoading}
             />
-            <div className="flex items-center gap-2">
 
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="subtask-priority"
+                  className="text-xs font-medium"
+                >
+                  Priority
+                </Label>
+                <Select
+                  value={subtaskPriority}
+                  onValueChange={setSubtaskPriority}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger className="w-full h-8 text-xs  border-[var(--border)] bg-[var(--background)]">
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent className="border-none bg-[var(--card)]">
+                    {PRIORITY_OPTIONS.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        className="hover:bg-[var(--hover-bg)] text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          {option.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="subtask-type" className="text-xs font-medium">
+                  Type
+                </Label>
+                <Select
+                  value={subtaskType}
+                  onValueChange={setSubtaskType}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger className="w-full h-8 text-xs  border-[var(--border)] bg-[var(--background)]">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent className="border-none bg-[var(--card)]">
+                    {TASK_TYPE_OPTIONS.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        className="hover:bg-[var(--hover-bg)] text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          {option.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
               {hasAccess && (
                 <div className="flex justify-end w-full">
                   <ActionButton

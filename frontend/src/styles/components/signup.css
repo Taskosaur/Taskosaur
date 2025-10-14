@@ -1,4 +1,4 @@
-/* Signup Page Styles */
+/* Signup Page Styles - Fixed for Large Screens */
 
 /* Layout Classes */
 .signup-container {
@@ -10,11 +10,11 @@
 }
 
 .signup-form-panel {
-  @apply w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12 h-screen overflow-y-auto;
+  @apply w-full lg:w-1/2 flex items-center justify-center p-4 lg:p-8 xl:p-10 min-h-screen overflow-y-auto;
 }
 
 .signup-form-wrapper {
-  @apply w-full max-w-md;
+  @apply w-full max-w-md my-auto;
 }
 
 /* Signup Content Styles */
@@ -156,27 +156,27 @@
 }
 
 .signup-form-header {
-  @apply text-center mb-8;
+  @apply text-center mb-6;
 }
 
 .signup-mobile-logo {
-  @apply flex justify-center mb-6 lg:hidden;
+  @apply flex justify-center mb-4 lg:hidden;
 }
 
 .signup-mobile-logo-icon {
-  @apply w-16 h-16 bg-gradient-to-br from-[var(--accent)] to-[var(--primary)] rounded-2xl flex items-center justify-center shadow-xl shadow-[var(--accent)]/20;
+  @apply w-12 h-12 bg-gradient-to-br from-[var(--accent)] to-[var(--primary)] rounded-xl flex items-center justify-center shadow-xl shadow-[var(--accent)]/20;
 }
 
 .signup-mobile-logo-plus {
-  @apply w-8 h-8 text-[var(--primary-foreground)];
+  @apply w-6 h-6 text-[var(--primary-foreground)];
 }
 
 .signup-form-title {
-  @apply text-3xl lg:text-4xl font-bold text-[var(--foreground)] mb-3 tracking-tight;
+  @apply text-2xl lg:text-3xl font-bold text-[var(--foreground)] mb-2 tracking-tight;
 }
 
 .signup-form-subtitle {
-  @apply text-[var(--muted-foreground)] text-base lg:text-lg leading-relaxed;
+  @apply text-[var(--muted-foreground)] text-sm lg:text-base leading-relaxed;
 }
 
 /* Error Alert */
@@ -198,15 +198,15 @@
 
 /* Form Fields */
 .signup-form {
-  @apply space-y-6;
+  @apply space-y-4;
 }
 
 .signup-name-fields {
-  @apply grid grid-cols-2 gap-4;
+  @apply grid grid-cols-2 gap-3;
 }
 
 .signup-field-container {
-  @apply space-y-3;
+  @apply space-y-2;
 }
 
 .signup-field-label {
@@ -222,7 +222,7 @@
 }
 
 .signup-input {
-  @apply h-12 bg-[var(--card)] border-[var(--border)] focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200 rounded-xl shadow-sm hover:shadow-md;
+  @apply h-10 bg-[var(--card)] border-[var(--border)] focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200 rounded-lg shadow-sm hover:shadow-md;
 }
 
 .signup-password-container {
@@ -230,7 +230,7 @@
 }
 
 .signup-password-input {
-  @apply h-12 pr-12 bg-[var(--card)] border-[var(--border)] focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200 rounded-xl shadow-sm hover:shadow-md;
+  @apply h-10 pr-10 bg-[var(--card)] border-[var(--border)] focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200 rounded-lg shadow-sm hover:shadow-md;
 }
 
 .signup-password-toggle {
@@ -239,15 +239,15 @@
 
 /* Password Requirements */
 .signup-password-requirements {
-  @apply p-4 bg-[var(--muted)]/30 rounded-xl border border-[var(--border)]/50;
+  @apply p-3 bg-[var(--muted)]/30 rounded-lg border border-[var(--border)]/50 mt-2;
 }
 
 .signup-requirements-header {
-  @apply text-xs font-medium text-[var(--foreground)] mb-3 flex items-center space-x-2;
+  @apply text-xs font-medium text-[var(--foreground)] mb-2 flex items-center space-x-2;
 }
 
 .signup-requirements-grid {
-  @apply grid grid-cols-2 gap-2 text-xs;
+  @apply grid grid-cols-2 gap-1.5 text-xs;
 }
 
 .signup-requirement-item {
@@ -272,7 +272,7 @@
 
 /* Password Match Indicator */
 .signup-password-match {
-  @apply flex items-center space-x-2 text-sm;
+  @apply flex items-center space-x-2 text-sm mt-2;
 }
 
 .signup-password-match-valid {
@@ -293,7 +293,7 @@
 
 /* Terms Checkbox */
 .signup-terms-container {
-  @apply flex items-start space-x-3 pt-2;
+  @apply flex items-start space-x-3 pt-1;
 }
 
 .signup-terms-checkbox {
@@ -310,7 +310,7 @@
 
 /* Submit Button */
 .signup-submit-button {
-  @apply w-full h-12 bg-[var(--primary)] hover:bg-[var(--primary)]/90 disabled:bg-[var(--muted)] disabled:text-[var(--muted-foreground)] text-[var(--primary-foreground)] font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl;
+  @apply w-full h-10 bg-[var(--primary)] hover:bg-[var(--primary)]/90 disabled:bg-[var(--muted)] disabled:text-[var(--muted-foreground)] text-[var(--primary-foreground)] font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg;
 }
 
 .signup-loading-spinner {
@@ -327,7 +327,7 @@
 
 /* Divider */
 .signup-divider-container {
-  @apply my-8;
+  @apply my-5;
 }
 
 .signup-divider-inner {
@@ -352,7 +352,7 @@
 
 /* Sign In Button */
 .signup-signin-button {
-  @apply w-full h-12 border-[var(--border)] hover:bg-[var(--accent)] hover:border-[var(--accent)]/50 font-semibold rounded-xl transition-all duration-200;
+  @apply w-full h-10 border-[var(--border)] hover:bg-[var(--accent)] hover:border-[var(--accent)]/50 font-semibold rounded-lg transition-all duration-200;
 }
 
 .signup-signin-button:hover .signup-button-arrow {
@@ -361,7 +361,7 @@
 
 /* Footer */
 .signup-footer {
-  @apply mt-8 text-center;
+  @apply mt-5 text-center;
 }
 
 .signup-footer-text {
@@ -370,4 +370,66 @@
 
 .signup-footer-link {
   @apply text-[var(--primary)] hover:text-[var(--primary)]/80 hover:underline font-medium;
+}
+
+/* Scroll Container Utilities */
+.signup-form-scroll-container {
+  @apply max-h-screen overflow-y-auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+
+.signup-form-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.signup-form-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.signup-form-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 3px;
+}
+
+/* Responsive Adjustments for Very Large Screens */
+@media (min-width: 1920px) {
+  .signup-form-panel {
+    @apply p-12;
+  }
+  
+  .signup-form-wrapper {
+    @apply max-w-lg;
+  }
+}
+
+/* Compact Mode for Smaller Heights */
+@media (max-height: 800px) {
+  .signup-form-header {
+    @apply mb-4;
+  }
+  
+  .signup-form-title {
+    @apply text-xl lg:text-2xl mb-1;
+  }
+  
+  .signup-form-subtitle {
+    @apply text-xs lg:text-sm;
+  }
+  
+  .signup-form {
+    @apply space-y-3;
+  }
+  
+  .signup-divider-container {
+    @apply my-4;
+  }
+  
+  .signup-footer {
+    @apply mt-4;
+  }
+  
+  .signup-mobile-logo {
+    @apply mb-3;
+  }
 }

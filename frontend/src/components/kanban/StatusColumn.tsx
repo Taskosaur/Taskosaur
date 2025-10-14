@@ -6,7 +6,6 @@ import { HiPlus, HiXMark, HiSquare3Stack3D } from "react-icons/hi2";
 import { cn } from "@/lib/utils";
 import { useProjectContext } from "@/contexts/project-context";
 import TaskCard from "./TaskCard";
-import UserSelector from "./UserSelector";
 import { Input } from "../ui";
 import {
   DropdownMenu,
@@ -16,13 +15,23 @@ import {
 } from "../ui/DropdownMenu";
 import { ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+
+interface TaskPagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 interface TasksByStatus {
   statusId: string;
   statusName: string;
   statusColor: string;
-  statusCategory: "TODO" | "IN_PROGRESS" | "DONE";
+  statusCategory: "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED";
   tasks: KanbanTask[];
-  _count: number;
+  pagination: TaskPagination;
 }
 
 interface KanbanTask {
@@ -31,17 +40,17 @@ interface KanbanTask {
   description?: string;
   priority: "LOWEST" | "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
   taskNumber: number;
-  assignee?: {
+  assignees?: Array<{
     id: string;
     firstName: string;
     lastName: string;
     avatar?: string;
-  };
-  reporter: {
+  }>;
+  reporters?: Array<{
     id: string;
     firstName: string;
     lastName: string;
-  };
+  }>;
   dueDate?: string;
   createdAt: string;
   updatedAt: string;
@@ -78,7 +87,9 @@ interface StatusColumnProps {
   onTaskDragStart: (task: KanbanTask, statusId: string) => void;
   onTaskDragEnd: () => void;
   onCreateTask: (statusId: string, taskData: any) => void;
-  onTaskClick?: (task: KanbanTask) => any
+  onTaskClick?: (task: KanbanTask) => any;
+  onLoadMore?: (statusId: string, currentPage: number) => void;
+  isLoadingMore?: boolean;
 }
 
 const StatusColumn: React.FC<StatusColumnProps> = ({
@@ -90,7 +101,9 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
   onTaskDragStart,
   onTaskDragEnd,
   onCreateTask,
-  onTaskClick
+  onTaskClick,
+  onLoadMore,
+  isLoadingMore = false,
 }) => {
   const { getProjectMembers } = useProjectContext();
 
@@ -136,6 +149,12 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
     }
   };
 
+  const handleLoadMore = () => {
+    if (onLoadMore && status.pagination?.hasNextPage && !isLoadingMore) {
+      onLoadMore(status.statusId, status.pagination.page + 1);
+    }
+  };
+
   const reset = () => {
     setIsCreating(false);
     setTaskForm({
@@ -147,9 +166,7 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
   };
 
   const isFormValid = () => {
-  // Validation for reporter/assignee is commented out below:
-  // return taskForm.title.trim() && taskForm.reporterId;
-  return taskForm.title.trim();
+    return taskForm.title.trim();
   };
 
   const save = () => {
@@ -163,7 +180,6 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
     switch (status.statusCategory) {
       case "TODO":
         return (
-        
           <div
             className="w-4 h-4 rounded-full"
             style={{ backgroundColor: status.statusColor }}
@@ -193,6 +209,8 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
     }
   };
 
+  const taskCount = status.pagination?.total ?? (status as any)._count ?? 0;
+
   return (
     <div className="kanban-column-container group">
       <div
@@ -208,12 +226,12 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
               variant="secondary"
               className="kanban-column-counter"
               style={{
-                backgroundColor: `${status.statusColor}20`, // 20% opacity
+                backgroundColor: `${status.statusColor}20`,
                 color: status.statusColor,
-                borderColor: `${status.statusColor}40`, // 40% opacity
+                borderColor: `${status.statusColor}40`,
               }}
             >
-              {status._count}
+              {taskCount}
             </Badge>
           </div>
         </div>
@@ -248,6 +266,24 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
               onClick={onTaskClick}
             />
           ))}
+
+          {/* Loading indicator */}
+          {isLoadingMore && (
+            <div className="flex justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
+            </div>
+          )}
+
+          {/* Load More Button */}
+          {!isLoadingMore && status.pagination?.hasNextPage && (
+            <Button
+              variant="ghost"
+              onClick={handleLoadMore}
+              className="w-full text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] py-2"
+            >
+              Load More ({status.pagination.total - status.tasks.length} remaining)
+            </Button>
+          )}
 
           {/* Create Task Form */}
           {isCreating && (
@@ -346,25 +382,6 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
                     </DropdownMenu>
                   </div>
                 </div>
-
-                {/* Reporter / assignee */}
-                {/* <div className="kanban-create-task-assignee-field">
-                  <label className="kanban-create-task-label">Assign to</label>
-                  {loading ? (
-                    <div className="kanban-create-task-loading">
-                      Loading members…
-                    </div>
-                  ) : (
-                    <UserSelector
-                      selectedUserId={taskForm.reporterId}
-                      onUserChange={(userId) =>
-                        setTaskForm((p) => ({ ...p, reporterId: userId }))
-                      }
-                      members={members}
-                      placeholder="Select team member"
-                    />
-                  )}
-                </div> */}
 
                 {/* actions */}
                 <div className="kanban-create-task-actions">

@@ -1,5 +1,3 @@
-;
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -24,6 +22,7 @@ interface Notification {
     firstName?: string;
     lastName?: string;
   };
+  entity?: any;
 }
 
 interface NotificationDropdownProps {
@@ -49,15 +48,16 @@ export default function NotificationDropdown({
 
       try {
         setLoading(true);
-        const response = await notificationApi.getNotificationsByUserAndOrganization(
-          userId,
-          organizationId,
-          {
-            isRead: false,
-            page: 1,
-            limit: 5,
-          }
-        );
+        const response =
+          await notificationApi.getNotificationsByUserAndOrganization(
+            userId,
+            organizationId,
+            {
+              isRead: false,
+              page: 1,
+              limit: 5,
+            }
+          );
 
         setNotifications(response.notifications);
         setUnreadCount(response.pagination.totalCount);
@@ -88,9 +88,13 @@ export default function NotificationDropdown({
     return date.toLocaleDateString();
   };
 
-  const getNotificationUserInitials = (user?: Notification["createdByUser"]) => {
+  const getNotificationUserInitials = (
+    user?: Notification["createdByUser"]
+  ) => {
     if (!user?.firstName && !user?.lastName) return "S";
-    return `${user.firstName?.charAt(0) || ""}${user.lastName?.charAt(0) || ""}`.toUpperCase();
+    return `${user.firstName?.charAt(0) || ""}${
+      user.lastName?.charAt(0) || ""
+    }`.toUpperCase();
   };
 
   const getPriorityColor = (priority: Notification["priority"]) => {
@@ -155,10 +159,7 @@ export default function NotificationDropdown({
             <span className="header-dropdown-menu-title-text">
               Notifications
             </span>
-            <Badge
-              variant="secondary"
-              className="header-dropdown-menu-badge"
-            >
+            <Badge variant="secondary" className="header-dropdown-menu-badge">
               {unreadCount}
             </Badge>
           </div>
@@ -186,9 +187,7 @@ export default function NotificationDropdown({
           ) : notifications.length === 0 ? (
             <div className="header-empty-state">
               <HiBell className="header-empty-icon" />
-              <p className="header-empty-text">
-                No new notifications
-              </p>
+              <p className="header-empty-text">No new notifications</p>
             </div>
           ) : (
             <div className="header-notifications-item-container">
@@ -196,31 +195,47 @@ export default function NotificationDropdown({
                 <div
                   key={notification.id}
                   className={`header-notifications-item ${
-                    markingAsRead === notification.id ? "header-notifications-item-disabled" : ""
+                    markingAsRead === notification.id
+                      ? "header-notifications-item-disabled"
+                      : ""
                   }`}
                   onClick={() => handleMarkAsRead(notification.id)}
                 >
                   <div className="header-notifications-item-layout">
                     <div className="header-notifications-item-avatar">
                       <span className="header-notifications-item-avatar-text">
-                        {getNotificationUserInitials(notification.createdByUser)}
+                        {getNotificationUserInitials(
+                          notification.createdByUser
+                        )}
                       </span>
                     </div>
-                    
+
                     <div className="header-notifications-item-content">
                       <div className="header-notifications-item-header">
                         <div className="header-notifications-item-title">
-                          {notification.title}
+                          {/* ✅ Show entity name if available, else title */}
+                          {notification.entity?.name
+                            ? `${notification.title}: ${notification.entity.name}`
+                            : notification.title}
                         </div>
-                        {(notification.priority === "HIGH" || notification.priority === "URGENT") && (
-                          <div className={`header-notifications-item-priority ${getPriorityColor(notification.priority)}`}></div>
+
+                        {(notification.priority === "HIGH" ||
+                          notification.priority === "URGENT") && (
+                          <div
+                            className={`header-notifications-item-priority ${getPriorityColor(
+                              notification.priority
+                            )}`}
+                          ></div>
                         )}
                       </div>
-                      
+
                       <div className="header-notifications-item-message">
-                        {notification.message}
+                        {/* ✅ Optionally include entity name in message too */}
+                        {notification.entity?.name
+                          ? `${notification.message} (${notification.entity.name})`
+                          : notification.message}
                       </div>
-                      
+
                       <div className="header-notifications-item-time">
                         {formatNotificationTime(notification.createdAt)}
                       </div>

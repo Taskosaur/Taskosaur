@@ -2,11 +2,7 @@ import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
 import { useTask } from "@/contexts/task-context";
 import { useAuth } from "@/contexts/auth-context";
-
-// Task components
 import TaskDetailClient from "@/components/tasks/TaskDetailClient";
-
-// UI components
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { HiExclamationTriangle } from "react-icons/hi2";
 

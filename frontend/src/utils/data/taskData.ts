@@ -1,7 +1,13 @@
 import { CalendarDays, Clock, CheckCircle, Type, Star, Tag, Hash, ListChecks, FileText } from "lucide-react";
 
+import {
+  HiOutlineClipboard, 
+  HiOutlineLightBulb,     
+  HiOutlineBugAnt,        
+  HiOutlineSparkles,      
+} from "react-icons/hi2";
+ import { HiOutlineViewList } from "react-icons/hi";
 
- 
 export const TaskPriorities = [
   { id: "LOW", name: "Low", value: "LOW", color: "#6b7280" },
   { id: "MEDIUM", name: "Medium", value: "MEDIUM", color: "#f59e0b" },
@@ -51,3 +57,28 @@ export const DEFAULT_SORT_FIELDS = [
   { value: "storyPoints", label: "Story Points", icon: ListChecks, category: "number" },
   { value: "commentsCount", label: "Comments", icon: FileText, category: "number" }
 ];
+
+
+
+export const TaskTypeIcon = {
+  TASK: { label: "Task", icon: HiOutlineClipboard, color: "blue-500" },
+  STORY: { label: "Story", icon: HiOutlineLightBulb, color: "green-500" },
+  BUG: { label: "Bug", icon: HiOutlineBugAnt, color: "red-500" },
+  EPIC: { label: "Epic", icon: HiOutlineSparkles, color: "purple-500" },
+  SUBTASK: { label: "Subtask", icon: HiOutlineViewList, color: "orange-500" },
+} as const;
+
+// Task Type Color mapping from Tailwind class to hex
+export const TaskTypeColorMap: Record<string, string> = {
+  "blue-500": "#3B82F6",
+  "green-500": "#10B981",
+  "red-500": "#EF4444",
+  "purple-500": "#8B5CF6",
+  "orange-500": "#F97316",
+};
+
+// Helper function to get hex color from task type
+export const getTaskTypeHexColor = (taskType: keyof typeof TaskTypeIcon): string => {
+  const color = TaskTypeIcon[taskType]?.color;
+  return TaskTypeColorMap[color] || "#6B7280"; // Default gray
+};

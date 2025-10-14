@@ -411,6 +411,7 @@ export class AccessControlService {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       select: {
+        createdBy: true,
         projectId: true,
         project: {
           select: {
@@ -500,9 +501,9 @@ export class AccessControlService {
     const effectiveRole =
       projectMember?.role || wsMember?.role || orgMember?.role || Role.VIEWER;
     const isElevated =
-      effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
+      effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER || task.createdBy === userId;
     const canChange =
-      effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
+      effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER || task.createdBy === userId;
 
     return {
       isElevated,

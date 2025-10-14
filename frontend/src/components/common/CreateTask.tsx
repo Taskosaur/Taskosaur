@@ -241,6 +241,7 @@ export default function CreateTask({
                     onClick={handleSubmit}
                     disabled={!isFormValid() || isSubmitting}
                     primary
+                    showPlusIcon
                   >
                     {isSubmitting ? (
                       <>

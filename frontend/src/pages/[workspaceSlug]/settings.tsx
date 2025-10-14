@@ -99,8 +99,9 @@ function WorkspaceSettingsContent() {
       handler: async () => {
         try {
           const result = await archiveWorkspace(workspace.id);
+          console.log("Archive result:", result);
           if (result.success) {
-            // toast.success(result.message);
+        
             await router.replace("/workspaces");
           } else {
             toast.error("Failed to archive workspace");
@@ -235,20 +236,18 @@ function WorkspaceSettingsContent() {
   if (loading) {
     return (
       <div className="p-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-[var(--muted)] rounded w-1/3"></div>
-            <Card className="border-none bg-[var(--card)]">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="h-4 bg-[var(--muted)] rounded w-1/4"></div>
-                  <div className="h-10 bg-[var(--muted)] rounded"></div>
-                  <div className="h-4 bg-[var(--muted)] rounded w-1/4"></div>
-                  <div className="h-20 bg-[var(--muted)] rounded"></div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-[var(--muted)] rounded w-1/3"></div>
+          <Card className="border-none bg-[var(--card)]">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="h-4 bg-[var(--muted)] rounded w-1/4"></div>
+                <div className="h-10 bg-[var(--muted)] rounded"></div>
+                <div className="h-4 bg-[var(--muted)] rounded w-1/4"></div>
+                <div className="h-20 bg-[var(--muted)] rounded"></div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -354,8 +353,7 @@ function WorkspaceSettingsContent() {
                 Danger Zone
               </h4>
               <p className="text-sm text-red-700 dark:text-red-500 mb-4">
-                These actions cannot be undone. Please proceed with
-                caution.
+                These actions cannot be undone. Please proceed with caution.
               </p>
               <DangerZoneModal
                 entity={{

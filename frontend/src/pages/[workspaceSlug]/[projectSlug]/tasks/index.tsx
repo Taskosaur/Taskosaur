@@ -17,7 +17,6 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { HiSearch } from "react-icons/hi";
 import ActionButton from "@/components/common/ActionButton";
 import TabView from "@/components/tasks/TabView";
-import Loader from "@/components/common/Loader";
 import Pagination from "@/components/common/Pagination";
 import { KanbanBoard } from "@/components/tasks/KanbanBoard";
 import { ColumnManager } from "@/components/tasks/ColumnManager";
@@ -32,6 +31,7 @@ import SortingManager, {
 } from "@/components/tasks/SortIngManager";
 import Tooltip from "@/components/common/ToolTip";
 import { TokenManager } from "@/lib/api";
+import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -51,6 +51,10 @@ function ProjectTasksContent() {
   const workspaceApi = useWorkspaceContext();
   const projectApi = useProjectContext();
 
+  const SORT_FIELD_KEY = "tasks_sort_field";
+  const SORT_ORDER_KEY = "tasks_sort_order";
+  const COLUMNS_KEY = "tasks_columns";
+
   const {
     getAllTasks,
     getTaskKanbanStatus,
@@ -66,6 +70,8 @@ function ProjectTasksContent() {
   const isAuth = isAuthenticated();
 
   const [hasAccess, setHasAccess] = useState(false);
+  const [userAccess, setUserAccess] = useState(null);
+
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [project, setProject] = useState<Project>(null);
   const [kanban, setKanban] = useState<any[]>([]);
@@ -87,7 +93,6 @@ function ProjectTasksContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isNewTaskModalOpen, setNewTaskModalOpen] = useState(false);
-  const [columns, setColumns] = useState<ColumnConfig[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [availableStatuses, setAvailableStatuses] = useState<any[]>([]);
@@ -96,15 +101,41 @@ function ProjectTasksContent() {
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [addTaskPriorities, setAddTaskPriorities] = useState<any[]>([]);
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
-  const [sortField, setSortField] = useState<SortField>("createdAt");
-  
-  // Public tasks state for unauthenticated users
+
   const [publicTasks, setPublicTasks] = useState<any[]>([]);
   const [publicTasksTotal, setPublicTasksTotal] = useState(0);
   const [isLoadingPublic, setIsLoadingPublic] = useState(false);
+  const [kanbanPage, setKanbanPage] = useState(1);
+  const [kanbanLimit, setKanbanLimit] = useState(25);
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   
+    const handleTaskSelect = (taskId: string) => {
+      setSelectedTasks((prev) =>
+        prev.includes(taskId)
+          ? prev.filter((id) => id !== taskId)
+          : [...prev, taskId]
+      );
+    };
   const error = contextError || localError;
+
+  const [sortField, setSortField] = useState<SortField>(() => {
+    return localStorage.getItem(SORT_FIELD_KEY) || "createdAt";
+  });
+
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    const stored = localStorage.getItem(SORT_ORDER_KEY);
+    return stored === "asc" || stored === "desc" ? stored : "desc";
+  });
+
+  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = localStorage.getItem(COLUMNS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Authentication check only for action-based functions (create, update, delete)
   const checkAuthForAction = (action: () => void) => {
@@ -114,6 +145,18 @@ function ProjectTasksContent() {
     }
     action();
   };
+
+  useEffect(() => {
+    localStorage.setItem(SORT_FIELD_KEY, sortField);
+  }, [sortField]);
+
+  useEffect(() => {
+    localStorage.setItem(SORT_ORDER_KEY, sortOrder);
+  }, [sortOrder]);
+
+  useEffect(() => {
+    localStorage.setItem(COLUMNS_KEY, JSON.stringify(columns));
+  }, [columns]);
 
   // Create pagination info - different for authenticated and unauthenticated users
   const pagination = useMemo(() => {
@@ -152,7 +195,7 @@ function ProjectTasksContent() {
   const firstRenderRef = useRef(true);
   const debouncedSearchQuery = useDebounce(searchInput, 500);
   const hasValidAuth = !!isAuth && !!workspaceSlug && !!projectSlug;
-  const currentOrganizationId = TokenManager.getCurrentOrgId()
+  const currentOrganizationId = TokenManager.getCurrentOrgId();
   const { createSection } = useGenericFilters();
 
   // Load user access (only for authenticated users)
@@ -161,6 +204,7 @@ function ProjectTasksContent() {
       getUserAccess({ name: "project", id: project.id })
         .then((data) => {
           setHasAccess(data?.canChange);
+          setUserAccess(data);
         })
         .catch((error) => {
           console.error("Error fetching user access:", error);
@@ -230,19 +274,19 @@ function ProjectTasksContent() {
       }
 
       const proj = await projectApi.getProjectBySlug(
-        projectSlug as string, 
-        isAuth, 
+        projectSlug as string,
+        isAuth,
         workspaceSlug as string
       );
-      
+
       console.log("Fetched project:", proj);
       if (!proj) {
         throw new Error(
           `Project "${projectSlug}" not found in workspace "${workspaceSlug}"`
         );
       }
-      
-      setWorkspace(proj.workspace as Workspace || null);
+
+      setWorkspace((proj.workspace as Workspace) || null);
       setProject(proj);
 
       return { ws, proj };
@@ -318,7 +362,14 @@ function ProjectTasksContent() {
     } finally {
       setIsLoadingPublic(false);
     }
-  }, [isAuth, workspaceSlug, projectSlug, pageSize, currentPage, getPublicProjectTasks]);
+  }, [
+    isAuth,
+    workspaceSlug,
+    projectSlug,
+    pageSize,
+    currentPage,
+    getPublicProjectTasks,
+  ]);
 
   // Updated loadTasks for authenticated users only
   const loadTasks = useCallback(async () => {
@@ -396,23 +447,53 @@ function ProjectTasksContent() {
   }, [currentView, currentOrganizationId, project?.id, projectSlug, isAuth]);
 
   const loadKanbanData = useCallback(
-    async (projSlug: string) => {
-      if (!isAuth) return; // Skip for unauthenticated users
-      
+    async (projSlug: string, statusId?: string, page: number = 1) => {
+      if (!isAuth) return;
+
       try {
-        const data = await getTaskKanbanStatus({
-          type: "project",
+        const response = await getTaskKanbanStatus({
           slug: projSlug,
           includeSubtasks: true,
+          ...(statusId && { statusId, page }),
         });
-        setKanban(data.data || []);
+
+        if (page === 1 || !statusId) {
+          // Initial load or full refresh - replace all data
+          setKanban(response.data || []);
+        } else {
+          // Load more for specific status - append tasks
+          setKanban((prevKanban) => {
+            return prevKanban.map((status) => {
+              if (status.statusId === statusId) {
+                const newStatusData = response.data.find(
+                  (s) => s.statusId === statusId
+                );
+                if (newStatusData) {
+                  return {
+                    ...status,
+                    tasks: [...status.tasks, ...newStatusData.tasks], // Append new tasks
+                    pagination: newStatusData.pagination, // Update pagination info
+                  };
+                }
+              }
+              return status;
+            });
+          });
+        }
       } catch (error) {
         console.error("Failed to load kanban data:", error);
+        setKanban([]);
       }
     },
     [getTaskKanbanStatus, isAuth]
   );
-
+  const handleLoadMoreKanbanTasks = useCallback(
+    async (statusId: string, page: number) => {
+      console.log("Loading more tasks for status:", statusId, "page:", page); // Debug log
+      await loadKanbanData(projectSlug as string, statusId, page);
+    },
+    [loadKanbanData, projectSlug]
+  );
   const loadGanttData = useCallback(async () => {
     if (!currentOrganizationId || !project?.id || !isAuth) return;
     try {
@@ -436,7 +517,7 @@ function ProjectTasksContent() {
   }, [router.isReady, workspaceSlug, projectSlug]);
 
   useEffect(() => {
-    console.log(isAuth)
+    console.log(isAuth);
     if (isAuth) {
       if (currentOrganizationId && project?.id) {
         loadTasks();
@@ -564,7 +645,9 @@ function ProjectTasksContent() {
             name: priority.name,
             value: priority.value,
             selected: selectedPriorities.includes(priority.value),
-            count: displayTasks.filter((task) => task.priority === priority.value).length,
+            count: displayTasks.filter(
+              (task) => task.priority === priority.value
+            ).length,
             color: priority.color,
           }))
         : [],
@@ -572,55 +655,61 @@ function ProjectTasksContent() {
   );
 
   // Filter actions - Only for authenticated users
-  const safeToggleStatus = useCallback((id: string) => {
-    if (!isAuth) return;
-    
-    try {
-      setSelectedStatuses((prev) => {
-        const newSelection = prev.includes(id)
-          ? prev.filter((x) => x !== id)
-          : [...prev, id];
+  const safeToggleStatus = useCallback(
+    (id: string) => {
+      if (!isAuth) return;
 
-        const params = new URLSearchParams(window.location.search);
-        if (newSelection.length > 0) {
-          params.set("statuses", newSelection.join(","));
-        } else {
-          params.delete("statuses");
-        }
-        const newUrl = `${window.location.pathname}?${params.toString()}`;
-        window.history.replaceState({}, "", newUrl);
-        return newSelection;
-      });
-      setCurrentPage(1);
-    } catch (error) {
-      console.error("Error toggling status filter:", error);
-    }
-  }, [isAuth]);
+      try {
+        setSelectedStatuses((prev) => {
+          const newSelection = prev.includes(id)
+            ? prev.filter((x) => x !== id)
+            : [...prev, id];
 
-  const safeTogglePriority = useCallback((id: string) => {
-    if (!isAuth) return;
-    
-    try {
-      setSelectedPriorities((prev) => {
-        const newSelection = prev.includes(id)
-          ? prev.filter((x) => x !== id)
-          : [...prev, id];
+          const params = new URLSearchParams(window.location.search);
+          if (newSelection.length > 0) {
+            params.set("statuses", newSelection.join(","));
+          } else {
+            params.delete("statuses");
+          }
+          const newUrl = `${window.location.pathname}?${params.toString()}`;
+          window.history.replaceState({}, "", newUrl);
+          return newSelection;
+        });
+        setCurrentPage(1);
+      } catch (error) {
+        console.error("Error toggling status filter:", error);
+      }
+    },
+    [isAuth]
+  );
 
-        const params = new URLSearchParams(window.location.search);
-        if (newSelection.length > 0) {
-          params.set("priorities", newSelection.join(","));
-        } else {
-          params.delete("priorities");
-        }
-        const newUrl = `${window.location.pathname}?${params.toString()}`;
-        window.history.replaceState({}, "", newUrl);
-        return newSelection;
-      });
-      setCurrentPage(1);
-    } catch (error) {
-      console.error("Error toggling priority filter:", error);
-    }
-  }, [isAuth]);
+  const safeTogglePriority = useCallback(
+    (id: string) => {
+      if (!isAuth) return;
+
+      try {
+        setSelectedPriorities((prev) => {
+          const newSelection = prev.includes(id)
+            ? prev.filter((x) => x !== id)
+            : [...prev, id];
+
+          const params = new URLSearchParams(window.location.search);
+          if (newSelection.length > 0) {
+            params.set("priorities", newSelection.join(","));
+          } else {
+            params.delete("priorities");
+          }
+          const newUrl = `${window.location.pathname}?${params.toString()}`;
+          window.history.replaceState({}, "", newUrl);
+          return newSelection;
+        });
+        setCurrentPage(1);
+      } catch (error) {
+        console.error("Error toggling priority filter:", error);
+      }
+    },
+    [isAuth]
+  );
 
   const filterSections = useMemo(
     () =>
@@ -634,7 +723,8 @@ function ProjectTasksContent() {
               selectedIds: selectedStatuses,
               searchable: false,
               onToggle: safeToggleStatus,
-              onSelectAll: () => setSelectedStatuses(statusFilters.map((s) => s.id)),
+              onSelectAll: () =>
+                setSelectedStatuses(statusFilters.map((s) => s.id)),
               onClearAll: () => setSelectedStatuses([]),
             }),
             createSection({
@@ -669,7 +759,7 @@ function ProjectTasksContent() {
 
   const clearAllFilters = useCallback(() => {
     if (!isAuth) return;
-    
+
     setSelectedStatuses([]);
     setSelectedPriorities([]);
     setCurrentPage(1);
@@ -730,15 +820,16 @@ function ProjectTasksContent() {
   // Task operations - ONLY these require authentication
   const handleTaskCreated = useCallback(async () => {
     if (!isAuth) return;
-    
+
     try {
       await loadTasks();
 
       if (currentView === "kanban") {
         const data = await getTaskKanbanStatus({
-          type: "project",
           slug: projectSlug as string,
           includeSubtasks: true,
+          page: kanbanPage,
+          limit: kanbanLimit,
         });
         setKanban(data.data || []);
       }
@@ -764,7 +855,14 @@ function ProjectTasksContent() {
     } else if (!isAuth) {
       loadPublicTasks();
     }
-  }, [loadInitialData, isAuth, currentOrganizationId, project?.id, loadTasks, loadPublicTasks]);
+  }, [
+    loadInitialData,
+    isAuth,
+    currentOrganizationId,
+    project?.id,
+    loadTasks,
+    loadPublicTasks,
+  ]);
 
   // Pagination handlers - Work for both authenticated and unauthenticated users
   const handlePageChange = useCallback((page: number) => {
@@ -782,8 +880,7 @@ function ProjectTasksContent() {
 
   // Render content based on current view
   const renderContent = () => {
-    if (displayLoading)
-      return <Loader text="Fetching project tasks..." className="py-20" />;
+    if (displayLoading) return <TaskTableSkeleton />;
 
     if (!displayTasks.length) {
       return (
@@ -801,7 +898,8 @@ function ProjectTasksContent() {
           return (
             <div className="text-center py-12">
               <p className="text-[var(--muted-foreground)]">
-                Kanban view is available for authenticated users only. Please log in to access this view.
+                Kanban view is available for authenticated users only. Please
+                log in to access this view.
               </p>
             </div>
           );
@@ -811,10 +909,12 @@ function ProjectTasksContent() {
             kanbanData={kanban}
             projectId={project?.id || ""}
             onRefresh={() => loadKanbanData(projectSlug as string)}
+            onLoadMore={handleLoadMoreKanbanTasks}
             kabBanSettingModal={kabBanSettingModal}
             setKabBanSettingModal={setKabBanSettingModal}
             workspaceSlug={workspaceSlug as string}
             projectSlug={projectSlug as string}
+            onKanbanUpdate={setKanban}
           />
         ) : (
           <div className="text-center py-12">
@@ -830,7 +930,8 @@ function ProjectTasksContent() {
           return (
             <div className="text-center py-12">
               <p className="text-[var(--muted-foreground)]">
-                Gantt view is available for authenticated users only. Please log in to access this view.
+                Gantt view is available for authenticated users only. Please log
+                in to access this view.
               </p>
             </div>
           );
@@ -855,14 +956,18 @@ function ProjectTasksContent() {
             addTaskStatuses={availableStatuses}
             addTaskPriorities={addTaskPriorities}
             projectMembers={projectMembers}
-            showAddTaskRow={hasAccess && isAuth}
+            showAddTaskRow={userAccess?.role !== "VIEWER" && isAuth}
+            onTaskSelect={handleTaskSelect}
+            selectedTasks={selectedTasks}
           />
         );
     }
   };
 
   const showPagination =
-    currentView === "list" && displayTasks.length > 0 && pagination.totalPages > 1;
+    currentView !== "kanban" &&
+    displayTasks.length > 0 &&
+    pagination.totalPages > 1;
 
   if (error) return <ErrorState error={error} onRetry={handleRetry} />;
 
@@ -899,7 +1004,7 @@ function ProjectTasksContent() {
                     )}
                   </div>
                 )}
-                
+
                 {/* Hide filters for unauthenticated users */}
                 {isAuth && currentView === "list" && (
                   <FilterDropdown
@@ -915,12 +1020,12 @@ function ProjectTasksContent() {
               </div>
 
               {/* ONLY Create Task requires authentication */}
-              {hasAccess && isAuth && (
+              {userAccess?.role !== "VIEWER" && isAuth && (
                 <ActionButton
                   primary
                   showPlusIcon
                   onClick={() => {
-                    checkAuthForAction(() => 
+                    checkAuthForAction(() =>
                       router.push(`/${workspaceSlug}/${projectSlug}/tasks/new`)
                     );
                   }}

@@ -393,4 +393,37 @@ export const invitationApi = {
       throw error;
     }
   },
+
+  resendInvitation: async (
+    invitationId: string
+  ): Promise<{
+    message: string;
+    invitation: Invitation;
+    emailSent: boolean;
+    emailError?: string;
+  }> => {
+    try {
+      const response = await api.post<{
+        message: string;
+        invitation: Invitation;
+        emailSent: boolean;
+        emailError?: string;
+      }>(
+        `/invitations/${invitationId}/resend`
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Resend invitation error:", error);
+
+      if (error?.response?.status === 404) {
+        throw new Error("Invitation not found");
+      }
+
+      if (error?.response?.status === 400) {
+        throw new Error(error.response.data?.message || "Cannot resend this invitation");
+      }
+
+      throw error;
+    }
+  },
 };

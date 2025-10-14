@@ -128,22 +128,9 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
     }
   }, [projectSlug]);
 
-  // Save widget preferences to localStorage
-  useEffect(() => {
-    const preferences = widgets.reduce((acc, widget) => {
-      acc[widget.id] = widget.visible;
-      return acc;
-    }, {} as Record<string, boolean>);
-
-    localStorage.setItem(
-      `project-widgets-${projectSlug}`,
-      JSON.stringify(preferences)
-    );
-  }, [widgets, projectSlug]);
-
   // Load widget preferences from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem(`project-widgets-${projectSlug}`);
+    const saved = localStorage.getItem(`project-widgets`);
     if (saved) {
       try {
         const preferences = JSON.parse(saved);
@@ -156,8 +143,15 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
       } catch (error) {
         console.error("Failed to load widget preferences:", error);
       }
+    } else {
+      const preferences = widgets.reduce((acc, widget) => {
+        acc[widget.id] = widget.visible;
+        return acc;
+      }, {} as Record<string, boolean>);
+
+      localStorage.setItem(`project-widgets`, JSON.stringify(preferences));
     }
-  }, [projectSlug]);
+  }, [widgets, projectSlug]);
 
   if (loading) {
     return <AnalyticsSkeleton />;

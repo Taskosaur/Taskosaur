@@ -103,6 +103,8 @@ function ProjectTasksCalendarPageContent() {
   const { workspaceSlug, projectSlug } = router.query;
   const { getUserAccess } = useAuth();
   const [hasAccess, setHasAccess] = useState(false);
+  const [userAccess, setUserAcess] = useState(null);
+
   const authContext = useAuth();
   const workspaceContext = useWorkspaceContext();
   const projectContext = useProjectContext();
@@ -120,12 +122,8 @@ function ProjectTasksCalendarPageContent() {
   const currentRouteRef = useRef<string>("");
   const isFirstRenderRef = useRef(true);
 
-
-
   const findProjectBySlug = (projects: any[], slug: string) => {
-    return projects.find(
-      (project) => project.slug === slug
-    );
+    return projects.find((project) => project.slug === slug);
   };
   const organizationId =
     localStorage.getItem("currentOrganizationId") ||
@@ -133,17 +131,16 @@ function ProjectTasksCalendarPageContent() {
   const handleTaskCreated = async () => {
     try {
       if (projectData?.id) {
-        const tasks = await taskContext.getCalendarTask(
-          organizationId,
-          { projectId: projectData.id }
-        );
+        const tasks = await taskContext.getCalendarTask(organizationId, {
+          projectId: projectData.id,
+        });
         setProjectTasks(Array.isArray(tasks) ? tasks : []);
       }
     } catch (error) {
       console.error("Error refreshing tasks:", error);
     }
   };
-// console.log("Project Tasks:", projectTasks);
+  // console.log("Project Tasks:", projectTasks);
   const loadData = async () => {
     try {
       setLoading(true);
@@ -187,10 +184,9 @@ function ProjectTasksCalendarPageContent() {
       }
       setProjectData(project);
 
-      const tasks = await taskContext.getCalendarTask(
-        organizationId,
-        { projectId: project.id }
-      );
+      const tasks = await taskContext.getCalendarTask(organizationId, {
+        projectId: project.id,
+      });
       setProjectTasks(tasks || []);
 
       setDataLoaded(true);
@@ -203,10 +199,11 @@ function ProjectTasksCalendarPageContent() {
   };
 
   useEffect(() => {
-    if(!projectData?.id) return;
+    if (!projectData?.id) return;
     getUserAccess({ name: "project", id: projectData?.id })
       .then((data) => {
         setHasAccess(data?.canChange);
+        setUserAcess(data);
       })
       .catch((error) => {
         console.error("Error fetching user access:", error);
@@ -262,7 +259,7 @@ function ProjectTasksCalendarPageContent() {
                 title={`${projectData?.name} Calendar`}
                 description={`View and manage tasks for ${projectData?.name} project in calendar format.`}
                 actions={
-                  hasAccess && (
+                  userAccess?.role !== "VIEWER" && (
                     <ActionButton
                       primary
                       showPlusIcon
@@ -291,7 +288,7 @@ function ProjectTasksCalendarPageContent() {
                           Create your first task for {projectData?.name} to see
                           it on the calendar
                         </p>
-                        {hasAccess && (
+                        {userAccess?.role !== "VIEWER" && (
                           <ActionButton
                             variant="outline"
                             showPlusIcon

@@ -1,4 +1,4 @@
-/* Login Page Styles */
+/* Login Page Styles - Fixed for Large Screens */
 
 /* Layout Classes */
 .login-container {
@@ -10,11 +10,11 @@
 }
 
 .login-form-panel {
-  @apply w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12;
+  @apply w-full lg:w-1/2 flex items-center justify-center p-4 lg:p-8 xl:p-10 min-h-screen overflow-y-auto;
 }
 
 .login-form-wrapper {
-  @apply w-full max-w-md;
+  @apply w-full max-w-md my-auto;
 }
 
 /* Login Content Styles */
@@ -60,12 +60,13 @@
 }
 
 .login-brand-award-icon {
-  @apply w-3 h-3 text-white/70;
+  @apply w-3 h-3 text-[var(--primary-foreground)]/70;
 }
 
 .login-brand-subtitle {
   @apply text-[var(--primary-foreground)]/70 text-xs lg:text-sm font-medium;
 }
+
 .login-hero-heading {
   @apply text-2xl lg:text-3xl xl:text-4xl font-bold text-[var(--primary-foreground)] mb-4 leading-tight;
 }
@@ -77,6 +78,7 @@
 .login-hero-description {
   @apply text-[var(--primary-foreground)]/85 text-sm lg:text-base leading-relaxed mb-6 max-w-xl;
 }
+
 /* Features Grid */
 .login-features-grid {
   @apply space-y-4;
@@ -121,6 +123,7 @@
 .login-feature-description {
   @apply text-[var(--primary-foreground)]/75 text-xs lg:text-sm leading-relaxed;
 }
+
 .login-feature-arrow {
   @apply w-4 h-4 text-white/60 opacity-0 transition-all duration-300 flex-shrink-0;
 }
@@ -131,11 +134,11 @@
 
 /* Login Form Styles */
 .login-form-container {
-  @apply w-full space-y-6;
+  @apply w-full space-y-5;
 }
 
 .login-form-header {
-  @apply text-center space-y-4;
+  @apply text-center space-y-3;
 }
 
 .login-form-mode-toggle {
@@ -143,15 +146,15 @@
 }
 
 .login-form-header-content {
-  @apply space-y-2;
+  @apply space-y-1.5;
 }
 
 .login-form-title {
-  @apply text-2xl sm:text-3xl lg:text-4xl font-bold text-[var(--foreground)] tracking-tight;
+  @apply text-2xl sm:text-3xl lg:text-3xl font-bold text-[var(--foreground)] tracking-tight;
 }
 
 .login-form-subtitle {
-  @apply text-[var(--muted-foreground)] text-sm sm:text-base lg:text-lg leading-relaxed max-w-sm mx-auto;
+  @apply text-[var(--muted-foreground)] text-sm sm:text-base leading-relaxed max-w-sm mx-auto;
 }
 
 /* Error Alert */
@@ -169,7 +172,7 @@
 
 /* Form Fields */
 .login-form {
-  @apply space-y-6;
+  @apply space-y-4;
 }
 
 .login-field-container {
@@ -179,12 +182,13 @@
 .login-field-label {
   @apply text-sm font-semibold text-[var(--foreground)] flex items-center space-x-2;
 }
+
 .login-field-icon {
   @apply w-4 h-4;
 }
 
 .login-input {
-  @apply h-11 sm:h-12 px-4 bg-[var(--card)] border-[var(--border)] focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200 rounded-xl shadow-sm hover:shadow-md;
+  @apply h-10 px-4 bg-[var(--card)] border-[var(--border)] focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200 rounded-lg shadow-sm hover:shadow-md;
 }
 
 .login-password-container {
@@ -192,7 +196,7 @@
 }
 
 .login-password-input {
-  @apply h-11 sm:h-12 pl-4 pr-12 bg-[var(--card)] border-[var(--border)] focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200 rounded-xl shadow-sm hover:shadow-md;
+  @apply h-10 pl-4 pr-10 bg-[var(--card)] border-[var(--border)] focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200 rounded-lg shadow-sm hover:shadow-md;
 }
 
 .login-password-toggle {
@@ -205,7 +209,7 @@
 }
 
 .login-remember-me-container {
-  @apply flex items-center space-x-3;
+  @apply flex items-center space-x-2;
 }
 
 .login-remember-me-checkbox {
@@ -222,7 +226,7 @@
 
 /* Buttons */
 .login-submit-button {
-  @apply w-full h-11 sm:h-12 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl;
+  @apply w-full h-10 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg;
 }
 
 .login-loading-spinner {
@@ -240,7 +244,7 @@
 
 /* Divider */
 .login-divider-container {
-  @apply relative;
+  @apply relative my-5;
 }
 
 .login-divider-line {
@@ -261,12 +265,12 @@
 
 /* Sign Up Button */
 .login-signup-button {
-  @apply w-full h-11 sm:h-12 border-[var(--border)] hover:bg-[var(--accent)] hover:border-[var(--accent)]/50 font-semibold rounded-xl transition-all duration-200;
+  @apply w-full h-10 border-[var(--border)] hover:bg-[var(--accent)] hover:border-[var(--accent)]/50 font-semibold rounded-lg transition-all duration-200;
 }
 
 /* Footer */
 .login-footer {
-  @apply text-center;
+  @apply text-center mt-5;
 }
 
 .login-footer-text {
@@ -277,4 +281,80 @@
   @apply text-[var(--primary)] hover:text-[var(--primary)]/80 hover:underline font-medium;
 }
 
+/* Scroll Container Utilities */
+.login-form-scroll-container {
+  @apply max-h-screen overflow-y-auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
 
+.login-form-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.login-form-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.login-form-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 3px;
+}
+
+/* Responsive Adjustments for Very Large Screens */
+@media (min-width: 1920px) {
+  .login-form-panel {
+    @apply p-12;
+  }
+  
+  .login-form-wrapper {
+    @apply max-w-lg;
+  }
+}
+
+/* Compact Mode for Smaller Heights */
+@media (max-height: 800px) {
+  .login-form-header {
+    @apply space-y-2;
+  }
+  
+  .login-form-title {
+    @apply text-xl sm:text-2xl lg:text-2xl;
+  }
+  
+  .login-form-subtitle {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .login-form-container {
+    @apply space-y-4;
+  }
+  
+  .login-form {
+    @apply space-y-3;
+  }
+  
+  .login-divider-container {
+    @apply my-4;
+  }
+  
+  .login-footer {
+    @apply mt-4;
+  }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .login-form-title {
+    @apply text-xl;
+  }
+  
+  .login-form-subtitle {
+    @apply text-sm;
+  }
+  
+  .login-input,
+  .login-password-input {
+    @apply text-base;
+  }
+}

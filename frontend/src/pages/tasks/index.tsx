@@ -11,7 +11,6 @@ import TaskGanttView from "@/components/tasks/views/TaskGanttView";
 import { PageHeader } from "@/components/common/PageHeader";
 import ActionButton from "@/components/common/ActionButton";
 import TabView from "@/components/tasks/TabView";
-import Loader from "@/components/common/Loader";
 import Pagination from "@/components/common/Pagination";
 import ErrorState from "@/components/common/ErrorState";
 import EmptyState from "@/components/common/EmptyState";
@@ -39,6 +38,7 @@ import { Input } from "@/components/ui/input";
 
 import { Task, ColumnConfig, Project, ViewMode } from "@/types";
 import { TokenManager } from "@/lib/api";
+import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 
 // Custom hook for debouncing
 function useDebounce<T>(value: T, delay: number): T {
@@ -75,6 +75,10 @@ function TasksPageContent() {
   const { getCurrentUser, getUserAccess } = useAuth();
   const { createSection } = useGenericFilters();
 
+  const SORT_FIELD_KEY = "tasks_sort_field";
+  const SORT_ORDER_KEY = "tasks_sort_order";
+  const COLUMNS_KEY = "tasks_columns";
+
   const currentOrganizationId = TokenManager.getCurrentOrgId();
   const currentUser = getCurrentUser();
 
@@ -85,24 +89,22 @@ function TasksPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [hasAccess, setHasAccess] = useState(false);
+  const [userAccess, setUserAcess] = useState(null);
   const [statusFilterEnabled, setStatusFilterEnabled] = useState(false);
   const [isNewTaskModalOpen, setNewTaskModalOpen] = useState(false);
 
   // View and display state
   type ViewType = "list" | "kanban" | "gantt";
 
-const [currentView, setCurrentView] = useState<ViewType>(() => {
-  if (typeof window === "undefined") return "list";
-  const type = new URLSearchParams(window.location.search).get("type");
-  return type === "list" || type === "gantt" || type === "kanban"
-    ? type
-    : "list";
-});
+  const [currentView, setCurrentView] = useState<ViewType>(() => {
+    if (typeof window === "undefined") return "list";
+    const type = new URLSearchParams(window.location.search).get("type");
+    return type === "list" || type === "gantt" || type === "kanban"
+      ? type
+      : "list";
+  });
 
-  const [columns, setColumns] = useState<ColumnConfig[]>([]);
   const [ganttViewMode, setGanttViewMode] = useState<ViewMode>("days");
-
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -119,9 +121,24 @@ const [currentView, setCurrentView] = useState<ViewType>(() => {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
 
-  // Sorting state
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
-  const [sortField, setSortField] = useState<SortField>("createdAt");
+  const [sortField, setSortField] = useState<SortField>(() => {
+    return localStorage.getItem(SORT_FIELD_KEY) || "createdAt";
+  });
+
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    const stored = localStorage.getItem(SORT_ORDER_KEY);
+    return stored === "asc" || stored === "desc" ? stored : "desc";
+  });
+
+  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = localStorage.getItem(COLUMNS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Derived state
   const debouncedSearchQuery = useDebounce(searchInput, 500);
@@ -135,13 +152,27 @@ const [currentView, setCurrentView] = useState<ViewType>(() => {
     return projects.length > 0 && projects[0].workspace
       ? projects[0].workspace
       : { slug: "default-workspace" };
-  }, [projects]); 
+  }, [projects]);
+
+  useEffect(() => {
+    localStorage.setItem(SORT_FIELD_KEY, sortField);
+  }, [sortField]);
+
+  useEffect(() => {
+    localStorage.setItem(SORT_ORDER_KEY, sortOrder);
+  }, [sortOrder]);
+
+  useEffect(() => {
+    localStorage.setItem(COLUMNS_KEY, JSON.stringify(columns));
+  }, [columns]);
   // Check user access
   useEffect(() => {
     if (!currentOrganizationId) return;
 
     getUserAccess({ name: "organization", id: currentOrganizationId })
-      .then((data) => setHasAccess(data?.canChange))
+      .then((data) => {
+        setHasAccess(data?.canChange), setUserAcess(data);
+      })
       .catch((error) => console.error("Error fetching user access:", error));
   }, [currentOrganizationId]);
 
@@ -483,7 +514,9 @@ const [currentView, setCurrentView] = useState<ViewType>(() => {
     return priorities.map((priority) => ({
       ...priority,
       selected: selectedPriorities.includes(priority.value),
-      count: Array.isArray(tasks) ? tasks.filter((task) => task.priority === priority.value).length : 0,
+      count: Array.isArray(tasks)
+        ? tasks.filter((task) => task.priority === priority.value).length
+        : 0,
     }));
   }, [selectedPriorities, tasks]);
 
@@ -595,7 +628,7 @@ const [currentView, setCurrentView] = useState<ViewType>(() => {
   const renderContent = () => {
     if (currentView === "gantt") {
       if (ganttLoading) {
-        return <Loader text="Fetching Gantt tasks..." className="py-20" />;
+        return <TaskTableSkeleton />;
       }
       if (ganttError) {
         return <ErrorState error={ganttError} onRetry={loadGanttData} />;
@@ -612,7 +645,7 @@ const [currentView, setCurrentView] = useState<ViewType>(() => {
     }
 
     if (taskLoading) {
-      return <Loader text="Fetching your tasks..." className="py-20" />;
+      return <TaskTableSkeleton />;
     }
 
     if (!tasks.length) {
@@ -638,8 +671,7 @@ const [currentView, setCurrentView] = useState<ViewType>(() => {
         );
     }
   };
-  const showPagination =
-    tasks.length > 0 && pagination.totalPages > 1;
+  const showPagination = tasks.length > 0 && pagination.totalPages > 1;
 
   return (
     <div className="dashboard-container h-[91vh] flex flex-col space-y-3">
@@ -689,7 +721,7 @@ const [currentView, setCurrentView] = useState<ViewType>(() => {
                   </Tooltip>
                 )}
               </div>
-              {hasAccess && (
+              {userAccess?.role !== "VIEWER" && (
                 <ActionButton
                   primary
                   showPlusIcon

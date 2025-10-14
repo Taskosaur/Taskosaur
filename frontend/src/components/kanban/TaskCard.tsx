@@ -10,17 +10,17 @@ interface KanbanTask {
   description?: string;
   priority: "LOWEST" | "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
   taskNumber: number;
-  assignee?: {
+  assignees?: Array<{
     id: string;
     firstName: string;
     lastName: string;
     avatar?: string;
-  };
-  reporter: {
+  }>;
+  reporters?: Array<{
     id: string;
     firstName: string;
     lastName: string;
-  };
+  }>;
   dueDate?: string;
   createdAt: string;
   updatedAt: string;
@@ -39,7 +39,7 @@ interface TaskCardProps {
   isDragging: boolean;
   onDragStart: (task: KanbanTask, statusId: string) => void;
   onDragEnd: () => void;
-  onClick?: (task: KanbanTask) => void; // ✅ Added onClick prop
+  onClick?: (task: KanbanTask) => void;
 }
 
 const getPriorityColor = (priority: string) => {
@@ -81,22 +81,43 @@ const getInitials = (firstName?: string, lastName?: string) => {
   return (first + last).toUpperCase() || "?";
 };
 
+const formatDueDate = (dueDate: string) => {
+  const due = new Date(dueDate);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // Reset time parts for comparison
+  due.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  tomorrow.setHours(0, 0, 0, 0);
+
+  if (due.getTime() === today.getTime()) {
+    return "Today";
+  } else if (due.getTime() === tomorrow.getTime()) {
+    return "Tomorrow";
+  } else {
+    return due.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+};
+
 const TaskCard: React.FC<TaskCardProps> = ({
   task,
   statusId,
   isDragging,
   onDragStart,
   onDragEnd,
-  onClick // ✅ Destructure onClick prop
+  onClick,
 }) => {
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
   const category = getCategoryFromDescription(task.description);
   const priorityColor = getPriorityColor(task.priority);
 
-  // ✅ Handle click with proper event handling
-  const handleClick = () => {
-    // Prevent click during drag operations
+  // Handle click with proper event handling
+  const handleClick = (e: React.MouseEvent) => {
     if (isDragging) return;
+    
+    e.stopPropagation();
     
     // Call onClick if provided
     if (onClick) {
@@ -104,23 +125,27 @@ const TaskCard: React.FC<TaskCardProps> = ({
     }
   };
 
-  // ✅ Handle drag start with click prevention
+  // Handle drag start with click prevention
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", "");
     onDragStart(task, statusId);
   };
 
+  // Get assignees - support both old (single assignee) and new (assignees array) format
+  const assignees = task.assignees || [];
+  const hasAssignees = assignees.length > 0;
+
   return (
     <div
       draggable
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
-      onClick={handleClick} // ✅ Added onClick handler
+      onClick={handleClick}
       className={cn(
         "rounded-lg border mb-3 cursor-move transition-all duration-200 hover:shadow-md h-[150px]",
         isDragging && "opacity-50 rotate-1 shadow-lg",
-        onClick && "hover:cursor-pointer" // ✅ Show pointer cursor when clickable
+        onClick && "hover:cursor-pointer"
       )}
       style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
     >
@@ -136,13 +161,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
         {/* Category Tag */}
         <div className="mb-3">
           <span 
-            className="inline-block px-2 py-1 rounded text-xs font-medium"
-            style={{
-              backgroundColor: 'var(--muted)',
-              color: 'var(--muted-foreground)'
-            }}
+            className={`inline-block px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)]`}
+            
           >
-            {category.name}
+            {task.priority}
           </span>
         </div>
 
@@ -172,33 +194,55 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 isOverdue && "text-red-500"
               )} style={isOverdue ? { color: 'var(--destructive)' } : {}}>
                 <HiCalendarDays size={12} />
-                <span>Tomorrow</span>
+                <span>{formatDueDate(task.dueDate)}</span>
               </div>
             )}
           </div>
 
-          {/* Right side - Assignee Avatar */}
-          <div className="flex items-center">
-            {task.assignee && (
-              <div 
-                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium"
-                style={{ backgroundColor: priorityColor, color: 'var(--primary-foreground)' }}
-                title={`${task.assignee.firstName} ${task.assignee.lastName}`}
-              >
-                {task.assignee.avatar ? (
-                  <Image 
-                    src={task.assignee.avatar} 
-                    alt={`${task.assignee.firstName} ${task.assignee.lastName}`}
-                    className="w-full h-full rounded-full object-cover"
-                    height={100}
-                    width={100}
-                  />
-                ) : (
-                  getInitials(task.assignee.firstName, task.assignee.lastName)
-                )}
-              </div>
-            )}
-          </div>
+          {/* Right side - Assignee Avatars */}
+          {hasAssignees && (
+            <div className="flex items-center -space-x-2">
+              {assignees.slice(0, 3).map((assignee, index) => (
+                <div 
+                  key={assignee.id}
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[var(--card)]"
+                  style={{ 
+                    backgroundColor: priorityColor, 
+                    color: 'var(--primary-foreground)',
+                    zIndex: assignees.length - index
+                  }}
+                  title={`${assignee.firstName} ${assignee.lastName}`}
+                >
+                  {assignee.avatar ? (
+                    <Image 
+                      src={assignee.avatar} 
+                      alt={`${assignee.firstName} ${assignee.lastName}`}
+                      className="w-full h-full rounded-full object-cover"
+                      height={24}
+                      width={24}
+                    />
+                  ) : (
+                    getInitials(assignee.firstName, assignee.lastName)
+                  )}
+                </div>
+              ))}
+              
+              {/* Show +N if more than 3 assignees */}
+              {assignees.length > 3 && (
+                <div 
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[var(--card)]"
+                  style={{ 
+                    backgroundColor: 'var(--muted)', 
+                    color: 'var(--muted-foreground)',
+                    zIndex: 0
+                  }}
+                  title={`${assignees.length - 3} more assignees`}
+                >
+                  +{assignees.length - 3}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </div>

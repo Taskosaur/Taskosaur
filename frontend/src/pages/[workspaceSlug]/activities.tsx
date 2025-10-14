@@ -35,10 +35,10 @@ import { ActivityFeedPanel } from "@/components/activity/ActivityFeedPanel";
 import { PageHeader } from "@/components/common/PageHeader";
 
 import { ActivityLog, Workspace } from "@/types";
-import Loader from "@/components/common/Loader";
 import EmptyState from "@/components/common/EmptyState";
 import ErrorState from "@/components/common/ErrorState";
 import Tooltip from "@/components/common/ToolTip";
+import { InfoPanel } from "@/components/common/InfoPanel";
 
 // Pagination Component using shadcn/ui
 interface WorkspacePaginationProps {
@@ -48,11 +48,11 @@ interface WorkspacePaginationProps {
   isLoading?: boolean;
 }
 
-function WorkspacePagination({ 
-  currentPage, 
-  totalPages, 
-  onPageChange, 
-  isLoading = false 
+function WorkspacePagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+  isLoading = false,
 }: WorkspacePaginationProps) {
   if (totalPages <= 1) return null;
 
@@ -61,12 +61,12 @@ function WorkspacePagination({
       <div className="text-sm text-[var(--muted-foreground)]">
         Page {currentPage} of {totalPages}
       </div>
-      
+
       <Pagination>
         <PaginationContent>
           {/* Previous Button */}
           <PaginationItem>
-            <PaginationPrevious 
+            <PaginationPrevious
               href="#"
               onClick={(e) => {
                 e.preventDefault();
@@ -76,15 +76,15 @@ function WorkspacePagination({
               }}
               className={`${
                 currentPage === 1 || isLoading
-                  ? 'pointer-events-none opacity-50' 
-                  : 'cursor-pointer hover:bg-[var(--accent)]'
+                  ? "pointer-events-none opacity-50"
+                  : "cursor-pointer hover:bg-[var(--accent)]"
               }`}
             />
           </PaginationItem>
 
           {/* Next Button */}
           <PaginationItem>
-            <PaginationNext 
+            <PaginationNext
               href="#"
               onClick={(e) => {
                 e.preventDefault();
@@ -94,8 +94,8 @@ function WorkspacePagination({
               }}
               className={`${
                 currentPage === totalPages || isLoading
-                  ? 'pointer-events-none opacity-50' 
-                  : 'cursor-pointer hover:bg-[var(--accent)]'
+                  ? "pointer-events-none opacity-50"
+                  : "cursor-pointer hover:bg-[var(--accent)]"
               }`}
             />
           </PaginationItem>
@@ -118,7 +118,7 @@ function WorkspaceActivityContent() {
   const [activityFilter, setActivityFilter] = useState<
     "all" | ActivityLog["type"]
   >("all");
-  
+
   // Add pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -164,110 +164,117 @@ function WorkspaceActivityContent() {
   const currentFilter =
     filterOptions.find((f) => f.value === activityFilter) || filterOptions[0];
 
-  const fetchData = useCallback(async (page: number = 1) => {
-    if (fetchingRef.current && currentSlugRef.current === workspaceSlug && page === currentPage) {
-      // prevent multiple fetches for same slug and page
-      return;
-    }
-
-    fetchingRef.current = true;
-    currentSlugRef.current = workspaceSlug as string;
-
-    setIsLoadingActivity(true);
-    setError(null);
-
-    try {
-      if (!isAuthenticated()) {
-        router.push("/login");
-        fetchingRef.current = false;
+  const fetchData = useCallback(
+    async (page: number = 1) => {
+      if (
+        fetchingRef.current &&
+        currentSlugRef.current === workspaceSlug &&
+        page === currentPage
+      ) {
+        // prevent multiple fetches for same slug and page
         return;
       }
 
-      // Only fetch workspace if not already loaded
-      let ws = workspace;
-      if (!ws) {
-        setIsLoading(true);
-        ws = await getWorkspaceBySlug(workspaceSlug as string);
-        if (!ws) {
-          setError("Workspace not found");
-          setIsLoading(false);
+      fetchingRef.current = true;
+      currentSlugRef.current = workspaceSlug as string;
+
+      setIsLoadingActivity(true);
+      setError(null);
+
+      try {
+        if (!isAuthenticated()) {
+          router.push("/login");
           fetchingRef.current = false;
           return;
         }
-        setWorkspace(ws);
+
+        // Only fetch workspace if not already loaded
+        let ws = workspace;
+        if (!ws) {
+          setIsLoading(true);
+          ws = await getWorkspaceBySlug(workspaceSlug as string);
+          if (!ws) {
+            setError("Workspace not found");
+            setIsLoading(false);
+            fetchingRef.current = false;
+            return;
+          }
+          setWorkspace(ws);
+          setIsLoading(false);
+        }
+
+        let entityType: string | undefined = undefined;
+        if (activityFilter !== "all") {
+          entityType =
+            activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1);
+        }
+
+        // Fetch recent activity from workspace context API with pagination
+        const recentActivityResponse = await getWorkspaceRecentActivity(ws.id, {
+          limit: 20, // Set limit per page
+          page: page,
+          entityType,
+        });
+
+        // Map all required ActivityLog properties
+        const mappedActivities: ActivityLog[] =
+          recentActivityResponse.activities.map((item: any) => ({
+            id: item.id,
+            user: item.user
+              ? {
+                  id: item.user.id || "unknown",
+                  name: item.user.name || "Unknown User",
+                  email: item.user.email || "unknown@example.com",
+                  avatar: item.user.avatar || undefined,
+                }
+              : {
+                  id: "unknown",
+                  name: "Unknown User",
+                  email: "unknown@example.com",
+                },
+            action: item.action,
+            target: item.description,
+            project: undefined, // optionally parse from metadata or elsewhere
+            time: new Date(item.createdAt).toLocaleString(), // format date nicely
+            comment: item.metadata?.comment || undefined,
+            type: item.entityType?.toLowerCase() as ActivityLog["type"],
+            // Required ActivityLog fields
+            description: item.description,
+            entityType: item.entityType,
+            entityId: item.entityId,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+          }));
+
+        setActivities(mappedActivities);
+
+        // Set pagination info from response
+        if (recentActivityResponse.pagination) {
+          setCurrentPage(recentActivityResponse.pagination.currentPage);
+          setTotalPages(recentActivityResponse.pagination.totalPages);
+        }
+      } catch (e) {
+        console.error("Error fetching workspace activity:", e);
+        setError(
+          e instanceof Error ? e.message : "Failed to load workspace activity"
+        );
+      } finally {
         setIsLoading(false);
+        setIsLoadingActivity(false);
+        fetchingRef.current = false;
       }
-
-      let entityType: string | undefined = undefined;
-      if (activityFilter !== "all") {
-        entityType =
-          activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1);
-      }
-
-      // Fetch recent activity from workspace context API with pagination
-      const recentActivityResponse = await getWorkspaceRecentActivity(ws.id, {
-        limit: 20, // Set limit per page
-        page: page,
-        entityType,
-      });
-
-      // Map all required ActivityLog properties
-      const mappedActivities: ActivityLog[] =
-        recentActivityResponse.activities.map((item: any) => ({
-          id: item.id,
-          user: item.user
-            ? {
-                id: item.user.id || "unknown",
-                name: item.user.name || "Unknown User",
-                email: item.user.email || "unknown@example.com",
-                avatar: item.user.avatar || undefined,
-              }
-            : {
-                id: "unknown",
-                name: "Unknown User",
-                email: "unknown@example.com",
-              },
-          action: item.action,
-          target: item.description,
-          project: undefined, // optionally parse from metadata or elsewhere
-          time: new Date(item.createdAt).toLocaleString(), // format date nicely
-          comment: item.metadata?.comment || undefined,
-          type: item.entityType?.toLowerCase() as ActivityLog["type"],
-          // Required ActivityLog fields
-          description: item.description,
-          entityType: item.entityType,
-          entityId: item.entityId,
-          createdAt: item.createdAt,
-          updatedAt: item.updatedAt,
-        }));
-
-      setActivities(mappedActivities);
-      
-      // Set pagination info from response
-      if (recentActivityResponse.pagination) {
-        setCurrentPage(recentActivityResponse.pagination.currentPage);
-        setTotalPages(recentActivityResponse.pagination.totalPages);
-      }
-    } catch (e) {
-      console.error("Error fetching workspace activity:", e);
-      setError(
-        e instanceof Error ? e.message : "Failed to load workspace activity"
-      );
-    } finally {
-      setIsLoading(false);
-      setIsLoadingActivity(false);
-      fetchingRef.current = false;
-    }
-  }, [
-    workspaceSlug,
-    getWorkspaceBySlug,
-    getWorkspaceRecentActivity,
-    isAuthenticated,
-    router,
-    activityFilter,
-    workspace,
-    currentPage,
-  ]);
+    },
+    [
+      workspaceSlug,
+      getWorkspaceBySlug,
+      getWorkspaceRecentActivity,
+      isAuthenticated,
+      router,
+      activityFilter,
+      workspace,
+      currentPage,
+    ]
+  );
 
   // Handle filter changes - reset to page 1
   const handleFilterChange = async (newFilter: "all" | ActivityLog["type"]) => {
@@ -307,11 +314,27 @@ function WorkspaceActivityContent() {
   });
 
   if (isLoading) {
-    return <Loader text="Fetching Activity Details" />;
+    return (
+      <InfoPanel title={"Workspace Activity"} subtitle={""}>
+        <div className="activity-loading-container">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="activity-loading-item">
+              <div className="activity-loading-avatar" />
+              <div className="activity-loading-content">
+                <div className="activity-loading-title" />
+                <div className="activity-loading-subtitle" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </InfoPanel>
+    );
   }
 
   if (error) {
-    return <ErrorState error="Something went wrong" onRetry={() => fetchData()} />;
+    return (
+      <ErrorState error="Something went wrong" onRetry={() => fetchData()} />
+    );
   }
 
   if (!workspace) {
@@ -440,7 +463,9 @@ function WorkspaceActivityContent() {
           error={error}
           onRetry={() => fetchData(currentPage)}
           onClearFilter={
-            activityFilter !== "all" ? () => handleFilterChange("all") : undefined
+            activityFilter !== "all"
+              ? () => handleFilterChange("all")
+              : undefined
           }
           emptyMessage={
             activityFilter === "all"

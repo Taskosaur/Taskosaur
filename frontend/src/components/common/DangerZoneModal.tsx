@@ -360,10 +360,10 @@ export default function DangerZoneModal({
                 disabled={!isConfirmationValid() || isSubmitting}
               >
                 {isSubmitting ? (
-                  <>
-                    <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                    {selectedAction.name}ing...
-                  </>
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin h-4 w-4 border-2 capitalize border-white border-t-transparent rounded-full" />
+                    <span>{selectedAction.name}ing...</span>
+                  </div>
                 ) : (
                   `${selectedAction.label}`
                 )}

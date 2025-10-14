@@ -29,6 +29,8 @@ import { formatDateForApi } from "@/utils/handleDateChange";
 import MemberSelect from "../common/MemberSelect";
 import Divider from "../common/Divider";
 import { ToggleSwitch } from "../common/ToggleButton";
+import { TASK_TYPE_OPTIONS, TaskTypeIcon, getTaskTypeHexColor } from "@/utils/data/taskData";
+import { DynamicBadge } from "@/components/common/DynamicBadge";
 
 interface TaskDetailClientProps {
   task: any;
@@ -38,6 +40,7 @@ interface TaskDetailClientProps {
   open?: string;
   onTaskRefetch?: () => void;
   onClose?: () => void;
+  showAttachmentSection?: boolean;
 }
 
 export default function TaskDetailClient({
@@ -48,6 +51,7 @@ export default function TaskDetailClient({
   open,
   onTaskRefetch,
   onClose,
+  showAttachmentSection = true,
 }: TaskDetailClientProps) {
   const {
     updateTask,
@@ -78,6 +82,7 @@ export default function TaskDetailClient({
     status: false,
     dueDate: false,
     startDate: false,
+    taskType: false,
   });
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
@@ -115,7 +120,15 @@ export default function TaskDetailClient({
       typeof task.priority === "object" ? task.priority?.name : task.priority,
     dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
     startDate: task.startDate ? task.startDate.split("T")[0] : "",
+    taskType: task.type || task.taskType || "",
   });
+
+  // Track if there are unsaved changes
+  const hasUnsavedChanges =
+    editTaskData.title !== task.title ||
+    editTaskData.description !== task.description ||
+    editTaskData.dueDate !== (task.dueDate ? task.dueDate.split("T")[0] : "");
+
   const handleStartDateChange = async (newStartDate: string) => {
     try {
       const updateData: UpdateTaskRequest = {
@@ -155,6 +168,7 @@ export default function TaskDetailClient({
   const [autoOpenDropdown, setAutoOpenDropdown] = useState({
     priority: false,
     status: false,
+    taskType: false,
   });
   const [allowEmailReplies, setAllowEmailReplies] = useState(
     task.allowEmailReplies || false
@@ -163,8 +177,8 @@ export default function TaskDetailClient({
   const today = new Date().toISOString().split("T")[0];
   // Exception: Assignee or reporter has access to all actions except Assignment section
   const isAssigneeOrReporter =
-    currentUser?.id === assignees[0]?.id ||
-    currentUser?.id === reporters[0]?.id;
+    assignees?.some((a) => a?.id === currentUser?.id) ||
+    reporters?.some((r) => r?.id === currentUser?.id);
 
   const handleStatusChange = async (item: any) => {
     if (!item) return;
@@ -341,12 +355,12 @@ export default function TaskDetailClient({
           name: folderName,
           id: folderId,
         });
-
-        setHasAccess(accessData?.canChange || isAssigneeOrReporter || false);
+        // console.log(accessData)
+        setHasAccess(accessData?.canChange || isAssigneeOrReporter || task.createdBy === currentUser.id );
         setHasAccessLoaded(true);
       } catch (error) {
         console.error("Error fetching user access:", error);
-        setHasAccess(isAssigneeOrReporter || false);
+        setHasAccess(isAssigneeOrReporter);
         setHasAccessLoaded(true);
       }
     };
@@ -499,7 +513,7 @@ export default function TaskDetailClient({
     }
   };
 
-   const handleEmailRepliesToggle = async (enabled: boolean) => {
+  const handleEmailRepliesToggle = async (enabled: boolean) => {
     try {
       await updateTask(taskId, {
         allowEmailReplies: enabled,
@@ -507,7 +521,7 @@ export default function TaskDetailClient({
       setAllowEmailReplies(enabled);
       task.allowEmailReplies = enabled;
       toast.success(
-        `Email replies ${enabled ? 'enabled' : 'disabled'} successfully.`
+        `Email replies ${enabled ? "enabled" : "disabled"} successfully.`
       );
     } catch (error) {
       toast.error("Failed to update email replies setting.");
@@ -644,6 +658,7 @@ export default function TaskDetailClient({
       status: false,
       dueDate: false,
       startDate: false,
+      taskType: false,
     });
   };
 
@@ -684,6 +699,7 @@ export default function TaskDetailClient({
         status: false,
         dueDate: false,
         startDate: false,
+        taskType: false,
       });
       toast.success("Task updated successfully.");
     } catch (error) {
@@ -718,6 +734,7 @@ export default function TaskDetailClient({
                 : task.priority,
             dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
             startDate: task.startDate ? task.startDate.split("T")[0] : "",
+            taskType: task.type || task.taskType || "",
           });
           setIsEditingTask({
             title: false,
@@ -726,6 +743,7 @@ export default function TaskDetailClient({
             status: false,
             dueDate: false,
             startDate: false,
+            taskType: false,
           });
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         },
@@ -738,6 +756,7 @@ export default function TaskDetailClient({
         status: false,
         dueDate: false,
         startDate: false,
+        taskType: false,
       });
     }
   };
@@ -800,29 +819,40 @@ export default function TaskDetailClient({
       ? `/${workspaceSlug}/tasks/${task.id}`
       : `/tasks/${task.id}`;
 
-
   return (
     <div className="dashboard-container">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-[var(--foreground)] capitalize">
-              {task.title}
-            </h1>
-            <div className="flex items-center gap-2">
-              {open === "modal" && (
-                <div className="absolute -top-[26px] right-10 z-50">
-                  {isAuth && (
-                    <Tooltip content="Expand to full screen" position="left">
-                      <div onClick={() => router.push(detailUrl)}>
-                        <CgArrowsExpandRight className="size-[17px] stroke-[0.5px] cursor-pointer" />
-                      </div>
-                    </Tooltip>
-                  )}
-                </div>
-              )}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl font-bold text-[var(--foreground)] capitalize">
+                {task.title}
+              </h1>
+              <div className="flex items-center gap-2">
+                {open === "modal" && (
+                  <div className="absolute -top-[25px] right-11 z-50">
+                    {isAuth && (
+                      <Tooltip content="Expand to full screen" position="left">
+                        <div onClick={() => router.push(detailUrl)}>
+                          <CgArrowsExpandRight className="size-[17px] stroke-[0.5px] cursor-pointer" />
+                        </div>
+                      </Tooltip>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Created By Info */}
+            <span className="text-sm text-[var(--muted-foreground)]">
+              {task.createdByUser
+                ? `Created by ${task.createdByUser.firstName} ${task.createdByUser.lastName}`
+                : task.emailThreadId
+                ? "Created from mail"
+                : ""}
+            </span>
           </div>
+
           {task.createdBy === currentUser?.id && (
             <div className=" flex gap-2">
               {!task.emailThreadId && (
@@ -870,18 +900,19 @@ export default function TaskDetailClient({
                     }
                     editMode={true}
                   />
-                  <div className="flex items-center gap-4 mt-4">
+                  <div className="flex items-center justify-end gap-4 mt-4">
                     <ActionButton
                       onClick={handleSaveTaskEdit}
                       variant="outline"
                       secondary
-                      className="justify-center bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90"
+                      disabled={!hasUnsavedChanges}
+                      className="justify-center bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--primary)]"
                     >
                       Save Changes
                     </ActionButton>
                     <ActionButton
                       onClick={handleCancelTaskEdit}
-                      variant="outline"
+                      secondary
                       className="justify-center"
                     >
                       Cancel
@@ -901,18 +932,20 @@ export default function TaskDetailClient({
               )}
             </div>
 
-            <TaskAttachments
-              attachments={attachments}
-              isUploading={isUploading}
-              loadingAttachments={loadingAttachments}
-              onFileUpload={handleFileUpload}
-              onDownloadAttachment={handleDownloadAttachment}
-              onDeleteAttachment={handleDeleteAttachment}
-              hasAccess={hasAccess}
-            />
+            {showAttachmentSection && (
+              <TaskAttachments
+                attachments={attachments}
+                isUploading={isUploading}
+                loadingAttachments={loadingAttachments}
+                onFileUpload={handleFileUpload}
+                onDownloadAttachment={handleDownloadAttachment}
+                onDeleteAttachment={handleDeleteAttachment}
+                hasAccess={hasAccess}
+              />
+            )}
 
             {!task.parentTaskId && (
-              <div className="-mt-5">
+              <div className="">
                 <Subtasks
                   taskId={taskId}
                   projectId={task.projectId || task.project?.id}
@@ -920,6 +953,7 @@ export default function TaskDetailClient({
                   onSubtaskUpdated={() => {}}
                   onSubtaskDeleted={() => {}}
                   showConfirmModal={showConfirmModal}
+                  isAssignOrRepoter={isAssigneeOrReporter}
                 />
               </div>
             )}
@@ -953,6 +987,130 @@ export default function TaskDetailClient({
                     />
                   </div>
                 </div>
+
+                {/* Task Type */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm">Task Type</Label>
+                    {hasAccess && (
+                      <button
+                        type="button"
+                        className="rounded transition flex items-center cursor-pointer text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs p-1"
+                        onClick={() => {
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            taskType: true,
+                          }));
+                          setAutoOpenDropdown((prev) => ({
+                            ...prev,
+                            taskType: true,
+                          }));
+                        }}
+                        tabIndex={0}
+                        aria-label="Edit Task Type"
+                        style={{ lineHeight: 0 }}
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Conditionally render badge or dropdown */}
+                  <div className="mt-2">
+                    {isEditingTask.taskType ? (
+                      <DropdownAction
+                        currentItem={
+                          editTaskData.taskType
+                            ? {
+                                id: editTaskData.taskType,
+                                name:
+                                  TASK_TYPE_OPTIONS.find(
+                                    (type) => type.value === editTaskData.taskType
+                                  )?.label || "Task",
+                                color: "#6B7280",
+                              }
+                            : {
+                                id: "",
+                                name: "Select task type",
+                                color: "#6B7280",
+                              }
+                        }
+                        availableItems={TASK_TYPE_OPTIONS.map((type) => ({
+                          id: type.value,
+                          name: type.label,
+                          color: "#6B7280",
+                        }))}
+                        loading={false}
+                        forceOpen={autoOpenDropdown.taskType}
+                        onOpenStateChange={(isOpen) => {
+                          if (!isOpen) {
+                            setAutoOpenDropdown((prev) => ({
+                              ...prev,
+                              taskType: false,
+                            }));
+                            setIsEditingTask((prev) => ({
+                              ...prev,
+                              taskType: false,
+                            }));
+                          }
+                        }}
+                        onItemSelect={async (item) => {
+                          try {
+                            const updateData: UpdateTaskRequest = {
+                              type: item.id as
+                                | "TASK"
+                                | "STORY"
+                                | "BUG"
+                                | "EPIC"
+                                | "SUBTASK",
+                            };
+                            await updateTask(taskId, updateData);
+                            handleTaskFieldChange("taskType", item.id);
+                            task.type = item.id;
+                            task.taskType = item.id;
+                            setIsEditingTask((prev) => ({
+                              ...prev,
+                              taskType: false,
+                            }));
+                            setAutoOpenDropdown((prev) => ({
+                              ...prev,
+                              taskType: false,
+                            }));
+                            toast.success("Task type updated successfully.");
+                          } catch (error) {
+                            toast.error("Failed to update task type.");
+                          }
+                        }}
+                        placeholder="Select task type..."
+                        showUnassign={false}
+                        hideAvatar={true}
+                        hideSubtext={true}
+                        itemType="user"
+                      />
+                    ) : editTaskData.taskType ? (
+                      <DynamicBadge
+                        label={
+                          TASK_TYPE_OPTIONS.find(
+                            (type) => type.value === editTaskData.taskType
+                          )?.label || "Task"
+                        }
+                        bgColor={getTaskTypeHexColor(editTaskData.taskType as keyof typeof TaskTypeIcon)}
+                        textColor="#FFFFFF"
+                        size="sm"
+                        variant="solid"
+                        className="flex-shrink-0"
+                      />
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-[13px] h-5 min-h-0 px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
+                      >
+                        No task type
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
                 {/* Priority */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1260,7 +1418,7 @@ export default function TaskDetailClient({
               <div>
                 <MemberSelect
                   label="Assignees"
-                  editMode={isAuth}
+                  editMode={isAuth && hasAccess}
                   selectedMembers={assignees}
                   projectId={task.projectId || task.project?.id}
                   onChange={async (newAssignees) => {
@@ -1288,7 +1446,7 @@ export default function TaskDetailClient({
                 <MemberSelect
                   label="Reporters"
                   selectedMembers={reporters}
-                  editMode={true}
+                  editMode={isAuth && hasAccess}
                   projectId={task.projectId || task.project?.id}
                   onChange={async (newReporters) => {
                     setReporters(newReporters);

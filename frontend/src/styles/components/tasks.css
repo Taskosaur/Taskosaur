@@ -1459,7 +1459,6 @@
 .activity-content {
   flex: 1;
   min-width: 0;
-  padding-top: 0.125rem;
 }
 
 /* Dark mode adjustments */

@@ -29,20 +29,6 @@ import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 import Tooltip from "../common/ToolTip";
 import SearchManager from "../header/SearchManager";
 
-// Logo component for unauthenticated state
-const Logo = () => (
-  <div className="flex items-center">
-    {/* Replace with your actual logo */}
-    <div className="flex items-center space-x-2">
-      <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-        <span className="text-primary-foreground font-bold text-sm">L</span>
-      </div>
-      <span className="font-semibold text-lg hidden sm:inline">YourApp</span>
-    </div>
-  </div>
-);
-
-// Login button component
 const LoginButton = () => {
   const router = useRouter();
   
@@ -528,6 +514,7 @@ export default function Header() {
           onClose={() => {
             setShowNewProjectModal(false);
           }}
+          workspaceSlug={workspaceSlugFromUrl as string}
         />
       )}
 
@@ -537,6 +524,7 @@ export default function Header() {
           onClose={() => {
             setShowNewTaskModal(false);
           }}
+          isAuth={isAuth}
           workspaceSlug={workspaceSlugFromUrl as string}
           projectSlug={projectSlugFromUrl as string}
         />

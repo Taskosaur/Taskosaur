@@ -274,11 +274,11 @@ export function LoginForm() {
       >
         <p className="login-footer-text">
           By signing in, you agree to our{" "}
-          <Link href="/terms" className="login-footer-link">
+          <Link href="/terms-of-service" className="login-footer-link">
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link href="/privacy" className="login-footer-link">
+          <Link href="/privacy-policy" className="login-footer-link">
             Privacy Policy
           </Link>
         </p>

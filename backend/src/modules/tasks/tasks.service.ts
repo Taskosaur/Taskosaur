@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { StatusCategory, Task, TaskPriority, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -265,15 +267,15 @@ export class TasksService {
     }
 
     // User access restrictions for non-elevated users
-    if (!isElevated) {
-      andConditions.push({
-        OR: [
-          { assignees: { some: { id: userId } } },
-          { reporters: { some: { id: userId } } },
-          { createdBy: userId },
-        ],
-      });
-    }
+    // if (!isElevated) {
+    //   andConditions.push({
+    //     OR: [
+    //       { assignees: { some: { id: userId } } },
+    //       { reporters: { some: { id: userId } } },
+    //       { createdBy: userId },
+    //     ],
+    //   });
+    // }
 
     // Add all conditions to the where clause
     if (andConditions.length > 0) {
@@ -693,6 +695,13 @@ export class TasksService {
             },
           },
           orderBy: { date: 'desc' },
+        },
+        createdByUser: {
+          select: {
+            firstName: true,
+            lastName: true,
+            id: true
+          }
         },
         _count: {
           select: {
@@ -1247,110 +1256,160 @@ export class TasksService {
       throw new ForbiddenException('User context required');
     }
 
-    const { type, slug, includeSubtasks = false } = params;
-    try {
-      const whereClause: any = {};
-      let workflowStatuses: any[] = [];
+    const {
+      slug,
+      includeSubtasks = false,
+      statusId,
+      sprintId,
+      page = 1,
+      limit = 25
+    } = params;
 
-      if (type === 'project') {
-        const project = await this.prisma.project.findUnique({
-          where: { slug },
-          include: {
-            workflow: {
-              include: {
-                statuses: {
-                  orderBy: { position: 'asc' },
-                },
+    try {
+      // Fetch project with workflow and statuses
+      const project = await this.prisma.project.findUnique({
+        where: { slug },
+        include: {
+          workflow: {
+            include: {
+              statuses: {
+                orderBy: { position: 'asc' },
               },
             },
           },
-        });
+        },
+      });
 
-        if (!project || !project.workflow) {
-          throw new Error('Project or project workflow not found');
-        }
-
-        // Check project access
-        await this.accessControl.getProjectAccess(project.id, userId);
-
-        whereClause.projectId = project.id;
-        workflowStatuses = project.workflow.statuses;
+      if (!project || !project.workflow) {
+        throw new NotFoundException('Project or project workflow not found');
       }
 
-      // Check if user has elevated access
-      let isElevated = false;
-      if (type === 'project') {
-        const projectAccess = await this.accessControl.getProjectAccess(
-          whereClause.projectId,
-          userId,
-        );
-        isElevated = projectAccess.isElevated;
+      // Check project access
+      const projectAccess = await this.accessControl.getProjectAccess(
+        project.id,
+        userId,
+      );
+
+      // Build where clause
+      const whereClause: any = {
+        projectId: project.id,
+      };
+      if (sprintId) {
+        whereClause.sprintId = sprintId;
       }
 
-      // Optional: Filter by user if not elevated
-      if (!isElevated) {
+      // Filter by user if not elevated
+      if (!projectAccess.isElevated) {
         whereClause.OR = [
-          { assigneeId: userId },
-          { reporterId: userId },
-          { createdBy: userId },
+          {
+            assignees: {
+              some: { id: userId },
+            },
+          },
+          {
+            reporters: {
+              some: { id: userId },
+            },
+          },
+          {
+            createdBy: userId,
+          },
         ];
       }
 
-      // Optional: Exclude subtasks
+
+      // Exclude subtasks if specified
       if (!includeSubtasks) {
         whereClause.parentTaskId = null;
       }
 
-      // Only get tasks that have statuses from the relevant workflow
+      // Filter workflow statuses based on statusId parameter
+      let workflowStatuses = project.workflow.statuses;
+      if (statusId) {
+        workflowStatuses = workflowStatuses.filter(status => status.id === statusId);
+
+        if (workflowStatuses.length === 0) {
+          throw new NotFoundException(`Status with ID ${statusId} not found in project workflow`);
+        }
+      }
+
+      // Only get tasks from workflow statuses
       whereClause.status = {
         id: {
           in: workflowStatuses.map((status) => status.id),
         },
       };
 
-      const tasks = await this.prisma.task.findMany({
-        where: whereClause,
-        include: {
-          status: {
-            select: {
-              id: true,
-              name: true,
-              color: true,
-              category: true,
-              position: true,
+      // Normalize pagination values
+      const currentPage = Math.max(1, page);
+      const pageLimit = Math.min(100, Math.max(1, limit));
+      const skip = (currentPage - 1) * pageLimit;
+
+      // Get counts for each status
+      const taskCountsByStatus = await Promise.all(
+        workflowStatuses.map(async (status) => {
+          const count = await this.prisma.task.count({
+            where: {
+              ...whereClause,
+              statusId: status.id,
+            },
+          });
+          return { statusId: status.id, count };
+        }),
+      );
+
+      const countMap = new Map(
+        taskCountsByStatus.map((item) => [item.statusId, item.count]),
+      );
+
+      // Fetch paginated tasks for each status in parallel
+      const statusTasksPromises = workflowStatuses.map(async (status) => {
+        const totalCount = countMap.get(status.id) || 0;
+        const totalPages = Math.ceil(totalCount / pageLimit);
+
+        const tasks = await this.prisma.task.findMany({
+          where: {
+            ...whereClause,
+            statusId: status.id,
+            sprintId
+          },
+          include: {
+            status: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+                category: true,
+                position: true,
+              },
+            },
+            assignees: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true
+              },
+            },
+            reporters: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true
+              },
             },
           },
-          assignees: {
-            select: { id: true, firstName: true, lastName: true, avatar: true },
-          },
-          reporters: {
-            select: { id: true, firstName: true, lastName: true },
-          },
-        },
-        orderBy: [{ status: { position: 'asc' } }, { taskNumber: 'desc' }],
-      });
+          orderBy: [{ taskNumber: 'desc' }],
+          skip: skip,
+          take: pageLimit,
+        });
 
-      const statusMap = new Map<string, TasksByStatus>();
-
-      // Initialize all workflow statuses
-      workflowStatuses.forEach((status) => {
-        statusMap.set(status.id, {
+        return {
           statusId: status.id,
           statusName: status.name,
           statusColor: status.color,
           statusCategory: status.category as StatusCategory,
-          tasks: [],
-          _count: 0,
-        });
-      });
-
-      // Group tasks by status
-      tasks.forEach((task) => {
-        const statusId = task.status.id;
-        const statusGroup = statusMap.get(statusId);
-
-        if (statusGroup) {
-          statusGroup.tasks.push({
+          tasks: tasks.map((task) => ({
             id: task.id,
             title: task.title,
             description: task.description || undefined,
@@ -1358,34 +1417,47 @@ export class TasksService {
             taskNumber: task.taskNumber,
             assignees: task.assignees
               ? task.assignees.map((assignee) => ({
-                  id: assignee.id,
-                  firstName: assignee.firstName,
-                  lastName: assignee.lastName,
-                  avatar: assignee.avatar || undefined,
-                }))
+                id: assignee.id,
+                firstName: assignee.firstName,
+                lastName: assignee.lastName,
+                avatar: assignee.avatar || undefined,
+              }))
               : undefined,
             reporters: task.reporters
               ? task.reporters.map((reporter) => ({
-                  id: reporter.id,
-                  firstName: reporter.firstName,
-                  lastName: reporter.lastName
-                }))
+                id: reporter.id,
+                firstName: reporter.firstName,
+                lastName: reporter.lastName,
+              }))
               : undefined,
             dueDate: task.dueDate ? task.dueDate.toISOString() : undefined,
             createdAt: task.createdAt.toISOString(),
             updatedAt: task.updatedAt.toISOString(),
-          });
-
-          statusGroup._count += 1;
-        }
+          })),
+          pagination: {
+            total: totalCount,
+            page: currentPage,
+            limit: pageLimit,
+            totalPages: totalPages,
+            hasNextPage: currentPage < totalPages,
+            hasPreviousPage: currentPage > 1,
+          },
+        };
       });
 
-      return Array.from(statusMap.values());
+      const results = await Promise.all(statusTasksPromises);
+
+      return results;
     } catch (error) {
       console.error('Error fetching tasks grouped by status:', error);
-      throw new Error('Failed to fetch tasks grouped by status');
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to fetch tasks grouped by status');
     }
   }
+
+
 
   // Additional helper methods with role-based filtering
   async findSubtasksByParent(
@@ -1559,4 +1631,141 @@ export class TasksService {
       })),
     }));
   }
+
+  async bulkDeleteTasks(
+    taskIds: string[],
+    userId: string,
+  ): Promise<{
+    deletedCount: number;
+    failedTasks: Array<{ id: string; reason: string }>;
+  }> {
+    if (!taskIds || taskIds.length === 0) {
+      throw new BadRequestException('No task IDs provided');
+    }
+
+    // Get user details to check for SUPERADMIN role
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // If user is SUPERADMIN, they can delete any task
+    const isSuperAdmin = user.role === 'SUPER_ADMIN';
+
+    // Fetch all tasks with their project and member information
+    const tasks = await this.prisma.task.findMany({
+      where: { id: { in: taskIds } },
+      include: {
+        project: {
+          include: {
+            members: {
+              where: { userId: userId },
+              select: { role: true },
+            },
+          },
+        },
+      },
+    });
+
+    const deletedTasks: string[] = [];
+    const failedTasks: Array<{ id: string; reason: string }> = [];
+
+    // Check permissions for each task
+    for (const task of tasks) {
+      let canDelete = false;
+
+      if (isSuperAdmin) {
+        // SUPERADMIN can delete any task
+        canDelete = true;
+      } else if (task.createdBy === userId) {
+        // User created the task
+        canDelete = true;
+      } else if (task.project.members.length > 0) {
+        // User is a project member - check role
+        const memberRole = task.project.members[0].role;
+        if (memberRole === 'OWNER' || memberRole === 'MANAGER') {
+          canDelete = true;
+        }
+      }
+
+      if (canDelete) {
+        deletedTasks.push(task.id);
+      } else {
+        failedTasks.push({
+          id: task.id,
+          reason: 'Insufficient permissions to delete this task',
+        });
+      }
+    }
+
+    // Check for tasks that weren't found
+    const foundTaskIds = tasks.map((t) => t.id);
+    const missingTaskIds = taskIds.filter((id) => !foundTaskIds.includes(id));
+    missingTaskIds.forEach((id) => {
+      failedTasks.push({
+        id,
+        reason: 'Task not found',
+      });
+    });
+
+    // Delete tasks that passed permission checks
+    let deletedCount = 0;
+    if (deletedTasks.length > 0) {
+      try {
+        await this.prisma.$transaction(async (tx) => {
+          // Delete related records first (if not handled by cascade)
+          await tx.taskComment.deleteMany({
+            where: { taskId: { in: deletedTasks } },
+          });
+
+          await tx.taskAttachment.deleteMany({
+            where: { taskId: { in: deletedTasks } },
+          });
+
+          await tx.taskLabel.deleteMany({
+            where: { taskId: { in: deletedTasks } },
+          });
+
+          await tx.taskWatcher.deleteMany({
+            where: { taskId: { in: deletedTasks } },
+          });
+
+          await tx.taskDependency.deleteMany({
+            where: {
+              OR: [
+                { dependentTaskId: { in: deletedTasks } },
+                { blockingTaskId: { in: deletedTasks } },
+              ],
+            },
+          });
+
+          await tx.timeEntry.deleteMany({
+            where: { taskId: { in: deletedTasks } },
+          });
+
+          // Delete the tasks
+          const result = await tx.task.deleteMany({
+            where: { id: { in: deletedTasks } },
+          });
+
+          deletedCount = result.count;
+        });
+
+      } catch (error) {
+        throw new InternalServerErrorException(
+          'Failed to delete tasks: ' + error.message,
+        );
+      }
+    }
+
+    return {
+      deletedCount,
+      failedTasks,
+    };
+  }
+
 }

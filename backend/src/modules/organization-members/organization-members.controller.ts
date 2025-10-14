@@ -12,7 +12,7 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrganizationMembersService } from './organization-members.service';
 import {
@@ -21,6 +21,7 @@ import {
 } from './dto/create-organization-member.dto';
 import { UpdateOrganizationMemberDto } from './dto/update-organization-member.dto';
 import { Scope } from 'src/common/decorator/scope.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
@@ -28,7 +29,7 @@ import { Scope } from 'src/common/decorator/scope.decorator';
 export class OrganizationMembersController {
   constructor(
     private readonly organizationMembersService: OrganizationMembersService,
-  ) {}
+  ) { }
 
   @Post()
   create(@Body() createOrganizationMemberDto: CreateOrganizationMemberDto) {
@@ -51,6 +52,18 @@ export class OrganizationMembersController {
   @Get('slug')
   findAllByOrgSlug(@Query('slug') slug?: string) {
     return this.organizationMembersService.findAllByOrgSlug(slug);
+  }
+
+  @Patch('set-default')
+  @ApiOperation({ summary: 'Set a default organization for a user' })
+  async setDefaultOrganization(
+    @CurrentUser() user: any,
+    @Query('organizationId', ParseUUIDPipe) organizationId: string,
+  ) {
+    return this.organizationMembersService.setDefaultOrganizationByOrgAndUser(
+      organizationId,
+      user.id,
+    );
   }
 
   @Patch(':id')

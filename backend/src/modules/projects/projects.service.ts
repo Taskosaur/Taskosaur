@@ -39,6 +39,14 @@ export class ProjectsService {
       select: {
         organizationId: true,
         organization: { select: { ownerId: true } },
+        members: {
+          where: {
+            role: {
+              in: [Role.OWNER, Role.MANAGER]
+            }
+          },
+          select: { userId: true, role: true },
+        },
       },
     });
 
@@ -100,7 +108,10 @@ export class ProjectsService {
         'Default workflow not found for organization',
       );
     }
-
+    const workspaceOwners = workspace.members.map((member) => ({
+      userId: member.userId,
+      role: member.role,
+    }));
     try {
       return await this.prisma.$transaction(async (tx) => {
         const project = await tx.project.create({
@@ -179,17 +190,27 @@ export class ProjectsService {
             _count: { select: { members: true, tasks: true, sprints: true } },
           },
         });
-
-        // Add creator as project member with MANAGER role
-        await tx.projectMember.create({
-          data: {
-            userId,
-            projectId: project.id,
-            role: Role.OWNER,
-            createdBy: userId,
-            updatedBy: userId,
-          },
+        const membersToAdd = new Map<string, Role>();
+        membersToAdd.set(userId, Role.OWNER);
+        workspaceOwners.forEach((member) => {
+          if (!membersToAdd.has(member.userId)) {
+            membersToAdd.set(member.userId, member.role);
+          }
         });
+        // Add creator as project member with MANAGER role
+        await Promise.all(
+          Array.from(membersToAdd.entries()).map(([memberId, memberRole]) =>
+            tx.projectMember.create({
+              data: {
+                userId: memberId,
+                projectId: project.id,
+                role: memberRole,
+                createdBy: userId,
+                updatedBy: userId,
+              },
+            }),
+          ),
+        );
 
         return project;
       });
