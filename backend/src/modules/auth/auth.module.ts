@@ -22,9 +22,9 @@ import { AccessControlService } from 'src/common/access-control.utils';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+        secret: configService.get<string>('BE_JWT_SECRET'),
         signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '1h'),
+          expiresIn: configService.get<string>('BE_JWT_EXPIRES_IN', '1h'),
         },
       }),
       inject: [ConfigService],

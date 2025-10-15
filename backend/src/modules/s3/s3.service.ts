@@ -6,7 +6,7 @@ import {
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import mime from 'mime';
+import { lookup } from 'mime-types';
 @Injectable()
 export class S3Service {
   private s3Client: S3Client;
@@ -24,7 +24,7 @@ export class S3Service {
   }
 
   async getPutPresignedUrl(key: string): Promise<string> {
-    const contentType = mime.getType(key) || 'application/octet-stream';
+    const contentType = lookup(key) || 'application/octet-stream';
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: key,

@@ -65,7 +65,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
+      expiresIn: this.configService.get<string>('BE_JWT_REFRESH_EXPIRES_IN', '7d'),
     });
 
     // Update refresh token in database

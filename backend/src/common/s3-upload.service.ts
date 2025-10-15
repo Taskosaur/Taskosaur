@@ -10,7 +10,7 @@ export class S3UploadService {
   private readonly bucketName: string;
 
   constructor() {
-    this.bucketName = process.env.AWS_BUCKET_NAME!;
+    this.bucketName = process.env.BE_AWS_BUCKET_NAME || process.env.AWS_BUCKET_NAME!;
 
     if (!this.bucketName) {
       throw new Error('AWS_BUCKET_NAME environment variable is required');
