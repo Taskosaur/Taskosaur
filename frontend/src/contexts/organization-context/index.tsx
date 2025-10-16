@@ -256,7 +256,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
       } catch (err) {
         console.error("Error fetching analytics data:", err);
         const errorMessage =
-          err instanceof Error
+          err?.message
             ? err.message
             : "Failed to load organization analytics data";
 

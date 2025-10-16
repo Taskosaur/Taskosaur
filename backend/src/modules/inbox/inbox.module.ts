@@ -17,6 +17,8 @@ import { EmailTemplatesController } from './controllers/email-templates.controll
 import { BullModule } from '@nestjs/bullmq';
 import { EmailSyncProcessor } from './processors/email-sync.processor';
 import { EmailSyncQueueService } from './services/email-sync-queue.service';
+import { StorageService } from '../storage/storage.service';
+import { S3Service } from '../storage/s3.service';
 
 @Module({
   imports: [
@@ -40,6 +42,8 @@ import { EmailSyncQueueService } from './services/email-sync-queue.service';
     EmailTemplatesService,
     EmailSyncProcessor,
     EmailSyncQueueService,
+    StorageService,
+    S3Service
   ],
   exports: [
     ProjectInboxService,

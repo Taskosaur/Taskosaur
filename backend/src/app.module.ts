@@ -34,7 +34,7 @@ import { SeederModule } from './seeder/seeder.module';
 import { ActivityLogModule } from './modules/activity-log/activity-log.module';
 import { ActivityNotificationInterceptor } from './common/interceptor/activity-notification.interceptor';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-import { S3Module } from './modules/s3/s3.module';
+import { S3Module } from './modules/storage/s3.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
 import { TaskLabelsModule } from './modules/task-label/task-labels.module';
 import { SettingsModule } from './modules/settings/settings.module';

@@ -191,6 +191,12 @@ export function OrganizationAnalytics({
     });
   };
 
+  if (error)
+    <ErrorState
+      error="Error loading organization analytics:"
+      onRetry={handleFetchData}
+    />;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -226,14 +232,6 @@ export function OrganizationAnalytics({
           </div>
         }
       />
-
-      {/* Error Alert */}
-      {error && (
-        <ErrorState
-          error="Error loading organization analytics: {error}"
-          onRetry={handleFetchData}
-        />
-      )}
 
       {/* No Data Message */}
       {!data && !loading && !error && (

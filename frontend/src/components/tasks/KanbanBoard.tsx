@@ -276,7 +276,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
               projectSlug={projectSlug as string}
               taskId={selectedTask.id}
               onClose={() => setIsEditModalOpen(false)}
-              showAttachmentSection={false}
+              
             />
           )}
         </CustomModal>

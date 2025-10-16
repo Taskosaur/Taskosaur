@@ -5,7 +5,6 @@ export interface UserData {
   password: string;
   firstName: string;
   lastName: string;
-  username: string;
 }
 
 export interface LoginData {

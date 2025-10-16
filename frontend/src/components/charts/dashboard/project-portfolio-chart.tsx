@@ -18,7 +18,7 @@ interface ProjectPortfolioChartProps {
 }
 
 export function ProjectPortfolioChart({ data }: ProjectPortfolioChartProps) {
-  const chartData = data.map((item) => ({
+  const chartData = data?.map((item) => ({
     name: chartConfig[item.status]?.label || item.status,
     value: item._count.status,
     fill: chartConfig[item.status]?.color || "#8B5CF6",
@@ -50,7 +50,7 @@ export function ProjectPortfolioChart({ data }: ProjectPortfolioChartProps) {
             label={({ name, value }) => `${name}: ${value}`}
             labelLine={false}
           >
-            {chartData.map((entry, index) => (
+            {chartData?.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
                 fill={entry.fill}

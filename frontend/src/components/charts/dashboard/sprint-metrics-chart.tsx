@@ -15,7 +15,7 @@ interface SprintMetricsChartProps {
 }
 
 export function SprintMetricsChart({ data }: SprintMetricsChartProps) {
-  const chartData = data.map(item => ({
+  const chartData = data?.map(item => ({
     status: chartConfig[item.status]?.label || item.status,
     count: item._count.status,
     fill: chartConfig[item.status]?.color || "#8B5CF6"

@@ -38,9 +38,9 @@ export function EntityCard({
             {heading}
           </div>
           {subheading && (
-            <p className="text-xs text-[var(--muted-foreground)] line-clamp-1">
+            <div className="text-xs text-[var(--muted-foreground)] line-clamp-1">
               {subheading}
-            </p>
+            </div>
           )}
         </div>
         {role && (
@@ -54,9 +54,9 @@ export function EntityCard({
       </div>
 
       {/* Description */}
-      <p className="text-sm text-[var(--muted-foreground)] line-clamp-2">
+      <div className="text-sm text-[var(--muted-foreground)] line-clamp-2">
         {description || "No description provided"}
-      </p>
+      </div>
 
       {/* Footer */}
       {footer && (

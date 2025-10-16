@@ -12,7 +12,7 @@ interface MonthlyTaskCompletionChartProps {
 }
 
 export function MonthlyTaskCompletionChart({ data }: MonthlyTaskCompletionChartProps) {
-  const chartData = data.map(item => ({
+  const chartData = data?.map(item => ({
     month: new Date(item.month + '-01').toLocaleDateString('en-US', { 
       month: 'short', 
       year: '2-digit' 

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/DropdownMenu";
 import { HiBell } from "react-icons/hi2";
 import { notificationApi } from "@/utils/api/notificationApi";
-
+import Tooltip from "../common/ToolTip";
 interface Notification {
   id: string;
   title: string;
@@ -130,6 +130,7 @@ export default function NotificationDropdown({
 
   return (
     <DropdownMenu>
+      <Tooltip content="Notifications" position="bottom" color="primary">
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -147,6 +148,7 @@ export default function NotificationDropdown({
           )}
         </Button>
       </DropdownMenuTrigger>
+      </Tooltip>
 
       <DropdownMenuContent
         className="header-dropdown-menu-content"

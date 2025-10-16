@@ -104,6 +104,7 @@ export default function UserAvatar({
         position: "relative",
         overflow: "hidden",
       }}
+      title={userName}
     >
       {shouldShowImage ? (
         <Image

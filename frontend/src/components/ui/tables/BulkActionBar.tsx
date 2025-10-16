@@ -33,17 +33,13 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
 
   return (
     <>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-300">
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg px-3 py-2 flex items-center gap-3">
+      <div className="fixed bottom-8 left-[65vw] -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-5 duration-300">
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-2xl px-4 py-2.5 flex items-center gap-3">
           <div className="flex items-center justify-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <span className="text-xs font-semibold text-primary">
-                {selectedCount}
-              </span>
-            </div>
-            <span className="text-sm font-medium whitespace-nowrap">
+            <div className="w-auto h-7 text-xs font-semibold rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               {selectedCount} {selectedCount === 1 ? "task" : "tasks"} selected
-            </span>
+            </div>
+           
           </div>
 
           <div className="h-5 w-px bg-[var(--border)] flex-shrink-0" />
@@ -53,9 +49,9 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
               variant="ghost"
               size="sm"
               onClick={handleDeleteClick}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 px-2"
+              className="text-destructive hover:text-destructive flex items-center justify-center hover:bg-destructive/10 h-8 px-2"
             >
-              <Trash2 className="w-4 h-4 mr-1" />
+              <Trash2 className="size-3" />
               <span className="text-sm">Delete</span>
             </Button>
 

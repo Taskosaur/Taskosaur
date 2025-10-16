@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/DropdownMenu";
 import { HiChevronDown, HiCog } from "react-icons/hi";
 import { RiLogoutCircleRLine } from "react-icons/ri";
+import ConfirmationModal from "../modals/ConfirmationModal";
 
 interface User {
   id: string;
@@ -37,6 +38,7 @@ export default function UserProfileMenu({
 }: UserProfileMenuProps) {
   const [isClient, setIsClient] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -61,8 +63,10 @@ export default function UserProfileMenu({
     try {
       setIsLoggingOut(true);
       await onLogout();
+      setLogoutModalOpen(false);
     } catch (error) {
       console.error("Logout failed:", error);
+    } finally {
       setIsLoggingOut(false);
     }
   };
@@ -79,81 +83,96 @@ export default function UserProfileMenu({
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className={`header-user-trigger ${className}`}>
-          <Avatar className="header-user-avatar">
-            <AvatarImage src={user?.avatar} alt={getInitials()} />
-            <AvatarFallback className="header-user-avatar-fallback">
-              {getInitials()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="header-user-info">
-            <div className="header-user-name">{getFullName()}</div>
-          </div>
-          <HiChevronDown className="header-user-chevron" />
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent
-        className="header-user-dropdown"
-        align="end"
-        sideOffset={6}
-      >
-        {/* User Info Header */}
-        <div className="header-user-info-header">
-          <Avatar className="header-user-info-avatar">
-            <AvatarImage src={user?.avatar} alt={getInitials()} />
-            <AvatarFallback className="header-user-info-avatar-fallback">
-              {getInitials()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="header-user-info-details">
-            <div className="header-user-info-name">{getFullName()}</div>
-            <div className="header-user-info-meta">
-              <span>{user.email}</span>
-              <Badge variant="secondary" className="header-user-info-badge">
-                {getUserRole()}
-              </Badge>
-            </div>
-          </div>
-        </div>
-
-        {/* Menu Items */}
-        <div className="header-user-menu-container">
-          {hasOrganizationAccess && (
-            <>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/settings/profile"
-                  className="header-user-menu-item"
-                >
-                  <div className="header-user-menu-icon-container header-user-menu-icon-container-settings">
-                    <HiCog className="header-user-menu-icon-settings" />
-                  </div>
-
-                  <div className="header-user-menu-text">Profile</div>
-                </Link>
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator className="my-1" />
-            </>
-          )}
-
-          <DropdownMenuItem
-            className="header-user-menu-item"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className={`header-user-trigger ${className}`}
           >
-            <div className="header-user-menu-icon-container header-user-menu-icon-container-logout">
-              <RiLogoutCircleRLine className="header-user-menu-icon-logout" />
+            <Avatar className="header-user-avatar">
+              <AvatarImage src={user?.avatar} alt={getInitials()} />
+              <AvatarFallback className="header-user-avatar-fallback">
+                {getInitials()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="header-user-info">
+              <div className="header-user-name">{getFullName()}</div>
             </div>
-            <div className="header-user-menu-text">
-              {isLoggingOut ? "Logging out..." : "Logout"}
+            <HiChevronDown className="header-user-chevron" />
+          </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent
+          className="header-user-dropdown"
+          align="end"
+          sideOffset={6}
+        >
+          {/* User Info Header */}
+          <div className="header-user-info-header">
+            <Avatar className="header-user-info-avatar">
+              <AvatarImage src={user?.avatar} alt={getInitials()} />
+              <AvatarFallback className="header-user-info-avatar-fallback">
+                {getInitials()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="header-user-info-details">
+              <div className="header-user-info-name">{getFullName()}</div>
+              <div className="header-user-info-meta">
+                <span>{user.email}</span>
+                <Badge variant="secondary" className="header-user-info-badge">
+                  {getUserRole()}
+                </Badge>
+              </div>
             </div>
-          </DropdownMenuItem>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          </div>
+
+          {/* Menu Items */}
+          <div className="header-user-menu-container">
+            {hasOrganizationAccess && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/settings/profile"
+                    className="header-user-menu-item"
+                  >
+                    <div className="header-user-menu-icon-container header-user-menu-icon-container-settings">
+                      <HiCog className="header-user-menu-icon-settings" />
+                    </div>
+                    <div className="header-user-menu-text">Profile</div>
+                  </Link>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="my-1" />
+              </>
+            )}
+
+            <DropdownMenuItem
+              className="header-user-menu-item"
+              onClick={() => setLogoutModalOpen(true)}
+              disabled={isLoggingOut}
+            >
+              <div className="header-user-menu-icon-container header-user-menu-icon-container-logout">
+                <RiLogoutCircleRLine className="header-user-menu-icon-logout" />
+              </div>
+              <div className="header-user-menu-text">
+                {isLoggingOut ? "Logging out..." : "Logout"}
+              </div>
+            </DropdownMenuItem>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <ConfirmationModal
+        isOpen={logoutModalOpen}
+        onClose={() => setLogoutModalOpen(false)}
+        onConfirm={handleLogout}
+        title="Confirm Logout"
+        message="Are you sure you want to log out? You’ll need to log in again to access your account."
+        confirmText="Logout"
+        cancelText="Cancel"
+        type="danger"
+      />
+    </>
   );
 }

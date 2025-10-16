@@ -213,9 +213,7 @@ function TasksPageContent() {
       setWorkspaces(workspacesData || []);
       setProjects(projectsData || []);
     } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Failed to load initial data"
-      );
+      setError(error?.message ? error.message : "Failed to load initial data");
     }
   }, [hasValidUserAndOrg, currentOrganizationId]);
 
@@ -257,7 +255,7 @@ function TasksPageContent() {
         });
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to load tasks");
+      setError(error?.message ? error.message : "Failed to load tasks");
     }
   }, [
     hasValidUserAndOrg,
@@ -286,7 +284,7 @@ function TasksPageContent() {
       // setGanttTasks(data || []);
     } catch (error) {
       setGanttError(
-        error instanceof Error ? error.message : "Failed to load Gantt data"
+        error?.message ? error.message : "Failed to load Gantt data"
       );
       setGanttTasks([]);
     } finally {
@@ -667,11 +665,20 @@ function TasksPageContent() {
             projects={projects}
             columns={columns}
             showAddTaskRow={false}
+            showBulkActionBar={
+              hasAccess ||
+              userAccess?.role === "OWNER" ||
+              userAccess?.role === "MANAGER"
+            }
           />
         );
     }
   };
   const showPagination = tasks.length > 0 && pagination.totalPages > 1;
+
+  if (error) {
+    return <ErrorState error={error} onRetry={handleRetry} />;
+  }
 
   return (
     <div className="dashboard-container h-[91vh] flex flex-col space-y-3">
@@ -765,30 +772,20 @@ function TasksPageContent() {
               )}
               {currentView === "list" && (
                 <div className="flex items-center gap-2">
-                  <Tooltip
-                    content="Sorting Manager"
-                    position="top"
-                    color="primary"
-                  >
-                    <SortIngManager
+                 
+                  <SortIngManager
                       sortField={sortField}
                       sortOrder={sortOrder}
                       onSortFieldChange={setSortField}
                       onSortOrderChange={setSortOrder}
                     />
-                  </Tooltip>
-                  <Tooltip
-                    content="Manage Columns"
-                    position="top"
-                    color="primary"
-                  >
+                
                     <ColumnManager
                       currentView={currentView}
                       availableColumns={columns}
                       onAddColumn={handleAddColumn}
                       onRemoveColumn={handleRemoveColumn}
                     />
-                  </Tooltip>
                 </div>
               )}
             </>
@@ -797,13 +794,7 @@ function TasksPageContent() {
       </div>
 
       {/* Scrollable Content */}
-      <div className="overflow-y-auto rounded-md">
-        {error ? (
-          <ErrorState error={error} onRetry={handleRetry} />
-        ) : (
-          renderContent()
-        )}
-      </div>
+      <div className="overflow-y-auto rounded-md">{renderContent()}</div>
 
       {/* Sticky Pagination */}
       {showPagination && (

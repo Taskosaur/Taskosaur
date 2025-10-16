@@ -489,11 +489,13 @@ model TaskComment {
 }
 
 model TaskAttachment {
-  id            String   @id @default(uuid()) @db.Uuid
-  fileName      String   @map("file_name")
-  filePath      String   @map("file_path")
-  fileSize      Int      @map("file_size")
-  mimeType      String   @map("mime_type")
+  id         String  @id @default(uuid()) @db.Uuid
+  fileName   String  @map("file_name")
+  filePath   String?  @map("file_path")
+  fileSize   Int     @map("file_size")
+  mimeType   String  @map("mime_type")
+  url        String? @map("url")
+  storageKey String? @map("storage_key")
   taskId        String   @map("task_id") @db.Uuid
   createdBy     String?  @map("created_by_id") @db.Uuid
   updatedBy     String?  @map("updated_by_id") @db.Uuid

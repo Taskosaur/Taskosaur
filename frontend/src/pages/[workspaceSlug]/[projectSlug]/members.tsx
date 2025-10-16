@@ -1,26 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import ActionButton from "@/components/common/ActionButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
 import { invitationApi } from "@/utils/api/invitationsApi";
 import { toast } from "sonner";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/DropdownMenu";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   HiMagnifyingGlass,
   HiUsers,
   HiExclamationTriangle,
-  HiChevronDown,
-  HiCheck,
-  HiUserPlus,
   HiCog,
   HiFolder,
   HiXMark,
@@ -38,8 +35,11 @@ import { ProjectInviteMemberModal } from "@/components/projects/ProjectInviteMem
 import Tooltip from "@/components/common/ToolTip";
 import { roles } from "@/utils/data/projectData";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
-import PendingInvitations, { PendingInvitationsRef } from "@/components/common/PendingInvitations";
+import PendingInvitations, {
+  PendingInvitationsRef,
+} from "@/components/common/PendingInvitations";
 import WorkspaceMembersSkeleton from "@/components/skeletons/WorkspaceMembersSkeleton";
+import ErrorState from "@/components/common/ErrorState";
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -72,6 +72,20 @@ const getStatusBadgeClass = (status: string) => {
   }
 };
 
+const getRoleBadgeClass = (role: string) => {
+  switch (role) {
+    case "OWNER":
+      return "organizations-role-badge-super-admin";
+    case "MANAGER":
+      return "organizations-role-badge-manager";
+    case "DEVELOPER":
+      return "organizations-role-badge-member";
+    case "VIEWER":
+      return "organizations-role-badge-viewer";
+    default:
+      return "organizations-role-badge-viewer";
+  }
+};
 
 const EmptyState = ({
   icon: Icon,
@@ -91,6 +105,7 @@ const EmptyState = ({
 
 function ProjectMembersContent() {
   const params = useParams();
+  const router = useRouter();
   const workspaceSlug = params?.workspaceSlug as string;
   const projectSlug = params?.projectSlug as string;
 
@@ -101,7 +116,7 @@ function ProjectMembersContent() {
     updateProjectMemberRole,
     removeProjectMember,
   } = useProjectContext();
-  const { isAuthenticated, getCurrentUser } = useAuth();
+  const { isAuthenticated, getCurrentUser, getUserAccess } = useAuth();
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [project, setProject] = useState<Project | null>(null);
@@ -122,40 +137,107 @@ function ProjectMembersContent() {
   const fetchPrevention = useGlobalFetchPrevention();
   const [memberToRemove, setMemberToRemove] = useState<any>(null);
   const pendingInvitationsRef = useRef<PendingInvitationsRef>(null);
+  const [userAccess, setUserAccess] = useState(null);
+  const [hasAccess, setHasAccess] = useState(false);
 
-  const [data, setData] = useState(null);
   useEffect(() => {
     if (!workspace?.id) return;
     getUserAccess({ name: "workspace", id: workspace?.id })
       .then((data) => {
-        setData(data);
-        setHasAccess(data?.canChange);
+        setHasAccess(
+          data?.canChange || data?.role === "OWNER" || data?.role === "MANAGER"
+        );
       })
       .catch((error) => {
         console.error("Error fetching user access:", error);
       });
   }, [workspace]);
 
+  useEffect(() => {
+    if (!project?.id) return;
+    getUserAccess({ name: "project", id: project?.id })
+      .then((data) => {
+        setUserAccess(data);
+        setHasAccess(
+          data?.canChange || data?.role === "OWNER" || data?.role === "MANAGER"
+        );
+      })
+      .catch((error) => {
+        console.error("Error fetching user access:", error);
+      });
+  }, [project]);
+
   const getRoleLabel = (role: string) => {
     const roleConfig = roles.find((r) => r.name === role);
     return roleConfig?.name || role;
   };
 
-  const getCurrentUserRole = () => {
-    const currentUser = getCurrentUser();
-    if (!currentUser) return null;
+  const getCurrentUserId = () => getCurrentUser()?.id;
+  const isCurrentUserOwner = project?.createdBy === getCurrentUserId();
 
-    const userMember = members.find((m) => m.email === currentUser.email);
-    return userMember?.role || null;
+  // Check if current user can manage members
+  const canManageMembers = () => {
+    return (
+      userAccess?.role === "OWNER" ||
+      userAccess?.role === "MANAGER" ||
+      hasAccess
+    );
   };
 
-  const canInviteMembers = () => {
-    const userRole = getCurrentUserRole();
-    return (
-      userRole === "SUPER_ADMIN" ||
-      userRole === "MANAGER" ||
-      data?.role === "OWNER"
-    );
+  // Check if a member's role can be updated
+  const canUpdateMemberRole = (member: Member) => {
+    const currentUserId = getCurrentUserId();
+    if (isCurrentUserOwner) {
+      return false;
+    }
+    // Current user cannot modify their own role
+    if (member.userId === currentUserId) {
+      return false;
+    }
+
+    // Only owner can modify other owners
+    if (member.role === "OWNER" && !isCurrentUserOwner) {
+      return false;
+    }
+
+    return canManageMembers();
+  };
+
+  // Check if a member can be removed
+  const canRemoveMember = (member: Member) => {
+    const currentUserId = getCurrentUserId();
+    if (isCurrentUserOwner) {
+      return false;
+    }
+    // User can always remove themselves (leave workspace)
+    if (member.userId === currentUserId) {
+      return true;
+    }
+
+    // Owner cannot be removed by others
+    if (member.role === "OWNER" &&  !isCurrentUserOwner) {
+      return false;
+    }
+
+    // Manager cannot remove other managers
+    // if (userAccess?.role === "MANAGER" && member.role === "MANAGER") {
+    //   return false;
+    // }
+
+    return canManageMembers();
+  };
+
+  // Get available roles for a member
+  const getAvailableRolesForMember = () => {
+    const availableRoles = roles.filter((role) => {
+      // Manager cannot assign Owner role
+      if (userAccess?.role === "MANAGER" && role.name === "OWNER") {
+        return false;
+      }
+      return true;
+    });
+
+    return availableRoles;
   };
 
   const fetchMembers = useCallback(
@@ -264,7 +346,7 @@ function ProjectMembersContent() {
         isInitializedRef.current = true;
       } catch (err) {
         if (requestIdRef.current === requestId && isMountedRef.current) {
-          setError(err instanceof Error ? err.message : "Failed to load data");
+          setError(err?.message ? err.message : "Failed to load data");
           setMembers([]);
           isInitializedRef.current = false;
         }
@@ -320,24 +402,9 @@ function ProjectMembersContent() {
     };
   }, []);
 
-  const { getUserAccess } = useAuth();
-  const [hasAccess, setHasAccess] = useState(false);
-
   const activeMembers = members.filter(
     (member) => member.status?.toLowerCase() !== "pending"
   );
-
-  useEffect(() => {
-    if (!project?.id) return;
-    getUserAccess({ name: "project", id: project?.id })
-      .then((data) => {
-        ``;
-        setHasAccess(data?.canChange);
-      })
-      .catch((error) => {
-        console.error("Error fetching user access:", error);
-      });
-  }, [project]);
 
   const refreshMembers = async () => {
     if (!project) return;
@@ -367,7 +434,7 @@ function ProjectMembersContent() {
       }
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load members");
+      setError(err?.message ? err.message : "Failed to load members");
       setMembers([]);
     }
   };
@@ -400,20 +467,19 @@ function ProjectMembersContent() {
   const handleRoleUpdate = async (memberId: string, newRole: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      setError("User not authenticated");
+      toast.error("User not authenticated");
       return;
     }
 
     try {
       setUpdatingMember(memberId);
       await updateProjectMemberRole(memberId, currentUser.id, newRole);
-      updateLocalStorageUser(newRole); // Update new role.
+      updateLocalStorageUser(newRole);
       await refreshMembers();
       toast.success("Member role updated successfully");
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to update role";
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setUpdatingMember(null);
@@ -423,7 +489,7 @@ function ProjectMembersContent() {
   const handleRemoveMember = async (member: ProjectMember) => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      setError("User not authenticated");
+      toast.error("User not authenticated");
       return;
     }
 
@@ -432,14 +498,21 @@ function ProjectMembersContent() {
       await removeProjectMember(member?.id, currentUser.id);
       await refreshMembers();
       setMemberToRemove(null);
+
+      // If user removed themselves, redirect to project page
+      if (member.userId === currentUser.id) {
+        toast.success("You have left the project");
+        router.push(`/workspaces/${workspaceSlug}/projects/${projectSlug}`);
+        return;
+      }
+
       toast.success("Member removed successfully");
     } catch (err) {
       const errorMessage = err.message
         ? err.message
         : "Failed to remove member";
-      setError(errorMessage);
-      setMemberToRemove(null);
       toast.error(errorMessage);
+      setMemberToRemove(null);
     } finally {
       setRemovingMember(null);
     }
@@ -470,8 +543,7 @@ function ProjectMembersContent() {
       });
 
       toast.success(`Invitation sent to ${email}`);
-      
-    
+
       if (pendingInvitationsRef.current) {
         await pendingInvitationsRef.current.refreshInvitations();
       }
@@ -486,7 +558,6 @@ function ProjectMembersContent() {
     }
   };
 
-  // Wrapper function to handle loading state
   const handleInviteWithLoading = async (email: string, role: string) => {
     setInviteLoading(true);
     try {
@@ -504,48 +575,17 @@ function ProjectMembersContent() {
     });
   };
 
-  const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-    );
-
-    if (diffInHours < 1) return "Just now";
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    if (diffInHours < 48) return "1 day ago";
-    return `${Math.floor(diffInHours / 24)} days ago`;
-  };
-
   if (loading) {
     return <WorkspaceMembersSkeleton />;
   }
 
   if (error && !members.length) {
-    return (
-      <div className="min-h-screen bg-[var(--background)]">
-        <Alert
-          variant="destructive"
-          className="bg-[var(--destructive)]/10 border-[var(--destructive)]/20 text-[var(--destructive)]"
-        >
-          <HiExclamationTriangle className="h-4 w-4" />
-          <AlertTitle>Error loading project members</AlertTitle>
-          <AlertDescription>
-            {error}
-            <div className="mt-4">
-              <ActionButton secondary onClick={retryFetch} className="h-9">
-                Try Again
-              </ActionButton>
-            </div>
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
+    return <ErrorState error={error} onRetry={retryFetch} />;
   }
 
   return (
     <div
-      className="dashboard-container space-y-6"
+      className="dashboard-container space-y-6 pt-0"
       data-automation-id="invite-member-btn"
     >
       <PageHeader
@@ -556,7 +596,7 @@ function ProjectMembersContent() {
             : "Manage project members and their permissions"
         }
         actions={
-          canInviteMembers() && (
+          hasAccess && (
             <ActionButton
               primary
               onClick={() => setShowInviteModal(true)}
@@ -577,7 +617,7 @@ function ProjectMembersContent() {
         {/* Members List - Takes most space */}
         <div className="lg:col-span-2">
           <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 px-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
                   <HiUsers className="w-5 h-5 text-[var(--muted-foreground)]" />
@@ -607,9 +647,10 @@ function ProjectMembersContent() {
               </div>
             </CardHeader>
 
-            <CardContent className="overflow-x-auto">
-              <div className="organizations-members-table-header">
-                <div className="organizations-members-table-header-grid">
+            <CardContent className="p-0">
+              {/* Table Header */}
+              <div className="px-4 py-3 bg-[var(--muted)]/30 border-b border-[var(--border)]">
+                <div className="grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
                   <div className="col-span-4">Member</div>
                   <div className="col-span-2">Status</div>
                   <div className="col-span-2">Joined</div>
@@ -618,9 +659,10 @@ function ProjectMembersContent() {
                 </div>
               </div>
 
+              {/* Table Content */}
               {activeMembers.length === 0 && !loading ? (
                 <EmptyState
-                  icon={HiUserPlus}
+                  icon={HiUsers}
                   title={
                     searchTerm
                       ? "No members found matching your search"
@@ -633,123 +675,136 @@ function ProjectMembersContent() {
                   }
                 />
               ) : (
-                <div className="organizations-members-table-body">
-                  {activeMembers.map((member) => (
-                    <div key={member.id} className="organizations-members-row">
-                      <div className="organizations-members-row-grid min-w-full overflow-x-auto">
-                        <div className="organizations-member-info">
-                          <div className="organizations-member-info-content">
-                            <UserAvatar
-                              user={{
-                                firstName: member.firstName,
-                                lastName: member.lastName,
-                                avatar: member.avatarUrl,
-                              }}
-                              size="sm"
-                            />
-                            <div>
-                              <div className="text-sm font-medium text-[var(--foreground)]">
-                                {member.firstName} {member.lastName}
-                              </div>
-                              <div className="text-xs text-[var(--muted-foreground)]">
-                                {member.email}
-                              </div>
-                              <div className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                                Joined {formatDate(member.joinedAt)}
-                                {member.lastActive &&
-                                  ` • Active ${formatRelativeTime(
-                                    member.lastActive
-                                  )}`}
+                <div className="divide-y divide-[var(--border)]">
+                  {activeMembers.map((member) => {
+                    const currentUserId = getCurrentUserId();
+                    const isCurrentUser = member.userId === currentUserId;
+                    const canEditRole = canUpdateMemberRole(member);
+                    const canRemove = canRemoveMember(member);
+                    const availableRoles = getAvailableRolesForMember();
+                    const isOwner = member.role === "OWNER";
+
+                    return (
+                      <div
+                        key={member.id}
+                        className="px-4 py-3 hover:bg-[var(--accent)]/30 transition-colors"
+                      >
+                        <div className="grid grid-cols-12 gap-3 items-center">
+                          {/* Member Info */}
+                          <div className="col-span-4">
+                            <div className="flex items-center gap-3">
+                              <UserAvatar
+                                user={{
+                                  firstName: member.firstName,
+                                  lastName: member.lastName,
+                                  avatar: member.avatarUrl,
+                                }}
+                                size="sm"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium text-[var(--foreground)] truncate">
+                                  {member.firstName} {member.lastName}
+                                </div>
+                                <div className="text-xs text-[var(--muted-foreground)] truncate">
+                                  {member.email}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="col-span-2">
-                          <Badge
-                            variant="outline"
-                            className={`text-xs bg-transparent px-2 py-1 rounded-md border-none ${getStatusBadgeClass(
-                              member.status || "ACTIVE"
-                            )}`}
-                          >
-                            {member.status || "ACTIVE"}
-                          </Badge>
-                        </div>
-
-                        <div className="col-span-2">
-                          <span className="text-sm text-[var(--muted-foreground)]">
-                            {formatDate(
-                              typeof member.joinedAt === "string"
-                                ? member.joinedAt
-                                : (member.joinedAt as Date)?.toISOString()
-                            )}
-                          </span>
-                        </div>
-
-                        <div className="col-span-2">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <ActionButton
-                                secondary
-                                variant="outline"
-                                disabled={
-                                  updatingMember === member.id || !hasAccess
-                                }
-                                className="w-24 justify-center"
-                                rightIcon={
-                                  <HiChevronDown className="w-3 h-3" />
-                                }
-                              >
-                                {updatingMember === member.id ? (
-                                  <div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
-                                ) : (
-                                  getRoleLabel(member.role)
-                                )}
-                              </ActionButton>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="z-50 border-none bg-[var(--card)] rounded-[var(--card-radius)] shadow-lg">
-                              {roles.map((role) => (
-                                <DropdownMenuItem
-                                  key={role.id}
-                                  onClick={() =>
-                                    handleRoleUpdate(member.id, role.name)
-                                  }
-                                  className="text-[var(--foreground)] hover:bg-[var(--primary)]/10"
-                                >
-                                  <div className="flex items-center justify-between w-full">
-                                    {role.name}
-                                    {member.role === role.name && (
-                                      <HiCheck className="w-4 h-4 text-[var(--primary)]" />
-                                    )}
-                                  </div>
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-
-                        <div className="col-span-2">
-                          <Tooltip
-                            content="Remove Member"
-                            position="top"
-                            color="danger"
-                          >
-                            <Button
+                          {/* Status */}
+                          <div className="col-span-2">
+                            <Badge
                               variant="outline"
-                              size="sm"
-                              onClick={() => setMemberToRemove(member)}
-                              disabled={
-                                removingMember === member.id || !hasAccess
-                              }
-                              className="h-7 border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)] transition-all duration-200"
+                              className={`text-xs bg-transparent px-2 py-1 rounded-md border-none ${getStatusBadgeClass(
+                                member.status || "ACTIVE"
+                              )}`}
                             >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </Tooltip>
+                              {member.status || "ACTIVE"}
+                            </Badge>
+                          </div>
+
+                          {/* Joined Date */}
+                          <div className="col-span-2">
+                            <span className="text-sm text-[var(--muted-foreground)]">
+                              {formatDate(
+                                typeof member.joinedAt === "string"
+                                  ? member.joinedAt
+                                  : (member.joinedAt as Date)?.toISOString()
+                              )}
+                            </span>
+                          </div>
+
+                          {/* Role */}
+                          <div className="col-span-2">
+                            {canEditRole ? (
+                              <Select
+                                value={member.role}
+                                onValueChange={(value) =>
+                                  handleRoleUpdate(member.id, value)
+                                }
+                                disabled={updatingMember === member.id}
+                              >
+                                <SelectTrigger className="h-7 text-xs border-none shadow-none bg-background text-[var(--foreground)]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="border-none bg-[var(--card)]">
+                                  {availableRoles.map((role) => (
+                                    <SelectItem
+                                      key={role.id}
+                                      value={role.name}
+                                      className="hover:bg-[var(--hover-bg)]"
+                                    >
+                                      {role.name.charAt(0) +
+                                        role.name.slice(1).toLowerCase()}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Badge
+                                className={`text-xs px-2 py-1 rounded-md border-none ${getRoleBadgeClass(
+                                  member.role
+                                )}`}
+                              >
+                                {member.role}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Action */}
+                          <div className="col-span-2">
+                            {canRemove && (
+                              <Tooltip
+                                content={
+                                  isCurrentUser
+                                    ? "Leave Project"
+                                    : isOwner
+                                    ? "Project owner cannot be removed"
+                                    : userAccess?.role === "MANAGER" &&
+                                      member.role === "MANAGER"
+                                    ? "Cannot remove other managers"
+                                    : "Remove Member"
+                                }
+                                position="top"
+                                color="danger"
+                              >
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setMemberToRemove(member)}
+                                  disabled={removingMember === member.id}
+                                  className="h-7 border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)] transition-all duration-200"
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </Tooltip>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -810,7 +865,9 @@ function ProjectMembersContent() {
               <div className="space-y-2">
                 {roles.map((role) => {
                   const count = members.filter(
-                    (m) => m.role === role.name
+                    (m) =>
+                      m.role === role.name &&
+                      m.status?.toLowerCase() !== "pending"
                   ).length;
                   return (
                     <div
@@ -834,7 +891,14 @@ function ProjectMembersContent() {
           </Card>
 
           {/* Pending Invitations */}
-          {hasAccess && <PendingInvitations ref={pendingInvitationsRef} entity={project} entityType="project" members={members} />}
+          {hasAccess && (
+            <PendingInvitations
+              ref={pendingInvitationsRef}
+              entity={project}
+              entityType="project"
+              members={members}
+            />
+          )}
         </div>
       </div>
 
@@ -842,7 +906,7 @@ function ProjectMembersContent() {
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
         onInvite={handleInviteWithLoading}
-        availableRoles={roles}
+        availableRoles={getAvailableRolesForMember()}
       />
 
       {memberToRemove && (
@@ -850,9 +914,19 @@ function ProjectMembersContent() {
           isOpen={true}
           onClose={() => setMemberToRemove(null)}
           onConfirm={() => handleRemoveMember(memberToRemove)}
-          title="Remove Member"
-          message="Are you sure you want to remove this member from the Project?"
-          confirmText="Remove"
+          title={
+            memberToRemove.userId === getCurrentUserId()
+              ? "Leave Project"
+              : "Remove Member"
+          }
+          message={
+            memberToRemove.userId === getCurrentUserId()
+              ? "Are you sure you want to leave this project? You will lose access to all project resources."
+              : "Are you sure you want to remove this member from the Project?"
+          }
+          confirmText={
+            memberToRemove.userId === getCurrentUserId() ? "Leave" : "Remove"
+          }
           cancelText="Cancel"
         />
       )}

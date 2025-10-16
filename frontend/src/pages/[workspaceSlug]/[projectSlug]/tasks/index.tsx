@@ -32,6 +32,7 @@ import SortingManager, {
 import Tooltip from "@/components/common/ToolTip";
 import { TokenManager } from "@/lib/api";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
+import { KanbanColumnSkeleton } from "@/components/skeletons/KanbanColumnSkeleton";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -47,7 +48,6 @@ function useDebounce<T>(value: T, delay: number): T {
 function ProjectTasksContent() {
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
-  const auth = useAuth();
   const workspaceApi = useWorkspaceContext();
   const projectApi = useProjectContext();
 
@@ -108,14 +108,15 @@ function ProjectTasksContent() {
   const [kanbanPage, setKanbanPage] = useState(1);
   const [kanbanLimit, setKanbanLimit] = useState(25);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
-  
-    const handleTaskSelect = (taskId: string) => {
-      setSelectedTasks((prev) =>
-        prev.includes(taskId)
-          ? prev.filter((id) => id !== taskId)
-          : [...prev, taskId]
-      );
-    };
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  const handleTaskSelect = (taskId: string) => {
+    setSelectedTasks((prev) =>
+      prev.includes(taskId)
+        ? prev.filter((id) => id !== taskId)
+        : [...prev, taskId]
+    );
+  };
   const error = contextError || localError;
 
   const [sortField, setSortField] = useState<SortField>(() => {
@@ -137,7 +138,6 @@ function ProjectTasksContent() {
     }
   });
 
-  // Authentication check only for action-based functions (create, update, delete)
   const checkAuthForAction = (action: () => void) => {
     if (!isAuth) {
       router.push("/login");
@@ -158,10 +158,8 @@ function ProjectTasksContent() {
     localStorage.setItem(COLUMNS_KEY, JSON.stringify(columns));
   }, [columns]);
 
-  // Create pagination info - different for authenticated and unauthenticated users
   const pagination = useMemo(() => {
     if (!isAuth) {
-      // For public users, use simple pagination based on publicTasks
       const totalPages = Math.ceil(publicTasksTotal / pageSize);
       return {
         currentPage,
@@ -198,7 +196,6 @@ function ProjectTasksContent() {
   const currentOrganizationId = TokenManager.getCurrentOrgId();
   const { createSection } = useGenericFilters();
 
-  // Load user access (only for authenticated users)
   useEffect(() => {
     if (project && isAuth) {
       getUserAccess({ name: "project", id: project.id })
@@ -206,13 +203,13 @@ function ProjectTasksContent() {
           setHasAccess(data?.canChange);
           setUserAccess(data);
         })
+        
         .catch((error) => {
           console.error("Error fetching user access:", error);
         });
     }
   }, [project, isAuth]);
 
-  // Initialize filter states from URL (only for authenticated users)
   useEffect(() => {
     if (typeof window !== "undefined" && isAuth) {
       const params = new URLSearchParams(window.location.search);
@@ -228,7 +225,6 @@ function ProjectTasksContent() {
     }
   }, [isAuth]);
 
-  // Load task priorities for Add Task row (only for authenticated users)
   useEffect(() => {
     const fetchMeta = async () => {
       if (!project?.id || !isAuth) return;
@@ -243,7 +239,7 @@ function ProjectTasksContent() {
   }, [project?.id, isAuth]);
 
   const validateRequiredData = useCallback(() => {
-    if (!isAuth) return true; // Skip validation for public users
+    if (!isAuth) return true;
 
     const issues = [];
 
@@ -305,7 +301,6 @@ function ProjectTasksContent() {
     isAuth,
   ]);
 
-  // Load task statuses (only for authenticated users)
   const loadStatusData = useCallback(async () => {
     if (!project?.id || statusesLoaded || !isAuth) return;
     try {
@@ -318,7 +313,6 @@ function ProjectTasksContent() {
     }
   }, [project?.id, statusesLoaded, projectApi, isAuth]);
 
-  // Load project members (only for authenticated users)
   const loadProjectMembers = useCallback(async () => {
     if (!project?.id || membersLoaded || !isAuth) return;
     try {
@@ -331,7 +325,6 @@ function ProjectTasksContent() {
     }
   }, [project?.id, membersLoaded, projectApi, isAuth]);
 
-  // Load public tasks for unauthenticated users
   const loadPublicTasks = useCallback(async () => {
     if (isAuth || !workspaceSlug || !projectSlug) return;
 
@@ -351,8 +344,6 @@ function ProjectTasksContent() {
       );
 
       setPublicTasks(tasks || []);
-      // For now, we'll estimate total based on returned tasks
-      // You might want to modify the API to return total count
       setPublicTasksTotal(tasks?.length || 0);
     } catch (error) {
       console.error("Failed to load public tasks:", error);
@@ -361,6 +352,7 @@ function ProjectTasksContent() {
       );
     } finally {
       setIsLoadingPublic(false);
+      setIsInitialLoad(false);
     }
   }, [
     isAuth,
@@ -371,9 +363,8 @@ function ProjectTasksContent() {
     getPublicProjectTasks,
   ]);
 
-  // Updated loadTasks for authenticated users only
   const loadTasks = useCallback(async () => {
-    if (!isAuth) return; // Skip for unauthenticated users
+    if (!isAuth) return;
 
     if (!currentOrganizationId || !project?.id) {
       return;
@@ -386,7 +377,6 @@ function ProjectTasksContent() {
     try {
       setLocalError(null);
 
-      // Build parameters for getAllTasks
       const params = {
         projectId: project.id,
         workspaceId: workspace.id,
@@ -402,14 +392,14 @@ function ProjectTasksContent() {
         page: currentPage,
         limit: pageSize,
       };
-
-      // Call getAllTasks - this will update tasks and taskResponse in context
       await getAllTasks(currentOrganizationId, params);
     } catch (error) {
       console.error("Failed to load tasks:", error);
       setLocalError(
         error instanceof Error ? error.message : "Failed to load tasks"
       );
+    } finally {
+      setIsInitialLoad(false);
     }
   }, [
     isAuth,
@@ -458,10 +448,9 @@ function ProjectTasksContent() {
         });
 
         if (page === 1 || !statusId) {
-          // Initial load or full refresh - replace all data
           setKanban(response.data || []);
+          setIsInitialLoad(false);
         } else {
-          // Load more for specific status - append tasks
           setKanban((prevKanban) => {
             return prevKanban.map((status) => {
               if (status.statusId === statusId) {
@@ -471,8 +460,8 @@ function ProjectTasksContent() {
                 if (newStatusData) {
                   return {
                     ...status,
-                    tasks: [...status.tasks, ...newStatusData.tasks], // Append new tasks
-                    pagination: newStatusData.pagination, // Update pagination info
+                    tasks: [...status.tasks, ...newStatusData.tasks],
+                    pagination: newStatusData.pagination,
                   };
                 }
               }
@@ -483,6 +472,7 @@ function ProjectTasksContent() {
       } catch (error) {
         console.error("Failed to load kanban data:", error);
         setKanban([]);
+        setIsInitialLoad(false);
       }
     },
     [getTaskKanbanStatus, isAuth]
@@ -501,8 +491,10 @@ function ProjectTasksContent() {
         projectId: project.id,
         workspaceId: workspace.id,
       });
+      setIsInitialLoad(false);
     } catch (error) {
       console.error("Failed to load Gantt data:", error);
+      setIsInitialLoad(false);
     }
   }, [currentOrganizationId, workspace?.id, project?.id, isAuth]);
 
@@ -527,7 +519,6 @@ function ProjectTasksContent() {
     }
   }, [currentOrganizationId, project?.id, isAuth]);
 
-  // Load supplementary data when project is available (only for authenticated users)
   useEffect(() => {
     if (project?.id && isAuth) {
       loadStatusData();
@@ -535,7 +526,6 @@ function ProjectTasksContent() {
     }
   }, [project?.id, isAuth]);
 
-  // Handle filter changes (only for authenticated users)
   const previousFiltersRef = useRef({
     page: currentPage,
     pageSize,
@@ -545,7 +535,7 @@ function ProjectTasksContent() {
   });
 
   useEffect(() => {
-    if (!isAuth) return; // Skip for unauthenticated users
+    if (!isAuth) return;
     if (!currentOrganizationId || !project?.id) return;
 
     const currentFilters = {
@@ -580,23 +570,19 @@ function ProjectTasksContent() {
     selectedPriorities,
   ]);
 
-  // Handle pagination changes for public users
   useEffect(() => {
     if (!isAuth && project) {
       loadPublicTasks();
     }
   }, [currentPage, pageSize, isAuth, project]);
 
-  // Get the appropriate tasks based on authentication status
   const displayTasks = isAuth ? tasks : publicTasks;
   const displayLoading = isAuth ? isLoading : isLoadingPublic;
 
-  // Sorting logic for tasks
   const sortedTasks = useMemo(() => {
     const sorted = [...displayTasks].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
-      // Handle date fields
       if (
         ["createdAt", "updatedAt", "completedAt", "timeline"].includes(
           sortField
@@ -605,23 +591,21 @@ function ProjectTasksContent() {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
       }
-      // Handle string comparison
+
       if (typeof aValue === "string" && typeof bValue === "string") {
         return sortOrder === "asc"
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      // Handle number comparison
+
       if (typeof aValue === "number" && typeof bValue === "number") {
         return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
       }
-      // Fallback
       return 0;
     });
     return sorted;
   }, [displayTasks, sortOrder, sortField]);
 
-  // Filter configurations (only for authenticated users)
   const statusFilters = useMemo(
     () =>
       isAuth
@@ -654,7 +638,6 @@ function ProjectTasksContent() {
     [availablePriorities, selectedPriorities, displayTasks, isAuth]
   );
 
-  // Filter actions - Only for authenticated users
   const safeToggleStatus = useCallback(
     (id: string) => {
       if (!isAuth) return;
@@ -764,7 +747,6 @@ function ProjectTasksContent() {
     setSelectedPriorities([]);
     setCurrentPage(1);
 
-    // Clear URL query parameters for filters
     const params = new URLSearchParams(window.location.search);
     params.delete("statuses");
     params.delete("priorities");
@@ -772,7 +754,6 @@ function ProjectTasksContent() {
     window.history.replaceState({}, "", newUrl);
   }, [isAuth]);
 
-  // Column management - Keep original functionality (no auth check)
   const handleAddColumn = (columnId: string) => {
     const columnConfigs: Record<
       string,
@@ -817,7 +798,6 @@ function ProjectTasksContent() {
     setColumns((prev) => prev.filter((col) => col.id !== columnId));
   };
 
-  // Task operations - ONLY these require authentication
   const handleTaskCreated = useCallback(async () => {
     if (!isAuth) return;
 
@@ -864,7 +844,6 @@ function ProjectTasksContent() {
     loadPublicTasks,
   ]);
 
-  // Pagination handlers - Work for both authenticated and unauthenticated users
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
   }, []);
@@ -878,9 +857,14 @@ function ProjectTasksContent() {
     setSearchInput("");
   }, []);
 
-  // Render content based on current view
   const renderContent = () => {
-    if (displayLoading) return <TaskTableSkeleton />;
+    if (isInitialLoad || displayLoading) {
+      return currentView === "kanban" ? (
+        <KanbanColumnSkeleton />
+      ) : (
+        <TaskTableSkeleton />
+      );
+    }
 
     if (!displayTasks.length) {
       return (
@@ -893,7 +877,6 @@ function ProjectTasksContent() {
 
     switch (currentView) {
       case "kanban":
-        // Only show kanban for authenticated users
         if (!isAuth) {
           return (
             <div className="text-center py-12">
@@ -902,6 +885,13 @@ function ProjectTasksContent() {
                 log in to access this view.
               </p>
             </div>
+          );
+        }
+        if (!kanban.length) {
+          return currentView === "kanban" ? (
+            <KanbanColumnSkeleton />
+          ) : (
+            <TaskTableSkeleton />
           );
         }
         return kanban.length ? (
@@ -925,7 +915,6 @@ function ProjectTasksContent() {
           </div>
         );
       case "gantt":
-        // Only show gantt for authenticated users
         if (!isAuth) {
           return (
             <div className="text-center py-12">
@@ -959,6 +948,7 @@ function ProjectTasksContent() {
             showAddTaskRow={userAccess?.role !== "VIEWER" && isAuth}
             onTaskSelect={handleTaskSelect}
             selectedTasks={selectedTasks}
+            showBulkActionBar={hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER"}
           />
         );
     }
@@ -1045,7 +1035,7 @@ function ProjectTasksContent() {
                     await handleTaskCreated();
                   } catch (error) {
                     const errorMessage =
-                      error instanceof Error
+                      error?.message
                         ? error.message
                         : "Failed to refresh tasks";
                     console.error("Error creating task:", errorMessage);
@@ -1078,8 +1068,8 @@ function ProjectTasksContent() {
               { shallow: true }
             );
           }}
-          viewKanban={isAuth} // Only show kanban option for authenticated users
-          viewGantt={isAuth} // Only show gantt option for authenticated users
+          viewKanban={isAuth}
+          viewGantt={isAuth}
           rightContent={
             <>
               {/* Hide most controls for unauthenticated users */}
@@ -1104,35 +1094,23 @@ function ProjectTasksContent() {
               {/* List view controls - Available for all users */}
               {currentView === "list" && (
                 <div className="flex items-center gap-2">
-                  <Tooltip
-                    content="Sorting Manager"
-                    position="top"
-                    color="primary"
-                  >
-                    <SortingManager
+                   <SortingManager
                       sortField={sortField}
                       sortOrder={sortOrder}
                       onSortFieldChange={setSortField}
                       onSortOrderChange={setSortOrder}
                     />
-                  </Tooltip>
-                  <Tooltip
-                    content="Manage Columns"
-                    position="top"
-                    color="primary"
-                  >
-                    <ColumnManager
+                   <ColumnManager
                       currentView={currentView}
                       availableColumns={columns}
                       onAddColumn={handleAddColumn}
                       onRemoveColumn={handleRemoveColumn}
                       setKabBanSettingModal={setKabBanSettingModal}
                     />
-                  </Tooltip>
                 </div>
               )}
               {/* Kanban view controls - Only for authenticated users */}
-              {isAuth && currentView === "kanban" && (
+              {isAuth && currentView === "kanban" && (hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER") && (
                 <div className="flex items-center gap-2">
                   <Tooltip
                     content="Manage Columns"

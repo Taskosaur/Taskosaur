@@ -14,6 +14,7 @@ import { HiOutlineCog } from "react-icons/hi2";
 import { AVAILABLE_COLUMN_TYPES } from "@/utils/taskColumnList";
 import { HiCheckCircle } from "react-icons/hi";
 import { CalendarDays } from "lucide-react";
+import Tooltip from "../common/ToolTip";
 
 interface ColumnManagerProps {
   availableColumns: ColumnConfig[];
@@ -56,15 +57,17 @@ export function ColumnManager({
   // List view
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-[var(--border)] cursor-pointer flex items-center gap-2"
-        >
-          <HiOutlineCog size={14} />
-        </Button>
-      </DropdownMenuTrigger>
+      <Tooltip content="Manage Columns" position="top" color="primary">
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-[var(--border)] cursor-pointer flex items-center gap-2"
+          >
+            <HiOutlineCog size={14} />
+          </Button>
+        </DropdownMenuTrigger>
+      </Tooltip>
       <DropdownMenuContent
         align="end"
         className="w-64 bg-[var(--card)] border-[var(--border)]"

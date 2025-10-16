@@ -27,7 +27,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
-  ) {}
+  ) { }
 
   async validateUser(email: string, password: string) {
     const user = await this.usersService.findByEmail(email);
@@ -94,18 +94,14 @@ export class AuthService {
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
-
-    // Check if username is taken (if provided)
-    if (registerDto.username) {
-      const existingUsername = await this.usersService.findByUsername(
-        registerDto.username,
-      );
-      if (existingUsername) {
-        throw new ConflictException('Username already taken');
-      }
+    const baseUsername = registerDto.email.split('@')[0].toLowerCase();
+    let finalUsername = baseUsername;
+    let counter = 1;
+    while (await this.usersService.findByUsername(finalUsername)) {
+      finalUsername = `${baseUsername}${counter}`;
+      counter++;
     }
-
-    // Create new user
+    registerDto.username = finalUsername
     const user = await this.usersService.create(registerDto);
 
     // Generate tokens
@@ -131,7 +127,6 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        username: user.username || undefined,
         role: user.role,
         avatar: user.avatar || undefined,
         bio: user.bio || undefined,
@@ -139,6 +134,7 @@ export class AuthService {
       },
     };
   }
+
 
   async refreshToken(refreshToken: string): Promise<AuthResponseDto> {
     try {

@@ -891,7 +891,7 @@ export default function TaskDetailClient({
                       handleTaskFieldChange("title", e.target.value)
                     }
                     placeholder="Task title"
-                    className="text-xs bg-[var(--background)] border-[var(--border)] "
+                    className="text-xs bg-[var(--background)] border-[var(--border)]"
                   />
                   <TaskDescription
                     value={editTaskData.description}
@@ -904,7 +904,7 @@ export default function TaskDetailClient({
                     <ActionButton
                       onClick={handleSaveTaskEdit}
                       variant="outline"
-                      secondary
+                      primary
                       disabled={!hasUnsavedChanges}
                       className="justify-center bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--primary)]"
                     >
@@ -1098,7 +1098,7 @@ export default function TaskDetailClient({
                         textColor="#FFFFFF"
                         size="sm"
                         variant="solid"
-                        className="flex-shrink-0"
+                        className="flex-shrink-0 min-w-[120px] min-h-[29.33px] text-[13px]"
                       />
                     ) : (
                       <Badge
@@ -1204,7 +1204,7 @@ export default function TaskDetailClient({
                     ) : (
                       <PriorityBadge
                         priority={editTaskData?.priority}
-                        className="text-[13px]"
+                        className="text-[13px] min-w-[120px] min-h-[29.33px]"
                       />
                     )}
                   </div>
@@ -1356,7 +1356,7 @@ export default function TaskDetailClient({
                     ) : (
                       <Badge
                         variant="outline"
-                        className="text-[13px] h-5 min-h-0 px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
+                        className="text-[13px] min-w-[120px] min-h-[29.33px] rounded-2xl  px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
                       >
                         {editTaskData.startDate
                           ? new Date(
@@ -1401,7 +1401,7 @@ export default function TaskDetailClient({
                     ) : (
                       <Badge
                         variant="outline"
-                        className="text-[13px] h-5 min-h-0 px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
+                        className="min-w-[120px] min-h-[29.33px] text-[13px] rounded-2xl  px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
                       >
                         {editTaskData.dueDate
                           ? new Date(editTaskData.dueDate).toLocaleDateString()

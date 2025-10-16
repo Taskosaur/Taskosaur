@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PriorityBadge } from "@/components/badges/PriorityBadge";
 import { Badge } from "@/components/ui/badge";
 import { BulkActionBar } from "@/components/ui/tables/BulkActionBar";
+import moment from 'moment';
 import {
   CalendarDays,
   User,
@@ -87,7 +88,7 @@ function extractTaskValue(task: Task, columnId: string): any {
 
     case "completedAt":
       return task.completedAt
-        ? new Date(task.completedAt).toLocaleDateString()
+        ? moment(task.completedAt).format("MMM D, YYYY")
         : "";
 
     case "storyPoints":
@@ -118,12 +119,12 @@ function extractTaskValue(task: Task, columnId: string): any {
 
     case "createdAt":
       return task.createdAt
-        ? new Date(task.createdAt).toLocaleDateString()
+        ? moment(task.createdAt).format("MMM D, YYYY")
         : "";
 
     case "updatedAt":
       return task.updatedAt
-        ? new Date(task.updatedAt).toLocaleDateString()
+        ? moment(task.updatedAt).format("MMM D, YYYY")
         : "";
 
     case "sprint":
@@ -162,37 +163,24 @@ function formatColumnValue(value: any, columnType: string): string {
         return value.name;
       }
       return value.toString();
-
     case "dateRange":
       if (typeof value === "object" && value.startDate && value.dueDate) {
-        const start = new Date(value.startDate).toLocaleDateString();
-        const end = new Date(value.dueDate).toLocaleDateString();
+        const start = moment(value.startDate).format("MMM D, YYYY");
+        const end = moment(value.dueDate).format("MMM D, YYYY");
         return `${start} - ${end}`;
       } else if (typeof value === "object" && value.startDate) {
-        return `${new Date(value.startDate).toLocaleDateString()} - TBD`;
+        return `${moment(value.startDate).format("MMM D, YYYY")} - TBD`;
       } else if (typeof value === "object" && value.dueDate) {
-        return `TBD - ${new Date(value.dueDate).toLocaleDateString()}`;
+        return `TBD - ${moment(value.dueDate).format("MMM D, YYYY")}`;
       }
       return "-";
-
     case "date":
-      if (value instanceof Date) {
-        return value.toLocaleDateString();
-      }
-      if (typeof value === "string") {
-        const [day, month, year] = value.split("/");
-        const parsedDate = new Date(`${year}-${month}-${day}`);
-        return parsedDate.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        });
+      if (value instanceof Date || typeof value === "string") {
+        return moment(value).format("MMM D, YYYY");
       }
       return value?.toString?.() ?? "";
-
     case "number":
       return value.toString();
-
     case "text":
     default:
       return value.toString();
@@ -224,6 +212,7 @@ interface TaskTableProps {
   projectMembers?: any[];
   currentProject?: any;
   workspaceMembers?: any[];
+  showBulkActionBar?: boolean;
 }
 
 const TaskTable: React.FC<TaskTableProps> = ({
@@ -242,6 +231,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   addTaskStatuses = [],
   projectMembers,
   currentProject,
+  showBulkActionBar = false,
 }) => {
   const { createTask, getTaskById, currentTask, bulkDeleteTasks } = useTask();
   const { getTaskStatusByProject } = useProject();
@@ -299,14 +289,13 @@ const TaskTable: React.FC<TaskTableProps> = ({
     fetchProjectMeta();
   }, [newTaskData.projectId, projectSlug]);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = moment().format("YYYY-MM-DD");
 
   const formatDate = (dateString: string) => {
     try {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diffTime = date.getTime() - now.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const date = moment(dateString);
+      const now = moment();
+      const diffDays = date.diff(now, 'days');
 
       if (diffDays === 0) return "Today";
       if (diffDays === 1) return "Tomorrow";
@@ -314,11 +303,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
       if (diffDays < -1) return `${Math.abs(diffDays)} days ago`;
       if (diffDays > 1) return `In ${diffDays} days`;
 
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-      });
+      // Format with month short, day, and conditionally year
+      if (date.year() !== now.year()) {
+        return date.format("MMM D, YYYY");
+      }
+      return date.format("MMM D");
     } catch {
       return dateString;
     }
@@ -865,7 +854,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
             ? newTaskData.assigneeIds
             : undefined, // Send array of assignee IDs
         dueDate: newTaskData.dueDate
-          ? new Date(newTaskData.dueDate + "T00:00:00.000Z").toISOString()
+          ? moment(newTaskData.dueDate).toISOString()
           : undefined,
       };
 
@@ -886,8 +875,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   const getToday = () => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
+    return moment().format("YYYY-MM-DD");
   };
 
   // Helper to check if title is invalid
@@ -904,15 +892,15 @@ const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   return (
-    <div className={cn("w-full", selectedTasks.length > 0 && "pb-24")}>
+    <div className="w-full">
       <div className="tasktable-container">
         <div className="tasktable-wrapper">
           <Table className="tasktable-table">
             <TableHeader className="tasktable-header">
               <TableRow className="tasktable-header-row">
-                <TableHead className="tasktable-header-cell-task">
-                  <div className="flex items-center gap-2">
-                    {onTaskSelect && (
+                <TableHead className="tasktable-header-cell-task pl-6">
+                  <div className="flex items-center gap-4">
+                    {onTaskSelect && showBulkActionBar && (
                       <Checkbox
                         checked={
                           selectedTasks.length === tasks.length &&
@@ -920,8 +908,14 @@ const TaskTable: React.FC<TaskTableProps> = ({
                         }
                         onCheckedChange={(checked) => {
                           if (checked) {
-                            tasks.forEach((task) => onTaskSelect(task.id));
+                            // Select all: only toggle tasks that are NOT already selected
+                            tasks.forEach((task) => {
+                              if (!selectedTasks.includes(task.id)) {
+                                onTaskSelect(task.id);
+                              }
+                            });
                           } else {
+                            // Deselect all: only toggle tasks that ARE selected
                             tasks.forEach((task) => {
                               if (selectedTasks.includes(task.id)) {
                                 onTaskSelect(task.id);
@@ -1255,7 +1249,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                 >
                   <TableCell className="tasktable-cell-task">
                     <div className="flex items-start gap-3">
-                      {onTaskSelect && (
+                      {onTaskSelect && showBulkActionBar && (
                         <div className="flex-shrink-0 mt-0.5">
                           <Checkbox
                             checked={selectedTasks.includes(task.id)}
@@ -1269,10 +1263,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="tasktable-task-title">{task.title}</h4>
+                          <h4 className="tasktable-task-title line-clamp-1 max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">{task.title}</h4>
                           <Badge
                             variant="outline"
-                            className="text-xs px-1.5 py-0 h-5"
+                            className="text-xs px-1.5 py-0 h-5 flex-shrink-0"
                           >
                             <span className="text-muted text-xs">
                               #{task.taskNumber}
@@ -1437,11 +1431,14 @@ const TaskTable: React.FC<TaskTableProps> = ({
         )}
       </div>
 
-      <BulkActionBar
-        selectedCount={selectedTasks.length}
-        onDelete={handleBulkDelete}
-        onClear={handleClearSelection}
-      />
+      {/* BulkActionBar - appears as a toast/modal at bottom-center */}
+      {onTaskSelect && showBulkActionBar && (
+        <BulkActionBar
+          selectedCount={selectedTasks.length}
+          onDelete={handleBulkDelete}
+          onClear={handleClearSelection}
+        />
+      )}
 
       {isEditModalOpen && (
         <CustomModal
@@ -1464,7 +1461,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
               taskId={selectedTask.id}
               onTaskRefetch={onTaskRefetch}
               onClose={() => setIsEditModalOpen(false)}
-              showAttachmentSection={false}
+              
             />
           )}
         </CustomModal>

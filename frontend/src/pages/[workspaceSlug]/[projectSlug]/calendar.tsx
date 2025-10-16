@@ -1,24 +1,18 @@
 import { useEffect, useState, useRef } from "react";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import Sidebar from "@/components/layout/Sidebar";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
-import Header from "@/components/layout/Header";
 import TaskCalendarView from "@/components/tasks/views/TaskCalendarView";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
 import { useProjectContext } from "@/contexts/project-context";
 import { useTask } from "@/contexts/task-context";
 import { useAuth } from "@/contexts/auth-context";
-import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
 import ActionButton from "@/components/common/ActionButton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   HiCalendarDays,
-  HiExclamationTriangle,
-  HiArrowPath,
 } from "react-icons/hi2";
+import ErrorState from "@/components/common/ErrorState";
 
 const LoadingSkeleton = () => (
   <div className="flex min-h-screen bg-[var(--background)]">
@@ -47,51 +41,6 @@ const LoadingSkeleton = () => (
               <div className="h-96 bg-[var(--muted)] rounded"></div>
             </CardContent>
           </Card>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const ErrorState = ({
-  error,
-  onRetry,
-}: {
-  error: string;
-  onRetry: () => void;
-}) => (
-  <div className="flex min-h-screen bg-[var(--background)]">
-    <Sidebar />
-    <div className="flex-1 flex flex-col">
-      <Header />
-      <div className="flex-1 p-6">
-        <div className="max-w-7xl mx-auto p-4">
-          <Alert
-            variant="destructive"
-            className="bg-[var(--destructive)]/10 border-[var(--destructive)]/20 text-[var(--destructive)]"
-          >
-            <HiExclamationTriangle className="h-4 w-4" />
-            <AlertDescription className="flex flex-col gap-4">
-              <span>{error}</span>
-              <div className="flex gap-2">
-                <Button
-                  onClick={onRetry}
-                  variant="outline"
-                  size="sm"
-                  className="h-9 border-none bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)] flex items-center gap-2"
-                >
-                  <HiArrowPath className="w-4 h-4" />
-                  Try Again
-                </Button>
-                <Link
-                  href="/workspaces"
-                  className="text-sm text-[var(--primary)] hover:text-[var(--primary)]/80 underline self-start"
-                >
-                  Back to Workspaces
-                </Link>
-              </div>
-            </AlertDescription>
-          </Alert>
         </div>
       </div>
     </div>
@@ -192,7 +141,7 @@ function ProjectTasksCalendarPageContent() {
       setDataLoaded(true);
     } catch (err) {
       console.error("Error loading page data:", err);
-      setError(err instanceof Error ? err.message : "Failed to load data");
+      setError(err?.message ? err.message : "Failed to load data");
     } finally {
       setLoading(false);
     }

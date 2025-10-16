@@ -206,9 +206,9 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
       ) : (
         <div className="space-y-0">
           {/* Activities List with Timeline */}
-          <div className="activity-timeline-container">
+          <div className="activity-timeline-container ">
             {displayedActivities.map((activity, index) => (
-              <div key={activity.id} className="activity-timeline-item">
+              <div key={activity.id} className="activity-timeline-item ">
                 {/* Timeline Connector */}
                 <div className="activity-timeline">
                   {/* Top Line */}

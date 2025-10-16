@@ -60,7 +60,7 @@ const AccessDenied = ({ onBack }: { onBack: () => void }) => (
               </p>
               <Button
                 onClick={onBack}
-                className="h-8 bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 hover:shadow-md transition-all duration-200 font-medium flex items-center gap-2"
+                className="h-8 bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 hover:shadow-md transition-all duration-200 font-medium flex items-center gap-2 mx-auto"
               >
                 <HiArrowLeft className="w-4 h-4" />
                 Back to Organizations
@@ -366,9 +366,6 @@ function OrganizationManagePageContent() {
               >
                 <HiViewGrid className="w-4 h-4" />
                 <span className="hidden sm:inline">Workflows</span>
-                {workflowLoading && (
-                  <div className="w-3 h-3 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
-                )}
               </TabsTrigger>
               <TabsTrigger
                 value="members"

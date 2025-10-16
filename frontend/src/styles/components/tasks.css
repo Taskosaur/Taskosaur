@@ -1054,18 +1054,16 @@
   scrollbar-width: thin;
 }
 
-
 .task-md-editor {
   background: var(--background) !important;
+
 }
 
-/* Toolbar */
 .task-md-editor .w-md-editor-toolbar {
   background: var(--background) !important;
  
-  border-bottom: 1px solid var(--border);
-}
 
+}
 .task-md-editor .w-md-editor-toolbar ul li button,
 .task-md-editor .w-md-editor-toolbar ul li svg {
   color: var(--foreground) !important;
@@ -1086,69 +1084,12 @@
   fill: var(--foreground) !important;
   font-size: 14px !important;
 }
-
 .task-md-editor .w-md-editor-text-textarea,
 .task-md-editor .w-md-editor-text-input,
 .task-md-editor .w-md-editor-text {
   height: 100% !important;
-  min-height: 300px !important;
+  min-height: 420px !important;
 }
-
-.task-md-editor .w-md-editor-text-container {
-  height: 100% !important;
-}
-
-
-/* Scoped markdown rendering ONLY for comments */
-.comment-markdown .wmde-markdown {
-  background-color: transparent !important;
-  font-size: 13px !important;
-  color: var(--foreground) !important;
-  padding: 0 !important;
-  overflow: hidden ;
-}
-
-.comment-markdown .wmde-markdown p {
-  margin: 0 0 0.5em 0;
-  font-size: 13px !important;
-}
-
-.comment-markdown .wmde-markdown strong {
-  font-weight: 600;
-  color: var(--foreground) !important;
-}
-
-.comment-markdown .wmde-markdown em {
-  font-style: italic;
-}
-
-.comment-markdown .wmde-markdown code {
-  font-size: 12px !important;
-  background-color: var(--muted) !important;
-  padding: 0.2em 0.4em;
-  border-radius: 3px;
-}
-
-.comment-markdown .wmde-markdown pre {
-  background-color: var(--muted) !important;
-  padding: 0.5em;
-  border-radius: 4px;
-  font-size: 12px !important;
-}
-
-.comment-markdown .wmde-markdown ul,
-.comment-markdown .wmde-markdown ol {
-  padding-left: 1.5em;
-  margin: 0.5em 0;
-}
-
-.comment-markdown .wmde-markdown blockquote {
-  border-left: 3px solid var(--border);
-  padding-left: 1em;
-  margin: 0.5em 0;
-  color: var(--muted-foreground);
-}
-
 /* Hide the edit icon and add "Edit" text */
 .w-md-editor-toolbar button[data-name="edit"] svg {
   display: none;
@@ -1210,6 +1151,8 @@
   padding: 0 !important;
   line-height: 1.6 !important;
 }
+
+
 
 .task-description-view .wmde-markdown p,
 .task-description-view .markdown-content p {
@@ -1410,6 +1353,7 @@
   align-items: center;
   width: 20px;
   flex-shrink: 0;
+  margin-top: 5px;
 }
 
 /* Vertical connecting lines */

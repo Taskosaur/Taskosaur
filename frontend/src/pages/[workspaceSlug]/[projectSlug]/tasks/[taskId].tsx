@@ -2,13 +2,8 @@ import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
 import { useTask } from "@/contexts/task-context";
 import { useAuth } from "@/contexts/auth-context";
-
-// Task components
 import TaskDetailClient from "@/components/tasks/TaskDetailClient";
-
-// UI components
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { HiExclamationTriangle } from "react-icons/hi2";
+import ErrorState from "@/components/common/ErrorState";
 
 function TaskDetailContent() {
   const router = useRouter();
@@ -39,7 +34,7 @@ function TaskDetailContent() {
 
         setTask(taskData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load task");
+        setError(err?.message ? err.message : "Failed to load task");
       } finally {
         setLoading(false);
       }
@@ -61,12 +56,7 @@ function TaskDetailContent() {
 
   if (error) {
     return (
-      <div className="p-4">
-        <Alert variant="destructive">
-          <HiExclamationTriangle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
+      <ErrorState error={error} />
     );
   }
 

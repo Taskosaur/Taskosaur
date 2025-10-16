@@ -19,7 +19,7 @@ interface WorkspaceProjectChartProps {
 }
 
 export function WorkspaceProjectChart({ data }: WorkspaceProjectChartProps) {
-  const chartData = data.map(item => ({
+  const chartData = data?.map(item => ({
     workspace: item.workspaceName.length > 15 
       ? `${item.workspaceName.substring(0, 15)}...` 
       : item.workspaceName,

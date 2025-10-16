@@ -47,7 +47,7 @@ function TaskDetailContent() {
     } catch (error) {
       console.error("Error fetching data:", error);
       setError(
-        error instanceof Error ? error.message : "Failed to load task data"
+        error?.message ? error.message : "Failed to load task data"
       );
     } finally {
       setIsLoading(false);

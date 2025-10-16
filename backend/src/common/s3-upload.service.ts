@@ -11,11 +11,6 @@ export class S3UploadService {
 
   constructor() {
     this.bucketName = process.env.AWS_BUCKET_NAME!;
-
-    if (!this.bucketName) {
-      throw new Error('AWS_BUCKET_NAME environment variable is required');
-    }
-
     this.s3Client = new S3Client({
       region: process.env.AWS_REGION || 'ap-south-1',
       credentials: {

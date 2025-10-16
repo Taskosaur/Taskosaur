@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import Tooltip from "../common/ToolTip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -154,6 +155,7 @@ const router = useRouter();
   return (
     <>
       <DropdownMenu>
+        <Tooltip content="Invitations" position="bottom" color="primary">
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
@@ -171,7 +173,7 @@ const router = useRouter();
             )}
           </Button>
         </DropdownMenuTrigger>
-
+      </Tooltip>
         <DropdownMenuContent
           className="header-dropdown-menu-content"
           align="end"

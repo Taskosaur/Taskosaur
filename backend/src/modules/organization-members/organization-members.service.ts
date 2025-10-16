@@ -12,10 +12,14 @@ import {
   InviteOrganizationMemberDto,
 } from './dto/create-organization-member.dto';
 import { UpdateOrganizationMemberDto } from './dto/update-organization-member.dto';
+import { WorkspacesService } from '../workspaces/workspaces.service';
+import { WorkspaceMembersService } from '../workspace-members/workspace-members.service';
 
 @Injectable()
 export class OrganizationMembersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService,
+    private workspaceMembersService: WorkspaceMembersService
+  ) { }
 
   async create(
     createOrganizationMemberDto: CreateOrganizationMemberDto,
@@ -47,7 +51,8 @@ export class OrganizationMembersService {
     }
 
     try {
-      return await this.prisma.organizationMember.create({
+
+      const orgMember = await this.prisma.organizationMember.create({
         data: {
           userId,
           organizationId,
@@ -74,6 +79,27 @@ export class OrganizationMembersService {
           },
         },
       });
+      if (orgMember.role === "MANAGER" || orgMember.role === "OWNER") {
+        const workspaces = await this.prisma.workspace.findMany({
+          where: { organizationId },
+        });
+
+        const role = orgMember.role;
+        const userId = orgMember.userId;
+
+        if (workspaces.length > 0) {
+          await Promise.all(
+            workspaces.map(async (workspace) => {
+              await this.workspaceMembersService.create({
+                userId,
+                role,
+                workspaceId: workspace.id,
+              });
+            })
+          );
+        }
+      }
+      return orgMember
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException(
@@ -325,7 +351,26 @@ export class OrganizationMembersService {
         },
       },
     });
+    const organizationId = updatedMember.organizationId
+    const workspaces = await this.prisma.workspace.findMany({
+      where: { organizationId },
+    });
 
+    const role = updatedMember.role;
+    const userId = updatedMember.userId;
+    if (workspaces.length > 0) {
+      await Promise.all(
+        workspaces.map(async (workspace) => {
+          const wsMember = await this.prisma.workspaceMember.findUnique({ where: { userId_workspaceId: { userId, workspaceId: workspace.id } } })
+          if (wsMember) {
+            await this.workspaceMembersService.update(wsMember.id, {
+              role
+            }, requestUserId);
+          }
+
+        })
+      );
+    }
     return updatedMember;
   }
 
@@ -517,7 +562,7 @@ export class OrganizationMembersService {
               : memberRecord?.role || 'MEMBER',
         joinedAt: memberRecord?.joinedAt || org.createdAt,
         isOwner,
-        isDefault: memberRecord.isDefault
+        isDefault: memberRecord?.isDefault
       };
     });
   }

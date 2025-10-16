@@ -72,15 +72,18 @@ const SortingManager: React.FC<SortingManagerProps> = ({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-[var(--border)] cursor-pointer flex items-center gap-2 min-w-[40px]"
-        >
-          <ArrowUpDown className="!w-[15px] !h-[15px] text-[var(--foreground)]" />
-        </Button>
-      </DropdownMenuTrigger>
+      <Tooltip content="Sort tasks" position="top" color="primary">
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-[var(--border)] cursor-pointer flex items-center gap-2 min-w-[40px]"
+          >
+            <ArrowUpDown className="!w-[15px] !h-[15px] text-[var(--foreground)]" />
+          </Button>
+        </DropdownMenuTrigger>
+      </Tooltip>
+     
       <DropdownMenuContent
         align="end"
         className="w-64 bg-[var(--card)] border-[var(--border)]"

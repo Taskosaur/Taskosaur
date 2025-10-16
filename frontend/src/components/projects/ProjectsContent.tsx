@@ -32,6 +32,7 @@ import { EmptyState } from "@/components/ui";
 import { toast } from "sonner";
 import Tooltip from "../common/ToolTip";
 import { CardsSkeleton } from "../skeletons/CardsSkeleton";
+import { useRouter } from "next/router";
 
 interface ProjectsContentProps {
   contextType: "workspace" | "organization";
@@ -82,7 +83,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 }) => {
   const { isAuthenticated, getUserAccess } = useAuth();
   const { getWorkspaceBySlug } = useWorkspaceContext();
-
+  const router = useRouter()
   const {
     projects,
     error,
@@ -334,7 +335,12 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 
         isInitializedRef.current = true;
       } catch (error: any) {
-        if (requestIdRef.current === requestId && isMountedRef.current) {
+          if (requestIdRef.current === requestId && isMountedRef.current) {
+            if (error.status === 403) {
+              toast.error(error?.message || "User not authenticated");
+              router.back();
+              return;
+            }
           if (
             error.message?.includes("401") ||
             error.message?.includes("Unauthorized")

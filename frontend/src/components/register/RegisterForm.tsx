@@ -110,7 +110,6 @@ export function RegisterForm() {
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        username: formData.firstName + formData.lastName,
       };
 
       const response = await register(userData);

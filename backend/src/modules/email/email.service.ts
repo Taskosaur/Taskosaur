@@ -555,4 +555,43 @@ export class EmailService {
       throw error; // Throw error here as invitation sending failure should be handled
     }
   }
+  async sendDirectAddNotificationEmail(
+  email: string,
+  data: {
+    inviterName: string;
+    entityName: string;
+    entityType: 'workspace' | 'project';
+    role: string;
+    entityUrl: string;
+    organizationName?: string;
+  },
+): Promise<void> {
+  try {
+    const emailData = {
+      ...data,
+      supportEmail: this.configService.get(
+        'SUPPORT_EMAIL',
+        'support@taskosaur.com',
+      ),
+      companyName: 'Taskosaur',
+    };
+
+    const entityTypeLabel = data.entityType === 'workspace' ? 'workspace' : 'project';
+    
+    await this.sendEmail({
+      to: email,
+      subject: `You've been added to ${data.entityName} - Taskosaur`,
+      template: EmailTemplate.DIRECT_ADD_NOTIFICATION,
+      data: emailData,
+      priority: EmailPriority.NORMAL,
+    });
+  } catch (error) {
+    console.error(
+      `Failed to send direct add notification email to ${email} for ${data.entityType} ${data.entityName}:`,
+      error,
+    );
+    throw error;
+  }
+}
+
 }

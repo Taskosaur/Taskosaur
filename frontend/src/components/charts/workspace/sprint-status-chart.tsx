@@ -15,7 +15,7 @@ interface SprintStatusChartProps {
 }
 
 export function SprintStatusChart({ data }: SprintStatusChartProps) {
-  const chartData = data.map(item => ({
+  const chartData = data?.map(item => ({
     name: chartConfig[item.status as keyof typeof chartConfig]?.label || item.status,
     value: item._count.status,
     color: chartConfig[item.status as keyof typeof chartConfig]?.color || "#8B5CF6"
@@ -23,7 +23,7 @@ export function SprintStatusChart({ data }: SprintStatusChartProps) {
 
   // Sort data by status for better visualization
   const statusOrder = ["PLANNING", "ACTIVE", "COMPLETED", "CANCELLED"];
-  const sortedChartData = [...chartData].sort((a, b) => {
+  const sortedChartData = chartData && [...chartData].sort((a, b) => {
     return statusOrder.indexOf(a.name.toUpperCase()) - statusOrder.indexOf(b.name.toUpperCase());
   });
 
@@ -57,7 +57,7 @@ export function SprintStatusChart({ data }: SprintStatusChartProps) {
             cursor={{ fill: 'rgba(0, 0, 0, 0.00)' }}
           />
           <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-            {sortedChartData.map((entry, index) => (
+            {sortedChartData?.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Bar>

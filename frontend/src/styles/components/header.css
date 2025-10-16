@@ -598,7 +598,7 @@
 }
 
 .header-user-dropdown {
-  @apply w-60 p-0 border-none shadow-sm backdrop-blur-sm;
+  @apply w-auto min-w-60 max-w-sm p-0 border-none shadow-sm backdrop-blur-sm;
   background-color: var(--background);
 }
 
@@ -619,17 +619,19 @@
 }
 
 .header-user-info-details {
-  @apply flex-1 min-w-0;
+  @apply flex-1 min-w-0 max-w-xs;
 }
 
 .header-user-info-name {
-  @apply text-sm font-bold truncate mb-0;
+  @apply text-sm font-bold mb-0;
   color: var(--foreground);
+  word-break: break-word;
 }
 
 .header-user-info-meta {
-  @apply flex flex-col justify-start text-xs truncate mb-0;
+  @apply flex flex-col justify-start text-xs mb-0;
   color: var(--muted-foreground);
+  word-break: break-word;
 }
 
 .header-user-info-badge {

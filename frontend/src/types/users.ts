@@ -15,6 +15,7 @@ export interface Member {
   avatarUrl?: string;
   joinedAt?: string;
   lastActive?: string;
+  userId: string;
 }
 
 export interface User {

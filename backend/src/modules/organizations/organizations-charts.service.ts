@@ -313,6 +313,7 @@ export class OrganizationChartsService {
       totalBugs,
       resolvedBugs,
       activeSprints,
+      totalMembers
     ] = await Promise.all([
       this.prisma.workspace.count({ where: scoped.workspaceForUser }),
       this.prisma.workspace.count({ where: scoped.workspaceForUser }),
@@ -345,6 +346,9 @@ export class OrganizationChartsService {
       this.prisma.sprint.count({
         where: { ...scoped.sprintForUser, status: 'ACTIVE' },
       }),
+      this.prisma.organizationMember.count({
+          where: { organizationId: orgId },
+        }),
     ]);
 
     return {
@@ -353,7 +357,7 @@ export class OrganizationChartsService {
       totalProjects,
       activeProjects,
       completedProjects,
-      totalMembers: 1, // User scope shows only current user
+      totalMembers, // User scope shows only current user
       totalTasks,
       completedTasks,
       overdueTasks,

@@ -16,7 +16,7 @@ interface ProjectStatusChartProps {
 }
 
 export function ProjectStatusChart({ data }: ProjectStatusChartProps) {
-  const chartData = data.map(item => ({
+  const chartData = data?.map(item => ({
     name: chartConfig[item.status as keyof typeof chartConfig]?.label || item.status,
     value: item._count.status,
     color: chartConfig[item.status as keyof typeof chartConfig]?.color || "#8B5CF6"
@@ -66,7 +66,7 @@ export function ProjectStatusChart({ data }: ProjectStatusChartProps) {
             paddingAngle={2}
             dataKey="value"
           >
-            {chartData.map((entry, index) => (
+            {chartData?.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>

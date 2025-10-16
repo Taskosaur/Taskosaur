@@ -18,23 +18,23 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
   const kpiCards = [
     {
       label: "Total Projects",
-      value: data.totalProjects,
+      value: data?.totalProjects,
       icon: <CheckCircle className="h-4 w-4" />,
     },
     {
       label: "Active Projects",
-      value: data.activeProjects,
+      value: data?.activeProjects,
       icon: <TrendingUp className="h-4 w-4" />,
       statSuffix:
-        data.totalProjects > 0
-          ? `${((data.activeProjects / data.totalProjects) * 100).toFixed(1)}%`
+        data?.totalProjects > 0
+          ? `${((data?.activeProjects / data?.totalProjects) * 100).toFixed(1)}%`
           : "0%",
     },
     {
       label: "Completion Rate",
-      value: `${data.completionRate.toFixed(1)}%`,
+      value: `${data?.completionRate?.toFixed(1) || 0}%`,
       icon:
-        data.completionRate > 70 ? (
+        data?.completionRate > 70 ? (
           <TrendingUp className="h-4 w-4 " />
         ) : (
           <TrendingDown className="h-4 w-4" />
@@ -42,17 +42,17 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
       statSuffix: (
         <Badge
           variant={
-            data.completionRate > 70
+            data?.completionRate > 70
               ? "default"
-              : data.completionRate > 50
+              : data?.completionRate > 50
               ? "secondary"
               : "destructive"
           }
           className="text-xs"
         >
-          {data.completionRate > 70
+          {data?.completionRate > 70
             ? "Excellent"
-            : data.completionRate > 50
+            : data?.completionRate > 50
             ? "Good"
             : "Needs Focus"}
         </Badge>
@@ -60,14 +60,14 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
     },
     {
       label: "Total Tasks",
-      value: data.totalTasks,
+      value: data?.totalTasks,
       icon: <CheckCircle className="h-4 w-4" />,
     },
     {
       label: "Overdue Tasks",
-      value: data.overdueTasks,
+      value: data?.overdueTasks,
       icon:
-        data.overdueTasks > 0 ? (
+        data?.overdueTasks > 0 ? (
           <AlertTriangle className="h-4 w-4" />
         ) : (
           <CheckCircle className="h-4 w-4" />
@@ -75,15 +75,15 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
       statSuffix: (
         <Badge
           variant={
-            data.overdueTasks === 0
+            data?.overdueTasks === 0
               ? "default"
               : "outline"
           }
           className="text-xs"
         >
-          {data.overdueTasks === 0
+          {data?.overdueTasks === 0
             ? "Perfect"
-            : data.overdueTasks < 10
+            : data?.overdueTasks < 10
             ? "Good"
             : "Critical"}
         </Badge>
@@ -92,24 +92,24 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
     {
       label: "Task Health",
       value:
-        data.totalTasks > 0
+        data?.totalTasks > 0
           ? `${(
-              ((data.totalTasks - data.overdueTasks) / data.totalTasks) *
+              ((data?.totalTasks - data?.overdueTasks) / data?.totalTasks) *
               100
             ).toFixed(1)}%`
           : "0%",
       icon:
-        data.overdueTasks === 0 ? (
+        data?.overdueTasks === 0 ? (
           <CheckCircle className="h-4 w-4" />
         ) : (
           <AlertTriangle className="h-4 w-4" />
         ),
       statSuffix: (
         <Badge
-          variant={data.overdueTasks === 0 ? "default" : "outline"}
+          variant={data?.overdueTasks === 0 ? "default" : "outline"}
           className="text-xs"
         >
-          {data.overdueTasks === 0 ? "Perfect" : "Monitor"}
+          {data?.overdueTasks === 0 ? "Perfect" : "Monitor"}
         </Badge>
       ),
     },

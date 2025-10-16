@@ -11,10 +11,13 @@ import {
   UseGuards,
   Req,
   BadRequestException,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiQuery,
   ApiResponse,
@@ -41,6 +44,7 @@ import { Roles } from 'src/common/decorator/roles.decorator';
 import { Scope } from 'src/common/decorator/scope.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { BulkDeleteTasksDto } from './dto/bulk-delete-tasks.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -69,6 +73,7 @@ export class TasksController {
     const user = getAuthUser(req);
     return this.tasksService.create(createTaskDto, user.id);
   }
+
   @Post('bulk-delete')
   @LogActivity({
     type: 'TASK_DELETED',
@@ -124,6 +129,295 @@ export class TasksController {
       user.id,
     );
   }
+
+  @Post('create-task-attachment')
+  @UseInterceptors(
+    FilesInterceptor('attachments', 10, {
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB per file
+      },
+      fileFilter: (req, file, callback) => {
+        // Allow common file types
+        const allowedMimes = [
+          'image/jpeg',
+          'image/jpg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/vnd.ms-powerpoint',
+          'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          'text/plain',
+          'text/csv',
+          'application/zip',
+          'application/x-zip-compressed',
+        ];
+
+        if (allowedMimes.includes(file.mimetype)) {
+          callback(null, true);
+        } else {
+          callback(
+            new BadRequestException(
+              `File type ${file.mimetype} is not allowed`,
+            ),
+            false,
+          );
+        }
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Create a new task',
+    description:
+      'Creates a new task with optional file attachments. Supports up to 10 files with a maximum size of 10MB each.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          example: 'Implement user authentication system',
+          description: 'Task title/summary',
+        },
+        description: {
+          type: 'string',
+          example:
+            'Create a JWT-based authentication system with login, register, and refresh token functionality.',
+          description: 'Detailed task description',
+        },
+        type: {
+          type: 'string',
+          enum: ['TASK', 'BUG', 'STORY', 'EPIC', 'SUBTASK'],
+          example: 'STORY',
+          description: 'Type of task',
+        },
+        priority: {
+          type: 'string',
+          enum: ['LOWEST', 'LOW', 'MEDIUM', 'HIGH', 'HIGHEST'],
+          example: 'HIGH',
+          description: 'Task priority level',
+        },
+        startDate: {
+          type: 'string',
+          format: 'date-time',
+          example: '2024-01-15T09:00:00.000Z',
+          description: 'Task start date',
+        },
+        dueDate: {
+          type: 'string',
+          format: 'date-time',
+          example: '2024-01-30T17:00:00.000Z',
+          description: 'Task due date',
+        },
+        storyPoints: {
+          type: 'number',
+          example: 8,
+          description: 'Story points for agile estimation',
+        },
+        originalEstimate: {
+          type: 'number',
+          example: 480,
+          description: 'Original time estimate in minutes',
+        },
+        remainingEstimate: {
+          type: 'number',
+          example: 240,
+          description: 'Remaining time estimate in minutes',
+        },
+        customFields: {
+          type: 'object',
+          example: {
+            severity: 'critical',
+            environment: 'production',
+          },
+          description: 'Custom fields specific to the task',
+        },
+        projectId: {
+          type: 'string',
+          format: 'uuid',
+          example: '123e4567-e89b-12d3-a456-426614174001',
+          description: 'ID of the project this task belongs to',
+        },
+        assigneeIds: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: [
+            '123e4567-e89b-12d3-a456-426614174002',
+            '223e4567-e89b-12d3-a456-426614174003',
+          ],
+          description: 'IDs of users assigned to this task',
+        },
+        reporterIds: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: ['323e4567-e89b-12d3-a456-426614174004'],
+          description: 'IDs of users who reported this task',
+        },
+        statusId: {
+          type: 'string',
+          format: 'uuid',
+          example: '123e4567-e89b-12d3-a456-426614174004',
+          description: 'ID of the current task status',
+        },
+        sprintId: {
+          type: 'string',
+          format: 'uuid',
+          example: '123e4567-e89b-12d3-a456-426614174005',
+          description: 'ID of the sprint this task is assigned to',
+        },
+        parentTaskId: {
+          type: 'string',
+          format: 'uuid',
+          example: '123e4567-e89b-12d3-a456-426614174006',
+          description: 'ID of the parent task (for subtasks)',
+        },
+        completedAt: {
+          type: 'string',
+          format: 'date-time',
+          example: '2025-08-20T10:00:00Z',
+          description: 'Date when task was completed',
+        },
+        allowEmailReplies: {
+          type: 'boolean',
+          example: true,
+          description: 'Whether to allow email replies for this task',
+        },
+        attachments: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+          description: 'Task attachments (max 10 files, 10MB each)',
+        },
+      },
+      required: ['title', 'projectId', 'statusId'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Task created successfully',
+    schema: {
+      example: {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        title: 'Implement user authentication system',
+        slug: 'PROJECT-1',
+        taskNumber: 1,
+        type: 'STORY',
+        priority: 'HIGH',
+        description: 'Create JWT-based authentication...',
+        startDate: '2024-01-15T09:00:00.000Z',
+        dueDate: '2024-01-30T17:00:00.000Z',
+        storyPoints: 8,
+        originalEstimate: 480,
+        remainingEstimate: 240,
+        completedAt: null,
+        allowEmailReplies: true,
+        customFields: {
+          severity: 'critical',
+        },
+        createdBy: '123e4567-e89b-12d3-a456-426614174100',
+        createdAt: '2024-01-10T10:00:00.000Z',
+        updatedAt: '2024-01-10T10:00:00.000Z',
+        project: {
+          id: '123e4567-e89b-12d3-a456-426614174001',
+          name: 'My Project',
+        },
+        status: {
+          id: '123e4567-e89b-12d3-a456-426614174004',
+          name: 'To Do',
+          color: '#0052CC',
+          category: 'TODO',
+        },
+        assignees: [
+          {
+            id: '123e4567-e89b-12d3-a456-426614174002',
+            email: 'user@example.com',
+            firstName: 'John',
+            lastName: 'Doe',
+            avatar: null,
+          },
+        ],
+        reporters: [],
+        sprint: {
+          id: '123e4567-e89b-12d3-a456-426614174005',
+          name: 'Sprint 1',
+          status: 'ACTIVE',
+        },
+        attachments: [
+          {
+            id: '223e4567-e89b-12d3-a456-426614174000',
+            fileName: 'document.pdf',
+            fileSize: 1024000,
+            mimeType: 'application/pdf',
+            url: '/uploads/tasks/123e4567-e89b-12d3-a456-426614174000/document.pdf',
+            createdAt: '2024-01-10T10:00:00.000Z',
+          },
+        ],
+        _count: {
+          childTasks: 0,
+          comments: 0,
+          attachments: 1,
+          watchers: 0,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request data or file type not allowed',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Insufficient permissions to create task',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Project not found',
+  })
+  @LogActivity({
+    type: 'TASK_CREATED',
+    entityType: 'Task',
+    description: 'Created new task',
+    includeNewValue: true,
+    entityIdName: 'id',
+  })
+  async creatcreateWithAttachmentse(
+    @Body() createTaskDto: CreateTaskDto,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Req() req: Request,
+  ) {
+    const user = getAuthUser(req);
+
+    // Validate file count
+    if (files && files.length > 10) {
+      throw new BadRequestException('Maximum 10 files allowed');
+    }
+
+    return this.tasksService.createWithAttachments(
+      createTaskDto,
+      user.id,
+      files,
+    );
+  }
+
+
   @Get()
   @ApiOperation({ summary: 'Get all tasks with filters' })
   @ApiQuery({

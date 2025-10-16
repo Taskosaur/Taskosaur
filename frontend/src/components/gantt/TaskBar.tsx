@@ -107,11 +107,11 @@ export const TaskBar: React.FC<TaskBarProps> = ({
 
       {/* Task Bar */}
       <div
-        className={`absolute rounded-lg shadow-md border-2 cursor-pointer transition-all duration-300 group ${
+        className={`absolute rounded-lg shadow-md border-2 cursor-pointer transition-all group ${
           priorityColors.bg
         } ${priorityColors.border} ${
           isOverdue
-            ? "animate-pulse border-red-500 shadow-red-200 dark:shadow-red-900"
+            ? "border-red-500 animate-pulse"
             : ""
         }`}
         style={{
@@ -162,7 +162,7 @@ export const TaskBar: React.FC<TaskBarProps> = ({
 
         {/* Hover Tooltip */}
         {(isHovered || isFocused) && (
-          <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-[var(--popover)] text-[var(--popover-foreground)] px-3 py-2 rounded-lg shadow-lg z-40 text-xs whitespace-nowrap max-w-xs border border-[var(--border)] text-sm">
+          <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-[var(--popover)] text-[var(--popover-foreground)] px-3 py-2 rounded-lg shadow-lg z-40 whitespace-nowrap max-w-xs border border-[var(--border)] text-sm">
             <div className="font-semibold truncate text-sm">
               {task.title || "Untitled Task"}
             </div>

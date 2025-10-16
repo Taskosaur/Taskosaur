@@ -13,6 +13,7 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { TaskType, TaskPriority } from '@prisma/client';
+import { Transform } from 'class-transformer';
 
 export class CreateTaskDto {
   @ApiProperty({
@@ -132,7 +133,7 @@ export class CreateTaskDto {
   @IsNotEmpty()
   projectId: string;
 
-   @ApiProperty({
+  @ApiProperty({
     description: 'IDs of users assigned to this task',
     example: [
       '123e4567-e89b-12d3-a456-426614174002',
@@ -141,6 +142,17 @@ export class CreateTaskDto {
     type: [String],
     format: 'uuid',
     required: false,
+  })
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return value;
   })
   @IsArray()
   @IsUUID('all', { each: true })
@@ -157,6 +169,17 @@ export class CreateTaskDto {
     type: [String],
     format: 'uuid',
     required: false,
+  })
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return value;
   })
   @IsArray()
   @IsUUID('all', { each: true })

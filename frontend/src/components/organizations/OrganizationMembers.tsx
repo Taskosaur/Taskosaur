@@ -38,7 +38,7 @@ interface OrganizationMembersProps {
   currentUserRole: OrganizationRole;
   onMembersChange: () => void;
   organization?: any;
-  pendingInvitationsRef?: React.RefObject<PendingInvitationsRef>; // Add ref prop
+  pendingInvitationsRef?: React.RefObject<PendingInvitationsRef>;
 }
 
 export default function OrganizationMembers({
@@ -84,12 +84,67 @@ export default function OrganizationMembers({
       description: "Can manage all aspects of the organization",
     },
   ];
-
+  const getCurrentUserId = () => getCurrentUser()?.id;
+  const isCurrentUserOwner = organization?.ownerId === getCurrentUserId();
   const canManageMembers =
     currentUserRole === OrganizationRole.SUPER_ADMIN ||
     currentUserRole === OrganizationRole.MANAGER ||
-    OrganizationRole.OWNER;
+    currentUserRole === OrganizationRole.OWNER;
 
+  const canUpdateMember = (member: OrganizationMember) => {
+    const currentUserId = getCurrentUserId();
+    if (member.userId === currentUserId) {
+      return false;
+    }
+
+    // Only owner can modify other owners
+    if (member.role === OrganizationRole.OWNER && !isCurrentUserOwner) {
+      return false;
+    }
+
+    if (
+      currentUserRole === OrganizationRole.MANAGER &&
+      member.role === OrganizationRole.MANAGER
+    ) {
+      return false;
+    }
+
+    return canManageMembers;
+  };
+  const canRemoveMember = (member: OrganizationMember) => {
+    const currentUserId = getCurrentUserId();
+
+    // User can always remove themselves (leave organization)
+    if (member.userId === currentUserId && !isCurrentUserOwner) {
+      return true;
+    }
+
+    // Owner cannot be removed by others
+    if (member.role === OrganizationRole.OWNER && !isCurrentUserOwner) {
+      return false;
+    }
+
+    // Manager cannot remove other managers
+    // if (
+    //   currentUserRole === OrganizationRole.MANAGER &&
+    //   member.role === OrganizationRole.MANAGER
+    // ) {
+    //   return false;
+    // }
+
+    return canManageMembers;
+  };
+  const getAvailableRolesForMember = (member: OrganizationMember) => {
+    const roles = [
+      OrganizationRole.VIEWER,
+      OrganizationRole.MEMBER,
+      OrganizationRole.MANAGER,
+    ];
+    if (isCurrentUserOwner || currentUserRole === "OWNER") {
+      roles.push(OrganizationRole.OWNER);
+    }
+    return roles;
+  };
   const getRoleBadgeClass = (role: OrganizationRole) => {
     switch (role) {
       case OrganizationRole.SUPER_ADMIN:
@@ -251,9 +306,11 @@ export default function OrganizationMembers({
         </div>
         <div className="organizations-members-table-body">
           {members.map((member) => {
-            const isOwner = member.role === OrganizationRole.OWNER;
-            const canUpdateMember = canManageMembers && !isOwner;
-
+            const canEdit = canUpdateMember(member);
+            const availableRoles = getAvailableRolesForMember(member);
+            const isCurrentUser =
+              member.userId === getCurrentUserId() && isCurrentUserOwner;
+            const canRemove = canRemoveMember(member);
             return (
               <div key={member.id} className="organizations-members-row">
                 <div className="organizations-members-row-grid">
@@ -302,7 +359,7 @@ export default function OrganizationMembers({
                     </span>
                   </div>
                   <div className="col-span-2">
-                    {canUpdateMember ? (
+                    {canEdit ? (
                       <Select
                         value={member.role}
                         onValueChange={(value) =>
@@ -310,44 +367,19 @@ export default function OrganizationMembers({
                         }
                         disabled={isLoading}
                       >
-                        <SelectTrigger
-                          className="h-7 text-xs border-none shadow-none bg-background text-[var(--foreground)]"
-                          onFocus={(e) => {
-                            e.currentTarget.style.boxShadow = "none";
-                          }}
-                          onBlur={(e) => {
-                            e.currentTarget.style.boxShadow = "none";
-                          }}
-                        >
+                        <SelectTrigger className="h-7 text-xs border-none shadow-none bg-background text-[var(--foreground)]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="border-none bg-[var(--card)]">
-                          {currentUserRole === "OWNER" && (
+                          {availableRoles.map((role) => (
                             <SelectItem
-                              value={OrganizationRole.OWNER}
+                              key={role}
+                              value={role}
                               className="hover:bg-[var(--hover-bg)]"
                             >
-                              Owner
+                              {role.charAt(0) + role.slice(1).toLowerCase()}
                             </SelectItem>
-                          )}
-                          <SelectItem
-                            value={OrganizationRole.MANAGER}
-                            className="hover:bg-[var(--hover-bg)]"
-                          >
-                            Manager
-                          </SelectItem>
-                          <SelectItem
-                            value={OrganizationRole.MEMBER}
-                            className="hover:bg-[var(--hover-bg)]"
-                          >
-                            Member
-                          </SelectItem>
-                          <SelectItem
-                            value={OrganizationRole.VIEWER}
-                            className="hover:bg-[var(--hover-bg)]"
-                          >
-                            Viewer
-                          </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     ) : (
@@ -362,9 +394,16 @@ export default function OrganizationMembers({
                   </div>
 
                   <div className="col-span-2">
-                    {canUpdateMember && (
+                    {canRemove && (
                       <Tooltip
-                        content={"Remove Member"}
+                        content={
+                          isCurrentUser
+                            ? "Leave Organization"
+                            : currentUserRole === OrganizationRole.MANAGER &&
+                              member.role === OrganizationRole.MANAGER
+                            ? "Cannot remove other managers"
+                            : "Remove Member"
+                        }
                         position="top"
                         color="danger"
                       >
@@ -476,23 +515,34 @@ export default function OrganizationMembers({
                     )}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent className="border-none bg-[var(--card)]">
-                  {availableRoles.map((r) => (
-                    <SelectItem
-                      key={r.id}
-                      value={r.name}
-                      className="hover:bg-[var(--hover-bg)]"
-                    >
-                      <div className="flex flex-col items-start py-1">
-                        <span className="font-medium text-[var(--foreground)]">
-                          {r.name}
-                        </span>
-                        <span className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                          {r.description}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                <SelectContent className="border-none bg-[var(--muted)]">
+                  {availableRoles
+                    .filter((r) => {
+                      // Manager cannot invite as Owner
+                      if (
+                        currentUserRole === OrganizationRole.MANAGER &&
+                        r.name === OrganizationRole.OWNER
+                      ) {
+                        return false;
+                      }
+                      return true;
+                    })
+                    .map((r) => (
+                      <SelectItem
+                        key={r.id}
+                        value={r.name}
+                        className="hover:bg-[var(--hover-bg)]"
+                      >
+                        <div className="flex flex-col items-start py-1">
+                          <span className="font-medium text-[var(--foreground)]">
+                            {r.name}
+                          </span>
+                          <span className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                            {r.description}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               {!inviteData.role && (
@@ -580,13 +630,24 @@ export default function OrganizationMembers({
           isOpen={true}
           onClose={() => setMemberToRemove(null)}
           onConfirm={() => handleRemoveMember(memberToRemove)}
-          title="Remove Member"
-          message={`Are you sure you want to remove ${
-            memberToRemove.user?.firstName && memberToRemove.user?.lastName
-              ? `${memberToRemove.user.firstName} ${memberToRemove.user.lastName}`
-              : memberToRemove.user?.username || "this member"
-          } from the organization?`}
-          confirmText="Remove"
+          title={
+            memberToRemove.userId === getCurrentUserId()
+              ? "Leave Organization"
+              : "Remove Member"
+          }
+          message={
+            memberToRemove.userId === getCurrentUserId()
+              ? "Are you sure you want to leave this organization? You will lose access to all organization resources."
+              : `Are you sure you want to remove ${
+                  memberToRemove.user?.firstName &&
+                  memberToRemove.user?.lastName
+                    ? `${memberToRemove.user.firstName} ${memberToRemove.user.lastName}`
+                    : memberToRemove.user?.username || "this member"
+                } from the organization?`
+          }
+          confirmText={
+            memberToRemove.userId === getCurrentUserId() ? "Leave" : "Remove"
+          }
           cancelText="Cancel"
         />
       )}

@@ -7,12 +7,14 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useRouter } from "next/router";
-import { HiCalendarDays } from "react-icons/hi2";
+import { HiCalendarDays, HiClipboardDocumentList } from "react-icons/hi2";
 import type { Task, TaskGanttViewProps, TimeRange, ViewMode } from "@/types";
 import { TaskInfoPanel } from "@/components/gantt/TaskInfoPanel";
 import { getViewModeWidth, parseDate } from "@/utils/gantt";
 import { TaskBar } from "@/components/gantt/TaskBar";
 import { TimelineHeader } from "@/components/gantt/TimelineHeader";
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui";
+import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 
 const MINIMUM_ROWS = 9;
 
@@ -40,10 +42,8 @@ export default function TaskGanttView({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [internalViewMode, setInternalViewMode] = useState<ViewMode>("days");
-  const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
-  const setViewMode = onViewModeChange !== undefined ? onViewModeChange : setInternalViewMode;
-
-
+  const viewMode =
+    externalViewMode !== undefined ? externalViewMode : internalViewMode;
   // Process tasks and generate time range
   const processedTasksData = useMemo(() => {
     try {
@@ -229,17 +229,19 @@ export default function TaskGanttView({
       aria-label={`Empty row ${index + 1}`}
     >
       {/* Empty Task Info Panel */}
-      <div
-        className="flex-shrink-0 w-80 border-r border-[var(--border)] bg-[var(--card)] py-1 sticky left-0 z-10"
-      >
-        <div className={`${isCompact ? "p-6" : "p-7"} flex items-center gap-3 text-sm`}>
+      <div className="flex-shrink-0 w-80 border-r border-[var(--border)] bg-[var(--card)] py-1 sticky left-0 z-10">
+        <div
+          className={`${
+            isCompact ? "p-6" : "p-7"
+          } flex items-center gap-3 text-sm`}
+        >
           {/* Empty row content */}
         </div>
       </div>
 
       {/* Empty Timeline */}
       <div className="flex-1 relative">
-        <div >
+        <div>
           {timeRange.days.map((day, dayIndex) => {
             const cellWidth = getViewModeWidth(viewMode);
             return (
@@ -255,41 +257,26 @@ export default function TaskGanttView({
     </div>
   );
 
-  // Empty state
+  if (!safeTasks.length) {
+    return <TaskTableSkeleton />;
+  }
+
   if (safeTasks.length === 0) {
     return (
-      <div className="w-full bg-[var(--card)] rounded-lg shadow-sm border border-[var(--border)] pt-0">
-        <div className="text-center py-16 px-6 ">
-          <div className="text-[var(--muted-foreground)] mb-6">
-            <div className="relative mx-auto w-20 h-20 mb-6">
-              <svg
-                className="w-full h-full opacity-40"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
-              <div className="absolute -top-1 -right-1 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                <HiCalendarDays className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-            <h3 className="font-semibold text-[var(--foreground)] mb-3 text-sm">
-              No tasks to display
-            </h3>
-            <p className="text-sm text-[var(--muted-foreground)] max-w-md mx-auto leading-relaxed">
-              Tasks with timeline information will appear on the Gantt chart
-              when available. Create tasks with start and due dates to visualize
-              your project timeline.
-            </p>
-          </div>
-        </div>
-      </div>
+      <Card className="border-none bg-[var(--card)]">
+        <CardContent className="p-8 text-center">
+          <HiClipboardDocumentList
+            size={48}
+            className="mx-auto text-[var(--muted-foreground)] mb-4"
+          />
+          <CardTitle className="text-lg font-medium mb-2 text-[var(--foreground)]">
+            No tasks yet
+          </CardTitle>
+          <CardDescription className="text-sm text-[var(--muted-foreground)] mb-6">
+            Create your first task to get started with project management.
+          </CardDescription>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -398,7 +385,6 @@ export default function TaskGanttView({
                       workspaceSlug={workspaceSlug}
                       projectSlug={projectSlug}
                       onFocus={setFocusedTask}
-                      
                     />
 
                     {/* Task Bar */}
@@ -414,7 +400,6 @@ export default function TaskGanttView({
                       onHover={setHoveredTask}
                       onFocus={setFocusedTask}
                       onKeyDown={handleKeyDown}
-                      
                     />
                   </div>
                 );

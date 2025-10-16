@@ -15,7 +15,10 @@ import { toast } from "sonner";
 
 function isValidPassword(password: string) {
   return (
-    /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password)
+    password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /[a-z]/.test(password) &&
+    /\d/.test(password)
   );
 }
 
@@ -52,7 +55,7 @@ export default function ResetPasswordSection() {
       setErrors((prev) => ({
         ...prev,
         newPassword:
-          "Password must contain uppercase, lowercase, and a number.",
+          "Password must be at least 8 characters and contain uppercase, lowercase, and a number.",
       }));
       setLoading(false);
       return;
@@ -174,7 +177,7 @@ export default function ResetPasswordSection() {
                 <p className="text-xs text-red-500">{errors.newPassword}</p>
               ) : (
                 <p className="text-[13px] ml-2 text-[var(--muted-foreground)]">
-                  Must contain uppercase, lowercase, and number
+                  Must be at least 8 characters with uppercase, lowercase, and number
                 </p>
               )}
             </div>

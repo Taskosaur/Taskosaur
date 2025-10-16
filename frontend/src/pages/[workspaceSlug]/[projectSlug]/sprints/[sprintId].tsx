@@ -29,6 +29,8 @@ import { useProjectContext } from "@/contexts/project-context";
 import Tooltip from "@/components/common/ToolTip";
 import Pagination from "@/components/common/Pagination";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
+import { KanbanColumnSkeleton } from "@/components/skeletons/KanbanColumnSkeleton";
+import ErrorState from "@/components/common/ErrorState";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -78,6 +80,7 @@ const SprintTasksTable = () => {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [availableStatuses, setAvailableStatuses] = useState<any[]>([]);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [availablePriorities] = useState([
     { id: "LOW", name: "Low", value: "LOW", color: "#6b7280" },
     { id: "MEDIUM", name: "Medium", value: "MEDIUM", color: "#f59e0b" },
@@ -159,6 +162,7 @@ const SprintTasksTable = () => {
   const [statusesLoaded, setStatusesLoaded] = useState(false);
   const [project, setProject] = useState<any>(null);
   const [hasAccess, setHasAccess] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [workspace, setWorkspace] = useState<any>(null);
 
   useEffect(() => {
@@ -205,6 +209,7 @@ const SprintTasksTable = () => {
       getUserAccess({ name: "project", id: project.id })
         .then((data) => {
           setHasAccess(data?.canChange || false);
+          setUserRole(data?.role || null);
         })
         .catch((error) => {
           console.error("Error fetching user access:", error);
@@ -264,6 +269,8 @@ const SprintTasksTable = () => {
       setAvailableStatuses(uniqueStatuses);
     } catch (err: any) {
       setLocalError(err?.message || "Failed to fetch tasks");
+    } finally {
+      setIsInitialLoad(false);
     }
   }, [
     sprintId,
@@ -300,6 +307,7 @@ const SprintTasksTable = () => {
         if (page === 1 || !statusId) {
           // Initial load or full refresh - replace all data
           setKanban(response.data || []);
+          setIsInitialLoad(false);
         } else {
           // Load more for specific status - append tasks
           setKanban((prevKanban) => {
@@ -323,6 +331,7 @@ const SprintTasksTable = () => {
       } catch (error) {
         console.error("Failed to load kanban data:", error);
         setKanban([]);
+        setIsInitialLoad(false);
       }
     },
     [getTaskKanbanStatus, isAuth]
@@ -368,8 +377,10 @@ const SprintTasksTable = () => {
       } else {
         console.warn("Gantt view not available for public access");
       }
+      setIsInitialLoad(false);
     } catch (err) {
       console.error("Failed to load Gantt data", err);
+      setIsInitialLoad(false);
     }
   }, [
     sprintId,
@@ -632,12 +643,16 @@ const SprintTasksTable = () => {
   }, [tasks, sortOrder, sortField]);
 
   const renderContent = () => {
-    if (isLoading) {
-      return <TaskTableSkeleton />;
+    if (isInitialLoad || isLoading) {
+      return currentView === "kanban" ? (
+        <KanbanColumnSkeleton />
+      ) : (
+        <TaskTableSkeleton />
+      );
     }
 
     if (error) {
-      return <div className="text-red-500 py-8">{error}</div>;
+      return <ErrorState error={error} />;
     }
 
     if (tasks?.length === 0) {
@@ -665,6 +680,13 @@ const SprintTasksTable = () => {
     }
     switch (currentView) {
       case "kanban":
+        if (!kanban.length) {
+          return currentView === "kanban" ? (
+            <KanbanColumnSkeleton />
+          ) : (
+            <TaskTableSkeleton />
+          );
+        }
         return kanban?.length ? (
           <div>
             <KanbanBoard
@@ -709,6 +731,9 @@ const SprintTasksTable = () => {
             addTaskStatuses={availableTaskStatuses}
             onTaskRefetch={handleTaskRefetch}
             showAddTaskRow={false}
+            showBulkActionBar={
+              hasAccess || userRole == "OWNER" || userRole === "MANAGER"
+            }
           />
         );
     }
@@ -788,31 +813,20 @@ const SprintTasksTable = () => {
               )}
               {currentView === "list" && (
                 <div className="flex items-center gap-2">
-                  <Tooltip
-                    content="Sorting Manager"
-                    position="top"
-                    color="primary"
-                  >
-                    <SortingManager
-                      sortField={sortField}
-                      sortOrder={sortOrder}
-                      onSortFieldChange={setSortField}
-                      onSortOrderChange={setSortOrder}
-                    />
-                  </Tooltip>
-                  <Tooltip
-                    content="Manage Columns"
-                    position="top"
-                    color="primary"
-                  >
-                    <ColumnManager
-                      currentView={currentView}
-                      availableColumns={columns}
-                      onAddColumn={handleAddColumn}
-                      onRemoveColumn={handleRemoveColumn}
-                      setKabBanSettingModal={setKabBanSettingModal}
-                    />
-                  </Tooltip>
+                  <SortingManager
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                    onSortFieldChange={setSortField}
+                    onSortOrderChange={setSortOrder}
+                  />
+
+                  <ColumnManager
+                    currentView={currentView}
+                    availableColumns={columns}
+                    onAddColumn={handleAddColumn}
+                    onRemoveColumn={handleRemoveColumn}
+                    setKabBanSettingModal={setKabBanSettingModal}
+                  />
                 </div>
               )}
               {currentView === "kanban" && isAuthenticated() && hasAccess && (

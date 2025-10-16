@@ -119,7 +119,9 @@ export default function OrganizationSettingsComponent({
         updatedAt: updatedOrg.updatedAt,
       };
       onUpdate(mappedOrg);
+      toast.success("Organization settings updated successfully!");
     } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update organization");
     } finally {
       setIsLoading(false);
     }

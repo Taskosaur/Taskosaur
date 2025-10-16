@@ -33,6 +33,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { ActivityFeedPanel } from "@/components/activity/ActivityFeedPanel";
 import { ActivityFilters, ActivityItem, ActivityResponse } from "@/types";
 import Tooltip from "@/components/common/ToolTip";
+import ErrorState from "@/components/common/ErrorState";
 
 type EntityTypeFilter =
   | "Task"
@@ -50,11 +51,11 @@ interface ActivityPaginationProps {
   isLoading?: boolean;
 }
 
-function ActivityPagination({ 
-  currentPage, 
-  totalPages, 
-  onPageChange, 
-  isLoading = false 
+function ActivityPagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+  isLoading = false,
 }: ActivityPaginationProps) {
   if (totalPages <= 1) return null;
 
@@ -63,12 +64,12 @@ function ActivityPagination({
       <div className="text-sm text-[var(--muted-foreground)]">
         Page {currentPage} of {totalPages}
       </div>
-      
+
       <Pagination>
         <PaginationContent>
           {/* Previous Button */}
           <PaginationItem>
-            <PaginationPrevious 
+            <PaginationPrevious
               href="#"
               onClick={(e) => {
                 e.preventDefault();
@@ -78,15 +79,15 @@ function ActivityPagination({
               }}
               className={`${
                 currentPage === 1 || isLoading
-                  ? 'pointer-events-none opacity-50' 
-                  : 'cursor-pointer hover:bg-[var(--accent)]'
+                  ? "pointer-events-none opacity-50"
+                  : "cursor-pointer hover:bg-[var(--accent)]"
               }`}
             />
           </PaginationItem>
 
           {/* Next Button */}
           <PaginationItem>
-            <PaginationNext 
+            <PaginationNext
               href="#"
               onClick={(e) => {
                 e.preventDefault();
@@ -96,8 +97,8 @@ function ActivityPagination({
               }}
               className={`${
                 currentPage === totalPages || isLoading
-                  ? 'pointer-events-none opacity-50' 
-                  : 'cursor-pointer hover:bg-[var(--accent)]'
+                  ? "pointer-events-none opacity-50"
+                  : "cursor-pointer hover:bg-[var(--accent)]"
               }`}
             />
           </PaginationItem>
@@ -191,7 +192,7 @@ function ActivityPageContent() {
     } catch (error) {
       console.error("Error loading organization activities:", error);
       setActivityError(
-        error instanceof Error ? error.message : "Failed to load activities"
+        error?.message ? error.message : "Failed to load activities"
       );
     } finally {
       setIsLoadingActivity(false);
@@ -217,9 +218,7 @@ function ActivityPageContent() {
       } catch (error) {
         console.error("Error refreshing activities:", error);
         setActivityError(
-          error instanceof Error
-            ? error.message
-            : "Failed to refresh activities"
+          error?.message ? error.message : "Failed to refresh activities"
         );
       }
     }
@@ -231,6 +230,12 @@ function ActivityPageContent() {
     }
   };
 
+  if (activityError) {
+    return (
+      <ErrorState error={activityError} onRetry={handleRefreshActivities} />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--background)] p-4">
       <div className="">
@@ -238,7 +243,7 @@ function ActivityPageContent() {
           <PageHeader
             icon={<HiCalendar className="w-5 h-5" />}
             title="Activity Feed"
-            description="Manage and track all your assigned tasks in one place."
+            description="Manage and track all your activities in one place."
             actions={
               <div className="flex items-center gap-2">
                 {activeFilter !== "all" && (

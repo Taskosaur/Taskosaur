@@ -25,6 +25,7 @@ import {
 import { Cog } from "lucide-react";
 import { IoWarning } from "react-icons/io5";
 import ActionButton from "@/components/common/ActionButton";
+import ErrorState from "@/components/common/ErrorState";
 
 function ProjectSettingsContent() {
   const router = useRouter();
@@ -91,7 +92,7 @@ function ProjectSettingsContent() {
           visibility: projectData.visibility || "PRIVATE",
         });
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load project");
+        setError(err?.message ? err.message : "Failed to load project");
       } finally {
         setLoading(false);
       }
@@ -202,7 +203,7 @@ function ProjectSettingsContent() {
         if (!isActive) return;
 
         const errorMessage =
-          err instanceof Error ? err.message : "Failed to load project";
+          err?.message ? err.message : "Failed to load project";
         setError(errorMessage);
 
         if (
@@ -240,9 +241,9 @@ function ProjectSettingsContent() {
         visibility: formData.visibility,
       });
 
-      setSuccess("Project settings updated successfully");
+      toast.success("Project settings updated successfully!");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update project");
+      toast.error(err instanceof Error ? err.message : "Failed to update project");
     } finally {
       setSaving(false);
     }
@@ -276,14 +277,7 @@ function ProjectSettingsContent() {
 
   if (error && !project) {
     return (
-      <div className="p-6">
-        <div className=" mx-auto">
-          <Alert variant="destructive">
-            <HiExclamationTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        </div>
-      </div>
+      <ErrorState error={error} />
     );
   }
 

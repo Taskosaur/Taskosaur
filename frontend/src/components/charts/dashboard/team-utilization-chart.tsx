@@ -15,7 +15,7 @@ interface TeamUtilizationChartProps {
 }
 
 export function TeamUtilizationChart({ data }: TeamUtilizationChartProps) {
-  const chartData = data.map((item) => ({
+  const chartData = data?.map((item) => ({
     role: chartConfig[item.role]?.label || item.role,
     count: item._count.role,
     fullMark: Math.max(...data.map(d => d._count.role)) + 2, // Add some padding for better visualization

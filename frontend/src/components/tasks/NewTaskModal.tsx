@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import moment from "moment";
 import {
   HiBuildingOffice2,
   HiDocumentText,
@@ -198,7 +199,7 @@ export function NewTaskModal({
   }, []);
 
   const loadInitialData = async () => {
-    const requestId = `load-${Date.now()}-${Math.random()}`;
+    const requestId = `load-${moment().valueOf()}-${Math.random()}`;
     requestIdRef.current = requestId;
 
     if (abortControllerRef.current) {
@@ -434,13 +435,16 @@ export function NewTaskModal({
             ? (formData.type as "TASK" | "BUG" | "EPIC" | "STORY")
             : "TASK",
           dueDate: formData.dueDate
-            ? new Date(formData.dueDate).toISOString()
+            ? moment(formData.dueDate).toISOString()
             : undefined,
           projectId: formData.project!.id,
           statusId: defaultStatus.id,
         };
         await createTask(taskData);
-        await fetchAnalyticsData(projectSlug, isAuth);
+
+        if(projectSlug && workspaceSlug ){
+          await fetchAnalyticsData(projectSlug, isAuth);
+        }
 
         if (onTaskCreated) {
           try {
@@ -494,8 +498,7 @@ export function NewTaskModal({
     formData.title.trim().length > 0 && formData.project && formData.priority;
 
   const getToday = () => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
+    return moment().format("YYYY-MM-DD");
   };
 
   return (
@@ -788,7 +791,7 @@ export function NewTaskModal({
                   setFormData((prev) => ({ ...prev, dueDate: e.target.value }))
                 }
                 min={getToday()}
-                className="projects-form-input border-none"
+                className="border-none transition-colors duration-300 h-10 w-full font-normal  rounded-md"
                 onFocus={(e) => {
                   e.target.style.boxShadow = "none";
                 }}

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useOrganization } from "@/contexts/organization-context";
 import { useAuth } from "@/contexts/auth-context";
 import { HiPlus, HiInformationCircle } from "react-icons/hi2";
-import { HiCog, HiCheckCircle } from "react-icons/hi";
+import { HiCog } from "react-icons/hi";
 import { Button } from "@/components/ui/button";
 import { Organization } from "@/types";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -78,7 +78,15 @@ function OrganizationSettingsPageContent() {
   useEffect(() => {
     fetchOrganizations();
   }, []);
-
+  const canAccess = (organization: Organization) => {
+    if (
+      organization.userRole === "MEMBER" ||
+      organization.userRole === "VIEWER"
+    ) {
+      return false;
+    }
+    return true;
+  };
   const handleOrganizationCreated = async (organization: Organization) => {
     setOrganizations((prev) => [...prev, organization]);
     setShowCreateForm(false);
@@ -163,11 +171,13 @@ function OrganizationSettingsPageContent() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {organizations.map((organization) => (
+            {organizations.map((organization) => {
+              const access = canAccess(organization)
+              return(
               <EntityCard
                 key={organization.id}
                 onClick={() => {
-                  if (hasAccess) {
+                  if (access) {
                     router.push(`/settings/${organization.slug}`);
                   }
                 }}
@@ -272,7 +282,7 @@ function OrganizationSettingsPageContent() {
                   </div>
                 }
               />
-            ))}
+            )})}
           </div>
         )}
 

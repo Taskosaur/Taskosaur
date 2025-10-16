@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import DangerZoneModal from "@/components/common/DangerZoneModal";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { PageHeader } from "@/components/common/PageHeader";
+import ErrorState from "@/components/common/ErrorState";
 
 function WorkspaceSettingsContent() {
   const router = useRouter();
@@ -68,7 +69,7 @@ function WorkspaceSettingsContent() {
         });
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Failed to load workspace"
+          err?.message ? err.message : "Failed to load workspace"
         );
       } finally {
         setLoading(false);
@@ -101,7 +102,6 @@ function WorkspaceSettingsContent() {
           const result = await archiveWorkspace(workspace.id);
           console.log("Archive result:", result);
           if (result.success) {
-        
             await router.replace("/workspaces");
           } else {
             toast.error("Failed to archive workspace");
@@ -122,8 +122,6 @@ function WorkspaceSettingsContent() {
       handler: async () => {
         try {
           await deleteWorkspace(workspace.id);
-          // toast.success('Workspace deleted successfully');
-
           await router.replace("/workspaces");
         } catch (error) {
           console.error("Delete error:", error);
@@ -178,7 +176,6 @@ function WorkspaceSettingsContent() {
           err instanceof Error ? err.message : "Failed to load workspace";
         setError(errorMessage);
 
-        // Handle 404 specifically
         if (
           errorMessage.includes("not found") ||
           errorMessage.includes("404")
@@ -216,10 +213,9 @@ function WorkspaceSettingsContent() {
       if (updatedWorkspace.slug !== initialWorkspaceSlug) {
         await router.replace(`/${updatedWorkspace.slug}/settings`);
       }
-
-      setSuccess("Workspace settings updated successfully");
+      toast.success("Workspace settings updated successfully!");
     } catch (err) {
-      setError(
+      toast.error(
         err instanceof Error ? err.message : "Failed to update workspace"
       );
     } finally {
@@ -254,16 +250,7 @@ function WorkspaceSettingsContent() {
   }
 
   if (error && !workspace) {
-    return (
-      <div className="p-6">
-        <div className="max-w-2xl mx-auto">
-          <Alert variant="destructive">
-            <HiExclamationTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        </div>
-      </div>
-    );
+    return <ErrorState error={error} />;
   }
 
   return (

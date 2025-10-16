@@ -13,6 +13,10 @@ export class CreateWorkspaceMemberDto {
   @IsEnum(WorkspaceRole)
   @IsOptional()
   role?: WorkspaceRole;
+
+  @IsString()
+  @IsOptional()
+  createdBy?: string;
 }
 
 export class InviteWorkspaceMemberDto {

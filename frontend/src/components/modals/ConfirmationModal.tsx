@@ -6,7 +6,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { HiExclamationTriangle, HiInformationCircle } from "react-icons/hi2";
 import ActionButton from "../common/ActionButton";
 
@@ -57,9 +56,9 @@ export default function ConfirmationModal({
           <ActionButton type="submit" primary onClick={onConfirm}>
             {confirmText}
           </ActionButton>
-          <Button variant="outline" onClick={onClose}>
+          <ActionButton variant="outline" onClick={onClose}>
             {cancelText}
-          </Button>
+          </ActionButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

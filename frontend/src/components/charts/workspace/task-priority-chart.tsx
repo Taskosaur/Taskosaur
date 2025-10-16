@@ -16,7 +16,7 @@ interface TaskPriorityChartProps {
 }
 
 export function TaskPriorityChart({ data }: TaskPriorityChartProps) {
-  const chartData = data.map(item => ({
+  const chartData = data?.map(item => ({
     name: chartConfig[item.priority as keyof typeof chartConfig]?.label || item.priority,
     value: item._count.priority,
     color: chartConfig[item.priority as keyof typeof chartConfig]?.color || "#8B5CF6"
@@ -24,7 +24,7 @@ export function TaskPriorityChart({ data }: TaskPriorityChartProps) {
 
   // Sort data by priority level for better visualization
   const priorityOrder = ["LOWEST", "LOW", "MEDIUM", "HIGH", "HIGHEST"];
-  const sortedChartData = [...chartData].sort((a, b) => {
+  const sortedChartData = chartData && [...chartData].sort((a, b) => {
     return priorityOrder.indexOf(a.name.toUpperCase()) - priorityOrder.indexOf(b.name.toUpperCase());
   });
 
@@ -58,7 +58,7 @@ export function TaskPriorityChart({ data }: TaskPriorityChartProps) {
             cursor={{ fill: 'rgba(0, 0, 0, 0.00)' }}
           />
           <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-            {sortedChartData.map((entry, index) => (
+            {sortedChartData?.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Bar>

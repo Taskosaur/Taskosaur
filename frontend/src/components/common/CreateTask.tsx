@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-
 import {
   Select,
   SelectContent,
@@ -10,7 +9,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HiDocumentText, HiCog, HiUsers } from "react-icons/hi2";
+import {
+  HiDocumentText,
+  HiCog,
+  HiUsers,
+  HiPaperClip,
+  HiXCircle,
+} from "react-icons/hi2";
 import TaskDescription from "@/components/tasks/views/TaskDescription";
 import { useTask } from "@/contexts/task-context";
 import { TaskPriorities } from "@/utils/data/taskData";
@@ -20,6 +25,8 @@ import ActionButton from "./ActionButton";
 import { useProject } from "@/contexts/project-context";
 import { formatDateForApi, getTodayDate } from "@/utils/handleDateChange";
 import MemberSelect from "./MemberSelect";
+import { Plus } from "lucide-react";
+
 interface CreateTaskProps {
   workspaceSlug?: string;
   projectSlug?: string;
@@ -39,12 +46,13 @@ const TaskSectionHeader = ({
     <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
   </div>
 );
+
 export default function CreateTask({
   projectSlug,
   workspace,
   projects,
 }: CreateTaskProps) {
-  const { createTask } = useTask();
+  const { createTaskWithAttachements } = useTask();
   const { getProjectMembers, getTaskStatusByProject } = useProject();
 
   const [selectedProject, setSelectedProject] = useState<any>(null);
@@ -61,6 +69,8 @@ export default function CreateTask({
   });
   const [assignees, setAssignees] = useState<any[]>([]);
   const [reporters, setReporters] = useState<any[]>([]);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isFormValid = (): boolean => {
@@ -83,6 +93,51 @@ export default function CreateTask({
     setReporters([]);
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setAttachments((prev) => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    setAttachments((prev) => [...prev, ...droppedFiles]);
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+  };
+
   useEffect(() => {
     const fetchProjectMembers = async (projectId: string) => {
       if (!projectId || !getProjectMembers) return;
@@ -97,7 +152,6 @@ export default function CreateTask({
               firstName: m.user?.firstName || "",
               lastName: m.user?.lastName || "",
               email: m.user?.email || "",
-
               role: m.role,
             }))
           : [];
@@ -172,8 +226,9 @@ export default function CreateTask({
         taskData.assigneeIds = assignees.map((a) => a.id);
       if (reporters.length > 0)
         taskData.reporterIds = reporters.map((r) => r.id);
+      if (attachments.length > 0) taskData.attachments = attachments;
 
-      const newTask = await createTask(taskData);
+      const newTask = await createTaskWithAttachements(taskData);
 
       toast.success(`Task named ${newTask.title} created successfully!`);
       router.back();
@@ -219,7 +274,69 @@ export default function CreateTask({
                 </div>
               </CardContent>
             </Card>
+            <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
+              <CardHeader className="flex items-center justify-between pb-2">
+                <TaskSectionHeader icon={HiPaperClip} title="Attachments" />
 
+                <div>
+                   <Input
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id="file-upload"
+                    accept="*/*"
+                  />
+                  <Label
+                    htmlFor="file-upload"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--primary)] text-white rounded-lg cursor-pointer hover:bg-[var(--primary)]/90 transition-all duration-200 shadow-sm hover:shadow active:scale-95"
+                  >
+                    <Plus size={16} />
+                    <span>Add Files</span>
+                  </Label>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {attachments.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-[var(--foreground)]">
+                      Selected Files ({attachments.length})
+                    </p>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {attachments.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-[var(--background)] border border-[var(--border)] rounded-md"
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <HiPaperClip
+                              size={16}
+                              className="text-[var(--muted-foreground)] flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-[var(--foreground)] truncate">
+                                {file.name}
+                              </p>
+                              <p className="text-xs text-[var(--muted-foreground)]">
+                                {formatFileSize(file.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeAttachment(index)}
+                            className="flex-shrink-0 ml-2 p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
+                            aria-label="Remove file"
+                          >
+                            <HiXCircle size={16} className="text-red-500" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
             <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
               <CardHeader className="pb-0">
                 <TaskSectionHeader icon={HiDocumentText} title="Description" />
@@ -241,13 +358,12 @@ export default function CreateTask({
                     onClick={handleSubmit}
                     disabled={!isFormValid() || isSubmitting}
                     primary
-                    showPlusIcon
                   >
                     {isSubmitting ? (
-                      <>
+                      <div className="flex items-center gap-2">
                         <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
                         Creating...
-                      </>
+                      </div>
                     ) : (
                       "Create Task"
                     )}
@@ -307,7 +423,11 @@ export default function CreateTask({
                     </SelectTrigger>
                     <SelectContent className="border-[var(--border)] bg-[var(--popover)]">
                       {projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
+                        <SelectItem
+                          className="hover:bg-[var(--hover-bg)]"
+                          key={project.id}
+                          value={project.id}
+                        >
                           {project.name}
                         </SelectItem>
                       ))}
@@ -340,7 +460,11 @@ export default function CreateTask({
                   <SelectContent className="border-[var(--border)] bg-[var(--popover)]">
                     {availableStatuses.length > 0 ? (
                       availableStatuses.map((status) => (
-                        <SelectItem key={status.id} value={status.id}>
+                        <SelectItem
+                          className="hover:bg-[var(--hover-bg)]"
+                          key={status.id}
+                          value={status.id}
+                        >
                           {status.name}
                         </SelectItem>
                       ))
@@ -369,7 +493,11 @@ export default function CreateTask({
                   </SelectTrigger>
                   <SelectContent className="border-[var(--border)] bg-[var(--popover)]">
                     {TaskPriorities.map((priority) => (
-                      <SelectItem key={priority.value} value={priority.value}>
+                      <SelectItem
+                        className="hover:bg-[var(--hover-bg)]"
+                        key={priority.value}
+                        value={priority.value}
+                      >
                         {priority.name}
                       </SelectItem>
                     ))}
@@ -397,7 +525,11 @@ export default function CreateTask({
                       { value: "STORY", name: "Story" },
                       { value: "SUBTASK", name: "Subtask" },
                     ].map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
+                      <SelectItem
+                        className="hover:bg-[var(--hover-bg)]"
+                        key={type.value}
+                        value={type.value}
+                      >
                         {type.name}
                       </SelectItem>
                     ))}
@@ -407,17 +539,33 @@ export default function CreateTask({
 
               <div className="space-y-2">
                 <Label htmlFor="dueDate">Due Date</Label>
-                <Input
-                  id="dueDate"
-                  name="dueDate"
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={(e) =>
-                    handleFormDataChange("dueDate", e.target.value)
-                  }
-                  min={getTodayDate()}
-                  className="w-full border-[var(--border)] bg-[var(--background)]"
-                />
+                <div className="relative">
+                  <Input
+                    id="dueDate"
+                    name="dueDate"
+                    type="date"
+                    value={formData.dueDate}
+                    onChange={(e) =>
+                      handleFormDataChange("dueDate", e.target.value)
+                    }
+                    min={getTodayDate()}
+                    className="w-full border-[var(--border)] bg-[var(--background)] cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    placeholder="Select due date..."
+                  />
+                  {formData.dueDate && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFormDataChange("dueDate", "");
+                      }}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs z-10"
+                      title="Clear due date"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -446,7 +594,7 @@ export default function CreateTask({
                     selectedMembers={assignees}
                     onChange={setAssignees}
                     members={members}
-                    projectId={selectedProject?.id} // Add this
+                    projectId={selectedProject?.id}
                     disabled={!selectedProject?.id || members.length === 0}
                     placeholder={
                       !selectedProject?.id
@@ -460,7 +608,7 @@ export default function CreateTask({
                     selectedMembers={reporters}
                     onChange={setReporters}
                     members={members}
-                    projectId={selectedProject?.id} // Add this
+                    projectId={selectedProject?.id}
                     disabled={!selectedProject?.id || members.length === 0}
                     placeholder={
                       !selectedProject?.id

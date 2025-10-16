@@ -14,6 +14,8 @@ import {
   BadRequestException,
   Res,
   UseGuards,
+  NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -45,21 +47,21 @@ export class TaskAttachmentsController {
     private readonly taskAttachmentsService: TaskAttachmentsService,
   ) { }
 
-  @Post()
-  @ApiOperation({ summary: 'Create a task attachment record manually' })
-  @ApiResponse({
-    status: 201,
-    description: 'Task attachment created successfully',
-  })
-  @ApiResponse({ status: 404, description: 'Task not found' })
-  @ApiResponse({ status: 400, description: 'Invalid file data' })
-  @ApiBody({ type: CreateTaskAttachmentDto })
-  create(
-    @Body() createTaskAttachmentDto: CreateTaskAttachmentDto,
-    @CurrentUser() user: any,
-  ) {
-    return this.taskAttachmentsService.create(createTaskAttachmentDto, user.id);
-  }
+  // @Post()
+  // @ApiOperation({ summary: 'Create a task attachment record manually' })
+  // @ApiResponse({
+  //   status: 201,
+  //   description: 'Task attachment created successfully',
+  // })
+  // @ApiResponse({ status: 404, description: 'Task not found' })
+  // @ApiResponse({ status: 400, description: 'Invalid file data' })
+  // @ApiBody({ type: CreateTaskAttachmentDto })
+  // create(
+  //   @Body() createTaskAttachmentDto: CreateTaskAttachmentDto,
+  //   @CurrentUser() user: any,
+  // ) {
+  //   return this.taskAttachmentsService.create(createTaskAttachmentDto, user.id);
+  // }
 
   @Post('upload/:taskId')
   @ApiOperation({ summary: 'Upload a file attachment to a task' })
@@ -77,36 +79,31 @@ export class TaskAttachmentsController {
       },
     },
   })
-  @ApiResponse({ status: 201, description: 'File uploaded successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'File uploaded successfully',
+    schema: {
+      example: {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        fileName: 'document.pdf',
+        fileSize: 1024000,
+        mimeType: 'application/pdf',
+        url: '/uploads/tasks/123/document.pdf',
+        storageKey: 'tasks/123/550e8400-e29b-41d4-a716-446655440000.pdf',
+        createdBy: '223e4567-e89b-12d3-a456-426614174001',
+        createdAt: '2025-10-16T06:38:00.000Z',
+        task: {
+          id: '123e4567-e89b-12d3-a456-426614174002',
+          title: 'Implement authentication',
+          slug: 'PROJECT-1',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 400, description: 'Invalid file or file too large' })
   @ApiResponse({ status: 404, description: 'Task not found' })
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: multer.diskStorage({
-        destination: (req, file, cb) => {
-          const taskId = req.params.taskId;
-          const uploadPath = process.env.UPLOAD_DEST || './uploads';
-          const taskDir = path.join(uploadPath, taskId);
-
-          // Create directory if it doesn't exist
-          if (!fs.existsSync(taskDir)) {
-            fs.mkdirSync(taskDir, { recursive: true });
-          }
-
-          cb(null, taskDir);
-        },
-        filename: (req, file, cb) => {
-          const timestamp = Date.now();
-          const randomString = Math.random().toString(36).substring(2, 15);
-          const fileExtension = path.extname(file.originalname);
-          const sanitizedName = file.originalname.replace(
-            /[^a-zA-Z0-9.-]/g,
-            '_',
-          );
-          const fileName = `${timestamp}_${randomString}_${sanitizedName}`;
-          cb(null, fileName);
-        },
-      }),
       limits: {
         fileSize: 50 * 1024 * 1024, // 50MB limit
       },
@@ -147,7 +144,7 @@ export class TaskAttachmentsController {
   )
   @LogActivity({
     type: 'TASK_ATTACHMENT_ADDED',
-    entityType: 'Task Attchment',
+    entityType: 'TaskAttachment',
     description: 'Added attachment to task',
     includeNewValue: true,
     entityIdName: 'taskId',
@@ -161,15 +158,7 @@ export class TaskAttachmentsController {
       throw new BadRequestException('No file provided');
     }
 
-    const createTaskAttachmentDto: CreateTaskAttachmentDto = {
-      fileName: file.originalname,
-      filePath: file.path,
-      fileSize: file.size,
-      mimeType: file.mimetype,
-      taskId,
-    };
-
-    return this.taskAttachmentsService.create(createTaskAttachmentDto, user.id);
+    return this.taskAttachmentsService.create(file, taskId, user.id);
   }
 
   @Get()
@@ -193,66 +182,42 @@ export class TaskAttachmentsController {
   }
 
   @Get(':id/download')
+  @ApiOperation({ summary: 'Download file' })
+  @ApiParam({ name: 'id', description: 'Attachment ID' })
+  @ApiResponse({ status: 200, description: 'File download' })
+  @ApiResponse({ status: 404, description: 'Attachment not found' })
   async downloadFile(
     @Param('id', ParseUUIDPipe) id: string,
     @Res() res: Response,
   ) {
-    const attachment = await this.taskAttachmentsService.findOne(id);
-
-    if (!fs.existsSync(attachment.filePath)) {
-      throw new BadRequestException('File not found on server');
+    try {
+      await this.taskAttachmentsService.streamFile(id, res, true);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to download file');
     }
-
-    res.setHeader('Content-Type', attachment.mimeType);
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${attachment.fileName}"`,
-    );
-    res.setHeader('Content-Length', attachment.fileSize);
-
-    const fileStream = fs.createReadStream(attachment.filePath);
-    fileStream.pipe(res);
   }
 
   @Get(':id/preview')
+  @ApiOperation({ summary: 'Preview file' })
+  @ApiParam({ name: 'id', description: 'Attachment ID' })
+  @ApiResponse({ status: 200, description: 'File stream' })
+  @ApiResponse({ status: 400, description: 'File type not previewable' })
+  @ApiResponse({ status: 404, description: 'Attachment not found' })
   async previewFile(
     @Param('id', ParseUUIDPipe) id: string,
     @Res() res: Response,
   ) {
-    const attachment = await this.taskAttachmentsService.findOne(id);
-
-    if (!fs.existsSync(attachment.filePath)) {
-      throw new BadRequestException('File not found on server');
+    try {
+      await this.taskAttachmentsService.streamFile(id, res, false);
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to stream file');
     }
-
-    // Only allow preview for certain file types
-    const previewableMimeTypes = [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'application/pdf',
-      'text/plain',
-      'text/html',
-      'text/markdown',
-      'application/json',
-      'application/xml',
-      'text/css',
-      'text/javascript',
-    ];
-
-    if (!previewableMimeTypes.includes(attachment.mimeType)) {
-      throw new BadRequestException('File type not previewable');
-    }
-
-    res.setHeader('Content-Type', attachment.mimeType);
-    res.setHeader(
-      'Content-Disposition',
-      `inline; filename="${attachment.fileName}"`,
-    );
-
-    const fileStream = fs.createReadStream(attachment.filePath);
-    fileStream.pipe(res);
   }
 
   @Delete(':id')

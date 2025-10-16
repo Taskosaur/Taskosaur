@@ -1,9 +1,10 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsBoolean } from 'class-validator';
 import { Role as OrganizationRole } from '@prisma/client';
+import { CreateOrganizationMemberDto } from './create-organization-member.dto';
 
 
-export class UpdateOrganizationMemberDto {
+export class UpdateOrganizationMemberDto extends PartialType(CreateOrganizationMemberDto){
   @ApiPropertyOptional({
     description: 'Role of the user within the organization',
     enum: OrganizationRole,

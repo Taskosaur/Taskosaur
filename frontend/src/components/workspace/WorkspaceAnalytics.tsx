@@ -91,7 +91,7 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
   if (analyticsError) {
     return (
       <ErrorState
-        error="Error loading organization analytics: {error}"
+        error="Error loading organization analytics:"
         onRetry={handleFetchData}
       />
     );

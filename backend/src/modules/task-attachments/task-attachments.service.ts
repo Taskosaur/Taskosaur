@@ -12,12 +12,16 @@ import {
 } from './dto/create-task-attachment.dto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { StorageService } from '../storage/storage.service';
+import { Response } from 'express';
 
 @Injectable()
 export class TaskAttachmentsService {
   private readonly uploadPath = process.env.UPLOAD_DEST || './uploads';
 
-  constructor(private prisma: PrismaService) {
+  constructor(private prisma: PrismaService,
+    private storageService: StorageService
+  ) {
     // Ensure upload directory exists
     this.ensureUploadDirectory();
   }
@@ -29,12 +33,11 @@ export class TaskAttachmentsService {
   }
 
   async create(
-    createTaskAttachmentDto: CreateTaskAttachmentDto,
+    file: Express.Multer.File,
+    taskId: string,
     userId: string,
   ): Promise<TaskAttachment> {
-    const { taskId } = createTaskAttachmentDto;
-
-    // Verify task exists and user has access
+    // Verify task exists
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       select: {
@@ -62,71 +65,58 @@ export class TaskAttachmentsService {
 
     // Validate file size (limit to 50MB)
     const maxFileSize = 50 * 1024 * 1024; // 50MB in bytes
-    if (createTaskAttachmentDto.fileSize > maxFileSize) {
+    if (file.size > maxFileSize) {
       throw new BadRequestException('File size cannot exceed 50MB');
     }
 
-    // Validate file type (basic security check)
-    const allowedMimeTypes = [
-      // Images
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'image/svg+xml',
-      // Documents
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      // Text files
-      'text/plain',
-      'text/csv',
-      'text/markdown',
-      // Archives
-      'application/zip',
-      'application/x-rar-compressed',
-      'application/x-7z-compressed',
-      // Code files
-      'application/json',
-      'application/xml',
-      'text/html',
-      'text/css',
-      'text/javascript',
-    ];
+    try {
+      // Use StorageService to save file (handles both S3 and local storage)
+      const { url, key, size } = await this.storageService.saveFile(
+        file,
+        `tasks/${taskId}`,
+      );
 
-    if (!allowedMimeTypes.includes(createTaskAttachmentDto.mimeType)) {
-      throw new BadRequestException('File type not allowed');
-    }
-
-    return this.prisma.taskAttachment.create({
-      data: { ...createTaskAttachmentDto, createdBy: userId },
-      include: {
-        task: {
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-            project: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
+      // Create attachment record in database
+      const attachment = await this.prisma.taskAttachment.create({
+        data: {
+          taskId: taskId,
+          fileName: file.originalname,
+          fileSize: size,
+          mimeType: file.mimetype,
+          url: url, // Will be null for S3, static path for local
+          storageKey: key, // Store key for both S3 and local
+          createdBy: userId,
+        },
+        include: {
+          task: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              project: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      });
+
+      return attachment;
+    } catch (error) {
+      throw new BadRequestException(
+        `Failed to upload file: ${error.message}`,
+      );
+    }
   }
 
-  async findAll(taskId?: string): Promise<TaskAttachment[]> {
+  async findAll(taskId?: string): Promise<any[]> {
     const whereClause = taskId ? { taskId } : {};
 
-    return this.prisma.taskAttachment.findMany({
+    const attachments = await this.prisma.taskAttachment.findMany({
       where: whereClause,
       include: {
         task: {
@@ -143,14 +133,40 @@ export class TaskAttachmentsService {
             },
           },
         },
+        createdByUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            avatar: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
+
+    // Generate presigned URLs for S3 attachments
+    const attachmentsWithUrls = await Promise.all(
+      attachments.map(async (attachment) => {
+        // If URL is null (S3), generate presigned URL; otherwise use stored URL
+        const viewUrl = attachment.url
+          ? attachment.url
+          : attachment.storageKey && await this.storageService.getFileUrl(attachment.storageKey);
+
+        return {
+          ...attachment,
+          viewUrl, // Add presigned/static URL for viewing
+        };
+      }),
+    );
+
+    return attachmentsWithUrls;
   }
 
-  async findOne(id: string): Promise<TaskAttachment> {
+  async findOne(id: string): Promise<any> {
     const attachment = await this.prisma.taskAttachment.findUnique({
       where: { id },
       include: {
@@ -160,6 +176,17 @@ export class TaskAttachmentsService {
             title: true,
             slug: true,
             description: true,
+            taskNumber: true,
+            priority: true,
+            type: true,
+            status: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+                category: true,
+              },
+            },
             project: {
               select: {
                 id: true,
@@ -183,6 +210,16 @@ export class TaskAttachmentsService {
             },
           },
         },
+        createdByUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            username: true,
+            avatar: true,
+          },
+        },
       },
     });
 
@@ -190,10 +227,85 @@ export class TaskAttachmentsService {
       throw new NotFoundException('Task attachment not found');
     }
 
-    return attachment;
+    // Generate presigned URL for viewing
+    const viewUrl = attachment.url
+      ? attachment.url
+      : attachment.storageKey && await this.storageService.getFileUrl(attachment.storageKey);
+
+    return {
+      ...attachment,
+      viewUrl,
+    };
+  }
+  async streamFile(
+    attachmentId: string,
+    res: Response,
+    isDownload: boolean = false,
+  ): Promise<void> {
+    // Get attachment details
+    const attachment = await this.prisma.taskAttachment.findUnique({
+      where: { id: attachmentId },
+      select: {
+        id: true,
+        fileName: true,
+        mimeType: true,
+        fileSize: true,
+        url: true,
+        storageKey: true,
+      },
+    });
+    if (!attachment) {
+      throw new NotFoundException('Attachment not found');
+    }
+
+    // For preview, only allow certain file types
+    if (!isDownload) {
+      const previewableMimeTypes = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'image/svg+xml',
+        'application/pdf',
+        'text/plain',
+        'text/html',
+        'text/markdown',
+        'application/json',
+        'application/xml',
+        'text/css',
+        'text/javascript',
+      ];
+
+      if (!previewableMimeTypes.includes(attachment.mimeType)) {
+        throw new BadRequestException('File type not previewable');
+      }
+    }
+
+    // Set response headers
+    res.setHeader('Content-Type', attachment.mimeType);
+    res.setHeader('Content-Length', attachment.fileSize);
+    res.setHeader(
+      'Content-Disposition',
+      isDownload
+        ? `attachment; filename="${attachment.fileName}"`
+        : `inline; filename="${attachment.fileName}"`,
+    );
+
+    // Check if using S3 or local storage
+    if (!attachment.url && attachment.storageKey) {
+      // Stream from S3
+      await this.storageService.streamFromS3(attachment.storageKey, res);
+    } else if (attachment.url) {
+      // Stream from local storage
+      await this.storageService.streamFromLocal(attachment.url, res);
+    }
+    else {
+      throw new NotFoundException('Attachment not found');
+    }
   }
 
-  async getTaskAttachments(taskId: string): Promise<TaskAttachment[]> {
+  async getTaskAttachments(taskId: string): Promise<any[]> {
     // Verify task exists
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
@@ -204,13 +316,42 @@ export class TaskAttachmentsService {
       throw new NotFoundException('Task not found');
     }
 
-    return this.prisma.taskAttachment.findMany({
+    const attachments = await this.prisma.taskAttachment.findMany({
       where: { taskId },
+      include: {
+        createdByUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            avatar: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: 'desc',
       },
     });
+
+    // Generate presigned URLs for S3 attachments or return static URLs for local
+    const attachmentsWithUrls = await Promise.all(
+      attachments.map(async (attachment) => {
+        // If URL is null (S3), generate presigned URL; otherwise use stored URL
+        const viewUrl = attachment.url
+          ? attachment.url
+          : attachment.storageKey && await this.storageService.getFileUrl(attachment.storageKey);
+
+        return {
+          ...attachment,
+          viewUrl, // Add viewUrl for frontend consumption
+        };
+      }),
+    );
+
+    return attachmentsWithUrls;
   }
+
 
   async remove(id: string, requestUserId: string): Promise<TaskAttachment> {
     // Get attachment info
@@ -279,8 +420,8 @@ export class TaskAttachmentsService {
 
     // Delete the file from filesystem
     try {
-      if (fs.existsSync(attachment.filePath)) {
-        fs.unlinkSync(attachment.filePath);
+      if (fs.existsSync(attachment.filePath || '')) {
+        fs.unlinkSync(attachment.filePath || '');
       }
     } catch (error) {
       console.error('Error deleting file from filesystem:', error);

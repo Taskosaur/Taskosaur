@@ -37,6 +37,10 @@ export class CreateOrganizationMemberDto {
   @IsEnum(OrganizationRole)
   @IsOptional()
   role?: OrganizationRole;
+  
+  @IsString()
+  @IsOptional()
+  createdBy?: string;
 }
 
 export class InviteOrganizationMemberDto {

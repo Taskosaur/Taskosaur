@@ -18,6 +18,7 @@ export interface CreateTaskRequest {
   sprintId?: string;             
   parentTaskId?: string;         
   completedAt?: string | null; 
+  attachments?: File[];
 }
 
 

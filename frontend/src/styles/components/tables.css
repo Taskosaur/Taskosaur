@@ -30,7 +30,7 @@ Tables Components Styles
 }
 
 .tasktable-header-cell-task {
-  @apply text-[var(--muted-foreground)] font-medium min-w-[200px] border-none pl-6 w-[28%]  max-w-[400px];
+  @apply text-[var(--muted-foreground)] font-medium min-w-[200px] border-none  w-[28%]  max-w-[400px];
 }
 
 .tasktable-header-cell-project {

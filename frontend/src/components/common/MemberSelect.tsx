@@ -315,6 +315,26 @@ function MemberSelect({
       </div>
     );
   }
+  
+  if (disabled) {
+    return (
+      <>
+        {selectedMembers.map((member) => (
+          <UserAvatar
+            key={member.id}
+            user={{
+              ...member,
+              avatar:
+                member.avatarUrl ||
+                member.avatar ||
+                "/default-avatar.png",
+            }}
+            size="sm"
+          />
+        ))}
+      </>
+    );
+  }
 
   // Create mode (non-edit)
   return (

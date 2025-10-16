@@ -17,10 +17,9 @@ import { useAuth } from "@/contexts/auth-context";
 import { useOrganization } from "@/contexts/organization-context";
 import { TaskViewTabs } from "@/components/tasks/TaskViewTabs";
 import TaskCalendarView from "@/components/tasks/views/TaskCalendarView";
-import { HiPlus, HiCalendarDays, HiExclamationTriangle } from "react-icons/hi2";
+import { HiPlus, HiCalendarDays } from "react-icons/hi2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectTrigger,
@@ -30,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Task } from "@/contexts/task-context";
 import { Project } from "@/types";
+import ErrorState from "@/components/common/ErrorState";
 
 const LoadingSkeleton = () => (
   <div className="min-h-screen bg-background">
@@ -44,28 +44,6 @@ const LoadingSkeleton = () => (
           </CardContent>
         </Card>
       </div>
-    </div>
-  </div>
-);
-
-const ErrorState = ({
-  error,
-  onRetry,
-}: {
-  error: string;
-  onRetry: () => void;
-}) => (
-  <div className="min-h-screen bg-background">
-    <div className="max-w-7xl mx-auto p-6">
-      <Alert variant="destructive">
-        <HiExclamationTriangle className="h-4 w-4" />
-        <AlertDescription className="flex flex-col gap-2">
-          <span>{error}</span>
-          <Button onClick={onRetry} variant="outline" size="sm">
-            Try Again
-          </Button>
-        </AlertDescription>
-      </Alert>
     </div>
   </div>
 );
@@ -128,7 +106,7 @@ function TasksCalendarPageContent() {
       isInitializedRef.current = true;
     } catch (error) {
       console.error("Error loading tasks:", error);
-      setError(error instanceof Error ? error.message : "Failed to load data");
+      setError( error?.message ? error.message : "Failed to load data");
     } finally {
       setIsLoading(false);
     }

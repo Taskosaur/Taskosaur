@@ -113,7 +113,7 @@ export function SprintProvider({ children }: SprintProviderProps) {
       return result;
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "An error occurred";
+        error?.message ? error.message : "An error occurred";
       setSprintState((prev) => ({
         ...prev,
         isLoading: false,

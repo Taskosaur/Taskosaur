@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/router";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { useAuth } from "@/contexts/auth-context";
-
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,8 +38,8 @@ import EmptyState from "@/components/common/EmptyState";
 import ErrorState from "@/components/common/ErrorState";
 import Tooltip from "@/components/common/ToolTip";
 import { InfoPanel } from "@/components/common/InfoPanel";
+import { toast } from "sonner";
 
-// Pagination Component using shadcn/ui
 interface WorkspacePaginationProps {
   currentPage: number;
   totalPages: number;
@@ -118,13 +117,10 @@ function WorkspaceActivityContent() {
   const [activityFilter, setActivityFilter] = useState<
     "all" | ActivityLog["type"]
   >("all");
-
-  // Add pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
 
-  // Prevent duplicate fetches
   const fetchingRef = useRef(false);
   const currentSlugRef = useRef<string>("");
 
@@ -171,7 +167,6 @@ function WorkspaceActivityContent() {
         currentSlugRef.current === workspaceSlug &&
         page === currentPage
       ) {
-        // prevent multiple fetches for same slug and page
         return;
       }
 
@@ -188,7 +183,6 @@ function WorkspaceActivityContent() {
           return;
         }
 
-        // Only fetch workspace if not already loaded
         let ws = workspace;
         if (!ws) {
           setIsLoading(true);
@@ -209,14 +203,12 @@ function WorkspaceActivityContent() {
             activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1);
         }
 
-        // Fetch recent activity from workspace context API with pagination
         const recentActivityResponse = await getWorkspaceRecentActivity(ws.id, {
-          limit: 20, // Set limit per page
+          limit: 20,
           page: page,
           entityType,
         });
 
-        // Map all required ActivityLog properties
         const mappedActivities: ActivityLog[] =
           recentActivityResponse.activities.map((item: any) => ({
             id: item.id,
@@ -234,11 +226,10 @@ function WorkspaceActivityContent() {
                 },
             action: item.action,
             target: item.description,
-            project: undefined, // optionally parse from metadata or elsewhere
-            time: new Date(item.createdAt).toLocaleString(), // format date nicely
+            project: undefined,
+            time: new Date(item.createdAt).toLocaleString(),
             comment: item.metadata?.comment || undefined,
             type: item.entityType?.toLowerCase() as ActivityLog["type"],
-            // Required ActivityLog fields
             description: item.description,
             entityType: item.entityType,
             entityId: item.entityId,
@@ -247,16 +238,18 @@ function WorkspaceActivityContent() {
           }));
 
         setActivities(mappedActivities);
-
-        // Set pagination info from response
         if (recentActivityResponse.pagination) {
           setCurrentPage(recentActivityResponse.pagination.currentPage);
           setTotalPages(recentActivityResponse.pagination.totalPages);
         }
       } catch (e) {
-        console.error("Error fetching workspace activity:", e);
+        if (e.status === 403) {
+          toast.error(e?.message || "User not authenticated");
+          router.back();
+          return;
+        }
         setError(
-          e instanceof Error ? e.message : "Failed to load workspace activity"
+          e?.message ? e.message : "Failed to load workspace activity"
         );
       } finally {
         setIsLoading(false);
@@ -333,7 +326,7 @@ function WorkspaceActivityContent() {
 
   if (error) {
     return (
-      <ErrorState error="Something went wrong" onRetry={() => fetchData()} />
+      <ErrorState error={error} onRetry={() => fetchData()} />
     );
   }
 

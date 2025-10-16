@@ -17,6 +17,7 @@ interface TaskListViewProps {
   workspaceMembers?: any[];
   selectedTasks?: string[];
   onTaskSelect?: (taskId: string) => void;
+  showBulkActionBar?: boolean;
 }
 
 export default function TaskListView({
@@ -34,6 +35,7 @@ export default function TaskListView({
   workspaceMembers,
   selectedTasks: externalSelectedTasks,
   onTaskSelect: externalOnTaskSelect,
+  showBulkActionBar,
 }: TaskListViewProps) {
 
   const [internalSelectedTasks, setInternalSelectedTasks] = useState<string[]>([]);
@@ -66,6 +68,7 @@ export default function TaskListView({
         workspaceMembers={workspaceMembers}
         selectedTasks={selectedTasks}
         onTaskSelect={handleTaskSelect}
+        showBulkActionBar={showBulkActionBar}
       />
     </div>
   );

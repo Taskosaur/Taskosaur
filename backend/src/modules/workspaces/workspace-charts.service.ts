@@ -21,7 +21,7 @@ export class WorkspaceChartsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accessControl: AccessControlService,
-  ) {}
+  ) { }
 
   /**
    * Get multiple workspace chart data types in a single request
@@ -137,8 +137,7 @@ export class WorkspaceChartsService {
       where: { organizationId_slug: { organizationId, slug: workspaceSlug } },
       select: { id: true, organizationId: true },
     });
-
-    if (!workspace) {
+     if (!workspace) {
       throw new NotFoundException('Workspace not found');
     }
 
@@ -220,10 +219,12 @@ export class WorkspaceChartsService {
         projectId: { in: projectIds },
         ...(isElevated
           ? {}
-          : { OR:[
-                { assignees: { some: { id: userId } } },
-                { reporters: { some: { id: userId } } },
-              ] }),
+          : {
+            OR: [
+              { assignees: { some: { id: userId } } },
+              { reporters: { some: { id: userId } } },
+            ]
+          }),
       },
       _count: { priority: true },
     });
@@ -253,10 +254,12 @@ export class WorkspaceChartsService {
       project: projectBase,
       ...(isElevated
         ? {}
-        : { OR: [
-                { assignees: { some: { id: userId } } },
-                { reporters: { some: { id: userId } } },
-              ] }),
+        : {
+          OR: [
+            { assignees: { some: { id: userId } } },
+            { reporters: { some: { id: userId } } },
+          ]
+        }),
     };
 
     const [
@@ -314,10 +317,12 @@ export class WorkspaceChartsService {
       },
       ...(isElevated
         ? {}
-        : { OR: [
-                { assignees: { some: { id: userId } } },
-                { reporters: { some: { id: userId } } },
-              ] }),
+        : {
+          OR: [
+            { assignees: { some: { id: userId } } },
+            { reporters: { some: { id: userId } } },
+          ]
+        }),
     };
 
     return this.prisma.task.groupBy({
@@ -385,10 +390,12 @@ export class WorkspaceChartsService {
       completedAt: { not: null },
       ...(isElevated
         ? {}
-        : { OR:[
-                { assignees: { some: { id: userId } } },
-                { reporters: { some: { id: userId } } },
-              ] }),
+        : {
+          OR: [
+            { assignees: { some: { id: userId } } },
+            { reporters: { some: { id: userId } } },
+          ]
+        }),
     };
 
     const tasks = await this.prisma.task.findMany({

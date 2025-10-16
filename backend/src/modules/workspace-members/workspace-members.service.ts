@@ -9,6 +9,7 @@ import {
   WorkspaceMember,
   Role as WorkspaceRole,
   Role as OrganizationRole,
+  Role,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
@@ -76,7 +77,7 @@ export class WorkspaceMembersService {
     }
 
     try {
-      return await this.prisma.workspaceMember.create({
+      const wsMember = await this.prisma.workspaceMember.create({
         data: {
           userId,
           workspaceId,
@@ -111,6 +112,23 @@ export class WorkspaceMembersService {
           },
         },
       });
+      if (role === Role.OWNER || role === Role.MANAGER) {
+        const wsProjects = await this.prisma.project.findMany({
+          where: { workspaceId },
+        });
+
+        if (wsProjects.length > 0) {
+          await this.prisma.projectMember.createMany({
+            data: wsProjects.map((project) => ({
+              userId,
+              projectId: project.id,
+              role,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+      return wsMember
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException(
@@ -339,41 +357,92 @@ export class WorkspaceMembersService {
     const isOrgOwner = member.workspace.organization.ownerId === requestUserId;
     const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
     const isWorkspaceAdmin =
-      requesterWorkspaceMember?.role === WorkspaceRole.OWNER;
+      requesterWorkspaceMember?.role === WorkspaceRole.OWNER ||
+      requesterWorkspaceMember?.role === WorkspaceRole.MANAGER;
+
     if (!isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin) {
       throw new ForbiddenException(
         'Only organization owners/admins or workspace admins can update member roles',
       );
     }
 
-    const updatedMember = await this.prisma.workspaceMember.update({
-      where: { id },
-      data: updateWorkspaceMemberDto,
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-            status: true,
+    if (
+      requesterWorkspaceMember?.role === WorkspaceRole.MANAGER &&
+      updateWorkspaceMemberDto.role === 'OWNER'
+    ) {
+      throw new ForbiddenException('Manager can not change the role to owner');
+    }
+
+    // Update workspace member and handle project members in a transaction
+    const updatedMember = await this.prisma.$transaction(async (tx) => {
+      // Update the workspace member
+      const updated = await tx.workspaceMember.update({
+        where: { id },
+        data: updateWorkspaceMemberDto,
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              status: true,
+            },
+          },
+          workspace: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              avatar: true,
+              color: true,
+            },
           },
         },
-        workspace: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            avatar: true,
-            color: true,
-          },
-        },
-      },
+      });
+
+      const userId = updated.userId;
+      const workspaceId = updated.workspaceId;
+      const role = updated.role;
+
+      // Get all projects in this workspace
+      const wsProjects = await tx.project.findMany({
+        where: { workspaceId },
+        select: { id: true },
+      });
+
+      if (wsProjects.length > 0) {
+        // Update or create project members for all projects in the workspace
+        const projectMemberOperations = wsProjects.map((project) =>
+          tx.projectMember.upsert({
+            where: {
+              userId_projectId: {
+                userId: userId,
+                projectId: project.id,
+              },
+            },
+            update: {
+              role: role, // Update existing member's role
+            },
+            create: {
+              userId: userId,
+              projectId: project.id,
+              role: role, // Create new member with role
+            },
+          }),
+        );
+
+        // Execute all upsert operations
+        await Promise.all(projectMemberOperations);
+      }
+
+      return updated;
     });
 
     return updatedMember;
   }
+
 
   async remove(id: string, requestUserId: string): Promise<void> {
     // Get current member info

@@ -56,7 +56,86 @@ export const taskApi = {
       throw error;
     }
   },
+  createTaskWithAttachements: async (
+    taskData: CreateTaskRequest,
+  ): Promise<Task> => {
+    try {
+      const formData = new FormData();
 
+      // Append all task data fields to FormData
+      formData.append('title', taskData.title);
+      formData.append('projectId', taskData.projectId);
+      formData.append('statusId', taskData.statusId);
+
+      // Append optional string fields
+      if (taskData.description) {
+        formData.append('description', taskData.description);
+      }
+      if (taskData.type) {
+        formData.append('type', taskData.type);
+      }
+      if (taskData.priority) {
+        formData.append('priority', taskData.priority);
+      }
+      if (taskData.startDate) {
+        formData.append('startDate', taskData.startDate);
+      }
+      if (taskData.dueDate) {
+        formData.append('dueDate', taskData.dueDate);
+      }
+      if (taskData.sprintId) {
+        formData.append('sprintId', taskData.sprintId);
+      }
+      if (taskData.parentTaskId) {
+        formData.append('parentTaskId', taskData.parentTaskId);
+      }
+      if (taskData.completedAt !== undefined) {
+        formData.append('completedAt', taskData.completedAt || '');
+      }
+
+      // Append number fields
+      if (taskData.storyPoints !== undefined) {
+        formData.append('storyPoints', taskData.storyPoints.toString());
+      }
+      if (taskData.originalEstimate !== undefined) {
+        formData.append('originalEstimate', taskData.originalEstimate.toString());
+      }
+      if (taskData.remainingEstimate !== undefined) {
+        formData.append('remainingEstimate', taskData.remainingEstimate.toString());
+      }
+
+      // Append array fields as JSON strings
+      if (taskData.assigneeIds && taskData.assigneeIds.length > 0) {
+        formData.append('assigneeIds', JSON.stringify(taskData.assigneeIds));
+      }
+      if (taskData.reporterIds && taskData.reporterIds.length > 0) {
+        formData.append('reporterIds', JSON.stringify(taskData.reporterIds));
+      }
+
+      // Append custom fields as JSON string
+      if (taskData.customFields) {
+        formData.append('customFields', JSON.stringify(taskData.customFields));
+      }
+
+      // Append files
+      if (taskData.attachments && taskData.attachments.length > 0) {
+        taskData.attachments.forEach((file) => {
+          formData.append('attachments', file);
+        });
+      }
+
+      const response = await api.post<Task>('/tasks/create-task-attachment', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Create task error:', error);
+      throw error;
+    }
+  },
   createSubtask: async (subtaskData: CreateSubtaskRequest): Promise<Task> => {
     try {
       const response = await api.post<Task>("/tasks", {
@@ -181,9 +260,8 @@ export const taskApi = {
       if (endDate) queryParams.append("endDate", endDate);
 
       const query = queryParams.toString();
-      const url = `/public/workspaces/${workspaceSlug}/projects/${projectSlug}/calendar${
-        query ? `?${query}` : ""
-      }`;
+      const url = `/public/workspaces/${workspaceSlug}/projects/${projectSlug}/calendar${query ? `?${query}` : ""
+        }`;
 
       const response = await api.get<Task[]>(url);
       return response.data;
@@ -289,9 +367,8 @@ export const taskApi = {
       if (params.search) queryParams.append("search", params.search); // ✅ Add search
 
       const queryString = queryParams.toString();
-      const url = `/tasks/organization/${organizationId}${
-        queryString ? `?${queryString}` : ""
-      }`;
+      const url = `/tasks/organization/${organizationId}${queryString ? `?${queryString}` : ""
+        }`;
 
       const response = await api.get<TasksResponse>(url);
       return response.data;
@@ -641,16 +718,37 @@ export const taskApi = {
 
   previewFile: async (attachmentId: string): Promise<Blob> => {
     try {
-      const response = await api.get(
-        `/task-attachments/${attachmentId}/preview`,
-        {
-          responseType: "blob",
-        }
-      );
+      const response = await api.get(`/task-attachments/${attachmentId}/preview`, {
+        responseType: "blob",
+      });
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Preview file error:", error);
-      throw error;
+
+      let message = "An unexpected error occurred";
+      let status = error?.response?.status || 500;
+
+      // Handle blob-based error (binary response)
+      if (error?.response?.data instanceof Blob) {
+        try {
+          // Convert blob to text → then parse JSON
+          const text = await error.response.data.text();
+          const json = JSON.parse(text);
+          message = json.message || message;
+          status = json.statusCode || status;
+        } catch {
+          // Fallback if parsing fails
+          message = "Failed to parse server error response.";
+        }
+      } else {
+        // Normal JSON response
+        message =
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to preview file.";
+      }
+
+      throw { message, status };
     }
   },
 

@@ -9,7 +9,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { S3Service } from '../s3/s3.service';
+import { S3Service } from '../storage/s3.service';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 
 @Injectable()
@@ -18,7 +18,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private s3Service: S3Service,
-  ) {}
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
     const existingUser = await this.prisma.user.findUnique({
@@ -28,15 +28,16 @@ export class UsersService {
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
-
-    if (createUserDto.username) {
-      const existingUsername = await this.prisma.user.findUnique({
-        where: { username: createUserDto.username },
-      });
-
-      if (existingUsername) {
-        throw new ConflictException('Username already taken');
-      }
+    const baseUsername = createUserDto.email.split('@')[0].toLowerCase();
+    let finalUsername = baseUsername;
+    let counter = 1;
+    while (
+      await this.prisma.user.findUnique({
+        where: { username: finalUsername },
+      })
+    ) {
+      finalUsername = `${baseUsername}${counter}`;
+      counter++;
     }
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
@@ -44,6 +45,7 @@ export class UsersService {
     const user = await this.prisma.user.create({
       data: {
         ...createUserDto,
+        username: finalUsername,
         password: hashedPassword,
       },
     });

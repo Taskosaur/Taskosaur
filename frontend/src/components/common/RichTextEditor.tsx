@@ -211,7 +211,7 @@ export default function RichTextEditor({
 
       {/* Editor */}
       <div className="relative w-full">
-        <div className="min-h-[120px] w-full rounded-md bg-[var(--muted)]/30 px-3 py-2 text-sm font-normal leading-6 shadow-sm resize-y overflow-y-auto cursor-text whitespace-pre-wrap">
+        <div className="h-40 w-full rounded-md bg-[var(--muted)]/30 px-3 py-2 text-sm font-normal leading-6 shadow-sm resize-y overflow-y-auto cursor-text whitespace-pre-wrap">
           <Editor
             editorState={editorState}
             onChange={onChange}

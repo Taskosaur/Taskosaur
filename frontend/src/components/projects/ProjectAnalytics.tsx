@@ -151,7 +151,7 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
 
       localStorage.setItem(`project-widgets`, JSON.stringify(preferences));
     }
-  }, [widgets, projectSlug]);
+  }, [projectSlug]);
 
   if (loading) {
     return <AnalyticsSkeleton />;
@@ -160,7 +160,7 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
   if (error) {
     return (
       <ErrorState
-        error={`Error loading Project analytics: ${error}`}
+        error={error}
         onRetry={handleFetchData}
       />
     );

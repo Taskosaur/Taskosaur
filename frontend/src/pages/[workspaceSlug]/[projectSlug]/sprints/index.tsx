@@ -3,8 +3,7 @@ import { useRouter } from "next/router";
 import { useSprint } from "@/contexts/sprint-context";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { HiPlus, HiExclamationTriangle, HiRocketLaunch } from "react-icons/hi2";
+import { HiPlus, HiRocketLaunch } from "react-icons/hi2";
 import { Sprint } from "@/types";
 import { SprintCard } from "@/components/sprints/SprintCard";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
@@ -13,6 +12,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
 import { useProjectContext } from "@/contexts/project-context";
 import { CardsSkeleton } from "@/components/skeletons/CardsSkeleton";
+import ErrorState from "@/components/common/ErrorState";
 
 function SprintsPageContent() {
   const router = useRouter();
@@ -28,7 +28,6 @@ function SprintsPageContent() {
     deleteSprint,
     startSprint,
     completeSprint,
-    clearError,
   } = useSprint();
 
   const authContext = useAuth();
@@ -77,7 +76,6 @@ function SprintsPageContent() {
       }
 
       if (isAuth) {
-        // Authenticated flow - use existing logic
         const workspace = await workspaceContext.getWorkspaceBySlug(
           workspaceSlug
         );
@@ -95,18 +93,15 @@ function SprintsPageContent() {
         }
         setProjectData(project);
       } else {
-        // Public flow - get project directly by slug
         try {
           const project = await projectContext.getProjectBySlug(
             projectSlug,
-            false, // isAuthenticated = false
+            false,
             workspaceSlug
           );
           setProjectData(project);
         } catch (error) {
           console.error("Error loading public project data:", error);
-          // If public access fails, could redirect to login or show error
-          // For now, just log the error and continue
         }
       }
     } catch (err) {
@@ -217,6 +212,12 @@ function SprintsPageContent() {
     );
   }
 
+  if (error) {
+    return (
+      <ErrorState error={error} />
+    );
+  }
+
   return (
     <div className="dashboard-container" automation-id="sprint-container">
       <div className="space-y-6">
@@ -239,24 +240,6 @@ function SprintsPageContent() {
             )
           }
         />
-
-        {/* Error Alert */}
-        {error && (
-          <Alert className="bg-[var(--destructive)]/10 border-[var(--destructive)]/20 text-[var(--destructive)]">
-            <HiExclamationTriangle className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between">
-              <span>{error}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearError}
-                className="h-auto p-1 text-[var(--destructive)] hover:bg-[var(--destructive)]/10"
-              >
-                Dismiss
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Sprints Grid */}
         {sprints.length > 0 ? (

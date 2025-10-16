@@ -26,7 +26,6 @@ import {
 import { NewProjectModal } from "@/components/projects/NewProjectModal";
 import NewWorkspaceDialog from "../workspace/NewWorkspaceDialogProps";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
-import Tooltip from "../common/ToolTip";
 import SearchManager from "../header/SearchManager";
 
 const LoginButton = () => {
@@ -274,7 +273,6 @@ export default function Header() {
 
   const headerOptions = [
     {
-      content: "Notifications",
       component: (
         <NotificationDropdown
           userId={currentUser?.id}
@@ -283,14 +281,11 @@ export default function Header() {
       ),
     },
     {
-      content: "Invitations",
-      component: <InvitationManager userId={currentUser?.id} />, 
+      component: <InvitationManager userId={currentUser?.id} />,
     },
-    { content: "Toggle Theme", component: <ModeToggle /> },
+    { component: <ModeToggle /> },
     {
-      content: "Search", 
       component: <div className="search-manager-header"><SearchManager /></div>, 
-      noTooltip: true
     }
   ];
 
@@ -453,19 +448,8 @@ export default function Header() {
 
             {hasOrganizationAccess && (
               <>
-                {headerOptions.map(({ content, component, noTooltip }, idx) => (
-                  noTooltip ? (
-                    <span key={idx}>{component}</span>
-                  ) : (
-                    <Tooltip
-                      key={idx}
-                      content={content}
-                      position="bottom"
-                      color="primary"
-                    >
-                      {component}
-                    </Tooltip>
-                  )
+                {headerOptions.map(({ component }, idx) => (
+                  <span key={idx}>{component}</span>
                 ))}
 
                 {toggleChat && isAIEnabled && (

@@ -9,7 +9,7 @@ import {
 
 @Injectable()
 export class OrganizationsSeederService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async seed(users: any[]) {
     console.log('🌱 Seeding organizations...');
@@ -57,12 +57,9 @@ export class OrganizationsSeederService {
         website: 'https://techinnovators.example.com',
         avatar:
           'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150',
-        ownerId:
-          users.find((user) => user.role === 'MANAGER')?.id || users[1]?.id,
-        createdBy:
-          users.find((user) => user.role === 'MANAGER')?.id || users[1]?.id,
-        updatedBy:
-          users.find((user) => user.role === 'MANAGER')?.id || users[1]?.id,
+        ownerId: adminUser.id,
+        createdBy: adminUser.id,
+        updatedBy: adminUser.id,
         settings: {
           allowPublicSignup: true,
           defaultUserRole: 'VIEWER',

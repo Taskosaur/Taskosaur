@@ -3,12 +3,14 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CryptoService } from '../../../common/crypto.service';
 import { S3UploadService } from '../../../common/s3-upload.service';
-import { EmailAccount, MessageStatus, SyncStatus, User } from '@prisma/client';
+import { EmailAccount, MessageAttachment, MessageStatus, SyncStatus, User } from '@prisma/client';
 import { simpleParser } from 'mailparser';
 import * as nodemailer from 'nodemailer';
 import { ImapFlow } from 'imapflow';
 import { EmailSyncUtils } from '../utils/email-sync.utils';
 import * as bcrypt from 'bcrypt';
+import { Readable } from 'stream';
+import { StorageService } from 'src/modules/storage/storage.service';
 
 // For now, using simplified email handling
 // In production, you'd use proper IMAP libraries like 'imap' or 'imapflow'
@@ -39,6 +41,7 @@ export class EmailSyncService {
     private prisma: PrismaService,
     private crypto: CryptoService,
     private s3Upload: S3UploadService,
+    private storageService: StorageService
   ) { }
 
   // @Cron(CronExpression.EVERY_5_MINUTES)
@@ -540,16 +543,30 @@ export class EmailSyncService {
     for (const attachment of attachments) {
       try {
         // Upload to S3
-        const uploadResult = await this.s3Upload.uploadEmailAttachment(messageId, attachment);
-
+        const file: Express.Multer.File = {
+          originalname: attachment.filename || 'attachment',
+          mimetype: attachment.contentType || 'application/octet-stream',
+          buffer: Buffer.from(attachment.content, 'base64'),
+          size: attachment.size || Buffer.from(attachment.content, 'base64').length,
+          fieldname: 'attachment',
+          encoding: '7bit',
+          stream: Readable.from(Buffer.from(attachment.content, 'base64')), // Create readable stream from buffer
+          destination: '',
+          filename: attachment.filename || 'attachment',
+          path: '',
+        };
+        const { url, key, size } = await this.storageService.saveFile(
+          file,
+          `inbox/messages/${messageId}`,
+        );
         attachmentData.push({
           messageId,
           filename: attachment.filename || 'unnamed',
           mimeType: attachment.contentType || 'application/octet-stream',
-          size: uploadResult.size,
+          size: size,
           contentId: attachment.cid,
-          storagePath: uploadResult.key,
-          storageUrl: uploadResult.url,
+          storagePath: key,
+          storageUrl: url,
         });
       } catch (error) {
         this.logger.error(`Failed to upload attachment ${attachment.filename}:`, error.message);
@@ -685,7 +702,11 @@ export class EmailSyncService {
 
   private async autoCreateTask(message: any, inbox: any, repoterId: string) {
     try {
-      const inboxMessage = await this.prisma.inboxMessage.findUnique({ where: { id: message.id } })
+      const inboxMessage = await this.prisma.inboxMessage.findUnique({ where: { id: message.id }, include: { attachments: true } })
+      if (!inboxMessage) {
+        this.logger.error(`Inbox message not found`);
+        return;
+      }
       if (inboxMessage?.status === MessageStatus.IGNORED) {
         this.logger.log(`Skipping message ${message.messageId} as its status is IGNORE`);
         return;
@@ -716,7 +737,13 @@ export class EmailSyncService {
             emailRecipientNames: message.fromName
           },
         });
-
+        if (inboxMessage.attachments && inboxMessage.attachments.length > 0) {
+          await this.copyAttachmentsToTask(
+            inboxMessage.attachments,
+            existingTask.id,
+            defaultAuthorId,
+          );
+        }
         // Update message
         await this.prisma.inboxMessage.update({
           where: { id: message.id },
@@ -776,7 +803,13 @@ export class EmailSyncService {
       const task = await this.prisma.task.create({
         data: taskData,
       });
-
+      if (inboxMessage.attachments && inboxMessage.attachments.length > 0) {
+        await this.copyAttachmentsToTask(
+          inboxMessage.attachments,
+          task.id,
+          repoterId || inbox.defaultAuthorId,
+        );
+      }
       // Update message
       await this.prisma.inboxMessage.update({
         where: { id: message.id },
@@ -793,7 +826,35 @@ export class EmailSyncService {
     }
   }
 
+  private async copyAttachmentsToTask(
+    inboxAttachments: MessageAttachment[],
+    taskId: string,
+    userId: string,
+  ) {
+    try {
+      for (const inboxAttachment of inboxAttachments) {
+        // Create task attachment record pointing to the same storage location
+        await this.prisma.taskAttachment.create({
+          data: {
+            taskId: taskId,
+            fileName: inboxAttachment.filename,
+            fileSize: inboxAttachment.size,
+            mimeType: inboxAttachment.mimeType,
+            url: inboxAttachment.storageUrl, // Same URL (null for S3, path for local)
+            storageKey: inboxAttachment.storagePath, // Same storage key
+            createdBy: userId,
+          },
+        });
 
+        this.logger.log(
+          `Copied attachment ${inboxAttachment.filename} to task ${taskId}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error('Failed to copy attachments to task:', error);
+      // Don't throw - task creation should succeed even if attachment copy fails
+    }
+  }
   private extractThreadIdFromParsed(parsed: any): string {
     if (parsed.inReplyTo) return parsed.inReplyTo;
     if (parsed.references) {

@@ -23,6 +23,7 @@ export enum EmailTemplate {
   INVITATION_ACCEPTED = 'invitation-accepted',
   INVITATION_DECLINED = 'invitation-declined',
   INVITATION_EXPIRED = 'invitation-expired',
+  DIRECT_ADD_NOTIFICATION = 'direct_add_notification'
 }
 
 export enum EmailPriority {

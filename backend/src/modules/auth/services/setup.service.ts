@@ -18,7 +18,7 @@ export class SetupService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly systemUserSeeder: SystemUserSeederService,
-  ) {}
+  ) { }
 
   async isSetupRequired(): Promise<boolean> {
     const userCount = await this.prisma.user.count();
@@ -64,16 +64,17 @@ export class SetupService {
         }
 
         // Check username if provided
-        if (setupAdminDto.username) {
-          const existingUsername = await prismaTransaction.user.findUnique({
-            where: { username: setupAdminDto.username },
-          });
-
-          if (existingUsername) {
-            throw new ConflictException('Username already taken');
-          }
+        const baseUsername = setupAdminDto.email.split('@')[0].toLowerCase();
+        let finalUsername = baseUsername;
+        let counter = 1;
+        while (
+          await prismaTransaction.user.findUnique({
+            where: { username: finalUsername },
+          })
+        ) {
+          finalUsername = `${baseUsername}${counter}`;
+          counter++;
         }
-
         // Hash password
         const hashedPassword = await bcrypt.hash(setupAdminDto.password, 12);
 
@@ -81,7 +82,7 @@ export class SetupService {
         const superAdmin = await prismaTransaction.user.create({
           data: {
             email: setupAdminDto.email,
-            username: setupAdminDto.username || null,
+            username: finalUsername,
             firstName: setupAdminDto.firstName,
             lastName: setupAdminDto.lastName,
             password: hashedPassword,

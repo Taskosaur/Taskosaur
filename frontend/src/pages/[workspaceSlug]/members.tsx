@@ -8,22 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/DropdownMenu";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   HiMagnifyingGlass,
   HiPlus,
   HiUsers,
-  HiChevronDown,
-  HiCheck,
-  HiUserPlus,
   HiXMark,
   HiCog,
 } from "react-icons/hi2";
-import Loader from "@/components/common/Loader";
 import ErrorState from "@/components/common/ErrorState";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Badge } from "@/components/ui";
@@ -33,8 +30,10 @@ import InviteModal from "@/components/modals/InviteModal";
 import Tooltip from "@/components/common/ToolTip";
 import { roles } from "@/utils/data/projectData";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
-import { ProjectMember } from "@/types";
-import PendingInvitations, { PendingInvitationsRef } from "@/components/common/PendingInvitations";
+import { ProjectMember, Workspace } from "@/types";
+import PendingInvitations, {
+  PendingInvitationsRef,
+} from "@/components/common/PendingInvitations";
 import WorkspaceMembersSkeleton from "@/components/skeletons/WorkspaceMembersSkeleton";
 
 function useDebounce(value, delay) {
@@ -61,14 +60,17 @@ interface Member {
   status: string;
   joinedAt: string;
   avatar?: string;
+  userId: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    avatar?: string;
+  };
 }
 
-interface Workspace {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string;
-}
+
 
 const EmptyState = ({
   icon: Icon,
@@ -98,7 +100,7 @@ function WorkspaceMembersContent() {
   } = useWorkspace();
   const { isAuthenticated, getCurrentUser, getUserAccess } = useAuth();
   const [hasAccess, setHasAccess] = useState(false);
-  const [userAccess, setUserAccess] = useState(null)
+  const [userAccess, setUserAccess] = useState(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,22 +125,19 @@ function WorkspaceMembersContent() {
     isAuthenticated,
   });
 
-  const [data, setData] = useState(null);
-
   useEffect(() => {
     if (!workspace?.id) return;
     getUserAccess({ name: "workspace", id: workspace?.id })
       .then((data) => {
-        setData(data);
-        // console.log("Access data:", data?.role, data?.canChange);
-        setHasAccess(data?.canChange || data?.role === "OWNER" || data?.role === "MANAGER");
-        setUserAccess(data)
+        setHasAccess(
+          data?.canChange || data?.role === "OWNER" || data?.role === "MANAGER"
+        );
+        setUserAccess(data);
       })
       .catch((error) => {
         console.error("Error fetching user access:", error);
       });
   }, [workspace]);
-  // console.log(hasAccess, "hasAccess");
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -155,28 +154,89 @@ function WorkspaceMembersContent() {
     }
   };
 
+  const getRoleBadgeClass = (role: string) => {
+    switch (role) {
+      case "OWNER":
+        return "organizations-role-badge-super-admin";
+      case "MANAGER":
+        return "organizations-role-badge-manager";
+      case "MEMBER":
+        return "organizations-role-badge-member";
+      case "VIEWER":
+        return "organizations-role-badge-viewer";
+      default:
+        return "organizations-role-badge-viewer";
+    }
+  };
+
   const getRoleLabel = (role: string) => {
     if (!Array.isArray(roles)) return role;
     const roleConfig = roles.find((r) => r.name === role);
     return roleConfig?.name || role;
   };
 
-  // Get current user's role for permission checks
-  const getCurrentUserRole = () => {
-    const currentUser = getCurrentUser();
-    if (!currentUser) return null;
+  const getCurrentUserId = () => getCurrentUser()?.id;
+  const isCurrentUserOwner = workspace?.createdBy === getCurrentUserId();
 
-    const userMember = members.find((m) => m.email === currentUser.email);
-    return userMember?.role || null;
+  // Check if current user can manage members
+  const canManageMembers = () => {
+    return (
+      userAccess?.role === "OWNER" ||
+      userAccess?.role === "MANAGER" ||
+      hasAccess
+    );
   };
 
-  const canInviteMembers = () => {
-    const userRole = getCurrentUserRole();
-    return (
-      userRole === "SUPER_ADMIN" ||
-      userRole === "MANAGER" ||
-      data?.role === "OWNER"
-    );
+  // Check if a member's role can be updated
+  const canUpdateMemberRole = (member: Member) => {
+    const currentUserId = getCurrentUserId();
+    // Current user cannot modify their own role
+    if (member.userId === currentUserId) {
+      return false;
+    }
+    if (member.role === "OWNER" && !isCurrentUserOwner) {
+      return false;
+    }
+
+    return canManageMembers();
+  };
+
+  // Check if a member can be removed
+  const canRemoveMember = (member: Member) => {
+    const currentUserId = getCurrentUserId();
+    if(isCurrentUserOwner){
+      return false
+    }
+    // User can always remove themselves (leave workspace)
+    if (member.userId === currentUserId) {
+      return true;
+    }
+
+    // Owner cannot be removed by others
+    if (member.role === "OWNER" && !isCurrentUserOwner) {
+      return false;
+    }
+
+    // Manager cannot remove other managers
+    // if (userAccess?.role === "MANAGER" && member.role === "MANAGER") {
+    //   return false;
+    // }
+
+    return canManageMembers();
+  };
+
+  // Get available roles for a member
+  const getAvailableRolesForMember = () => {
+    const availableRoles = roles.filter((role) => {
+      // Manager cannot assign Owner role
+      if (userAccess?.role === "MANAGER" && role.name === "OWNER") {
+        return false;
+      }
+      return true;
+    });
+
+
+    return availableRoles;
   };
 
   useEffect(() => {
@@ -256,21 +316,24 @@ function WorkspaceMembersContent() {
 
         const processedMembers = (membersData || []).map((member: any) => ({
           id: member.id,
+          userId: member.userId,
           name:
-            `${member.user?.firstName || ""} ${member.user?.lastName || ""
-              }`.trim() || "Unknown User",
+            `${member.user?.firstName || ""} ${
+              member.user?.lastName || ""
+            }`.trim() || "Unknown User",
           email: member.user?.email || "",
           role: member.role || "Member",
           status: member.user?.status || "Active",
           joinedAt: member.createdAt || new Date().toISOString(),
           avatar: member.user?.avatar || "",
+          user: member.user,
         }));
 
         setMembers(processedMembers);
         isInitializedRef.current = true;
       } catch (err) {
         if (requestIdRef.current === requestId && isMountedRef.current) {
-          setError(err instanceof Error ? err.message : "An error occurred");
+          setError(err?.message ? err.message : "An error occurred");
           isInitializedRef.current = false;
         }
       } finally {
@@ -341,20 +404,23 @@ function WorkspaceMembersContent() {
 
       const processedMembers = (membersData || []).map((member: any) => ({
         id: member.id,
+        userId: member.userId,
         name:
-          `${member.user?.firstName || ""} ${member.user?.lastName || ""
-            }`.trim() || "Unknown User",
+          `${member.user?.firstName || ""} ${
+            member.user?.lastName || ""
+          }`.trim() || "Unknown User",
         email: member.user?.email || "",
         role: member.role || "Member",
         status: member.user?.status || "Active",
         joinedAt: member.createdAt || new Date().toISOString(),
         avatar: member.user?.avatar || "",
+        user: member.user,
       }));
 
       setMembers(processedMembers);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load members");
+      setError(err?.message ? err.message : "Failed to load members");
     }
   };
 
@@ -391,13 +457,9 @@ function WorkspaceMembersContent() {
 
     try {
       setUpdatingMember(memberId);
-      await updateMemberRole(
-        memberId,
-        { role: newRole as any },
-        currentUser.id
-      );
+      await updateMemberRole(memberId, { role: newRole as any }, currentUser.id);
       await refreshMembers();
-      updateLocalStorageUser(newRole); // Update the new role
+      updateLocalStorageUser(newRole);
       toast.success("Member role updated successfully");
     } catch (err) {
       const errorMessage = err.message || "Failed to update role";
@@ -419,11 +481,17 @@ function WorkspaceMembersContent() {
       await removeMemberFromWorkspace(member?.id, currentUser.id);
       await refreshMembers();
       setMemberToRemove(null);
+      
+      // If user removed themselves, redirect to workspaces page
+      if (member.userId === currentUser.id) {
+        toast.success("You have left the workspace");
+        router.push("/workspaces");
+        return;
+      }
+      
       toast.success("Member removed successfully");
     } catch (err) {
-      const errorMessage = err.message
-        ? err.message
-        : "Failed to remove member";
+      const errorMessage = err.message ? err.message : "Failed to remove member";
       setError(errorMessage);
       setMemberToRemove(null);
       toast.error(errorMessage);
@@ -457,8 +525,7 @@ function WorkspaceMembersContent() {
       });
 
       toast.success(`Invitation sent to ${email}`);
-      
-    
+
       if (pendingInvitationsRef.current) {
         await pendingInvitationsRef.current.refreshInvitations();
       }
@@ -497,10 +564,7 @@ function WorkspaceMembersContent() {
   if (error && !members.length) {
     return (
       <div className="min-h-screen bg-[var(--background)]">
-        <ErrorState
-          error="Error loading workspace members"
-          onRetry={retryFetch}
-        />
+        <ErrorState error="Error loading workspace members" onRetry={retryFetch} />
       </div>
     );
   }
@@ -584,6 +648,7 @@ function WorkspaceMembersContent() {
             </CardHeader>
 
             <CardContent className="p-0">
+              {/* Table Header */}
               <div className="px-4 py-3 bg-[var(--muted)]/30 border-b border-[var(--border)]">
                 <div className="grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
                   <div className="col-span-4">Member</div>
@@ -597,7 +662,7 @@ function WorkspaceMembersContent() {
               {/* Table Content */}
               {activeMembers.length === 0 && !loading ? (
                 <EmptyState
-                  icon={HiUserPlus}
+                  icon={HiUsers}
                   title={
                     searchTerm
                       ? "No members found matching your search"
@@ -606,135 +671,142 @@ function WorkspaceMembersContent() {
                   description={
                     searchTerm
                       ? "Try adjusting your search terms"
-                      : "Start by inviting team members to collaborate on this project"
+                      : "Start by inviting team members to collaborate on this workspace"
                   }
                 />
               ) : (
                 <div className="divide-y divide-[var(--border)]">
-                  {activeMembers.map((member) => (
-                    <div
-                      key={member.id}
-                      className="px-4 py-3 hover:bg-[var(--accent)]/30 transition-colors"
-                    >
-                      <div className="grid grid-cols-12 gap-3 items-center">
-                        {/* Member Info */}
-                        <div className="col-span-4">
-                          <div className="flex items-center gap-3">
-                            <UserAvatar
-                              user={{
-                                firstName: member.name.split(" ")[0] || "",
-                                lastName: member.name.split(" ")[1] || "",
-                                avatar: member.avatar,
-                              }}
-                              size="sm"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium text-[var(--foreground)] truncate">
-                                {member.name}
-                              </div>
-                              <div className="text-xs text-[var(--muted-foreground)] truncate">
-                                {member.email}
+                  {activeMembers.map((member) => {
+                    const currentUserId = getCurrentUserId();
+                    const isCurrentUser = member.userId === currentUserId;
+                    const canEditRole = canUpdateMemberRole(member);
+                    const canRemove = canRemoveMember(member);
+                    const availableRoles = getAvailableRolesForMember();
+
+                    return (
+                      <div
+                        key={member.id}
+                        className="px-4 py-3 hover:bg-[var(--accent)]/30 transition-colors"
+                      >
+                        <div className="grid grid-cols-12 gap-3 items-center">
+                          {/* Member Info */}
+                          <div className="col-span-4">
+                            <div className="flex items-center gap-3">
+                              <UserAvatar
+                                user={{
+                                  firstName: member.name.split(" ")[0] || "",
+                                  lastName: member.name.split(" ")[1] || "",
+                                  avatar: member.avatar,
+                                }}
+                                size="sm"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium text-[var(--foreground)] truncate">
+                                  {member.name}
+                                </div>
+                                <div className="text-xs text-[var(--muted-foreground)] truncate">
+                                  {member.email}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Status */}
-                        <div className="col-span-2">
-                          <Badge
-                            variant="outline"
-                            className={`text-xs bg-transparent px-2 py-1 rounded-md border-none ${getStatusBadgeClass(
-                              member.status || "ACTIVE"
-                            )}`}
-                          >
-                            {member.status || "ACTIVE"}
-                          </Badge>
-                        </div>
-
-                        {/* Joined Date */}
-                        <div className="col-span-2">
-                          <span className="text-sm text-[var(--muted-foreground)]">
-                            {member.joinedAt
-                              ? formatDate(
-                                new Date(member.joinedAt).toISOString()
-                              )
-                              : "N/A"}
-                          </span>
-                        </div>
-
-                        {/* Role */}
-                        <div className="col-span-2">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className="h-8 border-none bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)] flex items-center justify-center gap-2 whitespace-nowrap transition-all duration-200 text-xs"
-                                disabled={
-                                  updatingMember === member.id || !hasAccess
-                                }
-                              >
-                                {updatingMember === member.id ? (
-                                  <div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
-                                ) : (
-                                  <>
-                                    {getRoleLabel(member.role)}
-                                    <HiChevronDown className="w-3 h-3" />
-                                  </>
-                                )}
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="z-50 border-none bg-[var(--card)] rounded-lg shadow-lg">
-                              {roles.filter((role) => !(userAccess?.role === "MANAGER" && role?.name === "OWNER")).map((role) => (
-                                <DropdownMenuItem
-                                  key={role.id}
-                                  onClick={() =>
-                                    handleRoleUpdate(member.id, role.name)
-                                  }
-                                  className="text-[var(--foreground)] hover:bg-[var(--primary)]/10 cursor-pointer"
-                                >
-                                  <div className="flex items-center justify-between w-full">
-                                    {role.name}
-                                    {member.role === role.name && (
-                                      <HiCheck className="w-4 h-4 text-[var(--primary)]" />
-                                    )}
-                                  </div>
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-
-                        {/* Action */}
-                        <div className="col-span-2">
-                          <Tooltip
-                            content="Remove Member"
-                            position="top"
-                            color="danger"
-                          >
-                            <Button
+                          {/* Status */}
+                          <div className="col-span-2">
+                            <Badge
                               variant="outline"
-                              size="sm"
-                              onClick={() => setMemberToRemove(member)}
-                              disabled={
-                                removingMember === member.id || !hasAccess
-                              }
-                              className="h-7 border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)] transition-all duration-200"
+                              className={`text-xs bg-transparent px-2 py-1 rounded-md border-none ${getStatusBadgeClass(
+                                member.status || "ACTIVE"
+                              )}`}
                             >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </Tooltip>
+                              {member.status || "ACTIVE"}
+                            </Badge>
+                          </div>
+
+                          {/* Joined Date */}
+                          <div className="col-span-2">
+                            <span className="text-sm text-[var(--muted-foreground)]">
+                              {member.joinedAt
+                                ? formatDate(
+                                    new Date(member.joinedAt).toISOString()
+                                  )
+                                : "N/A"}
+                            </span>
+                          </div>
+
+                          {/* Role */}
+                          <div className="col-span-2">
+                            {canEditRole ? (
+                              <Select
+                                value={member.role}
+                                onValueChange={(value) =>
+                                  handleRoleUpdate(member.id, value)
+                                }
+                                disabled={updatingMember === member.id}
+                              >
+                                <SelectTrigger className="h-7 text-xs border-none shadow-none bg-background text-[var(--foreground)]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="border-none bg-[var(--card)]">
+                                  {availableRoles.map((role) => (
+                                    <SelectItem
+                                      key={role.id}
+                                      value={role.name}
+                                      className="hover:bg-[var(--hover-bg)]"
+                                    >
+                                      {role.name.charAt(0) +
+                                        role.name.slice(1).toLowerCase()}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Badge
+                                className={`text-xs px-2 py-1 rounded-md border-none ${getRoleBadgeClass(
+                                  member.role
+                                )}`}
+                              >
+                                {member.role}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Action */}
+                          <div className="col-span-2">
+                            {canRemove && (
+                              <Tooltip
+                                content={
+                                  isCurrentUser
+                                    ? "Leave Workspace"
+                                    : userAccess?.role === "MANAGER" &&
+                                      member.role === "MANAGER"
+                                    ? "Cannot remove other managers"
+                                    : "Remove Member"
+                                }
+                                position="top"
+                                color="danger"
+                              >
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setMemberToRemove(member)}
+                                  disabled={removingMember === member.id}
+                                  className="h-7 border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)] transition-all duration-200"
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </Tooltip>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
-
-
-
 
         <div className="lg:col-span-1 space-y-4">
           {/* Workspace Info Card */}
@@ -783,7 +855,9 @@ function WorkspaceMembersContent() {
                 {roles.map((role) => {
                   // Only count active members
                   const count = members.filter(
-                    (m) => m.role === role.name && m.status?.toLowerCase() !== "pending"
+                    (m) =>
+                      m.role === role.name &&
+                      m.status?.toLowerCase() !== "pending"
                   ).length;
 
                   return (
@@ -791,7 +865,9 @@ function WorkspaceMembersContent() {
                       key={role.id}
                       className="flex items-center justify-between text-xs"
                     >
-                      <span className="text-[var(--muted-foreground)]">{role.name}</span>
+                      <span className="text-[var(--muted-foreground)]">
+                        {role.name}
+                      </span>
                       <Badge
                         variant={role.variant}
                         className="h-5 px-2 text-xs border-none bg-[var(--primary)]/10 text-[var(--primary)]"
@@ -805,8 +881,14 @@ function WorkspaceMembersContent() {
             </CardContent>
           </Card>
           {/* Pending Invitations*/}
-          {hasAccess && <PendingInvitations ref={pendingInvitationsRef} entity={workspace} entityType="workspace" members={members} />}
-
+          {hasAccess && (
+            <PendingInvitations
+              ref={pendingInvitationsRef}
+              entity={workspace}
+              entityType="workspace"
+              members={members}
+            />
+          )}
         </div>
       </div>
 
@@ -814,7 +896,7 @@ function WorkspaceMembersContent() {
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
         onInvite={handleInviteWithLoading}
-        availableRoles={roles}
+        availableRoles={getAvailableRolesForMember()}
       />
 
       {memberToRemove && (
@@ -822,9 +904,19 @@ function WorkspaceMembersContent() {
           isOpen={true}
           onClose={() => setMemberToRemove(null)}
           onConfirm={() => handleRemoveMember(memberToRemove)}
-          title="Remove Member"
-          message="Are you sure you want to remove this member from the Workspace?"
-          confirmText="Remove"
+          title={
+            memberToRemove.userId === getCurrentUserId()
+              ? "Leave Workspace"
+              : "Remove Member"
+          }
+          message={
+            memberToRemove.userId === getCurrentUserId()
+              ? "Are you sure you want to leave this workspace? You will lose access to all workspace resources."
+              : "Are you sure you want to remove this member from the Workspace?"
+          }
+          confirmText={
+            memberToRemove.userId === getCurrentUserId() ? "Leave" : "Remove"
+          }
           cancelText="Cancel"
         />
       )}

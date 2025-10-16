@@ -9,13 +9,17 @@ import { EmailService } from '../email/email.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import * as crypto from 'crypto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { InvitationStatus } from '@prisma/client';
+import { InvitationStatus, Role, WorkspaceMember } from '@prisma/client';
+import { WorkspaceMembersService } from '../workspace-members/workspace-members.service';
+import { OrganizationMembersService } from '../organization-members/organization-members.service';
 
 @Injectable()
 export class InvitationsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private workspaceMember: WorkspaceMembersService,
+    private organizationMember: OrganizationMembersService
   ) { }
 
   async createInvitation(dto: CreateInvitationDto, inviterId: string) {
@@ -30,6 +34,7 @@ export class InvitationsService {
         'Must specify exactly one of: organizationId, workspaceId, or projectId',
       );
     }
+
     let owningOrgId: string;
     if (dto.organizationId) {
       owningOrgId = dto.organizationId;
@@ -52,8 +57,31 @@ export class InvitationsService {
       }
       owningOrgId = project.workspace.organizationId;
     }
+
     await this.checkExistingMembership(dto);
 
+    // Check if user exists and is already an org member
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.inviteeEmail },
+    });
+
+    // If user exists and is an org member, add them directly for workspace/project invitations
+    if (user && (dto.workspaceId || dto.projectId)) {
+      const isOrgMember = await this.prisma.organizationMember.findUnique({
+        where: {
+          userId_organizationId: {
+            userId: user.id,
+            organizationId: owningOrgId,
+          },
+        },
+      });
+
+      if (isOrgMember) {
+        return await this.addExistingOrgMemberDirectly(dto, user.id, inviterId, owningOrgId);
+      }
+    }
+
+    // Standard invitation flow for non-org members or organization invitations
     const existingInvitation = await this.prisma.invitation.findFirst({
       where: {
         inviteeEmail: dto.inviteeEmail,
@@ -67,6 +95,7 @@ export class InvitationsService {
     if (existingInvitation) {
       throw new BadRequestException('Invitation already exists for this email');
     }
+
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
@@ -102,6 +131,165 @@ export class InvitationsService {
 
     return invitation;
   }
+
+  /**
+   * Add existing organization member directly to workspace or project
+   * without sending an invitation
+   */
+  private async addExistingOrgMemberDirectly(
+    dto: CreateInvitationDto,
+    userId: string,
+    inviterId: string,
+    organizationId: string
+  ) {
+    return await this.prisma.$transaction(async (prisma) => {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true
+        },
+      });
+
+      if (!user) {
+        throw new NotFoundException('user not found');
+      }
+      const inviter = await prisma.user.findUnique({
+        where: { id: inviterId },
+        select: { firstName: true, lastName: true },
+      });
+
+      const inviterName = inviter
+        ? `${inviter.firstName} ${inviter.lastName}`.trim()
+        : 'A team member';
+      const organization = await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { name: true },
+      });
+
+      if (dto.workspaceId) {
+        const workspace = await prisma.workspace.findUnique({
+          where: { id: dto.workspaceId },
+          select: { id: true, name: true, slug: true },
+        });
+
+        if (!workspace) {
+          throw new NotFoundException('Workspace not found');
+        }
+
+        const workspaceMember = await this.workspaceMember.create({
+          userId,
+          workspaceId: workspace.id,
+          role: dto.role as Role,
+          createdBy: inviterId,
+        });
+        try {
+          await this.emailService.sendDirectAddNotificationEmail(user.email, {
+            inviterName,
+            entityName: workspace.name,
+            entityType: 'workspace',
+            role: dto.role,
+            entityUrl: `${process.env.FRONTEND_URL}/workspaces/${workspace.slug}`,
+            organizationName: organization?.name,
+          });
+        } catch (error) {
+          console.error('Failed to send direct add notification email:', error);
+        }
+
+        return {
+          type: 'direct_add',
+          message: `User ${user.email} was added directly to the workspace as they are already an organization member`,
+          member: workspaceMember,
+          entity: {
+            type: 'workspace',
+            ...workspace,
+          },
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+          },
+        };
+      } else if (dto.projectId) {
+        const project = await prisma.project.findUnique({
+          where: { id: dto.projectId },
+          include: {
+            workspace: {
+              select: { id: true, name: true, slug: true },
+            },
+          },
+        });
+
+        if (!project) {
+          throw new NotFoundException('Project not found');
+        }
+        const isWorkspaceMember = await prisma.workspaceMember.findUnique({
+          where: {
+            userId_workspaceId: {
+              userId,
+              workspaceId: project.workspaceId,
+            },
+          },
+        });
+        if (!isWorkspaceMember) {
+          await this.workspaceMember.create({
+            userId,
+            workspaceId: project.workspaceId,
+            role: 'MEMBER',
+            createdBy: inviterId,
+          });
+        }
+
+        // Add to project
+        const projectMember = await prisma.projectMember.create({
+          data: {
+            userId,
+            projectId: dto.projectId,
+            role: dto.role as any,
+            createdBy: inviterId,
+          },
+        });
+
+        try {
+          await this.emailService.sendDirectAddNotificationEmail(user.email, {
+            inviterName,
+            entityName: project.name,
+            entityType: 'project',
+            role: dto.role,
+            entityUrl: `${process.env.FRONTEND_URL}/projects/${project.slug}`,
+            organizationName: organization?.name,
+          });
+        } catch (error) {
+          console.error('Failed to send direct add notification email:', error);
+        }
+
+        return {
+          type: 'direct_add',
+          message: `User ${user.email} was added directly to the project as they are already an organization member`,
+          member: projectMember,
+          entity: {
+            type: 'project',
+            id: project.id,
+            name: project.name,
+            slug: project.slug,
+          },
+          workspace: project.workspace,
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+          },
+          addedToWorkspace: !isWorkspaceMember,
+        };
+      }
+    });
+  }
+
+
 
   async acceptInvitation(token: string, userId: string) {
     const invitation = await this.prisma.invitation.findUnique({
@@ -165,13 +353,11 @@ export class InvitationsService {
         });
 
         if (!existingOrgMember) {
-          await prisma.organizationMember.create({
-            data: {
-              userId,
-              organizationId: invitation.organizationId,
-              role: invitation.role as any,
-              createdBy: invitation.inviterId,
-            },
+          await this.organizationMember.create({
+            userId,
+            organizationId: invitation.organizationId,
+            role: invitation.role as any,
+            createdBy: invitation.inviterId
           });
         }
       }
@@ -186,13 +372,11 @@ export class InvitationsService {
         });
 
         if (!existingOrgMember) {
-          await prisma.organizationMember.create({
-            data: {
-              userId,
-              organizationId: organizationId,
-              role: "MEMBER",
-              createdBy: invitation.inviterId,
-            },
+          await this.organizationMember.create({
+            userId,
+            organizationId: organizationId,
+            role: "MEMBER",
+            createdBy: invitation.inviterId
           });
         }
 
@@ -205,14 +389,13 @@ export class InvitationsService {
         });
 
         if (!existingWorkspaceMember) {
-          await prisma.workspaceMember.create({
-            data: {
+          await this.workspaceMember.create(
+            {
               userId,
               workspaceId: invitation.workspaceId,
-              role: invitation.role as any,
-              createdBy: invitation.inviterId,
-            },
-          });
+              role: invitation.role as Role,
+              createdBy: invitation.inviterId
+            })
         }
       }
       // Handle project invitation - add to organization, workspace, then project
@@ -247,14 +430,13 @@ export class InvitationsService {
         });
 
         if (!existingWorkspaceMember) {
-          await prisma.workspaceMember.create({
-            data: {
+          await this.workspaceMember.create(
+            {
               userId,
               workspaceId: workspaceId,
               role: "MEMBER",
-              createdBy: invitation.inviterId,
-            },
-          });
+              createdBy: invitation.inviterId
+            })
         }
 
         // Finally add to project (bottom level)
@@ -302,8 +484,6 @@ export class InvitationsService {
       },
     };
   }
-
-
 
   async declineInvitation(token: string) {
     const invitation = await this.prisma.invitation.findUnique({

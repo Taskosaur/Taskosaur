@@ -100,6 +100,8 @@ interface TaskContextType extends TaskState {
   }) => Promise<any>;
   // Task operations
   createTask: (taskData: CreateTaskRequest) => Promise<Task>;
+  createTaskWithAttachements: (taskData: CreateTaskRequest) => Promise<Task>;
+
   createSubtask: (subtaskData: CreateSubtaskRequest) => Promise<Task>;
   getAllTasks: (
     organizationId: string,
@@ -292,7 +294,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
       return result;
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "An error occurred";
+        error?.message ? error.message : "An error occurred";
       setTaskState((prev) => ({
         ...prev,
         isLoading: false,
@@ -393,7 +395,23 @@ export function TaskProvider({ children }: TaskProviderProps) {
 
         return result;
       },
+      createTaskWithAttachements: async (
+        taskData: CreateTaskRequest
+      ): Promise<Task> => {
+        const result = await handleApiOperation(() =>
+          taskApi.createTaskWithAttachements(taskData)
+        );
 
+        // Add new task to state if it's not a subtask
+        if (!result.parentTaskId) {
+          setTaskState((prev) => ({
+            ...prev,
+            tasks: [...prev.tasks, result],
+          }));
+        }
+
+        return result;
+      },
       createSubtask: async (
         subtaskData: CreateSubtaskRequest
       ): Promise<Task> => {
@@ -698,7 +716,9 @@ export function TaskProvider({ children }: TaskProviderProps) {
         }));
       },
 
-      bulkDeleteTasks: async (taskIds: string[]): Promise<{
+      bulkDeleteTasks: async (
+        taskIds: string[]
+      ): Promise<{
         deletedCount: number;
         failedTasks: Array<{ id: string; reason: string }>;
       }> => {
@@ -706,18 +726,23 @@ export function TaskProvider({ children }: TaskProviderProps) {
           () => taskApi.bulkDeleteTasks(taskIds),
           false
         );
-        
+
         // Only remove successfully deleted tasks from state
         const successfullyDeletedIds = taskIds.filter(
           (id) => !result.failedTasks.some((failed) => failed.id === id)
         );
-        
+
         setTaskState((prev) => ({
           ...prev,
-          tasks: prev.tasks.filter((task) => !successfullyDeletedIds.includes(task.id)),
-          subtTask: prev.subtTask.filter((subtask) => !successfullyDeletedIds.includes(subtask.id)),
+          tasks: prev.tasks.filter(
+            (task) => !successfullyDeletedIds.includes(task.id)
+          ),
+          subtTask: prev.subtTask.filter(
+            (subtask) => !successfullyDeletedIds.includes(subtask.id)
+          ),
           currentTask:
-            prev.currentTask && successfullyDeletedIds.includes(prev.currentTask.id)
+            prev.currentTask &&
+            successfullyDeletedIds.includes(prev.currentTask.id)
               ? null
               : prev.currentTask?.childTasks
               ? {
@@ -728,7 +753,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
                 }
               : prev.currentTask,
         }));
-        
+
         return result;
       },
 
@@ -925,14 +950,13 @@ export function TaskProvider({ children }: TaskProviderProps) {
           false
         ),
 
-      downloadAttachment: (attachmentId: string): Promise<Blob> =>
-        handleApiOperation(
-          () => taskApi.downloadAttachment(attachmentId),
-          false
-        ),
+      downloadAttachment: async (attachmentId: string): Promise<Blob> =>{
+         return taskApi.downloadAttachment(attachmentId)
+      },
 
-      previewFile: (attachmentId: string): Promise<Blob> =>
-        handleApiOperation(() => taskApi.previewFile(attachmentId), false),
+      previewFile: async (attachmentId: string): Promise<Blob> => {
+        return await taskApi.previewFile(attachmentId);
+      },
 
       getAttachmentStats: (taskId?: string): Promise<AttachmentStats> =>
         handleApiOperation(() => taskApi.getAttachmentStats(taskId), false),

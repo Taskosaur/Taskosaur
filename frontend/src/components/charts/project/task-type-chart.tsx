@@ -25,7 +25,7 @@ export function TaskTypeChart({ data }: TaskTypeChartProps) {
 
   
   const typeOrder = ["STORY", "TASK", "BUG", "FEATURE", "EPIC"];
-  const sortedChartData = [...chartData].sort((a, b) => {
+  const sortedChartData = chartData && [...chartData].sort((a, b) => {
     return typeOrder.indexOf(a.name.toUpperCase()) - typeOrder.indexOf(b.name.toUpperCase());
   });
 

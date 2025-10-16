@@ -19,6 +19,7 @@ export interface Workspace {
   createdAt: string;
   updatedAt: string;
   lastActivity?: string;
+  createdBy?: string;
   _count?: {
     members: number;
     projects: number;

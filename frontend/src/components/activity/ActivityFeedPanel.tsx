@@ -25,7 +25,38 @@ export interface ActivityFeedItem {
   entityId?: string;
   createdAt: string | Date;
   metadata?: { comment?: string } & Record<string, unknown>;
-  newValue?: { title?: string } & Record<string, unknown>;
+  newValue?: { 
+    title?: string;
+    taskId?: string;
+    task?: {
+      id?: string;
+      [key: string]: unknown;
+    };
+    user?: {
+      id?: string;
+      email?: string;
+      firstName?: string;
+      lastName?: string;
+      [key: string]: unknown;
+    };
+    member?: {
+      user?: {
+        id?: string;
+        email?: string;
+        firstName?: string;
+        lastName?: string;
+        [key: string]: unknown;
+      };
+      [key: string]: unknown;
+    };
+    entity?: {
+      id?: string;
+      name?: string;
+      slug?: string;
+      type?: string;
+      [key: string]: unknown;
+    };
+  } & Record<string, unknown>;
 }
 
 interface ActivityFeedPanelProps {
@@ -40,9 +71,20 @@ interface ActivityFeedPanelProps {
 }
 
 function getEntityLink(activity: ActivityFeedItem): string {
-  if (!activity.entityType || !activity.entityId) return "#";
+  if (!activity.entityType) return "#";
 
   const entityType = activity.entityType.toLowerCase();
+  
+  // For task attachments, get the task ID from newValue
+  if (entityType === "task attachment" || entityType === "task attchment") {
+    const taskId = activity.newValue?.taskId || activity.newValue?.task?.id;
+    if (taskId) {
+      return `/tasks/${taskId}`;
+    }
+  }
+  
+  if (!activity.entityId) return "#";
+  
   switch (entityType) {
     case "task":
       return `/tasks/${activity.entityId}`;
@@ -118,30 +160,6 @@ export function ActivityFeedPanel({
     );
   }
 
-  if (error) {
-    return (
-      <InfoPanel title={title} subtitle={subtitle}>
-        <div className="activity-error-container">
-          <div className="activity-error-icon-container">
-            <HiExclamationTriangle className="activity-error-icon" />
-          </div>
-          <p className="activity-error-title">Failed to load activities</p>
-          <p className="activity-error-description">{error}</p>
-          {onRetry && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRetry}
-              className="activity-error-button"
-            >
-              Try Again
-            </Button>
-          )}
-        </div>
-      </InfoPanel>
-    );
-  }
-
   if (normalizedActivities.length === 0) {
     return (
       <InfoPanel title={title} subtitle={subtitle}>
@@ -191,15 +209,30 @@ export function ActivityFeedPanel({
                   {activity?.user?.name ? activity.user.name : "Unknown User"}
                 </span>
                 <span className="activity-content-action">
-                  {activity.action}
+                  {activity.type === "invitation_sent" ? (
+                    <>
+                      Sent invitation to{" "}
+                      <span className="activity-content-user-name">
+                        {activity.newValue?.user?.firstName && activity.newValue?.user?.lastName
+                          ? `${activity.newValue.user.firstName} ${activity.newValue.user.lastName}`
+                          : activity.newValue?.member?.user?.firstName && activity.newValue?.member?.user?.lastName
+                          ? `${activity.newValue.member.user.firstName} ${activity.newValue.member.user.lastName}`
+                          : activity.newValue?.user?.email || activity.newValue?.member?.user?.email || "Unknown User"}
+                      </span>
+                      {" "}to join{" "}
+                      {activity.newValue?.entity?.type || "organization/workspace/project"}
+                    </>
+                  ) : (
+                    activity.action
+                  )}
                 </span>
-                {activity.entityId && (
+                {activity.entityId && activity.type !== "invitation_sent" && (
                   <span>
                     <Link
                       href={getEntityLink(activity)}
                       className="activity-content-link"
                     >
-                      View {activity.entityType}
+                      View {activity.entityType?.replace(/\s*Att[a]?chment$/i, '')}
                     </Link>
                   </span>
                 )}

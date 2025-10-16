@@ -583,9 +583,9 @@ export default function TaskComments({
               <ActionButton
                 primary
                 onClick={handleAddOrEdit}
-                secondary
                 showPlusIcon
                 disabled={isSubmitting || isEditorEmpty}
+                className="min-w-[193.56px]"
               >
                 {isSubmitting
                   ? "Saving..."

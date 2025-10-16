@@ -908,9 +908,10 @@ export default function Subtasks({
               variant="outline"
               disabled={isLoading}
               showPlusIcon
-              secondary
+              primary
+              className="min-w-[193.56px]"
             >
-              Add subtask
+              Add Subtask
             </ActionButton>
           </div>
         ) : null}

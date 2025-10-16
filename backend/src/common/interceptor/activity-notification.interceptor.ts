@@ -18,7 +18,7 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     private activityLogService: ActivityLogService,
     private notificationsService: NotificationsService,
     private reflector: Reflector,
-  ) {}
+  ) { }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
@@ -76,62 +76,62 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     );
   }
 
-private async logActivity(
-  config: any,
-  userId: string,
-  organizationId: string | undefined,
-  oldValue: any,
-  newValue: any,
-  entityIdName?: string | string[],
-) {
-  let finalOrganizationId = organizationId;
-  
-  // Handle entityId extraction for both single string and array of strings
-  let entityId: any;
+  private async logActivity(
+    config: any,
+    userId: string,
+    organizationId: string | undefined,
+    oldValue: any,
+    newValue: any,
+    entityIdName?: string | string[],
+  ) {
+    let finalOrganizationId = organizationId;
 
-  if (entityIdName) {
-    if (Array.isArray(entityIdName)) {
-      // Try each field name in the array until we find a non-null value
-      for (const fieldName of entityIdName) {
-        const value = newValue?.[fieldName] || oldValue?.[fieldName];
-        if (value) {
-          entityId = value;
-          break;
+    // Handle entityId extraction for both single string and array of strings
+    let entityId: any;
+
+    if (entityIdName) {
+      if (Array.isArray(entityIdName)) {
+        // Try each field name in the array until we find a non-null value
+        for (const fieldName of entityIdName) {
+          const value = newValue?.[fieldName] || oldValue?.[fieldName];
+          if (value) {
+            entityId = value;
+            break;
+          }
         }
+      } else {
+        // Single field name
+        entityId = newValue?.[entityIdName] || oldValue?.[entityIdName];
       }
-    } else {
-      // Single field name
-      entityId = newValue?.[entityIdName] || oldValue?.[entityIdName];
     }
-  }
 
-  // Fallback to id if entityId not found
-  if (!entityId) {
-    entityId = newValue?.id || oldValue?.id;
-  }
-
-  // Get organization ID if not provided
-  if (!finalOrganizationId) {
-    if (entityId) {
-      finalOrganizationId =
-        await this.activityLogService.getOrganizationIdFromEntity(
-          config.entityType,
-          entityId,
-        );
+    // Fallback to id if entityId not found
+    if (!entityId) {
+      entityId = newValue?.id || oldValue?.id;
     }
-  }
 
-  await this.activityLogService.logActivity({
-    type: config.type,
-    description: config.description,
-    entityType: config.entityType,
-    entityId: entityId,
-    userId,
-    organizationId: finalOrganizationId,
-    oldValue: config.includeOldValue ? oldValue : undefined,
-    newValue: config.includeNewValue ? newValue : undefined,
-  });
-}
+    // Get organization ID if not provided
+    if (!finalOrganizationId) {
+      if (entityId) {
+        finalOrganizationId =
+          await this.activityLogService.getOrganizationIdFromEntity(
+            config.entityType,
+            entityId,
+          );
+      }
+    }
+
+    await this.activityLogService.logActivity({
+      type: config.type,
+      description: config.description,
+      entityType: config.entityType,
+      entityId: entityId,
+      userId,
+      organizationId: finalOrganizationId,
+      oldValue: config.includeOldValue ? oldValue : undefined,
+      newValue: config.includeNewValue ? newValue : undefined,
+    });
+  }
 
 
   private async sendNotification(
@@ -141,7 +141,6 @@ private async logActivity(
     requestData: any,
     responseData: any,
   ) {
-    console.log(responseData)
     let finalOrganizationId = organizationId;
 
     if (!finalOrganizationId) {
@@ -165,7 +164,6 @@ private async logActivity(
     if (notifyUserIds.length === 0) {
       return;
     }
-
     for (const notifyUserId of notifyUserIds) {
       try {
         await this.notificationsService.createNotification({
@@ -177,7 +175,7 @@ private async logActivity(
           userId: notifyUserId,
           organizationId: finalOrganizationId,
           entityType: config.entityType,
-          entityId:  responseData?.id || config.entityId,
+          entityId: responseData?.id || config.entityId,
           actionUrl:
             config.actionUrl ||
             this.generateActionUrl(config.entityType, responseData.id),
@@ -201,13 +199,19 @@ private async logActivity(
     responseData: any,
   ): Promise<string[]> {
     const recipients: string[] = [];
-
     switch (config.type) {
       // ✅ Task-related notifications
       case NotificationType.TASK_ASSIGNED:
-        const assigneeId = requestData.assigneeId || responseData.assigneeId;
-        if (assigneeId) {
-          recipients.push(assigneeId);
+        // Handle multiple assignees from requestData or responseData
+        const assigneeIds =
+          requestData.assigneeIds ||
+          (requestData.assignees ? requestData.assignees.map(a => a.id) : undefined) ||
+          (responseData.assignees ? responseData.assignees.map(a => a.id) : undefined)
+        responseData.assigneeIds ||
+          [];
+
+        if (Array.isArray(assigneeIds)) {
+          recipients.push(...assigneeIds);
         }
         break;
 

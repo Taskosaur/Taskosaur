@@ -240,37 +240,15 @@ export class ProjectsService {
     }
 
     const { status, priority, search, page = 1, pageSize = 10 } = filters || {};
-
-    // Step 1: Build base where clause
     const whereClause: any = { archive: false };
-
     if (workspaceId) {
       whereClause.workspaceId = workspaceId;
-
-      // Check workspace access
-      const access = await this.accessControl.getWorkspaceAccess(
-        workspaceId,
-        userId,
-      );
-      const isElevated = access.isElevated;
-
-      // If not elevated, restrict to projects where user is a member or INTERNAL projects
-      if (!isElevated) {
-        whereClause.OR = [
-          { members: { some: { userId } } },
-          { visibility: 'INTERNAL' },
-        ];
-      }
-      // If elevated, no additional restriction needed (will show all projects in workspace)
     } else {
-      // No workspaceId provided - show projects where user is member OR public projects
       whereClause.OR = [
         { members: { some: { userId } } },
         { visibility: 'PUBLIC' },
       ];
     }
-
-    // Step 2: Add status filter
     if (status) {
       whereClause.status = status.includes(',')
         ? { in: status.split(',').map((s) => s.trim()) }
@@ -370,70 +348,35 @@ export class ProjectsService {
     });
 
     if (!org) throw new NotFoundException('Organization not found');
-
-    // Step 2: Get organization-level access
-    const { isElevated: orgIsElevated } = await this.accessControl.getOrgAccess(
-      organizationId,
-      userId,
-    );
-
-    // Step 3: Build base filters
-    const baseFilters: any = {
+    const whereClause: any = {
       workspace: { organizationId },
       archive: false,
-      ...(status && {
-        status: status.includes(',')
-          ? { in: status.split(',').map((s) => s.trim()) }
-          : status,
-      }),
-      ...(priority && {
-        priority: priority.includes(',')
-          ? { in: priority.split(',').map((p) => p.trim()) }
-          : priority,
-      }),
-      ...(workspaceId && { workspaceId }),
+      members: {
+        some: {
+          userId: userId,
+        },
+      },
     };
-
-    let whereClause: any;
-    if (orgIsElevated) {
-      // If elevated at org level, return all projects
-      whereClause = baseFilters;
-    } else {
-      // If not elevated at org level, check workspace-level access
-      const accessibleProjectIds = await this.getAccessibleProjectIds(
-        organizationId,
-        userId,
-        workspaceId, // Pass workspace filter if provided
-      );
-      if (accessibleProjectIds.length === 0) {
-        // No accessible projects, return empty result
-        return [];
-      }
-
-      whereClause = {
-        AND: [baseFilters, { id: { in: accessibleProjectIds } }],
-      };
+    if (workspaceId) {
+      whereClause.workspaceId = workspaceId;
     }
-
-    // Step 4: Add search filter
+    if (status) {
+      whereClause.status = status.includes(',')
+        ? { in: status.split(',').map((s) => s.trim()) }
+        : status;
+    }
+    if (priority) {
+      whereClause.priority = priority.includes(',')
+        ? { in: priority.split(',').map((p) => p.trim()) }
+        : priority;
+    }
     if (search) {
-      const searchCondition = {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { slug: { contains: search, mode: 'insensitive' } },
-        ],
-      };
-
-      if (whereClause.AND) {
-        whereClause.AND.push(searchCondition);
-      } else {
-        whereClause = {
-          AND: [whereClause, searchCondition],
-        };
-      }
+      whereClause.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { slug: { contains: search, mode: 'insensitive' } },
+        { key: { contains: search, mode: 'insensitive' } },
+      ];
     }
-
-    // Step 5: Query projects
     return this.prisma.project.findMany({
       where: whereClause,
       include: {
@@ -443,7 +386,7 @@ export class ProjectsService {
             name: true,
             slug: true,
             organization: {
-              select: { id: true, name: true, slug: true },
+              select: { id: true, name: true, slug: true, avatar: true },
             },
           },
         },
@@ -485,6 +428,7 @@ export class ProjectsService {
     });
   }
 
+
   /**
    * Helper method to get accessible project IDs based on workspace-level permissions
    */
@@ -508,35 +452,21 @@ export class ProjectsService {
     // Check each workspace
     for (const workspace of workspaces) {
       try {
-        // Get workspace-level access for this user
-        const { isElevated: wsIsElevated } =
-          await this.accessControl.getWorkspaceAccess(workspace.id, userId);
-        if (wsIsElevated) {
-          // If elevated at workspace level, get all projects in this workspace
-          const workspaceProjects = await this.prisma.project.findMany({
-            where: {
-              workspaceId: workspace.id,
-              archive: false,
-            },
-            select: { id: true },
-          });
 
-          accessibleProjectIds.push(...workspaceProjects.map((p) => p.id));
-        } else {
-          // If not elevated at workspace level, get projects user is member of OR INTERNAL projects
-          const memberProjects = await this.prisma.project.findMany({
-            where: {
-              workspaceId: workspace.id,
-              archive: false,
-              OR: [
-                { members: { some: { userId } } },
-                { visibility: 'INTERNAL' },
-              ],
-            },
-            select: { id: true },
-          });
-          accessibleProjectIds.push(...memberProjects.map((p) => p.id));
-        }
+        // If not elevated at workspace level, get projects user is member of OR INTERNAL projects
+        const memberProjects = await this.prisma.project.findMany({
+          where: {
+            workspaceId: workspace.id,
+            archive: false,
+            OR: [
+              { members: { some: { userId } } },
+              { visibility: 'INTERNAL' },
+            ],
+          },
+          select: { id: true },
+        });
+        accessibleProjectIds.push(...memberProjects.map((p) => p.id));
+
       } catch (error) {
         // If user doesn't have access to workspace, skip it
         // This handles the ForbiddenException from getWorkspaceAccess
@@ -847,9 +777,6 @@ export class ProjectsService {
 
     // Add user access filtering
     whereClause.OR = [
-      { workspace: { organization: { ownerId: userId } } },
-      { workspace: { organization: { members: { some: { userId } } } } },
-      { workspace: { members: { some: { userId } } } },
       { members: { some: { userId } } },
     ];
 

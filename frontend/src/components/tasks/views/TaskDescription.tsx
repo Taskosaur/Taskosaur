@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import MDEditor from "@uiw/react-md-editor";
 import { DangerouslyHTMLComment } from "@/components/common/DangerouslyHTMLComment";
+import { useTheme } from "next-themes";
 
 interface TaskDescriptionProps {
   value: string;
@@ -17,17 +18,16 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
   onSaveRequest,
   emailThreadId,
 }) => {
+  const { resolvedTheme } = useTheme();
   const [colorMode, setColorMode] = useState<"light" | "dark">("light");
 
   useEffect(() => {
-    if (typeof document !== "undefined") {
-      setColorMode(
-        document.documentElement.classList.contains("dark") ? "dark" : "light"
-      );
+    if (resolvedTheme) {
+      setColorMode(resolvedTheme as "light" | "dark");
+      console.log("Color mode set to:", resolvedTheme);
     }
-  }, []);
+  }, [resolvedTheme]);
 
-  // Create a mapping of checkbox indices to actual line numbers
   const checkboxLineMapping = useMemo(() => {
     if (!value) return [];
 
@@ -168,19 +168,21 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
 
   if (editMode) {
     return (
-      <div className="space-y-4" data-color-mode={colorMode}>
+      <div className="space-y-4 border-none" data-color-mode={colorMode}>
         <MDEditor
           value={value || ""}
           onChange={(val) => onChange(val || "")}
           hideToolbar={false}
           className="task-md-editor"
+          
           textareaProps={{
             placeholder: "Describe the task in detail...",
             className:
-              "bg-[var(--background)] text-[var(--foreground)] border-none h-[420px] focus:outline-none",
+              "bg-[var(--background)] text-[var(--foreground)] border-none focus:outline-none",
           }}
-          height={520}
+          height={420}
           preview="edit"
+          visibleDragbar={false}
           commandsFilter={(command) =>
             command && command.name === "live" ? false : command
           }

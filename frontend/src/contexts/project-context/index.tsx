@@ -183,7 +183,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       return result;
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "An error occurred";
+        error.message ? error.message : "An error occurred";
       setProjectState((prev) => ({
         ...prev,
         isLoading: false,
@@ -250,7 +250,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       } catch (err) {
         console.error("Error fetching analytics data:", err);
         const errorMessage =
-          err instanceof Error
+          err?.message
             ? err.message
             : "Failed to load project analytics data";
 

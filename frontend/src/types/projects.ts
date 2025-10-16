@@ -28,6 +28,7 @@ export interface Project {
   slug?: string;
   settings?: ProjectSettings;
   createdAt?: string;
+  createdBy?:string,
   updatedAt?: string;
   workspace?: {
     id: string;

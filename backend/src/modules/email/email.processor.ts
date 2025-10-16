@@ -47,7 +47,6 @@ export class EmailProcessor {
     try {
       const html = this.generateEmailHTML(template, data);
       const text = this.generateEmailText(template, data);
-
       if (this.transporter) {
         await this.transporter.sendMail({
           from: this.configService.get<string>(
@@ -81,415 +80,311 @@ export class EmailProcessor {
   private generateEmailHTML(template: EmailTemplate, data: any): string {
     const baseStyles = `
       <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #6366f1; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background: #f3f4f6; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .content { padding: 40px; }
         .button { display: inline-block; background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-        .task-info { background: white; padding: 20px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #6366f1; }
+        .task-info { background: #f9fafb; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #6366f1; }
         .priority-high { border-left-color: #ef4444; }
         .priority-medium { border-left-color: #f59e0b; }
         .priority-low { border-left-color: #10b981; }
-        .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; }
+        .footer { text-align: center; padding: 30px; color: #6b7280; font-size: 14px; border-top: 1px solid #e5e7eb; }
+        p { margin: 12px 0; }
+        .info-section { margin: 20px 0; padding: 20px; background: #f9fafb; border-radius: 6px; }
+        .button-container { text-align: center; margin: 25px 0; color:#f9fafb }
       </style>
     `;
-
+    let bodyContent = '';
     switch (template) {
       case EmailTemplate.TASK_ASSIGNED:
-        return `
-          ${baseStyles}
-          <div class="container">
-            <div class="header">
-              <h1>🎯 Task Assigned</h1>
-            </div>
+        bodyContent = `
+           <div class="container">
             <div class="content">
-              <h2>Hi ${data.assignee.name}!</h2>
-              <p>You've been assigned a new task by ${data.assignedBy.name}.</p>
+              <p>A new task has been assigned to you by ${data.assignedBy.name}.</p>
               
               <div class="task-info priority-${data.task.priority?.toLowerCase()}">
-                <h3>${data.task.key}: ${data.task.title}</h3>
+                <p><strong>${data.task.key}:</strong> ${data.task.title}</p>
                 <p><strong>Project:</strong> ${data.project.name}</p>
                 <p><strong>Priority:</strong> ${data.task.priority}</p>
                 ${data.task.dueDate ? `<p><strong>Due Date:</strong> ${new Date(data.task.dueDate).toLocaleDateString()}</p>` : ''}
                 ${data.task.description ? `<p><strong>Description:</strong> ${data.task.description}</p>` : ''}
               </div>
               
-              <a href="${data.taskUrl}" class="button">View Task</a>
-              
-              <p>Happy coding! 🚀</p>
+              <div class="button-container">
+                <a href="${data.taskUrl}" class="button">View Task</a>
+              </div>
             </div>
             <div class="footer">
               <p>Taskosaur - Modern Project Management</p>
             </div>
           </div>
         `;
-
+        break;
       case EmailTemplate.DUE_DATE_REMINDER:
-        return `
-          ${baseStyles}
+        bodyContent = `
           <div class="container">
-            <div class="header">
-              <h1>⏰ Task Due Soon</h1>
-            </div>
             <div class="content">
-              <h2>Hi ${data.assignee.name}!</h2>
-              <p>Your task is due in ${data.task.hoursUntilDue} hours.</p>
+              <p>Your assigned task is due in ${data.task.hoursUntilDue} hours.</p>
               
               <div class="task-info priority-${data.task.priority?.toLowerCase()}">
-                <h3>${data.task.key}: ${data.task.title}</h3>
+                <p><strong>${data.task.key}:</strong> ${data.task.title}</p>
                 <p><strong>Project:</strong> ${data.project.name}</p>
                 <p><strong>Due Date:</strong> ${new Date(data.task.dueDate).toLocaleString()}</p>
                 <p><strong>Priority:</strong> ${data.task.priority}</p>
               </div>
               
-              <a href="${data.taskUrl}" class="button">Complete Task</a>
-              
-              <p>Don't let it slip! ⚡</p>
+              <div class="button-container">
+                <a href="${data.taskUrl}" class="button">View Task</a>
+              </div>
             </div>
             <div class="footer">
               <p>Taskosaur - Modern Project Management</p>
             </div>
           </div>
         `;
+        break;
 
       case EmailTemplate.TASK_STATUS_CHANGED:
-        return `
-          ${baseStyles}
+        bodyContent = `
           <div class="container">
-            <div class="header">
-              <h1>📋 Task Status Updated</h1>
-            </div>
             <div class="content">
               <p>Task status has been updated.</p>
               
               <div class="task-info">
-                <h3>${data.task.key}: ${data.task.title}</h3>
+                <p><strong>${data.task.key}:</strong> ${data.task.title}</p>
                 <p><strong>Project:</strong> ${data.project.name}</p>
-                <p><strong>Status changed:</strong> ${data.oldStatus.name} → ${data.newStatus.name}</p>
+                <p><strong>Status:</strong> ${data.oldStatus.name} → ${data.newStatus.name}</p>
               </div>
               
-              <a href="${data.taskUrl}" class="button">View Task</a>
+              <div class="button-container">
+                <a href="${data.taskUrl}" class="button">View Task</a>
+              </div>
             </div>
             <div class="footer">
               <p>Taskosaur - Modern Project Management</p>
             </div>
           </div>
         `;
+        break;
 
       case EmailTemplate.WEEKLY_SUMMARY:
-        return `
-          ${baseStyles}
+        bodyContent = `
           <div class="container">
-            <div class="header">
-              <h1>📊 Weekly Summary</h1>
-            </div>
             <div class="content">
-              <h2>Hi ${data.user.name}!</h2>
-              <p>Here's your weekly productivity summary:</p>
+              <p>Your weekly productivity summary:</p>
               
               <div class="task-info">
-                <h3>📈 This Week's Stats</h3>
                 <p><strong>Tasks Completed:</strong> ${data.summary.tasksCompleted}</p>
                 <p><strong>Tasks Assigned:</strong> ${data.summary.tasksAssigned}</p>
                 <p><strong>Time Tracked:</strong> ${data.summary.totalTimeSpent} hours</p>
               </div>
               
-              ${
-                data.summary.overdueTasks.length > 0
-                  ? `
+              ${data.summary.overdueTasks.length > 0
+            ? `
                 <div class="task-info priority-high">
-                  <h3>⚠️ Overdue Tasks (${data.summary.overdueTasks.length})</h3>
+                  <p><strong>Overdue Tasks (${data.summary.overdueTasks.length})</strong></p>
                   ${data.summary.overdueTasks
-                    .map(
-                      (task) => `
+              .map(
+                (task) => `
                     <p><a href="${task.url}">${task.key}: ${task.title}</a> (${task.project})</p>
                   `,
-                    )
-                    .join('')}
+              )
+              .join('')}
                 </div>
               `
-                  : '<p>🎉 No overdue tasks! Great job!</p>'
-              }
-              
-              <p>Keep up the great work! 💪</p>
+            : '<p>All tasks are up to date.</p>'
+          }
             </div>
             <div class="footer">
               <p>Taskosaur - Modern Project Management</p>
             </div>
           </div>
         `;
+        break;
 
       case EmailTemplate.PASSWORD_RESET:
-        return `
-          ${baseStyles}
+        bodyContent = `
           <div class="container">
-            <div class="header">
-              <h1>🔒 Reset Your Password</h1>
-            </div>
             <div class="content">
-              <h2>Hi ${data.userName}!</h2>
-              <p>We received a request to reset your Taskosaur account password.</p>
+              <p>A password reset has been requested for your Taskosaur account.</p>
               
               <div class="task-info">
-                <h3>🔑 Password Reset Request</h3>
-                <p>If you requested this password reset, click the button below to set a new password:</p>
+                <p>Click the button below to reset your password.</p>
                 <p><strong>This link expires in ${data.expiresIn}</strong></p>
               </div>
               
-              <a href="${data.resetUrl}" class="button">Reset My Password</a>
-              
-              <div style="margin: 20px 0; padding: 15px; background: #fef2f2; border-radius: 6px; border-left: 4px solid #ef4444;">
-                <p><strong>⚠️ Security Notice:</strong></p>
-                <ul style="margin: 10px 0; padding-left: 20px;">
-                  <li>If you didn't request this password reset, you can safely ignore this email</li>
-                  <li>Your password won't be changed until you access the link above and create a new one</li>
-                  <li>This reset link will expire in 24 hours for your security</li>
-                </ul>
+              <div class="button-container">
+                <a href="${data.resetUrl}" class="button">Reset Password</a>
               </div>
               
-              <p>If you have any questions, please contact our support team.</p>
-              
-              <p>Stay secure! 🛡️</p>
+              <div class="info-section">
+                <p>If you didn't request this, you can safely ignore this email. Your password will remain unchanged.</p>
+              </div>
             </div>
             <div class="footer">
               <p>Taskosaur - Modern Project Management</p>
-              <p>This email was sent because a password reset was requested for your account.</p>
             </div>
           </div>
         `;
+        break;
+
       case EmailTemplate.PASSWORD_RESET_CONFIRMATION:
-        return `
-        ${baseStyles}
+        bodyContent = `
         <div class="container">
-          <div class="header">
-            <h1>✅ Password Successfully Reset</h1>
-          </div>
           <div class="content">
-            <h2>Hi ${data.userName}!</h2>
             <p>Your Taskosaur account password has been successfully reset.</p>
             
             <div class="task-info">
-              <h3>🔐 Password Reset Confirmation</h3>
               <p><strong>Reset completed:</strong> ${data.resetTime}</p>
-              <p>Your password has been updated and all existing sessions have been logged out for security.</p>
+              <p>All existing sessions have been terminated for security.</p>
             </div>
             
-            <div style="margin: 20px 0; padding: 15px; background: #f0fdf4; border-radius: 6px; border-left: 4px solid #22c55e;">
-              <p><strong>✅ What happened:</strong></p>
-              <ul style="margin: 10px 0; padding-left: 20px;">
-                <li>Your password has been successfully changed</li>
-                <li>All existing sessions have been logged out</li>
-                <li>You can now log in with your new password</li>
-              </ul>
+            <div class="button-container">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" class="button">Login to Your Account</a>
             </div>
             
-            <div style="margin: 20px 0; padding: 15px; background: #fef2f2; border-radius: 6px; border-left: 4px solid #ef4444;">
-              <p><strong>🚨 Didn't make this change?</strong></p>
-              <p>If you didn't reset your password, please contact our support team immediately at ${data.supportEmail || 'support@taskosaur.com'}</p>
+            <div class="info-section">
+              <p>If you didn't authorize this change, contact support immediately at ${data.supportEmail || 'support@taskosaur.com'}</p>
             </div>
-            
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" class="button">Login to Your Account</a>
-            
-            <p>Need help? Our support team is here to assist you.</p>
-            
-            <p>Stay secure! 🛡️</p>
           </div>
           <div class="footer">
             <p>Taskosaur - Modern Project Management</p>
-            <p>This is a security notification about your account password change.</p>
-            <p>If you have any concerns, please contact us at ${data.supportEmail || 'support@taskosaur.com'}</p>
           </div>
         </div>
       `;
+        break;
 
       case EmailTemplate.SEND_INVITATION:
-        return `
-        ${baseStyles}
+        bodyContent = `
         <div class="container">
-          <div class="header">
-            <h1>🎉 You're Invited to Join ${data.entityName}!</h1>
-          </div>
           <div class="content">
-            <h2>Hi there!</h2>
-            <p><strong>${data.inviterName}</strong> has invited you to join their ${data.entityType.toLowerCase()} on Taskosaur.</p>
+            <p>${data.inviterName} has invited you to join their ${data.entityType.toLowerCase()} on Taskosaur.</p>
             
             <div class="task-info">
-              <h3>📋 Invitation Details</h3>
               <p><strong>${data.entityType}:</strong> ${data.entityName}</p>
               <p><strong>Role:</strong> ${data.role}</p>
               <p><strong>Invited by:</strong> ${data.inviterName}</p>
-              <p><strong>Expires on:</strong> ${data.expiresAt}</p>
+              <p><strong>Expires:</strong> ${data.expiresAt}</p>
             </div>
             
-            <div style="margin: 20px 0; padding: 15px; background: #f0f9ff; border-radius: 6px; border-left: 4px solid #3b82f6;">
-              <p><strong>🚀 What's Taskosaur?</strong></p>
-              <p>Taskosaur is a modern project management tool that helps teams collaborate effectively, track progress, and deliver projects on time.</p>
-            </div>
-            
-            <div style="margin: 20px 0; text-align: center;">
+            <div class="button-container">
               <a href="${data.invitationUrl}" class="button">View Invitation</a>
             </div>
             
-            <div style="margin: 20px 0; padding: 15px; background: #f0fdf4; border-radius: 6px; border-left: 4px solid #22c55e;">
-              <p><strong>📝 How it works:</strong></p>
-              <ul style="margin: 10px 0; padding-left: 20px;">
-                <li>Click the "View Invitation" button above</li>
-                <li>Login to your Taskosaur account (or create one if new)</li>
-                <li>Review the invitation details and accept or decline</li>
-              </ul>
+            <div class="info-section">
+              <p>This invitation expires on <strong>${data.expiresAt}</strong>. Please respond before this date.</p>
             </div>
-            
-            <div style="margin: 20px 0; padding: 15px; background: #fffbeb; border-radius: 6px; border-left: 4px solid #f59e0b;">
-              <p><strong>⏰ Important:</strong></p>
-              <p>This invitation will expire on <strong>${data.expiresAt}</strong>. Please respond before then to join the ${data.entityType.toLowerCase()}.</p>
-            </div>
-            
-            <p>Looking forward to having you on the team! 🦕</p>
           </div>
           <div class="footer">
             <p>Taskosaur - Modern Project Management</p>
-            <p>You received this invitation from ${data.inviterName}</p>
-            <p>If you have any questions, please contact us at support@taskosaur.com</p>
           </div>
         </div>
       `;
+        break;
+
+      case EmailTemplate.DIRECT_ADD_NOTIFICATION:
+        bodyContent = `
+            <div class="container">
+              <div class="content">
+                <p>${data.inviterName} has added you to their ${data.entityType.toLowerCase()} on Taskosaur.</p>
+                
+                <div class="task-info">
+                  <p><strong>${data.entityType}:</strong> ${data.entityName}</p>
+                  ${data.organizationName ? `<p><strong>Organization:</strong> ${data.organizationName}</p>` : ''}
+                  <p><strong>Role:</strong> ${data.role}</p>
+                  <p><strong>Added by:</strong> ${data.inviterName}</p>
+                </div>
+                
+                <div class="button-container">
+                  <a href="${data.entityUrl}" class="button">Go to ${data.entityType}</a>
+                </div>
+              </div>
+              <div class="footer">
+                <p>Taskosaur - Modern Project Management</p>
+              </div>
+            </div>
+          `;
+        break;
 
       case EmailTemplate.INVITATION_ACCEPTED:
-        return `
-  ${baseStyles}
-  <div class="container">
-    <div class="header">
-      <h1>🎉 Invitation Accepted!</h1>
-    </div>
-    <div class="content">
-      <h2>Great news, ${data.inviterName}!</h2>
-      <p><strong>${data.accepterName}</strong> has accepted your invitation to join the project.</p>
-      
-      <div class="task-info">
-        <h3>👥 New Team Member</h3>
-        <p><strong>Name:</strong> ${data.accepterName}</p>
-        <p><strong>Email:</strong> ${data.accepterEmail}</p>
-        <p><strong>Project:</strong> ${data.projectName}</p>
-        <p><strong>Role:</strong> ${data.role || 'Team Member'}</p>
-        <p><strong>Joined on:</strong> ${data.acceptedDate}</p>
-      </div>
-      
-      <div style="margin: 20px 0; padding: 15px; background: #f0fdf4; border-radius: 6px; border-left: 4px solid #22c55e;">
-        <p><strong>✅ What's next?</strong></p>
-        <ul style="margin: 10px 0; padding-left: 20px;">
-          <li>${data.accepterName} now has access to the project</li>
-          <li>They can view and contribute to tasks</li>
-          <li>You can assign them tasks and collaborate</li>
-        </ul>
-      </div>
-      
-      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/projects/${data.projectId}" class="button">View Project</a>
-      
-      <p>Your team is growing! Time to get things done together. 🚀</p>
-    </div>
-    <div class="footer">
-      <p>Taskosaur - Modern Project Management</p>
-      <p>This notification confirms a new team member has joined your project.</p>
-      <p>Need help? Contact us at ${data.supportEmail || 'support@taskosaur.com'}</p>
-    </div>
-  </div>
-`;
+        bodyContent = `
+        <div class="container">
+          <div class="content">
+            <p>${data.accepterName} has accepted your invitation to join the project.</p>
+            
+            <div class="task-info">
+              <p><strong>Name:</strong> ${data.accepterName}</p>
+              <p><strong>Email:</strong> ${data.accepterEmail}</p>
+              <p><strong>Project:</strong> ${data.projectName}</p>
+              <p><strong>Role:</strong> ${data.role || 'Team Member'}</p>
+              <p><strong>Joined:</strong> ${data.acceptedDate}</p>
+            </div>
+            
+            <div class="button-container">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/projects/${data.projectId}" class="button">View Project</a>
+            </div>
+          </div>
+          <div class="footer">
+            <p>Taskosaur - Modern Project Management</p>
+          </div>
+        </div>
+      `;
+        break;
 
       case EmailTemplate.INVITATION_DECLINED:
-        return `
-  ${baseStyles}
-  <div class="container">
-    <div class="header">
-      <h1>📧 Invitation Response</h1>
-    </div>
-    <div class="content">
-      <h2>Hi ${data.inviterName},</h2>
-      <p><strong>${data.declinerName}</strong> has declined your invitation to join the project.</p>
-      
-      <div class="task-info">
-        <h3>❌ Invitation Declined</h3>
-        <p><strong>Name:</strong> ${data.declinerName}</p>
-        <p><strong>Email:</strong> ${data.declinerEmail}</p>
-        <p><strong>Project:</strong> ${data.projectName}</p>
-        <p><strong>Declined on:</strong> ${data.declinedDate}</p>
-        ${data.declineReason ? `<p><strong>Reason:</strong> ${data.declineReason}</p>` : ''}
-      </div>
-      
-      <div style="margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 6px; border-left: 4px solid #64748b;">
-        <p><strong>💡 What you can do:</strong></p>
-        <ul style="margin: 10px 0; padding-left: 20px;">
-          <li>Invite other team members to join the project</li>
-          <li>Reach out to ${data.declinerName} directly if needed</li>
-          <li>Continue building your project team</li>
-        </ul>
-      </div>
-      
-      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/projects/${data.projectId}/team" class="button">Manage Team</a>
-      
-      <p>Don't worry - you can always invite more people to join your project! 🦕</p>
-    </div>
-    <div class="footer">
-      <p>Taskosaur - Modern Project Management</p>
-      <p>This notification is about your project invitation response.</p>
-      <p>Need help finding team members? Contact us at ${data.supportEmail || 'support@taskosaur.com'}</p>
-    </div>
-  </div>
-`;
+        bodyContent = `
+        <div class="container">
+          <div class="content">
+            <p>${data.declinerName} has declined your invitation to join the project.</p>
+            
+            <div class="task-info">
+              <p><strong>Name:</strong> ${data.declinerName}</p>
+              <p><strong>Email:</strong> ${data.declinerEmail}</p>
+              <p><strong>Project:</strong> ${data.projectName}</p>
+              <p><strong>Declined:</strong> ${data.declinedDate}</p>
+              ${data.declineReason ? `<p><strong>Reason:</strong> ${data.declineReason}</p>` : ''}
+            </div>
+            
+            <div class="button-container">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/projects/${data.projectId}/team" class="button">Manage Team</a>
+            </div>
+          </div>
+          <div class="footer">
+            <p>Taskosaur - Modern Project Management</p>
+          </div>
+        </div>
+      `;
+        break;
 
       case EmailTemplate.INVITATION_EXPIRED:
-        return `
-                ${baseStyles}
-                <div class="container">
-                  <div class="header">
-                    <h1>⏰ Invitation Expired</h1>
-                  </div>
-                  <div class="content">
-                    <h2>Hi ${data.inviterName},</h2>
-                    <p>Your invitation to <strong>${data.inviteeName}</strong> has expired without a response.</p>
-                    
-                    <div class="task-info">
-                      <h3>📅 Expired Invitation</h3>
-                      <p><strong>Invited user:</strong> ${data.inviteeName}</p>
-                      <p><strong>Email:</strong> ${data.inviteeEmail}</p>
-                      <p><strong>Project:</strong> ${data.projectName}</p>
-                      <p><strong>Invited on:</strong> ${data.invitedDate}</p>
-                      <p><strong>Expired on:</strong> ${data.expiredDate}</p>
-                    </div>
-                    
-                    <div style="margin: 20px 0; padding: 15px; background: #fffbeb; border-radius: 6px; border-left: 4px solid #f59e0b;">
-                      <p><strong>🔄 Want to try again?</strong></p>
-                      <p>You can send a new invitation to ${data.inviteeName} if you'd still like them to join your project.</p>
-                    </div>
-                    
-                    <div style="margin: 20px 0; text-align: center;">
-                      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/projects/${data.projectId}/invite?email=${data.inviteeEmail}" class="button" style="margin-right: 10px;">Send New Invitation</a>
-                      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/projects/${data.projectId}/team" class="button" style="background: #6b7280; margin-left: 10px;">Manage Team</a>
-                    </div>
-                    
-                    <div style="margin: 20px 0; padding: 15px; background: #f0f9ff; border-radius: 6px; border-left: 4px solid #3b82f6;">
-                      <p><strong>💡 Pro tip:</strong></p>
-                      <p>Consider reaching out to ${data.inviteeName} directly to let them know about the project and send a fresh invitation.</p>
-                    </div>
-                    
-                    <p>Keep building your dream team! 🚀</p>
-                  </div>
-                  <div class="footer">
-                    <p>Taskosaur - Modern Project Management</p>
-                    <p>This is a notification about an expired project invitation.</p>
-                    <p>Need help? Contact us at ${data.supportEmail || 'support@taskosaur.com'}</p>
-                  </div>
-                </div>
-              `;
+        bodyContent = `
+        <div class="container">
+          <div class="content">
+            <p>Your invitation to ${data.inviteeName} has expired without a response.</p>
+            
+            <div class="task-info">
+              <p><strong>Invited user:</strong> ${data.inviteeName}</p>
+              <p><strong>Email:</strong> ${data.inviteeEmail}</p>
+              <p><strong>Project:</strong> ${data.projectName}</p>
+              <p><strong>Expired:</strong> ${data.expiredDate}</p>
+            </div>
+            
+            <div class="button-container">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/projects/${data.projectId}/invite?email=${data.inviteeEmail}" class="button">Send New Invitation</a>
+            </div>
+          </div>
+          <div class="footer">
+            <p>Taskosaur - Modern Project Management</p>
+          </div>
+        </div>
+      `;
+        break;
 
       default:
-        return `
-          ${baseStyles}
+        bodyContent = `
           <div class="container">
-            <div class="header">
-              <h1>📧 Taskosaur Notification</h1>
-            </div>
             <div class="content">
-              <p>You have a new notification from Taskosaur.</p>
+              <p>You have received a new notification from Taskosaur.</p>
               <pre>${JSON.stringify(data, null, 2)}</pre>
             </div>
             <div class="footer">
@@ -498,7 +393,22 @@ export class EmailProcessor {
           </div>
         `;
     }
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+      <title>Taskosaur - ${template}</title>
+      ${baseStyles}
+    </head>
+    <body>
+      ${bodyContent}
+    </body>
+    </html>
+    `
   }
+
 
   private generateEmailText(template: EmailTemplate, data: any): string {
     switch (template) {

@@ -54,23 +54,23 @@ export function OrganizationKPIMetrics({
     {
       id: "workspaces",
       label: "Total Workspaces",
-      value: data.totalWorkspaces,
-      description: `${data.activeWorkspaces} active`,
+      value: data?.totalWorkspaces,
+      description: `${data?.activeWorkspaces} active`,
       icon: <Building2 className="h-4 w-4" />,
       visible: true,
     },
     {
       id: "projects",
       label: "Total Projects",
-      value: data.totalProjects,
-      description: `${data.activeProjects} active`,
+      value: data?.totalProjects,
+      description: `${data?.activeProjects} active`,
       icon: <FolderOpen className="h-4 w-4" />,
       visible: true,
     },
     {
       id: "members",
       label: "Team Members",
-      value: data.totalMembers,
+      value: data?.totalMembers,
       description: "Organization members",
       icon: <Users className="h-4 w-4" />,
       visible: true,
@@ -78,26 +78,26 @@ export function OrganizationKPIMetrics({
     {
       id: "task-completion",
       label: "Task Completion",
-      value: `${data.taskCompletionRate.toFixed(1)}%`,
-      description: `${data.completedTasks}/${data.totalTasks} tasks`,
+      value: `${data?.taskCompletionRate.toFixed(1)}%`,
+      description: `${data?.completedTasks}/${data?.totalTasks} tasks`,
       icon: <CheckCircle className="h-4 w-4" />,
       visible: true,
     },
     {
       id: "bug-resolution",
       label: "Bug Resolution",
-      value: `${data.bugResolutionRate.toFixed(1)}%`,
-      description: `${data.resolvedBugs}/${data.totalBugs} resolved`,
+      value: `${data?.bugResolutionRate.toFixed(1)}%`,
+      description: `${data?.resolvedBugs}/${data?.totalBugs} resolved`,
       icon: <Bug className="h-4 w-4" />,
       visible: false,
     },
     {
       id: "overdue-tasks",
       label: "Overdue Tasks",
-      value: data.overdueTasks,
+      value: data?.overdueTasks,
       description: "Require attention",
       icon:
-        data.overdueTasks === 0 ? (
+        data?.overdueTasks === 0 ? (
           <CheckCircle className="h-4 w-4" />
         ) : (
           <Clock className="h-4 w-4" />
@@ -107,7 +107,7 @@ export function OrganizationKPIMetrics({
     {
       id: "active-sprints",
       label: "Active Sprints",
-      value: data.activeSprints,
+      value: data?.activeSprints,
       description: "Currently running",
       icon: <Zap className="h-4 w-4" />,
       visible: false,
@@ -115,7 +115,7 @@ export function OrganizationKPIMetrics({
     {
       id: "productivity",
       label: "Overall Productivity",
-      value: `${data.overallProductivity.toFixed(1)}%`,
+      value: `${data?.overallProductivity?.toFixed(1) || 0}%`,
       description: "Task completion rate",
       icon: <CheckCircle className="h-4 w-4" />,
       visible: false,
@@ -142,38 +142,38 @@ export function OrganizationKPIMetrics({
           case "workspaces":
             return {
               ...card,
-              value: data.totalWorkspaces,
-              description: `${data.activeWorkspaces} active`,
+              value: data?.totalWorkspaces,
+              description: `${data?.activeWorkspaces} active`,
             };
           case "projects":
             return {
               ...card,
-              value: data.totalProjects,
-              description: `${data.activeProjects} active`,
+              value: data?.totalProjects,
+              description: `${data?.activeProjects} active`,
             };
           case "members":
             return {
               ...card,
-              value: data.totalMembers,
+              value: data?.totalMembers,
             };
           case "task-completion":
             return {
               ...card,
-              value: `${data.taskCompletionRate.toFixed(1)}%`,
-              description: `${data.completedTasks}/${data.totalTasks} tasks`,
+              value: `${data?.taskCompletionRate?.toFixed(1) || 0}%`,
+              description: `${data?.completedTasks}/${data?.totalTasks} tasks`,
             };
           case "bug-resolution":
             return {
               ...card,
-              value: `${data.bugResolutionRate.toFixed(1)}%`,
-              description: `${data.resolvedBugs}/${data.totalBugs} resolved`,
+              value: `${data?.bugResolutionRate?.toFixed(1) || 0}%`,
+              description: `${data?.resolvedBugs}/${data?.totalBugs} resolved`,
             };
           case "overdue-tasks":
             return {
               ...card,
-              value: data.overdueTasks,
+              value: data?.overdueTasks,
               icon:
-                data.overdueTasks === 0 ? (
+                data?.overdueTasks === 0 ? (
                   <CheckCircle className="h-4 w-4" />
                 ) : (
                   <Clock className="h-4 w-4" />
@@ -182,12 +182,12 @@ export function OrganizationKPIMetrics({
           case "active-sprints":
             return {
               ...card,
-              value: data.activeSprints,
+              value: data?.activeSprints,
             };
           case "productivity":
             return {
               ...card,
-              value: `${data.overallProductivity.toFixed(1)}%`,
+              value: `${data?.overallProductivity?.toFixed(1) || 0}%`,
             };
           default:
             return card;

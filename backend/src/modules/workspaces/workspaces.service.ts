@@ -41,7 +41,7 @@ export class WorkspacesService {
               in: [Role.OWNER, Role.MANAGER]
             }
           },
-          select: { userId: true , role: true},
+          select: { userId: true, role: true },
         },
       },
     });
@@ -90,10 +90,10 @@ export class WorkspacesService {
       membersToAdd.set(userId, Role.OWNER);
       membersToAdd.set(organization.ownerId, Role.OWNER);
       organization.members.forEach((member) => {
-          if (!membersToAdd.has(member.userId)) {
-            membersToAdd.set(member.userId, member.role);
-          }
-        });;
+        if (!membersToAdd.has(member.userId)) {
+          membersToAdd.set(member.userId, member.role);
+        }
+      });;
       await Promise.all(
         Array.from(membersToAdd.entries()).map(([memberId, memberRole]) =>
           tx.workspaceMember.create({
@@ -140,18 +140,8 @@ export class WorkspacesService {
     organizationId?: string,
     search?: string,
   ): Promise<Workspace[]> {
-    const whereClause: any = { archive: false };
-
-    if (organizationId) {
-      whereClause.organizationId = organizationId;
-      const { isElevated } = await this.accessControl.getOrgAccess(
-        organizationId,
-        userId,
-      );
-      if (!isElevated) {
-        whereClause.members = { some: { userId } };
-      }
-    } else if (userId) {
+    const whereClause: any = { archive: false , organizationId};
+    if (userId) {
       whereClause.members = { some: { userId } };
     }
 
@@ -196,19 +186,8 @@ export class WorkspacesService {
       hasPrevPage: boolean;
     };
   }> {
-    const whereClause: any = { archive: false };
-
-    if (organizationId) {
-      whereClause.organizationId = organizationId;
-
-      const { isElevated } = await this.accessControl.getOrgAccess(
-        organizationId,
-        userId,
-      );
-      if (!isElevated) {
-        whereClause.members = { some: { userId } };
-      }
-    } else if (userId) {
+    const whereClause: any = { archive: false, organizationId };
+    if (userId) {
       whereClause.members = { some: { userId } };
     }
 
@@ -283,12 +262,10 @@ export class WorkspacesService {
           },
         },
         projects: {
-          where: isElevated
-            ? { archive: false }
-            : {
-              archive: false,
-              members: { some: { userId } },
-            },
+          where: {
+            archive: false,
+            members: { some: { userId } },
+          },
           select: {
             id: true,
             name: true,
@@ -318,11 +295,6 @@ export class WorkspacesService {
     userId: string,
   ): Promise<Workspace> {
     // Check organization access first
-    const { isElevated } = await this.accessControl.getOrgAccess(
-      organizationId,
-      userId,
-    );
-
     const workspace = await this.prisma.workspace.findUnique({
       where: { organizationId_slug: { organizationId, slug } },
       include: {
@@ -342,17 +314,12 @@ export class WorkspacesService {
     if (!workspace) {
       throw new NotFoundException('Workspace not found');
     }
-
-    // If not elevated, check workspace membership
-    if (!isElevated) {
-      const member = await this.prisma.workspaceMember.findUnique({
-        where: { userId_workspaceId: { userId, workspaceId: workspace.id } },
-      });
-      if (!member) {
-        throw new ForbiddenException('Not a member of this workspace');
-      }
+    const member = await this.prisma.workspaceMember.findUnique({
+      where: { userId_workspaceId: { userId, workspaceId: workspace.id } },
+    });
+    if (!member) {
+      throw new ForbiddenException('Not a member of this workspace');
     }
-
     return workspace;
   }
 

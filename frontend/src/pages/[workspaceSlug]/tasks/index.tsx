@@ -100,7 +100,8 @@ function WorkspaceTasksContent() {
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [workspaceMembers, setWorkspaceMembers] = useState<any[]>([]);
   const [ganttTasks, setGanttTasks] = useState<any[]>([]);
-   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   
     const handleTaskSelect = (taskId: string) => {
       setSelectedTasks((prev) =>
@@ -309,6 +310,8 @@ function WorkspaceTasksContent() {
       setLocalError(
         error instanceof Error ? error.message : "Failed to load tasks"
       );
+    } finally {
+      setIsInitialLoad(false);
     }
   }, [
     workspace?.organizationId,
@@ -330,9 +333,11 @@ function WorkspaceTasksContent() {
         workspaceId: workspace.id,
       });
       setGanttTasks(data || []);
+      setIsInitialLoad(false);
     } catch (error) {
       console.error("Failed to load Gantt data:", error);
       setGanttTasks([]);
+      setIsInitialLoad(false);
     }
   }, [workspace?.id, getCalendarTask]);
 
@@ -667,7 +672,7 @@ function WorkspaceTasksContent() {
   }, [tasks, sortOrder, sortField]);
 
   const renderContent = () => {
-    if (isLoading) return <TaskTableSkeleton />;
+    if (isInitialLoad || isLoading) return <TaskTableSkeleton />;
 
     if (!sortedTasks.length && currentView !== "gantt") {
       return (
@@ -710,6 +715,8 @@ function WorkspaceTasksContent() {
             showAddTaskRow={userAccess?.role !== "VIEWER"}
             selectedTasks={selectedTasks}
             onTaskSelect={handleTaskSelect}
+            showBulkActionBar={hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER"}
+
           />
         );
     }
@@ -828,33 +835,21 @@ function WorkspaceTasksContent() {
               )}
               {currentView === "list" && (
                 <div className="flex items-center gap-2">
-                  <Tooltip
-                    content="Sorting Manager"
-                    position="top"
-                    color="primary"
-                  >
-                    <SortingManager
+                   <SortingManager
                       sortField={sortField}
                       sortOrder={sortOrder}
                       onSortFieldChange={setSortField}
                       onSortOrderChange={setSortOrder}
                     />
-                  </Tooltip>
-                  <Tooltip
-                    content="Manage Columns"
-                    position="top"
-                    color="primary"
-                  >
-                    <ColumnManager
+                  <ColumnManager
                       currentView={currentView}
                       availableColumns={columns}
                       onAddColumn={handleAddColumn}
                       onRemoveColumn={handleRemoveColumn}
                     />
-                  </Tooltip>
                 </div>
               )}
-              {currentView === "kanban" && (
+              {currentView === "kanban" && (hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER") && (
                 <div className="flex items-center gap-2">
                   <Tooltip
                     content="Manage Columns"

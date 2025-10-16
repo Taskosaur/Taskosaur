@@ -275,7 +275,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       } catch (err) {
         console.error("Error fetching analytics data:", err);
         const errorMessage =
-          err instanceof Error
+          err?.message
             ? err.message
             : "Failed to load workspace analytics data";
 
