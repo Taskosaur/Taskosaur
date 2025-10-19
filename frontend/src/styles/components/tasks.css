@@ -1205,10 +1205,7 @@
   color: var(--foreground) !important;
 }
 
-.task-description-view .wmde-markdown em,
-.task-description-view .markdown-content em {
-  font-style: italic !important;
-}
+
 
 .task-description-view .wmde-markdown code,
 .task-description-view .markdown-content code {
@@ -1258,7 +1255,7 @@
   padding-left: 1em !important;
   margin: 1em 0 !important;
   color: var(--muted-foreground) !important;
-  font-style: italic !important;
+ 
 }
 
 .task-description-view .wmde-markdown a,
@@ -1323,7 +1320,7 @@
 /* Empty state styling */
 .task-description-view > div:first-child:last-child {
   color: var(--muted-foreground) !important;
-  font-style: italic !important;
+ 
   font-size: 14px !important;
 }
 

@@ -100,7 +100,6 @@ function WorkspaceSettingsContent() {
       handler: async () => {
         try {
           const result = await archiveWorkspace(workspace.id);
-          console.log("Archive result:", result);
           if (result.success) {
             await router.replace("/workspaces");
           } else {

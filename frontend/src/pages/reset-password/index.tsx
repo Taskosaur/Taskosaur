@@ -133,7 +133,6 @@ function ResetPasswordForm() {
       setIsLoading(false);
     }
   };
-  console.log(isValidToken);
   if (!isValidToken) {
     return (
       <motion.div

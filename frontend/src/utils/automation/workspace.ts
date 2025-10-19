@@ -191,15 +191,6 @@ export async function createWorkspace(
       throw new Error('Create workspace button not found in modal');
     }
     
-    // Check if button is disabled but try anyway
-    const isDisabled = (createButton as HTMLButtonElement).disabled;
-    if (isDisabled) {
-      console.log('Create button appears disabled. Form values:', {
-        name: nameInput.value,
-        description: descriptionInput.value
-      });
-    }
-
     await simulateClick(createButton);
     await waitForModalClose();
 

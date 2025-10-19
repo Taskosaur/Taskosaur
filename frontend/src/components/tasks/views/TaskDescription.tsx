@@ -24,7 +24,6 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
   useEffect(() => {
     if (resolvedTheme) {
       setColorMode(resolvedTheme as "light" | "dark");
-      console.log("Color mode set to:", resolvedTheme);
     }
   }, [resolvedTheme]);
 
@@ -36,7 +35,6 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
     const mapping: number[] = [];
 
     lines.forEach((line, lineIndex) => {
-      console.log(`Line ${lineIndex}: "${line}"`);
       if (taskLineRegex.test(line)) {
         mapping.push(lineIndex);
       }
@@ -94,73 +92,66 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
   // Custom markdown renderer that handles checkboxes properly
   const MarkdownWithInteractiveTasks: React.FC<{ md: string }> = ({ md }) => {
     const processedMarkdown = useMemo(() => {
-      if (!md) return [];
+      if (!md) return md;
 
       const lines = md.split("\n");
       const taskLineRegex = /^(\s*-\s+)\[([x ])\](.*)$/i;
       let checkboxIndex = 0;
 
-      return lines.map((line, lineIndex) => {
+      const processedLines = lines.map((line) => {
         const match = line.match(taskLineRegex);
         if (match) {
           const [, prefix, mark, suffix] = match;
-          const isChecked = mark.trim().toLowerCase() === "x";
           const currentCheckboxIndex = checkboxIndex;
           checkboxIndex++;
 
-          return {
-            type: "checkbox-line",
-            prefix,
-            suffix,
-            isChecked,
-            checkboxIndex: currentCheckboxIndex,
-            originalLine: line,
-            lineIndex,
-          };
+          // Replace checkbox with a unique placeholder that won't be rendered by markdown
+          return `__CHECKBOX_${currentCheckboxIndex}__${mark}__${suffix}`;
         }
-        return {
-          type: "regular-line",
-          content: line,
-          lineIndex,
-        };
+        return line;
       });
-    }, [md, checkboxStates]);
+
+      return processedLines.join("\n");
+    }, [md]);
+
+   
+
+    // Split content by checkbox placeholders and render appropriately
+    const parts = processedMarkdown.split(/(__CHECKBOX_\d+__[x ]__.*?)(?=\n|$)/);
 
     return (
       <div className="markdown-content">
-        {processedMarkdown.map((item, idx) => {
-          if (item.type === "checkbox-line") {
+        {parts.map((part, idx) => {
+          const checkboxMatch = part.match(/^__CHECKBOX_(\d+)__([x ])__(.*)$/);
+          if (checkboxMatch) {
+            const [, indexStr, mark, suffix] = checkboxMatch;
+            const checkboxIndex = parseInt(indexStr, 10);
+            const isChecked = mark.trim().toLowerCase() === "x";
+
             return (
-              <div
-                key={`checkbox-${item.lineIndex}-${idx}`}
-                className="flex  mb-1"
-              >
-                {/* <span className="whitespace-pre">{item.prefix}</span> */}
+              <div key={`checkbox-${checkboxIndex}-${idx}`} className="flex items-start mb-1">
                 <input
                   type="checkbox"
-                  checked={item.isChecked}
+                  checked={isChecked}
                   onChange={(e) => {
                     e.preventDefault();
-                    handleCheckboxToggle(item.checkboxIndex);
+                    handleCheckboxToggle(checkboxIndex);
                   }}
-                  className="cursor-pointer mr-2 mt-0.5"
+                  className="cursor-pointer mr-2 mt-1"
                 />
-                <span>{item.suffix}</span>
+                <span>{suffix}</span>
               </div>
             );
-          } else if (item.content.trim()) {
+          } else if (part.trim()) {
             return (
               <MDEditor.Markdown
-                key={`content-${item.lineIndex}-${idx}`}
-                source={item.content}
+                key={`content-${idx}`}
+                source={part}
                 className="prose max-w-none"
               />
             );
-          } else {
-            return (
-              <div key={`empty-${item.lineIndex}-${idx}`} className="h-4"></div>
-            );
           }
+          return null;
         })}
       </div>
     );

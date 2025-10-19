@@ -293,8 +293,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
 
       return result;
     } catch (error) {
-      const errorMessage =
-        error?.message ? error.message : "An error occurred";
+      const errorMessage = error?.message ? error.message : "An error occurred";
       setTaskState((prev) => ({
         ...prev,
         isLoading: false,
@@ -901,9 +900,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         taskId: string,
         file: File
       ): Promise<TaskAttachment> => {
-        const result = await handleApiOperation(() =>
-          taskApi.uploadAttachment(taskId, file)
-        );
+        const result = await taskApi.uploadAttachment(taskId, file);
 
         // Add attachment to state if it's for the current task's attachments
         if (
@@ -950,8 +947,8 @@ export function TaskProvider({ children }: TaskProviderProps) {
           false
         ),
 
-      downloadAttachment: async (attachmentId: string): Promise<Blob> =>{
-         return taskApi.downloadAttachment(attachmentId)
+      downloadAttachment: async (attachmentId: string): Promise<Blob> => {
+        return taskApi.downloadAttachment(attachmentId);
       },
 
       previewFile: async (attachmentId: string): Promise<Blob> => {

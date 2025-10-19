@@ -19,7 +19,7 @@ export class StorageService {
         const awsAccessKey = this.configService.get('AWS_ACCESS_KEY_ID');
         const awsSecretKey = this.configService.get('AWS_SECRET_ACCESS_KEY');
         const awsBucket = this.configService.get('AWS_BUCKET_NAME');
-        this.uploadDir = this.configService.get('UPLOAD_DIR', './uploads');
+        this.uploadDir = this.configService.get('UPLOAD_DEST', './uploads');
         this.useS3 = false;
         if (awsAccessKey && awsSecretKey && awsBucket) {
             this.checkS3Connection(awsBucket)
@@ -81,7 +81,7 @@ export class StorageService {
             fs.writeFileSync(filePath, file.buffer);
 
             return {
-                url: `/uploads/${folder}/${fileName}`,
+                url: `/${folder}/${fileName}`,
                 key: `${folder}/${fileName}`,
                 size: file.size,
             };
@@ -127,12 +127,13 @@ export class StorageService {
         // Check if file exists
         const relativePath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
         const normalizedPath = path.normalize(relativePath);
-        if (!fs.existsSync(normalizedPath)) {
+        const localPath = path.join(this.uploadDir, normalizedPath)
+        if (!fs.existsSync(localPath)) {
             throw new NotFoundException('File not found on server');
         }
 
         try {
-            const fileStream = fs.createReadStream(normalizedPath);
+            const fileStream = fs.createReadStream(localPath);
 
             // Pipe local file stream to response
             fileStream.pipe(res);

@@ -18,6 +18,7 @@ import {
 import { TbMailPlus } from "react-icons/tb";
 import { invitationApi } from "@/utils/api/invitationsApi";
 import ActionButton from "../common/ActionButton";
+import { toast } from "sonner";
 interface Invitation {
   id: string;
   token: string;
@@ -144,6 +145,7 @@ const router = useRouter();
           router.refresh();
       }
     } catch (error) {
+      toast.error(error?.message || "Failed to accept the invitation")
       console.error(`Failed to ${action} invitation:`, error);
     } finally {
       setProcessingInvite(false);

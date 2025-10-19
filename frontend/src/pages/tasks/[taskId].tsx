@@ -1,20 +1,10 @@
-"use client";
-
 import { useState, useEffect } from "react";
-import  { useTask } from "@/contexts/task-context";
+import { useTask } from "@/contexts/task-context";
 import TaskDetailClient from "@/components/tasks/TaskDetailClient";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { HiExclamationTriangle, HiArrowLeft } from "react-icons/hi2";
 import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/auth-context";
 import TaskDetailsSkeleton from "@/components/skeletons/TaskDetailsSkeleton";
+import ErrorState from "@/components/common/ErrorState";
 function TaskDetailContent() {
   const [task, setTask] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,9 +15,8 @@ function TaskDetailContent() {
   const { isAuthenticated } = useAuth();
 
   const fetchData = async () => {
-    
     try {
-        const taskData = await getTaskById(taskId as string, isAuthenticated());
+      const taskData = await getTaskById(taskId as string, isAuthenticated());
       if (!taskData) throw new Error("Task not found");
 
       const enhancedTask = {
@@ -46,9 +35,7 @@ function TaskDetailContent() {
       setTask(enhancedTask);
     } catch (error) {
       console.error("Error fetching data:", error);
-      setError(
-        error?.message ? error.message : "Failed to load task data"
-      );
+      setError(error?.message ? error.message : "Failed to load task data");
     } finally {
       setIsLoading(false);
     }
@@ -73,35 +60,7 @@ function TaskDetailContent() {
   }
 
   if (error || !task) {
-    return (
-      <div className="task-detail-error">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <HiExclamationTriangle /> Task Not Found
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CardDescription>
-              {error || "Task could not be found."}
-            </CardDescription>
-            <div className="mt-4 flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => router.back()}
-              >
-                <HiArrowLeft size={14} />
-                Go back
-              </Button>
-              <Button variant="secondary" size="sm" onClick={fetchData}>
-                Try again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <ErrorState error={error} />;
   }
 
   return <TaskDetailClient task={task} taskId={taskId as string} />;

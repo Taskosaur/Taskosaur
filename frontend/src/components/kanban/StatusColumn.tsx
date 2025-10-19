@@ -15,6 +15,7 @@ import {
 } from "../ui/DropdownMenu";
 import { ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import moment from "moment";
 
 interface TaskPagination {
   total: number;
@@ -124,7 +125,9 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
     getUserAccess({ name: "project", id: projectId })
       .then((data) => {
         setHasAccess(data?.canChange || !(data?.role === "VIEWER"));
-        setStatusChange(data?.role === "MANAGER" || data?.role || "OWNER" || data?.canChange)
+        setStatusChange(
+          data?.role === "MANAGER" || data?.role || "OWNER" || data?.canChange
+        );
       })
       .catch((error) => {
         console.error("Error fetching user access:", error);
@@ -323,9 +326,17 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
                     <label className="kanban-create-task-label">Due date</label>
                     <Input
                       type="date"
-                      value={taskForm.dueDate}
+                      min={moment().format("YYYY-MM-DD")}
+                      value={
+                        taskForm.dueDate
+                          ? moment(taskForm.dueDate).format("YYYY-MM-DD")
+                          : ""
+                      }
                       onChange={(e) =>
-                        setTaskForm((p) => ({ ...p, dueDate: e.target.value }))
+                        setTaskForm((p) => ({
+                          ...p,
+                          dueDate: moment(e.target.value).format("YYYY-MM-DD"),
+                        }))
                       }
                       className="kanban-create-task-date-input"
                     />

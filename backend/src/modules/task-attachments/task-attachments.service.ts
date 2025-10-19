@@ -17,7 +17,7 @@ import { Response } from 'express';
 
 @Injectable()
 export class TaskAttachmentsService {
-  private readonly uploadPath = process.env.UPLOAD_DEST || './uploads';
+  private readonly uploadPath = process.env.UPLOAD_DEST || '../uploads';
 
   constructor(private prisma: PrismaService,
     private storageService: StorageService

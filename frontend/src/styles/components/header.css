@@ -50,7 +50,7 @@
 }
 
 .header-dropdown-menu-badge {
-  @apply text-[10px] font-medium px-2 py-0.5;
+  @apply h-5 px-2 text-xs border-none bg-[var(--primary)]/10 text-[var(--primary)]
 }
 
 .header-dropdown-menu-body {
@@ -329,12 +329,12 @@
 }
 
 .header-notifications-footer {
-  @apply px-4 py-3;
+  @apply px-4 py-3 flex justify-center items-center;
   border-top: 1px solid hsl(var(--border) / 0.3);
 }
 
 .header-notifications-view-all {
-  @apply block text-center text-sm font-medium transition-colors;
+  @apply block text-center text-sm font-medium transition-colors cursor-pointer px-3;
   color: var(--primary);
 }
 

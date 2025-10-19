@@ -18,8 +18,8 @@ export class InvitationsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
-    private workspaceMember: WorkspaceMembersService,
-    private organizationMember: OrganizationMembersService
+    private workspaceMemberService: WorkspaceMembersService,
+    private organizationMemberService: OrganizationMembersService
   ) { }
 
   async createInvitation(dto: CreateInvitationDto, inviterId: string) {
@@ -179,7 +179,7 @@ export class InvitationsService {
           throw new NotFoundException('Workspace not found');
         }
 
-        const workspaceMember = await this.workspaceMember.create({
+        const workspaceMember = await this.workspaceMemberService.create({
           userId,
           workspaceId: workspace.id,
           role: dto.role as Role,
@@ -235,7 +235,7 @@ export class InvitationsService {
           },
         });
         if (!isWorkspaceMember) {
-          await this.workspaceMember.create({
+          await this.workspaceMemberService.create({
             userId,
             workspaceId: project.workspaceId,
             role: 'MEMBER',
@@ -297,18 +297,10 @@ export class InvitationsService {
       include: {
         organization: true,
         workspace: {
-          include: {
-            organization: true, // Include organization info for workspace invitations
-          },
+          include: { organization: true },
         },
         project: {
-          include: {
-            workspace: {
-              include: {
-                organization: true, // Include organization info for project invitations
-              },
-            },
-          },
+          include: { workspace: { include: { organization: true } } },
         },
       },
     });
@@ -329,143 +321,111 @@ export class InvitationsService {
       throw new BadRequestException('Invitation has expired');
     }
 
-    // Get user email to verify
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { email: true },
     });
 
     if (user?.email !== invitation.inviteeEmail) {
-      throw new BadRequestException(
-        'Invitation email does not match user email',
-      );
+      throw new BadRequestException('Invitation email does not match user email');
     }
 
-    // Use transaction to ensure data consistency
-    await this.prisma.$transaction(async (prisma) => {
-      // Handle organization invitation
-      if (invitation.organizationId) {
-        const existingOrgMember = await prisma.organizationMember.findFirst({
-          where: {
-            userId,
-            organizationId: invitation.organizationId,
-          },
-        });
+    // Organization invitation
+    if (invitation.organizationId) {
+      const existingOrgMember = await this.prisma.organizationMember.findFirst({
+        where: { userId, organizationId: invitation.organizationId },
+      });
 
-        if (!existingOrgMember) {
-          await this.organizationMember.create({
-            userId,
-            organizationId: invitation.organizationId,
-            role: invitation.role as any,
-            createdBy: invitation.inviterId
-          });
-        }
+      if (!existingOrgMember) {
+        await this.organizationMemberService.create({
+          userId,
+          organizationId: invitation.organizationId,
+          role: invitation.role as any,
+          createdBy: invitation.inviterId,
+        });
       }
-      // Handle workspace invitation - add to organization first, then workspace
-      else if (invitation.workspaceId && invitation.workspace) {
-        const organizationId = invitation.workspace.organizationId;
-        const existingOrgMember = await prisma.organizationMember.findFirst({
-          where: {
-            userId,
-            organizationId: organizationId,
-          },
+    }
+    // Workspace invitation
+    else if (invitation.workspaceId && invitation.workspace) {
+      const organizationId = invitation.workspace.organizationId;
+      const existingOrgMember = await this.prisma.organizationMember.findFirst({
+        where: { userId, organizationId },
+      });
+
+      if (!existingOrgMember) {
+        await this.organizationMemberService.create({
+          userId,
+          organizationId,
+          role: 'MEMBER',
+          createdBy: invitation.inviterId,
         });
-
-        if (!existingOrgMember) {
-          await this.organizationMember.create({
-            userId,
-            organizationId: organizationId,
-            role: "MEMBER",
-            createdBy: invitation.inviterId
-          });
-        }
-
-        // Then add to workspace
-        const existingWorkspaceMember = await prisma.workspaceMember.findFirst({
-          where: {
-            userId,
-            workspaceId: invitation.workspaceId,
-          },
-        });
-
-        if (!existingWorkspaceMember) {
-          await this.workspaceMember.create(
-            {
-              userId,
-              workspaceId: invitation.workspaceId,
-              role: invitation.role as Role,
-              createdBy: invitation.inviterId
-            })
-        }
       }
-      // Handle project invitation - add to organization, workspace, then project
-      else if (invitation.projectId && invitation.project) {
-        // Add to organization first (top level)
-        const organizationId = invitation.project.workspace.organizationId;
-        const existingOrgMember = await prisma.organizationMember.findFirst({
-          where: {
+
+      const existingWorkspaceMember = await this.prisma.workspaceMember.findFirst({
+        where: { userId, workspaceId: invitation.workspaceId },
+      });
+
+      if (!existingWorkspaceMember) {
+        await this.workspaceMemberService.create({
+          userId,
+          workspaceId: invitation.workspaceId,
+          role: invitation.role as any,
+          createdBy: invitation.inviterId,
+        });
+      }
+    }
+    // Project invitation
+    else if (invitation.projectId && invitation.project) {
+      const organizationId = invitation.project.workspace.organizationId;
+      const existingOrgMember = await this.prisma.organizationMember.findFirst({
+        where: { userId, organizationId },
+      });
+
+      if (!existingOrgMember) {
+        await this.prisma.organizationMember.create({
+          data: {
             userId,
-            organizationId: organizationId,
+            organizationId,
+            role: 'MEMBER',
+            createdBy: invitation.inviterId,
           },
         });
+      }
 
-        if (!existingOrgMember) {
-          await prisma.organizationMember.create({
-            data: {
-              userId,
-              organizationId: organizationId,
-              role: "MEMBER",
-              createdBy: invitation.inviterId,
-            },
-          });
-        }
+      const workspaceId = invitation.project.workspace.id;
+      const existingWorkspaceMember = await this.prisma.workspaceMember.findFirst({
+        where: { userId, workspaceId },
+      });
 
-        // Then add to workspace (middle level)
-        const workspaceId = invitation.project.workspace.id;
-        const existingWorkspaceMember = await prisma.workspaceMember.findFirst({
-          where: {
-            userId,
-            workspaceId: workspaceId,
-          },
+      if (!existingWorkspaceMember) {
+        await this.workspaceMemberService.create({
+          userId,
+          workspaceId,
+          role: 'MEMBER',
+          createdBy: invitation.inviterId,
         });
+      }
 
-        if (!existingWorkspaceMember) {
-          await this.workspaceMember.create(
-            {
-              userId,
-              workspaceId: workspaceId,
-              role: "MEMBER",
-              createdBy: invitation.inviterId
-            })
-        }
+      const existingProjectMember = await this.prisma.projectMember.findFirst({
+        where: { userId, projectId: invitation.projectId },
+      });
 
-        // Finally add to project (bottom level)
-        const existingProjectMember = await prisma.projectMember.findFirst({
-          where: {
+      if (!existingProjectMember) {
+        await this.prisma.projectMember.create({
+          data: {
             userId,
             projectId: invitation.projectId,
+            role: invitation.role as any,
+            createdBy: invitation.inviterId,
           },
         });
-
-        if (!existingProjectMember) {
-          await prisma.projectMember.create({
-            data: {
-              userId,
-              projectId: invitation.projectId,
-              role: invitation.role as any,
-              createdBy: invitation.inviterId,
-            },
-          });
-        }
       }
+    }
 
-      // Update invitation status
-      await prisma.invitation.update({
-        where: { id: invitation.id },
-        data: {
-          status: 'ACCEPTED',
-        },
-      });
+    // Update invitation status
+    await this.prisma.invitation.update({
+      where: { id: invitation.id },
+      data: { status: 'ACCEPTED' },
     });
 
     return {
@@ -484,6 +444,7 @@ export class InvitationsService {
       },
     };
   }
+
 
   async declineInvitation(token: string) {
     const invitation = await this.prisma.invitation.findUnique({

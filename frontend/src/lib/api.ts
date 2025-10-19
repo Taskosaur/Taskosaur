@@ -411,7 +411,6 @@ api.interceptors.response.use(
 
           await new Promise(resolve => setTimeout(resolve, delay));
 
-          // console.log(`Retrying request (attempt ${retryCount}/${MAX_RETRY_ATTEMPTS})`);
           return api(originalRequest);
         }
       }
@@ -524,17 +523,14 @@ export const apiUtils = {
 // Development logging
 if (process.env.NODE_ENV === 'development') {
   api.interceptors.request.use(request => {
-    // console.log(`🚀 ${request.method?.toUpperCase()} ${request.url}`);
     return request;
   });
 
   api.interceptors.response.use(
     response => {
-      // console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
       return response;
     },
     error => {
-      // console.log(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url} - ${error.response?.status || 'Network Error'}`);
       return Promise.reject(error);
     }
   );

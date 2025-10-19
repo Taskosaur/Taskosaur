@@ -463,7 +463,7 @@ export class ProjectMembersService {
     const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
     const isWorkspaceAdmin =
       requesterWorkspaceMember?.role === WorkspaceRole.OWNER;
-    const isProjectAdmin = requesterProjectMember?.role === ProjectRole.OWNER;
+    const isProjectAdmin = requesterProjectMember?.role === ProjectRole.OWNER || requesterProjectMember?.role === ProjectRole.MANAGER;
 
     if (!isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin && !isProjectAdmin) {
       throw new ForbiddenException('Only admins can update member roles');

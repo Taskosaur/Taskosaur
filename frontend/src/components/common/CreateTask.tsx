@@ -15,7 +15,10 @@ import {
   HiUsers,
   HiPaperClip,
   HiXCircle,
+  HiTrash
 } from "react-icons/hi2";
+
+
 import TaskDescription from "@/components/tasks/views/TaskDescription";
 import { useTask } from "@/contexts/task-context";
 import { TaskPriorities } from "@/utils/data/taskData";
@@ -26,6 +29,7 @@ import { useProject } from "@/contexts/project-context";
 import { formatDateForApi, getTodayDate } from "@/utils/handleDateChange";
 import MemberSelect from "./MemberSelect";
 import { Plus } from "lucide-react";
+import { Button } from "../ui";
 
 interface CreateTaskProps {
   workspaceSlug?: string;
@@ -274,12 +278,25 @@ export default function CreateTask({
                 </div>
               </CardContent>
             </Card>
+           
             <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
-              <CardHeader className="flex items-center justify-between pb-2">
-                <TaskSectionHeader icon={HiPaperClip} title="Attachments" />
+              <CardHeader className="pb-0">
+                <TaskSectionHeader icon={HiDocumentText} title="Description" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <TaskDescription
+                  value={formData.description}
+                  onChange={(value) =>
+                    handleFormDataChange("description", value)
+                  }
+                  editMode={true}
+                />
 
-                <div>
-                   <Input
+                <div
+                  className="flex items-center justify-end gap-3 "
+                  id="submit-form-button"
+                >
+                    <Input
                     type="file"
                     multiple
                     onChange={handleFileSelect}
@@ -289,19 +306,42 @@ export default function CreateTask({
                   />
                   <Label
                     htmlFor="file-upload"
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--primary)] text-white rounded-lg cursor-pointer hover:bg-[var(--primary)]/90 transition-all duration-200 shadow-sm hover:shadow active:scale-95"
+                    className="py-2 relative h-9 px-4 bg-[var(--primary)] cursor-pointer rounded-md hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] shadow-sm hover:shadow-md transition-all duration-200 font-medium"
                   >
-                    <Plus size={16} />
-                    <span>Add Files</span>
+                    <Plus className="w-4 h-4" />
+                    <span>Add Attachment</span>
                   </Label>
+                  <ActionButton
+                    onClick={handleSubmit}
+                    disabled={!isFormValid() || isSubmitting}
+                    
+                    secondary
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                        Creating...
+                      </div>
+                    ) : (
+                      "Create Task"
+                    )}
+                  </ActionButton>
+                
                 </div>
+              </CardContent>
+            </Card>
+            {
+              attachments.length > 0 && (
+                <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
+              <CardHeader className="flex items-center justify-between pb-2">
+                <TaskSectionHeader icon={HiPaperClip} title={`Attachments ${attachments.length > 0 ? `(${attachments.length})` : ""}`} />
+
+               
               </CardHeader>
               <CardContent className="space-y-4">
                 {attachments.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-[var(--foreground)]">
-                      Selected Files ({attachments.length})
-                    </p>
+                  
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {attachments.map((file, index) => (
                         <div
@@ -322,14 +362,13 @@ export default function CreateTask({
                               </p>
                             </div>
                           </div>
-                          <button
-                            type="button"
+                          <Button
                             onClick={() => removeAttachment(index)}
                             className="flex-shrink-0 ml-2 p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
                             aria-label="Remove file"
                           >
-                            <HiXCircle size={16} className="text-red-500" />
-                          </button>
+                            <HiTrash className="w-4 h-4 text-[var(--destructive)]" />
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -337,40 +376,8 @@ export default function CreateTask({
                 )}
               </CardContent>
             </Card>
-            <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
-              <CardHeader className="pb-0">
-                <TaskSectionHeader icon={HiDocumentText} title="Description" />
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <TaskDescription
-                  value={formData.description}
-                  onChange={(value) =>
-                    handleFormDataChange("description", value)
-                  }
-                  editMode={true}
-                />
-
-                <div
-                  className="flex items-center justify-start gap-3 "
-                  id="submit-form-button"
-                >
-                  <ActionButton
-                    onClick={handleSubmit}
-                    disabled={!isFormValid() || isSubmitting}
-                    primary
-                  >
-                    {isSubmitting ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                        Creating...
-                      </div>
-                    ) : (
-                      "Create Task"
-                    )}
-                  </ActionButton>
-                </div>
-              </CardContent>
-            </Card>
+              )
+            } 
           </form>
         </div>
 

@@ -463,7 +463,6 @@ export const taskApi = {
 
   getTaskById: async (taskId: string, isAuth: boolean): Promise<Task> => {
     try {
-      // console.log("Fetching task with ID:", taskId, "isAuth:", isAuth);
       let response;
       if (isAuth) {
         response = await api.get<Task>(`/tasks/${taskId}`);

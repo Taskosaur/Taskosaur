@@ -193,10 +193,6 @@ export default function ChatPanel() {
 
     const handleProjectCreated = (event: CustomEvent) => {
       const { workspaceSlug, projectSlug, projectName } = event.detail;
-      console.log(
-        "[Chat] Project created, navigating to:",
-        `${workspaceSlug}/${projectSlug}`
-      );
 
       // Navigate to the new project
       router.push(`/${workspaceSlug}/${projectSlug}`);
@@ -263,15 +259,12 @@ export default function ChatPanel() {
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
-    // console.log("[Chat] Sending message:", inputValue); // Debug log
-
     // If user sends a message with workspace/project specification, clear the manual flag
     if (
       inputValue.toLowerCase().includes("workspace") ||
       inputValue.toLowerCase().includes("project")
     ) {
       setIsContextManuallyCleared(false);
-      // console.log("[Chat] Re-enabling automatic context detection");
     }
 
     const userMessage: Message = {
@@ -281,7 +274,6 @@ export default function ChatPanel() {
     };
 
     setMessages((prev) => {
-      // console.log("[Chat] Adding user message to state");
       return [...prev, userMessage];
     });
     setInputValue("");
@@ -297,7 +289,6 @@ export default function ChatPanel() {
     };
 
     setMessages((prev) => {
-      // console.log("[Chat] Adding streaming placeholder");
       return [...prev, assistantMessage];
     });
 
@@ -310,7 +301,6 @@ export default function ChatPanel() {
 
       // Mark streaming as complete and sync final content
       setMessages((prev) => {
-        // console.log("[Chat] Marking streaming as complete");
         const updatedMessages = [...prev];
         const lastMessage = updatedMessages[updatedMessages.length - 1];
         if (
@@ -333,7 +323,6 @@ export default function ChatPanel() {
                 if (
                   lastMcpMessage.content.length > lastMessage.content.length
                 ) {
-                  // console.log("[Chat] Syncing final content from MCP history");
                   lastMessage.content = lastMcpMessage.content;
                 }
               }
@@ -403,9 +392,6 @@ export default function ChatPanel() {
       try {
         // Skip sync if context was manually cleared or if user is actively messaging
         if (isContextManuallyCleared || isLoading) {
-          // console.log(
-          //   "[Chat] Skipping sync - context cleared or messaging in progress"
-          // );
           return;
         }
 
@@ -419,7 +405,6 @@ export default function ChatPanel() {
 
           // Only sync if there's a meaningful difference (more than 1 message gap)
           if (Math.abs(mcpHistory.length - currentHistoryLength) > 1) {
-            // console.log("[Chat] Syncing UI messages with MCP server history");
 
             const syncedMessages: Message[] = mcpHistory.map(
               (msg: ChatMessage, index: number) => ({

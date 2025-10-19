@@ -63,7 +63,6 @@ export async function login(
         }
       } catch (error) {
         console.warn('Remember me checkbox not found or not accessible');
-        console.log(error);
         
       }
     }
@@ -92,7 +91,6 @@ export async function login(
     try {
       await waitForNavigation('/dashboard', 10000);
     } catch (navError) {
-      console.log(navError);
       
       if (window.location.pathname.includes('/organization')) {
         return {
@@ -335,8 +333,6 @@ export async function register(
         data: { email, redirectedTo: '/login' }
       };
     } catch (navError) {
-      console.log(navError);
-      // Check if redirected elsewhere (dashboard, organization setup, etc.)
       if (!window.location.pathname.includes('/register')) {
         return {
           success: true,

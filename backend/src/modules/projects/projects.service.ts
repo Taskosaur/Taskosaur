@@ -240,14 +240,15 @@ export class ProjectsService {
     }
 
     const { status, priority, search, page = 1, pageSize = 10 } = filters || {};
-    const whereClause: any = { archive: false };
-    if (workspaceId) {
-      whereClause.workspaceId = workspaceId;
-    } else {
-      whereClause.OR = [
+    const whereClause: any = {
+      archive: false,
+      OR: [
         { members: { some: { userId } } },
         { visibility: 'PUBLIC' },
-      ];
+      ],
+    };
+    if (workspaceId) {
+      whereClause.workspaceId = workspaceId;
     }
     if (status) {
       whereClause.status = status.includes(',')
@@ -351,11 +352,10 @@ export class ProjectsService {
     const whereClause: any = {
       workspace: { organizationId },
       archive: false,
-      members: {
-        some: {
-          userId: userId,
-        },
-      },
+      OR: [
+        { members: { some: { userId } } },
+        { visibility: 'PUBLIC' },
+      ]
     };
     if (workspaceId) {
       whereClause.workspaceId = workspaceId;

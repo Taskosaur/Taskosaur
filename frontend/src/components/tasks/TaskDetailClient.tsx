@@ -131,6 +131,16 @@ export default function TaskDetailClient({
 
   const handleStartDateChange = async (newStartDate: string) => {
     try {
+      // Validate that start date is not after due date
+      if (newStartDate && editTaskData.dueDate) {
+        const startDate = new Date(newStartDate);
+        const dueDate = new Date(editTaskData.dueDate);
+        if (startDate > dueDate) {
+          toast.error("Start date cannot be after due date.");
+          return;
+        }
+      }
+
       const updateData: UpdateTaskRequest = {
         startDate: formatDateForApi(newStartDate) || undefined,
       };
@@ -237,6 +247,16 @@ export default function TaskDetailClient({
 
   const handleDueDateChange = async (newDueDate: string) => {
     try {
+      // Validate that due date is not before start date
+      if (newDueDate && editTaskData.startDate) {
+        const dueDate = new Date(newDueDate);
+        const startDate = new Date(editTaskData.startDate);
+        if (dueDate < startDate) {
+          toast.error("Due date cannot be before start date.");
+          return;
+        }
+      }
+
       const updateData: UpdateTaskRequest = {
         dueDate: formatDateForApi(newDueDate) || undefined,
       };
@@ -355,7 +375,6 @@ export default function TaskDetailClient({
           name: folderName,
           id: folderId,
         });
-        // console.log(accessData)
         setHasAccess(accessData?.canChange || isAssigneeOrReporter || task.createdBy === currentUser.id );
         setHasAccessLoaded(true);
       } catch (error) {
@@ -953,7 +972,7 @@ export default function TaskDetailClient({
                   onSubtaskUpdated={() => {}}
                   onSubtaskDeleted={() => {}}
                   showConfirmModal={showConfirmModal}
-                  isAssignOrRepoter={isAssigneeOrReporter}
+                  isAssignOrRepoter={hasAccess}
                 />
               </div>
             )}
@@ -971,7 +990,7 @@ export default function TaskDetailClient({
             </div>
           </div>
 
-          <div className="lg:col-span-1 space-y-4 max-w-[18vw] w-full">
+          <div className="lg:col-span-1 space-y-4 lg:max-w-[18vw] w-full">
             {/* Task Settings Section */}
             <div className="">
               <div className="space-y-2">
@@ -1333,6 +1352,7 @@ export default function TaskDetailClient({
                           type="date"
                           value={editTaskData.startDate}
                           min={today}
+                          max={editTaskData.dueDate || undefined}
                           onChange={(e) => {
                             handleStartDateChange(e.target.value);
                           }}
@@ -1377,7 +1397,7 @@ export default function TaskDetailClient({
                         <Input
                           type="date"
                           value={editTaskData.dueDate}
-                          min={today}
+                          min={editTaskData.startDate || today}
                           onChange={(e) => {
                             handleDueDateChange(e.target.value);
                           }}

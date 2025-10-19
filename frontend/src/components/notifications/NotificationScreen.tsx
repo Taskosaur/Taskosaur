@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   HiBell,
   HiCheck,
@@ -17,12 +16,13 @@ import {
 import { notificationApi } from "@/utils/api/notificationApi";
 import { PageHeader } from "@/components/common/PageHeader";
 import ActionButton from "@/components/common/ActionButton";
-import Loader from "@/components/common/Loader";
 import Pagination from "@/components/common/Pagination";
 import ErrorState from "@/components/common/ErrorState";
 import EmptyState from "@/components/common/EmptyState";
 import { Notification, NotificationPriority, NotificationType } from "@/types";
 import { toast } from "sonner";
+import NotificationSkeleton from "../skeletons/NotificationSkeleton";
+import { Clock3 } from "lucide-react";
 
 interface NotificationScreenProps {
   userId: string;
@@ -65,7 +65,6 @@ export default function NotificationScreen({
     byPriority: {} as Record<string, number>,
   });
 
-  // Utility functions
   const getNotificationIcon = (type: NotificationType) => {
     const iconMap = {
       TASK_ASSIGNED: HiUser,
@@ -121,7 +120,6 @@ export default function NotificationScreen({
     return date.toLocaleDateString();
   };
 
-  // Navigation logic
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.isRead) {
       try {
@@ -195,7 +193,6 @@ export default function NotificationScreen({
     }
   };
 
-  // Data fetching - FIXED: Now properly uses currentPage and pageSize
   const fetchNotifications = useCallback(async () => {
     if (!userId || !organizationId) return;
 
@@ -203,7 +200,6 @@ export default function NotificationScreen({
       setLoading(true);
       setError(null);
 
-      // Pass pagination parameters to API call
       const response =
         await notificationApi.getNotificationsByUserAndOrganization(
           userId,
@@ -219,7 +215,9 @@ export default function NotificationScreen({
       setStats(response.summary);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
-      setError("Failed to load notifications. Please try again.");
+      setError(
+        error?.message || "Failed to load notifications. Please try again."
+      );
       setNotifications([]);
       setPagination({
         currentPage: 1,
@@ -237,7 +235,6 @@ export default function NotificationScreen({
     fetchNotifications();
   }, [fetchNotifications]);
 
-  // Action handlers
   const handleMarkAsRead = async (notificationIds: string[]) => {
     try {
       if (notificationIds.length === 1) {
@@ -259,8 +256,12 @@ export default function NotificationScreen({
         ...prev,
         unread: Math.max(0, prev.unread - notificationIds.length),
       }));
+      toast.success("Successfully marked as read");
     } catch (error) {
-      console.error("Failed to mark notifications as read:", error);
+      toast.error(
+        error?.message || "Failed to mark as read the notification(s)"
+      );
+      console.error("Failed to mark notification(s) as read:", error);
     }
   };
 
@@ -272,7 +273,6 @@ export default function NotificationScreen({
         await notificationApi.deleteMultipleNotifications(notificationIds);
       }
 
-      // Remove deleted notifications from current view
       setNotifications((prev) =>
         prev.filter((n) => !notificationIds.includes(n.id))
       );
@@ -282,7 +282,6 @@ export default function NotificationScreen({
         total: Math.max(0, prev.total - notificationIds.length),
       }));
 
-      // If current page becomes empty and we're not on page 1, go to previous page
       const remainingNotifications = notifications.filter(
         (n) => !notificationIds.includes(n.id)
       );
@@ -290,12 +289,12 @@ export default function NotificationScreen({
       if (remainingNotifications.length === 0 && currentPage > 1) {
         setCurrentPage((prev) => prev - 1);
       } else {
-        // Refetch to update pagination info
         fetchNotifications();
       }
       toast.success("Notifications(s) deleted successfully!");
     } catch (error) {
-      console.error("Failed to delete notifications:", error);
+      toast.error(error?.message || "Notifications(s) deleted successfully!");
+      console.error("Failed to delete notification(s):", error);
     }
   };
 
@@ -304,7 +303,9 @@ export default function NotificationScreen({
       await notificationApi.markAllUnreadAsRead(organizationId);
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setStats((prev) => ({ ...prev, unread: 0 }));
+      toast.success("Successfully marked all as read");
     } catch (error) {
+      toast.error(error?.message || "Failed to mark all as read");
       console.error("Failed to mark all as read:", error);
     }
   };
@@ -314,22 +315,20 @@ export default function NotificationScreen({
     fetchNotifications();
   };
 
-  // FIXED: Properly handle page changes
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    setSelectedNotifications(new Set()); // Clear selections when changing pages
+    setSelectedNotifications(new Set());
   };
 
-  // FIXED: Properly handle page size changes
   const handlePageSizeChange = (size: number) => {
     setPageSize(size);
-    setCurrentPage(1); // Reset to first page when changing page size
-    setSelectedNotifications(new Set()); // Clear selections when changing page size
+    setCurrentPage(1);
+    setSelectedNotifications(new Set());
   };
 
   const renderContent = () => {
     if (loading) {
-      return <Loader text="Loading your notifications..." className="py-20" />;
+      return <NotificationSkeleton />;
     }
 
     if (error) {
@@ -341,101 +340,101 @@ export default function NotificationScreen({
     }
 
     return (
-      <div className="space-y-2 z-10">
-        {/* Notifications List */}
+      <div className="divide-y divide-[var(--border)]">
         {notifications.map((notification) => {
-          const IconComponent = getNotificationIcon(notification.type);
+          const isUnread = !notification.isRead;
+          const isSelected = selectedNotifications.has(notification.id);
+
           return (
-            <Card
+            <div
               key={notification.id}
-              className={`transition-all hover:shadow-md p-0 cursor-pointer overflow-hidden z-10 border-[var(--border)]
-              ${!notification.isRead ? "bg-blue-50/30" : ""}
-              ${
-                selectedNotifications.has(notification.id)
-                  ? "bg-[var(--accent)]"
-                  : ""
-              }
+              onClick={() => handleNotificationClick(notification)}
+              className={`
+              flex flex-col gap-1 px-2 sm:px-4 py-4 cursor-pointer transition-all
+              hover:bg-[var(--muted)]/30
+              ${isSelected ? "bg-[var(--accent)]" : ""}
             `}
             >
-              <CardContent className="py-4 px-2 sm:px-4">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:gap-4 gap-2">
-                  {/* Checkbox */}
-                  <input
-                    type="checkbox"
-                    checked={selectedNotifications.has(notification.id)}
-                    onChange={(e) => {
-                      const newSelected = new Set(selectedNotifications);
-                      if (e.target.checked) {
-                        newSelected.add(notification.id);
-                      } else {
-                        newSelected.delete(notification.id);
-                      }
-                      setSelectedNotifications(newSelected);
-                    }}
-                    className="mt-1 rounded accent-[var(--primary)] self-start sm:self-auto"
-                  />
-
-                  {/* Icon */}
-                  <div className="flex-shrink-0 self-start sm:self-auto">
-                    <div
-                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center ${getPriorityColor(
-                        notification.priority
-                      )}`}
-                    >
-                      <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </div>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-3 flex-1">
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="mr-5 flex-shrink-0"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        const newSelected = new Set(selectedNotifications);
+                        if (e.target.checked) newSelected.add(notification.id);
+                        else newSelected.delete(notification.id);
+                        setSelectedNotifications(newSelected);
+                      }}
+                      className="accent-[var(--primary)] cursor-pointer"
+                    />
                   </div>
 
-                  {/* Content */}
-                  <div
-                    className="flex-1 min-w-0"
-                    onClick={() => handleNotificationClick(notification)}
-                  >
-                    {/* Title & dot */}
-                    <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between">
                       <h4
-                        className={`text-sm sm:text-base font-medium truncate text-primary`}
+                        className={`font-bold text-[15px] truncate ${
+                          isUnread
+                            ? "text-[var(--foreground)]"
+                            : "text-[var(--muted-foreground)]"
+                        }`}
                       >
                         {notification.title}
                       </h4>
-                      {!notification.isRead && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
-                      )}
                     </div>
 
-                    {/* Message */}
                     <p
-                      className={`text-sm sm:text-[15px] mb-2 line-clamp-2 sm:line-clamp-none ${
-                        !notification.isRead ? "text-gray-700" : "text-gray-500"
+                      className={`text-sm mt-[2px] line-clamp-2 ${
+                        isUnread
+                          ? "text-[var(--foreground)]"
+                          : "text-[var(--muted-foreground)]"
                       }`}
                     >
                       {notification.message}
                     </p>
 
-                    {/* Meta info */}
-                    <div className="flex flex-wrap gap-2 sm:gap-4 text-xs text-gray-500">
-                      <Badge variant="secondary" className="text-xs">
+                    <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-[var(--muted-foreground)]">
+                      <Badge
+                        variant="outline"
+                        className="border-[var(--border)] text-[var(--muted-foreground)]"
+                      >
                         {getTypeLabel(notification.type)}
                       </Badge>
+
                       <Badge
-                        className={`text-xs ${getPriorityColor(
-                          notification.priority
-                        )}`}
+                        variant="secondary"
+                        className={`text-[var(--foreground)] bg-[var(--muted)]`}
                       >
                         {notification.priority}
                       </Badge>
-                      <span>{formatTime(notification.createdAt)}</span>
+
                       {notification.createdByUser && (
-                        <span className="hidden sm:inline">
-                          by {notification.createdByUser.firstName}{" "}
+                        <span>
+                          by {" "}{notification.createdByUser.firstName}{" "}
                           {notification.createdByUser.lastName}
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+
+                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                  <div className="flex justify-center items-center gap-2">
+                  <Clock3 className="w-3 h-3 opacity-80"/>
+                  <span className="text-xs text-[var(--muted-foreground)] whitespace-nowrap">
+                    {formatTime(notification.createdAt)}
+                  </span>
+                    </div>
+                  {!notification.isRead && (
+                    <span className="inline-block w-2 h-2 rounded-full bg-[var(--primary)]"></span>
+                  )}
+                </div>
+              </div>
+            </div>
           );
         })}
       </div>

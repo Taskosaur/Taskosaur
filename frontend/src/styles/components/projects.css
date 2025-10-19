@@ -76,7 +76,7 @@
 }
 
 .projects-url-preview-code {
-  @apply text-xs font-mono bg-white/50 px-2 py-1 rounded border transition-colors duration-300;
+  @apply text-xs font-mono bg-white/50 px-2 py-1 rounded border transition-colors duration-300 break-all whitespace-normal;
 }
 
 /* Workspace Selection */

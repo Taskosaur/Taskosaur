@@ -75,12 +75,6 @@ export class TasksController {
   }
 
   @Post('bulk-delete')
-  @LogActivity({
-    type: 'TASK_DELETED',
-    entityType: 'Task',
-    description: 'Delete Tasks',
-    includeOldValue: true
-  })
   @ApiOperation({
     summary: 'Bulk delete tasks',
     description:
@@ -395,8 +389,7 @@ export class TasksController {
     type: 'TASK_CREATED',
     entityType: 'Task',
     description: 'Created new task',
-    includeNewValue: true,
-    entityIdName: 'id',
+    includeNewValue: true
   })
   async creatcreateWithAttachmentse(
     @Body() createTaskDto: CreateTaskDto,
@@ -409,12 +402,12 @@ export class TasksController {
     if (files && files.length > 10) {
       throw new BadRequestException('Maximum 10 files allowed');
     }
-
-    return this.tasksService.createWithAttachments(
+    const createRes = await this.tasksService.createWithAttachments(
       createTaskDto,
       user.id,
       files,
     );
+    return createRes
   }
 
 

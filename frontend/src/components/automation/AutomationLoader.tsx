@@ -68,21 +68,6 @@ export default function AutomationLoader({
         if (window.TaskosaurAutomation) {
           const result = await window.TaskosaurAutomation.initialize();
           setInitResult(result);
-
-          console.log('🤖 Taskosaur Automation System initialized \n Result: ', result);
-
-          if (enableConsoleAccess) {
-            // console.log('🌐 Automation functions available in console:');
-            // console.log('- TaskosaurAutomation: Main automation instance');
-            // console.log('- taskosaurAuth: Authentication functions');
-            // console.log('- taskosaurWorkspace: Workspace management');
-            // console.log('- taskosaurProject: Project management');
-            // console.log('- taskosaurTask: Task management');
-            // console.log('- taskosaurHelpers: Utility functions');
-            // console.log('');
-            // console.log('Quick start:');
-            // console.log('await TaskosaurAutomation.quickDemo()');
-          }
         }
       } catch (error) {
         console.error('Failed to initialize automation system:', error);

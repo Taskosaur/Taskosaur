@@ -213,7 +213,6 @@ export async function createProject(
     // Check if button is disabled but try anyway
     const isDisabled = createButton.disabled;
     if (isDisabled) {
-      console.log('Attempting to click anyway...');
     }
 
     await simulateClick(createButton);

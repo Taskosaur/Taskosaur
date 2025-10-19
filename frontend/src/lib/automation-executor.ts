@@ -147,9 +147,7 @@ class AutomationExecutor {
         pattern: /rename workspace (\w+) to (.+)$/i,
         action: 'editWorkspace',
         extractor: (match) => {
-          // console.log('Frontend regex match:', match);
           const extractedName = match[2] ? match[2].trim() : '';
-          // console.log('Extracted name:', extractedName);
           return {
             workspaceSlug: match[1].trim(),
             name: extractedName

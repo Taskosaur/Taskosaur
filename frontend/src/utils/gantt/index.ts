@@ -92,12 +92,10 @@ export const parseDate = (dateString: string | undefined): Date => {
   try {
     const parsed = new Date(dateString);
     if (isNaN(parsed.getTime())) {
-      console.log(`Invalid date string: ${dateString}`);
       return new Date();
     }
     return parsed;
   } catch (error) {
-    console.log(`Error parsing date: ${dateString}`, error);
     return new Date();
   }
 };

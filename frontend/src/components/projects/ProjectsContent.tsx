@@ -83,7 +83,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 }) => {
   const { isAuthenticated, getUserAccess } = useAuth();
   const { getWorkspaceBySlug } = useWorkspaceContext();
-  const router = useRouter()
+  const router = useRouter();
   const {
     projects,
     error,
@@ -93,7 +93,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     refreshProjects,
     clearError,
   } = useProjectContext();
-  
+
   const [hasAccess, setHasAccess] = useState(false);
   const [workspace, setWorkspace] = useState<any>(null);
   const [searchInput, setSearchInput] = useState("");
@@ -103,10 +103,10 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(12);
   const [hasMore, setHasMore] = useState(false);
-  
+
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
-  
+
   const isMountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef<string>("");
@@ -335,12 +335,12 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 
         isInitializedRef.current = true;
       } catch (error: any) {
-          if (requestIdRef.current === requestId && isMountedRef.current) {
-            if (error.status === 403) {
-              toast.error(error?.message || "User not authenticated");
-              router.back();
-              return;
-            }
+        if (requestIdRef.current === requestId && isMountedRef.current) {
+          if (error.status === 403) {
+            toast.error(error?.message || "User not authenticated");
+            router.back();
+            return;
+          }
           if (
             error.message?.includes("401") ||
             error.message?.includes("Unauthorized")
@@ -410,9 +410,12 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     }
 
     if (contextId) {
-      const timeoutId = setTimeout(() => {
-        fetchData(1, true);
-      }, isInitializedRef.current ? 0 : 50);
+      const timeoutId = setTimeout(
+        () => {
+          fetchData(1, true);
+        },
+        isInitializedRef.current ? 0 : 50
+      );
 
       return () => clearTimeout(timeoutId);
     }
@@ -500,9 +503,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
   }
 
   if (showLoader) {
-    return (
-      <CardsSkeleton />
-    );
+    return <CardsSkeleton />;
   }
 
   const displayTitle =
@@ -646,14 +647,26 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                         footer={
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-4">
-                              <span className="flex items-center gap-1">
-                                <HiClipboardDocumentList size={12} />
-                                {project._count?.tasks || 0} tasks
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <HiCalendarDays size={12} />
-                                {formatDate(project.updatedAt)}
-                              </span>
+                              <Tooltip
+                                content="Number of Tasks"
+                                position="top"
+                                color="primary"
+                              >
+                                <span className="flex items-center gap-1">
+                                  <HiClipboardDocumentList size={12} />
+                                  {project._count?.tasks || 0}
+                                </span>
+                              </Tooltip>
+                              <Tooltip
+                                content="Start Date"
+                                position="top"
+                                color="primary"
+                              >
+                                <span className="flex items-center gap-1">
+                                  <HiCalendarDays size={12} />
+                                  {formatDate(project.updatedAt)}
+                                </span>
+                              </Tooltip>
                             </div>
                             <DynamicBadge label={statusText} size="sm" />
                           </div>

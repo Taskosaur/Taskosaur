@@ -167,7 +167,7 @@ export default function Subtasks({
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
   const isAuth = isAuthenticated();
-  
+
   // Get current user from localStorage
   useEffect(() => {
     const getUserFromStorage = () => {
@@ -196,7 +196,7 @@ export default function Subtasks({
       .catch((error) => {
         console.error("Error fetching user access:", error);
       });
-  }, [projectId]);
+  }, [projectId, isAssignOrRepoter]);
 
   // Fetch task statuses
   useEffect(() => {
@@ -276,7 +276,7 @@ export default function Subtasks({
       setSubtaskPriority("MEDIUM");
       setSubtaskType("TASK");
       setIsAddingSubtask(false);
-      
+
       if (currentPage > 1 && subtTask.length >= pageSize) {
         setCurrentPage(1);
       }
@@ -348,12 +348,12 @@ export default function Subtasks({
       };
 
       await updateSubtask(subtaskId, updateData);
-      
+
       setEditingSubtaskId(null);
       setEditingTitle("");
       setSubtaskPriority("MEDIUM");
       setSubtaskType("TASK");
-      
+
       onSubtaskUpdated?.(subtaskId, updateData);
     } catch (error) {
       console.error("Failed to update subtask:", error);
@@ -436,7 +436,9 @@ export default function Subtasks({
       epic: "#8B5CF6",
       story: "#10B981",
     };
-    return typeColors[type?.toLowerCase() as keyof typeof typeColors] || "#6B7280";
+    return (
+      typeColors[type?.toLowerCase() as keyof typeof typeColors] || "#6B7280"
+    );
   };
 
   const getStatusColor = (statusId: string) => {

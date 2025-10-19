@@ -275,7 +275,6 @@ function ProjectTasksContent() {
         workspaceSlug as string
       );
 
-      console.log("Fetched project:", proj);
       if (!proj) {
         throw new Error(
           `Project "${projectSlug}" not found in workspace "${workspaceSlug}"`
@@ -479,7 +478,6 @@ function ProjectTasksContent() {
   );
   const handleLoadMoreKanbanTasks = useCallback(
     async (statusId: string, page: number) => {
-      console.log("Loading more tasks for status:", statusId, "page:", page); // Debug log
       await loadKanbanData(projectSlug as string, statusId, page);
     },
     [loadKanbanData, projectSlug]
@@ -509,7 +507,6 @@ function ProjectTasksContent() {
   }, [router.isReady, workspaceSlug, projectSlug]);
 
   useEffect(() => {
-    console.log(isAuth);
     if (isAuth) {
       if (currentOrganizationId && project?.id) {
         loadTasks();

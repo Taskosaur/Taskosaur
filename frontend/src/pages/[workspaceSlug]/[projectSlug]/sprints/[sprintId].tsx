@@ -244,7 +244,6 @@ const SprintTasksTable = () => {
         page: currentPage,
         limit: pageSize,
       };
-      console.log("isAuth Params", isAuth);
       if (isAuth && currentOrganizationId) {
         // Authenticated flow
         await getAllTasks(currentOrganizationId, params);
@@ -339,7 +338,6 @@ const SprintTasksTable = () => {
 
   const handleLoadMoreKanbanTasks = useCallback(
     async (statusId: string, page: number) => {
-      console.log("Loading more tasks for status:", statusId, "page:", page); // Debug log
       await loadKanbanData(
         projectSlug as string,
         sprintId as string,

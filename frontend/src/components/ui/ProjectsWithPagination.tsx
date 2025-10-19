@@ -13,12 +13,10 @@ interface ProjectsWithPaginationProps {
 
 const isValidProject = (project: Project): boolean => {
   if (!project.workspace?.slug) {
-    console.log(`Project "${project.name}" (${project.id}) missing workspace.slug - excluding from display`);
     return false;
   }
 
   if (!project.slug && !project.name) {
-    console.log(`Project "${project.id}" missing both slug and name - excluding from display`);
     return false;
   }
 
@@ -55,7 +53,6 @@ const ProjectsWithPagination: React.FC<ProjectsWithPaginationProps> = ({
   const validProjects = projects.filter(isValidProject);
 
   if (validProjects.length !== projects.length) {
-    console.log(`Filtered out ${projects.length - validProjects.length} invalid projects without workspace data`);
   }
 
   const displayedProjects = validProjects.slice(0, 3);

@@ -449,7 +449,6 @@ export async function selectDropdownOption(
     const option = await waitForElement(optionSelector, 2000);
     await simulateClick(option);
   } catch (error) {
-    console.log(error);
     const altSelectors = [
       `[value="${optionText}"]`,
       `option[value="${optionText}"]`,
@@ -463,7 +462,6 @@ export async function selectDropdownOption(
         await simulateClick(option);
         return;
       } catch (e) {
-        console.log(e);
         continue;
       }
     }

@@ -42,17 +42,14 @@ export async function createTask(
   try {
 // Navigate directly to the new task creation page
     const createTaskUrl = `/${workspaceSlug}/${projectSlug}/tasks/new`;
-    // console.log(`Navigating directly to task creation page: ${createTaskUrl}`);
     await navigateTo(createTaskUrl);
 
     // Wait for the task creation page to load
-    // console.log('Waiting for task creation page to load...');
     try {
       await waitForElement('.dashboard-container', timeout);
       // Additional check for the form elements
       await waitForElement('form, input#title', timeout / 2);
     } catch (error) {
-      // console.log('Standard selectors not found, trying fallback...');
       await waitFor(2000); // Give page time to load
       
       // Check if we're on the task creation page
@@ -68,8 +65,6 @@ export async function createTask(
     await waitFor(1000); // Give page time to stabilize
 
     // Since we're now on the task creation page directly, no need to click a button
-    // console.log('We are now on the task creation page, looking for the form...');
-    
     // Wait for the form to be ready
     await waitFor(1000);
     
@@ -78,11 +73,8 @@ export async function createTask(
     if (!taskForm) {
       throw new Error('Task creation form not found on the page');
     }
-    
-    // console.log('Task creation form found, proceeding with field filling...');
 
     // Find the specific title input field (from the HTML: input#title)
-    // console.log('Looking for title input field...');
     const titleSelectors = [
       'input#title',
       'input[name="title"]',
@@ -99,7 +91,6 @@ export async function createTask(
     for (const selector of titleSelectors) {
       titleInput = document.querySelector(selector) as HTMLInputElement;
       if (titleInput) {
-        // console.log(`Title input found with selector: ${selector}`);
         break;
       }
     }
@@ -137,7 +128,6 @@ export async function createTask(
     await waitFor(500);
 
     // Set mandatory Status field (default to first status, usually "To Do")
-    // console.log('Setting mandatory Status field...');
     const statusSelectors = [
       'button[role="combobox"]', // Will check text content manually
       '[data-slot="select-trigger"]',
@@ -154,7 +144,6 @@ export async function createTask(
       const text = combobox.textContent?.toLowerCase() || '';
       if (text.includes('select a status') || text.includes('status')) {
         statusButton = combobox;
-        // console.log('Status dropdown found by text content: "' + combobox.textContent + '"');
         break;
       }
     }
@@ -176,7 +165,6 @@ export async function createTask(
     }
 
     if (statusButton) {
-      // console.log('Clicking status dropdown...');
       await simulateClick(statusButton);
       await waitFor(1000);
 
@@ -228,7 +216,6 @@ export async function createTask(
       for (const option of priorityOptions) {
         const optionText = option.textContent?.trim().toLowerCase() || '';
         if (optionText === 'medium') {
-          // console.log('Selecting Medium priority');
           await simulateClick(option);
           await waitFor(500);
           break;
@@ -337,7 +324,6 @@ export async function createTask(
   for (const selector of submitSelectors) {
     submitButton = document.querySelector<HTMLButtonElement>(selector);
     if (submitButton) {
-      console.log(`Submit button found with selector: ${selector}`);
       break;
     }
   }
@@ -382,8 +368,6 @@ export async function createTask(
       if (submitButton instanceof HTMLButtonElement && submitButton.disabled) {
     console.warn("⚠️ Submit button is still disabled. Validation might not have run yet.");
   }
-
-  console.log("Submit Buttons: ", submitButton);
   
     await simulateClick(submitButton);
     
@@ -635,7 +619,6 @@ export async function updateTaskStatus(
     
     for (const option of statusOptions) {
       const optionText = option.textContent?.trim();
-      // console.log('Checking option:', optionText);
       if (optionText && optionText.toLowerCase() === newStatus.toLowerCase()) {
         await simulateClick(option);
         statusFound = true;

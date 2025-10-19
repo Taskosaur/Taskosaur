@@ -38,17 +38,17 @@ function MemberSelect({
   projectId,
 }: MemberSelectProps) {
   const { getProjectMembers } = useProject();
-  
+
   const [isOpen, setIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [search, setSearch] = useState("");
   const [autoOpenDropdown, setAutoOpenDropdown] = useState(false);
-  
+
   // Server-side search states
   const [members, setMembers] = useState<any[]>(initialMembers);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  
+
   // Refs for cleanup and debouncing
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -204,7 +204,10 @@ function MemberSelect({
                   key={member.id}
                   user={{
                     ...member,
-                    avatar: member.avatarUrl || member.avatar || "/default-avatar.png",
+                    avatar:
+                      member.avatarUrl ||
+                      member.avatar ||
+                      "/default-avatar.png",
                   }}
                   size="sm"
                 />
@@ -221,7 +224,7 @@ function MemberSelect({
             </span>
           )}
         </div>
-        
+
         {isEditing && (
           <div className="mt-2">
             <DropdownMenu
@@ -236,7 +239,11 @@ function MemberSelect({
             >
               <DropdownMenuTrigger asChild>
                 <div className="w-full h-0 opacity-0 pointer-events-none">
-                  <Button variant="outline" className="w-full" disabled={disabled}>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={disabled}
+                  >
                     {displayText}
                   </Button>
                 </div>
@@ -258,7 +265,7 @@ function MemberSelect({
                     />
                   </div>
                 </div>
-                
+
                 <div className="max-h-48 overflow-y-auto">
                   {isSearching ? (
                     <div className="p-4 text-center">
@@ -277,7 +284,9 @@ function MemberSelect({
                     </div>
                   ) : (
                     members.map((member) => {
-                      const isSelected = selectedMembers.some((m) => m.id === member.id);
+                      const isSelected = selectedMembers.some(
+                        (m) => m.id === member.id
+                      );
                       return (
                         <div
                           key={member.id}
@@ -291,7 +300,10 @@ function MemberSelect({
                           <UserAvatar
                             user={{
                               ...member,
-                              avatar: member.avatarUrl || member.avatar || "/default-avatar.png",
+                              avatar:
+                                member.avatarUrl ||
+                                member.avatar ||
+                                "/default-avatar.png",
                             }}
                             size="sm"
                           />
@@ -315,23 +327,24 @@ function MemberSelect({
       </div>
     );
   }
-  
+
   if (disabled) {
     return (
       <>
-        {selectedMembers.map((member) => (
-          <UserAvatar
-            key={member.id}
-            user={{
-              ...member,
-              avatar:
-                member.avatarUrl ||
-                member.avatar ||
-                "/default-avatar.png",
-            }}
-            size="sm"
-          />
-        ))}
+        <Label className="pb-2">{label}</Label>
+        <div className="flex items-center gap-2">
+          {selectedMembers.map((member) => (
+            <UserAvatar
+              key={member.id}
+              user={{
+                ...member,
+                avatar:
+                  member.avatarUrl || member.avatar || "/default-avatar.png",
+              }}
+              size="sm"
+            />
+          ))}
+        </div>
       </>
     );
   }
@@ -347,7 +360,11 @@ function MemberSelect({
             className="w-full justify-between border-[var(--border)] bg-[var(--background)] text-left"
             disabled={disabled}
           >
-            <span className={selectedMembers.length === 0 ? "text-muted-foreground" : ""}>
+            <span
+              className={
+                selectedMembers.length === 0 ? "text-muted-foreground" : ""
+              }
+            >
               {displayText}
             </span>
             <ChevronDown className="h-4 w-4 opacity-50" />
@@ -366,7 +383,7 @@ function MemberSelect({
               />
             </div>
           </div>
-          
+
           <div className="max-h-48 overflow-y-auto">
             {isSearching ? (
               <div className="p-4 text-center">
@@ -385,7 +402,9 @@ function MemberSelect({
               </div>
             ) : (
               members.map((member) => {
-                const isSelected = selectedMembers.some((m) => m.id === member.id);
+                const isSelected = selectedMembers.some(
+                  (m) => m.id === member.id
+                );
                 return (
                   <div
                     key={member.id}
@@ -399,7 +418,10 @@ function MemberSelect({
                     <UserAvatar
                       user={{
                         ...member,
-                        avatar: member.avatarUrl || member.avatar || "/default-avatar.png",
+                        avatar:
+                          member.avatarUrl ||
+                          member.avatar ||
+                          "/default-avatar.png",
                       }}
                       size="sm"
                     />
@@ -407,7 +429,9 @@ function MemberSelect({
                       <span className="text-sm">
                         {member.firstName} {member.lastName}
                       </span>
-                      <span className="text-xs text-gray-500">{member.email}</span>
+                      <span className="text-xs text-gray-500">
+                        {member.email}
+                      </span>
                     </div>
                   </div>
                 );

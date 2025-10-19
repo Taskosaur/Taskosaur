@@ -183,6 +183,14 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     setIsEditModalOpen(true);
   };
 
+  const handleTaskRefetch = useCallback(() => {
+    // Close the modal first
+    setIsEditModalOpen(false);
+    setSelectedTask(null);
+    
+    onRefresh?.();
+  }, [onRefresh]);
+
   // Handle scroll-based pagination for individual columns
   const handleColumnScroll = useCallback(
     async (statusId: string, currentPage: number) => {
@@ -258,7 +266,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
       {isEditModalOpen && (
         <CustomModal
           isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedTask(null);
+          }}
           animation="slide-right"
           height="h-screen"
           top="top-4"
@@ -275,8 +286,11 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
               workspaceSlug={workspaceSlug as string}
               projectSlug={projectSlug as string}
               taskId={selectedTask.id}
-              onClose={() => setIsEditModalOpen(false)}
-              
+              onClose={() => {
+                setIsEditModalOpen(false);
+                setSelectedTask(null);
+              }}
+              onTaskRefetch={handleTaskRefetch}
             />
           )}
         </CustomModal>

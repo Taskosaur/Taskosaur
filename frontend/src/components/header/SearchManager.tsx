@@ -7,7 +7,6 @@ import { useOrganization } from "@/contexts/organization-context";
 import { TokenManager } from "@/lib/api";
 import { useRouter } from "next/router";
 
-// Debounce hook
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -130,7 +129,6 @@ const SearchManager = () => {
   };
 
   const handleResultSelect = (result) => {
-    console.log("Selected:", result);
 
     let navigationUrl = result.url;
 

@@ -155,78 +155,78 @@ export class TasksService {
       },
     });
   }
-// Updated Task Create with Attachments
-async createWithAttachments(
-  createTaskDto: CreateTaskDto,
-  userId: string,
-  files?: Express.Multer.File[],
-): Promise<Task> {
-  const project = await this.prisma.project.findUnique({
-    where: { id: createTaskDto.projectId },
-    select: {
-      slug: true,
-      id: true,
-      workspaceId: true,
-      workspace: {
-        select: {
-          organizationId: true,
-          organization: { select: { ownerId: true } },
+  // Updated Task Create with Attachments
+  async createWithAttachments(
+    createTaskDto: CreateTaskDto,
+    userId: string,
+    files?: Express.Multer.File[],
+  ): Promise<Task> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: createTaskDto.projectId },
+      select: {
+        slug: true,
+        id: true,
+        workspaceId: true,
+        workspace: {
+          select: {
+            organizationId: true,
+            organization: { select: { ownerId: true } },
+          },
         },
       },
-    },
-  });
-
-  if (!project) {
-    throw new NotFoundException('Project not found');
-  }
-
-  // Permission checks
-  const { organizationId, organization } = project.workspace;
-
-  if (organization.ownerId !== userId) {
-    const orgMember = await this.prisma.organizationMember.findUnique({
-      where: { userId_organizationId: { userId, organizationId } },
-      select: { role: true },
     });
 
-    const wsMember = await this.prisma.workspaceMember.findUnique({
-      where: {
-        userId_workspaceId: { userId, workspaceId: project.workspaceId },
-      },
-      select: { role: true },
-    });
-
-    const projectMember = await this.prisma.projectMember.findUnique({
-      where: { userId_projectId: { userId, projectId: project.id } },
-      select: { role: true },
-    });
-
-    const canCreate = orgMember || wsMember || projectMember;
-
-    if (!canCreate) {
-      throw new ForbiddenException(
-        'Insufficient permissions to create task in this project',
-      );
+    if (!project) {
+      throw new NotFoundException('Project not found');
     }
-  }
 
-  const sprintResult = await this.prisma.sprint.findFirst({
-    where: { projectId: project.id, isDefault: true },
-  });
-  const sprintId = sprintResult?.id || null;
+    // Permission checks
+    const { organizationId, organization } = project.workspace;
 
-  const lastTask = await this.prisma.task.findFirst({
-    where: { projectId: createTaskDto.projectId },
-    orderBy: { taskNumber: 'desc' },
-    select: { taskNumber: true },
-  });
+    if (organization.ownerId !== userId) {
+      const orgMember = await this.prisma.organizationMember.findUnique({
+        where: { userId_organizationId: { userId, organizationId } },
+        select: { role: true },
+      });
 
-  const taskNumber = lastTask ? lastTask.taskNumber + 1 : 1;
-  const key = `${project.slug}-${taskNumber}`;
-  const { assigneeIds, reporterIds, ...taskData } = createTaskDto;
+      const wsMember = await this.prisma.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: { userId, workspaceId: project.workspaceId },
+        },
+        select: { role: true },
+      });
 
-  return this.prisma.$transaction(async (tx) => {
-    const task = await tx.task.create({
+      const projectMember = await this.prisma.projectMember.findUnique({
+        where: { userId_projectId: { userId, projectId: project.id } },
+        select: { role: true },
+      });
+
+      const canCreate = orgMember || wsMember || projectMember;
+
+      if (!canCreate) {
+        throw new ForbiddenException(
+          'Insufficient permissions to create task in this project',
+        );
+      }
+    }
+
+    const sprintResult = await this.prisma.sprint.findFirst({
+      where: { projectId: project.id, isDefault: true },
+    });
+    const sprintId = sprintResult?.id || null;
+
+    const lastTask = await this.prisma.task.findFirst({
+      where: { projectId: createTaskDto.projectId },
+      orderBy: { taskNumber: 'desc' },
+      select: { taskNumber: true },
+    });
+
+    const taskNumber = lastTask ? lastTask.taskNumber + 1 : 1;
+    const key = `${project.slug}-${taskNumber}`;
+    const { assigneeIds, reporterIds, ...taskData } = createTaskDto;
+
+    // --- Create Task ---
+    const task = await this.prisma.task.create({
       data: {
         ...taskData,
         createdBy: userId,
@@ -235,18 +235,18 @@ async createWithAttachments(
         sprintId: sprintId,
         assignees: assigneeIds?.length
           ? {
-              connect: assigneeIds.map((id) => ({ id })),
-            }
+            connect: assigneeIds.map((id) => ({ id })),
+          }
           : undefined,
         reporters: reporterIds?.length
           ? {
-              connect: reporterIds.map((id) => ({ id })),
-            }
+            connect: reporterIds.map((id) => ({ id })),
+          }
           : undefined,
       },
     });
 
-    // Handle attachments
+    // --- Handle Attachments ---
     if (files && files.length > 0) {
       const attachmentPromises = files.map(async (file) => {
         const { url, key, size } = await this.storageService.saveFile(
@@ -254,14 +254,14 @@ async createWithAttachments(
           `tasks/${task.id}`,
         );
 
-        return tx.taskAttachment.create({
+        return this.prisma.taskAttachment.create({
           data: {
             taskId: task.id,
             fileName: file.originalname,
             fileSize: size,
             mimeType: file.mimetype,
-            url: url, // Will be null for S3, static path for local
-            storageKey: key, // Store key for both S3 and local
+            url: url, // Static/local or pre-signed path
+            storageKey: key,
             createdBy: userId,
           },
         });
@@ -270,106 +270,106 @@ async createWithAttachments(
       await Promise.all(attachmentPromises);
     }
 
-    // Return task with attachments
-    return this.getTaskWithPresignedUrls(task.id);
-  });
-}
+    // --- Return task with attachments + presigned URLs ---
+    const taskRes = await this.getTaskWithPresignedUrls(task.id);
+    return taskRes;
+  }
 
-// Helper method to fetch task and generate presigned URLs for attachments
-private async getTaskWithPresignedUrls(taskId: string): Promise<any> {
-  const task = await this.prisma.task.findUnique({
-    where: { id: taskId },
-    include: {
-      project: {
-        select: {
-          id: true,
-          name: true,
-          workspace: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              organization: {
-                select: { id: true, name: true, slug: true },
+
+  // Helper method to fetch task and generate presigned URLs for attachments
+  private async getTaskWithPresignedUrls(taskId: string): Promise<any> {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            workspace: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                organization: {
+                  select: { id: true, name: true, slug: true },
+                },
               },
             },
           },
         },
-      },
-      assignees: {
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          avatar: true,
+        assignees: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
+        },
+        reporters: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
+        },
+        status: {
+          select: { id: true, name: true, color: true, category: true },
+        },
+        sprint: {
+          select: { id: true, name: true, status: true },
+        },
+        parentTask: {
+          select: { id: true, title: true, slug: true, type: true },
+        },
+        attachments: {
+          select: {
+            id: true,
+            fileName: true,
+            fileSize: true,
+            mimeType: true,
+            url: true,
+            storageKey: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            childTasks: true,
+            comments: true,
+            attachments: true,
+            watchers: true,
+          },
         },
       },
-      reporters: {
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          avatar: true,
-        },
-      },
-      status: {
-        select: { id: true, name: true, color: true, category: true },
-      },
-      sprint: {
-        select: { id: true, name: true, status: true },
-      },
-      parentTask: {
-        select: { id: true, title: true, slug: true, type: true },
-      },
-      attachments: {
-        select: {
-          id: true,
-          fileName: true,
-          fileSize: true,
-          mimeType: true,
-          url: true,
-          storageKey: true,
-          createdAt: true,
-        },
-      },
-      _count: {
-        select: {
-          childTasks: true,
-          comments: true,
-          attachments: true,
-          watchers: true,
-        },
-      },
-    },
-  });
+    });
 
-  // Generate presigned URLs for attachments
-  if (task && task.attachments.length > 0) {
-    const attachmentsWithUrls = await Promise.all(
-      task.attachments.map(async (attachment) => {
-        // If URL is null (S3 case), generate presigned URL
-        const isCloud = attachment.url
-        const viewUrl = attachment.url
-          ? attachment.url
-          :attachment?.storageKey && await this.storageService.getFileUrl(attachment?.storageKey);
+    // Generate presigned URLs for attachments
+    if (task && task.attachments.length > 0) {
+      const attachmentsWithUrls = await Promise.all(
+        task.attachments.map(async (attachment) => {
+          // If URL is null (S3 case), generate presigned URL
+          const isCloud = attachment.url
+          const viewUrl = attachment.url
+            ? attachment.url
+            : attachment?.storageKey && await this.storageService.getFileUrl(attachment?.storageKey);
 
-        return {
-          ...attachment,
-          viewUrl, // Add presigned URL for viewing
-        };
-      }),
-    );
+          return {
+            ...attachment,
+            viewUrl, // Add presigned URL for viewing
+          };
+        }),
+      );
 
-    return {
-      ...task,
-      attachments: attachmentsWithUrls,
-    };
+      return {
+        ...task,
+        attachments: attachmentsWithUrls,
+      };
+    }
+    return task;
   }
-
-  return task;
-}
 
   async findAll(
     organizationId: string,

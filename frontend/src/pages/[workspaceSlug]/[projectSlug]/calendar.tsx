@@ -89,7 +89,6 @@ function ProjectTasksCalendarPageContent() {
       console.error("Error refreshing tasks:", error);
     }
   };
-  // console.log("Project Tasks:", projectTasks);
   const loadData = async () => {
     try {
       setLoading(true);

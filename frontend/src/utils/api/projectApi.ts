@@ -45,7 +45,6 @@ export const projectApi = {
 
   getProjectBySlug: async (slug: string, isAuthenticated: boolean, workspaceSlug?: string): Promise<Project> => {
     try {
-      console.log("Fetching project by slug:", slug, "Authenticated:", isAuthenticated);
       let response;
       if (isAuthenticated) {
         response = await api.get<Project>(`/projects/by-slug/${slug}`);

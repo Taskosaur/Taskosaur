@@ -65,7 +65,7 @@ export class WorkspaceMembersService {
         },
       },
     });
-
+    console.log(JSON.stringify(user))
     if (!user) {
       throw new NotFoundException('User not found');
     }

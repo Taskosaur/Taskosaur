@@ -34,7 +34,7 @@ export function EntityCard({
       <div className="flex items-start gap-3">
         {leading}
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors">
+          <div className="text-sm font-semibold text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors line-clamp-2">
             {heading}
           </div>
           {subheading && (
@@ -54,7 +54,7 @@ export function EntityCard({
       </div>
 
       {/* Description */}
-      <div className="text-sm text-[var(--muted-foreground)] line-clamp-2">
+      <div className="text-sm text-[var(--muted-foreground)] line-clamp-2 h-[50px]">
         {description || "No description provided"}
       </div>
 

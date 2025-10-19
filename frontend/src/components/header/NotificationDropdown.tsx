@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,6 +9,9 @@ import {
 import { HiBell } from "react-icons/hi2";
 import { notificationApi } from "@/utils/api/notificationApi";
 import Tooltip from "../common/ToolTip";
+import { useRouter } from "next/router";
+import ActionButton from "../common/ActionButton";
+
 interface Notification {
   id: string;
   title: string;
@@ -40,8 +42,9 @@ export default function NotificationDropdown({
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [markingAsRead, setMarkingAsRead] = useState<string | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const router = useRouter();
 
-  // Fetch notifications
   useEffect(() => {
     const fetchNotifications = async () => {
       if (!userId || !organizationId) return;
@@ -126,28 +129,35 @@ export default function NotificationDropdown({
     }
   };
 
+  const handleViewAllNotifications = () => {
+    setDropdownOpen(false);
+    setTimeout(() => {
+      router.push("/notifications");
+    }, 100);
+  };
+
   if (!userId || !organizationId) return null;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
       <Tooltip content="Notifications" position="bottom" color="primary">
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`header-button-base ${className}`}
-        >
-          <HiBell className="header-button-icon" />
-          {unreadCount > 0 && (
-            <Badge
-              variant="destructive"
-              className="header-notification-badge header-notification-badge-red"
-            >
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`header-button-base ${className}`}
+          >
+            <HiBell className="header-button-icon" />
+            {unreadCount > 0 && (
+              <Badge
+                variant="destructive"
+                className="header-notification-badge header-notification-badge-red"
+              >
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </Badge>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
       </Tooltip>
 
       <DropdownMenuContent
@@ -250,16 +260,17 @@ export default function NotificationDropdown({
         </div>
 
         {/* Footer */}
-        {unreadCount > 5 && (
+        {router.pathname !== "/notifications" && (
           <div className="header-notifications-footer">
-            <Link
-              href="/notifications"
+            <ActionButton
+            variant="ghost"
+              onClick={handleViewAllNotifications}
               className="header-notifications-view-all"
             >
-              View All {unreadCount} Notifications
-            </Link>
+              {unreadCount > 0 ? "View All" : "View Old Notifications"}
+            </ActionButton>
           </div>
-        )}
+         )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

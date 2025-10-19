@@ -66,9 +66,7 @@ class MCPServer {
       if (!sessionId) {
         sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         sessionStorage.setItem('mcp-session-id', sessionId);
-        // console.log(`[MCP] Created new persistent session ID: ${sessionId}`);
       } else {
-        // console.log(`[MCP] Using existing session ID: ${sessionId}`);
       }
       return sessionId;
     }
