@@ -1,4 +1,3 @@
-;
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -34,7 +33,7 @@ export default function ProjectSelector({
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true); // loading starts true
+  const [isLoading, setIsLoading] = useState(false); // loading starts true
 
   /* ---------------- fetch workspace ---------------- */
   useEffect(() => {
@@ -46,14 +45,24 @@ export default function ProjectSelector({
   }, [currentWorkspaceSlug]);
 
   /* ---------------- fetch projects ---------------- */
-  useEffect(() => {
-    if (!currentWorkspace?.id) return;
+useEffect(() => {
+  if (!currentWorkspace?.id) return;
 
+  const fetchProjects = async () => {
     setIsLoading(true);
-    getProjectsByWorkspace(currentWorkspace.id)
-      .then((data) => setProjects(data ?? []))
-      .finally(() => setIsLoading(false));
-  }, [currentWorkspace?.id]);
+    try {
+      const data = await getProjectsByWorkspace(currentWorkspace.id);
+      setProjects(data ?? []);
+    } catch (error) {
+      console.error("Failed to fetch projects:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchProjects();
+}, [currentWorkspace?.id]);
+
 
   /* ---------------- resolve current project ---------------- */
   useEffect(() => {

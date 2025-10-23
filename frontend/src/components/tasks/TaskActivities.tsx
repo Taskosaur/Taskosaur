@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import UserAvatar from "@/components/ui/avatars/UserAvatar";
 import { HiOutlineBolt } from "react-icons/hi2";
 import { useTask } from "@/contexts/task-context";
 import { TaskActivityType } from "@/types/tasks";
@@ -7,13 +6,14 @@ import { useAuth } from "@/contexts/auth-context";
 
 interface TaskActivitiesProps {
   taskId: string;
+  setLoading?: (loading: boolean) => void;
 }
 
-function TaskActivities({ taskId }: TaskActivitiesProps) {
+const TaskActivities: React.FC<TaskActivitiesProps> = ({ taskId, setLoading }) => {
   const { getTaskActivity } = useTask();
-  const {isAuthenticated} = useAuth()
+  const { isAuthenticated } = useAuth();
   const [activities, setActivities] = useState<TaskActivityType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingActivities, setLoadingActivities] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
@@ -26,9 +26,16 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
     fetchActivities(1);
   }, [taskId]);
 
+  useEffect(() => {
+    console.log(`📋 TaskActivities loading state changed: ${loadingActivities ? "🔴 LOADING" : "✅ LOADED"}`);
+    if (setLoading) {
+      setLoading(loadingActivities);
+    }
+  }, [loadingActivities, setLoading]);
+
   const fetchActivities = async (pageNum: number, append = false) => {
     try {
-      setLoading(true);
+      setLoadingActivities(true);
       const response = await getTaskActivity(taskId, isAuth, pageNum);
 
       if (response && response.activities) {
@@ -47,7 +54,7 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
       setError("An error occurred while fetching activities");
       console.error("Error fetching activities:", err);
     } finally {
-      setLoading(false);
+      setLoadingActivities(false);
     }
   };
 
@@ -138,7 +145,7 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
   const hasMoreToShow = activities.length > INITIAL_DISPLAY_COUNT;
   const canLoadMorePages = page < totalPages;
 
-  if (loading && activities.length === 0) {
+  if (loadingActivities && activities.length === 0) {
     return (
       <div className="w-full rounded-xl p-4 flex flex-col bg-[var(--card)]">
         <div className="flex items-center gap-2 mb-4">
@@ -263,9 +270,9 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
                 <button
                   className="text-xs text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors ml-2"
                   onClick={loadMore}
-                  disabled={loading}
+                  disabled={loadingActivities}
                 >
-                  {loading ? "Loading..." : "Load more activities"}
+                  {loadingActivities ? "Loading..." : "Load more activities"}
                 </button>
               )}
             </div>
@@ -274,6 +281,6 @@ function TaskActivities({ taskId }: TaskActivitiesProps) {
       )}
     </div>
   );
-}
+};
 
 export default TaskActivities;

@@ -92,7 +92,6 @@ export function MemberWorkloadChart({ data }: MemberWorkloadChartProps) {
           />
           <YAxis />
           <Tooltip content={<CustomTooltip />} />
-          <Legend />
           <defs>
             <linearGradient id="colorAssigned" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>

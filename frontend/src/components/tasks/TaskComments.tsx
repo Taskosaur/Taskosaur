@@ -41,6 +41,7 @@ interface TaskCommentsProps {
   onCommentDeleted?: (commentId: string) => void;
   onTaskRefetch?: () => void;
   hasAccess?: boolean;
+  setLoading?: (loading: boolean) => void;
 }
 
 interface CommentWithAuthor extends TaskComment {
@@ -127,7 +128,7 @@ const CommentItem = React.memo(
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className="flex gap-2 items-start">
-          <div className="flex-shrink-0 mt-1">
+          <div className="flex-shrink-0 ">
             {comment.emailMessageId ? (
               <UserAvatar
                 user={{
@@ -148,7 +149,7 @@ const CommentItem = React.memo(
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2 pb-1">
+            <div className="flex items-center justify-between gap-2  mt-[3px]">
               <div className="flex items-center gap-2">
                 {/* Username */}
                 <span className="text-sm font-medium text-[var(--foreground)]">
@@ -258,6 +259,7 @@ export default function TaskComments({
   onCommentDeleted,
   onTaskRefetch,
   hasAccess = false,
+  setLoading,
 }: TaskCommentsProps) {
   const { isAuthenticated } = useAuth();
   const isAuth = isAuthenticated();
@@ -329,6 +331,12 @@ export default function TaskComments({
     };
     fetchComments();
   }, [taskId]);
+
+  useEffect(() => {
+    if (setLoading) {
+      setLoading(loadingComments);
+    }
+  }, [loadingComments]);
 
   const refreshComments = useCallback(async () => {
     try {
@@ -433,25 +441,9 @@ export default function TaskComments({
     [allowEmailReplies, taskId, refreshComments]
   );
 
-  // Memoize comments list to prevent unnecessary re-renders
   const commentsList = useMemo(() => {
     if (loadingComments) {
-      return (
-        <div className="space-y-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex gap-2 animate-pulse py-2">
-              <div className="w-8 h-8 bg-[var(--muted)] rounded-full flex-shrink-0 mt-1" />
-              <div className="flex-1 space-y-2">
-                <div className="bg-[var(--muted)]/30 rounded-xl p-3">
-                  <div className="h-3 bg-[var(--muted)] rounded w-1/4 mb-2" />
-                  <div className="h-4 bg-[var(--muted)] rounded w-3/4" />
-                </div>
-                <div className="h-2 bg-[var(--muted)] rounded w-16 ml-1" />
-              </div>
-            </div>
-          ))}
-        </div>
-      );
+      return null; 
     }
 
     const displayedComments = showAll

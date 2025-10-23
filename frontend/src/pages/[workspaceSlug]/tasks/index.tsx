@@ -26,7 +26,7 @@ import {
   FilterDropdown,
   useGenericFilters,
 } from "@/components/common/FilterDropdown";
-import { CheckSquare, Flame, Folder } from "lucide-react";
+import { CheckSquare, Flame, Folder, User, Users } from "lucide-react";
 import { TaskPriorities } from "@/utils/data/taskData";
 import Tooltip from "@/components/common/ToolTip";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
@@ -102,14 +102,16 @@ function WorkspaceTasksContent() {
   const [ganttTasks, setGanttTasks] = useState<any[]>([]);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  
-    const handleTaskSelect = (taskId: string) => {
-      setSelectedTasks((prev) =>
-        prev.includes(taskId)
-          ? prev.filter((id) => id !== taskId)
-          : [...prev, taskId]
-      );
-    };
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [selectedReporters, setSelectedReporters] = useState<string[]>([]);
+
+  const handleTaskSelect = (taskId: string) => {
+    setSelectedTasks((prev) =>
+      prev.includes(taskId)
+        ? prev.filter((id) => id !== taskId)
+        : [...prev, taskId]
+    );
+  };
 
   const [sortField, setSortField] = useState<SortField>(() => {
     return localStorage.getItem(SORT_FIELD_KEY) || "createdAt";
@@ -299,6 +301,13 @@ function WorkspaceTasksContent() {
         ...(debouncedSearchQuery.trim() && {
           search: debouncedSearchQuery.trim(),
         }),
+        ...(selectedAssignees.length > 0 && {
+          assignees: selectedAssignees.join(","),
+        }),
+        ...(selectedReporters.length > 0 && {
+          reporters: selectedReporters.join(","),
+        }),
+
         page: currentPage,
         limit: pageSize,
       };
@@ -322,6 +331,8 @@ function WorkspaceTasksContent() {
     selectedProjects,
     selectedStatuses,
     selectedPriorities,
+    selectedAssignees,
+    selectedReporters,
     validateRequiredData,
     getAllTasks,
   ]);
@@ -360,7 +371,12 @@ function WorkspaceTasksContent() {
     if (workspace?.organizationId && workspace?.id) {
       loadTasks();
     }
-  }, [workspace?.organizationId, workspace?.id]);
+  }, [
+    workspace?.organizationId,
+    workspace?.id,
+    selectedAssignees,
+    selectedReporters,
+  ]);
 
   const previousFiltersRef = useRef({
     page: currentPage,
@@ -444,6 +460,44 @@ function WorkspaceTasksContent() {
     [availablePriorities, selectedPriorities, tasks]
   );
 
+  const assigneeFilters = useMemo(() => {
+    return workspaceMembers.map((member) => ({
+      id: member.user.id,
+      name: member?.user?.firstName + " " + member.user.lastName,
+      value: member?.user.id,
+      selected: selectedAssignees.includes(member.user.id),
+      count: Array.isArray(tasks)
+        ? tasks.filter((task) =>
+            Array.isArray(task.assignees)
+              ? task.assignees.some(
+                  (assignee) => assignee.id === member.user.id
+                )
+              : false
+          ).length
+        : 0,
+      email: member?.user?.email,
+    }));
+  }, [workspaceMembers, selectedAssignees, tasks]);
+
+  const reporterFilters = useMemo(() => {
+    return workspaceMembers.map((member) => ({
+      id: member.user.id,
+      name: member?.user?.firstName + " " + member.user.lastName,
+      value: member?.user.id,
+      selected: selectedReporters.includes(member.user.id),
+      count: Array.isArray(tasks)
+        ? tasks.filter((task) =>
+            Array.isArray(task.reporters)
+              ? task.reporters.some(
+                  (reporter) => reporter.id === member.user.id
+                )
+              : false
+          ).length
+        : 0,
+      email: member?.user?.email,
+    }));
+  }, [workspaceMembers, selectedReporters, tasks]);
+
   const toggleProject = useCallback((id: string) => {
     setSelectedProjects((prev) => {
       const newSelection = prev.includes(id)
@@ -471,6 +525,20 @@ function WorkspaceTasksContent() {
         : [...prev, id];
       return newSelection;
     });
+    setCurrentPage(1);
+  }, []);
+
+  const toggleAssignee = useCallback((id: string) => {
+    setSelectedAssignees((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+    setCurrentPage(1);
+  }, []);
+
+  const toggleReporter = useCallback((id: string) => {
+    setSelectedReporters((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
     setCurrentPage(1);
   }, []);
 
@@ -540,6 +608,30 @@ function WorkspaceTasksContent() {
           setSelectedPriorities(priorityFilters.map((p) => p.id)),
         onClearAll: () => setSelectedPriorities([]),
       }),
+      createSection({
+        id: "assignee",
+        title: "Assignee",
+        icon: User,
+        data: assigneeFilters,
+        selectedIds: selectedAssignees,
+        searchable: true,
+        onToggle: toggleAssignee,
+        onSelectAll: () =>
+          setSelectedAssignees(assigneeFilters.map((a) => a.id)),
+        onClearAll: () => setSelectedAssignees([]),
+      }),
+      createSection({
+        id: "reporter",
+        title: "Reporter",
+        icon: Users,
+        data: reporterFilters,
+        selectedIds: selectedReporters,
+        searchable: true,
+        onToggle: toggleReporter,
+        onSelectAll: () =>
+          setSelectedReporters(reporterFilters.map((r) => r.id)),
+        onClearAll: () => setSelectedReporters([]),
+      }),
     ],
     [
       projectFilters,
@@ -548,6 +640,12 @@ function WorkspaceTasksContent() {
       selectedProjects,
       selectedStatuses,
       selectedPriorities,
+      assigneeFilters,
+      reporterFilters,
+      selectedAssignees,
+      selectedReporters,
+      toggleAssignee,
+      toggleReporter,
       toggleProject,
       toggleStatus,
       togglePriority,
@@ -558,12 +656,16 @@ function WorkspaceTasksContent() {
   const totalActiveFilters =
     selectedProjects.length +
     selectedStatuses.length +
-    selectedPriorities.length;
+    selectedPriorities.length +
+    selectedAssignees.length +
+    selectedReporters.length;
 
   const clearAllFilters = useCallback(() => {
     setSelectedProjects([]);
     setSelectedStatuses([]);
     setSelectedPriorities([]);
+    setSelectedAssignees([]);
+    setSelectedReporters([]);
     setCurrentPage(1);
   }, []);
 
@@ -715,8 +817,11 @@ function WorkspaceTasksContent() {
             showAddTaskRow={userAccess?.role !== "VIEWER"}
             selectedTasks={selectedTasks}
             onTaskSelect={handleTaskSelect}
-            showBulkActionBar={hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER"}
-
+            showBulkActionBar={
+              hasAccess ||
+              userAccess?.role === "OWNER" ||
+              userAccess?.role === "MANAGER"
+            }
           />
         );
     }
@@ -835,36 +940,39 @@ function WorkspaceTasksContent() {
               )}
               {currentView === "list" && (
                 <div className="flex items-center gap-2">
-                   <SortingManager
-                      sortField={sortField}
-                      sortOrder={sortOrder}
-                      onSortFieldChange={setSortField}
-                      onSortOrderChange={setSortOrder}
-                    />
+                  <SortingManager
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                    onSortFieldChange={setSortField}
+                    onSortOrderChange={setSortOrder}
+                  />
                   <ColumnManager
-                      currentView={currentView}
-                      availableColumns={columns}
-                      onAddColumn={handleAddColumn}
-                      onRemoveColumn={handleRemoveColumn}
-                    />
+                    currentView={currentView}
+                    availableColumns={columns}
+                    onAddColumn={handleAddColumn}
+                    onRemoveColumn={handleRemoveColumn}
+                  />
                 </div>
               )}
-              {currentView === "kanban" && (hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER") && (
-                <div className="flex items-center gap-2">
-                  <Tooltip
-                    content="Manage Columns"
-                    position="top"
-                    color="primary"
-                  >
-                    <ColumnManager
-                      currentView={currentView}
-                      availableColumns={columns}
-                      onAddColumn={handleAddColumn}
-                      onRemoveColumn={handleRemoveColumn}
-                    />
-                  </Tooltip>
-                </div>
-              )}
+              {currentView === "kanban" &&
+                (hasAccess ||
+                  userAccess?.role === "OWNER" ||
+                  userAccess?.role === "MANAGER") && (
+                  <div className="flex items-center gap-2">
+                    <Tooltip
+                      content="Manage Columns"
+                      position="top"
+                      color="primary"
+                    >
+                      <ColumnManager
+                        currentView={currentView}
+                        availableColumns={columns}
+                        onAddColumn={handleAddColumn}
+                        onRemoveColumn={handleRemoveColumn}
+                      />
+                    </Tooltip>
+                  </div>
+                )}
             </>
           }
         />

@@ -379,6 +379,8 @@ export class TasksService {
     parentTaskId?: string,
     priorities?: string[],
     statuses?: string[],
+    assigneeIds?: string[],
+    reporterIds?: string[],
     userId?: string,
     search?: string,
     page: number = 1,
@@ -472,7 +474,20 @@ export class TasksService {
         statusId: { in: statuses },
       });
     }
-
+    if (assigneeIds && assigneeIds.length > 0) {
+      andConditions.push({
+        assignees: {
+          some: { id: { in: assigneeIds } },
+        },
+      });
+    }
+    if (reporterIds && reporterIds.length > 0) {
+      andConditions.push({
+        reporters: {
+          some: { id: { in: reporterIds } },
+        },
+      });
+    }
     // Add search functionality
     if (search && search.trim()) {
       andConditions.push({
@@ -1849,38 +1864,45 @@ export class TasksService {
     }));
   }
 
-  async bulkDeleteTasks(
-    taskIds: string[],
-    userId: string,
-  ): Promise<{
+  async bulkDeleteTasks(params: {
+    taskIds?: string[];
+    projectId?: string;
+    all?: boolean;
+    userId: string;
+  }): Promise<{
     deletedCount: number;
     failedTasks: Array<{ id: string; reason: string }>;
   }> {
-    if (!taskIds || taskIds.length === 0) {
-      throw new BadRequestException('No task IDs provided');
+    const { taskIds, projectId, all, userId } = params;
+
+    if ((!taskIds || taskIds.length === 0) && !all) {
+      throw new BadRequestException('No task IDs provided and "all" flag not set');
     }
 
-    // Get user details to check for SUPERADMIN role
+    // Get user details
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { role: true },
     });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    // If user is SUPERADMIN, they can delete any task
+    if (!user) throw new NotFoundException('User not found');
     const isSuperAdmin = user.role === 'SUPER_ADMIN';
 
-    // Fetch all tasks with their project and member information
+    // Build task filter
+    let taskFilter: any = {};
+    if (all) {
+      if (projectId) taskFilter.projectId = projectId;
+    } else {
+      taskFilter.id = { in: taskIds };
+    }
+
+    // Fetch tasks with project and member info
     const tasks = await this.prisma.task.findMany({
-      where: { id: { in: taskIds } },
+      where: taskFilter,
       include: {
         project: {
           include: {
             members: {
-              where: { userId: userId },
+              where: { userId },
               select: { role: true },
             },
           },
@@ -1888,101 +1910,47 @@ export class TasksService {
       },
     });
 
-    const deletedTasks: string[] = [];
+    const deletableTasks: string[] = [];
     const failedTasks: Array<{ id: string; reason: string }> = [];
 
-    // Check permissions for each task
     for (const task of tasks) {
       let canDelete = false;
-
-      if (isSuperAdmin) {
-        // SUPERADMIN can delete any task
-        canDelete = true;
-      } else if (task.createdBy === userId) {
-        // User created the task
-        canDelete = true;
-      } else if (task.project.members.length > 0) {
-        // User is a project member - check role
+      if (isSuperAdmin) canDelete = true;
+      else if (task.createdBy === userId) canDelete = true;
+      else if (task.project.members.length > 0) {
         const memberRole = task.project.members[0].role;
-        if (memberRole === 'OWNER' || memberRole === 'MANAGER') {
-          canDelete = true;
-        }
+        if (memberRole === 'OWNER' || memberRole === 'MANAGER') canDelete = true;
       }
 
-      if (canDelete) {
-        deletedTasks.push(task.id);
-      } else {
-        failedTasks.push({
-          id: task.id,
-          reason: 'Insufficient permissions to delete this task',
-        });
-      }
-    }
-
-    // Check for tasks that weren't found
-    const foundTaskIds = tasks.map((t) => t.id);
-    const missingTaskIds = taskIds.filter((id) => !foundTaskIds.includes(id));
-    missingTaskIds.forEach((id) => {
-      failedTasks.push({
-        id,
-        reason: 'Task not found',
+      if (canDelete) deletableTasks.push(task.id);
+      else failedTasks.push({
+        id: task.id,
+        reason: 'Insufficient permissions to delete this task',
       });
-    });
+    }
 
-    // Delete tasks that passed permission checks
+    // Handle missing tasks when using specific IDs
+    if (taskIds && taskIds.length > 0) {
+      const foundTaskIds = tasks.map((t) => t.id);
+      const missingTaskIds = taskIds.filter((id) => !foundTaskIds.includes(id));
+      missingTaskIds.forEach((id) => failedTasks.push({ id, reason: 'Task not found' }));
+    }
+
+    // Delete tasks directly (cascade will handle related records)
     let deletedCount = 0;
-    if (deletedTasks.length > 0) {
+    if (deletableTasks.length > 0) {
       try {
-        await this.prisma.$transaction(async (tx) => {
-          // Delete related records first (if not handled by cascade)
-          await tx.taskComment.deleteMany({
-            where: { taskId: { in: deletedTasks } },
-          });
-
-          await tx.taskAttachment.deleteMany({
-            where: { taskId: { in: deletedTasks } },
-          });
-
-          await tx.taskLabel.deleteMany({
-            where: { taskId: { in: deletedTasks } },
-          });
-
-          await tx.taskWatcher.deleteMany({
-            where: { taskId: { in: deletedTasks } },
-          });
-
-          await tx.taskDependency.deleteMany({
-            where: {
-              OR: [
-                { dependentTaskId: { in: deletedTasks } },
-                { blockingTaskId: { in: deletedTasks } },
-              ],
-            },
-          });
-
-          await tx.timeEntry.deleteMany({
-            where: { taskId: { in: deletedTasks } },
-          });
-
-          // Delete the tasks
-          const result = await tx.task.deleteMany({
-            where: { id: { in: deletedTasks } },
-          });
-
-          deletedCount = result.count;
+        const result = await this.prisma.task.deleteMany({
+          where: { id: { in: deletableTasks } },
         });
-
+        deletedCount = result.count;
       } catch (error) {
-        throw new InternalServerErrorException(
-          'Failed to delete tasks: ' + error.message,
-        );
+        throw new InternalServerErrorException('Failed to delete tasks: ' + error.message);
       }
     }
 
-    return {
-      deletedCount,
-      failedTasks,
-    };
+    return { deletedCount, failedTasks };
   }
+
 
 }

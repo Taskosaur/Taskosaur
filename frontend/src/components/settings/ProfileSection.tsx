@@ -9,8 +9,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 import { Button } from "../ui";
 
-
 import React from "react";
+import Tooltip from "../common/ToolTip";
 
 export default function ProfileSection() {
   const [isEditing, setIsEditing] = useState(false);
@@ -127,17 +127,20 @@ export default function ProfileSection() {
   };
 
   return (
-   <div>
+    <div className="pt-5">
       {/* Header */}
-      <div className="flex flex-row-reverse items-start">
-        <Button
-          onClick={() => setIsEditing(!isEditing)}
-          className="p-2 rounded-md hover:bg-[var(--accent)] transition-colors ml-auto shadow-none"
-          title={isEditing ? "Cancel editing" : "Edit profile"}
-        >
-          <HiPencil className="w-4 h-4 text-[var(--primary)]" />
-        </Button>
-      </div>
+      {!isEditing && (
+        <div className="flex flex-row-reverse items-start">
+          <Tooltip content="Edit Profile" position="top" color="dark">
+            <Button
+              onClick={() => setIsEditing(true)}
+              className="p-2 rounded-md hover:bg-[var(--accent)] transition-colors ml-auto shadow-none"
+            >
+              <HiPencil className="w-4 h-4 text-[var(--primary)]" />
+            </Button>
+          </Tooltip>
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex gap-8">
@@ -148,18 +151,23 @@ export default function ProfileSection() {
               {(previewUrl || currentUser?.avatar) && (
                 <AvatarImage
                   src={previewUrl || currentUser?.avatar || ""}
-                  alt={`${profileData.firstName} ${profileData.lastName}`.trim() || "Profile Picture"}
+                  alt={
+                    `${profileData.firstName} ${profileData.lastName}`.trim() ||
+                    "Profile Picture"
+                  }
                   className="object-cover"
                 />
               )}
               <AvatarFallback className="bg-[var(--primary)] text-[var(--primary-foreground)] font-medium text-lg">
-                {`${profileData.firstName?.charAt(0) || ""}${profileData.lastName?.charAt(0) || ""}`.toUpperCase()}
+                {`${profileData.firstName?.charAt(0) || ""}${
+                  profileData.lastName?.charAt(0) || ""
+                }`.toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            
+
             {/* Avatar overlay on hover */}
             {isEditing && (
-              <div 
+              <div
                 className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                 onClick={handleUploadButtonClick}
               >
@@ -231,7 +239,10 @@ export default function ProfileSection() {
                   type="text"
                   value={profileData.firstName}
                   onChange={(e) =>
-                    setProfileData((prev) => ({ ...prev, firstName: e.target.value }))
+                    setProfileData((prev) => ({
+                      ...prev,
+                      firstName: e.target.value,
+                    }))
                   }
                   className="bg-[var(--background)] border-[var(--border)] text-xs"
                   placeholder="Enter your first name"
@@ -247,14 +258,15 @@ export default function ProfileSection() {
                   type="text"
                   value={profileData.lastName}
                   onChange={(e) =>
-                    setProfileData((prev) => ({ ...prev, lastName: e.target.value }))
+                    setProfileData((prev) => ({
+                      ...prev,
+                      lastName: e.target.value,
+                    }))
                   }
                   className="bg-[var(--background)] border-[var(--border)] text-xs"
                   placeholder="Enter your last name"
                 />
               </div>
-
-            
 
               {/* Email */}
               <div className="space-y-2">
@@ -265,7 +277,10 @@ export default function ProfileSection() {
                   type="email"
                   value={profileData.email}
                   onChange={(e) =>
-                    setProfileData((prev) => ({ ...prev, email: e.target.value }))
+                    setProfileData((prev) => ({
+                      ...prev,
+                      email: e.target.value,
+                    }))
                   }
                   className="bg-[var(--background)] border-[var(--border)] text-xs"
                   placeholder="Enter your email address"
@@ -284,7 +299,10 @@ export default function ProfileSection() {
                   type="tel"
                   value={profileData.mobileNumber}
                   onChange={(e) =>
-                    setProfileData((prev) => ({ ...prev, mobileNumber: e.target.value }))
+                    setProfileData((prev) => ({
+                      ...prev,
+                      mobileNumber: e.target.value,
+                    }))
                   }
                   className="bg-[var(--background)] border-[var(--border)] text-xs"
                   placeholder="Enter your mobile number"
@@ -344,28 +362,43 @@ export default function ProfileSection() {
             /* Display Mode - User Details as Paragraphs */
             <div className="space-y-2">
               <div>
-                <h4 className="text-sm font-medium text-[var(--muted-foreground)]">Full Name</h4>
+                <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
+                  Full Name
+                </h4>
                 <p className="text-[var(--foreground)] text-xs">
-                  {`${profileData.firstName} ${profileData.lastName}`.trim() || "Not provided"}
+                  {`${profileData.firstName} ${profileData.lastName}`.trim() ||
+                    "Not provided"}
                 </p>
               </div>
 
               <div>
-                <h4 className="text-sm font-medium text-[var(--muted-foreground)]">Email</h4>
-                <p className="text-[var(--foreground)] text-xs">{profileData.email || "Not provided"}</p>
+                <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
+                  Email
+                </h4>
+                <p className="text-[var(--foreground)] text-xs">
+                  {profileData.email || "Not provided"}
+                </p>
               </div>
 
               {profileData.mobileNumber && (
                 <div>
-                  <h4 className="text-sm font-medium text-[var(--muted-foreground)]">Mobile Number</h4>
-                  <p className="text-[var(--foreground)] text-xs">{profileData.mobileNumber}</p>
+                  <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
+                    Mobile Number
+                  </h4>
+                  <p className="text-[var(--foreground)] text-xs">
+                    {profileData.mobileNumber}
+                  </p>
                 </div>
               )}
 
               {profileData.bio && (
                 <div>
-                  <h4 className="text-sm font-medium text-[var(--muted-foreground)]">Bio</h4>
-                  <p className="text-[var(--foreground)] leading-6 text-xs">{profileData.bio}</p>
+                  <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
+                    Bio
+                  </h4>
+                  <p className="text-[var(--foreground)] leading-6 text-xs">
+                    {profileData.bio}
+                  </p>
                 </div>
               )}
             </div>

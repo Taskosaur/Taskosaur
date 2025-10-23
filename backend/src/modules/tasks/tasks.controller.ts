@@ -118,9 +118,11 @@ export class TasksController {
   ) {
     const user = getAuthUser(req);
 
-    return this.tasksService.bulkDeleteTasks(
-      bulkDeleteTasksDto.taskIds,
-      user.id,
+    return this.tasksService.bulkDeleteTasks({
+      taskIds: bulkDeleteTasksDto.taskIds,
+      projectId: bulkDeleteTasksDto.projectId,
+      all : bulkDeleteTasksDto.all,
+      userId : user.id,}
     );
   }
 
@@ -476,6 +478,8 @@ export class TasksController {
     @Query('sprintId') sprintId?: string,
     @Query('workspaceId') workspaceId?: string,
     @Query('parentTaskId') parentTaskId?: string,
+    @Query('assigneeIds') assigneeIds?: string,
+    @Query('reporterIds') reporterIds?: string,
     @Query('priorities') priorities?: string,
     @Query('statuses') statuses?: string,
     @Query('search') search?: string,
@@ -501,6 +505,14 @@ export class TasksController {
     if (workspaceId) {
       workspaceIdArray = workspaceId.split(',').filter(Boolean);
     }
+    let assigneeIdsArray: string[] | undefined = undefined;
+    if (assigneeIds) {
+      assigneeIdsArray = assigneeIds.split(',').filter(Boolean);
+    }
+    let reporterIdsArray: string[] | undefined = undefined;
+    if (reporterIds) {
+      reporterIdsArray = reporterIds.split(',').filter(Boolean);
+    }
 
     return this.tasksService.findAll(
       organizationId,
@@ -510,6 +522,8 @@ export class TasksController {
       parentTaskId,
       priorityArray,
       statusArray,
+      assigneeIdsArray,
+      reporterIdsArray,
       user.id,
       search,
       Number(page),

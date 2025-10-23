@@ -1,4 +1,3 @@
- 
 "use client";
 
 import { useState, useEffect } from "react";
@@ -22,7 +21,10 @@ interface AISettingsModalProps {
   onClose: () => void;
 }
 
-export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
+export default function AISettingsModal({
+  isOpen,
+  onClose,
+}: AISettingsModalProps) {
   const [isEnabled, setIsEnabled] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("");
@@ -34,7 +36,6 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
     text: string;
   } | null>(null);
 
-
   // Load settings when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -45,23 +46,22 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
   // Close modal on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === "Escape" && isOpen) {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleEscape);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
     };
   }, [isOpen, onClose]);
 
-   
   const loadSettings = async () => {
     setIsLoading(true);
     try {
@@ -135,12 +135,12 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
         })
       );
 
-  setMessage({ type: "success", text: "AI settings saved successfully!" });
-  toast.success("AI settings saved successfully!");
+      setMessage({ type: "success", text: "AI settings saved successfully!" });
+      toast.success("AI settings saved successfully!");
     } catch (error) {
       console.error("Failed to save settings:", error);
-  setMessage({ type: "error", text: "Failed to save AI settings" });
-  toast.error("Failed to save AI settings");
+      setMessage({ type: "error", text: "Failed to save AI settings" });
+      toast.error("Failed to save AI settings");
     } finally {
       setIsSaving(false);
     }
@@ -187,8 +187,8 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
         error.response?.data?.error ||
         error.message ||
         "Connection test failed";
-  setMessage({ type: "error", text: errorMessage });
-  toast.error(errorMessage);
+      setMessage({ type: "error", text: errorMessage });
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -199,7 +199,11 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
     onClose();
   };
 
-  const isFormValid = isEnabled ? apiKey.trim().length > 0 && model.trim().length > 0 && apiUrl.trim().length > 0 : true;
+  const isFormValid = isEnabled
+    ? apiKey.trim().length > 0 &&
+      model.trim().length > 0 &&
+      apiUrl.trim().length > 0
+    : true;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -221,24 +225,25 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
         </DialogHeader>
 
         <div className="space-y-2">
-        
           {/* Enable/Disable AI */}
           <div className="projects-form-field">
             <div className="flex  items-center justify-between p-4 bg-[var(--mini-sidebar)] rounded-lg ">
               <div>
-                <Label className="projects-form-label border-none text-sm" style={{ fontSize: '14px' }}>
-                  <HiSparkles 
-                    className="projects-form-label-icon" 
-                    style={{ color: 'hsl(var(--primary))' }}
+                <Label
+                  className="projects-form-label border-none text-sm"
+                  style={{ fontSize: "14px" }}
+                >
+                  <HiSparkles
+                    className="projects-form-label-icon"
+                    style={{ color: "hsl(var(--primary))" }}
                   />
                   Enable AI Chat
                 </Label>
-                <p className="projects-url-preview-label text-[13px] mt-1 ml-6" >
+                <p className="projects-url-preview-label text-[13px] mt-1 ml-6">
                   Fill all the fields to enable chat.
                 </p>
-            
               </div>
-             
+
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -247,7 +252,13 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
                     const newValue = e.target.checked;
                     setIsEnabled(newValue);
                   }}
-                  disabled={isLoading || isSaving || !apiKey.trim() || !model.trim() || !apiUrl.trim()}
+                  disabled={
+                    isLoading ||
+                    isSaving ||
+                    !apiKey.trim() ||
+                    !model.trim() ||
+                    !apiUrl.trim()
+                  }
                   className="sr-only peer"
                 />
                 <div
@@ -263,10 +274,14 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
           {/* Configuration Fields - Always visible */}
           {/* API Key */}
           <div className="space-y-2">
-            <Label htmlFor="api-key" className="projects-form-label text-sm" style={{ fontSize: '14px' }}>
-              <HiKey 
-                className="projects-form-label-icon size-3" 
-                style={{ color: 'hsl(var(--primary))' }}
+            <Label
+              htmlFor="api-key"
+              className="projects-form-label text-sm"
+              style={{ fontSize: "14px" }}
+            >
+              <HiKey
+                className="projects-form-label-icon size-3"
+                style={{ color: "hsl(var(--primary))" }}
               />
               API Key <span className="projects-form-label-required">*</span>
             </Label>
@@ -278,24 +293,28 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
               placeholder="Enter your API key"
               disabled={isLoading || isSaving}
               className="projects-form-input border-none"
-              style={{ borderColor: 'var(--border)' }}
+              style={{ borderColor: "var(--border)" }}
               onFocus={(e) => {
-                e.target.style.borderColor = 'hsl(var(--primary))';
+                e.target.style.borderColor = "hsl(var(--primary))";
                 e.target.style.boxShadow = `0 0 0 3px hsl(var(--primary) / 0.2)`;
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = 'var(--border)';
-                e.target.style.boxShadow = 'none';
+                e.target.style.borderColor = "var(--border)";
+                e.target.style.boxShadow = "none";
               }}
             />
           </div>
 
           {/* Model */}
           <div className="space-y-1">
-            <Label htmlFor="model" className="projects-form-label text-sm" style={{ fontSize: '14px' }}>
-              <HiCog 
-                className="projects-form-label-icon" 
-                style={{ color: 'hsl(var(--primary))' }}
+            <Label
+              htmlFor="model"
+              className="projects-form-label text-sm"
+              style={{ fontSize: "14px" }}
+            >
+              <HiCog
+                className="projects-form-label-icon"
+                style={{ color: "hsl(var(--primary))" }}
               />
               Model <span className="projects-form-label-required">*</span>
             </Label>
@@ -307,23 +326,33 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
               placeholder="e.g., deepseek/deepseek-chat-v3-0324:free"
               disabled={isLoading || isSaving}
               className="projects-form-input border-none"
-              style={{ borderColor: 'var(--border)' }}
+              style={{ borderColor: "var(--border)" }}
               onFocus={(e) => {
-                e.target.style.borderColor = 'hsl(var(--primary))';
+                e.target.style.borderColor = "hsl(var(--primary))";
                 e.target.style.boxShadow = `0 0 0 3px hsl(var(--primary) / 0.2)`;
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = 'var(--border)';
-                e.target.style.boxShadow = 'none';
+                e.target.style.borderColor = "var(--border)";
+                e.target.style.boxShadow = "none";
               }}
             />
           </div>
 
           {/* API URL */}
           <div className="space-y-1">
-            <Label htmlFor="api-url" className="projects-form-label text-sm" style={{ fontSize: '14px' }}>
+            <Label
+              htmlFor="api-url"
+              className="projects-form-label text-sm"
+              style={{ fontSize: "14px" }}
+            >
               <span className="projects-form-label-icon flex items-center justify-center stroke-[var(--primary)]">
-                <HiLink style={{ color: 'hsl(var(--primary))', width: '1.25em', height: '1.25em' }} />
+                <HiLink
+                  style={{
+                    color: "hsl(var(--primary))",
+                    width: "1.25em",
+                    height: "1.25em",
+                  }}
+                />
               </span>
               API URL <span className="projects-form-label-required">*</span>
             </Label>
@@ -335,38 +364,48 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
               placeholder="https://api.provider.com/v1"
               disabled={isLoading || isSaving}
               className="projects-form-input border-none"
-              style={{ borderColor: 'var(--border)' }}
+              style={{ borderColor: "var(--border)" }}
               onFocus={(e) => {
-                e.target.style.borderColor = 'hsl(var(--primary))';
+                e.target.style.borderColor = "hsl(var(--primary))";
                 e.target.style.boxShadow = `0 0 0 3px hsl(var(--primary) / 0.2)`;
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = 'var(--border)';
-                e.target.style.boxShadow = 'none';
+                e.target.style.borderColor = "var(--border)";
+                e.target.style.boxShadow = "none";
               }}
             />
           </div>
 
           {/* Setup Guide & Providers - Always visible */}
-         
+
           <div className="mt-4 p-3 bg-[var(--border)] rounded-lg">
-            <h3 className="projects-url-preview-label mb-2 text-[14px]">Popular AI Providers:</h3>
-            <ul className="text-xs space-y-1 text-[var(--accent-foreground)]" style={{ fontSize: '13px' }}>
+            <h3 className="projects-url-preview-label mb-2 text-[14px]">
+              Popular AI Providers:
+            </h3>
+            <ul
+              className="text-xs space-y-1 text-[var(--accent-foreground)]"
+              style={{ fontSize: "13px" }}
+            >
               <li>
-                • <strong>OpenRouter:</strong> https://openrouter.ai/api/v1 (100+ models, free options available)
+                • <strong>OpenRouter:</strong> https://openrouter.ai/api/v1
+                (100+ models, free options available)
               </li>
               <li>
-                • <strong>OpenAI:</strong> https://api.openai.com/v1 (GPT models)
+                • <strong>OpenAI:</strong> https://api.openai.com/v1 (GPT
+                models)
               </li>
               <li>
-                • <strong>Anthropic:</strong> https://api.anthropic.com/v1 (Claude models)
+                • <strong>Anthropic:</strong> https://api.anthropic.com/v1
+                (Claude models)
               </li>
               <li>
-                • <strong>Google:</strong> https://generativelanguage.googleapis.com/v1beta (Gemini models)
+                • <strong>Google:</strong>{" "}
+                https://generativelanguage.googleapis.com/v1beta (Gemini models)
               </li>
             </ul>
-            <p className="text-xs" style={{ fontSize: '13px' }}>
-              • API keys are encrypted and stored securely • Test connection after changes • The URL determines which provider is used
+            <p className="text-xs" style={{ fontSize: "13px" }}>
+              • API keys are encrypted and stored securely • Test connection
+              after changes • The URL determines which provider is used
             </p>
           </div>
 
@@ -380,7 +419,6 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
             >
               Cancel
             </ActionButton>
-            
 
             <ActionButton
               type="button"
@@ -399,12 +437,12 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
               disabled={isSaving || !isFormValid}
             >
               {isSaving ? (
-                <>
-                  <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   Saving...
-                </>
+                </div>
               ) : (
-                'Save Settings'
+                "Save Settings"
               )}
             </ActionButton>
           </div>

@@ -158,6 +158,8 @@ export const taskApi = {
       parentTaskId?: string;
       priorities?: string;
       statuses?: string;
+      assignees?: string;
+      reporters?: string;
       search?: string;
       page?: number;
       limit?: number;
@@ -180,6 +182,8 @@ export const taskApi = {
         queryParams.append("priorities", params.priorities);
       if (params?.statuses) queryParams.append("statuses", params.statuses);
       if (params?.search) queryParams.append("search", params.search);
+      if (params?.assignees) queryParams.append("assigneeIds", params.assignees);
+      if (params?.reporters) queryParams.append("reporterIds4", params.reporters);
 
       // Pagination
       if (params?.page !== undefined)
@@ -294,12 +298,12 @@ export const taskApi = {
     projectSlug: string,
     filters?: {
       limit?: number;
-      offset?: number;
+      page?: number;
       status?: string;
       priority?: string;
       type?: string;
     }
-  ): Promise<Task[]> => {
+  ): Promise<PaginatedTaskResponse> => {
     try {
       if (!workspaceSlug || !projectSlug) {
         throw new Error("workspaceSlug and projectSlug are required");
@@ -308,12 +312,12 @@ export const taskApi = {
       const params = new URLSearchParams();
 
       if (filters?.limit) params.append("limit", filters.limit.toString());
-      if (filters?.offset) params.append("offset", filters.offset.toString());
+      if (filters?.page) params.append("page", filters.page.toString());
       if (filters?.status) params.append("status", filters.status);
       if (filters?.priority) params.append("priority", filters.priority);
       if (filters?.type) params.append("type", filters.type);
 
-      const response = await api.get<Task[]>(
+      const response = await api.get<PaginatedTaskResponse>(
         `/public/project-tasks/${workspaceSlug}/projects/${projectSlug}/tasks?${params.toString()}`
       );
 
@@ -1060,7 +1064,9 @@ export const taskApi = {
   },
 
   bulkDeleteTasks: async (
-    taskIds: string[]
+    taskIds: string[],
+    projectId?: string,
+    allDelete?: boolean,
   ): Promise<{
     deletedCount: number;
     failedTasks: Array<{ id: string; reason: string }>;
@@ -1072,7 +1078,7 @@ export const taskApi = {
       }>({
         url: `/tasks/bulk-delete`,
         method: "POST",
-        data: { taskIds },
+        data: { taskIds , projectId, all: allDelete},
       });
 
       return response.data;

@@ -261,12 +261,21 @@ export class TaskAttachmentsService {
     // For preview, only allow certain file types
     if (!isDownload) {
       const previewableMimeTypes = [
+        // Images
         'image/jpeg',
         'image/jpg',
         'image/png',
         'image/gif',
         'image/webp',
         'image/svg+xml',
+
+        // Videos
+        'video/mp4',
+        'video/webm',
+        'video/ogg',
+        'video/quicktime', // .mov
+
+        // Documents / Text
         'application/pdf',
         'text/plain',
         'text/html',
@@ -276,6 +285,7 @@ export class TaskAttachmentsService {
         'text/css',
         'text/javascript',
       ];
+
 
       if (!previewableMimeTypes.includes(attachment.mimeType)) {
         throw new BadRequestException('File type not previewable');
@@ -546,11 +556,14 @@ export class TaskAttachmentsService {
 
     // File type validation
     const allowedMimeTypes = [
+      // Images
       'image/jpeg',
       'image/png',
       'image/gif',
       'image/webp',
       'image/svg+xml',
+
+      // Documents
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -558,18 +571,32 @@ export class TaskAttachmentsService {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/vnd.ms-powerpoint',
       'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+
+      // Text & Data
       'text/plain',
       'text/csv',
       'text/markdown',
-      'application/zip',
-      'application/x-rar-compressed',
-      'application/x-7z-compressed',
       'application/json',
       'application/xml',
       'text/html',
       'text/css',
       'text/javascript',
+
+      // Archives
+      'application/zip',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed',
+
+      // Videos
+      'video/mp4',
+      'video/webm',
+      'video/ogg',
+      'video/mpeg',
+      'video/quicktime',
+      'video/x-msvideo', // .avi
+      'video/x-matroska', // .mkv
     ];
+
 
     if (!allowedMimeTypes.includes(file.mimetype)) {
       return { isValid: false, error: 'File type not allowed' };

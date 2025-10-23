@@ -19,7 +19,7 @@ import {
   FilterDropdown,
   useGenericFilters,
 } from "@/components/common/FilterDropdown";
-import { CheckSquare, Flame } from "lucide-react";
+import { CheckSquare, Flame, User, Users } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import SortingManager, {
   SortOrder,
@@ -164,6 +164,8 @@ const SprintTasksTable = () => {
   const [hasAccess, setHasAccess] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [workspace, setWorkspace] = useState<any>(null);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [selectedReporters, setSelectedReporters] = useState<string[]>([]);
 
   useEffect(() => {
     if (!workspaceSlug || !projectSlug || project) return;
@@ -238,6 +240,12 @@ const SprintTasksTable = () => {
         ...(selectedPriorities.length > 0 && {
           priorities: selectedPriorities.join(","),
         }),
+        ...(selectedAssignees.length > 0 && {
+          assignees: selectedAssignees.join(","),
+        }),
+        ...(selectedReporters.length > 0 && {
+          reporters: selectedReporters.join(","),
+        }),
         ...(debouncedSearchQuery.trim() && {
           search: debouncedSearchQuery.trim(),
         }),
@@ -281,6 +289,8 @@ const SprintTasksTable = () => {
     debouncedSearchQuery,
     selectedStatuses,
     selectedPriorities,
+    selectedAssignees,
+    selectedReporters,
     tasks,
     workspaceSlug,
     projectSlug,
@@ -440,7 +450,7 @@ const SprintTasksTable = () => {
 
   useEffect(() => {
     loadTasks();
-  }, []);
+  }, [selectedAssignees, selectedReporters]);
 
   useEffect(() => {
     if (currentView === "kanban") {
@@ -475,10 +485,26 @@ const SprintTasksTable = () => {
     setCurrentPage(1);
   }, []);
 
+  const toggleAssignee = useCallback((id: string) => {
+    setSelectedAssignees((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+    setCurrentPage(1);
+  }, []);
+
+  const toggleReporter = useCallback((id: string) => {
+    setSelectedReporters((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+    setCurrentPage(1);
+  }, []);
+
   const clearAllFilters = useCallback(() => {
     setSelectedProjects([]);
     setSelectedStatuses([]);
     setSelectedPriorities([]);
+    setSelectedAssignees([]);
+    setSelectedReporters([]);
     setCurrentPage(1);
   }, []);
 
@@ -513,10 +539,49 @@ const SprintTasksTable = () => {
     [availablePriorities, selectedPriorities, tasks]
   );
 
+  const assigneeFilters = useMemo(() => {
+    return projectMembers.map((member) => ({
+      id: member.user.id,
+      name: member?.user?.firstName + " " + member.user.lastName,
+      value: member?.user.id,
+      selected: selectedAssignees.includes(member.user.id),
+      count: Array.isArray(tasks)
+        ? tasks.filter((task) =>
+            Array.isArray(task.assignees)
+              ? task.assignees.some(
+                  (assignee) => assignee.id === member.user.id
+                )
+              : false
+          ).length
+        : 0,
+      email: member?.user?.email,
+    }));
+  }, [projectMembers, selectedAssignees, tasks]);
+
+  const reporterFilters = useMemo(() => {
+    return projectMembers.map((member) => ({
+      id: member.user.id,
+      name: member?.user?.firstName + " " + member.user.lastName,
+      value: member?.user.id,
+      selected: selectedReporters.includes(member.user.id),
+      count: Array.isArray(tasks)
+        ? tasks.filter((task) =>
+            Array.isArray(task.reporters)
+              ? task.reporters.some(
+                  (reporter) => reporter.id === member.user.id
+                )
+              : false
+          ).length
+        : 0,
+      email: member?.user?.email,
+    }));
+  }, [projectMembers, selectedReporters, tasks]);
   const totalActiveFilters =
     selectedProjects.length +
     selectedStatuses.length +
-    selectedPriorities.length;
+    selectedPriorities.length +
+    selectedAssignees.length +
+    selectedReporters.length;
 
   const filterSections = useMemo(
     () => [
@@ -543,12 +608,42 @@ const SprintTasksTable = () => {
           setSelectedPriorities(priorityFilters.map((p) => p.id)),
         onClearAll: () => setSelectedPriorities([]),
       }),
+      createSection({
+        id: "assignee",
+        title: "Assignee",
+        icon: User,
+        data: assigneeFilters,
+        selectedIds: selectedAssignees,
+        searchable: true,
+        onToggle: toggleAssignee,
+        onSelectAll: () =>
+          setSelectedAssignees(assigneeFilters.map((a) => a.id)),
+        onClearAll: () => setSelectedAssignees([]),
+      }),
+      createSection({
+        id: "reporter",
+        title: "Reporter",
+        icon: Users,
+        data: reporterFilters,
+        selectedIds: selectedReporters,
+        searchable: true,
+        onToggle: toggleReporter,
+        onSelectAll: () =>
+          setSelectedReporters(reporterFilters.map((r) => r.id)),
+        onClearAll: () => setSelectedReporters([]),
+      }),
     ],
     [
       statusFilters,
       priorityFilters,
       selectedStatuses,
       selectedPriorities,
+      assigneeFilters,
+      reporterFilters,
+      selectedAssignees,
+      selectedReporters,
+      toggleAssignee,
+      toggleReporter,
       toggleStatus,
       togglePriority,
     ]

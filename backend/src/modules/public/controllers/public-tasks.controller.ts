@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { PublicTasksService, PublicTaskFilters } from '../services/public-tasks.service';
-import { PublicTaskDto } from '../dto/public-task.dto';
+import { PublicTaskDto, PublicTaskPaginationDto } from '../dto/public-task.dto';
 import { PublicRateLimitGuard, TaskRateLimit } from '../guards/public-rate-limit.guard';
 import { Public } from '../decorators/public.decorator';
 import { Task } from '@prisma/client';
@@ -30,21 +30,21 @@ export class PublicTasksController {
     required: false,
     description: 'Filter by parent task ID',
   })
-  @ApiResponse({ type: [PublicTaskDto] })
+  @ApiResponse({ type: PublicTaskPaginationDto })
   async getTasks(
     @Param('workspaceSlug') workspaceSlug: string,
     @Param('projectSlug') projectSlug: string,
     @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query('page') page?: number,
     @Query('status') status?: string,
     @Query('priority') priority?: string,
     @Query('parentTaskId') parentTaskId?: string,
     @Query('type') type?: string
-  ): Promise<PublicTaskDto[]> {
+  ): Promise<PublicTaskPaginationDto> {
     const filters: PublicTaskFilters = {
       parentTaskId,
       limit: limit ? Number(limit) : undefined,
-      offset: offset ? Number(offset) : undefined,
+      page: page ? Number(page) : undefined,
       status,
       priority,
       type

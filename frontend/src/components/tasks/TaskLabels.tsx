@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -22,14 +22,15 @@ interface TaskLabelsProps {
   onAssignExistingLabel: (label: TaskLabel) => Promise<void>;
   onRemoveLabel: (labelId: string) => Promise<void>;
   hasAccess?: boolean;
+  setLoading?: (loading: boolean) => void;
 }
 
-const SectionHeader = ({ icon: Icon, title }: { icon: any; title: string }) => (
-  <div className="flex items-center gap-2 mb-4">
-    <Icon size={16} className="text-[var(--primary)]" />
-    <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
-  </div>
-);
+// const SectionHeader = ({ icon: Icon, title }: { icon: any; title: string }) => (
+//   <div className="flex items-center gap-2 mb-4">
+//     <Icon size={16} className="text-[var(--primary)]" />
+//     <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
+//   </div>
+// );
 
 export default function TaskLabels({
   labels,
@@ -38,11 +39,13 @@ export default function TaskLabels({
   onAssignExistingLabel,
   onRemoveLabel,
   hasAccess = false,
+  setLoading,
 }: TaskLabelsProps) {
   const [isAddingLabel, setIsAddingLabel] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [newLabelName, setNewLabelName] = useState("");
   const [newLabelColor, setNewLabelColor] = useState("#3B82F6");
+  const [loadingLabels, setLoadingLabels] = useState(false);
 
   const handleAddLabel = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,10 +55,13 @@ export default function TaskLabels({
     if (!newLabelName.trim()) return;
 
     try {
+      setLoadingLabels(true);
       await onAddLabel(newLabelName.trim(), newLabelColor);
       resetForm();
     } catch (error) {
       console.error("Failed to add label:", error);
+    } finally {
+      setLoadingLabels(false);
     }
   };
 
@@ -70,9 +76,12 @@ export default function TaskLabels({
       return toast.error("You don't have access to update the task label");
 
     try {
+      setLoadingLabels(true);
       await onRemoveLabel(labelId);
     } catch (error) {
       console.error("Failed to remove label:", error);
+    } finally {
+      setLoadingLabels(false);
     }
   };
 
@@ -81,11 +90,21 @@ export default function TaskLabels({
       return toast.error("You don't have access to update the task label");
 
     try {
+      setLoadingLabels(true);
       await onAssignExistingLabel(label);
     } catch (error) {
       console.error("Failed to assign label:", error);
+    } finally {
+      setLoadingLabels(false);
     }
   };
+
+  useEffect(() => {
+    console.log(`🏷️ TaskLabels loading state changed: ${loadingLabels ? "🔴 LOADING" : "✅ LOADED"}`);
+    if (setLoading) {
+      setLoading(loadingLabels);
+    }
+  }, [loadingLabels, setLoading]);
 
   // Filter out already assigned labels from available labels
   const unassignedLabels = availableLabels.filter(

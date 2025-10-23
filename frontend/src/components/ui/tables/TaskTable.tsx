@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PriorityBadge } from "@/components/badges/PriorityBadge";
 import { Badge } from "@/components/ui/badge";
 import { BulkActionBar } from "@/components/ui/tables/BulkActionBar";
-import moment from 'moment';
+import moment from "moment";
 import {
   CalendarDays,
   User,
@@ -118,14 +118,10 @@ function extractTaskValue(task: Task, columnId: string): any {
       return task.createdBy || "";
 
     case "createdAt":
-      return task.createdAt
-        ? moment(task.createdAt).format("MMM D, YYYY")
-        : "";
+      return task.createdAt ? moment(task.createdAt).format("MMM D, YYYY") : "";
 
     case "updatedAt":
-      return task.updatedAt
-        ? moment(task.updatedAt).format("MMM D, YYYY")
-        : "";
+      return task.updatedAt ? moment(task.updatedAt).format("MMM D, YYYY") : "";
 
     case "sprint":
       return task.sprint ? task.sprint.name : "";
@@ -213,6 +209,7 @@ interface TaskTableProps {
   currentProject?: any;
   workspaceMembers?: any[];
   showBulkActionBar?: boolean;
+  totalTask?: number;
 }
 
 const TaskTable: React.FC<TaskTableProps> = ({
@@ -232,6 +229,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   projectMembers,
   currentProject,
   showBulkActionBar = false,
+  totalTask,
 }) => {
   const { createTask, getTaskById, currentTask, bulkDeleteTasks } = useTask();
   const { getTaskStatusByProject } = useProject();
@@ -251,7 +249,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [titleTouched, setTitleTouched] = useState(false);
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false); // For multi-select popover
-
+  const [allDelete, setAllDelete] = useState<boolean>(false);
   const [localAddTaskStatuses, setLocalAddTaskStatuses] = useState<
     Array<{ id: string; name: string }>
   >([]);
@@ -295,7 +293,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
     try {
       const date = moment(dateString);
       const now = moment();
-      const diffDays = date.diff(now, 'days');
+      const diffDays = date.diff(now, "days");
 
       if (diffDays === 0) return "Today";
       if (diffDays === 1) return "Tomorrow";
@@ -319,6 +317,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
     }`.toUpperCase();
   };
 
+  const handleAllDeleteSelect = () => {
+    console.log(allDelete)
+    setAllDelete(!allDelete);
+  };
+
   const handleBulkDelete = async () => {
     if (!selectedTasks || selectedTasks.length === 0) {
       toast.warning("No tasks selected for deletion");
@@ -332,7 +335,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         }...`
       );
 
-      const result = await bulkDeleteTasks(selectedTasks);
+      const result = await bulkDeleteTasks(selectedTasks, currentProject?.id, allDelete);
 
       toast.dismiss(loadingToast);
 
@@ -908,7 +911,6 @@ const TaskTable: React.FC<TaskTableProps> = ({
                         }
                         onCheckedChange={(checked) => {
                           if (checked) {
-                            // Select all: only toggle tasks that are NOT already selected
                             tasks.forEach((task) => {
                               if (!selectedTasks.includes(task.id)) {
                                 onTaskSelect(task.id);
@@ -1263,7 +1265,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="tasktable-task-title line-clamp-1 max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">{task.title}</h4>
+                          <h4 className="tasktable-task-title line-clamp-1 max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">
+                            {task.title}
+                          </h4>
                           <Badge
                             variant="outline"
                             className="text-xs px-1.5 py-0 h-5 flex-shrink-0"
@@ -1437,6 +1441,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
           selectedCount={selectedTasks.length}
           onDelete={handleBulkDelete}
           onClear={handleClearSelection}
+          onAllDeleteSelect={handleAllDeleteSelect}
+          totalTask={totalTask}
+          currentTaskCount={Array.isArray(tasks) ? tasks.length : 0}
+          allDelete={allDelete}
         />
       )}
 
@@ -1461,7 +1469,6 @@ const TaskTable: React.FC<TaskTableProps> = ({
               taskId={selectedTask.id}
               onTaskRefetch={onTaskRefetch}
               onClose={() => setIsEditModalOpen(false)}
-              
             />
           )}
         </CustomModal>

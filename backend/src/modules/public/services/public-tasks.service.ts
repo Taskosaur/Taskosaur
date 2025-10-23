@@ -7,12 +7,18 @@ import { ActivityType, Task, TaskAttachment, TaskComment } from '@prisma/client'
 export interface PublicTaskFilters {
   parentTaskId?: string;
   limit?: number;
-  offset?: number;
+  page?: number;
   status?: string;
   priority?: string;
   type?: string;
 }
-
+export interface PublicTaskPagination {
+  data: PublicTaskDto[];
+  page: number;
+  total: number;
+  limit: number;
+  totalPages: number;
+}
 @Injectable()
 export class PublicTasksService {
   constructor(
@@ -24,7 +30,7 @@ export class PublicTasksService {
     workspaceSlug: string,
     projectSlug: string,
     filters: PublicTaskFilters = {}
-  ): Promise<PublicTaskDto[]> {
+  ): Promise<PublicTaskPagination> {
     const project = await this.validatePublicProject(workspaceSlug, projectSlug);
 
     const whereClause: any = {
@@ -42,10 +48,10 @@ export class PublicTasksService {
     if (filters.type) {
       whereClause.type = filters.type;
     }
-    if(filters.parentTaskId){
+    if (filters.parentTaskId) {
       whereClause.parentTaskId = filters.parentTaskId
     }
-
+    const skip = ((filters.page || 1) - 1) * (filters.limit || 50);
     const tasks = await this.prisma.task.findMany({
       where: whereClause,
       include: {
@@ -77,10 +83,18 @@ export class PublicTasksService {
       },
       orderBy: { createdAt: 'desc' },
       take: filters.limit || 50,
-      skip: filters.offset || 0,
+      skip: skip || 0,
     });
+    const total = await this.prisma.task.count({ where: whereClause });
+    const filterTasks = tasks.map(task => this.dataFilter.filterTaskData(task));
 
-    return tasks.map(task => this.dataFilter.filterTaskData(task));
+    return {
+      data: filterTasks,
+      total,
+      page: filters.page || 1,
+      limit: filters.limit || 50,
+      totalPages: Math.ceil(total / (filters.limit || 1))
+    };
   }
 
   async getPublicTask(taskId: string): Promise<Task | any> {

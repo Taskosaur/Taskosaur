@@ -18,12 +18,12 @@ interface MemberSelectProps {
   label: string;
   selectedMembers: any[];
   onChange: (members: any[]) => void;
-  members: any[]; // Initial members for create mode
+  members: any[]; 
   disabled?: boolean;
   placeholder?: string;
   editMode?: boolean;
   type?: "assignee" | "reporter";
-  projectId?: string; // Required for server-side search
+  projectId?: string; 
 }
 
 function MemberSelect({
@@ -44,16 +44,13 @@ function MemberSelect({
   const [search, setSearch] = useState("");
   const [autoOpenDropdown, setAutoOpenDropdown] = useState(false);
 
-  // Server-side search states
   const [members, setMembers] = useState<any[]>(initialMembers);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
-  // Refs for cleanup and debouncing
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Auto-open dropdown when edit button is clicked
   useEffect(() => {
     if (autoOpenDropdown && isEditing && !isOpen) {
       setIsOpen(true);
@@ -61,31 +58,24 @@ function MemberSelect({
     }
   }, [autoOpenDropdown, isEditing, isOpen]);
 
-  // Fetch members from server with debouncing
   useEffect(() => {
-    // Only fetch if we have a projectId and dropdown is open
     if (!projectId || !isOpen) return;
 
-    // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // Cancel previous request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
-    // Debounce search (300ms)
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearching(true);
       setSearchError(null);
 
-      // Create new abort controller for this request
       abortControllerRef.current = new AbortController();
 
       try {
-        // Call API with search parameter (empty string for initial load)
         const fetchedMembers = await getProjectMembers(
           projectId,
           search.trim() || undefined
@@ -267,14 +257,7 @@ function MemberSelect({
                 </div>
 
                 <div className="max-h-48 overflow-y-auto">
-                  {isSearching ? (
-                    <div className="p-4 text-center">
-                      <div className="animate-spin h-5 w-5 border-2 border-[var(--primary)] border-t-transparent rounded-full mx-auto mb-2" />
-                      <p className="text-sm text-[var(--muted-foreground)]">
-                        Searching members...
-                      </p>
-                    </div>
-                  ) : searchError ? (
+                  {searchError ? (
                     <div className="p-2 text-sm text-red-500 text-center">
                       {searchError}
                     </div>
@@ -385,14 +368,7 @@ function MemberSelect({
           </div>
 
           <div className="max-h-48 overflow-y-auto">
-            {isSearching ? (
-              <div className="p-4 text-center">
-                <div className="animate-spin h-5 w-5 border-2 border-[var(--primary)] border-t-transparent rounded-full mx-auto mb-2" />
-                <p className="text-sm text-[var(--muted-foreground)]">
-                  Searching members...
-                </p>
-              </div>
-            ) : searchError ? (
+            {searchError ? (
               <div className="p-2 text-sm text-red-500 text-center">
                 {searchError}
               </div>

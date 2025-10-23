@@ -31,6 +31,7 @@ import Divider from "../common/Divider";
 import { ToggleSwitch } from "../common/ToggleButton";
 import { TASK_TYPE_OPTIONS, TaskTypeIcon, getTaskTypeHexColor } from "@/utils/data/taskData";
 import { DynamicBadge } from "@/components/common/DynamicBadge";
+import TaskDetailSkeleton from "../skeletons/TaskDetailSkeleton";
 
 interface TaskDetailClientProps {
   task: any;
@@ -41,6 +42,7 @@ interface TaskDetailClientProps {
   onTaskRefetch?: () => void;
   onClose?: () => void;
   showAttachmentSection?: boolean;
+  setLoading?: (loading: boolean) => void;
 }
 
 export default function TaskDetailClient({
@@ -52,6 +54,7 @@ export default function TaskDetailClient({
   onTaskRefetch,
   onClose,
   showAttachmentSection = true,
+  setLoading,
 }: TaskDetailClientProps) {
   const {
     updateTask,
@@ -85,8 +88,14 @@ export default function TaskDetailClient({
     taskType: false,
   });
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
-  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [loadingMembers, setLoadingMembers] = useState(true);
   const [loadingAttachments, setLoadingAttachments] = useState(true);
+  const [loadingComments, setLoadingComments] = useState(true);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+  const [loadingSubtasks, setLoadingSubtasks] = useState(true);
+  const [loadingLabels, setLoadingLabels] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     title: "",
@@ -205,6 +214,29 @@ export default function TaskDetailClient({
       toast.error("Failed to update task status. Please try again.");
     }
   };
+
+  // Effect to manage loading state for all subcomponents
+  useEffect(() => {
+    // If task is a subtask (has parentTaskId), it won't have subtasks of its own
+    if (task.parentTaskId) {
+      setLoadingSubtasks(false);
+    }
+
+    const allLoaded = !loadingMembers && 
+                      !loadingAttachments && 
+                      !loadingComments && 
+                      !loadingActivities && 
+                      !loadingSubtasks && 
+                      !loadingLabels &&
+                      !loadingStatuses;
+
+    if (allLoaded && !initialLoadComplete) {
+      if (setLoading) {
+        setLoading(false);
+      }
+      setInitialLoadComplete(true);
+    }
+  }, [loadingMembers, loadingAttachments, loadingComments, loadingActivities, loadingSubtasks, loadingLabels, loadingStatuses, setLoading, initialLoadComplete, task.parentTaskId]);
 
   useEffect(() => {
     const projectId = task.projectId || task.project?.id;
@@ -401,6 +433,7 @@ export default function TaskDetailClient({
     if (!projectId || !isAuth) return;
 
     const fetchProjectLabels = async () => {
+      setLoadingLabels(true);
       try {
         const projectLabels = await getProjectLabels(projectId);
         const labelsData = projectLabels || [];
@@ -414,6 +447,8 @@ export default function TaskDetailClient({
       } catch (error) {
         setAvailableLabels([]);
         toast.error("Failed to fetch project labels");
+      } finally {
+        setLoadingLabels(false);
       }
     };
 
@@ -471,18 +506,33 @@ export default function TaskDetailClient({
     try {
       const maxFileSize = 10 * 1024 * 1024;
       const allowedTypes = [
+        // Images
         "image/jpeg",
         "image/png",
         "image/gif",
         "image/webp",
+
+        // Documents
         "application/pdf",
         "application/msword",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/vnd.ms-excel",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+        // Text
         "text/plain",
         "text/csv",
+
+        // Videos
+        "video/mp4",
+        "video/webm",
+        "video/ogg",
+        "video/mpeg",
+        "video/quicktime", // .mov
+        "video/x-msvideo", // .avi
+        "video/x-matroska", // .mkv
       ];
+
 
       const validFiles = Array.from(files).filter((file) => {
         if (file.size > maxFileSize) {
@@ -810,6 +860,17 @@ export default function TaskDetailClient({
     });
   };
 
+  // Effect to set loading false when all subcomponents are loaded
+  useEffect(() => {
+    if (setLoading) {
+      if (!loadingMembers && !loadingAttachments && !loadingStatuses) {
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    }
+  }, [loadingMembers, loadingAttachments, loadingStatuses, setLoading]);
+
   useEffect(() => {
     if (projectMembers.length > 0) {
       let updatedAssignee = assignees;
@@ -837,6 +898,13 @@ export default function TaskDetailClient({
       : workspaceSlug
       ? `/${workspaceSlug}/tasks/${task.id}`
       : `/tasks/${task.id}`;
+
+  // Show skeleton only during initial load and only check parent-managed loading states
+  const isInitialLoading = !initialLoadComplete && (loadingMembers || loadingAttachments || loadingLabels || loadingStatuses);
+
+  if (isInitialLoading) {
+    return <TaskDetailSkeleton />;
+  }
 
   return (
     <div className="dashboard-container">
@@ -960,6 +1028,7 @@ export default function TaskDetailClient({
                 onDownloadAttachment={handleDownloadAttachment}
                 onDeleteAttachment={handleDeleteAttachment}
                 hasAccess={hasAccess}
+                setLoading={setLoadingAttachments}
               />
             )}
 
@@ -973,6 +1042,7 @@ export default function TaskDetailClient({
                   onSubtaskDeleted={() => {}}
                   showConfirmModal={showConfirmModal}
                   isAssignOrRepoter={hasAccess}
+                  setLoading={setLoadingSubtasks}
                 />
               </div>
             )}
@@ -986,6 +1056,7 @@ export default function TaskDetailClient({
                 onCommentUpdated={() => {}}
                 onCommentDeleted={() => {}}
                 hasAccess={hasAccess}
+                setLoading={setLoadingComments}
               />
             </div>
           </div>
@@ -1498,10 +1569,14 @@ export default function TaskDetailClient({
               onAssignExistingLabel={handleAssignExistingLabel}
               onRemoveLabel={handleRemoveLabel}
               hasAccess={hasAccess}
+              setLoading={setLoadingLabels}
             />
             <Divider label="Activities" />
 
-            <TaskActivities taskId={taskId} />
+            <TaskActivities 
+              taskId={taskId} 
+              setLoading={setLoadingActivities}
+            />
           </div>
         </div>
       </div>

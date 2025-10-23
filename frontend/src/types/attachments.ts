@@ -9,7 +9,7 @@ export interface Attachment {
   createdBy: string;
 }
 
-export type FileType = 'image' | 'pdf' | 'document' | 'spreadsheet' | 'text' | 'unknown';
+export type FileType = 'image' | 'pdf' | 'document' | 'spreadsheet' | 'text' | 'video' | 'unknown';
 
 export interface PreviewCache {
   [attachmentId: string]: {

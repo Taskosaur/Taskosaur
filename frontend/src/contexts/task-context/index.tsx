@@ -110,6 +110,8 @@ interface TaskContextType extends TaskState {
       projectId?: string;
       priorities?: string;
       statuses?: string;
+      assignees?: string;
+      reporters?: string;
       search?: string;
       page?: number;
       limit?: number;
@@ -132,12 +134,12 @@ interface TaskContextType extends TaskState {
     projectSlug: string,
     filters?: {
       limit?: number;
-      offset?: number;
+      page?: number;
       status?: string;
       priority?: string;
       type?: string;
     }
-  ) => Promise<Task[]>;
+  ) => Promise<PaginatedTaskResponse>;
   getTasksBySprint: (
     organizationId: string,
     sprintId: string
@@ -154,7 +156,7 @@ interface TaskContextType extends TaskState {
   getTaskById: (taskId: string, isAuth: boolean) => Promise<Task>;
   updateTask: (taskId: string, taskData: UpdateTaskRequest) => Promise<Task>;
   deleteTask: (taskId: string) => Promise<void>;
-  bulkDeleteTasks: (taskIds: string[]) => Promise<{
+  bulkDeleteTasks: (taskIds: string[], projectId?: string, allDelete?: boolean) => Promise<{
     deletedCount: number;
     failedTasks: Array<{ id: string; reason: string }>;
   }>;
@@ -497,6 +499,8 @@ export function TaskProvider({ children }: TaskProviderProps) {
           projectId?: string;
           priorities?: string;
           statuses?: string;
+          assignees?: string;
+          reporters?: string;
           search?: string;
           page?: number;
           limit?: number;
@@ -576,21 +580,24 @@ export function TaskProvider({ children }: TaskProviderProps) {
         projectSlug: string,
         filters?: {
           limit?: number;
-          offset?: number;
+          page?: number;
           status?: string;
           priority?: string;
           type?: string;
         }
-      ): Promise<Task[]> => {
+      ): Promise<PaginatedTaskResponse> => {
         const result = await handleApiOperation(() =>
           taskApi.getPublicProjectTasks(workspaceSlug, projectSlug, filters)
         );
 
-        setTaskState((prev) => ({
-          ...prev,
-          tasks: result,
-        }));
-
+        setTaskState((prev) => {
+          const newState = {
+            ...prev,
+            tasks: result.data,
+            taskResponse: result,
+          };
+          return newState;
+        });
         return result;
       },
 
@@ -716,13 +723,15 @@ export function TaskProvider({ children }: TaskProviderProps) {
       },
 
       bulkDeleteTasks: async (
-        taskIds: string[]
+        taskIds: string[],
+        projectId?: string,
+        allDelete?: boolean,
       ): Promise<{
         deletedCount: number;
         failedTasks: Array<{ id: string; reason: string }>;
       }> => {
         const result = await handleApiOperation(
-          () => taskApi.bulkDeleteTasks(taskIds),
+          () => taskApi.bulkDeleteTasks(taskIds, projectId, allDelete),
           false
         );
 

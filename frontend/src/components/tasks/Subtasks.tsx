@@ -3,7 +3,6 @@ import { useRouter } from "next/router";
 import TaskDetailClient from "./TaskDetailClient";
 import { useTask } from "../../contexts/task-context";
 import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import ActionButton from "@/components/common/ActionButton";
 import { DynamicBadge } from "@/components/common/DynamicBadge";
@@ -11,7 +10,6 @@ import {
   HiPencilSquare,
   HiXMark,
   HiListBullet,
-  HiExclamationTriangle,
   HiCalendar,
   HiChevronLeft,
   HiChevronRight,
@@ -50,6 +48,7 @@ interface SubtasksProps {
     type?: "danger" | "warning" | "info"
   ) => void;
   isAssignOrRepoter: boolean;
+  setLoading?: (loading: boolean) => void;
 }
 
 interface PaginationInfo {
@@ -138,6 +137,7 @@ export default function Subtasks({
   onSubtaskDeleted,
   showConfirmModal,
   isAssignOrRepoter,
+  setLoading,
 }: SubtasksProps) {
   const {
     getSubtasksByParent,
@@ -212,6 +212,13 @@ export default function Subtasks({
 
     fetchStatuses();
   }, []);
+
+  // Effect to set loading state
+  useEffect(() => {
+    if (setLoading) {
+      setLoading(isLoading);
+    }
+  }, [isLoading]);
 
   // Fetch subtasks when component mounts, taskId changes, or page changes
   useEffect(() => {
@@ -487,18 +494,6 @@ export default function Subtasks({
               : 0
           })`}
         />
-
-        {/* Loading State */}
-        {isLoading && (
-          <div className="text-center py-6 bg-[var(--muted)]/30 rounded-lg border border-[var(--border)]">
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-sm text-[var(--muted-foreground)]">
-                Loading subtasks...
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Subtasks List */}
         {Array.isArray(subtTask) && subtTask.length > 0 && (

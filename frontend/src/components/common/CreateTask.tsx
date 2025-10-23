@@ -14,10 +14,8 @@ import {
   HiCog,
   HiUsers,
   HiPaperClip,
-  HiXCircle,
-  HiTrash
+  HiTrash,
 } from "react-icons/hi2";
-
 
 import TaskDescription from "@/components/tasks/views/TaskDescription";
 import { useTask } from "@/contexts/task-context";
@@ -146,7 +144,7 @@ export default function CreateTask({
     const fetchProjectMembers = async (projectId: string) => {
       if (!projectId || !getProjectMembers) return;
 
-      setMembersLoading(true);
+      // setMembersLoading(true);
       try {
         const fetchedMembers = await getProjectMembers(projectId);
 
@@ -166,7 +164,7 @@ export default function CreateTask({
         setMembers([]);
         toast.error("Failed to load project members");
       } finally {
-        setMembersLoading(false);
+        // setMembersLoading(false);
       }
     };
 
@@ -278,7 +276,7 @@ export default function CreateTask({
                 </div>
               </CardContent>
             </Card>
-           
+
             <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
               <CardHeader className="pb-0">
                 <TaskSectionHeader icon={HiDocumentText} title="Description" />
@@ -296,7 +294,7 @@ export default function CreateTask({
                   className="flex items-center justify-end gap-3 "
                   id="submit-form-button"
                 >
-                    <Input
+                  <Input
                     type="file"
                     multiple
                     onChange={handleFileSelect}
@@ -314,70 +312,68 @@ export default function CreateTask({
                   <ActionButton
                     onClick={handleSubmit}
                     disabled={!isFormValid() || isSubmitting}
-                    
-                    secondary
+                    primary
                   >
                     {isSubmitting ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                        Creating...
+                      <div className="flex items-center">
+                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                        Creating task...
                       </div>
                     ) : (
                       "Create Task"
                     )}
                   </ActionButton>
-                
                 </div>
               </CardContent>
             </Card>
-            {
-              attachments.length > 0 && (
-                <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
-              <CardHeader className="flex items-center justify-between pb-2">
-                <TaskSectionHeader icon={HiPaperClip} title={`Attachments ${attachments.length > 0 ? `(${attachments.length})` : ""}`} />
-
-               
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {attachments.length > 0 && (
-                  <div className="space-y-2">
-                  
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {attachments.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 bg-[var(--background)] border border-[var(--border)] rounded-md"
-                        >
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <HiPaperClip
-                              size={16}
-                              className="text-[var(--muted-foreground)] flex-shrink-0"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-[var(--foreground)] truncate">
-                                {file.name}
-                              </p>
-                              <p className="text-xs text-[var(--muted-foreground)]">
-                                {formatFileSize(file.size)}
-                              </p>
-                            </div>
-                          </div>
-                          <Button
-                            onClick={() => removeAttachment(index)}
-                            className="flex-shrink-0 ml-2 p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
-                            aria-label="Remove file"
+            {attachments.length > 0 && (
+              <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
+                <CardHeader className="flex items-center justify-between pb-2">
+                  <TaskSectionHeader
+                    icon={HiPaperClip}
+                    title={`Attachments ${
+                      attachments.length > 0 ? `(${attachments.length})` : ""
+                    }`}
+                  />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {attachments.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {attachments.map((file, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-[var(--background)] border border-[var(--border)] rounded-md"
                           >
-                            <HiTrash className="w-4 h-4 text-[var(--destructive)]" />
-                          </Button>
-                        </div>
-                      ))}
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <HiPaperClip
+                                size={16}
+                                className="text-[var(--muted-foreground)] flex-shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-[var(--foreground)] truncate">
+                                  {file.name}
+                                </p>
+                                <p className="text-xs text-[var(--muted-foreground)]">
+                                  {formatFileSize(file.size)}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              onClick={() => removeAttachment(index)}
+                              className="flex-shrink-0 ml-2 p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
+                              aria-label="Remove file"
+                            >
+                              <HiTrash className="w-4 h-4 text-[var(--destructive)]" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-              )
-            } 
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </form>
         </div>
 
@@ -546,33 +542,20 @@ export default function CreateTask({
 
               <div className="space-y-2">
                 <Label htmlFor="dueDate">Due Date</Label>
-                <div className="relative">
-                  <Input
-                    id="dueDate"
-                    name="dueDate"
-                    type="date"
-                    value={formData.dueDate}
-                    onChange={(e) =>
-                      handleFormDataChange("dueDate", e.target.value)
-                    }
-                    min={getTodayDate()}
-                    className="w-full border-[var(--border)] bg-[var(--background)] cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                    placeholder="Select due date..."
-                  />
-                  {formData.dueDate && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleFormDataChange("dueDate", "");
-                      }}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs z-10"
-                      title="Clear due date"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
+                <Input
+                  id="dueDate"
+                  name="dueDate"
+                  type="date"
+                  value={formData.dueDate}
+                  onChange={(e) =>
+                    handleFormDataChange("dueDate", e.target.value)
+                  }
+                  min={getTodayDate()}
+                  className="w-full border-[var(--border)] bg-[var(--background)] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:mt-1"
+                  style={{
+                    colorScheme: 'dark'
+                  }}
+                />
               </div>
             </CardContent>
           </Card>

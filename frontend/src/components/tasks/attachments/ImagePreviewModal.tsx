@@ -60,18 +60,13 @@ export function ImagePreviewModal({
     }
   };
 
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
-  const handleRotate = () => setRotation((prev) => (prev + 90) % 360);
-  const handleReset = () => {
-    setZoom(1);
-    setRotation(0);
-  };
+  
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="!max-w-[80vw] !w-[80vw] max-h-[90vh] p-0 overflow-hidden"
+        showCloseButton={false}
+        className="!max-w-[80vw] !w-[80vw] max-h-[90vh] p-0 overflow-hidden border-none"
         style={{ maxWidth: '80vw', width: '80vw' }}
       >
         {/* Header */}
@@ -85,54 +80,25 @@ export function ImagePreviewModal({
                 {formatFileSize(fileSize)} • {formatDate(createdAt)}
               </p>
             </div>
-            
-            {/* Action Buttons */}
             <div className="flex items-center gap-2 ml-4">
               <ActionButton
-                onClick={handleZoomOut}
-                variant="outline"
-                secondary
-                className="h-9 px-3"
-                disabled={zoom <= 0.5}
-              >
-                <ZoomOut className="w-4 h-4" />
-              </ActionButton>
-              
-              <ActionButton
-                onClick={handleZoomIn}
-                variant="outline"
-                secondary
-                className="h-9 px-3"
-                disabled={zoom >= 3}
-              >
-                <ZoomIn className="w-4 h-4" />
-              </ActionButton>
-              
-              <ActionButton
-                onClick={handleRotate}
-                variant="outline"
-                secondary
-                className="h-9 px-3"
-              >
-                <RotateCw className="w-4 h-4" />
-              </ActionButton>
-              
-              <ActionButton
-                onClick={handleReset}
-                variant="outline"
-                secondary
-                className="h-9 px-3 text-xs"
-              >
-                Reset
-              </ActionButton>
-              
-              <ActionButton
                 onClick={onDownload}
-                variant="outline"
                 secondary
                 className="h-9 px-3"
+                
+
               >
                 <ArrowDownToLine className="w-4 h-4" />
+              </ActionButton>
+              <ActionButton
+                onClick={onClose}
+                variant="outline"
+                secondary
+                className="h-9 px-3 hover:bg-accent hover:text-accent-foreground"
+                
+                
+              >
+                <HiXMark className="w-4 h-4" />
               </ActionButton>
             </div>
           </div>
@@ -174,14 +140,7 @@ export function ImagePreviewModal({
           )}
         </div>
 
-        {/* Zoom indicator */}
-        {imageLoaded && !imageError && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-[var(--popover)] border border-[var(--border)] rounded-md shadow-lg">
-            <p className="text-xs text-[var(--muted-foreground)]">
-              {Math.round(zoom * 100)}%
-            </p>
-          </div>
-        )}
+       
       </DialogContent>
     </Dialog>
   );

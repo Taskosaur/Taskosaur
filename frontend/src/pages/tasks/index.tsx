@@ -33,6 +33,8 @@ import {
   Folder,
   Search,
   Clipboard,
+  User,
+  Users,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -81,11 +83,13 @@ function TasksPageContent() {
 
   const currentOrganizationId = TokenManager.getCurrentOrgId();
   const currentUser = getCurrentUser();
+  const { getOrganizationMembers } = useProjectContext();
 
   // State management
   const [workspaces, setWorkspaces] = useState<any[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [availableStatuses, setAvailableStatuses] = useState<any[]>([]);
+  const [organizationMembers, setOrganizationMembers] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [hasAccess, setHasAccess] = useState(false);
@@ -120,6 +124,8 @@ function TasksPageContent() {
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [selectedReporters, setSelectedReporters] = useState<string[]>([]);
 
   const [sortField, setSortField] = useState<SortField>(() => {
     return localStorage.getItem(SORT_FIELD_KEY) || "createdAt";
@@ -165,6 +171,7 @@ function TasksPageContent() {
   useEffect(() => {
     localStorage.setItem(COLUMNS_KEY, JSON.stringify(columns));
   }, [columns]);
+
   // Check user access
   useEffect(() => {
     if (!currentOrganizationId) return;
@@ -205,13 +212,17 @@ function TasksPageContent() {
 
     try {
       setError(null);
-      const [workspacesData, projectsData] = await Promise.all([
-        getWorkspacesByOrganization(currentOrganizationId),
-        getProjectsByOrganization(currentOrganizationId),
-      ]);
+      const [workspacesData, projectsData, organizationMembers] =
+        await Promise.all([
+          getWorkspacesByOrganization(currentOrganizationId),
+          getProjectsByOrganization(currentOrganizationId),
+          getOrganizationMembers(currentOrganizationId),
+        ]);
+
 
       setWorkspaces(workspacesData || []);
       setProjects(projectsData || []);
+      setOrganizationMembers(organizationMembers || []);
     } catch (error) {
       setError(error?.message ? error.message : "Failed to load initial data");
     }
@@ -242,6 +253,12 @@ function TasksPageContent() {
         ...(selectedPriorities.length > 0 && {
           priorities: selectedPriorities.join(","),
         }),
+        ...(selectedAssignees.length > 0 && {
+          assignees: selectedAssignees.join(","),
+        }),
+        ...(selectedReporters.length > 0 && {
+          reporters: selectedReporters.join(","),
+        }),
       };
 
       const res = await getAllTasks(currentOrganizationId, params);
@@ -264,6 +281,8 @@ function TasksPageContent() {
     selectedProjects,
     selectedStatuses,
     selectedPriorities,
+    selectedAssignees,
+    selectedReporters,
     currentPage,
     pageSize,
     debouncedSearchQuery,
@@ -307,6 +326,8 @@ function TasksPageContent() {
     selectedProjects,
     selectedStatuses,
     selectedPriorities,
+    selectedAssignees,
+    selectedReporters,
     currentPage,
     pageSize,
     debouncedSearchQuery,
@@ -396,11 +417,27 @@ function TasksPageContent() {
     setCurrentPage(1);
   }, []);
 
+  const toggleAssignee = useCallback((id: string) => {
+    setSelectedAssignees((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+    setCurrentPage(1);
+  }, []);
+
+  const toggleReporter = useCallback((id: string) => {
+    setSelectedReporters((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+    setCurrentPage(1);
+  }, []);
+
   const clearAllFilters = useCallback(() => {
     setSelectedWorkspaces([]);
     setSelectedProjects([]);
     setSelectedStatuses([]);
     setSelectedPriorities([]);
+    setSelectedAssignees([]);
+    setSelectedReporters([]);
     setCurrentPage(1);
   }, []);
 
@@ -436,12 +473,16 @@ function TasksPageContent() {
       selectedWorkspaces.length +
       selectedProjects.length +
       selectedStatuses.length +
-      selectedPriorities.length,
+      selectedPriorities.length +
+      selectedAssignees.length +
+      selectedReporters.length,
     [
       selectedWorkspaces.length,
       selectedProjects.length,
       selectedStatuses.length,
       selectedPriorities.length,
+      selectedAssignees.length,
+      selectedReporters.length,
     ]
   );
 
@@ -518,6 +559,44 @@ function TasksPageContent() {
     }));
   }, [selectedPriorities, tasks]);
 
+  const assigneeFilters = useMemo(() => {
+    return organizationMembers.map((member) => ({
+      id: member.user.id,
+      name: member?.user?.firstName + " " + member.user.lastName,
+      value: member?.user.id,
+      selected: selectedAssignees.includes(member.user.id),
+      count: Array.isArray(tasks)
+        ? tasks.filter((task) =>
+            Array.isArray(task.assignees)
+              ? task.assignees.some(
+                  (assignee) => assignee.id === member.user.id
+                )
+              : false
+          ).length
+        : 0,
+      email: member?.user?.email,
+    }));
+  }, [organizationMembers, selectedAssignees, tasks]);
+
+  const reporterFilters = useMemo(() => {
+    return organizationMembers.map((member) => ({
+      id: member.user.id,
+      name: member?.user?.firstName + " " + member.user.lastName,
+      value: member?.user.id,
+      selected: selectedReporters.includes(member.user.id),
+      count: Array.isArray(tasks)
+        ? tasks.filter((task) =>
+            Array.isArray(task.reporters)
+              ? task.reporters.some(
+                  (reporter) => reporter.id === member.user.id
+                )
+              : false
+          ).length
+        : 0,
+      email: member?.user?.email,
+    }));
+  }, [organizationMembers, selectedReporters, tasks]);
+
   const filterSections = useMemo(
     () => [
       createSection({
@@ -571,20 +650,50 @@ function TasksPageContent() {
           setSelectedPriorities(priorityFilters.map((p) => p.id)),
         onClearAll: () => setSelectedPriorities([]),
       }),
+      createSection({
+        id: "assignee",
+        title: "Assignee",
+        icon: User,
+        data: assigneeFilters,
+        selectedIds: selectedAssignees,
+        searchable: true,
+        onToggle: toggleAssignee,
+        onSelectAll: () =>
+          setSelectedAssignees(assigneeFilters.map((a) => a.id)),
+        onClearAll: () => setSelectedAssignees([]),
+      }),
+      createSection({
+        id: "reporter",
+        title: "Reporter",
+        icon: Users,
+        data: reporterFilters,
+        selectedIds: selectedReporters,
+        searchable: true,
+        onToggle: toggleReporter,
+        onSelectAll: () =>
+          setSelectedReporters(reporterFilters.map((r) => r.id)),
+        onClearAll: () => setSelectedReporters([]),
+      }),
     ],
     [
       workspaceFilters,
       projectFilters,
       statusFilters,
       priorityFilters,
+      assigneeFilters,
+      reporterFilters,
       selectedWorkspaces,
       selectedProjects,
       selectedStatuses,
       selectedPriorities,
+      selectedAssignees,
+      selectedReporters,
       toggleWorkspace,
       toggleProject,
       toggleStatus,
       togglePriority,
+      toggleAssignee,
+      toggleReporter,
       statusFilterEnabled,
       createSection,
     ]
@@ -772,20 +881,19 @@ function TasksPageContent() {
               )}
               {currentView === "list" && (
                 <div className="flex items-center gap-2">
-                 
                   <SortIngManager
-                      sortField={sortField}
-                      sortOrder={sortOrder}
-                      onSortFieldChange={setSortField}
-                      onSortOrderChange={setSortOrder}
-                    />
-                
-                    <ColumnManager
-                      currentView={currentView}
-                      availableColumns={columns}
-                      onAddColumn={handleAddColumn}
-                      onRemoveColumn={handleRemoveColumn}
-                    />
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                    onSortFieldChange={setSortField}
+                    onSortOrderChange={setSortOrder}
+                  />
+
+                  <ColumnManager
+                    currentView={currentView}
+                    availableColumns={columns}
+                    onAddColumn={handleAddColumn}
+                    onRemoveColumn={handleRemoveColumn}
+                  />
                 </div>
               )}
             </>

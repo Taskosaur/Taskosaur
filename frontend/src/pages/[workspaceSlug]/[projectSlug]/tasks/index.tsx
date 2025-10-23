@@ -24,7 +24,7 @@ import {
   FilterDropdown,
   useGenericFilters,
 } from "@/components/common/FilterDropdown";
-import { CheckSquare, Flame } from "lucide-react";
+import { CheckSquare, Flame, User, Users } from "lucide-react";
 import SortingManager, {
   SortOrder,
   SortField,
@@ -101,7 +101,8 @@ function ProjectTasksContent() {
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [addTaskPriorities, setAddTaskPriorities] = useState<any[]>([]);
-
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [selectedReporters, setSelectedReporters] = useState<string[]>([]);
   const [publicTasks, setPublicTasks] = useState<any[]>([]);
   const [publicTasksTotal, setPublicTasksTotal] = useState(0);
   const [isLoadingPublic, setIsLoadingPublic] = useState(false);
@@ -203,7 +204,7 @@ function ProjectTasksContent() {
           setHasAccess(data?.canChange);
           setUserAccess(data);
         })
-        
+
         .catch((error) => {
           console.error("Error fetching user access:", error);
         });
@@ -260,14 +261,14 @@ function ProjectTasksContent() {
     try {
       setLocalError(null);
 
-      let ws: Workspace | null = null;
-      if (hasValidAuth) {
-        ws = await workspaceApi.getWorkspaceBySlug(workspaceSlug as string);
-        if (!ws) {
-          throw new Error(`Workspace "${workspaceSlug}" not found`);
-        }
-        setWorkspace(ws);
-      }
+  const ws: Workspace | null = null;
+      // if (hasValidAuth) {
+      //   ws = await workspaceApi.getWorkspaceBySlug(workspaceSlug as string);
+      //   if (!ws) {
+      //     throw new Error(`Workspace "${workspaceSlug}" not found`);
+      //   }
+      //   setWorkspace(ws);
+      // }
 
       const proj = await projectApi.getProjectBySlug(
         projectSlug as string,
@@ -333,17 +334,17 @@ function ProjectTasksContent() {
 
       const filters = {
         limit: pageSize,
-        offset: (currentPage - 1) * pageSize,
+        page: currentPage,
       };
 
-      const tasks = await getPublicProjectTasks(
+      const publicTaskResponse = await getPublicProjectTasks(
         workspaceSlug as string,
         projectSlug as string,
         filters
       );
 
-      setPublicTasks(tasks || []);
-      setPublicTasksTotal(tasks?.length || 0);
+      setPublicTasks(publicTaskResponse.data || []);
+      setPublicTasksTotal(publicTaskResponse.total || 0);
     } catch (error) {
       console.error("Failed to load public tasks:", error);
       setLocalError(
@@ -385,6 +386,12 @@ function ProjectTasksContent() {
         ...(selectedPriorities.length > 0 && {
           priorities: selectedPriorities.join(","),
         }),
+        ...(selectedAssignees.length > 0 && {
+          assignees: selectedAssignees.join(","),
+        }),
+        ...(selectedReporters.length > 0 && {
+          reporters: selectedReporters.join(","),
+        }),
         ...(debouncedSearchQuery.trim() && {
           search: debouncedSearchQuery.trim(),
         }),
@@ -407,6 +414,8 @@ function ProjectTasksContent() {
     project?.id,
     currentPage,
     pageSize,
+    selectedAssignees,
+    selectedReporters,
     debouncedSearchQuery,
     selectedStatuses,
     selectedPriorities,
@@ -433,7 +442,15 @@ function ProjectTasksContent() {
     if (currentView === "kanban" && project && projectSlug && isAuth) {
       loadKanbanData(projectSlug as string);
     }
-  }, [currentView, currentOrganizationId, project?.id, projectSlug, isAuth]);
+  }, [
+    currentView,
+    currentOrganizationId,
+    project?.id,
+    projectSlug,
+    isAuth,
+    selectedAssignees,
+    selectedReporters,
+  ]);
 
   const loadKanbanData = useCallback(
     async (projSlug: string, statusId?: string, page: number = 1) => {
@@ -635,6 +652,44 @@ function ProjectTasksContent() {
     [availablePriorities, selectedPriorities, displayTasks, isAuth]
   );
 
+  const assigneeFilters = useMemo(() => {
+    return projectMembers.map((member) => ({
+      id: member.user.id,
+      name: member?.user?.firstName + " " + member.user.lastName,
+      value: member?.user.id,
+      selected: selectedAssignees.includes(member.user.id),
+      count: Array.isArray(tasks)
+        ? tasks.filter((task) =>
+            Array.isArray(task.assignees)
+              ? task.assignees.some(
+                  (assignee) => assignee.id === member.user.id
+                )
+              : false
+          ).length
+        : 0,
+      email: member?.user?.email,
+    }));
+  }, [projectMembers, selectedAssignees, tasks]);
+
+  const reporterFilters = useMemo(() => {
+    return projectMembers.map((member) => ({
+      id: member.user.id,
+      name: member?.user?.firstName + " " + member.user.lastName,
+      value: member?.user.id,
+      selected: selectedReporters.includes(member.user.id),
+      count: Array.isArray(tasks)
+        ? tasks.filter((task) =>
+            Array.isArray(task.reporters)
+              ? task.reporters.some(
+                  (reporter) => reporter.id === member.user.id
+                )
+              : false
+          ).length
+        : 0,
+      email: member?.user?.email,
+    }));
+  }, [projectMembers, selectedReporters, tasks]);
+
   const safeToggleStatus = useCallback(
     (id: string) => {
       if (!isAuth) return;
@@ -691,6 +746,20 @@ function ProjectTasksContent() {
     [isAuth]
   );
 
+  const toggleAssignee = useCallback((id: string) => {
+    setSelectedAssignees((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+    setCurrentPage(1);
+  }, []);
+
+  const toggleReporter = useCallback((id: string) => {
+    setSelectedReporters((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+    setCurrentPage(1);
+  }, []);
+
   const filterSections = useMemo(
     () =>
       isAuth
@@ -719,6 +788,30 @@ function ProjectTasksContent() {
                 setSelectedPriorities(priorityFilters.map((p) => p.id)),
               onClearAll: () => setSelectedPriorities([]),
             }),
+            createSection({
+              id: "assignee",
+              title: "Assignee",
+              icon: User,
+              data: assigneeFilters,
+              selectedIds: selectedAssignees,
+              searchable: true,
+              onToggle: toggleAssignee,
+              onSelectAll: () =>
+                setSelectedAssignees(assigneeFilters.map((a) => a.id)),
+              onClearAll: () => setSelectedAssignees([]),
+            }),
+            createSection({
+              id: "reporter",
+              title: "Reporter",
+              icon: Users,
+              data: reporterFilters,
+              selectedIds: selectedReporters,
+              searchable: true,
+              onToggle: toggleReporter,
+              onSelectAll: () =>
+                setSelectedReporters(reporterFilters.map((r) => r.id)),
+              onClearAll: () => setSelectedReporters([]),
+            }),
           ]
         : [],
     [
@@ -727,6 +820,12 @@ function ProjectTasksContent() {
       priorityFilters,
       selectedStatuses,
       selectedPriorities,
+      assigneeFilters,
+      selectedAssignees,
+      selectedReporters,
+      reporterFilters,
+      toggleAssignee,
+      toggleReporter,
       safeToggleStatus,
       safeTogglePriority,
       createSection,
@@ -734,7 +833,10 @@ function ProjectTasksContent() {
   );
 
   const totalActiveFilters = isAuth
-    ? selectedStatuses.length + selectedPriorities.length
+    ? selectedStatuses.length +
+      selectedPriorities.length +
+      selectedAssignees.length +
+      selectedReporters.length
     : 0;
 
   const clearAllFilters = useCallback(() => {
@@ -742,6 +844,8 @@ function ProjectTasksContent() {
 
     setSelectedStatuses([]);
     setSelectedPriorities([]);
+    setSelectedAssignees([]);
+    setSelectedReporters([]);
     setCurrentPage(1);
 
     const params = new URLSearchParams(window.location.search);
@@ -945,7 +1049,12 @@ function ProjectTasksContent() {
             showAddTaskRow={userAccess?.role !== "VIEWER" && isAuth}
             onTaskSelect={handleTaskSelect}
             selectedTasks={selectedTasks}
-            showBulkActionBar={hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER"}
+            showBulkActionBar={
+              hasAccess ||
+              userAccess?.role === "OWNER" ||
+              userAccess?.role === "MANAGER"
+            }
+            totalTask={pagination.totalCount}
           />
         );
     }
@@ -955,7 +1064,6 @@ function ProjectTasksContent() {
     currentView !== "kanban" &&
     displayTasks.length > 0 &&
     pagination.totalPages > 1;
-
   if (error) return <ErrorState error={error} onRetry={handleRetry} />;
 
   return (
@@ -1031,10 +1139,9 @@ function ProjectTasksContent() {
                   try {
                     await handleTaskCreated();
                   } catch (error) {
-                    const errorMessage =
-                      error?.message
-                        ? error.message
-                        : "Failed to refresh tasks";
+                    const errorMessage = error?.message
+                      ? error.message
+                      : "Failed to refresh tasks";
                     console.error("Error creating task:", errorMessage);
                     if (isAuth) {
                       await loadTasks();
@@ -1091,39 +1198,43 @@ function ProjectTasksContent() {
               {/* List view controls - Available for all users */}
               {currentView === "list" && (
                 <div className="flex items-center gap-2">
-                   <SortingManager
-                      sortField={sortField}
-                      sortOrder={sortOrder}
-                      onSortFieldChange={setSortField}
-                      onSortOrderChange={setSortOrder}
-                    />
-                   <ColumnManager
-                      currentView={currentView}
-                      availableColumns={columns}
-                      onAddColumn={handleAddColumn}
-                      onRemoveColumn={handleRemoveColumn}
-                      setKabBanSettingModal={setKabBanSettingModal}
-                    />
+                  <SortingManager
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                    onSortFieldChange={setSortField}
+                    onSortOrderChange={setSortOrder}
+                  />
+                  <ColumnManager
+                    currentView={currentView}
+                    availableColumns={columns}
+                    onAddColumn={handleAddColumn}
+                    onRemoveColumn={handleRemoveColumn}
+                    setKabBanSettingModal={setKabBanSettingModal}
+                  />
                 </div>
               )}
               {/* Kanban view controls - Only for authenticated users */}
-              {isAuth && currentView === "kanban" && (hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER") && (
-                <div className="flex items-center gap-2">
-                  <Tooltip
-                    content="Manage Columns"
-                    position="top"
-                    color="primary"
-                  >
-                    <ColumnManager
-                      currentView={currentView}
-                      availableColumns={columns}
-                      onAddColumn={handleAddColumn}
-                      onRemoveColumn={handleRemoveColumn}
-                      setKabBanSettingModal={setKabBanSettingModal}
-                    />
-                  </Tooltip>
-                </div>
-              )}
+              {isAuth &&
+                currentView === "kanban" &&
+                (hasAccess ||
+                  userAccess?.role === "OWNER" ||
+                  userAccess?.role === "MANAGER") && (
+                  <div className="flex items-center gap-2">
+                    <Tooltip
+                      content="Manage Columns"
+                      position="top"
+                      color="primary"
+                    >
+                      <ColumnManager
+                        currentView={currentView}
+                        availableColumns={columns}
+                        onAddColumn={handleAddColumn}
+                        onRemoveColumn={handleRemoveColumn}
+                        setKabBanSettingModal={setKabBanSettingModal}
+                      />
+                    </Tooltip>
+                  </div>
+                )}
             </>
           }
         />

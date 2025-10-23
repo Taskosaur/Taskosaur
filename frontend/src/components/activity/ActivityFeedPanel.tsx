@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   HiClock,
   HiChatBubbleLeft,
-  HiExclamationTriangle,
 } from "react-icons/hi2";
 import { InfoPanel } from "@/components/common/InfoPanel";
 

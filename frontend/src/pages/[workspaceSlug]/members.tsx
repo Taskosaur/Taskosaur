@@ -204,7 +204,7 @@ function WorkspaceMembersContent() {
   // Check if a member can be removed
   const canRemoveMember = (member: Member) => {
     const currentUserId = getCurrentUserId();
-    if(isCurrentUserOwner){
+    if(member.userId === currentUserId && isCurrentUserOwner){
       return false
     }
     // User can always remove themselves (leave workspace)
