@@ -1,8 +1,6 @@
-"use client";
-
-import { useState, useEffect } from "react";
+  import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { HiSparkles, HiKey, HiLink } from "react-icons/hi2";
+import { HiSparkles, HiKey, HiLink, HiEyeSlash } from "react-icons/hi2";
 import { settingsApi, Setting } from "@/utils/api/settingsApi";
 import api from "@/lib/api";
 import { Input } from "../ui/input";
@@ -14,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import ActionButton from "../common/ActionButton";
-import { HiCog } from "react-icons/hi";
+import { HiCog, HiEye } from "react-icons/hi";
 
 interface AISettingsModalProps {
   isOpen: boolean;
@@ -35,6 +33,7 @@ export default function AISettingsModal({
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
 
   // Load settings when modal opens
   useEffect(() => {
@@ -225,52 +224,6 @@ export default function AISettingsModal({
         </DialogHeader>
 
         <div className="space-y-2">
-          {/* Enable/Disable AI */}
-          <div className="projects-form-field">
-            <div className="flex  items-center justify-between p-4 bg-[var(--mini-sidebar)] rounded-lg ">
-              <div>
-                <Label
-                  className="projects-form-label border-none text-sm"
-                  style={{ fontSize: "14px" }}
-                >
-                  <HiSparkles
-                    className="projects-form-label-icon"
-                    style={{ color: "hsl(var(--primary))" }}
-                  />
-                  Enable AI Chat
-                </Label>
-                <p className="projects-url-preview-label text-[13px] mt-1 ml-6">
-                  Fill all the fields to enable chat.
-                </p>
-              </div>
-
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isEnabled}
-                  onChange={(e) => {
-                    const newValue = e.target.checked;
-                    setIsEnabled(newValue);
-                  }}
-                  disabled={
-                    isLoading ||
-                    isSaving ||
-                    !apiKey.trim() ||
-                    !model.trim() ||
-                    !apiUrl.trim()
-                  }
-                  className="sr-only peer"
-                />
-                <div
-                  className="w-11 h-6 rounded-full peer-focus:outline-none peer relative
-                    bg-[var(--status-inactive-bg)] peer-checked:bg-[var(--primary)]
-                    peer peer-checked:after:translate-x-5 peer-checked:after:border-white
-                    after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--background)] after:rounded-full after:h-5 after:w-5 after:transition-all"
-                ></div>
-              </label>
-            </div>
-          </div>
-
           {/* Configuration Fields - Always visible */}
           {/* API Key */}
           <div className="space-y-2">
@@ -285,24 +238,40 @@ export default function AISettingsModal({
               />
               API Key <span className="projects-form-label-required">*</span>
             </Label>
-            <Input
-              id="api-key"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your API key"
-              disabled={isLoading || isSaving}
-              className="projects-form-input border-none"
-              style={{ borderColor: "var(--border)" }}
-              onFocus={(e) => {
-                e.target.style.borderColor = "hsl(var(--primary))";
-                e.target.style.boxShadow = `0 0 0 3px hsl(var(--primary) / 0.2)`;
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = "var(--border)";
-                e.target.style.boxShadow = "none";
-              }}
-            />
+
+            <div className="relative">
+              <Input
+                id="api-key"
+                type={showApiKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Enter your API key"
+                disabled={isLoading || isSaving}
+                className="projects-form-input border-none pr-8"
+                style={{ borderColor: "var(--border)" }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = "hsl(var(--primary))";
+                  e.target.style.boxShadow = `0 0 0 3px hsl(var(--primary) / 0.2)`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = "var(--border)";
+                  e.target.style.boxShadow = "none";
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowApiKey((prev) => !prev)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500 hover:text-[hsl(var(--primary))] transition-colors"
+                tabIndex={-1}
+              >
+                {showApiKey ? (
+                  <HiEyeSlash className="w-4 h-4" />
+                ) : (
+                  <HiEye className="w-4 h-4" />
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Model */}
@@ -374,6 +343,50 @@ export default function AISettingsModal({
                 e.target.style.boxShadow = "none";
               }}
             />
+          </div>
+          <div className="projects-form-field">
+            <div className="flex  items-center justify-between p-4 bg-[var(--mini-sidebar)] rounded-lg ">
+              <div>
+                <Label
+                  className="projects-form-label border-none text-sm"
+                  style={{ fontSize: "14px" }}
+                >
+                  <HiSparkles
+                    className="projects-form-label-icon"
+                    style={{ color: "hsl(var(--primary))" }}
+                  />
+                  Enable AI Chat
+                </Label>
+                <p className="projects-url-preview-label text-[13px] mt-1 ml-6">
+                  Fill all the fields to enable chat.
+                </p>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isEnabled}
+                  onChange={(e) => {
+                    const newValue = e.target.checked;
+                    setIsEnabled(newValue);
+                  }}
+                  disabled={
+                    isLoading ||
+                    isSaving ||
+                    !apiKey.trim() ||
+                    !model.trim() ||
+                    !apiUrl.trim()
+                  }
+                  className="sr-only peer"
+                />
+                <div
+                  className="w-11 h-6 rounded-full peer-focus:outline-none peer relative
+                    bg-[var(--status-inactive-bg)] peer-checked:bg-[var(--primary)]
+                    peer peer-checked:after:translate-x-5 peer-checked:after:border-white
+                    after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--background)] after:rounded-full after:h-5 after:w-5 after:transition-all"
+                ></div>
+              </label>
+            </div>
           </div>
 
           {/* Setup Guide & Providers - Always visible */}

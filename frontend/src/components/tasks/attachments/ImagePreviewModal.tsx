@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { HiPhoto, HiXMark } from 'react-icons/hi2';
-import { ArrowDownToLine, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
-import ActionButton from '@/components/common/ActionButton';
+import { ArrowDownToLine } from 'lucide-react';
+import ActionButton from '@/components/common/ActionButton'; 
+import Tooltip from '@/components/common/ToolTip';
 
 interface ImagePreviewModalProps {
   isOpen: boolean;
@@ -66,7 +67,7 @@ export function ImagePreviewModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
         showCloseButton={false}
-        className="!max-w-[80vw] !w-[80vw] max-h-[90vh] p-0 overflow-hidden border-none"
+        className="!max-w-[80vw] !w-[80vw] max-h-[90vh] p-0 overflow-hidden border-none gap-0"
         style={{ maxWidth: '80vw', width: '80vw' }}
       >
         {/* Header */}
@@ -81,6 +82,7 @@ export function ImagePreviewModal({
               </p>
             </div>
             <div className="flex items-center gap-2 ml-4">
+              <Tooltip content="Download Image">
               <ActionButton
                 onClick={onDownload}
                 secondary
@@ -90,6 +92,8 @@ export function ImagePreviewModal({
               >
                 <ArrowDownToLine className="w-4 h-4" />
               </ActionButton>
+              </Tooltip>
+              <Tooltip content="Close Preview">
               <ActionButton
                 onClick={onClose}
                 variant="outline"
@@ -100,12 +104,13 @@ export function ImagePreviewModal({
               >
                 <HiXMark className="w-4 h-4" />
               </ActionButton>
+              </Tooltip>
             </div>
           </div>
         </DialogHeader>
 
         {/* Image Container */}
-        <div className="relative flex items-center justify-center bg-[var(--muted)]/30 overflow-auto" style={{ height: 'calc(90vh - 100px)' }}>
+        <div className="relative flex items-center justify-center bg-[var(--background)] overflow-auto" style={{ height: 'calc(90vh - 100px)' }}>
           {!imageLoaded && !imageError && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="flex flex-col items-center gap-3">

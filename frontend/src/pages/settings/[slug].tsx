@@ -27,7 +27,9 @@ import { Workflow } from "@/types";
 import { PageHeader } from "@/components/common/PageHeader";
 import ErrorState from "@/components/common/ErrorState";
 import { ChartNoAxesGantt } from "lucide-react";
-import PendingInvitations, { PendingInvitationsRef } from "@/components/common/PendingInvitations";
+import PendingInvitations, {
+  PendingInvitationsRef,
+} from "@/components/common/PendingInvitations";
 import OrganizationManageSkeleton from "@/components/skeletons/OrganizationManageSkeleton";
 
 // Define the access structure type
@@ -153,11 +155,11 @@ function OrganizationManagePageContent() {
       }
 
       // Check access first
-      const accessData = await getUserAccess({ 
-        name: "organization", 
-        id: orgData.id 
-      }) as UserAccess;
-      
+      const accessData = (await getUserAccess({
+        name: "organization",
+        id: orgData.id,
+      })) as UserAccess;
+
       setUserAccess(accessData);
 
       // If no access, stop loading here
@@ -263,8 +265,10 @@ function OrganizationManagePageContent() {
 
   const getAccessBadgeColor = () => {
     if (!userAccess) return "bg-[var(--muted)] text-[var(--muted-foreground)]";
-    if (userAccess.isSuperAdmin) return "bg-purple-500/10 text-purple-500 border-purple-500/20";
-    if (userAccess.isElevated) return "bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20";
+    if (userAccess.isSuperAdmin)
+      return "bg-purple-500/10 text-purple-500 border-purple-500/20";
+    if (userAccess.isElevated)
+      return "bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20";
     return "bg-[var(--muted)] text-[var(--muted-foreground)]";
   };
 
@@ -297,7 +301,50 @@ function OrganizationManagePageContent() {
 
         <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+            {/* Mobile Layout (< md) */}
+            <div className="block md:hidden space-y-3">
+              {/* Row 1: Avatar + Name */}
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[var(--primary)] flex items-center justify-center text-[var(--primary-foreground)] font-semibold flex-shrink-0">
+                  {organization.avatar ? (
+                    <Image
+                      src={organization.avatar}
+                      alt={organization.name}
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  ) : (
+                    organization.name?.charAt(0)?.toUpperCase() || "?"
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-md font-semibold text-[var(--foreground)] mb-1">
+                    {organization.name}
+                  </h2>
+                  {organization.description && (
+                    <p className="text-sm text-[var(--muted-foreground)] line-clamp-2">
+                      {organization.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 2: Role Badge */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-[var(--muted-foreground)]">
+                  Your Role:
+                </span>
+                <Badge
+                  className={`${getAccessBadgeColor()} text-xs px-2 py-1 rounded-md border-none`}
+                >
+                  {getAccessBadgeLabel()}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Desktop Layout (>= md) - EXACT ORIGINAL */}
+            <div className="hidden md:flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-[var(--primary)] flex items-center justify-center text-[var(--primary-foreground)] font-semibold flex-shrink-0">
                 {organization.avatar ? (
                   <Image
@@ -454,7 +501,10 @@ function OrganizationManagePageContent() {
                   <OrganizationMembers
                     organizationId={organization.id}
                     members={members}
-                    currentUserRole={userAccess?.role as OrganizationRole.MANAGER || "MEMBER" as OrganizationRole.MANAGER}
+                    currentUserRole={
+                      (userAccess?.role as OrganizationRole.MANAGER) ||
+                      ("MEMBER" as OrganizationRole.MANAGER)
+                    }
                     onMembersChange={loadData}
                     organization={organization}
                     pendingInvitationsRef={pendingInvitationsRef}
@@ -479,7 +529,8 @@ function OrganizationManagePageContent() {
                           {organization?.name || "Unknown Organization"}
                         </p>
                         <p className="text-xs text-[var(--muted-foreground)]">
-                          {organization?.description || "No description available"}
+                          {organization?.description ||
+                            "No description available"}
                         </p>
                       </div>
                       <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
@@ -488,7 +539,7 @@ function OrganizationManagePageContent() {
                           {members.length}
                         </span>
                       </div>
-                     
+
                       <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
                         <span>Slug:</span>
                         <span className="font-medium text-[var(--foreground)] font-mono">
@@ -541,11 +592,11 @@ function OrganizationManagePageContent() {
 
                 {/* Pending Invitations */}
                 {hasManagementAccess && (
-                  <PendingInvitations 
+                  <PendingInvitations
                     ref={pendingInvitationsRef}
-                    entity={organization} 
-                    entityType="organization" 
-                    members={members} 
+                    entity={organization}
+                    entityType="organization"
+                    members={members}
                   />
                 )}
               </div>

@@ -36,7 +36,7 @@
 }
 
 .kanban-column-add-task-button {
-  @apply opacity-0 transition-opacity justify-center gap-2 text-xs w-full h-9;
+  @apply opacity-0 transition-opacity justify-center gap-2 text-xs  h-9;
   color: var(--muted-foreground);
 }
 

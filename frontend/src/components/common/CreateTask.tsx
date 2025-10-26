@@ -278,22 +278,14 @@ export default function CreateTask({
             </Card>
 
             <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
-              <CardHeader className="pb-0">
-                <TaskSectionHeader icon={HiDocumentText} title="Description" />
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <TaskDescription
-                  value={formData.description}
-                  onChange={(value) =>
-                    handleFormDataChange("description", value)
-                  }
-                  editMode={true}
+              <CardHeader className="flex items-center justify-between pb-2">
+                <TaskSectionHeader
+                  icon={HiPaperClip}
+                  title={`Attachment(s) ${
+                    attachments.length > 0 ? `(${attachments.length})` : ""
+                  }`}
                 />
-
-                <div
-                  className="flex items-center justify-end gap-3 "
-                  id="submit-form-button"
-                >
+                <div>
                   <Input
                     type="file"
                     multiple
@@ -309,71 +301,64 @@ export default function CreateTask({
                     <Plus className="w-4 h-4" />
                     <span>Add Attachment</span>
                   </Label>
-                  <ActionButton
-                    onClick={handleSubmit}
-                    disabled={!isFormValid() || isSubmitting}
-                    primary
-                  >
-                    {isSubmitting ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                        Creating task...
-                      </div>
-                    ) : (
-                      "Create Task"
-                    )}
-                  </ActionButton>
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {attachments.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {attachments.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-[var(--background)] border border-[var(--border)] rounded-md"
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <HiPaperClip
+                              size={16}
+                              className="text-[var(--muted-foreground)] flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-[var(--foreground)] truncate">
+                                {file.name}
+                              </p>
+                              <p className="text-xs text-[var(--muted-foreground)]">
+                                {formatFileSize(file.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => removeAttachment(index)}
+                            className="flex-shrink-0 ml-2 p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
+                            aria-label="Remove file"
+                          >
+                            <HiTrash className="w-4 h-4 text-[var(--destructive)]" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center pt-5">
+                    No Attachment(s){" "}
+                  </div>
+                )}
               </CardContent>
             </Card>
-            {attachments.length > 0 && (
-              <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
-                <CardHeader className="flex items-center justify-between pb-2">
-                  <TaskSectionHeader
-                    icon={HiPaperClip}
-                    title={`Attachments ${
-                      attachments.length > 0 ? `(${attachments.length})` : ""
-                    }`}
-                  />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {attachments.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {attachments.map((file, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-3 bg-[var(--background)] border border-[var(--border)] rounded-md"
-                          >
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <HiPaperClip
-                                size={16}
-                                className="text-[var(--muted-foreground)] flex-shrink-0"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-[var(--foreground)] truncate">
-                                  {file.name}
-                                </p>
-                                <p className="text-xs text-[var(--muted-foreground)]">
-                                  {formatFileSize(file.size)}
-                                </p>
-                              </div>
-                            </div>
-                            <Button
-                              onClick={() => removeAttachment(index)}
-                              className="flex-shrink-0 ml-2 p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
-                              aria-label="Remove file"
-                            >
-                              <HiTrash className="w-4 h-4 text-[var(--destructive)]" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+
+            <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
+              <CardHeader className="pb-0">
+                <TaskSectionHeader icon={HiDocumentText} title="Description" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <TaskDescription
+                  value={formData.description}
+                  onChange={(value) =>
+                    handleFormDataChange("description", value)
+                  }
+                  editMode={true}
+                />
+              </CardContent>
+            </Card>
           </form>
         </div>
 
@@ -550,10 +535,14 @@ export default function CreateTask({
                   onChange={(e) =>
                     handleFormDataChange("dueDate", e.target.value)
                   }
+                  onClick={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    target.showPicker?.();
+                  }}
                   min={getTodayDate()}
-                  className="w-full border-[var(--border)] bg-[var(--background)] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:mt-1"
+                  className="w-full border-[var(--border)] bg-[var(--background)] cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:mt-1"
                   style={{
-                    colorScheme: 'dark'
+                    colorScheme: "dark",
                   }}
                 />
               </div>
@@ -610,6 +599,33 @@ export default function CreateTask({
               )}
             </CardContent>
           </Card>
+          <div
+            className="flex items-center justify-end gap-3 "
+            id="submit-form-button"
+          >
+            <ActionButton
+              onClick={() => router.back()}
+              variant="outline"
+              secondary
+              className="h-8 px-3 cursor-pointer"
+            >
+              Cancel
+            </ActionButton>
+            <ActionButton
+              onClick={handleSubmit}
+              disabled={!isFormValid() || isSubmitting}
+              primary
+            >
+              {isSubmitting ? (
+                <div className="flex items-center">
+                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  Creating task...
+                </div>
+              ) : (
+                "Create Task"
+              )}
+            </ActionButton>
+          </div>
         </div>
       </div>
     </div>

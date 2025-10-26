@@ -45,7 +45,7 @@ export const TimelineHeader: React.FC<TimelineHeaderProps> = ({
   );
 
   return (
-    <div className="flex sticky top-0 z-20 bg-[var(--card)] border-b border-[var(--border)] shadow-sm">
+    <div className="flex min-h-[64.98px] sticky top-0 z-20 bg-[var(--card)] border-b border-[var(--border)] shadow-sm">
       <div
         className={`${
           isCompact ? "w-48" : "w-80"

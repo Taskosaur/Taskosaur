@@ -17,9 +17,10 @@ import { WorkspaceMembersService } from '../workspace-members/workspace-members.
 
 @Injectable()
 export class OrganizationMembersService {
-  constructor(private prisma: PrismaService,
-    private workspaceMembersService: WorkspaceMembersService
-  ) { }
+  constructor(
+    private prisma: PrismaService,
+    private workspaceMembersService: WorkspaceMembersService,
+  ) {}
 
   async create(
     createOrganizationMemberDto: CreateOrganizationMemberDto,
@@ -51,7 +52,6 @@ export class OrganizationMembersService {
     }
 
     try {
-
       const orgMember = await this.prisma.organizationMember.create({
         data: {
           userId,
@@ -79,7 +79,7 @@ export class OrganizationMembersService {
           },
         },
       });
-      if (orgMember.role === "MANAGER" || orgMember.role === "OWNER") {
+      if (orgMember.role === 'MANAGER' || orgMember.role === 'OWNER') {
         const workspaces = await this.prisma.workspace.findMany({
           where: { organizationId },
         });
@@ -95,11 +95,11 @@ export class OrganizationMembersService {
                 role,
                 workspaceId: workspace.id,
               });
-            })
+            }),
           );
         }
       }
-      return orgMember
+      return orgMember;
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException(
@@ -136,8 +136,25 @@ export class OrganizationMembersService {
     });
   }
 
-  async findAll(organizationId?: string): Promise<OrganizationMember[]> {
-    const whereClause = organizationId ? { organizationId } : {};
+  async findAll(
+    organizationId?: string,
+    search?: string,
+  ): Promise<OrganizationMember[]> {
+    const whereClause: any = {};
+
+    if (organizationId) {
+      whereClause.organizationId = organizationId;
+    }
+
+    if (search && search.trim()) {
+      whereClause.user = {
+        OR: [
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastName: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ],
+      };
+    }
 
     return this.prisma.organizationMember.findMany({
       where: whereClause,
@@ -309,7 +326,9 @@ export class OrganizationMembersService {
 
     // Only organization owner or admins can update member roles
     const isOwner = member.organization.ownerId === requestUserId;
-    const isAdmin = requesterMember.role === OrganizationRole.OWNER || requesterMember.role === OrganizationRole.MANAGER;
+    const isAdmin =
+      requesterMember.role === OrganizationRole.OWNER ||
+      requesterMember.role === OrganizationRole.MANAGER;
 
     if (!isOwner && !isAdmin) {
       throw new ForbiddenException(
@@ -351,7 +370,7 @@ export class OrganizationMembersService {
         },
       },
     });
-    const organizationId = updatedMember.organizationId
+    const organizationId = updatedMember.organizationId;
     const workspaces = await this.prisma.workspace.findMany({
       where: { organizationId },
     });
@@ -361,14 +380,21 @@ export class OrganizationMembersService {
     if (workspaces.length > 0) {
       await Promise.all(
         workspaces.map(async (workspace) => {
-          const wsMember = await this.prisma.workspaceMember.findUnique({ where: { userId_workspaceId: { userId, workspaceId: workspace.id } } })
+          const wsMember = await this.prisma.workspaceMember.findUnique({
+            where: {
+              userId_workspaceId: { userId, workspaceId: workspace.id },
+            },
+          });
           if (wsMember) {
-            await this.workspaceMembersService.update(wsMember.id, {
-              role
-            }, requestUserId);
+            await this.workspaceMembersService.update(
+              wsMember.id,
+              {
+                role,
+              },
+              requestUserId,
+            );
           }
-
-        })
+        }),
       );
     }
     return updatedMember;
@@ -405,7 +431,9 @@ export class OrganizationMembersService {
     // Users can remove themselves, or admins/owners can remove others
     const isSelfRemoval = member.userId === requestUserId;
     const isOwner = member.organization.ownerId === requestUserId;
-    const isAdmin = requesterMember.role === OrganizationRole.OWNER || requesterMember.role === OrganizationRole.MANAGER;
+    const isAdmin =
+      requesterMember.role === OrganizationRole.OWNER ||
+      requesterMember.role === OrganizationRole.MANAGER;
 
     if (!isSelfRemoval && !isOwner && !isAdmin) {
       throw new ForbiddenException(
@@ -562,7 +590,7 @@ export class OrganizationMembersService {
               : memberRecord?.role || 'MEMBER',
         joinedAt: memberRecord?.joinedAt || org.createdAt,
         isOwner,
-        isDefault: memberRecord?.isDefault
+        isDefault: memberRecord?.isDefault,
       };
     });
   }
@@ -665,5 +693,4 @@ export class OrganizationMembersService {
 
     return updatedMember;
   }
-
 }

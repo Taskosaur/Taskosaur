@@ -222,7 +222,7 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
         style={{ backgroundColor: "var(--muted)" }}
       >
         {/* Header */}
-        <div className="kanban-column-header">
+        <div className="kanban-column-header flex justify-between items-center">
           <div className="kanban-column-header-content">
             {getStatusIndicator()}
             <h3 className="kanban-column-title">{status.statusName}</h3>
@@ -238,6 +238,17 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
               {taskCount}
             </Badge>
           </div>
+          {/* Add Task Button */}
+          {!isCreating && hasAccess && (
+            <Button
+              variant="ghost"
+              onClick={() => setIsCreating(true)}
+              className="kanban-column-add-task-button"
+            >
+              <HiPlus size={14} />
+              Add a task
+            </Button>
+          )}
         </div>
 
         {/* Tasks Container */}
@@ -257,38 +268,7 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
                 : "transparent",
           }}
         >
-          {status.tasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              statusId={status.statusId}
-              isDragging={
-                dragState.isDragging && dragState.draggedItem?.id === task.id
-              }
-              onDragStart={onTaskDragStart}
-              onDragEnd={onTaskDragEnd}
-              onClick={onTaskClick}
-            />
-          ))}
-
-          {/* Loading indicator */}
-          {isLoadingMore && (
-            <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
-            </div>
-          )}
-
-          {/* Load More Button */}
-          {!isLoadingMore && status.pagination?.hasNextPage && (
-            <Button
-              variant="ghost"
-              onClick={handleLoadMore}
-              className="w-full text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] py-2"
-            >
-              Load More ({status.pagination.total - status.tasks.length}{" "}
-              remaining)
-            </Button>
-          )}
+       
 
           {/* Create Task Form */}
           {isCreating && (
@@ -423,15 +403,36 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
             </div>
           )}
 
-          {/* Add Task Button */}
-          {!isCreating && hasAccess && (
+          {status.tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              statusId={status.statusId}
+              isDragging={
+                dragState.isDragging && dragState.draggedItem?.id === task.id
+              }
+              onDragStart={onTaskDragStart}
+              onDragEnd={onTaskDragEnd}
+              onClick={onTaskClick}
+            />
+          ))}
+
+          {/* Loading indicator */}
+          {isLoadingMore && (
+            <div className="flex justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
+            </div>
+          )}
+
+          {/* Load More Button */}
+          {!isLoadingMore && status.pagination?.hasNextPage && (
             <Button
               variant="ghost"
-              onClick={() => setIsCreating(true)}
-              className="kanban-column-add-task-button"
+              onClick={handleLoadMore}
+              className="w-full text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] py-2"
             >
-              <HiPlus size={14} />
-              Add a task
+              Load More ({status.pagination.total - status.tasks.length}{" "}
+              remaining)
             </Button>
           )}
         </div>

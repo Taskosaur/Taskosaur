@@ -27,7 +27,7 @@ export class ProjectsService {
   constructor(
     private prisma: PrismaService,
     private accessControl: AccessControlService,
-  ) { }
+  ) {}
 
   async create(
     createProjectDto: CreateProjectDto,
@@ -42,8 +42,8 @@ export class ProjectsService {
         members: {
           where: {
             role: {
-              in: [Role.OWNER, Role.MANAGER]
-            }
+              in: [Role.OWNER, Role.MANAGER],
+            },
           },
           select: { userId: true, role: true },
         },
@@ -242,10 +242,7 @@ export class ProjectsService {
     const { status, priority, search, page = 1, pageSize = 10 } = filters || {};
     const whereClause: any = {
       archive: false,
-      OR: [
-        { members: { some: { userId } } },
-        { visibility: 'PUBLIC' },
-      ],
+      OR: [{ members: { some: { userId } } }, { visibility: 'PUBLIC' }],
     };
     if (workspaceId) {
       whereClause.workspaceId = workspaceId;
@@ -352,10 +349,7 @@ export class ProjectsService {
     const whereClause: any = {
       workspace: { organizationId },
       archive: false,
-      OR: [
-        { members: { some: { userId } } },
-        { visibility: 'PUBLIC' },
-      ]
+      OR: [{ members: { some: { userId } } }, { visibility: 'PUBLIC' }],
     };
     if (workspaceId) {
       whereClause.workspaceId = workspaceId;
@@ -371,11 +365,11 @@ export class ProjectsService {
         : priority;
     }
     if (search) {
-      whereClause.OR = [
+      const searchConditions = [
         { name: { contains: search, mode: 'insensitive' } },
         { slug: { contains: search, mode: 'insensitive' } },
-        { key: { contains: search, mode: 'insensitive' } },
       ];
+      whereClause.AND = [...(whereClause.AND || []), { OR: searchConditions }];
     }
     return this.prisma.project.findMany({
       where: whereClause,
@@ -428,7 +422,6 @@ export class ProjectsService {
     });
   }
 
-
   /**
    * Helper method to get accessible project IDs based on workspace-level permissions
    */
@@ -452,21 +445,16 @@ export class ProjectsService {
     // Check each workspace
     for (const workspace of workspaces) {
       try {
-
         // If not elevated at workspace level, get projects user is member of OR INTERNAL projects
         const memberProjects = await this.prisma.project.findMany({
           where: {
             workspaceId: workspace.id,
             archive: false,
-            OR: [
-              { members: { some: { userId } } },
-              { visibility: 'INTERNAL' },
-            ],
+            OR: [{ members: { some: { userId } } }, { visibility: 'INTERNAL' }],
           },
           select: { id: true },
         });
         accessibleProjectIds.push(...memberProjects.map((p) => p.id));
-
       } catch (error) {
         // If user doesn't have access to workspace, skip it
         // This handles the ForbiddenException from getWorkspaceAccess
@@ -541,31 +529,31 @@ export class ProjectsService {
         // Show tasks based on access level
         tasks: isElevated
           ? {
-            select: {
-              id: true,
-              title: true,
-              type: true,
-              priority: true,
-              status: true,
-            },
-            take: 10,
-          }
+              select: {
+                id: true,
+                title: true,
+                type: true,
+                priority: true,
+                status: true,
+              },
+              take: 10,
+            }
           : {
-            select: {
-              id: true,
-              title: true,
-              type: true,
-              priority: true,
-              status: true,
+              select: {
+                id: true,
+                title: true,
+                type: true,
+                priority: true,
+                status: true,
+              },
+              where: {
+                OR: [
+                  { assignees: { some: { id: userId } } },
+                  { reporters: { some: { id: userId } } },
+                ],
+              },
+              take: 10,
             },
-            where: {
-              OR: [
-                { assignees: { some: { id: userId } } },
-                { reporters: { some: { id: userId } } },
-              ]
-            },
-            take: 10,
-          },
       },
     });
 
@@ -776,9 +764,7 @@ export class ProjectsService {
     }
 
     // Add user access filtering
-    whereClause.OR = [
-      { members: { some: { userId } } },
-    ];
+    whereClause.OR = [{ members: { some: { userId } } }];
 
     if (search && search.trim()) {
       const searchConditions = [

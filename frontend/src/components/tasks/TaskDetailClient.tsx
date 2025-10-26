@@ -41,8 +41,6 @@ interface TaskDetailClientProps {
   open?: string;
   onTaskRefetch?: () => void;
   onClose?: () => void;
-  showAttachmentSection?: boolean;
-  setLoading?: (loading: boolean) => void;
 }
 
 export default function TaskDetailClient({
@@ -53,8 +51,6 @@ export default function TaskDetailClient({
   open,
   onTaskRefetch,
   onClose,
-  showAttachmentSection = true,
-  setLoading,
 }: TaskDetailClientProps) {
   const {
     updateTask,
@@ -91,10 +87,11 @@ export default function TaskDetailClient({
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [loadingAttachments, setLoadingAttachments] = useState(true);
   const [loadingComments, setLoadingComments] = useState(true);
-  const [loadingActivities, setLoadingActivities] = useState(true);
-  const [loadingSubtasks, setLoadingSubtasks] = useState(true);
+  const [loadingActivities, setLoadingActivities] = useState(false);
+  const [loadingSubtasks, setLoadingSubtasks] = useState(false);
   const [loadingLabels, setLoadingLabels] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [minLoadTimeElapsed, setMinLoadTimeElapsed] = useState(false);
 
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
@@ -215,28 +212,25 @@ export default function TaskDetailClient({
     }
   };
 
-  // Effect to manage loading state for all subcomponents
   useEffect(() => {
-    // If task is a subtask (has parentTaskId), it won't have subtasks of its own
-    if (task.parentTaskId) {
-      setLoadingSubtasks(false);
-    }
-
     const allLoaded = !loadingMembers && 
                       !loadingAttachments && 
-                      !loadingComments && 
-                      !loadingActivities && 
-                      !loadingSubtasks && 
                       !loadingLabels &&
-                      !loadingStatuses;
+                      !loadingStatuses &&
+                      hasAccessLoaded;
 
     if (allLoaded && !initialLoadComplete) {
-      if (setLoading) {
-        setLoading(false);
-      }
       setInitialLoadComplete(true);
     }
-  }, [loadingMembers, loadingAttachments, loadingComments, loadingActivities, loadingSubtasks, loadingLabels, loadingStatuses, setLoading, initialLoadComplete, task.parentTaskId]);
+  }, [loadingMembers, loadingAttachments, loadingLabels, loadingStatuses, hasAccessLoaded, initialLoadComplete]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinLoadTimeElapsed(true);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const projectId = task.projectId || task.project?.id;
@@ -456,7 +450,7 @@ export default function TaskDetailClient({
   }, [task.projectId, task.project?.id, task.labels, task.tags]);
 
   useEffect(() => {
-    if (!taskId) return;
+    if (!taskId || !hasAccessLoaded) return;
 
     const fetchAttachments = async () => {
       setLoadingAttachments(true);
@@ -473,7 +467,7 @@ export default function TaskDetailClient({
     };
 
     fetchAttachments();
-  }, [taskId]);
+  }, [taskId, hasAccessLoaded]);
 
   useEffect(() => {
     const projectId = task.projectId || task.project?.id;
@@ -860,16 +854,7 @@ export default function TaskDetailClient({
     });
   };
 
-  // Effect to set loading false when all subcomponents are loaded
-  useEffect(() => {
-    if (setLoading) {
-      if (!loadingMembers && !loadingAttachments && !loadingStatuses) {
-        setLoading(false);
-      } else {
-        setLoading(true);
-      }
-    }
-  }, [loadingMembers, loadingAttachments, loadingStatuses, setLoading]);
+
 
   useEffect(() => {
     if (projectMembers.length > 0) {
@@ -899,8 +884,9 @@ export default function TaskDetailClient({
       ? `/${workspaceSlug}/tasks/${task.id}`
       : `/tasks/${task.id}`;
 
-  // Show skeleton only during initial load and only check parent-managed loading states
-  const isInitialLoading = !initialLoadComplete && (loadingMembers || loadingAttachments || loadingLabels || loadingStatuses);
+
+
+  const isInitialLoading = !initialLoadComplete || !minLoadTimeElapsed;
 
   if (isInitialLoading) {
     return <TaskDetailSkeleton />;
@@ -1019,18 +1005,16 @@ export default function TaskDetailClient({
               )}
             </div>
 
-            {showAttachmentSection && (
-              <TaskAttachments
-                attachments={attachments}
-                isUploading={isUploading}
-                loadingAttachments={loadingAttachments}
-                onFileUpload={handleFileUpload}
-                onDownloadAttachment={handleDownloadAttachment}
-                onDeleteAttachment={handleDeleteAttachment}
-                hasAccess={hasAccess}
-                setLoading={setLoadingAttachments}
-              />
-            )}
+            <TaskAttachments
+              attachments={attachments}
+              isUploading={isUploading}
+              loadingAttachments={loadingAttachments}
+              onFileUpload={handleFileUpload}
+              onDownloadAttachment={handleDownloadAttachment}
+              onDeleteAttachment={handleDeleteAttachment}
+              hasAccess={hasAccess}
+              setLoading={setLoadingAttachments}
+            />
 
             {!task.parentTaskId && (
               <div className="">
@@ -1052,9 +1036,9 @@ export default function TaskDetailClient({
                 taskId={taskId}
                 projectId={task?.projectId || ""}
                 allowEmailReplies={task?.allowEmailReplies || false}
-                onCommentAdded={() => {}}
-                onCommentUpdated={() => {}}
-                onCommentDeleted={() => {}}
+                onCommentAdded={() => {onTaskRefetch && onTaskRefetch();}}
+                onCommentUpdated={() => {onTaskRefetch && onTaskRefetch();}}
+                onCommentDeleted={() => {onTaskRefetch && onTaskRefetch();}}
                 hasAccess={hasAccess}
                 setLoading={setLoadingComments}
               />

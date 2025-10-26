@@ -21,6 +21,26 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
+// Status color mapping to match StatusBadge component
+const getStatusColor = (statusName: string): string => {
+  const normalizedStatus = statusName.toLowerCase().replace(/\s+/g, "-");
+  
+  const statusColorMap: Record<string, string> = {
+    "todo": "#374151", // gray-700
+    "backlog": "#374151", // gray-700
+    "in-progress": "#2563eb", // blue-600
+    "active": "#2563eb", // blue-600
+    "in-review": "#9333ea", // purple-600
+    "completed": "#16a34a", // green-600
+    "done": "#16a34a", // green-600
+    "cancelled": "#dc2626", // red-600
+    "on-hold": "#374151", // gray-700
+    "planning": "#374151", // gray-700
+  };
+
+  return statusColorMap[normalizedStatus] || "#6b7280"; // default gray-500
+};
+
 interface FilterItem {
   id: string;
   label: string;
@@ -316,54 +336,61 @@ export function FilterDropdown({
 
                     <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1">
                       {filteredItems.length > 0 ? (
-                        filteredItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between p-1.5 rounded-md hover:bg-[var(--accent)] transition-all duration-200 cursor-pointer group border border-transparent hover:border-[var(--border)] hover:shadow-sm"
-                            onClick={() => handleItemToggle(section, item.id)}
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              {/* Always use Checkbox for both multiSelect and singleSelect */}
-                              <Checkbox checked={item.selected} className="h-3.5 w-3.5" />
+                        filteredItems.map((item) => {
+                          // Use StatusBadge colors for status-related sections
+                          const itemColor = section.id === "status" || section.title.toLowerCase() === "status"
+                            ? getStatusColor(item.label)
+                            : item.color;
 
-                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                {item.color && (
-                                  <div
-                                    className="w-3 h-3 rounded-full border border-[var(--border)] flex-shrink-0"
-                                    style={{ backgroundColor: item.color }}
-                                  />
-                                )}
+                          return (
+                            <div
+                              key={item.id}
+                              className="flex items-center justify-between p-1.5 rounded-md hover:bg-[var(--accent)] transition-all duration-200 cursor-pointer group border border-transparent hover:border-[var(--border)] hover:shadow-sm"
+                              onClick={() => handleItemToggle(section, item.id)}
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                {/* Always use Checkbox for both multiSelect and singleSelect */}
+                                <Checkbox checked={item.selected} className="h-3.5 w-3.5" />
 
-                                <div className="flex flex-col flex-1 min-w-0">
-                                  <span
-                                    className={`text-sm transition-colors duration-200 truncate ${
-                                      item.selected
-                                        ? "text-[var(--card-foreground)] font-medium"
-                                        : "text-[var(--muted-foreground)]"
-                                    }`}
-                                    title={item.label}
-                                  >
-                                    {item.label}
-                                  </span>
-                                  {item.description && (
-                                    <span className="text-xs text-[var(--muted-foreground)] truncate">
-                                      {item.description}
-                                    </span>
+                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                  {itemColor && (
+                                    <div
+                                      className="w-3 h-3 rounded-full border border-[var(--border)] flex-shrink-0"
+                                      style={{ backgroundColor: itemColor }}
+                                    />
                                   )}
-                                </div>
-                              </div>
 
-                              {showCounts && item.count !== undefined && (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs bg-[var(--muted)] border-[var(--border)] ml-auto flex-shrink-0"
-                                >
-                                  {item.count}
-                                </Badge>
-                              )}
+                                  <div className="flex flex-col flex-1 min-w-0">
+                                    <span
+                                      className={`text-sm transition-colors duration-200 truncate ${
+                                        item.selected
+                                          ? "text-[var(--card-foreground)] font-medium"
+                                          : "text-[var(--muted-foreground)]"
+                                      }`}
+                                      title={item.label}
+                                    >
+                                      {item.label}
+                                    </span>
+                                    {item.description && (
+                                      <span className="text-xs text-[var(--muted-foreground)] truncate">
+                                        {item.description}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {showCounts && item.count !== undefined && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs bg-[var(--muted)] border-[var(--border)] ml-auto flex-shrink-0"
+                                  >
+                                    {item.count}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       ) : (
                         <div className="text-center py-4 text-[var(--muted-foreground)]">
                           <Search className="h-6 w-6 mx-auto mb-2 opacity-50" />

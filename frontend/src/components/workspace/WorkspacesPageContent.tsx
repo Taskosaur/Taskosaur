@@ -154,7 +154,7 @@ export default function WorkspacesPageContent({
           title="Workspaces"
           description="Manage your workspaces efficiently and collaborate with your team."
           actions={
-            <>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative max-w-xs w-full">
                 <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)] z-10" />
                 <Input
@@ -197,7 +197,7 @@ export default function WorkspacesPageContent({
                   </ActionButton>
                 </NewWorkspaceDialog>
               )}
-            </>
+            </div>
           }
         />
         {workspaces.length === 0 ? (

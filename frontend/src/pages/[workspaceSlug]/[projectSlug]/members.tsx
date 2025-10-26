@@ -215,7 +215,7 @@ function ProjectMembersContent() {
     }
 
     // Owner cannot be removed by others
-    if (member.role === "OWNER" &&  !isCurrentUserOwner) {
+    if (member.role === "OWNER" && !isCurrentUserOwner) {
       return false;
     }
 
@@ -618,12 +618,12 @@ function ProjectMembersContent() {
         <div className="lg:col-span-2">
           <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
             <CardHeader className="pb-2 px-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
                   <HiUsers className="w-5 h-5 text-[var(--muted-foreground)]" />
                   Team Members ({activeMembers.length})
                 </CardTitle>
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <HiMagnifyingGlass className="w-4 text-[var(--muted-foreground)]" />
                   </div>
@@ -631,7 +631,7 @@ function ProjectMembersContent() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-9 w-64 border-input bg-background text-[var(--foreground)]"
+                    className="pl-10 h-9 w-full sm:w-64 border-input bg-background text-[var(--foreground)]"
                     placeholder="Search members..."
                   />
 
@@ -648,8 +648,8 @@ function ProjectMembersContent() {
             </CardHeader>
 
             <CardContent className="p-0">
-              {/* Table Header */}
-              <div className="px-4 py-3 bg-[var(--muted)]/30 border-b border-[var(--border)]">
+              {/* Table Header - Desktop Only */}
+              <div className="hidden lg:block px-4 py-3 bg-[var(--muted)]/30 border-b border-[var(--border)]">
                 <div className="grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
                   <div className="col-span-4">Member</div>
                   <div className="col-span-2">Status</div>
@@ -675,7 +675,7 @@ function ProjectMembersContent() {
                   }
                 />
               ) : (
-                <div className="divide-y divide-[var(--border)]">
+                <div className="divide-y divide-[var(--border)] lg:divide-y-0">
                   {activeMembers.map((member) => {
                     const currentUserId = getCurrentUserId();
                     const isCurrentUser = member.userId === currentUserId;
@@ -685,121 +685,217 @@ function ProjectMembersContent() {
                     const isOwner = member.role === "OWNER";
 
                     return (
-                      <div
-                        key={member.id}
-                        className="px-4 py-3 hover:bg-[var(--accent)]/30 transition-colors"
-                      >
-                        <div className="grid grid-cols-12 gap-3 items-center">
-                          {/* Member Info */}
-                          <div className="col-span-4">
-                            <div className="flex items-center gap-3">
-                              <UserAvatar
-                                user={{
-                                  firstName: member.firstName,
-                                  lastName: member.lastName,
-                                  avatar: member.avatarUrl,
-                                }}
-                                size="sm"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="text-sm font-medium text-[var(--foreground)] truncate">
-                                  {member.firstName} {member.lastName}
+                      <div key={member.id}>
+                        <div className="block lg:hidden p-4 hover:bg-[var(--accent)]/30 transition-colors">
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="relative">
+                                  <UserAvatar
+                                    user={{
+                                      firstName: member.firstName,
+                                      lastName: member.lastName,
+                                      avatar: member.avatarUrl,
+                                    }}
+                                    size="sm"
+                                  />
+                                  {/* Active Status Indicator - Green Dot */}
+                                  {(member.status || "ACTIVE") === "ACTIVE" && (
+                                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-[var(--card)] rounded-full"></div>
+                                  )}
                                 </div>
-                                <div className="text-xs text-[var(--muted-foreground)] truncate">
-                                  {member.email}
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-sm font-medium text-[var(--foreground)] truncate">
+                                    {member.firstName} {member.lastName}
+                                  </div>
+                                  <div className="text-xs text-[var(--muted-foreground)] truncate">
+                                    {member.email}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Action Button */}
+                              {canRemove && (
+                                <Tooltip
+                                  content={
+                                    isCurrentUser
+                                      ? "Leave Project"
+                                      : isOwner
+                                        ? "Project owner cannot be removed"
+                                        : userAccess?.role === "MANAGER" &&
+                                          member.role === "MANAGER"
+                                          ? "Cannot remove other managers"
+                                          : "Remove Member"
+                                  }
+                                  position="top"
+                                  color="danger"
+                                >
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setMemberToRemove(member)}
+                                    disabled={removingMember === member.id}
+                                    className="h-9 min-w-[36px] border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)] transition-all duration-200 flex-shrink-0"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </Tooltip>
+                              )}
+                            </div>
+
+                            {/* Row 2: Role */}
+                            <div className="flex items-center gap-2">
+                              {canEditRole ? (
+                                <Select
+                                  value={member.role}
+                                  onValueChange={(value) =>
+                                    handleRoleUpdate(member.id, value)
+                                  }
+                                  disabled={updatingMember === member.id}
+                                >
+                                  <SelectTrigger className="h-8 text-xs border-[var(--border)] bg-background text-[var(--foreground)] w-auto min-w-[100px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="border-none bg-[var(--card)]">
+                                    {availableRoles.map((role) => (
+                                      <SelectItem
+                                        key={role.id}
+                                        value={role.name}
+                                        className="hover:bg-[var(--hover-bg)]"
+                                      >
+                                        {role.name.charAt(0) +
+                                          role.name.slice(1).toLowerCase()}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Badge
+                                  className={`text-[10px] px-2 py-0.5 rounded-md border-none h-6 ${getRoleBadgeClass(
+                                    member.role
+                                  )}`}
+                                >
+                                  {member.role}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Desktop Layout (>= lg) - EXACT ORIGINAL */}
+                        <div className="hidden lg:block px-4 py-3 hover:bg-[var(--accent)]/30 transition-colors">
+                          <div className="grid grid-cols-12 gap-3 items-center">
+                            {/* Member Info */}
+                            <div className="col-span-4">
+                              <div className="flex items-center gap-3">
+                                <UserAvatar
+                                  user={{
+                                    firstName: member.firstName,
+                                    lastName: member.lastName,
+                                    avatar: member.avatarUrl,
+                                  }}
+                                  size="sm"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-sm font-medium text-[var(--foreground)] truncate">
+                                    {member.firstName} {member.lastName}
+                                  </div>
+                                  <div className="text-xs text-[var(--muted-foreground)] truncate">
+                                    {member.email}
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Status */}
-                          <div className="col-span-2">
-                            <Badge
-                              variant="outline"
-                              className={`text-xs bg-transparent px-2 py-1 rounded-md border-none ${getStatusBadgeClass(
-                                member.status || "ACTIVE"
-                              )}`}
-                            >
-                              {member.status || "ACTIVE"}
-                            </Badge>
-                          </div>
-
-                          {/* Joined Date */}
-                          <div className="col-span-2">
-                            <span className="text-sm text-[var(--muted-foreground)]">
-                              {formatDate(
-                                typeof member.joinedAt === "string"
-                                  ? member.joinedAt
-                                  : (member.joinedAt as Date)?.toISOString()
-                              )}
-                            </span>
-                          </div>
-
-                          {/* Role */}
-                          <div className="col-span-2">
-                            {canEditRole ? (
-                              <Select
-                                value={member.role}
-                                onValueChange={(value) =>
-                                  handleRoleUpdate(member.id, value)
-                                }
-                                disabled={updatingMember === member.id}
-                              >
-                                <SelectTrigger className="h-7 text-xs border-none shadow-none bg-background text-[var(--foreground)]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="border-none bg-[var(--card)]">
-                                  {availableRoles.map((role) => (
-                                    <SelectItem
-                                      key={role.id}
-                                      value={role.name}
-                                      className="hover:bg-[var(--hover-bg)]"
-                                    >
-                                      {role.name.charAt(0) +
-                                        role.name.slice(1).toLowerCase()}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            ) : (
+                            {/* Status */}
+                            <div className="col-span-2">
                               <Badge
-                                className={`text-xs px-2 py-1 rounded-md border-none ${getRoleBadgeClass(
-                                  member.role
+                                variant="outline"
+                                className={`text-xs bg-transparent px-2 py-1 rounded-md border-none ${getStatusBadgeClass(
+                                  member.status || "ACTIVE"
                                 )}`}
                               >
-                                {member.role}
+                                {member.status || "ACTIVE"}
                               </Badge>
-                            )}
-                          </div>
+                            </div>
 
-                          {/* Action */}
-                          <div className="col-span-2">
-                            {canRemove && (
-                              <Tooltip
-                                content={
-                                  isCurrentUser
-                                    ? "Leave Project"
-                                    : isOwner
-                                    ? "Project owner cannot be removed"
-                                    : userAccess?.role === "MANAGER" &&
-                                      member.role === "MANAGER"
-                                    ? "Cannot remove other managers"
-                                    : "Remove Member"
-                                }
-                                position="top"
-                                color="danger"
-                              >
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setMemberToRemove(member)}
-                                  disabled={removingMember === member.id}
-                                  className="h-7 border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)] transition-all duration-200"
+                            {/* Joined Date */}
+                            <div className="col-span-2">
+                              <span className="text-sm text-[var(--muted-foreground)]">
+                                {formatDate(
+                                  typeof member.joinedAt === "string"
+                                    ? member.joinedAt
+                                    : (member.joinedAt as Date)?.toISOString()
+                                )}
+                              </span>
+                            </div>
+
+                            {/* Role */}
+                            <div className="col-span-2">
+                              {canEditRole ? (
+                                <Select
+                                  value={member.role}
+                                  onValueChange={(value) =>
+                                    handleRoleUpdate(member.id, value)
+                                  }
+                                  disabled={updatingMember === member.id}
                                 >
-                                  <X className="w-3 h-3" />
-                                </Button>
-                              </Tooltip>
-                            )}
+                                  <SelectTrigger className="h-7 text-xs border-none shadow-none bg-background text-[var(--foreground)]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="border-none bg-[var(--card)]">
+                                    {availableRoles.map((role) => (
+                                      <SelectItem
+                                        key={role.id}
+                                        value={role.name}
+                                        className="hover:bg-[var(--hover-bg)]"
+                                      >
+                                        {role.name.charAt(0) +
+                                          role.name.slice(1).toLowerCase()}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Badge
+                                  className={`text-xs px-2 py-1 rounded-md border-none ${getRoleBadgeClass(
+                                    member.role
+                                  )}`}
+                                >
+                                  {member.role}
+                                </Badge>
+                              )}
+                            </div>
+
+                            {/* Action */}
+                            <div className="col-span-2">
+                              {canRemove && (
+                                <Tooltip
+                                  content={
+                                    isCurrentUser
+                                      ? "Leave Project"
+                                      : isOwner
+                                        ? "Project owner cannot be removed"
+                                        : userAccess?.role === "MANAGER" &&
+                                          member.role === "MANAGER"
+                                          ? "Cannot remove other managers"
+                                          : "Remove Member"
+                                  }
+                                  position="top"
+                                  color="danger"
+                                >
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setMemberToRemove(member)}
+                                    disabled={removingMember === member.id}
+                                    className="h-7 border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)] transition-all duration-200"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </Tooltip>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>

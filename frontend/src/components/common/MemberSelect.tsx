@@ -160,7 +160,7 @@ function MemberSelect({
     const displayLabel =
       selectedMembers.length === 0
         ? `No ${baseLabel.toLowerCase()} selected`
-        : undefined;
+        : "";
 
     return (
       <div className="space-y-2">
@@ -209,7 +209,7 @@ function MemberSelect({
               )}
             </>
           ) : (
-            <span className="text-xs text-[var(--muted-foreground)]">
+            <span className="text-sm text-[var(--muted-foreground)]">
               {displayLabel}
             </span>
           )}

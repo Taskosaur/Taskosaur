@@ -147,15 +147,19 @@ export default function NotificationDropdown({
             size="icon"
             className={`header-button-base ${className}`}
           >
+            
             <HiBell className="header-button-icon" />
             {unreadCount > 0 && (
               <Badge
                 variant="destructive"
-                className="header-notification-badge header-notification-badge-red"
+                className="header-notification-badge  header-notification-badge-red"
               >
                 {unreadCount > 99 ? "99+" : unreadCount}
               </Badge>
             )}
+             <span className="hidden max-[530px]:inline-block text-sm font-medium">
+              Notifications
+            </span>
           </Button>
         </DropdownMenuTrigger>
       </Tooltip>

@@ -511,6 +511,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
       ? `${workspace.name} Projects`
       : title;
 
+
   return (
     <div className="dashboard-container">
       <div className="space-y-6 text-md">
@@ -520,57 +521,75 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
           description={description}
           actions={
             <>
-              {/* Search Input - Always shown */}
-              <div className="relative max-w-xs w-full">
-                <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
-                <Input
-                  type="text"
-                  placeholder="Search projects..."
-                  value={searchInput}
-                  onChange={handleSearchChange}
-                  className="pl-10 rounded-md border border-[var(--border)]"
-                />
-                {searchInput && (
-                  <button
-                    onClick={clearSearch}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
-                  >
-                    <HiXMark size={16} />
-                  </button>
-                )}
-                {isFetching && searchInput && (
-                  <div className="absolute right-8 top-1/2 -translate-y-1/2">
-                    <div className="animate-spin h-4 w-4 border-2 border-[var(--primary)] border-t-transparent rounded-full" />
+              {/* Responsive search/filter row for mobile */}
+              <div className="flex flex-col gap-2 w-full md:flex-row md:items-center md:gap-4">
+                <div className="flex flex-row gap-2 w-full">
+                  <div className="relative flex-1 min-w-0">
+                    <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
+                    <Input
+                      type="text"
+                      placeholder="Search projects..."
+                      value={searchInput}
+                      onChange={handleSearchChange}
+                      className="pl-10 rounded-md border border-[var(--border)]"
+                    />
+                    {searchInput && (
+                      <button
+                        onClick={clearSearch}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+                      >
+                        <HiXMark size={16} />
+                      </button>
+                    )}
+                    {isFetching && searchInput && (
+                      <div className="absolute right-8 top-1/2 -translate-y-1/2">
+                        <div className="animate-spin h-4 w-4 border-2 border-[var(--primary)] border-t-transparent rounded-full" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-shrink-0">
+                    <Tooltip
+                      content="Advanced Filters"
+                      position="top"
+                      color="primary"
+                    >
+                      <FilterDropdown
+                        sections={filterSections}
+                        title="Advanced Filters"
+                        activeFiltersCount={totalActiveFilters}
+                        onClearAllFilters={clearAllFilters}
+                        placeholder="Filter projects..."
+                        dropdownWidth="w-56"
+                        showApplyButton={false}
+                      />
+                    </Tooltip>
+                  </div>
+                </div>
+                {/* Create Project button for mobile (below search/filter row) */}
+                {hasAccess && (
+                  <div className="block md:hidden w-full">
+                    <ActionButton
+                      primary
+                      showPlusIcon
+                      onClick={() => setIsNewProjectModalOpen(true)}
+                      className="w-full"
+                    >
+                      Create Project
+                    </ActionButton>
                   </div>
                 )}
               </div>
-
-              {/* Filter Controls - Always shown */}
-              <Tooltip
-                content="Advanced Filters"
-                position="top"
-                color="primary"
-              >
-                <FilterDropdown
-                  sections={filterSections}
-                  title="Advanced Filters"
-                  activeFiltersCount={totalActiveFilters}
-                  onClearAllFilters={clearAllFilters}
-                  placeholder="Filter projects..."
-                  dropdownWidth="w-56"
-                  showApplyButton={false}
-                />
-              </Tooltip>
-
-              {/* Primary Action */}
+              {/* Create Project button for desktop (inline with search/filter) */}
               {hasAccess && (
-                <ActionButton
-                  primary
-                  showPlusIcon
-                  onClick={() => setIsNewProjectModalOpen(true)}
-                >
-                  Create Project
-                </ActionButton>
+                <div className="hidden md:block">
+                  <ActionButton
+                    primary
+                    showPlusIcon
+                    onClick={() => setIsNewProjectModalOpen(true)}
+                  >
+                    Create Project
+                  </ActionButton>
+                </div>
               )}
             </>
           }
@@ -704,7 +723,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 
                 {/* Footer Counter */}
                 {projects.length > 0 && (
-                  <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full min-h-[48px] flex items-center justify-center pb-4 pointer-events-none">
+                  <div className="fixed bottom-0 left-[50%] md:left-[55%] -translate-x-1/2 w-full min-h-[48px] flex items-center justify-center pb-4 pointer-events-none">
                     <p className="text-sm text-[var(--muted-foreground)] pointer-events-auto">
                       Showing {projects.length} project
                       {projects.length !== 1 ? "s" : ""}
@@ -714,14 +733,6 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                           totalActiveFilters !== 1 ? "s" : ""
                         } applied`}
                     </p>
-                    {(searchInput || totalActiveFilters > 0) && (
-                      <button
-                        onClick={clearAllFilters}
-                        className="ml-2 text-sm text-[var(--primary)] hover:underline pointer-events-auto"
-                      >
-                        Clear all
-                      </button>
-                    )}
                   </div>
                 )}
               </>

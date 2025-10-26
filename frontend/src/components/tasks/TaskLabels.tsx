@@ -100,11 +100,10 @@ export default function TaskLabels({
   };
 
   useEffect(() => {
-    console.log(`🏷️ TaskLabels loading state changed: ${loadingLabels ? "🔴 LOADING" : "✅ LOADED"}`);
     if (setLoading) {
       setLoading(loadingLabels);
     }
-  }, [loadingLabels, setLoading]);
+  }, [loadingLabels]);
 
   // Filter out already assigned labels from available labels
   const unassignedLabels = availableLabels.filter(

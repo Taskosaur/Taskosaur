@@ -165,17 +165,23 @@ export default function OrganizationSelector({
   return (
     <DropdownMenu open={dropdownOpen} onOpenChange={handleDropdownOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="header-org-selector-trigger">
+        <Button variant="ghost" className="header-org-selector-trigger max-[530px]:!px-3 max-[530px]:gap-2">
           <Avatar className="header-org-selector-avatar">
             <AvatarFallback className="header-org-selector-avatar-fallback">
               {getInitials(currentOrganization.name)}
             </AvatarFallback>
           </Avatar>
-          <span className="header-org-selector-name">
+          <span className="header-org-selector-name max-[530px]:text-sm max-[530px]:font-medium">
             {currentOrganization.name}
           </span>
-          <HiChevronDown className="header-org-selector-chevron" />
+          
+          <HiChevronDown className="header-org-selector-chevron max-[530px]:hidden" />
+           <span className="hidden max-[530px]:inline-block text-sm font-medium">
+          Organizations
+        </span>
         </Button>
+
+     
       </DropdownMenuTrigger>
 
       <DropdownMenuContent

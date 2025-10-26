@@ -27,15 +27,14 @@ const TaskActivities: React.FC<TaskActivitiesProps> = ({ taskId, setLoading }) =
   }, [taskId]);
 
   useEffect(() => {
-    console.log(`📋 TaskActivities loading state changed: ${loadingActivities ? "🔴 LOADING" : "✅ LOADED"}`);
     if (setLoading) {
       setLoading(loadingActivities);
     }
-  }, [loadingActivities, setLoading]);
+  }, [loadingActivities]);
 
   const fetchActivities = async (pageNum: number, append = false) => {
+    setLoadingActivities(true);
     try {
-      setLoadingActivities(true);
       const response = await getTaskActivity(taskId, isAuth, pageNum);
 
       if (response && response.activities) {

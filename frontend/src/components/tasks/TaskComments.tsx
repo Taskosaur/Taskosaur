@@ -325,6 +325,8 @@ export default function TaskComments({
       try {
         const taskComments = await getTaskComments(taskId, isAuth);
         setComments(taskComments || []);
+      } catch (error) {
+        console.error("Failed to fetch comments:", error);
       } finally {
         setLoadingComments(false);
       }
@@ -343,12 +345,12 @@ export default function TaskComments({
       const taskComments = await getTaskComments(taskId, isAuth);
       setComments(taskComments || []);
       if (onTaskRefetch) {
-        await onTaskRefetch();
+         onTaskRefetch();
       }
     } catch (error) {
       console.error("Failed to refresh comments:", error);
     }
-  }, [taskId, getTaskComments, onTaskRefetch]);
+  }, [taskId]);
 
   const handleAddOrEdit = async () => {
     if (!currentUser || isSubmitting) return;
@@ -513,7 +515,7 @@ export default function TaskComments({
                   Comments
                 </h3>
                 {allowEmailReplies && (
-                  <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">
                     <HiEnvelope className="w-3 h-3" />
                     <span>Email enabled</span>
                   </div>
@@ -541,7 +543,7 @@ export default function TaskComments({
               >
                 {showAll
                   ? "Show less"
-                  : `View more (${
+                  : `View (${
                       comments.length - INITIAL_DISPLAY_COUNT
                     } more)`}
               </button>

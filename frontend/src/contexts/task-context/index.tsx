@@ -506,9 +506,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
           limit?: number;
         }
       ): Promise<PaginatedTaskResponse> => {
-        const result = await handleApiOperation(() =>
-          taskApi.getAllTasks(organizationId, params)
-        );
+        const result = await taskApi.getAllTasks(organizationId, params);
         setTaskState((prev) => {
           const newState = {
             ...prev,
@@ -829,10 +827,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
       createTaskComment: async (
         commentData: CreateTaskCommentRequest
       ): Promise<TaskComment> => {
-        const result = await handleApiOperation(
-          () => taskApi.createTaskComment(commentData),
-          false
-        );
+        const result = await taskApi.createTaskComment(commentData);
 
         // Add comment to state if it's for the current task's comments
         if (
@@ -852,10 +847,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         taskId: string,
         isAuth: boolean
       ): Promise<TaskComment[]> => {
-        const result = await handleApiOperation(
-          () => taskApi.getTaskComments(taskId, isAuth),
-          false
-        );
+        const result = await taskApi.getTaskComments(taskId, isAuth);
 
         setTaskState((prev) => ({
           ...prev,
@@ -870,10 +862,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         userId: string,
         commentData: UpdateTaskCommentRequest
       ): Promise<TaskComment> => {
-        const result = await handleApiOperation(
-          () => taskApi.updateTaskComment(commentId, userId, commentData),
-          false
-        );
+        const result = await taskApi.updateTaskComment(commentId, userId, commentData);
 
         // Update comment in state
         setTaskState((prev) => ({
@@ -890,10 +879,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         commentId: string,
         userId: string
       ): Promise<void> => {
-        await handleApiOperation(
-          () => taskApi.deleteTaskComment(commentId, userId),
-          false
-        );
+        await taskApi.deleteTaskComment(commentId, userId);
 
         // Remove comment from state
         setTaskState((prev) => ({

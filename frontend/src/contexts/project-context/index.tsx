@@ -90,7 +90,8 @@ interface ProjectContextType extends ProjectState {
   addMemberToProject: (memberData: AddMemberData) => Promise<ProjectMember>;
   getProjectMembers: (projectId: string, search?: string) => Promise<ProjectMember[]>;
   getOrganizationMembers: (
-    organizationId: string
+    organizationId: string,
+    search?: string,
   ) => Promise<OrganizationMember[]>;
   getProjectMembersByWorkspace: (
     workspaceId: string
@@ -484,10 +485,11 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       },
 
       getOrganizationMembers: async (
-        organizationId: string
+        organizationId: string,
+        search?: string
       ): Promise<OrganizationMember[]> => {
         const result = await handleApiOperation(
-          () => projectApi.getOrganizationMembers(organizationId),
+          () => projectApi.getOrganizationMembers(organizationId, search),
           false
         );
 

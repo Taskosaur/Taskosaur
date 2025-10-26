@@ -40,10 +40,10 @@ const SearchManager = () => {
   const { universalSearch } = useOrganization();
   const currentOrganizationId = TokenManager.getCurrentOrgId();
   const PAGE_SIZE = 10;
-  
+
   // Debounce search term
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-  
+
   const paginatedResults = results;
   const totalPages = Math.ceil(totalResults / PAGE_SIZE);
 
@@ -125,16 +125,15 @@ const SearchManager = () => {
   };
 
   const getWorkspaceSlug = (workspaceName) => {
-    return workspaceName.toLowerCase().replace(/\s+/g, '-');
+    return workspaceName.toLowerCase().replace(/\s+/g, "-");
   };
 
   const handleResultSelect = (result) => {
-
     let navigationUrl = result.url;
 
     // Map different result types to correct frontend routes
     switch (result.type) {
-      case 'task':
+      case "task":
         if (result.context.workspace && result.context.project) {
           const workspaceSlug = getWorkspaceSlug(result.context.workspace.name);
           const projectSlug = result.context.project.slug;
@@ -145,7 +144,7 @@ const SearchManager = () => {
         router.push(navigationUrl);
         closeSearch();
         break;
-      case 'project':
+      case "project":
         if (result.context.workspace) {
           const workspaceSlug = getWorkspaceSlug(result.context.workspace.name);
           const projectSlug = result.context.project.slug;
@@ -154,13 +153,13 @@ const SearchManager = () => {
         router.push(navigationUrl);
         closeSearch();
         break;
-      case 'workspace':
+      case "workspace":
         const workspaceSlug = getWorkspaceSlug(result.title);
         navigationUrl = `/${workspaceSlug}`;
         router.push(navigationUrl);
         closeSearch();
         break;
-      case 'sprint':
+      case "sprint":
         if (result.context.workspace && result.context.project) {
           const workspaceSlug = getWorkspaceSlug(result.context.workspace.name);
           const projectSlug = result.context.project.slug;
@@ -169,7 +168,7 @@ const SearchManager = () => {
         router.push(navigationUrl);
         closeSearch();
         break;
-      case 'user':
+      case "user":
         closeSearch();
         break;
       default:
@@ -189,7 +188,9 @@ const SearchManager = () => {
           break;
         case "ArrowDown":
           e.preventDefault();
-          setSelectedIndex((prev) => Math.min(prev + 1, paginatedResults.length - 1));
+          setSelectedIndex((prev) =>
+            Math.min(prev + 1, paginatedResults.length - 1)
+          );
           break;
         case "ArrowUp":
           e.preventDefault();
@@ -258,25 +259,32 @@ const SearchManager = () => {
   // Get icon for result type
   const getResultIcon = (type) => {
     switch (type) {
-      case 'workspace': return '🏢';
-      case 'project': return '📁';
-      case 'task': return '✅';
-      case 'user': return '👤';
-      case 'sprint': return '🏃';
-      case 'comment': return '💬';
-      case 'label': return '🏷️';
-      default: return '🔍';
+      case "workspace":
+        return "🏢";
+      case "project":
+        return "📁";
+      case "task":
+        return "✅";
+      case "user":
+        return "👤";
+      case "sprint":
+        return "🏃";
+      case "comment":
+        return "💬";
+      case "label":
+        return "🏷️";
+      default:
+        return "🔍";
     }
   };
 
   const TriggerButton = () => (
     <Tooltip content="Search" position="bottom" color="primary">
-      <Button
-        onClick={openSearch}
-        className="header-mode-toggle shadow-none"
-        
-      >
+      <Button onClick={openSearch} className="header-mode-toggle shadow-none">
         <HiMagnifyingGlass className="header-mode-toggle-icon" />
+        <span className="hidden max-[530px]:inline-block text-sm font-medium">
+          Search
+        </span>
       </Button>
     </Tooltip>
   );
@@ -323,15 +331,19 @@ const SearchManager = () => {
               <HiXMark className="w-4 h-4" />
             </button>
           )}
-         
         </div>
 
         {/* Results Section */}
-        <div className={`max-h-80 overflow-y-auto flex-1 ${
-          (loading || error || (searchTerm && !loading && !error && results.length === 0) || (searchTerm === "" && !loading && !error))
-            ? 'flex flex-col justify-center items-center'
-            : ''
-        }`}>
+        <div
+          className={`max-h-80 overflow-y-auto flex-1 ${
+            loading ||
+            error ||
+            (searchTerm && !loading && !error && results.length === 0) ||
+            (searchTerm === "" && !loading && !error)
+              ? "flex flex-col justify-center items-center"
+              : ""
+          }`}
+        >
           {/* Loading state */}
           {loading && (
             <div className="flex flex-col items-center justify-center w-full h-full px-4 py-8 text-center text-[var(--muted-foreground)]">
@@ -356,7 +368,10 @@ const SearchManager = () => {
           )}
           {/* Results list */}
           {!loading && !error && paginatedResults.length > 0 && (
-            <div ref={resultsRef} className="py-1 w-full flex flex-col justify-start items-stretch">
+            <div
+              ref={resultsRef}
+              className="py-1 w-full flex flex-col justify-start items-stretch"
+            >
               {paginatedResults.map((result, index) => (
                 <div
                   key={result.id || index}
@@ -376,8 +391,10 @@ const SearchManager = () => {
                       {result.title}
                     </div>
                     <div className="text-[13px] opacity-70 truncate">
-                      {result.context?.workspace?.name && `${result.context.workspace.name} • `}
-                      {result.context?.project?.name && `${result.context.project.name} • `}
+                      {result.context?.workspace?.name &&
+                        `${result.context.workspace.name} • `}
+                      {result.context?.project?.name &&
+                        `${result.context.project.name} • `}
                       {result.type}
                     </div>
                   </div>

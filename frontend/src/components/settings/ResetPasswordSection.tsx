@@ -223,7 +223,7 @@ export default function ResetPasswordSection() {
               type="submit"
               disabled={loading}
               primary
-              className="h-8 px-3 text-sm border-none"
+              className="h-8 px-3 text-sm border-none w-[215px]"
             >
               {loading ? (
                 <div className="flex items-center gap-1">

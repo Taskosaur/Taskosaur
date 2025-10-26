@@ -183,7 +183,7 @@ export const taskApi = {
       if (params?.statuses) queryParams.append("statuses", params.statuses);
       if (params?.search) queryParams.append("search", params.search);
       if (params?.assignees) queryParams.append("assigneeIds", params.assignees);
-      if (params?.reporters) queryParams.append("reporterIds4", params.reporters);
+      if (params?.reporters) queryParams.append("reporterIds", params.reporters);
 
       // Pagination
       if (params?.page !== undefined)

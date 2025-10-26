@@ -43,13 +43,19 @@ export const projectApi = {
     }
   },
 
-  getProjectBySlug: async (slug: string, isAuthenticated: boolean, workspaceSlug?: string): Promise<Project> => {
+  getProjectBySlug: async (
+    slug: string,
+    isAuthenticated: boolean,
+    workspaceSlug?: string
+  ): Promise<Project> => {
     try {
       let response;
       if (isAuthenticated) {
         response = await api.get<Project>(`/projects/by-slug/${slug}`);
       } else {
-        response = await api.get<Project>(`/public/workspaces/${workspaceSlug}/projects/${slug}`);
+        response = await api.get<Project>(
+          `/public/workspaces/${workspaceSlug}/projects/${slug}`
+        );
       }
       return response.data;
     } catch (error) {
@@ -211,7 +217,8 @@ export const projectApi = {
   ): Promise<ProjectMember[]> => {
     try {
       const response = await api.get<ProjectMember[]>(
-        `/project-members?projectId=${projectId}${search ? `&search=${encodeURIComponent(search)}` : ""
+        `/project-members?projectId=${projectId}${
+          search ? `&search=${encodeURIComponent(search)}` : ""
         }`
       );
       return response.data;
@@ -222,11 +229,14 @@ export const projectApi = {
   },
 
   getOrganizationMembers: async (
-    organizationId: string
+    organizationId: string,
+    search?: string
   ): Promise<OrganizationMember[]> => {
     try {
       const response = await api.get<OrganizationMember[]>(
-        `/organization-members?organizationId=${organizationId}`
+        `/organization-members?organizationId=${organizationId}${
+          search ? `&search=${encodeURIComponent(search)}` : ""
+        }`
       );
       return response.data;
     } catch (error) {
@@ -304,7 +314,7 @@ export const projectApi = {
     try {
       const params = new URLSearchParams();
       chartTypes.forEach((type) => params.append("types", type));
-      let response
+      let response;
       if (isAuthenticated) {
         response = await api.get(
           `/projects/${projectSlug}/charts?${params.toString()}`
@@ -336,11 +346,16 @@ export const projectApi = {
     }
   },
   getAllCharts: async (
-    projectSlug: string, isAuthenticated: boolean
+    projectSlug: string,
+    isAuthenticated: boolean
   ): Promise<ProjectChartDataResponse> => {
     try {
       const allChartTypes = Object.values(ProjectChartType);
-      return await projectApi.getMultipleCharts(projectSlug, allChartTypes, isAuthenticated);
+      return await projectApi.getMultipleCharts(
+        projectSlug,
+        allChartTypes,
+        isAuthenticated
+      );
     } catch (error) {
       console.error("Get all project charts error:", error);
       throw error;

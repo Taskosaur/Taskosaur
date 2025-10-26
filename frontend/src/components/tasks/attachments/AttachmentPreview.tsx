@@ -70,36 +70,17 @@ export const AttachmentPreview = forwardRef<AttachmentPreviewRef, AttachmentPrev
     };
   }, []);
 
-  const loadImagePreview = async () => {
-    const cached = previewCache[attachment.id];
-    if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
-      setPreviewUrl(cached.url);
-      setIsModalOpen(true);
-      return;
-    }
+    useEffect(() => {
+      if (!isModalOpen && previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+        previewUrlRef.current = null;
+        setPreviewUrl(null);
+        if (previewCache[attachment.id]) {
+          delete previewCache[attachment.id];
+        }
+      }
+    }, [isModalOpen, attachment.id]);
 
-    setIsLoading(true);
-
-    try {
-      const blob = await previewFile(attachment.id);
-      const url = URL.createObjectURL(blob);
-
-      // Store in cache
-      previewCache[attachment.id] = {
-        url,
-        timestamp: Date.now(),
-      };
-
-      previewUrlRef.current = url;
-      setPreviewUrl(url);
-      setIsModalOpen(true);
-    } catch (err) {
-      console.error("Failed to load preview:", err);
-      toast.error("Failed to load image preview");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const openFileInBrowser = async () => {
     setIsLoading(true);

@@ -173,7 +173,11 @@ const router = useRouter();
                 {pendingInvites.length > 99 ? "99+" : pendingInvites.length}
               </Badge>
             )}
+            <span className="hidden max-[530px]:inline-block text-sm font-medium">
+              Invitations
+            </span>
           </Button>
+
         </DropdownMenuTrigger>
       </Tooltip>
         <DropdownMenuContent

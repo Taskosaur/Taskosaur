@@ -238,6 +238,8 @@ export default function Subtasks({
         );
       } catch (error) {
         console.error("Failed to fetch subtasks:", error);
+      } finally {
+        if (setLoading) setLoading(false);
       }
     };
 
@@ -658,7 +660,7 @@ export default function Subtasks({
                             onClick={(e) =>
                               handleToggleSubtaskStatus(subtask.id, e)
                             }
-                            className={`text-sm font-medium cursor-pointer truncate ${
+                            className={`text-sm font-medium cursor-pointer line-clamp-2 ${
                               isSubtaskCompleted(subtask)
                                 ? "text-[var(--muted-foreground)] line-through"
                                 : "text-[var(--foreground)]"

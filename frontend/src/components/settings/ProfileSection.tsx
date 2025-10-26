@@ -365,7 +365,7 @@ export default function ProfileSection() {
                 <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
                   Full Name
                 </h4>
-                <p className="text-[var(--foreground)] text-xs">
+                <p className="text-[var(--foreground)] text-sm">
                   {`${profileData.firstName} ${profileData.lastName}`.trim() ||
                     "Not provided"}
                 </p>
@@ -375,7 +375,7 @@ export default function ProfileSection() {
                 <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
                   Email
                 </h4>
-                <p className="text-[var(--foreground)] text-xs">
+                <p className="text-[var(--foreground)] text-sm">
                   {profileData.email || "Not provided"}
                 </p>
               </div>
@@ -385,7 +385,7 @@ export default function ProfileSection() {
                   <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
                     Mobile Number
                   </h4>
-                  <p className="text-[var(--foreground)] text-xs">
+                  <p className="text-[var(--foreground)] text-sm">
                     {profileData.mobileNumber}
                   </p>
                 </div>
@@ -396,7 +396,7 @@ export default function ProfileSection() {
                   <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
                     Bio
                   </h4>
-                  <p className="text-[var(--foreground)] leading-6 text-xs">
+                  <p className="text-[var(--foreground)] leading-6 text-sm">
                     {profileData.bio}
                   </p>
                 </div>

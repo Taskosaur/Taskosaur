@@ -121,8 +121,9 @@ export class TasksController {
     return this.tasksService.bulkDeleteTasks({
       taskIds: bulkDeleteTasksDto.taskIds,
       projectId: bulkDeleteTasksDto.projectId,
-      all : bulkDeleteTasksDto.all,
-      userId : user.id,}
+      all: bulkDeleteTasksDto.all,
+      userId: user.id,
+    }
     );
   }
 
@@ -135,11 +136,14 @@ export class TasksController {
       fileFilter: (req, file, callback) => {
         // Allow common file types
         const allowedMimes = [
+          // Images
           'image/jpeg',
-          'image/jpg',
           'image/png',
           'image/gif',
           'image/webp',
+          'image/svg+xml',
+
+          // Documents
           'application/pdf',
           'application/msword',
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -147,10 +151,30 @@ export class TasksController {
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'application/vnd.ms-powerpoint',
           'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+
+          // Text & Data
           'text/plain',
           'text/csv',
+          'text/markdown',
+          'application/json',
+          'application/xml',
+          'text/html',
+          'text/css',
+          'text/javascript',
+
+          // Archives
           'application/zip',
-          'application/x-zip-compressed',
+          'application/x-rar-compressed',
+          'application/x-7z-compressed',
+
+          // Videos
+          'video/mp4',
+          'video/webm',
+          'video/ogg',
+          'video/mpeg',
+          'video/quicktime',
+          'video/x-msvideo', // .avi
+          'video/x-matroska', // .mkv
         ];
 
         if (allowedMimes.includes(file.mimetype)) {

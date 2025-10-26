@@ -376,7 +376,7 @@
 }
 
 .header-org-selector-avatar {
-  @apply size-7 flex-shrink-0;
+  @apply size-7 flex-shrink-0 max-[530px]:size-4;
 }
 
 .header-org-selector-avatar-fallback {

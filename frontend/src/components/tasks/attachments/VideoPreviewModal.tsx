@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import ActionButton from '@/components/common/ActionButton';
+import { HiXMark } from 'react-icons/hi2';
 import { ArrowDownToLine } from 'lucide-react';
+import ActionButton from '@/components/common/ActionButton';
+import Tooltip from '@/components/common/ToolTip';
 
 interface VideoPreviewModalProps {
   isOpen: boolean;
@@ -22,6 +24,15 @@ export function VideoPreviewModal({
   createdAt,
   onDownload,
 }: VideoPreviewModalProps) {
+  const [videoLoaded, setVideoLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset state when modal closes
+      setVideoLoaded(false);
+    }
+  }, [isOpen]);
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -46,37 +57,58 @@ export function VideoPreviewModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent
-        className="!max-w-[80vw] !w-[80vw] max-h-[90vh] p-0 overflow-hidden"
+      <DialogContent 
+        showCloseButton={false}
+        className="!max-w-[80vw] !w-[80vw] max-h-[90vh] p-0 overflow-hidden border-none gap-0"
         style={{ maxWidth: '80vw', width: '80vw' }}
       >
+        {/* Header */}
         <DialogHeader className="px-6 py-4 border-b border-[var(--border)]">
           <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-md font-semibold truncate">{fileName}</DialogTitle>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="text-md font-semibold text-[var(--foreground)] truncate">
+                {fileName}
+              </DialogTitle>
               <p className="text-sm text-[var(--muted-foreground)] mt-1">
                 {formatFileSize(fileSize)} • {formatDate(createdAt)}
               </p>
             </div>
-            <ActionButton
-              onClick={onDownload}
-              variant="outline"
-              secondary
-              className="h-9 px-3"
-            >
-              <ArrowDownToLine className="w-4 h-4" />
-            </ActionButton>
+            <div className="flex items-center gap-2 ml-4">
+              <Tooltip content="Download Video">
+                <ActionButton
+                  onClick={onDownload}
+                  secondary
+                  className="h-9 px-3"
+                >
+                  <ArrowDownToLine className="w-4 h-4" />
+                </ActionButton>
+              </Tooltip>
+              <Tooltip content="Close Preview">
+                <ActionButton
+                  onClick={onClose}
+                  variant="outline"
+                  secondary
+                  className="h-9 px-3 hover:bg-accent hover:text-accent-foreground"
+                >
+                  <HiXMark className="w-4 h-4" />
+                </ActionButton>
+              </Tooltip>
+            </div>
           </div>
         </DialogHeader>
 
-        <div className="flex items-center justify-center bg-[var(--muted)]/30" style={{ height: 'calc(90vh - 100px)' }}>
-          <video
-            src={videoUrl}
-            controls
-            className="max-h-full max-w-full rounded-md shadow-md"
-          >
-            Your browser does not support HTML5 video.
-          </video>
+        {/* Video Container */}
+        <div className="relative flex items-center justify-center bg-[var(--background)] overflow-auto" style={{ height: 'calc(90vh - 100px)' }}>
+          <div className="p-8 flex items-center justify-center">
+            <video
+              src={videoUrl}
+              controls
+              onLoadedData={() => setVideoLoaded(true)}
+              className="max-w-full max-h-full object-contain rounded-md shadow-md"
+            >
+              Your browser does not support HTML5 video.
+            </video>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

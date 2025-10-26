@@ -46,8 +46,8 @@ export class OrganizationMembersController {
   }
 
   @Get()
-  findAll(@Query('organizationId') organizationId?: string) {
-    return this.organizationMembersService.findAll(organizationId);
+  findAll(@Query('organizationId') organizationId?: string,  @Query('search') search?: string,) {
+    return this.organizationMembersService.findAll(organizationId, search);
   }
   @Get('slug')
   findAllByOrgSlug(@Query('slug') slug?: string) {

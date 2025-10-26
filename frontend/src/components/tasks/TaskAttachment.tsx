@@ -86,7 +86,7 @@ const TaskAttachments: React.FC<TaskAttachmentsProps> = ({
     if (setLoading) {
       setLoading(loadingAttachments);
     }
-  }, [loadingAttachments, setLoading]);
+  }, [loadingAttachments]);
   
   // Poll for loading state changes from refs
   useEffect(() => {

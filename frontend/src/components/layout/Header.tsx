@@ -27,6 +27,7 @@ import { NewProjectModal } from "@/components/projects/NewProjectModal";
 import NewWorkspaceDialog from "../workspace/NewWorkspaceDialogProps";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 import SearchManager from "../header/SearchManager";
+import HeaderView from "../ui/mobile/HeaderView";
 
 const LoginButton = () => {
   const router = useRouter();
@@ -305,7 +306,6 @@ export default function Header() {
     );
   }
 
-  // Render authenticated header (existing functionality)
   return (
     <>
       <header className="header-container">
@@ -442,52 +442,68 @@ export default function Header() {
 
           {/* Right Section - Actions & User Menu */}
           <div className="header-right">
-            <div className="header-center">
-              {hasOrganizationAccess && <OrganizationSelector />}
-            </div>
+           
 
-            {hasOrganizationAccess && (
-              <>
-                {headerOptions.map(({ component }, idx) => (
-                  <span key={idx}>{component}</span>
-                ))}
+            <div className="hidden min-[531px]:contents">
+              <div className="header-center">
+                {hasOrganizationAccess && <OrganizationSelector />}
+              </div>
 
-                {toggleChat && isAIEnabled && (
-                  <div className="relative">
-                    <Button
-                      onClick={toggleChat}
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Toggle AI Chat"
-                      className={`header-mode-toggle transition-all duration-200 ${
-                        isChatOpen
-                          ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 ring-2 ring-blue-500/20"
-                          : ""
-                      }`}
-                    >
-                      <HiChatBubbleLeftRight
-                        className={`header-mode-toggle-icon transition-colors duration-200 ${
+              {hasOrganizationAccess && (
+                <>
+                  {headerOptions.map(({ component }, idx) => (
+                    <span key={idx}>{component}</span>
+                  ))}
+
+                  {toggleChat && isAIEnabled && (
+                    <div className="relative">
+                      <Button
+                        onClick={toggleChat}
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Toggle AI Chat"
+                        className={`header-mode-toggle transition-all duration-200 ${
                           isChatOpen
-                            ? "text-blue-600 dark:text-blue-400 scale-110"
+                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 ring-2 ring-blue-500/20"
                             : ""
                         }`}
-                      />
-                    </Button>
-                    {isChatOpen && (
-                      <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse" />
-                    )}
-                  </div>
-                )}
+                      >
+                        <HiChatBubbleLeftRight
+                          className={`header-mode-toggle-icon transition-colors duration-200 ${
+                            isChatOpen
+                              ? "text-blue-600 dark:text-blue-400 scale-110"
+                              : ""
+                          }`}
+                        />
+                      </Button>
+                      {isChatOpen && (
+                        <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse" />
+                      )}
+                    </div>
+                  )}
 
-                <div className="header-divider" />
-              </>
-            )}
+                  <div className="header-divider" />
+                </>
+              )}
+            </div>
 
             <UserProfileMenu
               user={currentUser}
               onLogout={handleLogout}
               hasOrganizationAccess={hasOrganizationAccess}
             />
+             <div className="max-[530px]:block hidden">
+              {hasOrganizationAccess && (
+                <HeaderView
+                  currentUser={currentUser}
+                  currentOrganizationId={currentOrganizationId}
+                  hasOrganizationAccess={hasOrganizationAccess}
+                  toggleChat={toggleChat}
+                  isChatOpen={isChatOpen}
+                  isAIEnabled={isAIEnabled}
+                />
+              )}
+            </div>
           </div>
         </div>
       </header>

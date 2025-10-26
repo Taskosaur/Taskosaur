@@ -272,24 +272,39 @@ export default function OrganizationMembers({
   return (
     <div className="organizations-members-container">
       <CardHeader className="organizations-members-header">
-        <div className="organizations-members-header-content">
+        <div className="organizations-members-header-content flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="organizations-members-header-info">
-            <CardTitle className="flex  gap-2 text-md">
+            <CardTitle className="flex gap-2 text-md">
               <HiUsers className="organizations-members-title-icon" />
               Members ({members.length})
             </CardTitle>
             <p className="organizations-members-subtitle">
               Manage organization members and their roles
             </p>
+            {/* Invite button below subtitle for small screens */}
+            {canManageMembers && (
+              <div className="block sm:hidden mt-2">
+                <Button
+                  onClick={() => setShowInviteModal(true)}
+                  className="organizations-members-invite-button"
+                >
+                  <HiPlus className="w-4 h-4" />
+                  Invite Member
+                </Button>
+              </div>
+            )}
           </div>
+          {/* Invite button beside for desktop */}
           {canManageMembers && (
-            <Button
-              onClick={() => setShowInviteModal(true)}
-              className="organizations-members-invite-button"
-            >
-              <HiPlus className="w-4 h-4" />
-              Invite Member
-            </Button>
+            <div className="hidden sm:block">
+              <Button
+                onClick={() => setShowInviteModal(true)}
+                className="organizations-members-invite-button"
+              >
+                <HiPlus className="w-4 h-4" />
+                Invite Member
+              </Button>
+            </div>
           )}
         </div>
       </CardHeader>

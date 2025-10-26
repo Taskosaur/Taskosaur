@@ -235,6 +235,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const { getTaskStatusByProject } = useProject();
   const { getProjectMembers } = useProject();
   const { isAuthenticated } = useAuth();
+
+  const isOrgOrWorkspaceLevel = (!workspaceSlug && !projectSlug) || (workspaceSlug && !projectSlug);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
@@ -242,7 +244,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
     title: "",
     priority: "MEDIUM" as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
     statusId: "",
-    assigneeIds: [] as string[], // Changed from assigneeId to assigneeIds array
+    assigneeIds: [] as string[],
     dueDate: "",
     projectId: "",
   });
@@ -301,7 +303,6 @@ const TaskTable: React.FC<TaskTableProps> = ({
       if (diffDays < -1) return `${Math.abs(diffDays)} days ago`;
       if (diffDays > 1) return `In ${diffDays} days`;
 
-      // Format with month short, day, and conditionally year
       if (date.year() !== now.year()) {
         return date.format("MMM D, YYYY");
       }
@@ -318,7 +319,6 @@ const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   const handleAllDeleteSelect = () => {
-    console.log(allDelete)
     setAllDelete(!allDelete);
   };
 
@@ -903,8 +903,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
               <TableRow className="tasktable-header-row">
                 <TableHead className="tasktable-header-cell-task pl-6">
                   <div className="flex items-center gap-4">
-                    {onTaskSelect && showBulkActionBar && (
+                    {!isOrgOrWorkspaceLevel && onTaskSelect && showBulkActionBar && (
                       <Checkbox
+                        className="border-[var(--ring)]"
                         checked={
                           selectedTasks.length === tasks.length &&
                           tasks.length > 0
@@ -1251,9 +1252,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
                 >
                   <TableCell className="tasktable-cell-task">
                     <div className="flex items-start gap-3">
-                      {onTaskSelect && showBulkActionBar && (
+                      {!isOrgOrWorkspaceLevel && onTaskSelect && showBulkActionBar && (
                         <div className="flex-shrink-0 mt-0.5">
                           <Checkbox
+                            className="cursor-pointer border-[var(--ring)]"
                             checked={selectedTasks.includes(task.id)}
                             onCheckedChange={() => onTaskSelect(task.id)}
                             onClick={(e) => e.stopPropagation()}
@@ -1436,7 +1438,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
       </div>
 
       {/* BulkActionBar - appears as a toast/modal at bottom-center */}
-      {onTaskSelect && showBulkActionBar && (
+      {!isOrgOrWorkspaceLevel && onTaskSelect && showBulkActionBar && (
         <BulkActionBar
           selectedCount={selectedTasks.length}
           onDelete={handleBulkDelete}

@@ -203,7 +203,7 @@ export default function DangerZoneModal({
   return (
     <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        {children || <Button variant={triggerVariant}>{triggerText}</Button>}
+        {children || <Button className="bg-red-700">{triggerText}</Button>}
       </DialogTrigger>
 
       <DialogContent className="projects-modal-container border-none">
@@ -223,22 +223,6 @@ export default function DangerZoneModal({
           </div>
         </DialogHeader>
 
-        {/* Error Alert with Retry Button */}
-        {error && (
-          <Alert variant="destructive" className="bg-[var(--destructive)]/10 border-[var(--destructive)]/20 text-[var(--destructive)] mb-4">
-            <AlertDescription className="flex flex-col gap-2">
-              {error}
-              <ActionButton 
-                secondary 
-                onClick={retryAction} 
-                className="h-9 w-24 mt-2"
-                disabled={isSubmitting}
-              >
-                Try Again
-              </ActionButton>
-            </AlertDescription>
-          </Alert>
-        )}
 
         {!selectedAction ? (
           // Actions List View
