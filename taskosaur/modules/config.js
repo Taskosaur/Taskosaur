@@ -46,7 +46,7 @@ function getConfig() {
         BE_SMTP_PASS,
         BE_SMTP_FROM,
         BE_FRONTEND_URL,
-        BE_UPLOAD_DEST = './uploads',
+        BE_UPLOAD_DEST = '../uploads',
         BE_MAX_FILE_SIZE = '10485760',
         BE_MAX_CONCURRENT_JOBS = '5',
         BE_JOB_RETRY_ATTEMPTS = '3',

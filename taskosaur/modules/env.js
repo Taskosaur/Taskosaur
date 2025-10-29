@@ -228,7 +228,7 @@ async function createSimpleEnvFile() {
         
         // File Upload
         console.log('\n📁 File Upload Configuration:');
-        config.BE_UPLOAD_DEST = `"${await askQuestion(rl, 'Upload Destination Directory', './uploads')}"`;
+        config.BE_UPLOAD_DEST = `"${await askQuestion(rl, 'Upload Destination Directory', '../uploads')}"`;
         config.BE_MAX_FILE_SIZE = await askQuestion(rl, 'Maximum File Size (bytes)', '10485760');
         
         // Queue Configuration

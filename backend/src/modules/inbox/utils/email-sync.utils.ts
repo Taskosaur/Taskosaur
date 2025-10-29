@@ -1,14 +1,73 @@
 export class EmailSyncUtils {
+  /**
+   * Extracts the thread ID from an email message using RFC 5322 threading headers.
+   * Thread ID should be the message ID of the FIRST/ORIGINAL email in the thread.
+   *
+   * Logic:
+   * 1. If message has references header, use the FIRST reference (oldest message in thread)
+   * 2. If no references but has inReplyTo, this is a direct reply - use inReplyTo as thread ID
+   * 3. If neither references nor inReplyTo exist, this IS the original - use messageId
+   *
+   * Note: The references header contains message IDs in chronological order [oldest...newest]
+   *
+   * @param message - Email message object with messageId, references, and inReplyTo fields
+   * @returns Thread ID (should be consistent for all messages in the same conversation)
+   */
   static extractThreadId(message: any): string {
-    if (message.references) {
-      const refs = typeof message.references === 'string' 
-        ? message.references.split(/\s+/) 
-        : message.references;
-      if (refs.length > 0) return refs[0];
-    }
-    if (message.inReplyTo) return message.inReplyTo;
+    // Normalize references to always be an array of valid message IDs
+    let references: string[] = [];
 
-    return message.messageId || `${Date.now()}-${Math.random()}`;
+    if (message.references) {
+      if (Array.isArray(message.references)) {
+        // Already an array - filter out invalid entries
+        references = message.references
+          .filter(ref => ref && typeof ref === 'string')
+          .map(ref => ref.trim())
+          .filter(ref => ref.length > 0);
+      } else if (typeof message.references === 'string' && message.references.trim()) {
+        // String format - split by whitespace (RFC 5322 allows space-separated list)
+        references = message.references
+          .trim()
+          .split(/\s+/)
+          .map(ref => ref.trim())
+          .filter(ref => ref.length > 0);
+      } else if (message.references instanceof Set) {
+        // Some parsers return Set - convert to array
+        references = Array.from(message.references)
+          .filter((ref): ref is string => ref !== null && ref !== undefined && typeof ref === 'string')
+          .map(ref => ref.trim())
+          .filter(ref => ref.length > 0);
+      }
+    }
+
+    // Priority 1: Use references[0] (the original/root email in the thread)
+    if (references.length > 0) {
+      return references[0];
+    }
+
+    // Priority 2: Use inReplyTo (for direct replies without full references chain)
+    // This happens when an email client only sets In-Reply-To but not References
+    if (message.inReplyTo && typeof message.inReplyTo === 'string') {
+      const inReplyTo = message.inReplyTo.trim();
+      if (inReplyTo.length > 0) {
+        return inReplyTo;
+      }
+    }
+
+    // Priority 3: This IS the original email (start of a new thread)
+    // Use its own messageId as the thread identifier
+    if (message.messageId && typeof message.messageId === 'string') {
+      const messageId = message.messageId.trim();
+      if (messageId.length > 0) {
+        return messageId;
+      }
+    }
+
+    // Fallback: Generate a unique thread ID (should rarely happen)
+    // This is only for malformed emails without proper Message-ID headers
+    const fallbackId = `fallback-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    // Note: Logger not available in static utility class - this warning is rare and acceptable
+    return fallbackId;
   }
 
   static extractEmail(addr: string | { name?: string; address?: string }): string {

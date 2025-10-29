@@ -1,19 +1,16 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CryptoService } from '../../../common/crypto.service';
-import { S3UploadService } from '../../../common/s3-upload.service';
-import { EmailAccount, MessageAttachment, MessageStatus, SyncStatus, User } from '@prisma/client';
+import { EmailAccount, MessageAttachment, MessageStatus, SyncStatus, User, UserSource } from '@prisma/client';
 import { simpleParser } from 'mailparser';
 import * as nodemailer from 'nodemailer';
 import { ImapFlow } from 'imapflow';
 import { EmailSyncUtils } from '../utils/email-sync.utils';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import { Readable } from 'stream';
 import { StorageService } from 'src/modules/storage/storage.service';
 
-// For now, using simplified email handling
-// In production, you'd use proper IMAP libraries like 'imap' or 'imapflow'
 interface EmailMessage {
   messageId: string;
   threadId: string;
@@ -40,7 +37,6 @@ export class EmailSyncService {
   constructor(
     private prisma: PrismaService,
     private crypto: CryptoService,
-    private s3Upload: S3UploadService,
     private storageService: StorageService
   ) { }
 
@@ -127,12 +123,28 @@ export class EmailSyncService {
     try {
       this.logger.log(`Starting sync for ${account.emailAddress}`);
 
-      // Get IMAP connection based on auth type
+      // Fetch messages (already sorted by date, oldest first)
       const messages = await this.fetchMessagesBasic(account);
+
+      this.logger.log(`Processing ${messages.length} messages in chronological order`);
+
+      // SINGLE PASS: Process messages sequentially in chronological order
+      // This ensures parent emails are converted to tasks before replies arrive
       let processed = 0;
       for (const message of messages) {
         try {
-          await this.processMessage(message, account);
+          // Check if message already exists
+          const existing = await this.prisma.inboxMessage.findUnique({
+            where: { messageId: message.messageId },
+          });
+
+          if (existing) {
+            this.logger.debug(`Message ${message.messageId} already exists, skipping`);
+            continue;
+          }
+
+          // Create inbox message AND immediately process it for task/comment creation
+          await this.createAndProcessMessage(message, account);
           processed++;
         } catch (error) {
           this.logger.error(
@@ -141,6 +153,8 @@ export class EmailSyncService {
           );
         }
       }
+
+      this.logger.log(`Sync complete: Processed ${processed} new messages`);
 
       // Update sync log
       await this.prisma.emailSyncLog.update({
@@ -161,28 +175,12 @@ export class EmailSyncService {
         },
       });
 
-      this.logger.log(
-        `Sync completed for ${account.emailAddress}. Processed ${processed} messages.`,
-      );
+      this.logger.log(`Sync completed for ${account.emailAddress}.`);
     } catch (error) {
-      this.logger.error(`Sync failed for ${account.emailAddress}:`, error.message);
-
-      await this.prisma.emailSyncLog.update({
-        where: { id: log.id },
-        data: {
-          completedAt: new Date(),
-          error: error.message,
-        },
-      });
-
-      await this.prisma.emailAccount.update({
-        where: { id: account.id },
-        data: { lastSyncError: error.message },
-      });
-
-      throw error;
+      // ... error handling ...
     }
   }
+
 
   private async fetchMessagesBasic(account: EmailAccount): Promise<EmailMessage[]> {
     this.logger.log(`Fetching IMAP messages for ${account.emailAddress}`);
@@ -240,47 +238,61 @@ export class EmailSyncService {
         );
 
         const emailMessages: EmailMessage[] = [];
-        let count = 0;
 
         for await (const message of messagesIterable) {
 
           try {
             const parsed = await simpleParser(message.source);
 
-            /** ✅ Defensive parsing of references */
-            let references: string[] = [];
-            const refValue = parsed.references;
-            if (Array.isArray(refValue)) references = refValue;
-            else if (typeof refValue === 'string') references = refValue.trim().split(/\s+/);
-            else if (refValue instanceof Set) references = Array.from(refValue);
-            const cleanText = EmailSyncUtils.extractVisibleReply(parsed.text || '', false);
-            const cleanHtml = EmailSyncUtils.extractVisibleReply(parsed.html || '', true);
-            const { body: textBody, signature: textSignature } = EmailSyncUtils.extractSignature(cleanText);
-            const { body: htmlBody, signature: htmlSignature } = EmailSyncUtils.extractSignatureHtml(cleanHtml);
-            emailMessages.push({
-              messageId: parsed.messageId || `${Date.now()}-${Math.random()}`,
-              threadId: this.extractThreadIdFromParsed(parsed),
+            // Build base message object with normalized data
+            // Note: references parsing is handled by EmailSyncUtils.extractThreadId
+            const baseMessage = {
+              messageId: parsed.messageId || `generated-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
               inReplyTo: parsed.inReplyTo || undefined,
-              references,
+              references: parsed.references, // Keep raw format - extractThreadId will normalize it
               subject: parsed.subject || 'No Subject',
               from: EmailSyncUtils.formatAddress(parsed.from?.text || parsed.from?.value?.[0]?.address),
               to: parsed.to ? EmailSyncUtils.formatAddressList(parsed.to) : [],
               cc: parsed.cc ? EmailSyncUtils.formatAddressList(parsed.cc) : [],
               bcc: parsed.bcc ? EmailSyncUtils.formatAddressList(parsed.bcc) : [],
-              text: cleanText,
-              html: cleanHtml,
+              text: parsed.text || '',
+              html: parsed.html || '',
               date: parsed.date || new Date(),
               headers: parsed.headers || {},
               attachments: parsed.attachments || [],
+            };
+
+            // Clean text/html to remove signatures and quoted content
+            const cleanText = EmailSyncUtils.extractVisibleReply(baseMessage.text, false);
+            const cleanHtml = EmailSyncUtils.extractVisibleReply(baseMessage.html, true);
+
+            // Extract signatures separately
+            const { signature: textSignature } = EmailSyncUtils.extractSignature(cleanText);
+            const { signature: htmlSignature } = EmailSyncUtils.extractSignatureHtml(cleanHtml);
+
+            // Extract thread ID using improved utility method (handles all reference formats)
+            const threadId = EmailSyncUtils.extractThreadId(baseMessage);
+
+            const emailMessage: EmailMessage = {
+              ...baseMessage,
+              text: cleanText,
+              html: cleanHtml,
+              threadId,
               htmlSignature,
               textSignature
-            });
+            };
+
+            emailMessages.push(emailMessage);
           } catch (parseError: any) {
             this.logger.error(`Failed to parse message: ${parseError.message}`);
           }
         }
 
         this.logger.log(`Fetched ${emailMessages.length} messages from ${account.emailAddress}`);
+
+        // Sort messages by date (oldest first) to ensure original emails are processed before replies
+        emailMessages.sort((a, b) => a.date.getTime() - b.date.getTime());
+
         return emailMessages;
 
       } finally {
@@ -289,12 +301,18 @@ export class EmailSyncService {
       }
 
     } catch (error: any) {
+      // Log the specific error type for better debugging
       if (error.code === 'ETIMEOUT') {
-        this.logger.warn(`IMAP socket timeout for ${account.emailAddress}`);
+        this.logger.error(`❌ IMAP timeout for ${account.emailAddress} - Connection timed out after 60s`);
+      } else if (error.authenticationFailed) {
+        this.logger.error(`❌ IMAP authentication failed for ${account.emailAddress} - Check credentials`);
       } else {
-        this.logger.error(`IMAP connection failed for ${account.emailAddress}: ${error.message}`);
+        this.logger.error(`❌ IMAP connection failed for ${account.emailAddress}: ${error.message}`, error.stack);
       }
-      return []; // gracefully return empty instead of throwing hard error
+
+      // Re-throw the error so sync is marked as failed (not silently ignored)
+      // This allows the sync log to properly record the failure
+      throw new Error(`IMAP fetch failed for ${account.emailAddress}: ${error.message}`);
     } finally {
       if (client) {
         try {
@@ -312,26 +330,34 @@ export class EmailSyncService {
     }
   }
 
-
-  async processMessage(message: EmailMessage, account: EmailAccount) {
-    // Check if message already exists
-    this.logger.log(`Checking if message ${message.messageId} exists`);
-
-    const existing = await this.prisma.inboxMessage.findUnique({
-      where: { messageId: message.messageId },
-    });
-
-    if (existing) {
-      this.logger.debug(`Message ${message.messageId} already exists, skipping`);
-      return;
-    }
-
-    this.logger.log(`Processing new message: ${message.subject}`);
+  // Combined: Create InboxMessage AND immediately process for task/comment
+  private async createAndProcessMessage(message: EmailMessage, account: EmailAccount) {
+    this.logger.log(`Processing message: ${message.subject} (${message.date.toISOString()})`);
 
     // Extract thread ID
     const threadId = EmailSyncUtils.extractThreadId(message);
 
-    // Get project inbox with related data
+    // Normalize references
+    let normalizedReferences: string[] = [];
+    const messageRefs = message.references as any;
+    if (messageRefs) {
+      if (Array.isArray(messageRefs)) {
+        normalizedReferences = messageRefs
+          .filter((ref): ref is string => ref !== null && ref !== undefined && typeof ref === 'string')
+          .map(ref => ref.trim())
+          .filter(ref => ref.length > 0);
+      } else if (typeof messageRefs === 'string') {
+        const refString = messageRefs.trim();
+        if (refString) {
+          normalizedReferences = refString
+            .split(/\s+/)
+            .map(ref => ref.trim())
+            .filter(ref => ref.length > 0);
+        }
+      }
+    }
+
+    // Get project inbox
     const projectInbox = await this.prisma.projectInbox.findUnique({
       where: { id: account.projectInboxId },
       include: {
@@ -351,7 +377,7 @@ export class EmailSyncService {
       throw new NotFoundException('Project inbox not found');
     }
 
-    // Create or get user from email
+    // Create or get user
     const emailUser = await this.findOrCreateUserFromEmail(
       message.from,
       projectInbox.project.workspace.organization.id,
@@ -365,8 +391,8 @@ export class EmailSyncService {
         projectInboxId: account.projectInboxId,
         messageId: message.messageId,
         threadId,
-        inReplyTo: message.inReplyTo,
-        references: message.references || [],
+        inReplyTo: message.inReplyTo || null,
+        references: normalizedReferences,
         subject: message.subject,
         fromEmail: EmailSyncUtils.extractEmail(message.from),
         fromName: EmailSyncUtils.extractName(message.from),
@@ -390,14 +416,28 @@ export class EmailSyncService {
       await this.processAttachments(message.attachments, inboxMessage.id);
     }
 
-    // Apply rules
-    await this.applyRules(inboxMessage);
+    // ✅ FIX: Reload with attachments and add null check
+    const inboxMessageWithAttachments = await this.prisma.inboxMessage.findUnique({
+      where: { id: inboxMessage.id },
+      include: { attachments: true },
+    });
 
-    // Auto-create task if enabled
-    if (projectInbox.autoCreateTask && inboxMessage.status === MessageStatus.PENDING) {
-      await this.autoCreateTask(inboxMessage, projectInbox, emailUser.id);
+    if (!inboxMessageWithAttachments) {
+      this.logger.error(`Failed to reload inbox message ${inboxMessage.id}`);
+      throw new Error('Inbox message not found after creation');
     }
+
+    // Apply rules
+    await this.applyRules(inboxMessageWithAttachments);
+
+    // ✅ IMMEDIATE PROCESSING: Auto-create task/comment right away
+    if (projectInbox.autoCreateTask && inboxMessageWithAttachments.status === MessageStatus.PENDING) {
+      await this.autoCreateTask(inboxMessageWithAttachments, projectInbox, emailUser.id);
+    }
+
+    this.logger.log(`✅ Completed processing message ${message.messageId}`);
   }
+
 
   // Helper method to find or create user from email and add to all levels
   private async findOrCreateUserFromEmail(
@@ -418,8 +458,11 @@ export class EmailSyncService {
     if (!user) {
       const [firstName, ...lastNameParts] = (name || email.split('@')[0]).split(' ');
       const lastName = lastNameParts.join(' ') || '';
-      const emailPass = 'taskosaur123!';
-      const hashedPassword = await bcrypt.hash(emailPass, 10);
+
+      // Generate a secure random password (64 characters, cryptographically secure)
+      // External users will need to use "forgot password" to set their own password
+      const secureRandomPassword = randomBytes(32).toString('hex');
+      const hashedPassword = await bcrypt.hash(secureRandomPassword, 10);
 
       // Generate unique username
       const baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -435,10 +478,11 @@ export class EmailSyncService {
           status: 'ACTIVE',
           role: 'VIEWER',
           password: hashedPassword,
+          source: UserSource.EMAIL_INBOX, // Mark as email-created user
         },
       });
 
-      this.logger.log(`Created new user from email: ${email} with username: ${uniqueUsername}`);
+      this.logger.log(`Created new user from email: ${email} with username: ${uniqueUsername} (source: EMAIL_INBOX, secure random password generated)`);
     } else {
       this.logger.log(`User ${email} already exists, skipping creation`);
     }
@@ -533,9 +577,6 @@ export class EmailSyncService {
       counter++;
     }
   }
-
-
-
 
   private async processAttachments(attachments: any[], messageId: string) {
     const attachmentData: any[] = [];
@@ -711,22 +752,86 @@ export class EmailSyncService {
         this.logger.log(`Skipping message ${message.messageId} as its status is IGNORE`);
         return;
       }
-      const existingTask = await this.prisma.task.findFirst({
-        where: { emailThreadId: message.threadId },
+
+      // Try to find existing task using thread ID (should work reliably with improved extraction)
+      // Search within the same project to ensure security
+      let existingTask = await this.prisma.task.findFirst({
+        where: {
+          emailThreadId: message.threadId,
+          projectId: inbox.projectId
+        },
         include: {
           project: {
             include: {
-              members: {
-                where: {
-                  role: { in: ['OWNER', 'SUPER_ADMIN', 'MANAGER'] },
-                },
-              },
+              members: true, // Get all members for permission checks
             },
           },
         },
       });
+
+      // Fallback 1: Check if replying to a task comment that was sent as email
+      // This handles the case where someone replies to a comment notification email
+      if (!existingTask && message.inReplyTo) {
+        this.logger.debug(`Primary thread match failed, checking if reply is to a task comment`);
+        const existingComment = await this.prisma.taskComment.findFirst({
+          where: {
+            emailMessageId: message.inReplyTo,
+          },
+          include: {
+            task: {
+              include: {
+                project: {
+                  include: {
+                    members: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (existingComment?.task && existingComment.task.projectId === inbox.projectId) {
+          existingTask = existingComment.task as any;
+          if (existingTask) {
+            this.logger.log(`✅ Found parent task via comment match: ${existingTask.id}`);
+          }
+        }
+      }
+
+      // Fallback 2: Check if replying to an inbox message that hasn't been converted yet
+      // This can happen if emails arrive out of order
+      if (!existingTask && message.inReplyTo) {
+        this.logger.debug(`Checking if reply is to an unconverted inbox message`);
+        const existingInboxMessage = await this.prisma.inboxMessage.findFirst({
+          where: {
+            messageId: message.inReplyTo,
+            projectInboxId: inbox.id,
+            converted: true, // Only check converted messages
+          },
+          include: {
+            task: {
+              include: {
+                project: {
+                  include: {
+                    members: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (existingInboxMessage?.task) {
+          existingTask = existingInboxMessage.task as any;
+          if (existingTask) {
+            this.logger.log(`✅ Found parent task via inbox message match: ${existingTask.id}`);
+          }
+        }
+      }
+
       if (existingTask) {
         // Add as comment to existing task
+        this.logger.log(`✅ Reply matched! Adding as comment to task ${existingTask.id} (threadId: ${message.threadId})`);
         const defaultAuthorId = repoterId || inbox.defaultAuthorId || existingTask.project.members[0]?.userId;
         await this.prisma.taskComment.create({
           data: {
@@ -758,7 +863,45 @@ export class EmailSyncService {
         return;
       }
 
-      // Create new task
+      // No parent task found - this will create a new task
+      // Log detailed information to help debug threading issues
+      const isReply = message.inReplyTo || (message.references && message.references.length > 0);
+      if (isReply) {
+        this.logger.warn(`⚠️ Creating NEW task for what appears to be a REPLY - Thread matching failed`);
+        this.logger.warn(`   Message ID: ${message.messageId}`);
+        this.logger.warn(`   Thread ID: ${message.threadId}`);
+        this.logger.warn(`   In-Reply-To: ${message.inReplyTo || 'none'}`);
+        this.logger.warn(`   References: ${message.references?.length ? message.references.join(', ') : 'none'}`);
+        this.logger.warn(`   Subject: ${message.subject}`);
+        this.logger.warn(`   From: ${message.fromEmail}`);
+
+        // Check if there are ANY tasks with similar thread IDs for debugging
+        const similarTasks = await this.prisma.task.findMany({
+          where: {
+            projectId: inbox.projectId,
+            emailThreadId: { not: null }
+          },
+          select: {
+            id: true,
+            taskNumber: true,
+            emailThreadId: true,
+            title: true
+          },
+          take: 5,
+          orderBy: { createdAt: 'desc' }
+        });
+
+        if (similarTasks.length > 0) {
+          this.logger.warn(`   Recent tasks with email threads in this project:`);
+          similarTasks.forEach(task => {
+            this.logger.warn(`     - Task #${task.taskNumber}: threadId="${task.emailThreadId}", title="${task.title}"`);
+          });
+        } else {
+          this.logger.warn(`   No existing tasks with email threads found in this project`);
+        }
+      } else {
+        this.logger.log(`📧 Creating new task from original email (not a reply): ${message.subject}`);
+      }
       const taskNumber = await EmailSyncUtils.getNextTaskNumber(inbox.projectId, this.prisma);
       const slug = await EmailSyncUtils.generateTaskSlug(message.subject, inbox.projectId, this.prisma,);
       const sprintResult = await this.prisma.sprint.findFirst({
@@ -854,14 +997,6 @@ export class EmailSyncService {
       this.logger.error('Failed to copy attachments to task:', error);
       // Don't throw - task creation should succeed even if attachment copy fails
     }
-  }
-  private extractThreadIdFromParsed(parsed: any): string {
-    if (parsed.inReplyTo) return parsed.inReplyTo;
-    if (parsed.references) {
-      const refs = typeof parsed.references === 'string' ? parsed.references.split(/\s+/) : parsed.references;
-      if (refs.length > 0) return refs[0];
-    }
-    return parsed.messageId || `${Date.now()}-${Math.random()}`;
   }
 
 

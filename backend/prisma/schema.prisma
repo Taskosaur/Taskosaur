@@ -31,6 +31,10 @@ model User {
   updatedAt                DateTime             @updatedAt @map("updated_at")
   resetToken               String?              @unique @map("reset_token")
   resetTokenExpiry         DateTime?            @map("reset_token_expiry")
+
+  // User Source Tracking
+  source                   UserSource           @default(MANUAL)
+
   activityLogs             ActivityLog[]
   createdAutomationRules   AutomationRule[]     @relation("AutomationRuleCreatedBy")
   updatedAutomationRules   AutomationRule[]     @relation("AutomationRuleUpdatedBy")
@@ -300,6 +304,7 @@ model Task {
   reporters     User[]           @relation("TaskReporters")
 
   @@unique([projectId, taskNumber])
+  @@index([emailThreadId])
   @@map("tasks")
 }
 
@@ -691,6 +696,15 @@ enum UserStatus {
   INACTIVE
   SUSPENDED
   PENDING
+}
+
+enum UserSource {
+  MANUAL       // Created manually by admin or through invitation
+  EMAIL_INBOX  // Auto-created from shared inbox email
+  SSO          // Created via Single Sign-On
+  API          // Created via API
+  IMPORT       // Bulk imported
+  SIGNUP       // Self-registered
 }
 
 enum Role {

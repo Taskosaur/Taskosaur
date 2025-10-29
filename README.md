@@ -262,7 +262,7 @@ _Taskosaur is actively under development. The following features represent our p
    BE_FRONTEND_URL=http://127.0.0.1:9123
 
    # File Upload
-   BE_UPLOAD_DEST="./uploads"
+   BE_UPLOAD_DEST="../uploads"
    BE_MAX_FILE_SIZE=10485760
 
    # Queue Configuration

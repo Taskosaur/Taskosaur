@@ -18,6 +18,13 @@ import {
 } from "react-icons/hi2";
 import { X } from "lucide-react";
 import Tooltip from "@/components/common/ToolTip";
+import { UserSource } from "@/types/users";
+import {
+  getUserSourceLabel,
+  getUserSourceBadgeClass,
+  isExternalUser,
+  getAllUserSources,
+} from "@/utils/userSourceHelpers";
 
 // Types
 export interface Member {
@@ -35,6 +42,7 @@ export interface Member {
   projectId?: string;
   organizationId?: string;
   workspaceId?: string;
+  source?: UserSource;
 }
 
 export interface Role {
@@ -137,9 +145,14 @@ export const MembersList: React.FC<MembersListProps> = ({
   emptyStateTitle,
   emptyStateDescription,
 }) => {
+  // State for source filter
+  const [sourceFilter, setSourceFilter] = useState<UserSource | "">("");
+
   // Filter active members (exclude pending invitations)
   const activeMembers = members.filter(
-    (member) => member.status?.toLowerCase() !== "pending"
+    (member) =>
+      member.status?.toLowerCase() !== "pending" &&
+      (!sourceFilter || member.source === sourceFilter)
   );
 
   const getEmptyStateContent = () => {
@@ -174,25 +187,49 @@ export const MembersList: React.FC<MembersListProps> = ({
             <HiUsers className="w-5 h-5 text-[var(--muted-foreground)]" />
             Team Members ({activeMembers.length})
           </CardTitle>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <HiMagnifyingGlass className="w-4 text-[var(--muted-foreground)]" />
+          <div className="flex items-center gap-2">
+            {/* Source Filter */}
+            <Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as UserSource | "")}>
+              <SelectTrigger className="h-9 w-48 border-input bg-background text-[var(--foreground)]">
+                <SelectValue placeholder="Filter by source" />
+              </SelectTrigger>
+              <SelectContent className="border-none bg-[var(--card)]">
+                <SelectItem value="" className="hover:bg-[var(--hover-bg)]">
+                  All Sources
+                </SelectItem>
+                {getAllUserSources().map((source) => (
+                  <SelectItem
+                    key={source.value}
+                    value={source.value}
+                    className="hover:bg-[var(--hover-bg)]"
+                  >
+                    {source.icon} {source.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Search */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <HiMagnifyingGlass className="w-4 text-[var(--muted-foreground)]" />
+              </div>
+              <Input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="pl-10 h-9 w-64 border-input bg-background text-[var(--foreground)]"
+                placeholder="Search members..."
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => onSearchChange("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+                >
+                  <HiXMark size={16} />
+                </button>
+              )}
             </div>
-            <Input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10 h-9 w-64 border-input bg-background text-[var(--foreground)]"
-              placeholder="Search members..."
-            />
-            {searchTerm && (
-              <button
-                onClick={() => onSearchChange("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
-              >
-                <HiXMark size={16} />
-              </button>
-            )}
           </div>
         </div>
       </CardHeader>
@@ -243,12 +280,27 @@ export const MembersList: React.FC<MembersListProps> = ({
                           size="sm"
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-[var(--foreground)] truncate">
-                            {member.firstName} {member.lastName}
-                            {isCurrentUser && (
-                              <span className="text-xs text-[var(--muted-foreground)] ml-2">
-                                (You)
-                              </span>
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm font-medium text-[var(--foreground)] truncate">
+                              {member.firstName} {member.lastName}
+                              {isCurrentUser && (
+                                <span className="text-xs text-[var(--muted-foreground)] ml-2">
+                                  (You)
+                                </span>
+                              )}
+                            </div>
+                            {member.source && isExternalUser(member.source) && (
+                              <Tooltip
+                                content="External user created from shared inbox email"
+                                position="top"
+                              >
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] px-1.5 py-0 h-4 border ${getUserSourceBadgeClass(member.source)}`}
+                                >
+                                  📧 {getUserSourceLabel(member.source)}
+                                </Badge>
+                              </Tooltip>
                             )}
                           </div>
                           <div className="text-xs text-[var(--muted-foreground)] truncate">
