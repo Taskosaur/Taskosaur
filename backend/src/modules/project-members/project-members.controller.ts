@@ -38,12 +38,16 @@ export class ProjectMembersController {
   }
 
   @Get()
-  findAll(
-    @Query('projectId') projectId?: string,
-    @Query('search') search?: string,
-  ) {
-    return this.projectMembersService.findAll(projectId, search);
-  }
+findAll(
+  @Query('projectId') projectId?: string,
+  @Query('search') search?: string,
+  @Query('page') page?: string,
+  @Query('limit') limit?: string,
+) {
+  const pageNumber = page ? parseInt(page, 10) : undefined;
+  const limitNumber = limit ? parseInt(limit, 10) : undefined;
+  return this.projectMembersService.findAll(projectId, search, pageNumber, limitNumber);
+}
 
   @Get('workspace/:workspaceId')
   findAllByWorkspace(@Param('workspaceId', ParseUUIDPipe) workspaceId: string) {

@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AccessControlService } from 'src/common/access-control.utils';
 import { ChartDataResponse, ChartType } from './dto/get-charts-query.dto';
+import { UserSource } from '@prisma/client';
 
 export interface KPIMetrics {
   totalWorkspaces: number;
@@ -52,7 +53,7 @@ export class OrganizationChartsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accessControl: AccessControlService,
-  ) {}
+  ) { }
 
   /**
    * Get multiple chart data types in a single request
@@ -347,8 +348,8 @@ export class OrganizationChartsService {
         where: { ...scoped.sprintForUser, status: 'ACTIVE' },
       }),
       this.prisma.organizationMember.count({
-          where: { organizationId: orgId },
-        }),
+        where: { organizationId: orgId },
+      }),
     ]);
 
     return {
@@ -542,10 +543,10 @@ export class OrganizationChartsService {
     const workspaceWhere = isElevated
       ? { organizationId: orgId, archive: false }
       : {
-          organizationId: orgId,
-          archive: false,
-          members: { some: { userId } },
-        };
+        organizationId: orgId,
+        archive: false,
+        members: { some: { userId } },
+      };
 
     const workspaces = await this.prisma.workspace.findMany({
       where: workspaceWhere,
@@ -576,12 +577,11 @@ export class OrganizationChartsService {
     const { isElevated } = await this.accessControl.getOrgAccess(orgId, userId);
 
     const userWhere = isElevated
-      ? { organizationMembers: { some: { organizationId: orgId } } }
+      ? { organizationMembers: { some: { organizationId: orgId } }, source: { not: UserSource.EMAIL_INBOX }, }
       : {
-          id: userId,
-          organizationMembers: { some: { organizationId: orgId } },
-        };
-
+        id: userId,
+        organizationMembers: { some: { organizationId: orgId }, source: { not: UserSource.EMAIL_INBOX }, },
+      };
     const members = await this.prisma.user.findMany({
       where: userWhere,
       select: {

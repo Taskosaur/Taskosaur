@@ -68,7 +68,7 @@ interface WorkspaceContextType extends WorkspaceState {
   ) => Promise<{ success: boolean; message: string }>;
 
   // Workspace member methods
-  getWorkspaceMembers: (workspaceId: string, search?: string) => Promise<WorkspaceMember[]>;
+  getWorkspaceMembers: (workspaceId: string, search?: string, page?: number, limit?: number) => Promise<{ data: WorkspaceMember[], total: number; page: number }>;
   addMemberToWorkspace: (
     memberData: AddMemberToWorkspaceData
   ) => Promise<WorkspaceMember>;
@@ -500,15 +500,17 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       getWorkspaceMembers: async (
         workspaceId: string,
         search?: string,
-      ): Promise<WorkspaceMember[]> => {
+        page?: number,
+        limit?: number
+      ): Promise<{ data: WorkspaceMember[], total: number; page: number }> => {
         const result = await handleApiOperation(
-          () => workspaceApi.getWorkspaceMembers(workspaceId, search),
+          () => workspaceApi.getWorkspaceMembers(workspaceId, search, page, limit),
           false
         );
 
         setWorkspaceState((prev) => ({
           ...prev,
-          workspaceMembers: result,
+          workspaceMembers: result.data,
         }));
 
         return result;

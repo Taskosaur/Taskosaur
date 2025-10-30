@@ -223,7 +223,7 @@ function WorkspaceTasksContent() {
     if (!workspace?.id) return;
     try {
       const members = await getWorkspaceMembers(workspace.id);
-      setWorkspaceMembers(members || []);
+      setWorkspaceMembers(members.data || []);
     } catch (error) {
       console.error("Failed to fetch workspace members:", error);
       setWorkspaceMembers([]);

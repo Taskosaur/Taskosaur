@@ -149,20 +149,30 @@ export const workspaceApi = {
   // Workspace member operations
   getWorkspaceMembers: async (
     workspaceId: string,
-    search: string
-  ): Promise<WorkspaceMember[]> => {
+    search?: string,
+    page?: number,
+    limit?: number
+  ): Promise<{ data: WorkspaceMember[], total: number; page: number }> => {
     try {
-      const response = await api.get<WorkspaceMember[]>(
-        `/workspace-members?workspaceId=${workspaceId}${
-          search ? `&search=${(search)}` : ""
-        }`
+      const params = new URLSearchParams();
+
+      if (workspaceId) params.append('workspaceId', workspaceId);
+      if (search) params.append('search', search);
+      if (page !== undefined) params.append('page', page.toString());
+      if (limit !== undefined) params.append('limit', limit.toString());
+
+      const response = await api.get<{ data: WorkspaceMember[], total: number; page: number }>(
+        `/workspace-members?${params.toString()}`
       );
-      return response.data || [];
+
+      // Return the paginated data structure safely
+      return response.data;
     } catch (error) {
-      console.error("Get workspace members error:", error);
+      console.error('Get workspace members error:', error);
       throw error;
     }
   },
+
 
   addMemberToWorkspace: async (
     memberData: AddMemberToWorkspaceData

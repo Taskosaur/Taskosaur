@@ -6,7 +6,28 @@ import {
   IsObject,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
+
+export class DefaultWorkspaceDto {
+  @ApiProperty({
+    description: 'Workspace name',
+    example: 'Main Workspace',
+  })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+}
+
+export class DefaultProjectDto {
+  @ApiProperty({
+    description: 'Project name',
+    example: 'First Project',
+  })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+}
 export class CreateOrganizationDto {
   @ApiProperty({
     description: 'Organization name',
@@ -70,4 +91,20 @@ export class CreateOrganizationDto {
   @IsString()
   @IsNotEmpty()
   ownerId: string;
+
+  @ApiProperty({
+    description: 'Default workspace configuration',
+    required: false,
+    type: DefaultWorkspaceDto,
+  })
+  @IsOptional()
+  defaultWorkspace?: DefaultWorkspaceDto;
+
+  @ApiProperty({
+    description: 'Default project configuration',
+    required: false,
+    type: DefaultProjectDto,
+  })
+  @IsOptional()
+  defaultProject?: DefaultProjectDto;
 }

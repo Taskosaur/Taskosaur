@@ -78,7 +78,11 @@ interface OrganizationContextType extends OrganizationState {
     filters: ActivityFilters
   ) => Promise<ActivityResponse>;
   getOrganizationBySlug: (slug: string) => Promise<Organization>;
-  getOrganizationMembers: (slug: string) => Promise<OrganizationMember[]>;
+  getOrganizationMembers: (
+    slug: string,
+    page?: number,
+    limit?: number
+  ) => Promise<{ data: OrganizationMember[]; total: number; page: number }>;
   getOrganizationWorkFlows: (slug: string) => Promise<Workflow[]>;
   updateWorkflow: (
     workflowId: string,
@@ -255,10 +259,9 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
         }));
       } catch (err) {
         console.error("Error fetching analytics data:", err);
-        const errorMessage =
-          err?.message
-            ? err.message
-            : "Failed to load organization analytics data";
+        const errorMessage = err?.message
+          ? err.message
+          : "Failed to load organization analytics data";
 
         setOrganizationState((prev) => ({
           ...prev,
@@ -413,10 +416,16 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
       },
 
       getOrganizationMembers: async (
-        slug: string
-      ): Promise<OrganizationMember[]> => {
+        slug: string,
+        page?: number,
+        limit?: number
+      ): Promise<{
+        data: OrganizationMember[];
+        total: number;
+        page: number;
+      }> => {
         return handleApiOperation(
-          () => organizationApi.getOrganizationMembers(slug),
+          () => organizationApi.getOrganizationMembers(slug, page, limit),
           false
         );
       },

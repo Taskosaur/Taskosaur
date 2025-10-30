@@ -168,7 +168,9 @@ export class WorkspaceMembersService {
   async findAll(
     workspaceId?: string,
     search?: string,
-  ): Promise<WorkspaceMember[]> {
+    page?: number,
+    limit?: number,
+  ): Promise<{ data: WorkspaceMember[]; total: number; page?: number; limit?: number }> {
     const whereClause: any = {};
 
     if (workspaceId) {
@@ -185,42 +187,96 @@ export class WorkspaceMembersService {
       };
     }
 
-    return this.prisma.workspaceMember.findMany({
-      where: whereClause,
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-            status: true,
-            lastLoginAt: true,
+    const isPaginated = !!(page && limit);
+
+    if (!isPaginated) {
+      // No pagination → return all
+      const data = await this.prisma.workspaceMember.findMany({
+        where: whereClause,
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              status: true,
+              lastLoginAt: true,
+            },
           },
-        },
-        workspace: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            avatar: true,
-            color: true,
-            organization: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
+          workspace: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              avatar: true,
+              color: true,
+              organization: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: [
-        { role: 'asc' }, // Admins first
-        { joinedAt: 'asc' },
-      ],
-    });
+        orderBy: [
+          { role: 'asc' },
+          { joinedAt: 'asc' },
+        ],
+      });
+
+      return { data, total: data.length };
+    }
+
+    // Pagination case
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.workspaceMember.findMany({
+        where: whereClause,
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              status: true,
+              lastLoginAt: true,
+            },
+          },
+          workspace: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              avatar: true,
+              color: true,
+              organization: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [
+          { role: 'asc' },
+          { joinedAt: 'asc' },
+        ],
+        skip,
+        take: limit,
+      }),
+      this.prisma.workspaceMember.count({ where: whereClause }),
+    ]);
+
+    return { data, total, page, limit };
   }
 
   async findOne(id: string): Promise<WorkspaceMember> {

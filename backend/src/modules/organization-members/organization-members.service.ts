@@ -20,7 +20,7 @@ export class OrganizationMembersService {
   constructor(
     private prisma: PrismaService,
     private workspaceMembersService: WorkspaceMembersService,
-  ) {}
+  ) { }
 
   async create(
     createOrganizationMemberDto: CreateOrganizationMemberDto,
@@ -185,36 +185,90 @@ export class OrganizationMembersService {
       ],
     });
   }
-  async findAllByOrgSlug(slug?: string): Promise<OrganizationMember[]> {
-    return this.prisma.organizationMember.findMany({
-      where: { organization: { slug: slug } },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-            status: true,
-            lastLoginAt: true,
+  async findAllByOrgSlug(
+    slug?: string,
+    page?: number,
+    limit?: number,
+  ): Promise<{ data: OrganizationMember[]; total: number; page?: number; limit?: number }> {
+    const isPaginated = !!(page && limit);
+
+    if (!isPaginated) {
+      // Return all results if pagination not provided
+      const data = await this.prisma.organizationMember.findMany({
+        where: { organization: { slug } },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              status: true,
+              lastLoginAt: true,
+            },
+          },
+          organization: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              avatar: true,
+            },
           },
         },
-        organization: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            avatar: true,
+        orderBy: [
+          { role: 'asc' }, // Admins first
+          { joinedAt: 'asc' },
+        ],
+      });
+
+      return { data, total: data.length };
+    }
+
+    // Pagination case
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.organizationMember.findMany({
+        where: { organization: { slug } },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              status: true,
+              lastLoginAt: true,
+            },
+          },
+          organization: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              avatar: true,
+            },
           },
         },
-      },
-      orderBy: [
-        { role: 'asc' }, // Admins first
-        { joinedAt: 'asc' },
-      ],
-    });
+        orderBy: [
+          { role: 'asc' },
+          { joinedAt: 'asc' },
+        ],
+        skip,
+        take: limit,
+      }),
+      this.prisma.organizationMember.count({
+        where: { organization: { slug } },
+      }),
+    ]);
+
+    return { data, total, page, limit };
   }
+
+
   async findOne(id: string): Promise<OrganizationMember> {
     const member = await this.prisma.organizationMember.findUnique({
       where: { id },

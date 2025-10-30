@@ -33,6 +33,8 @@ function IntroQuestions({ onComplete }: { onComplete: () => void }) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [projectName, setProjectName] = useState("");
 
   useEffect(() => {
     if (currentUser && currentUser?.onboardInfo) {
@@ -114,6 +116,17 @@ function IntroQuestions({ onComplete }: { onComplete: () => void }) {
             integrations: false,
           },
         },
+        // Pass workspace and project data if provided
+        ...(workspaceName.trim() && {
+          defaultWorkspace: {
+            name: workspaceName.trim(),
+          },
+        }),
+        ...(projectName.trim() && {
+          defaultProject: {
+            name: projectName.trim(),
+          },
+        }),
       });
       return result;
     } catch (error: any) {
@@ -151,7 +164,7 @@ function IntroQuestions({ onComplete }: { onComplete: () => void }) {
           </div>
           <div className="px-[10%] space-y-8">
             <div className="space-y-4">
-              <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold  text-[var(--foreground)] leading-tight">
+              <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[var(--foreground)] leading-tight">
                 {currentQuestionData.question}
               </h1>
               <p className="text-[var(--foreground)] text-sm">
@@ -163,18 +176,52 @@ function IntroQuestions({ onComplete }: { onComplete: () => void }) {
 
             {/* Options or Input based on question type */}
             {currentQuestionData.type === "input" ? (
-              <div className="space-y-4">
-                <Label className="text-sm font-medium">
-                  {currentQuestionData.inputLabel}
-                </Label>
-                <Input
-                  type="text"
-                  value={answers[currentQuestionData.id] || ""}
-                  onChange={(e) => handleInputChange(e.target.value)}
-                  placeholder={currentQuestionData.placeholder}
-                  className="border-[var(--border)] bg-[var(--background)] p-4 text-lg"
-                  autoFocus
-                />
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">
+                    {currentQuestionData.inputLabel}
+                  </Label>
+                  <Input
+                    type="text"
+                    value={answers[currentQuestionData.id] || ""}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    placeholder={currentQuestionData.placeholder}
+                    className="border-[var(--border)] bg-[var(--background)] p-4 text-lg"
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                {/* Workspace and Project Section - Only show on organization name question */}
+                {currentQuestionData.id === "organizationName" && (
+                  <div className="mt-6 pt-6 border-t border-[var(--border)] space-y-6">
+                    <div className="space-y-4">
+                      <Label className="text-sm font-medium text-[var(--foreground)]">
+                        Workspace Name 
+                      </Label>
+                      <Input
+                        type="text"
+                        value={workspaceName}
+                        onChange={(e) => setWorkspaceName(e.target.value)}
+                        placeholder="e.g., Main Workspace"
+                        className="border-[var(--border)] bg-[var(--background)] p-4 text-lg"
+                      />
+                    </div>
+
+                    <div className="space-y-4">
+                      <Label className="text-sm font-medium text-[var(--foreground)]">
+                        Project Name 
+                      </Label>
+                      <Input
+                        type="text"
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value)}
+                        placeholder="e.g., First Project"
+                        className="border-[var(--border)] bg-[var(--background)] p-4 text-lg"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

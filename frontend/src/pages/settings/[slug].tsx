@@ -31,6 +31,7 @@ import PendingInvitations, {
   PendingInvitationsRef,
 } from "@/components/common/PendingInvitations";
 import OrganizationManageSkeleton from "@/components/skeletons/OrganizationManageSkeleton";
+import Pagination from "@/components/common/Pagination";
 
 // Define the access structure type
 interface UserAccess {
@@ -99,7 +100,9 @@ function OrganizationManagePageContent() {
     "settings" | "members" | "workflows"
   >("settings");
   const pendingInvitationsRef = useRef<PendingInvitationsRef>(null);
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalMembers, setTotalMembers] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   // Helper to check if user has access
   const hasManagementAccess = userAccess?.canChange || false;
 
@@ -170,7 +173,11 @@ function OrganizationManagePageContent() {
       }
 
       // Only load members and workflows if user has access
-      const membersData = await getOrganizationMembers(slug);
+      const membersData = await getOrganizationMembers(
+        slug,
+        currentPage,
+        pageSize
+      );
 
       setOrganization({
         id: orgData.id,
@@ -186,7 +193,9 @@ function OrganizationManagePageContent() {
         createdAt: orgData.createdAt,
         updatedAt: orgData.updatedAt,
       });
-      setMembers(membersData);
+      setMembers(membersData.data); // Set only current page data
+      setTotalMembers(membersData.total); // Set total count
+      setCurrentPage(membersData.page); // Set current page
 
       // Load workflows in background
       loadWorkflows();
@@ -509,6 +518,37 @@ function OrganizationManagePageContent() {
                     organization={organization}
                     pendingInvitationsRef={pendingInvitationsRef}
                   />
+                  <div className="px-4">
+                    <Pagination
+                      pagination={{
+                        currentPage: currentPage,
+                        totalPages: Math.ceil(totalMembers / pageSize),
+                        totalCount: totalMembers,
+                        hasNextPage: currentPage * pageSize < totalMembers,
+                        hasPrevPage: currentPage > 1,
+                      }}
+                      pageSize={pageSize}
+                      onPageChange={async (page) => {
+                        setCurrentPage(page);
+                        const membersData = await getOrganizationMembers(
+                          slug as string,
+                          page,
+                          pageSize
+                        );
+                        setMembers(membersData.data);
+                      }}
+                      onPageSizeChange={async (newPageSize) => {
+                        setCurrentPage(1);
+                        const membersData = await getOrganizationMembers(
+                          slug as string,
+                          1,
+                          newPageSize
+                        );
+                        setPageSize(newPageSize);
+                        setMembers(membersData.data);
+                      }}
+                    />
+                  </div>
                 </Card>
               </div>
 

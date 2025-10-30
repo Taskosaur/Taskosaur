@@ -20,7 +20,7 @@ import { UpdateProjectMemberDto } from './dto/update-project-member.dto';
 
 @Injectable()
 export class ProjectMembersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(
     createProjectMemberDto: CreateProjectMemberDto,
@@ -167,12 +167,18 @@ export class ProjectMembersService {
     });
   }
 
-  async findAll(projectId?: string, search?: string): Promise<ProjectMember[]> {
+  async findAll(
+    projectId?: string,
+    search?: string,
+    page?: number,
+    limit?: number,
+  ): Promise<{ data: ProjectMember[]; total: number; page?: number; limit?: number }> {
     const whereClause: any = {};
 
     if (projectId) {
       whereClause.projectId = projectId;
     }
+
     if (search && search.trim()) {
       whereClause.user = {
         OR: [
@@ -183,7 +189,9 @@ export class ProjectMembersService {
       };
     }
 
-    return this.prisma.projectMember.findMany({
+    const total = await this.prisma.projectMember.count({ where: whereClause });
+
+    const queryOptions: any = {
       where: whereClause,
       include: {
         user: {
@@ -222,11 +230,22 @@ export class ProjectMembersService {
         },
       },
       orderBy: [
-        { role: 'asc' }, // Admins first
+        { role: 'asc' },
         { joinedAt: 'asc' },
       ],
-    });
+    };
+
+    // Apply pagination only if both page and limit are provided
+    if (page && limit) {
+      queryOptions.skip = (page - 1) * limit;
+      queryOptions.take = limit;
+    }
+
+    const data = await this.prisma.projectMember.findMany(queryOptions);
+
+    return { data, total, page, limit };
   }
+
 
   async findAllByWorkspace(workspaceId: string): Promise<any[]> {
     // Verify workspace exists

@@ -10,9 +10,11 @@ import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { Readable } from 'stream';
 import { StorageService } from 'src/modules/storage/storage.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 interface EmailMessage {
   messageId: string;
+  imapUid: number;
   threadId: string;
   inReplyTo?: string;
   references?: string[];
@@ -40,7 +42,7 @@ export class EmailSyncService {
     private storageService: StorageService
   ) { }
 
-  // @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async syncAllInboxes() {
     this.logger.log('Starting scheduled email sync for all inboxes');
 
@@ -248,6 +250,7 @@ export class EmailSyncService {
             // Note: references parsing is handled by EmailSyncUtils.extractThreadId
             const baseMessage = {
               messageId: parsed.messageId || `generated-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              imapUid: message.uid,
               inReplyTo: parsed.inReplyTo || undefined,
               references: parsed.references, // Keep raw format - extractThreadId will normalize it
               subject: parsed.subject || 'No Subject',
@@ -390,6 +393,7 @@ export class EmailSyncService {
       data: {
         projectInboxId: account.projectInboxId,
         messageId: message.messageId,
+        imapUid: message.imapUid,
         threadId,
         inReplyTo: message.inReplyTo || null,
         references: normalizedReferences,
@@ -433,6 +437,14 @@ export class EmailSyncService {
     // ✅ IMMEDIATE PROCESSING: Auto-create task/comment right away
     if (projectInbox.autoCreateTask && inboxMessageWithAttachments.status === MessageStatus.PENDING) {
       await this.autoCreateTask(inboxMessageWithAttachments, projectInbox, emailUser.id);
+    }
+
+    // ⭐ Mark as read on IMAP server after successful processing
+    try {
+      await this.markMessageAsReadOnServer(inboxMessage.id);
+    } catch (error) {
+      this.logger.error(`Failed to mark as read, but message was processed successfully`);
+      // Don't throw - message processing succeeded, mark as read is non-critical
     }
 
     this.logger.log(`✅ Completed processing message ${message.messageId}`);
@@ -1055,5 +1067,93 @@ export class EmailSyncService {
     }
 
     return this.syncInbox(account);
+  }
+
+  // Mark email as read on IMAP server using UID
+  async markMessageAsReadOnServer(inboxMessageId: string): Promise<void> {
+    this.logger.log(`Marking message ${inboxMessageId} as read on IMAP server`);
+
+    const message = await this.prisma.inboxMessage.findUnique({
+      where: { id: inboxMessageId },
+      include: {
+        projectInbox: {
+          include: {
+            emailAccount: true
+          }
+        }
+      }
+    });
+
+    if (!message?.imapUid || !message.projectInbox?.emailAccount) {
+      this.logger.warn(`Cannot mark as read: missing UID or account for message ${inboxMessageId}`);
+      return;
+    }
+
+    const account = message.projectInbox.emailAccount;
+    let client: ImapFlow | null = null;
+
+    try {
+      const password = await this.crypto.decrypt(account.imapPassword!);
+
+      client = new ImapFlow({
+        host: account.imapHost!,
+        port: account.imapPort || 993,
+        secure: account.imapUseSsl !== false,
+        auth: {
+          user: account.imapUsername!,
+          pass: password,
+        },
+        logger: false,
+        socketTimeout: 30000,
+        greetingTimeout: 30000,
+        connectionTimeout: 30000,
+        disableAutoIdle: true,
+      });
+
+      // Handle errors gracefully
+      client.on('error', (err) => {
+        this.logger.error(`IMAP client error during mark as read: ${err.message}`);
+      });
+
+      // Connect with timeout
+      await Promise.race([
+        client.connect(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('IMAP connect timeout')), 30000)
+        ),
+      ]);
+
+      const mailbox = await client.getMailboxLock(account.imapFolder || 'INBOX');
+
+      try {
+        // Mark as read using UID - fast and reliable
+        await client.messageFlagsAdd(
+          String(message.imapUid),
+          ['\\Seen'],
+          { uid: true }
+        );
+
+        this.logger.log(`✅ Marked message as read on server (UID: ${message.imapUid})`);
+      } finally {
+        mailbox.release();
+      }
+    } catch (error: any) {
+      this.logger.error(`Failed to mark message as read on IMAP server: ${error.message}`);
+      // Don't throw - this is a non-critical operation
+      // The message was already processed successfully in our system
+    } finally {
+      if (client) {
+        try {
+          await Promise.race([
+            client.logout(),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('IMAP logout timeout')), 5000)
+            ),
+          ]);
+        } catch (logoutError: any) {
+          this.logger.warn(`Failed to logout IMAP client: ${logoutError.message}`);
+        }
+      }
+    }
   }
 }

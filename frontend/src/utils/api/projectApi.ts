@@ -216,26 +216,46 @@ export const projectApi = {
     search?: string
   ): Promise<ProjectMember[]> => {
     try {
-      const response = await api.get<ProjectMember[]>(
-        `/project-members?projectId=${projectId}${
-          search ? `&search=${encodeURIComponent(search)}` : ""
+      const response = await api.get<{data:ProjectMember[], total: number}>(
+        `/project-members?projectId=${projectId}${search ? `&search=${encodeURIComponent(search)}` : ""
         }`
       );
+      return response.data.data;
+    } catch (error) {
+      console.error("Get project members error:", error);
+      throw error;
+    }
+  },
+  getProjectMembersPagination: async (
+    projectId: string,
+    search?: string,
+    page?: number,
+    limit?: number
+  ): Promise<{ data: ProjectMember[]; total: number, page: number }> => {
+    try {
+      const params = new URLSearchParams();
+      if (projectId) params.append("projectId", projectId);
+      if (search) params.append("search", search);
+      if (page) params.append("page", page.toString());
+      if (limit) params.append("limit", limit.toString());
+
+      const response = await api.get<{ data: ProjectMember[]; total: number, page: number }>(
+        `/project-members?${params.toString()}`
+      );
+
       return response.data;
     } catch (error) {
       console.error("Get project members error:", error);
       throw error;
     }
   },
-
   getOrganizationMembers: async (
     organizationId: string,
     search?: string
   ): Promise<OrganizationMember[]> => {
     try {
       const response = await api.get<OrganizationMember[]>(
-        `/organization-members?organizationId=${organizationId}${
-          search ? `&search=${encodeURIComponent(search)}` : ""
+        `/organization-members?organizationId=${organizationId}${search ? `&search=${encodeURIComponent(search)}` : ""
         }`
       );
       return response.data;

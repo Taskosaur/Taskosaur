@@ -40,6 +40,7 @@ import PendingInvitations, {
 } from "@/components/common/PendingInvitations";
 import WorkspaceMembersSkeleton from "@/components/skeletons/WorkspaceMembersSkeleton";
 import ErrorState from "@/components/common/ErrorState";
+import Pagination from "@/components/common/Pagination";
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -112,9 +113,9 @@ function ProjectMembersContent() {
   const { getWorkspaceBySlug } = useWorkspaceContext();
   const {
     getProjectsByWorkspace,
-    getProjectMembers,
     updateProjectMemberRole,
     removeProjectMember,
+    getProjectMembersPagination,
   } = useProjectContext();
   const { isAuthenticated, getCurrentUser, getUserAccess } = useAuth();
 
@@ -139,7 +140,9 @@ function ProjectMembersContent() {
   const pendingInvitationsRef = useRef<PendingInvitationsRef>(null);
   const [userAccess, setUserAccess] = useState(null);
   const [hasAccess, setHasAccess] = useState(false);
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalMembers, setTotalMembers] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   useEffect(() => {
     if (!workspace?.id) return;
     getUserAccess({ name: "workspace", id: workspace?.id })
@@ -241,7 +244,7 @@ function ProjectMembersContent() {
   };
 
   const fetchMembers = useCallback(
-    async (searchValue = "") => {
+    async (searchValue = "", page = 1) => {
       const pageKey = `${workspaceSlug}/${projectSlug}/members`;
       const requestId = `${pageKey}-${Date.now()}-${Math.random()}`;
 
@@ -298,17 +301,18 @@ function ProjectMembersContent() {
         }
 
         try {
-          const membersData = await getProjectMembers(
+          const membersData = await getProjectMembersPagination(
             foundProject.id,
-            searchValue
+            searchValue,
+            page,
+            pageSize
           );
-
           if (requestIdRef.current !== requestId || !isMountedRef.current) {
             return;
           }
-
-          if (Array.isArray(membersData) && membersData.length > 0) {
-            const processedMembers = membersData.map(
+          setTotalMembers(membersData.total);
+          if (Array.isArray(membersData.data) && membersData.data.length > 0) {
+            const processedMembers = membersData.data.map(
               (member: ProjectMember) => ({
                 id: member.id,
                 email: member.user?.email || "",
@@ -410,24 +414,31 @@ function ProjectMembersContent() {
     if (!project) return;
 
     try {
-      const membersData = await getProjectMembers(project.id, searchTerm);
+      const membersData = await getProjectMembersPagination(
+        project.id,
+        searchTerm,
+        currentPage,
+        pageSize
+      );
 
-      if (Array.isArray(membersData) && membersData.length > 0) {
-        const processedMembers = membersData.map((member: ProjectMember) => ({
-          id: member.id,
-          email: member.user?.email || "",
-          firstName: member.user?.firstName || "Unknown",
-          lastName: member.user?.lastName || "User",
-          username: member.user?.username || "",
-          role: member.role || "DEVELOPER",
-          status: member.user?.status || "ACTIVE",
-          avatarUrl: member.user?.avatar,
-          joinedAt:
-            member.joinedAt || member.createdAt || new Date().toISOString(),
-          lastActive: member.user?.lastLoginAt,
-          userId: member?.userId,
-          projectId: member?.projectId,
-        }));
+      if (Array.isArray(membersData.data) && membersData.data.length > 0) {
+        const processedMembers = membersData.data.map(
+          (member: ProjectMember) => ({
+            id: member.id,
+            email: member.user?.email || "",
+            firstName: member.user?.firstName || "Unknown",
+            lastName: member.user?.lastName || "User",
+            username: member.user?.username || "",
+            role: member.role || "DEVELOPER",
+            status: member.user?.status || "ACTIVE",
+            avatarUrl: member.user?.avatar,
+            joinedAt:
+              member.joinedAt || member.createdAt || new Date().toISOString(),
+            lastActive: member.user?.lastLoginAt,
+            userId: member?.userId,
+            projectId: member?.projectId,
+          })
+        );
         setMembers(processedMembers);
       } else {
         setMembers([]);
@@ -721,11 +732,11 @@ function ProjectMembersContent() {
                                     isCurrentUser
                                       ? "Leave Project"
                                       : isOwner
-                                        ? "Project owner cannot be removed"
-                                        : userAccess?.role === "MANAGER" &&
-                                          member.role === "MANAGER"
-                                          ? "Cannot remove other managers"
-                                          : "Remove Member"
+                                      ? "Project owner cannot be removed"
+                                      : userAccess?.role === "MANAGER" &&
+                                        member.role === "MANAGER"
+                                      ? "Cannot remove other managers"
+                                      : "Remove Member"
                                   }
                                   position="top"
                                   color="danger"
@@ -875,11 +886,11 @@ function ProjectMembersContent() {
                                     isCurrentUser
                                       ? "Leave Project"
                                       : isOwner
-                                        ? "Project owner cannot be removed"
-                                        : userAccess?.role === "MANAGER" &&
-                                          member.role === "MANAGER"
-                                          ? "Cannot remove other managers"
-                                          : "Remove Member"
+                                      ? "Project owner cannot be removed"
+                                      : userAccess?.role === "MANAGER" &&
+                                        member.role === "MANAGER"
+                                      ? "Cannot remove other managers"
+                                      : "Remove Member"
                                   }
                                   position="top"
                                   color="danger"
@@ -901,6 +912,24 @@ function ProjectMembersContent() {
                       </div>
                     );
                   })}
+                  <div className="px-4">
+                    {totalMembers> 10 && (
+                      <Pagination
+                        pagination={{
+                          currentPage: currentPage,
+                          totalPages: Math.ceil(totalMembers / pageSize),
+                          totalCount: totalMembers,
+                          hasNextPage: currentPage * pageSize < totalMembers,
+                          hasPrevPage: currentPage > 1,
+                        }}
+                        pageSize={pageSize}
+                        onPageChange={async (page) => {
+                          setCurrentPage(page);
+                          await fetchMembers(page === 1 ? debouncedSearchTerm : searchTerm, page);
+                        }}
+                      />
+                    )}
+                  </div>
                 </div>
               )}
             </CardContent>

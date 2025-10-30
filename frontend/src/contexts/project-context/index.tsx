@@ -58,7 +58,11 @@ interface ProjectContextType extends ProjectState {
       search?: string;
     }
   ) => Promise<Project[]>;
-  getProjectBySlug: (slug: string, isAuthenticated: boolean, workspaceSlug?: string) => Promise<Project>;
+  getProjectBySlug: (
+    slug: string,
+    isAuthenticated: boolean,
+    workspaceSlug?: string
+  ) => Promise<Project>;
   archiveProject: (
     projectId: string
   ) => Promise<{ success: boolean; message: string }>;
@@ -88,10 +92,19 @@ interface ProjectContextType extends ProjectState {
     inviteData: InviteMemberData
   ) => Promise<ProjectMember>;
   addMemberToProject: (memberData: AddMemberData) => Promise<ProjectMember>;
-  getProjectMembers: (projectId: string, search?: string) => Promise<ProjectMember[]>;
+  getProjectMembers: (
+    projectId: string,
+    search?: string
+  ) => Promise<ProjectMember[]>;
+  getProjectMembersPagination: (
+    projectId: string,
+    search?: string,
+    page?: number,
+    limit?: number
+  ) => Promise<{ data: ProjectMember[]; total: number; page: number }>;
   getOrganizationMembers: (
     organizationId: string,
-    search?: string,
+    search?: string
   ) => Promise<OrganizationMember[]>;
   getProjectMembersByWorkspace: (
     workspaceId: string
@@ -129,7 +142,10 @@ interface ProjectContextType extends ProjectState {
     statusId: string,
     taskStatusData: UpdateTaskStatusDto
   ) => Promise<TaskStatus>;
-  fetchAnalyticsData: (organizationId: string, isAuthenticated:boolean) => Promise<void>;
+  fetchAnalyticsData: (
+    organizationId: string,
+    isAuthenticated: boolean
+  ) => Promise<void>;
   clearAnalyticsError: () => void;
 }
 
@@ -183,8 +199,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
       return result;
     } catch (error) {
-      const errorMessage =
-        error.message ? error.message : "An error occurred";
+      const errorMessage = error.message ? error.message : "An error occurred";
       setProjectState((prev) => ({
         ...prev,
         isLoading: false,
@@ -195,7 +210,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
   },
   []);
   const fetchAnalyticsData = useCallback(
-    async (projectSlug: string, isAuthenticated:boolean): Promise<void> => {
+    async (projectSlug: string, isAuthenticated: boolean): Promise<void> => {
       try {
         setProjectState((prev) => ({
           ...prev,
@@ -204,7 +219,10 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
           refreshingAnalytics: true,
         }));
 
-        const results = await projectApi.getAllCharts(projectSlug, isAuthenticated);
+        const results = await projectApi.getAllCharts(
+          projectSlug,
+          isAuthenticated
+        );
 
         // Process each chart and handle individual errors
         const processChartData = (data: any, chartName: string) => {
@@ -250,10 +268,9 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         }));
       } catch (err) {
         console.error("Error fetching analytics data:", err);
-        const errorMessage =
-          err?.message
-            ? err.message
-            : "Failed to load project analytics data";
+        const errorMessage = err?.message
+          ? err.message
+          : "Failed to load project analytics data";
 
         setProjectState((prev) => ({
           ...prev,
@@ -316,9 +333,14 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
         return result;
       },
-      getProjectBySlug: async (slug: string, isAuthenticated:boolean, workspaceSlug?: string): Promise<Project> => {
+      getProjectBySlug: async (
+        slug: string,
+        isAuthenticated: boolean,
+        workspaceSlug?: string
+      ): Promise<Project> => {
         const result = await handleApiOperation(
-          () => projectApi.getProjectBySlug(slug, isAuthenticated, workspaceSlug),
+          () =>
+            projectApi.getProjectBySlug(slug, isAuthenticated, workspaceSlug),
           false
         );
         // Optionally update currentProject if slug matches
@@ -483,7 +505,24 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
         return result;
       },
+      getProjectMembersPagination: async (
+        projectId: string,
+        search?: string,
+        page?: number,
+        limit?: number
+      ): Promise<{ data: ProjectMember[]; total: number; page: number }> => {
+        const result = await handleApiOperation(
+          () => projectApi.getProjectMembersPagination(projectId, search, page, limit),
+          false
+        );
 
+        setProjectState((prev) => ({
+          ...prev,
+          projectMembers: result.data,
+        }));
+
+        return result;
+      },
       getOrganizationMembers: async (
         organizationId: string,
         search?: string

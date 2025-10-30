@@ -46,48 +46,59 @@ export const organizationApi = {
   },
 
   createOrganization: async (
-    organizationData: CreateOrganizationData
-  ): Promise<Organization> => {
-    try {
-      const currentUser = authApi.getCurrentUser();
+  organizationData: CreateOrganizationData
+): Promise<Organization> => {
+  try {
+    const currentUser = authApi.getCurrentUser();
 
-      if (!currentUser?.id) {
-        throw new Error("User not authenticated or user ID not found");
-      }
-
-      const defaultSettings: OrganizationSettings = {
-        allowInvites: true,
-        requireEmailVerification: false,
-        defaultRole: OrganizationRole.MEMBER,
-        features: {
-          timeTracking: true,
-          customFields: true,
-          automation: true,
-          integrations: true,
-        },
-      };
-
-      const finalOrganizationData = {
-        name: organizationData.name.trim(),
-        description: organizationData.description?.trim() || "",
-        ownerId: currentUser.id,
-        settings: organizationData.settings || defaultSettings,
-        ...(organizationData.website?.trim() && {
-          website: organizationData.website.trim(),
-        }),
-      };
-
-      const response = await api.post<Organization>(
-        "/organizations",
-        finalOrganizationData
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error("Create organization error:", error);
-      throw error;
+    if (!currentUser?.id) {
+      throw new Error("User not authenticated or user ID not found");
     }
-  },
+
+    const defaultSettings: OrganizationSettings = {
+      allowInvites: true,
+      requireEmailVerification: false,
+      defaultRole: OrganizationRole.MEMBER,
+      features: {
+        timeTracking: true,
+        customFields: true,
+        automation: true,
+        integrations: true,
+      },
+    };
+
+    const finalOrganizationData = {
+      name: organizationData.name.trim(),
+      description: organizationData.description?.trim() || "",
+      ownerId: currentUser.id,
+      settings: organizationData.settings || defaultSettings,
+      ...(organizationData.website?.trim() && {
+        website: organizationData.website.trim(),
+      }),
+      ...(organizationData.defaultWorkspace && {
+        defaultWorkspace: {
+          name: organizationData.defaultWorkspace.name.trim(),
+        },
+      }),
+      ...(organizationData.defaultProject && {
+        defaultProject: {
+          name: organizationData.defaultProject.name.trim(),
+        },
+      }),
+    };
+
+    const response = await api.post<Organization>(
+      "/organizations",
+      finalOrganizationData
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Create organization error:", error);
+    throw error;
+  }
+},
+
 
   getOrganizationById: async (
     organizationId: string
@@ -114,11 +125,13 @@ export const organizationApi = {
     }
   },
   getOrganizationMembers: async (
-    slug: string
-  ): Promise<OrganizationMember[]> => {
+    slug: string,
+    page?: number,
+    limit?: number
+  ): Promise<{ data: OrganizationMember[]; total: number; page: number }> => {
     try {
-      const response = await api.get<OrganizationMember[]>(
-        `/organization-members/slug?slug=${encodeURIComponent(slug)}`
+      const response = await api.get<{ data: OrganizationMember[]; total: number; page: number }>(
+        `/organization-members/slug?slug=${encodeURIComponent(slug)}&page=${page}&limit=${limit}`
       );
       return response.data;
     } catch (error) {
@@ -172,7 +185,7 @@ export const organizationApi = {
       throw error;
     }
   },
-  
+
   setDefaultOrganization: async (organizationId: string): Promise<any> => {
     try {
       const response = await api.patch<any>(
@@ -313,23 +326,23 @@ export const organizationApi = {
     }
   },
 
-showPendingInvitations: async (
-  entityType: "organization" | "workspace" | "project",
-  entityId: string
-) => {
-  try {
-    if (!entityType || !entityId) {
-      return new Error("Both entityType and entityId are required");
-    }
+  showPendingInvitations: async (
+    entityType: "organization" | "workspace" | "project",
+    entityId: string
+  ) => {
+    try {
+      if (!entityType || !entityId) {
+        return new Error("Both entityType and entityId are required");
+      }
 
-    const response = await api.get(
-      `/invitations/entity/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Show pending invitations error:", error);
-    throw error;
-  }
-},
+      const response = await api.get(
+        `/invitations/entity/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Show pending invitations error:", error);
+      throw error;
+    }
+  },
 
 };

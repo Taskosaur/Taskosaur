@@ -9,31 +9,31 @@ datasource db {
 }
 
 model User {
-  id                       String               @id @default(uuid()) @db.Uuid
-  mobileNumber             String?              @map("mobile_number")
-  email                    String               @unique
-  username                 String?              @unique
-  firstName                String               @map("first_name")
-  lastName                 String               @map("last_name")
-  avatar                   String?
-  bio                      String?
-  timezone                 String               @default("UTC")
-  language                 String               @default("en")
-  role                     Role                 @default(MEMBER)
-  status                   UserStatus           @default(ACTIVE)
-  lastLoginAt              DateTime?            @map("last_login_at")
-  emailVerified            Boolean              @default(false) @map("email_verified")
-  password                 String?
-  refreshToken             String?              @map("refresh_token")
-  preferences              Json?
-  onboardInfo              Json?
-  createdAt                DateTime             @default(now()) @map("created_at")
-  updatedAt                DateTime             @updatedAt @map("updated_at")
-  resetToken               String?              @unique @map("reset_token")
-  resetTokenExpiry         DateTime?            @map("reset_token_expiry")
+  id               String     @id @default(uuid()) @db.Uuid
+  mobileNumber     String?    @map("mobile_number")
+  email            String     @unique
+  username         String?    @unique
+  firstName        String     @map("first_name")
+  lastName         String     @map("last_name")
+  avatar           String?
+  bio              String?
+  timezone         String     @default("UTC")
+  language         String     @default("en")
+  role             Role       @default(MEMBER)
+  status           UserStatus @default(ACTIVE)
+  lastLoginAt      DateTime?  @map("last_login_at")
+  emailVerified    Boolean    @default(false) @map("email_verified")
+  password         String?
+  refreshToken     String?    @map("refresh_token")
+  preferences      Json?
+  onboardInfo      Json?
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  resetToken       String?    @unique @map("reset_token")
+  resetTokenExpiry DateTime?  @map("reset_token_expiry")
 
   // User Source Tracking
-  source                   UserSource           @default(MANUAL)
+  source UserSource @default(MANUAL)
 
   activityLogs             ActivityLog[]
   createdAutomationRules   AutomationRule[]     @relation("AutomationRuleCreatedBy")
@@ -494,13 +494,13 @@ model TaskComment {
 }
 
 model TaskAttachment {
-  id         String  @id @default(uuid()) @db.Uuid
-  fileName   String  @map("file_name")
-  filePath   String?  @map("file_path")
-  fileSize   Int     @map("file_size")
-  mimeType   String  @map("mime_type")
-  url        String? @map("url")
-  storageKey String? @map("storage_key")
+  id            String   @id @default(uuid()) @db.Uuid
+  fileName      String   @map("file_name")
+  filePath      String?  @map("file_path")
+  fileSize      Int      @map("file_size")
+  mimeType      String   @map("mime_type")
+  url           String?  @map("url")
+  storageKey    String?  @map("storage_key")
   taskId        String   @map("task_id") @db.Uuid
   createdBy     String?  @map("created_by_id") @db.Uuid
   updatedBy     String?  @map("updated_by_id") @db.Uuid
@@ -699,12 +699,12 @@ enum UserStatus {
 }
 
 enum UserSource {
-  MANUAL       // Created manually by admin or through invitation
-  EMAIL_INBOX  // Auto-created from shared inbox email
-  SSO          // Created via Single Sign-On
-  API          // Created via API
-  IMPORT       // Bulk imported
-  SIGNUP       // Self-registered
+  MANUAL // Created manually by admin or through invitation
+  EMAIL_INBOX // Auto-created from shared inbox email
+  SSO // Created via Single Sign-On
+  API // Created via API
+  IMPORT // Bulk imported
+  SIGNUP // Self-registered
 }
 
 enum Role {
@@ -1008,6 +1008,7 @@ model InboxMessage {
 
   // Email Identity
   messageId  String   @unique @map("message_id")
+  imapUid    BigInt?  @map("imap_uid")
   threadId   String   @map("thread_id")
   inReplyTo  String?  @map("in_reply_to")
   references String[]
@@ -1056,9 +1057,11 @@ model InboxMessage {
   convertedByUser User?               @relation(fields: [convertedBy], references: [id])
   attachments     MessageAttachment[]
 
+  @@unique([projectInboxId, imapUid])
   @@index([threadId])
   @@index([status])
   @@index([emailDate])
+  @@index([imapUid])
   @@map("inbox_messages")
 }
 

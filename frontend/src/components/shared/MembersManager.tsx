@@ -258,9 +258,9 @@ const MembersManagerComponent = memo(function MembersManager({
       if (!targetWorkspaceId) return;
 
       const workspaceMembersData =
-        (await workspaceContext.getWorkspaceMembers?.(targetWorkspaceId)) || [];
+        (await workspaceContext.getWorkspaceMembers?.(targetWorkspaceId));
 
-      const transformedMembers: Member[] = workspaceMembersData.map(
+      const transformedMembers: Member[] = workspaceMembersData.data.map(
         (wsMember: any) => ({
           id: wsMember.id,
           role: wsMember.role,

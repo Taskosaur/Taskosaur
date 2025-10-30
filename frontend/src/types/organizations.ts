@@ -77,6 +77,8 @@ export interface CreateOrganizationData {
   description?: string;
   website?: string;
   settings?: OrganizationSettings;
+  defaultWorkspace ?: {name: string};
+  defaultProject ?: {name: string};
 }
 
 export interface ActivityFilters {

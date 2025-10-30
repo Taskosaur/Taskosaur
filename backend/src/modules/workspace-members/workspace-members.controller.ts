@@ -27,7 +27,7 @@ import { UpdateWorkspaceMemberDto } from './dto/update-workspace-member.dto';
 export class WorkspaceMembersController {
   constructor(
     private readonly workspaceMembersService: WorkspaceMembersService,
-  ) {}
+  ) { }
 
   @Post()
   create(@Body() createWorkspaceMemberDto: CreateWorkspaceMemberDto) {
@@ -43,8 +43,13 @@ export class WorkspaceMembersController {
   findAll(
     @Query('workspaceId') workspaceId?: string,
     @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.workspaceMembersService.findAll(workspaceId, search);
+    const pageNum = page ? parseInt(page, 10) : undefined;
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+
+    return this.workspaceMembersService.findAll(workspaceId, search, pageNum, limitNum);
   }
 
   @Get('user/:userId/workspaces')

@@ -150,7 +150,7 @@ export default function EmailIntegrationSettings({
   const loadProjectData = useCallback(
     async (search: string = "") => {
       try {
-        const [statuses, users] = await Promise.all([
+        const [statuses, users]: any = await Promise.all([
           projectContext.getTaskStatusByProject(projectId),
           projectContext.getProjectMembers?.(projectId, search) ||
           Promise.resolve([]),

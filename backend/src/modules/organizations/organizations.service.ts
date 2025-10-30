@@ -20,7 +20,7 @@ import slugify from 'slugify';
 
 @Injectable()
 export class OrganizationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   private async generateUniqueSlug(name: string): Promise<string> {
     const baseSlug = slugify(name, {
@@ -51,9 +51,15 @@ export class OrganizationsService {
   ): Promise<Organization> {
     try {
       const slug = await this.generateUniqueSlug(createOrganizationDto.name);
+
       const organization = await this.prisma.organization.create({
         data: {
-          ...createOrganizationDto,
+          name: createOrganizationDto.name,
+          description: createOrganizationDto.description,
+          avatar: createOrganizationDto.avatar,
+          website: createOrganizationDto.website,
+          settings: createOrganizationDto.settings,
+          ownerId: createOrganizationDto.ownerId,
           slug,
           createdBy: userId,
           updatedBy: userId,
@@ -107,94 +113,112 @@ export class OrganizationsService {
         );
       }
 
-      // Step 2: Create default workspace
-      const workspace = await this.prisma.workspace.create({
-        data: {
-          name: DEFAULT_WORKSPACE.name,
-          description: DEFAULT_WORKSPACE.description,
-          slug: `default-workspace-${organization.id}`,
-          organizationId: organization.id,
-          createdBy: userId,
-          updatedBy: userId,
-          members: {
-            create: {
-              userId,
-              role: 'OWNER',
-              createdBy: userId,
-              updatedBy: userId,
-            },
-          },
-        },
-      });
+      // Conditionally create workspace if provided
+      let workspace;
+      if (createOrganizationDto.defaultWorkspace) {
+        const workspaceSlug = await this.generateUniqueWorkspaceSlug(
+          createOrganizationDto.defaultWorkspace.name,
+          organization.id,
+        );
 
-      // Step 3: Create default project inside workspace
-      const project = await this.prisma.project.create({
-        data: {
-          name: DEFAULT_PROJECT.name,
-          description: DEFAULT_PROJECT.description,
-          slug: `default-project-${workspace.id}`,
-          workspaceId: workspace.id,
-          workflowId: defaultWorkflow.id,
-          createdBy: userId,
-          updatedBy: userId,
-          color: DEFAULT_PROJECT.color,
-          sprints: {
-            create: {
-              name: DEFAULT_SPRINT.name,
-              goal: DEFAULT_SPRINT.goal,
-              status: DEFAULT_SPRINT.status,
-              isDefault: DEFAULT_SPRINT.isDefault,
-              createdBy: userId,
-              updatedBy: userId,
-            },
-          },
-          members: {
-            create: {
-              userId,
-              role: 'MANAGER',
-              createdBy: userId,
-              updatedBy: userId,
-            },
-          },
-        },
-        include: {
-          sprints: true,
-          workflow: {
-            include: {
-              statuses: {
-                orderBy: { position: 'asc' },
+        workspace = await this.prisma.workspace.create({
+          data: {
+            name: createOrganizationDto.defaultWorkspace.name,
+            description: 'Default workspace',
+            slug: workspaceSlug,
+            organizationId: organization.id,
+            createdBy: userId,
+            updatedBy: userId,
+            members: {
+              create: {
+                userId,
+                role: 'OWNER',
+                createdBy: userId,
+                updatedBy: userId,
               },
             },
           },
-        },
-      });
-
-      const defaultSprint = project.sprints.find((s) => s.isDefault);
-      if (!project.workflow || project.workflow.statuses.length === 0) {
-        throw new NotFoundException(
-          'Default workflow or statuses not found for the project',
-        );
+        });
       }
-      const workflowStatuses = project.workflow.statuses;
-      await this.prisma.task.createMany({
-        data: DEFAULT_TASKS.map((task, index) => {
-          const status =
-            workflowStatuses.find((s) => s.name === task.status) ??
-            workflowStatuses[0];
-          return {
-            title: task.title,
-            description: task.description,
-            priority: task.priority,
-            statusId: status.id,
-            projectId: project.id,
-            sprintId: defaultSprint?.id || null,
-            taskNumber: index + 1,
-            slug: `${project.slug}-${index + 1}`,
+      // Conditionally create project if provided
+      let project;
+      if (createOrganizationDto.defaultProject && workspace) {
+        const projectSlug = await this.generateUniqueProjectSlug(
+          createOrganizationDto.defaultProject.name,
+          workspace.id,
+        );
+
+        project = await this.prisma.project.create({
+          data: {
+            name: createOrganizationDto.defaultProject.name,
+            description: 'Default project',
+            slug: projectSlug,
+            workspaceId: workspace.id,
+            workflowId: defaultWorkflow.id,
             createdBy: userId,
             updatedBy: userId,
-          };
-        }),
-      });
+            color: DEFAULT_PROJECT.color,
+            sprints: {
+              create: {
+                name: DEFAULT_SPRINT.name,
+                goal: DEFAULT_SPRINT.goal,
+                status: DEFAULT_SPRINT.status,
+                isDefault: DEFAULT_SPRINT.isDefault,
+                createdBy: userId,
+                updatedBy: userId,
+              },
+            },
+            members: {
+              create: {
+                userId,
+                role: 'MANAGER',
+                createdBy: userId,
+                updatedBy: userId,
+              },
+            },
+          },
+          include: {
+            sprints: true,
+            workflow: {
+              include: {
+                statuses: {
+                  orderBy: { position: 'asc' },
+                },
+              },
+            },
+          },
+        });
+      }
+      // Create default tasks if project was created
+      if (project) {
+        const defaultSprint = project.sprints.find((s) => s.isDefault);
+        if (!project.workflow || project.workflow.statuses.length === 0) {
+          throw new NotFoundException(
+            'Default workflow or statuses not found for the project',
+          );
+        }
+        const workflowStatuses = project.workflow.statuses;
+        await this.prisma.task.createMany({
+          data: DEFAULT_TASKS.map((task, index) => {
+            const status =
+              workflowStatuses.find((s) => s.name === task.status) ??
+              workflowStatuses[0];
+            return {
+              title: task.title,
+              description: task.description,
+              priority: task.priority,
+              statusId: status.id,
+              projectId: project.id,
+              sprintId: defaultSprint?.id || null,
+              taskNumber: index + 1,
+              slug: `${project.slug}-${index + 1}`,
+              createdBy: userId,
+              updatedBy: userId,
+            };
+          }),
+        });
+      }
+
       return organization;
     } catch (error) {
       if (error.code === 'P2002') {
@@ -205,6 +229,57 @@ export class OrganizationsService {
       throw error;
     }
   }
+
+  // Helper method to generate unique workspace slug
+  private async generateUniqueWorkspaceSlug(
+    name: string,
+    organizationId: string,
+  ): Promise<string> {
+    const baseSlug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (await this.prisma.workspace.findFirst({
+      where: { slug, organizationId },
+    })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    return slug;
+  }
+
+  // Helper method to generate unique project slug
+  private async generateUniqueProjectSlug(
+    name: string,
+    workspaceId: string,
+  ): Promise<string> {
+    const baseSlug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (await this.prisma.project.findFirst({
+      where: { slug, workspaceId },
+    })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    return slug;
+  }
+
 
   private async createDefaultStatusTransitions(
     workflowId: string,

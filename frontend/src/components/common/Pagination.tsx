@@ -1,13 +1,13 @@
-import React from 'react';
+import React from "react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { HiChevronLeft, HiChevronRight } from 'react-icons/hi2';
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { HiChevronLeft, HiChevronRight } from "react-icons/hi2";
 
 interface PaginationInfo {
   currentPage: number;
@@ -20,7 +20,7 @@ interface PaginationInfo {
 interface PaginationProps {
   pagination: PaginationInfo;
   pageSize: number;
-  onPageSizeChange: (size: number) => void;
+  onPageSizeChange?: (size: number) => void;
   onPageChange: (page: number) => void;
   /** The noun for the items being paginated, e.g., "tasks", "projects" */
   itemType?: string;
@@ -31,28 +31,30 @@ const Pagination: React.FC<PaginationProps> = ({
   pageSize,
   onPageSizeChange,
   onPageChange,
-  itemType = 'items', // Default to "items" if not provided
+  itemType = "items", // Default to "items" if not provided
 }) => (
   <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
     <div className="text-sm text-[var(--muted-foreground)]">
-      Showing {(pagination.currentPage - 1) * pageSize + 1} to{' '}
-      {Math.min(pagination.currentPage * pageSize, pagination.totalCount)} of{' '}
+      Showing {(pagination.currentPage - 1) * pageSize + 1} to{" "}
+      {Math.min(pagination.currentPage * pageSize, pagination.totalCount)} of{" "}
       {pagination.totalCount} {itemType}
     </div>
     <div className="flex items-center gap-2">
-      <Select
-        value={pageSize.toString()}
-        onValueChange={(value) => onPageSizeChange(Number(value))}
-      >
-        <SelectTrigger className="w-20 border-none bg-[var(--card)]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent className="border-none bg-[var(--popover)]">
-          <SelectItem value="10">10</SelectItem>
-          <SelectItem value="20">20</SelectItem>
-          <SelectItem value="50">50</SelectItem>
-        </SelectContent>
-      </Select>
+      {onPageSizeChange && (
+        <Select
+          value={pageSize.toString()}
+          onValueChange={(value) => onPageSizeChange(Number(value))}
+        >
+          <SelectTrigger className="w-20 border-none bg-[var(--card)]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="border-none bg-[var(--popover)]">
+            <SelectItem value="10">10</SelectItem>
+            <SelectItem value="20">20</SelectItem>
+            <SelectItem value="50">50</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
       <Button
         variant="outline"
         size="sm"

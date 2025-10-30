@@ -46,13 +46,21 @@ export class OrganizationMembersController {
   }
 
   @Get()
-  findAll(@Query('organizationId') organizationId?: string,  @Query('search') search?: string,) {
+  findAll(@Query('organizationId') organizationId?: string, @Query('search') search?: string,) {
     return this.organizationMembersService.findAll(organizationId, search);
   }
   @Get('slug')
-  findAllByOrgSlug(@Query('slug') slug?: string) {
-    return this.organizationMembersService.findAllByOrgSlug(slug);
+  findAllByOrgSlug(
+    @Query('slug') slug?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : undefined;
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+
+    return this.organizationMembersService.findAllByOrgSlug(slug, pageNum, limitNum);
   }
+
 
   @Patch('set-default')
   @ApiOperation({ summary: 'Set a default organization for a user' })
