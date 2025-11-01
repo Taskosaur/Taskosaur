@@ -338,6 +338,14 @@ export class EmailSyncService {
     this.logger.log(`Processing message: ${message.subject} (${message.date.toISOString()})`);
 
     // Extract thread ID
+    const existingMessage = await this.prisma.inboxMessage.findUnique({
+      where: { messageId: message.messageId },
+    });
+
+    if (existingMessage) {
+      this.logger.debug(`Message ${message.messageId} already exists, skipping`);
+      return; // Skip processing
+    }
     const threadId = EmailSyncUtils.extractThreadId(message);
 
     // Normalize references

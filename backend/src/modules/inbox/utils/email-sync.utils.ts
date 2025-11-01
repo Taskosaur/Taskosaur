@@ -285,6 +285,7 @@ export class EmailSyncUtils {
     const lastTask = await prisma.task.findFirst({
       where: { projectId },
       orderBy: { taskNumber: 'desc' },
+       select: { taskNumber: true },
     });
     return (lastTask?.taskNumber || 0) + 1;
   }
