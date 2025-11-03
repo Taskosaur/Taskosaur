@@ -14,10 +14,7 @@ import { DEFAULT_TASK_STATUSES } from 'src/constants/defaultWorkflow';
 export class WorkflowsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(
-    createWorkflowDto: CreateWorkflowDto,
-    userId: string,
-  ): Promise<Workflow> {
+  async create(createWorkflowDto: CreateWorkflowDto, userId: string): Promise<Workflow> {
     return this.prisma.$transaction(async (tx) => {
       if (createWorkflowDto.isDefault) {
         await tx.workflow.updateMany({
@@ -316,9 +313,7 @@ export class WorkflowsService {
         }
 
         if (workflow.organizationId !== organizationId) {
-          throw new BadRequestException(
-            'Workflow does not belong to this organization',
-          );
+          throw new BadRequestException('Workflow does not belong to this organization');
         }
 
         // unset any existing default

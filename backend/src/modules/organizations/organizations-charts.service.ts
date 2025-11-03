@@ -53,7 +53,7 @@ export class OrganizationChartsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accessControl: AccessControlService,
-  ) { }
+  ) {}
 
   /**
    * Get multiple chart data types in a single request
@@ -90,9 +90,7 @@ export class OrganizationChartsService {
         results[type] = error ? { error } : data;
       });
 
-      this.logger.log(
-        `Successfully fetched chart data for ${chartTypes.length} chart types`,
-      );
+      this.logger.log(`Successfully fetched chart data for ${chartTypes.length} chart types`);
 
       return results;
     } catch (error) {
@@ -134,7 +132,7 @@ export class OrganizationChartsService {
       case ChartType.RESOURCE_ALLOCATION:
         return this.organizationResourceAllocation(orgId, userId);
       default:
-        throw new BadRequestException(`Unsupported chart type: ${chartType}`);
+        throw new BadRequestException(`Unsupported chart type: ${String(chartType)}`);
     }
   }
 
@@ -182,10 +180,7 @@ export class OrganizationChartsService {
   /**
    * 1) KPI Metrics
    */
-  async organizationKPIMetrics(
-    orgId: string,
-    userId: string,
-  ): Promise<KPIMetrics> {
+  async organizationKPIMetrics(orgId: string, userId: string): Promise<KPIMetrics> {
     const { isElevated } = await this.accessControl.getOrgAccess(orgId, userId);
     const now = new Date();
 
@@ -283,19 +278,10 @@ export class OrganizationChartsService {
         totalBugs,
         resolvedBugs,
         activeSprints,
-        projectCompletionRate: this.calculatePercentage(
-          completedProjects,
-          totalProjects,
-        ),
-        taskCompletionRate: this.calculatePercentage(
-          completedTasks,
-          totalTasks,
-        ),
+        projectCompletionRate: this.calculatePercentage(completedProjects, totalProjects),
+        taskCompletionRate: this.calculatePercentage(completedTasks, totalTasks),
         bugResolutionRate: this.calculatePercentage(resolvedBugs, totalBugs),
-        overallProductivity: this.calculatePercentage(
-          completedTasks,
-          totalTasks,
-        ),
+        overallProductivity: this.calculatePercentage(completedTasks, totalTasks),
       };
     }
 
@@ -314,7 +300,7 @@ export class OrganizationChartsService {
       totalBugs,
       resolvedBugs,
       activeSprints,
-      totalMembers
+      totalMembers,
     ] = await Promise.all([
       this.prisma.workspace.count({ where: scoped.workspaceForUser }),
       this.prisma.workspace.count({ where: scoped.workspaceForUser }),
@@ -365,10 +351,7 @@ export class OrganizationChartsService {
       totalBugs,
       resolvedBugs,
       activeSprints,
-      projectCompletionRate: this.calculatePercentage(
-        completedProjects,
-        totalProjects,
-      ),
+      projectCompletionRate: this.calculatePercentage(completedProjects, totalProjects),
       taskCompletionRate: this.calculatePercentage(completedTasks, totalTasks),
       bugResolutionRate: this.calculatePercentage(resolvedBugs, totalBugs),
       overallProductivity: this.calculatePercentage(completedTasks, totalTasks),
@@ -381,9 +364,7 @@ export class OrganizationChartsService {
   async organizationProjectPortfolio(orgId: string, userId: string) {
     const { isElevated } = await this.accessControl.getOrgAccess(orgId, userId);
     const base = { workspace: { organizationId: orgId }, archive: false };
-    const where = isElevated
-      ? base
-      : { ...base, members: { some: { userId } } };
+    const where = isElevated ? base : { ...base, members: { some: { userId } } };
 
     return this.prisma.project.groupBy({
       by: ['status'],
@@ -425,7 +406,12 @@ export class OrganizationChartsService {
         project: { workspace: { organizationId: orgId, archive: false } },
         ...(isElevated
           ? {}
-          : { OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }] }),
+          : {
+              OR: [
+                { assignees: { some: { id: userId } } },
+                { reporters: { some: { id: userId } } },
+              ],
+            }),
       },
       select: { id: true, priority: true },
     });
@@ -449,7 +435,10 @@ export class OrganizationChartsService {
     };
     const where = isElevated
       ? base
-      : { ...base, OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }] };
+      : {
+          ...base,
+          OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
+        };
 
     return this.prisma.task.groupBy({
       by: ['type'],
@@ -488,10 +477,7 @@ export class OrganizationChartsService {
   /**
    * 7) Quality Metrics (bugs)
    */
-  async organizationQualityMetrics(
-    orgId: string,
-    userId: string,
-  ): Promise<QualityMetrics> {
+  async organizationQualityMetrics(orgId: string, userId: string): Promise<QualityMetrics> {
     const { isElevated } = await this.accessControl.getOrgAccess(orgId, userId);
     const base = {
       project: { workspace: { organizationId: orgId }, archive: false },
@@ -499,25 +485,27 @@ export class OrganizationChartsService {
     };
     const where = isElevated
       ? base
-      : { ...base, OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }] };
+      : {
+          ...base,
+          OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
+        };
 
-    const [totalBugs, resolvedBugs, criticalBugs, resolvedCriticalBugs] =
-      await Promise.all([
-        this.prisma.task.count({ where }),
-        this.prisma.task.count({
-          where: { ...where, completedAt: { not: null } },
-        }),
-        this.prisma.task.count({
-          where: { ...where, priority: { in: ['HIGH', 'HIGHEST'] } },
-        }),
-        this.prisma.task.count({
-          where: {
-            ...where,
-            priority: { in: ['HIGH', 'HIGHEST'] },
-            completedAt: { not: null },
-          },
-        }),
-      ]);
+    const [totalBugs, resolvedBugs, criticalBugs, resolvedCriticalBugs] = await Promise.all([
+      this.prisma.task.count({ where }),
+      this.prisma.task.count({
+        where: { ...where, completedAt: { not: null } },
+      }),
+      this.prisma.task.count({
+        where: { ...where, priority: { in: ['HIGH', 'HIGHEST'] } },
+      }),
+      this.prisma.task.count({
+        where: {
+          ...where,
+          priority: { in: ['HIGH', 'HIGHEST'] },
+          completedAt: { not: null },
+        },
+      }),
+    ]);
 
     return {
       totalBugs,
@@ -525,10 +513,7 @@ export class OrganizationChartsService {
       criticalBugs,
       resolvedCriticalBugs,
       bugResolutionRate: this.calculatePercentage(resolvedBugs, totalBugs),
-      criticalBugResolutionRate: this.calculatePercentage(
-        resolvedCriticalBugs,
-        criticalBugs,
-      ),
+      criticalBugResolutionRate: this.calculatePercentage(resolvedCriticalBugs, criticalBugs),
     };
   }
 
@@ -543,10 +528,10 @@ export class OrganizationChartsService {
     const workspaceWhere = isElevated
       ? { organizationId: orgId, archive: false }
       : {
-        organizationId: orgId,
-        archive: false,
-        members: { some: { userId } },
-      };
+          organizationId: orgId,
+          archive: false,
+          members: { some: { userId } },
+        };
 
     const workspaces = await this.prisma.workspace.findMany({
       where: workspaceWhere,
@@ -570,18 +555,21 @@ export class OrganizationChartsService {
   /**
    * 9) Member Workload Distribution
    */
-  async organizationMemberWorkload(
-    orgId: string,
-    userId: string,
-  ): Promise<MemberWorkload[]> {
+  async organizationMemberWorkload(orgId: string, userId: string): Promise<MemberWorkload[]> {
     const { isElevated } = await this.accessControl.getOrgAccess(orgId, userId);
 
     const userWhere = isElevated
-      ? { organizationMembers: { some: { organizationId: orgId } }, source: { not: UserSource.EMAIL_INBOX }, }
+      ? {
+          organizationMembers: { some: { organizationId: orgId } },
+          source: { not: UserSource.EMAIL_INBOX },
+        }
       : {
-        id: userId,
-        organizationMembers: { some: { organizationId: orgId }, source: { not: UserSource.EMAIL_INBOX }, },
-      };
+          id: userId,
+          organizationMembers: {
+            some: { organizationId: orgId },
+            source: { not: UserSource.EMAIL_INBOX },
+          },
+        };
     const members = await this.prisma.user.findMany({
       where: userWhere,
       select: {
@@ -615,8 +603,7 @@ export class OrganizationChartsService {
 
     return members.map((m) => ({
       memberId: m.id,
-      memberName:
-        `${m.firstName || ''} ${m.lastName || ''}`.trim() || 'Unknown User',
+      memberName: `${m.firstName || ''} ${m.lastName || ''}`.trim() || 'Unknown User',
       activeTasks: m._count.assignedTasks,
       reportedTasks: m._count.reportedTasks,
     }));

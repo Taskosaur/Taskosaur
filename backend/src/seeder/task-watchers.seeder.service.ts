@@ -20,9 +20,7 @@ export class TaskWatchersSeederService {
     const createdWatchers: TaskWatcher[] = [];
 
     // Add watchers to selected tasks (not all tasks need watchers)
-    const tasksWithWatchers = tasks
-      .filter((_, index) => index % 3 === 0)
-      .slice(0, 15); // Every 3rd task, max 15
+    const tasksWithWatchers = tasks.filter((_, index) => index % 3 === 0).slice(0, 15); // Every 3rd task, max 15
 
     for (const task of tasksWithWatchers) {
       // Get project members who might be interested in this task
@@ -32,9 +30,7 @@ export class TaskWatchersSeederService {
       });
 
       const availableUsers =
-        projectMembers.length > 0
-          ? projectMembers.map((pm) => pm.user)
-          : users.slice(0, 4); // fallback to first 4 users
+        projectMembers.length > 0 ? projectMembers.map((pm) => pm.user) : users.slice(0, 4); // fallback to first 4 users
 
       // Determine who should watch this task
       const watchersToAdd = this.determineWatchers(task, availableUsers);
@@ -66,9 +62,7 @@ export class TaskWatchersSeederService {
       }
     }
 
-    console.log(
-      `✅ Task watchers seeding completed. Created ${createdWatchers.length} watchers.`,
-    );
+    console.log(`✅ Task watchers seeding completed. Created ${createdWatchers.length} watchers.`);
     return createdWatchers;
   }
 
@@ -78,14 +72,9 @@ export class TaskWatchersSeederService {
     const taskType = task.type;
 
     // Always add assignee and reporter as watchers (if they exist in available users)
-   
-
-   
 
     // Add role-based watchers based on task content
-    const remainingUsers = availableUsers.filter(
-      (u) => !watchers.find((w) => w.id === u.id),
-    );
+    const remainingUsers = availableUsers.filter((u) => !watchers.find((w) => w.id === u.id));
 
     // Frontend tasks - add designers and frontend developers
     if (
@@ -94,11 +83,7 @@ export class TaskWatchersSeederService {
       taskTitle.includes('dashboard') ||
       taskTitle.includes('component')
     ) {
-      const frontendUsers = this.getUsersByRole(remainingUsers, [
-        'designer',
-        'frontend',
-        'ui',
-      ]);
+      const frontendUsers = this.getUsersByRole(remainingUsers, ['designer', 'frontend', 'ui']);
       watchers.push(...frontendUsers.slice(0, 2));
     }
 
@@ -109,11 +94,7 @@ export class TaskWatchersSeederService {
       taskTitle.includes('database') ||
       taskTitle.includes('server')
     ) {
-      const backendUsers = this.getUsersByRole(remainingUsers, [
-        'backend',
-        'api',
-        'database',
-      ]);
+      const backendUsers = this.getUsersByRole(remainingUsers, ['backend', 'api', 'database']);
       watchers.push(...backendUsers.slice(0, 2));
     }
 
@@ -124,19 +105,12 @@ export class TaskWatchersSeederService {
       taskTitle.includes('auth') ||
       taskTitle.includes('permission')
     ) {
-      const securityUsers = this.getUsersByRole(remainingUsers, [
-        'security',
-        'devops',
-      ]);
+      const securityUsers = this.getUsersByRole(remainingUsers, ['security', 'devops']);
       watchers.push(...securityUsers.slice(0, 1));
     }
 
     // Testing tasks - add QA team members
-    if (
-      taskTitle.includes('test') ||
-      taskTitle.includes('qa') ||
-      taskType === 'BUG'
-    ) {
+    if (taskTitle.includes('test') || taskTitle.includes('qa') || taskType === 'BUG') {
       const qaUsers = this.getUsersByRole(remainingUsers, ['qa', 'test']);
       watchers.push(...qaUsers.slice(0, 1));
     }
@@ -159,19 +133,12 @@ export class TaskWatchersSeederService {
       taskTitle.includes('content') ||
       taskTitle.includes('social')
     ) {
-      const marketingUsers = this.getUsersByRole(remainingUsers, [
-        'marketing',
-        'content',
-      ]);
+      const marketingUsers = this.getUsersByRole(remainingUsers, ['marketing', 'content']);
       watchers.push(...marketingUsers.slice(0, 1));
     }
 
     // High priority tasks - add managers/leads
-    if (
-      task.priority === 'HIGH' ||
-      task.priority === 'HIGHEST' ||
-      taskType === 'EPIC'
-    ) {
+    if (task.priority === 'HIGH' || task.priority === 'HIGHEST' || taskType === 'EPIC') {
       const managers = availableUsers
         .filter((u) => u.role === 'MANAGER' || u.role === 'SUPER_ADMIN')
         .filter((u) => !watchers.find((w) => w.id === u.id));
@@ -180,9 +147,7 @@ export class TaskWatchersSeederService {
 
     // If we don't have enough watchers yet, add some random project members
     const currentWatcherIds = new Set(watchers.map((w) => w.id));
-    const additionalUsers = remainingUsers.filter(
-      (u) => !currentWatcherIds.has(u.id),
-    );
+    const additionalUsers = remainingUsers.filter((u) => !currentWatcherIds.has(u.id));
 
     while (watchers.length < 3 && additionalUsers.length > 0) {
       const randomIndex = Math.floor(Math.random() * additionalUsers.length);
@@ -190,9 +155,7 @@ export class TaskWatchersSeederService {
     }
 
     // Remove duplicates and limit to reasonable number
-    const uniqueWatchers = Array.from(
-      new Map(watchers.map((w) => [w.id, w])).values(),
-    );
+    const uniqueWatchers = Array.from(new Map(watchers.map((w) => [w.id, w])).values());
     return uniqueWatchers.slice(0, 4); // Max 4 watchers per task
   }
 

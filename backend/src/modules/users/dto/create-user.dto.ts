@@ -1,12 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  MinLength,
-  IsEnum,
-} from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength, IsEnum } from 'class-validator';
 import { Role } from '@prisma/client';
 
 export class CreateUserDto {
@@ -81,8 +74,7 @@ export class CreateUserDto {
 
   @ApiProperty({
     description: 'User biography or description',
-    example:
-      'Senior Software Developer with 5+ years of experience in full-stack development.',
+    example: 'Senior Software Developer with 5+ years of experience in full-stack development.',
     required: false,
     maxLength: 500,
   })

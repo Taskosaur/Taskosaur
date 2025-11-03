@@ -14,10 +14,7 @@ import { ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TaskStatusesService } from './task-statuses.service';
-import {
-  CreateTaskStatusDto,
-  CreateTaskStatusFromProjectDto,
-} from './dto/create-task-status.dto';
+import { CreateTaskStatusDto, CreateTaskStatusFromProjectDto } from './dto/create-task-status.dto';
 import {
   UpdatePositionItemDto,
   UpdatePositionsDto,
@@ -32,10 +29,7 @@ export class TaskStatusesController {
   constructor(private readonly taskStatusesService: TaskStatusesService) {}
 
   @Post()
-  create(
-    @Body() createTaskStatusDto: CreateTaskStatusDto,
-    @CurrentUser() user: any,
-  ) {
+  create(@Body() createTaskStatusDto: CreateTaskStatusDto, @CurrentUser() user: any) {
     return this.taskStatusesService.create(createTaskStatusDto, user.id);
   }
   @Post('from-project')
@@ -43,10 +37,7 @@ export class TaskStatusesController {
     @Body() createTaskStatusDto: CreateTaskStatusFromProjectDto,
     @CurrentUser() user: any,
   ) {
-    return this.taskStatusesService.createFromProject(
-      createTaskStatusDto,
-      user.id,
-    );
+    return this.taskStatusesService.createFromProject(createTaskStatusDto, user.id);
   }
 
   @ApiQuery({ name: 'workflowId', required: false, type: String })
@@ -61,9 +52,7 @@ export class TaskStatusesController {
     }
     if (organizationId) {
       const defaultWorkflow =
-        await this.taskStatusesService.findDefaultWorkflowByOrganizationId(
-          organizationId,
-        );
+        await this.taskStatusesService.findDefaultWorkflowByOrganizationId(organizationId);
       if (defaultWorkflow) {
         return this.taskStatusesService.findAll(defaultWorkflow.id);
       } else {
@@ -78,14 +67,8 @@ export class TaskStatusesController {
     return this.taskStatusesService.findTaskStatusByProjectSlug(projectId);
   }
   @Patch('positions')
-  updatePositions(
-    @Body() updatePositionsDto: UpdatePositionsDto,
-    @CurrentUser() user: any,
-  ) {
-    return this.taskStatusesService.updatePositions(
-      updatePositionsDto.statusUpdates,
-      user.id,
-    );
+  updatePositions(@Body() updatePositionsDto: UpdatePositionsDto, @CurrentUser() user: any) {
+    return this.taskStatusesService.updatePositions(updatePositionsDto.statusUpdates, user.id);
   }
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {

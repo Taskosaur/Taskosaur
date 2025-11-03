@@ -17,13 +17,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiParam,
-  ApiQuery,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Scope } from 'src/common/decorator/scope.decorator';
@@ -34,11 +28,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from 'src/common/decorator/roles.decorator';
 import { Role } from '@prisma/client';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
-import {
-  ChartDataResponse,
-  ChartType,
-  GetChartsQueryDto,
-} from './dto/get-charts-query.dto';
+import { ChartDataResponse, ChartType, GetChartsQueryDto } from './dto/get-charts-query.dto';
 import { UniversalSearchService } from './universal-search.service';
 
 @ApiBearerAuth('JWT-auth')
@@ -54,10 +44,7 @@ export class OrganizationsController {
   // Creating an organization: only authenticated user; no existing org scope yet.
   @Post()
   @ApiOperation({ summary: 'Create organization' })
-  create(
-    @Body() createOrganizationDto: CreateOrganizationDto,
-    @CurrentUser() user: any,
-  ) {
+  create(@Body() createOrganizationDto: CreateOrganizationDto, @CurrentUser() user: any) {
     return this.organizationsService.create(createOrganizationDto, user.id);
   }
 
@@ -178,8 +165,7 @@ export class OrganizationsController {
   @Get(':id/charts')
   @ApiOperation({
     summary: 'Get organization charts data',
-    description:
-      'Retrieve multiple chart data types for an organization in a single request',
+    description: 'Retrieve multiple chart data types for an organization in a single request',
   })
   @ApiParam({
     name: 'id',

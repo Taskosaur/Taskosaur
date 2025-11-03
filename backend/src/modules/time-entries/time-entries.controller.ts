@@ -47,12 +47,7 @@ export class TimeEntriesController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.timeEntriesService.getTimeSpentSummary(
-      userId,
-      taskId,
-      startDate,
-      endDate,
-    );
+    return this.timeEntriesService.getTimeSpentSummary(userId, taskId, startDate, endDate);
   }
 
   @Get(':id')
@@ -67,11 +62,7 @@ export class TimeEntriesController {
     // TODO: Get userId from JWT token when authentication is implemented
     @Query('requestUserId') requestUserId: string,
   ) {
-    return this.timeEntriesService.update(
-      id,
-      updateTimeEntryDto,
-      requestUserId,
-    );
+    return this.timeEntriesService.update(id, updateTimeEntryDto, requestUserId);
   }
 
   @Delete(':id')

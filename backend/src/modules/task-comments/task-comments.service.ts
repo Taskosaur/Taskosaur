@@ -12,11 +12,12 @@ import { EmailReplyService } from '../inbox/services/email-reply.service';
 
 @Injectable()
 export class TaskCommentsService {
-  constructor(private prisma: PrismaService, private emailReply: EmailReplyService) { }
+  constructor(
+    private prisma: PrismaService,
+    private emailReply: EmailReplyService,
+  ) {}
 
-  async create(
-    createTaskCommentDto: CreateTaskCommentDto,
-  ): Promise<TaskComment> {
+  async create(createTaskCommentDto: CreateTaskCommentDto): Promise<TaskComment> {
     const { taskId, authorId, parentCommentId } = createTaskCommentDto;
 
     // Verify task exists
@@ -51,9 +52,7 @@ export class TaskCommentsService {
       }
 
       if (parentComment.taskId !== taskId) {
-        throw new BadRequestException(
-          'Parent comment must belong to the same task',
-        );
+        throw new BadRequestException('Parent comment must belong to the same task');
       }
     }
 
@@ -99,7 +98,6 @@ export class TaskCommentsService {
     });
     if (comment.task.allowEmailReplies) {
       await this.emailReply.sendCommentAsEmail(comment.id);
-
     }
 
     return comment;

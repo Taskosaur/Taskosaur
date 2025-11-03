@@ -40,9 +40,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const token = client.handshake.auth.token || client.handshake.query.token;
 
       if (!token) {
-        this.logger.warn(
-          `Client ${client.id} attempted to connect without token`,
-        );
+        this.logger.warn(`Client ${client.id} attempted to connect without token`);
         client.disconnect();
         return;
       }
@@ -56,9 +54,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userSockets.push(client.id);
       this.connectedUsers.set(client.userId!, userSockets);
 
-      this.logger.log(
-        `User ${client.userId} connected with socket ${client.id}`,
-      );
+      this.logger.log(`User ${client.userId} connected with socket ${client.id}`);
 
       // Join user to their personal room
       client.join(`user:${client.userId}`);
@@ -70,9 +66,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      this.logger.error(
-        `Authentication failed for socket ${client.id}: ${error.message}`,
-      );
+      this.logger.error(`Authentication failed for socket ${client.id}: ${error.message}`);
       client.disconnect();
     }
   }
@@ -81,9 +75,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (client.userId) {
       // Remove socket from user's connections
       const userSockets = this.connectedUsers.get(client.userId) || [];
-      const updatedSockets = userSockets.filter(
-        (socketId) => socketId !== client.id,
-      );
+      const updatedSockets = userSockets.filter((socketId) => socketId !== client.id);
 
       if (updatedSockets.length === 0) {
         this.connectedUsers.delete(client.userId);
@@ -104,9 +96,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.organizationId = data.organizationId;
     client.join(`org:${data.organizationId}`);
     client.emit('joined:organization', { organizationId: data.organizationId });
-    this.logger.log(
-      `User ${client.userId} joined organization ${data.organizationId}`,
-    );
+    this.logger.log(`User ${client.userId} joined organization ${data.organizationId}`);
   }
 
   // Join workspace room
@@ -118,9 +108,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.workspaceId = data.workspaceId;
     client.join(`workspace:${data.workspaceId}`);
     client.emit('joined:workspace', { workspaceId: data.workspaceId });
-    this.logger.log(
-      `User ${client.userId} joined workspace ${data.workspaceId}`,
-    );
+    this.logger.log(`User ${client.userId} joined workspace ${data.workspaceId}`);
   }
 
   // Join project room
@@ -345,9 +333,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const onlineUsers: string[] = [];
     for (const socketId of clients) {
-      const socket = this.server.sockets.sockets.get(
-        socketId,
-      ) as AuthenticatedSocket;
+      const socket = this.server.sockets.sockets.get(socketId) as AuthenticatedSocket;
       if (socket?.userId) {
         onlineUsers.push(socket.userId);
       }

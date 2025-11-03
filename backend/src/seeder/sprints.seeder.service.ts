@@ -52,9 +52,7 @@ export class SprintsSeederService {
           });
 
           createdSprints.push(sprint);
-          console.log(
-            `   ✓ Created sprint: ${sprint.name} [${sprint.status}] in ${project.name}`,
-          );
+          console.log(`   ✓ Created sprint: ${sprint.name} [${sprint.status}] in ${project.name}`);
         } catch (error) {
           console.log(
             `   ⚠ Sprint ${sprintData.name} might already exist in ${project.name}, skipping...`,
@@ -73,9 +71,7 @@ export class SprintsSeederService {
       }
     }
 
-    console.log(
-      `✅ Sprints seeding completed. Created/Found ${createdSprints.length} sprints.`,
-    );
+    console.log(`✅ Sprints seeding completed. Created/Found ${createdSprints.length} sprints.`);
     return createdSprints;
   }
 

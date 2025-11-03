@@ -22,16 +22,6 @@ export enum TasksByStatusType {
   WORKSPACE = 'workspace',
 }
 
-// Input interface/params (for service layer)
-export interface TasksByStatusParams {
-  type: TasksByStatusType;
-  slug: string;
-  organizationId: string;
-  sprintId?: string;
-  userId?: string;
-  includeSubtasks?: boolean;
-}
-
 export class GetTasksByStatusQueryDto {
   @ApiProperty({
     description: 'Type of container (project or workspace)',
@@ -233,18 +223,22 @@ export interface TasksByStatus {
     description?: string;
     priority: TaskPriority;
     taskNumber: number;
-    assignees?: {
-      id: string;
-      firstName: string;
-      lastName: string;
-      avatar?: string;
-    }[] | undefined;
-    reporters?: {
-      id: string;
-      firstName: string;
-      lastName: string;
-      avatar?: string;
-    }[] | undefined;
+    assignees?:
+      | {
+          id: string;
+          firstName: string;
+          lastName: string;
+          avatar?: string;
+        }[]
+      | undefined;
+    reporters?:
+      | {
+          id: string;
+          firstName: string;
+          lastName: string;
+          avatar?: string;
+        }[]
+      | undefined;
     dueDate?: string;
     createdAt: string;
     updatedAt: string;
@@ -276,14 +270,14 @@ export class TasksByStatusParams {
   @ApiProperty({
     description: 'Project slug',
     example: 'my-awesome-project',
-    required: true
+    required: true,
   })
   @IsString()
   slug: string;
   @ApiPropertyOptional({
     description: 'Filter by specific sprint ID',
     example: 'sprint-123',
-    type: String
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -293,7 +287,7 @@ export class TasksByStatusParams {
     description: 'Include subtasks in the results',
     example: false,
     default: false,
-    type: Boolean
+    type: Boolean,
   })
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
@@ -303,7 +297,7 @@ export class TasksByStatusParams {
   @ApiPropertyOptional({
     description: 'Filter by specific status ID. If not provided, returns all statuses',
     example: 'clx123abc',
-    type: String
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -314,7 +308,7 @@ export class TasksByStatusParams {
     example: 1,
     default: 1,
     minimum: 1,
-    type: Number
+    type: Number,
   })
   @IsOptional()
   @Type(() => Number)
@@ -328,7 +322,7 @@ export class TasksByStatusParams {
     default: 25,
     minimum: 1,
     maximum: 100,
-    type: Number
+    type: Number,
   })
   @IsOptional()
   @Type(() => Number)

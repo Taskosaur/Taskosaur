@@ -53,9 +53,7 @@ export class AdminSeederService {
       });
       console.log(`   ✓ Created admin user: ${adminUser.email}`);
     } catch (error) {
-      console.log(
-        `   ⚠ Admin user ${adminUserData.email} might already exist, skipping...`,
-      );
+      console.log(`   ⚠ Admin user ${adminUserData.email} might already exist, skipping...`);
       adminUser = await this.prisma.user.findUnique({
         where: { email: adminUserData.email },
       });
@@ -70,9 +68,7 @@ export class AdminSeederService {
     return adminUser;
   }
 
-  private async seedDefaultOrganization(
-    adminUser: User,
-  ): Promise<Organization> {
+  private async seedDefaultOrganization(adminUser: User): Promise<Organization> {
     console.log('🌱 Seeding default organization...');
 
     const orgData = {
@@ -149,9 +145,7 @@ export class AdminSeederService {
 
       console.log(`   ✓ Created organization: ${createdOrganization.name}`);
     } catch (error) {
-      console.log(
-        `   ⚠ Organization ${orgData.slug} might already exist, skipping...`,
-      );
+      console.log(`   ⚠ Organization ${orgData.slug} might already exist, skipping...`);
       organization = await this.prisma.organization.findUnique({
         where: { slug: orgData.slug },
       });

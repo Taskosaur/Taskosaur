@@ -1,17 +1,5 @@
-import {
-  Controller,
-  Get,
-  Param,
-  ParseUUIDPipe,
-  UseGuards,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { GanttService, GanttData } from './gantt.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -25,8 +13,7 @@ export class GanttController {
   @Get('project/:projectId')
   @ApiOperation({
     summary: 'Get Gantt chart data for a project',
-    description:
-      'Returns tasks, timeline, critical path, and milestones for project visualization',
+    description: 'Returns tasks, timeline, critical path, and milestones for project visualization',
   })
   @ApiParam({ name: 'projectId', description: 'Project ID (UUID)' })
   @ApiResponse({
@@ -105,9 +92,7 @@ export class GanttController {
     },
   })
   @ApiResponse({ status: 404, description: 'Project not found' })
-  getProjectGanttData(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
-  ): Promise<GanttData> {
+  getProjectGanttData(@Param('projectId', ParseUUIDPipe) projectId: string): Promise<GanttData> {
     return this.ganttService.getProjectGanttData(projectId);
   }
 
@@ -155,17 +140,14 @@ export class GanttController {
     },
   })
   @ApiResponse({ status: 404, description: 'Sprint not found' })
-  getSprintGanttData(
-    @Param('sprintId', ParseUUIDPipe) sprintId: string,
-  ): Promise<GanttData> {
+  getSprintGanttData(@Param('sprintId', ParseUUIDPipe) sprintId: string): Promise<GanttData> {
     return this.ganttService.getSprintGanttData(sprintId);
   }
 
   @Get('project/:projectId/resources')
   @ApiOperation({
     summary: 'Get resource allocation for project',
-    description:
-      'Returns resource allocation and workload distribution for project planning',
+    description: 'Returns resource allocation and workload distribution for project planning',
   })
   @ApiParam({ name: 'projectId', description: 'Project ID (UUID)' })
   @ApiResponse({

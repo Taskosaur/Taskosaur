@@ -21,8 +21,7 @@ export class WorkspacesSeederService {
 
     // Create workspaces for each organization
     for (const organization of organizations) {
-      const workspacesData =
-        this.getWorkspacesDataForOrganization(organization);
+      const workspacesData = this.getWorkspacesDataForOrganization(organization);
 
       for (const workspaceData of workspacesData) {
         try {
@@ -44,16 +43,10 @@ export class WorkspacesSeederService {
           });
 
           // Add workspace members
-          await this.addMembersToWorkspace(
-            workspace.id,
-            users,
-            organization.id,
-          );
+          await this.addMembersToWorkspace(workspace.id, users, organization.id);
 
           createdWorkspaces.push(workspace);
-          console.log(
-            `   ✓ Created workspace: ${workspace.name} in ${organization.name}`,
-          );
+          console.log(`   ✓ Created workspace: ${workspace.name} in ${organization.name}`);
         } catch (error) {
           console.log(
             `   ⚠ Workspace ${workspaceData.slug} might already exist in ${organization.name}, skipping...`,
@@ -87,8 +80,7 @@ export class WorkspacesSeederService {
           slug: 'dev-team',
           description: 'Main development workspace for product engineering',
           color: '#3b82f6',
-          avatar:
-            'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=150',
+          avatar: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=150',
           settings: {
             allowExternalGuests: false,
             defaultProjectVisibility: 'private',
@@ -101,11 +93,9 @@ export class WorkspacesSeederService {
         {
           name: 'Design & UX',
           slug: 'design-ux',
-          description:
-            'Creative workspace for design and user experience teams',
+          description: 'Creative workspace for design and user experience teams',
           color: '#8b5cf6',
-          avatar:
-            'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=150',
+          avatar: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=150',
           settings: {
             allowExternalGuests: true,
             defaultProjectVisibility: 'internal',
@@ -120,8 +110,7 @@ export class WorkspacesSeederService {
           slug: 'marketing',
           description: 'Marketing campaigns and content creation workspace',
           color: '#f59e0b',
-          avatar:
-            'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=150',
+          avatar: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=150',
           settings: {
             allowExternalGuests: true,
             defaultProjectVisibility: 'internal',
@@ -137,11 +126,9 @@ export class WorkspacesSeederService {
         {
           name: 'Client Projects',
           slug: 'client-projects',
-          description:
-            'Workspace for managing client deliverables and projects',
+          description: 'Workspace for managing client deliverables and projects',
           color: '#10b981',
-          avatar:
-            'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=150',
+          avatar: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=150',
           settings: {
             allowExternalGuests: true,
             defaultProjectVisibility: 'private',
@@ -156,8 +143,7 @@ export class WorkspacesSeederService {
           slug: 'internal-ops',
           description: 'Internal processes, HR, and administrative tasks',
           color: '#6b7280',
-          avatar:
-            'https://images.unsplash.com/photo-1551434678-e076c223a692?w=150',
+          avatar: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=150',
           settings: {
             allowExternalGuests: false,
             defaultProjectVisibility: 'internal',
@@ -189,11 +175,7 @@ export class WorkspacesSeederService {
     ];
   }
 
-  private async addMembersToWorkspace(
-    workspaceId: string,
-    users: any[],
-    organizationId: string,
-  ) {
+  private async addMembersToWorkspace(workspaceId: string, users: any[], organizationId: string) {
     // Get organization members to determine who can be added to workspace
     const orgMembers = await this.prisma.organizationMember.findMany({
       where: { organizationId },
@@ -220,9 +202,7 @@ export class WorkspacesSeederService {
             role: memberRoles[i],
           },
         });
-        console.log(
-          `   ✓ Added ${orgMembers[i].user.email} to workspace as ${memberRoles[i]}`,
-        );
+        console.log(`   ✓ Added ${orgMembers[i].user.email} to workspace as ${memberRoles[i]}`);
       } catch (error) {
         console.log(
           `   ⚠ User ${orgMembers[i].user.email} might already be a workspace member, skipping...`,

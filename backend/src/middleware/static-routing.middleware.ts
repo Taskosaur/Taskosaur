@@ -79,10 +79,7 @@ export class StaticRoutingMiddleware {
     return cleanPath;
   }
 
-  private generateDynamicPaths(
-    segments: string[],
-    depth: number = 0,
-  ): string[] {
+  private generateDynamicPaths(segments: string[], depth: number = 0): string[] {
     if (depth >= segments.length) {
       return [''];
     }
@@ -98,12 +95,7 @@ export class StaticRoutingMiddleware {
     }
 
     // Try with dynamic segment placeholders
-    const dynamicPatterns = [
-      '[workspaceSlug]',
-      '[projectSlug]',
-      '[taskId]',
-      '[slug]',
-    ];
+    const dynamicPatterns = ['[workspaceSlug]', '[projectSlug]', '[taskId]', '[slug]'];
 
     for (const pattern of dynamicPatterns) {
       for (const remaining of remainingPaths) {

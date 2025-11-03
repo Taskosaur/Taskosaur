@@ -14,13 +14,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiParam,
-  ApiQuery,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -51,10 +45,7 @@ export class WorkspacesController {
   // Only ORG MANAGER/OWNER can create workspaces
   @Post()
   @Roles(Role.MANAGER, Role.OWNER)
-  create(
-    @Body() createWorkspaceDto: CreateWorkspaceDto,
-    @CurrentUser() user: any,
-  ) {
+  create(@Body() createWorkspaceDto: CreateWorkspaceDto, @CurrentUser() user: any) {
     return this.workspacesService.create(createWorkspaceDto, user.id);
   }
 
@@ -175,8 +166,7 @@ export class WorkspacesController {
   @Get('organization/:organizationId/workspace/:slug/charts')
   @ApiOperation({
     summary: 'Get workspace charts data',
-    description:
-      'Retrieve multiple workspace chart data types in a single request',
+    description: 'Retrieve multiple workspace chart data types in a single request',
   })
   @ApiParam({
     name: 'organizationId',
@@ -196,10 +186,7 @@ export class WorkspacesController {
     isArray: true,
     style: 'form',
     explode: true,
-    example: [
-      WorkspaceChartType.KPI_METRICS,
-      WorkspaceChartType.PROJECT_STATUS,
-    ],
+    example: [WorkspaceChartType.KPI_METRICS, WorkspaceChartType.PROJECT_STATUS],
   })
   @ApiResponse({
     status: HttpStatus.OK,

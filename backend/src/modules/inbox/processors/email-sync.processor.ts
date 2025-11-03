@@ -26,9 +26,9 @@ export class EmailSyncProcessor extends WorkerHost {
 
   async process(job: Job<EmailSyncJobData>): Promise<any> {
     const { projectId, userId, type } = job.data;
-    
+
     this.logger.log(`Processing ${type} email sync for project ${projectId} (Job: ${job.id})`);
-    
+
     try {
       // Update job progress
       await job.updateProgress(10);
@@ -61,7 +61,7 @@ export class EmailSyncProcessor extends WorkerHost {
 
       // Perform the actual sync
       const result = await this.emailSync.triggerSync(projectId);
-      
+
       await job.updateProgress(90);
 
       // Update email account with success
@@ -77,7 +77,7 @@ export class EmailSyncProcessor extends WorkerHost {
 
       // Log success
       this.logger.log(
-        `Successfully completed ${type} sync for project ${projectId} (${inbox.project.name}) - Job: ${job.id}`
+        `Successfully completed ${type} sync for project ${projectId} (${inbox.project.name}) - Job: ${job.id}`,
       );
 
       return {
@@ -89,7 +89,6 @@ export class EmailSyncProcessor extends WorkerHost {
         type,
         userId,
       };
-
     } catch (error) {
       this.logger.error(
         `Failed to sync project ${projectId} (Job: ${job.id}): ${error.message}`,

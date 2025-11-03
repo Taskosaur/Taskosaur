@@ -27,11 +27,7 @@ import { S3Service } from '../storage/s3.service';
       name: 'email-sync',
     }),
   ],
-  controllers: [
-    ProjectInboxController,
-    TaskCommentEmailController,
-    EmailTemplatesController,
-  ],
+  controllers: [ProjectInboxController, TaskCommentEmailController, EmailTemplatesController],
   providers: [
     PrismaService,
     CryptoService,
@@ -43,13 +39,8 @@ import { S3Service } from '../storage/s3.service';
     EmailSyncProcessor,
     EmailSyncQueueService,
     StorageService,
-    S3Service
+    S3Service,
   ],
-  exports: [
-    ProjectInboxService,
-    EmailSyncService,
-    EmailReplyService,
-    EmailTemplatesService,
-  ],
+  exports: [ProjectInboxService, EmailSyncService, EmailReplyService, EmailTemplatesService],
 })
-export class InboxModule { }
+export class InboxModule {}

@@ -40,9 +40,7 @@ export class WorkflowSeederService {
           });
 
           createdWorkflows.push(workflow);
-          console.log(
-            `   ✓ Created workflow: ${workflow.name} in ${organization.name}`,
-          );
+          console.log(`   ✓ Created workflow: ${workflow.name} in ${organization.name}`);
         } catch (error) {
           console.log(
             `   ⚠ Workflow ${workflowData.name} might already exist in ${organization.name}, skipping...`,
@@ -84,20 +82,17 @@ export class WorkflowSeederService {
       },
       {
         name: 'Marketing Campaign Workflow',
-        description:
-          'Workflow for marketing campaigns from ideation to publication',
+        description: 'Workflow for marketing campaigns from ideation to publication',
         isDefault: false,
       },
       {
         name: 'Client Project Workflow',
-        description:
-          'Workflow for client projects with client review and approval stages',
+        description: 'Workflow for client projects with client review and approval stages',
         isDefault: false,
       },
       {
         name: 'Support & Maintenance Workflow',
-        description:
-          'Simple workflow for support tickets and maintenance tasks',
+        description: 'Simple workflow for support tickets and maintenance tasks',
         isDefault: false,
       },
     ];
@@ -124,11 +119,8 @@ export class WorkflowSeederService {
 
     try {
       // Delete status transitions first
-      const deletedTransitions =
-        await this.prisma.statusTransition.deleteMany();
-      console.log(
-        `   ✓ Deleted ${deletedTransitions.count} status transitions`,
-      );
+      const deletedTransitions = await this.prisma.statusTransition.deleteMany();
+      console.log(`   ✓ Deleted ${deletedTransitions.count} status transitions`);
 
       // Delete task statuses
       const deletedStatuses = await this.prisma.taskStatus.deleteMany();
@@ -165,11 +157,7 @@ export class WorkflowSeederService {
         },
         createdAt: true,
       },
-      orderBy: [
-        { organization: { name: 'asc' } },
-        { isDefault: 'desc' },
-        { name: 'asc' },
-      ],
+      orderBy: [{ organization: { name: 'asc' } }, { isDefault: 'desc' }, { name: 'asc' }],
     });
   }
 }

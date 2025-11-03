@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsEnum,
-  IsOptional,
-  IsEmail,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsOptional, IsEmail } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Role as OrganizationRole } from '@prisma/client';
 
@@ -37,7 +31,7 @@ export class CreateOrganizationMemberDto {
   @IsEnum(OrganizationRole)
   @IsOptional()
   role?: OrganizationRole;
-  
+
   @IsString()
   @IsOptional()
   createdBy?: string;

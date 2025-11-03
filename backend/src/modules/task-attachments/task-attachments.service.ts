@@ -6,10 +6,7 @@ import {
 } from '@nestjs/common';
 import { TaskAttachment } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  CreateTaskAttachmentDto,
-  UploadTaskAttachmentDto,
-} from './dto/create-task-attachment.dto';
+import { CreateTaskAttachmentDto, UploadTaskAttachmentDto } from './dto/create-task-attachment.dto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { StorageService } from '../storage/storage.service';
@@ -19,8 +16,9 @@ import { Response } from 'express';
 export class TaskAttachmentsService {
   private readonly uploadPath = process.env.UPLOAD_DEST || '../uploads';
 
-  constructor(private prisma: PrismaService,
-    private storageService: StorageService
+  constructor(
+    private prisma: PrismaService,
+    private storageService: StorageService,
   ) {
     // Ensure upload directory exists
     this.ensureUploadDirectory();
@@ -32,11 +30,7 @@ export class TaskAttachmentsService {
     }
   }
 
-  async create(
-    file: Express.Multer.File,
-    taskId: string,
-    userId: string,
-  ): Promise<TaskAttachment> {
+  async create(file: Express.Multer.File, taskId: string, userId: string): Promise<TaskAttachment> {
     // Verify task exists
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
@@ -71,10 +65,7 @@ export class TaskAttachmentsService {
 
     try {
       // Use StorageService to save file (handles both S3 and local storage)
-      const { url, key, size } = await this.storageService.saveFile(
-        file,
-        `tasks/${taskId}`,
-      );
+      const { url, key, size } = await this.storageService.saveFile(file, `tasks/${taskId}`);
 
       // Create attachment record in database
       const attachment = await this.prisma.taskAttachment.create({
@@ -107,9 +98,7 @@ export class TaskAttachmentsService {
 
       return attachment;
     } catch (error) {
-      throw new BadRequestException(
-        `Failed to upload file: ${error.message}`,
-      );
+      throw new BadRequestException(`Failed to upload file: ${error.message}`);
     }
   }
 
@@ -154,7 +143,7 @@ export class TaskAttachmentsService {
         // If URL is null (S3), generate presigned URL; otherwise use stored URL
         const viewUrl = attachment.url
           ? attachment.url
-          : attachment.storageKey && await this.storageService.getFileUrl(attachment.storageKey);
+          : attachment.storageKey && (await this.storageService.getFileUrl(attachment.storageKey));
 
         return {
           ...attachment,
@@ -230,7 +219,7 @@ export class TaskAttachmentsService {
     // Generate presigned URL for viewing
     const viewUrl = attachment.url
       ? attachment.url
-      : attachment.storageKey && await this.storageService.getFileUrl(attachment.storageKey);
+      : attachment.storageKey && (await this.storageService.getFileUrl(attachment.storageKey));
 
     return {
       ...attachment,
@@ -286,7 +275,6 @@ export class TaskAttachmentsService {
         'text/javascript',
       ];
 
-
       if (!previewableMimeTypes.includes(attachment.mimeType)) {
         throw new BadRequestException('File type not previewable');
       }
@@ -309,8 +297,7 @@ export class TaskAttachmentsService {
     } else if (attachment.url) {
       // Stream from local storage
       await this.storageService.streamFromLocal(attachment.url, res);
-    }
-    else {
+    } else {
       throw new NotFoundException('Attachment not found');
     }
   }
@@ -350,7 +337,7 @@ export class TaskAttachmentsService {
         // If URL is null (S3), generate presigned URL; otherwise use stored URL
         const viewUrl = attachment.url
           ? attachment.url
-          : attachment.storageKey && await this.storageService.getFileUrl(attachment.storageKey);
+          : attachment.storageKey && (await this.storageService.getFileUrl(attachment.storageKey));
 
         return {
           ...attachment,
@@ -361,7 +348,6 @@ export class TaskAttachmentsService {
 
     return attachmentsWithUrls;
   }
-
 
   async remove(id: string, requestUserId: string): Promise<TaskAttachment> {
     // Get attachment info
@@ -423,9 +409,7 @@ export class TaskAttachmentsService {
       user.organizationMembers.length > 0;
 
     if (!hasAccess) {
-      throw new ForbiddenException(
-        'You do not have permission to delete this attachment',
-      );
+      throw new ForbiddenException('You do not have permission to delete this attachment');
     }
 
     // Delete the file from filesystem
@@ -442,43 +426,42 @@ export class TaskAttachmentsService {
     await this.prisma.taskAttachment.delete({
       where: { id },
     });
-    return attachment
+    return attachment;
   }
 
   async getAttachmentStats(taskId?: string): Promise<any> {
     const whereClause = taskId ? { taskId } : {};
 
-    const [totalAttachments, totalSize, attachmentsByType, recentUploads] =
-      await Promise.all([
-        // Total attachments count
-        this.prisma.taskAttachment.count({
-          where: whereClause,
-        }),
+    const [totalAttachments, totalSize, attachmentsByType, recentUploads] = await Promise.all([
+      // Total attachments count
+      this.prisma.taskAttachment.count({
+        where: whereClause,
+      }),
 
-        // Total file size
-        this.prisma.taskAttachment.aggregate({
-          where: whereClause,
-          _sum: { fileSize: true },
-        }),
+      // Total file size
+      this.prisma.taskAttachment.aggregate({
+        where: whereClause,
+        _sum: { fileSize: true },
+      }),
 
-        // Attachments by MIME type
-        this.prisma.taskAttachment.groupBy({
-          by: ['mimeType'],
-          where: whereClause,
-          _count: { mimeType: true },
-          _sum: { fileSize: true },
-        }),
+      // Attachments by MIME type
+      this.prisma.taskAttachment.groupBy({
+        by: ['mimeType'],
+        where: whereClause,
+        _count: { mimeType: true },
+        _sum: { fileSize: true },
+      }),
 
-        // Recent uploads (last 7 days)
-        this.prisma.taskAttachment.count({
-          where: {
-            ...whereClause,
-            createdAt: {
-              gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-            },
+      // Recent uploads (last 7 days)
+      this.prisma.taskAttachment.count({
+        where: {
+          ...whereClause,
+          createdAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
           },
-        }),
-      ]);
+        },
+      }),
+    ]);
 
     // Group by file category
     const fileCategories = attachmentsByType.reduce(
@@ -518,9 +501,7 @@ export class TaskAttachmentsService {
     return {
       totalAttachments,
       totalSizeBytes: totalSize._sum.fileSize || 0,
-      totalSizeMB:
-        Math.round(((totalSize._sum.fileSize || 0) / (1024 * 1024)) * 100) /
-        100,
+      totalSizeMB: Math.round(((totalSize._sum.fileSize || 0) / (1024 * 1024)) * 100) / 100,
       fileCategories,
       recentUploads,
     };
@@ -596,7 +577,6 @@ export class TaskAttachmentsService {
       'video/x-msvideo', // .avi
       'video/x-matroska', // .mkv
     ];
-
 
     if (!allowedMimeTypes.includes(file.mimetype)) {
       return { isValid: false, error: 'File type not allowed' };

@@ -14,13 +14,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiParam,
-  ApiQuery,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -116,12 +110,7 @@ export class ProjectsController {
     @Query('organizationId') organizationId?: string,
     @Query('search') search?: string,
   ) {
-    return this.projectsService.findBySearch(
-      workspaceId,
-      organizationId,
-      search,
-      user.id,
-    );
+    return this.projectsService.findBySearch(workspaceId, organizationId, search, user.id);
   }
 
   // Search with pagination
@@ -206,10 +195,7 @@ export class ProjectsController {
   @Patch('archive/:id')
   @Roles(Role.MANAGER, Role.OWNER)
   @HttpCode(HttpStatus.NO_CONTENT)
-  archiveProject(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
-  ) {
+  archiveProject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
     return this.projectsService.archiveProject(id, user.id);
   }
 
@@ -217,8 +203,7 @@ export class ProjectsController {
   @Get(':slug/charts')
   @ApiOperation({
     summary: 'Get project charts data',
-    description:
-      'Retrieve multiple project chart data types in a single request',
+    description: 'Retrieve multiple project chart data types in a single request',
   })
   @ApiParam({
     name: 'slug',
@@ -269,11 +254,7 @@ export class ProjectsController {
     @Query() query: GetProjectChartsQueryDto,
     @CurrentUser() user: any,
   ): Promise<ProjectChartDataResponse> {
-    return this.projectChartsService.getMultipleProjectChartData(
-      projectSlug,
-      user.id,
-      query.types,
-    );
+    return this.projectChartsService.getMultipleProjectChartData(projectSlug, user.id, query.types);
   }
 
   // Keep sprint burndown separate due to sprintId parameter
@@ -288,11 +269,7 @@ export class ProjectsController {
     @Param('sprintId', ParseUUIDPipe) sprintId: string,
     @CurrentUser() user: any,
   ) {
-    return this.projectChartsService.projectSprintBurndown(
-      sprintId,
-      slug,
-      user.id,
-    );
+    return this.projectChartsService.projectSprintBurndown(sprintId, slug, user.id);
   }
 
   // Get project by slug

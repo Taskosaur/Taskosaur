@@ -26,10 +26,7 @@ export class WorkflowsController {
   constructor(private readonly workflowsService: WorkflowsService) {}
 
   @Post()
-  create(
-    @Body() createWorkflowDto: CreateWorkflowDto,
-    @CurrentUser() user: any,
-  ) {
+  create(@Body() createWorkflowDto: CreateWorkflowDto, @CurrentUser() user: any) {
     return this.workflowsService.create(createWorkflowDto, user.id);
   }
 
@@ -48,9 +45,7 @@ export class WorkflowsController {
   }
 
   @Get('organization/:organizationId/default')
-  getDefaultWorkflow(
-    @Param('organizationId', ParseUUIDPipe) organizationId: string,
-  ) {
+  getDefaultWorkflow(@Param('organizationId', ParseUUIDPipe) organizationId: string) {
     return this.workflowsService.getDefaultWorkflow(organizationId);
   }
 
@@ -81,11 +76,7 @@ export class WorkflowsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: { organizationId: string; userId: string },
   ) {
-    return this.workflowsService.makeWorkflowDefault(
-      id,
-      body.organizationId,
-      body.userId,
-    );
+    return this.workflowsService.makeWorkflowDefault(id, body.organizationId, body.userId);
   }
 
   @Delete(':id')

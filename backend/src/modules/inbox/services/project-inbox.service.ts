@@ -1,7 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CryptoService } from '../../../common/crypto.service';
-import { CreateInboxDto, UpdateInboxDto, SetupEmailDto, MessageFiltersDto, CreateRuleDto } from '../dto';
+import {
+  CreateInboxDto,
+  UpdateInboxDto,
+  SetupEmailDto,
+  MessageFiltersDto,
+  CreateRuleDto,
+} from '../dto';
 import { MessageStatus, Prisma } from '@prisma/client';
 import { connect } from 'http2';
 
@@ -10,7 +16,7 @@ export class ProjectInboxService {
   constructor(
     private prisma: PrismaService,
     private crypto: CryptoService,
-  ) { }
+  ) {}
 
   async createInbox(projectId: string, data: CreateInboxDto) {
     // Check if project exists
@@ -103,7 +109,6 @@ export class ProjectInboxService {
     // Just return null (don’t throw)
     return inbox ?? null;
   }
-
 
   async updateInbox(projectId: string, data: UpdateInboxDto) {
     const inbox = await this.getInbox(projectId);
@@ -356,13 +361,17 @@ export class ProjectInboxService {
         description: message.bodyText || message.bodyHtml,
         type: message.projectInbox.defaultTaskType,
         priority: message.projectInbox.defaultPriority,
-        statusId: message.projectInbox.defaultStatusId!,
+        statusId: message.projectInbox.defaultStatusId,
         emailThreadId: message.threadId,
         allowEmailReplies: true,
         inboxMessageId: message.id,
         taskNumber,
         slug,
-        assignees: { connect: message.projectInbox.defaultAssigneeId ? [{ id: message.projectInbox.defaultAssigneeId }] : [] },
+        assignees: {
+          connect: message.projectInbox.defaultAssigneeId
+            ? [{ id: message.projectInbox.defaultAssigneeId }]
+            : [],
+        },
         reporters: { connect: [{ id: userId }] },
       },
       include: {
@@ -481,7 +490,7 @@ export class ProjectInboxService {
       where: { messageId },
     });
 
-    const taskAttachments = messageAttachments.map(attachment => ({
+    const taskAttachments = messageAttachments.map((attachment) => ({
       taskId,
       fileName: attachment.filename,
       filePath: attachment.storagePath,
@@ -495,5 +504,4 @@ export class ProjectInboxService {
       });
     }
   }
-
 }

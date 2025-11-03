@@ -18,7 +18,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private s3Service: S3Service,
-  ) { }
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
     const existingUser = await this.prisma.user.findUnique({
@@ -84,9 +84,7 @@ export class UsersService {
     const usersWithAvatarUrls = await Promise.all(
       users.map(async (user) => {
         if (user.avatar) {
-          const avatarUrl = await this.s3Service.getGetPresignedUrl(
-            user.avatar,
-          );
+          const avatarUrl = await this.s3Service.getGetPresignedUrl(user.avatar);
           return { ...user, avatarUrl };
         }
         return usersWithAvatarUrls;
@@ -161,10 +159,7 @@ export class UsersService {
     });
   }
 
-  async update(
-    id: string,
-    updateUserDto: UpdateUserDto,
-  ): Promise<Omit<User, 'password'>> {
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<Omit<User, 'password'>> {
     const existingUser = await this.prisma.user.findUnique({
       where: { id },
     });
@@ -183,10 +178,7 @@ export class UsersService {
       }
     }
 
-    if (
-      updateUserDto.username &&
-      updateUserDto.username !== existingUser.username
-    ) {
+    if (updateUserDto.username && updateUserDto.username !== existingUser.username) {
       const usernameExists = await this.prisma.user.findUnique({
         where: { username: updateUserDto.username },
       });
@@ -283,10 +275,7 @@ export class UsersService {
       },
     });
   }
-  async updateRefreshToken(
-    userId: string,
-    refreshToken: string | null,
-  ): Promise<void> {
+  async updateRefreshToken(userId: string, refreshToken: string | null): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -309,28 +298,18 @@ export class UsersService {
       throw new BadRequestException('User not found');
     }
 
-    const isMatch = await bcrypt.compare(
-      changePasswordDto.currentPassword,
-      userPassword,
-    );
+    const isMatch = await bcrypt.compare(changePasswordDto.currentPassword, userPassword);
     if (!isMatch) {
       throw new BadRequestException('Current password is not correct');
     }
 
-    const isSamePassword = await bcrypt.compare(
-      changePasswordDto.newPassword,
-      userPassword,
-    );
+    const isSamePassword = await bcrypt.compare(changePasswordDto.newPassword, userPassword);
     if (isSamePassword) {
-      throw new BadRequestException(
-        'New password must be different from current password',
-      );
+      throw new BadRequestException('New password must be different from current password');
     }
 
     if (changePasswordDto.newPassword !== changePasswordDto.confirmPassword) {
-      throw new BadRequestException(
-        'New password and confirm password do not match',
-      );
+      throw new BadRequestException('New password and confirm password do not match');
     }
 
     if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(changePasswordDto.newPassword)) {
@@ -340,10 +319,7 @@ export class UsersService {
     }
 
     const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(
-      changePasswordDto.newPassword,
-      saltRounds,
-    );
+    const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, saltRounds);
 
     await this.updatePassword(userId, hashedPassword);
 

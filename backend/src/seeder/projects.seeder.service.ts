@@ -1,11 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  Role as ProjectRole,
-  ProjectStatus,
-  ProjectPriority,
-  Project,
-} from '@prisma/client';
+import { Role as ProjectRole, ProjectStatus, ProjectPriority, Project } from '@prisma/client';
 import slugify from 'slugify';
 import { DEFAULT_SPRINT } from '../constants/defaultWorkflow';
 
@@ -31,9 +26,7 @@ export class ProjectsSeederService {
       const projectsData = this.getProjectsDataForWorkspace(workspace);
 
       // Get the organization's default workflow for this workspace
-      const defaultWorkflow = await this.getDefaultWorkflowForWorkspace(
-        workspace.id,
-      );
+      const defaultWorkflow = await this.getDefaultWorkflowForWorkspace(workspace.id);
 
       if (!defaultWorkflow) {
         console.log(
@@ -107,9 +100,7 @@ export class ProjectsSeederService {
       }
     }
 
-    console.log(
-      `✅ Projects seeding completed. Created/Found ${createdProjects.length} projects.`,
-    );
+    console.log(`✅ Projects seeding completed. Created/Found ${createdProjects.length} projects.`);
     return createdProjects;
   }
 
@@ -150,8 +141,7 @@ export class ProjectsSeederService {
           priority: ProjectPriority.HIGH,
           startDate: new Date('2024-01-15'),
           endDate: new Date('2024-08-30'),
-          avatar:
-            'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=150',
+          avatar: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=150',
           settings: {
             enableTimeTracking: true,
             enableSubtasks: true,
@@ -171,8 +161,7 @@ export class ProjectsSeederService {
           priority: ProjectPriority.HIGH,
           startDate: new Date('2024-01-01'),
           endDate: new Date('2024-07-15'),
-          avatar:
-            'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=150',
+          avatar: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=150',
           settings: {
             enableTimeTracking: true,
             enableSubtasks: true,
@@ -192,8 +181,7 @@ export class ProjectsSeederService {
           priority: ProjectPriority.MEDIUM,
           startDate: new Date('2024-02-01'),
           endDate: new Date('2024-06-30'),
-          avatar:
-            'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=150',
+          avatar: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=150',
           settings: {
             enableTimeTracking: false,
             enableSubtasks: false,
@@ -216,8 +204,7 @@ export class ProjectsSeederService {
           priority: ProjectPriority.MEDIUM,
           startDate: new Date('2024-01-20'),
           endDate: new Date('2024-05-15'),
-          avatar:
-            'https://images.unsplash.com/photo-1545670723-196ed0954986?w=150',
+          avatar: 'https://images.unsplash.com/photo-1545670723-196ed0954986?w=150',
           settings: {
             enableTimeTracking: false,
             enableSubtasks: true,
@@ -237,8 +224,7 @@ export class ProjectsSeederService {
           priority: ProjectPriority.LOW,
           startDate: new Date('2024-03-01'),
           endDate: new Date('2024-12-31'),
-          avatar:
-            'https://images.unsplash.com/photo-1553028826-f4804151e2e2?w=150',
+          avatar: 'https://images.unsplash.com/photo-1553028826-f4804151e2e2?w=150',
           settings: {
             enableTimeTracking: true,
             enableSubtasks: false,
@@ -261,8 +247,7 @@ export class ProjectsSeederService {
           priority: ProjectPriority.HIGH,
           startDate: new Date('2024-02-15'),
           endDate: new Date('2024-06-01'),
-          avatar:
-            'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=150',
+          avatar: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=150',
           settings: {
             enableTimeTracking: true,
             enableSubtasks: true,
@@ -285,8 +270,7 @@ export class ProjectsSeederService {
           priority: ProjectPriority.HIGH,
           startDate: new Date('2024-01-10'),
           endDate: new Date('2024-04-30'),
-          avatar:
-            'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=150',
+          avatar: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=150',
           settings: {
             enableTimeTracking: true,
             enableSubtasks: true,
@@ -306,8 +290,7 @@ export class ProjectsSeederService {
           priority: ProjectPriority.MEDIUM,
           startDate: new Date('2024-03-15'),
           endDate: new Date('2024-08-15'),
-          avatar:
-            'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=150',
+          avatar: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=150',
           settings: {
             enableTimeTracking: true,
             enableSubtasks: true,
@@ -330,8 +313,7 @@ export class ProjectsSeederService {
           priority: ProjectPriority.LOW,
           startDate: new Date('2024-04-01'),
           endDate: new Date('2024-09-30'),
-          avatar:
-            'https://images.unsplash.com/photo-1552664730-d307ca884978?w=150',
+          avatar: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=150',
           settings: {
             enableTimeTracking: false,
             enableSubtasks: false,
@@ -368,11 +350,7 @@ export class ProjectsSeederService {
     ];
   }
 
-  private async addMembersToProject(
-    projectId: string,
-    users: any[],
-    workspaceId: string,
-  ) {
+  private async addMembersToProject(projectId: string, users: any[], workspaceId: string) {
     // Get workspace members to determine who can be added to project
     const workspaceMembers = await this.prisma.workspaceMember.findMany({
       where: { workspaceId },
@@ -400,9 +378,7 @@ export class ProjectsSeederService {
             role: memberRoles[i],
           },
         });
-        console.log(
-          `   ✓ Added ${workspaceMembers[i].user.email} to project as ${memberRoles[i]}`,
-        );
+        console.log(`   ✓ Added ${workspaceMembers[i].user.email} to project as ${memberRoles[i]}`);
       } catch (error) {
         console.log(
           `   ⚠ User ${workspaceMembers[i].user.email} might already be a project member, skipping...`,

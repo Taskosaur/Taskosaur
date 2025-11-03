@@ -21,9 +21,7 @@ export class EmailProcessor {
     const smtpPass = this.configService.get<string>('SMTP_PASS');
 
     if (!smtpHost || !smtpUser || !smtpPass) {
-      this.logger.warn(
-        'SMTP configuration missing. Email sending will be simulated.',
-      );
+      this.logger.warn('SMTP configuration missing. Email sending will be simulated.');
       return;
     }
 
@@ -49,19 +47,14 @@ export class EmailProcessor {
       const text = this.generateEmailText(template, data);
       if (this.transporter) {
         await this.transporter.sendMail({
-          from: this.configService.get<string>(
-            'SMTP_FROM',
-            'noreply@taskosaur.com',
-          ),
+          from: this.configService.get<string>('SMTP_FROM', 'noreply@taskosaur.com'),
           to,
           subject,
           html,
           text,
         });
 
-        this.logger.log(
-          `Email sent successfully to ${to} using template ${template}`,
-        );
+        this.logger.log(`Email sent successfully to ${to} using template ${template}`);
       } else {
         // Simulate email sending for development
         this.logger.log(
@@ -179,21 +172,22 @@ export class EmailProcessor {
                 <p><strong>Time Tracked:</strong> ${data.summary.totalTimeSpent} hours</p>
               </div>
               
-              ${data.summary.overdueTasks.length > 0
-            ? `
+              ${
+                data.summary.overdueTasks.length > 0
+                  ? `
                 <div class="task-info priority-high">
                   <p><strong>Overdue Tasks (${data.summary.overdueTasks.length})</strong></p>
                   ${data.summary.overdueTasks
-              .map(
-                (task) => `
+                    .map(
+                      (task) => `
                     <p><a href="${task.url}">${task.key}: ${task.title}</a> (${task.project})</p>
                   `,
-              )
-              .join('')}
+                    )
+                    .join('')}
                 </div>
               `
-            : '<p>All tasks are up to date.</p>'
-          }
+                  : '<p>All tasks are up to date.</p>'
+              }
             </div>
             <div class="footer">
               <p>Taskosaur - Modern Project Management</p>
@@ -406,9 +400,8 @@ export class EmailProcessor {
       ${bodyContent}
     </body>
     </html>
-    `
+    `;
   }
-
 
   private generateEmailText(template: EmailTemplate, data: any): string {
     switch (template) {

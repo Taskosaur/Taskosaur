@@ -1,10 +1,5 @@
 // roles.guard.ts
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role as PrismaRole } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -17,7 +12,7 @@ export class RolesGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private prisma: PrismaService,
-  ) { }
+  ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const req = ctx.switchToHttp().getRequest();
@@ -27,10 +22,10 @@ export class RolesGuard implements CanActivate {
     // SUPER_ADMIN has unrestricted access to all endpoints
     if (user.role === 'SUPER_ADMIN') return true;
 
-    const requiredRoles = this.reflector.getAllAndOverride<PrismaRole[]>(
-      ROLES_KEY,
-      [ctx.getHandler(), ctx.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<PrismaRole[]>(ROLES_KEY, [
+      ctx.getHandler(),
+      ctx.getClass(),
+    ]);
     if (!requiredRoles || requiredRoles.length === 0) return true;
     const scopeMeta = this.reflector.getAllAndOverride<{
       type: ScopeType;
@@ -68,11 +63,7 @@ export class RolesGuard implements CanActivate {
     return true;
   }
 
-  private async getMemberRole(
-    type: ScopeType,
-    userId: string,
-    scopeId: string,
-  ) {
+  private async getMemberRole(type: ScopeType, userId: string, scopeId: string) {
     switch (type) {
       case 'ORGANIZATION': {
         const uuidRegex =
@@ -106,14 +97,10 @@ export class RolesGuard implements CanActivate {
   }
 }
 function inferScopeFromParams(params: Record<string, string>) {
-  if (params.organizationId)
-    return { type: 'ORGANIZATION' as const, idParam: 'organizationId' };
-  if (params.workspaceId)
-    return { type: 'WORKSPACE' as const, idParam: 'workspaceId' };
-  if (params.projectId)
-    return { type: 'PROJECT' as const, idParam: 'projectId' };
-  if (params.id && params.slug)
-    return { type: 'PROJECT' as const, idParam: 'slug' };
+  if (params.organizationId) return { type: 'ORGANIZATION' as const, idParam: 'organizationId' };
+  if (params.workspaceId) return { type: 'WORKSPACE' as const, idParam: 'workspaceId' };
+  if (params.projectId) return { type: 'PROJECT' as const, idParam: 'projectId' };
+  if (params.id && params.slug) return { type: 'PROJECT' as const, idParam: 'slug' };
   if (params.id) return { type: 'PROJECT' as const, idParam: 'id' };
   return { type: undefined, idParam: '' } as any;
 }

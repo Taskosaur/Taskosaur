@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { Organization } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
@@ -20,7 +16,7 @@ import slugify from 'slugify';
 
 @Injectable()
 export class OrganizationsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   private async generateUniqueSlug(name: string): Promise<string> {
     const baseSlug = slugify(name, {
@@ -193,16 +189,13 @@ export class OrganizationsService {
       if (project) {
         const defaultSprint = project.sprints.find((s) => s.isDefault);
         if (!project.workflow || project.workflow.statuses.length === 0) {
-          throw new NotFoundException(
-            'Default workflow or statuses not found for the project',
-          );
+          throw new NotFoundException('Default workflow or statuses not found for the project');
         }
         const workflowStatuses = project.workflow.statuses;
         await this.prisma.task.createMany({
           data: DEFAULT_TASKS.map((task, index) => {
             const status =
-              workflowStatuses.find((s) => s.name === task.status) ??
-              workflowStatuses[0];
+              workflowStatuses.find((s) => s.name === task.status) ?? workflowStatuses[0];
             return {
               title: task.title,
               description: task.description,
@@ -222,19 +215,14 @@ export class OrganizationsService {
       return organization;
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException(
-          'Organization with this slug already exists',
-        );
+        throw new ConflictException('Organization with this slug already exists');
       }
       throw error;
     }
   }
 
   // Helper method to generate unique workspace slug
-  private async generateUniqueWorkspaceSlug(
-    name: string,
-    organizationId: string,
-  ): Promise<string> {
+  private async generateUniqueWorkspaceSlug(name: string, organizationId: string): Promise<string> {
     const baseSlug = name
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
@@ -245,9 +233,11 @@ export class OrganizationsService {
     let slug = baseSlug;
     let counter = 1;
 
-    while (await this.prisma.workspace.findFirst({
-      where: { slug, organizationId },
-    })) {
+    while (
+      await this.prisma.workspace.findFirst({
+        where: { slug, organizationId },
+      })
+    ) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
@@ -256,10 +246,7 @@ export class OrganizationsService {
   }
 
   // Helper method to generate unique project slug
-  private async generateUniqueProjectSlug(
-    name: string,
-    workspaceId: string,
-  ): Promise<string> {
+  private async generateUniqueProjectSlug(name: string, workspaceId: string): Promise<string> {
     const baseSlug = name
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
@@ -270,9 +257,11 @@ export class OrganizationsService {
     let slug = baseSlug;
     let counter = 1;
 
-    while (await this.prisma.project.findFirst({
-      where: { slug, workspaceId },
-    })) {
+    while (
+      await this.prisma.project.findFirst({
+        where: { slug, workspaceId },
+      })
+    ) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
@@ -280,20 +269,16 @@ export class OrganizationsService {
     return slug;
   }
 
-
   private async createDefaultStatusTransitions(
     workflowId: string,
     statuses: any[],
     userId: string,
   ) {
     // Create a map of status names to IDs
-    const statusMap = new Map(
-      statuses.map((status) => [status.name, status.id]),
-    );
+    const statusMap = new Map(statuses.map((status) => [status.name, status.id]));
 
     const transitionsToCreate = DEFAULT_STATUS_TRANSITIONS.filter(
-      (transition) =>
-        statusMap.has(transition.from) && statusMap.has(transition.to),
+      (transition) => statusMap.has(transition.from) && statusMap.has(transition.to),
     ).map((transition) => ({
       name: `${transition.from} → ${transition.to}`,
       workflowId,
@@ -502,9 +487,7 @@ export class OrganizationsService {
       return organization;
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException(
-          'Organization with this slug already exists',
-        );
+        throw new ConflictException('Organization with this slug already exists');
       }
       if (error.code === 'P2025') {
         throw new NotFoundException('Organization not found');

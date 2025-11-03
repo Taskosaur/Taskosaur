@@ -27,9 +27,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard)
 @Controller('organization-members')
 export class OrganizationMembersController {
-  constructor(
-    private readonly organizationMembersService: OrganizationMembersService,
-  ) { }
+  constructor(private readonly organizationMembersService: OrganizationMembersService) {}
 
   @Post()
   create(@Body() createOrganizationMemberDto: CreateOrganizationMemberDto) {
@@ -37,16 +35,12 @@ export class OrganizationMembersController {
   }
 
   @Post('invite')
-  inviteByEmail(
-    @Body() inviteOrganizationMemberDto: InviteOrganizationMemberDto,
-  ) {
-    return this.organizationMembersService.inviteByEmail(
-      inviteOrganizationMemberDto,
-    );
+  inviteByEmail(@Body() inviteOrganizationMemberDto: InviteOrganizationMemberDto) {
+    return this.organizationMembersService.inviteByEmail(inviteOrganizationMemberDto);
   }
 
   @Get()
-  findAll(@Query('organizationId') organizationId?: string, @Query('search') search?: string,) {
+  findAll(@Query('organizationId') organizationId?: string, @Query('search') search?: string) {
     return this.organizationMembersService.findAll(organizationId, search);
   }
   @Get('slug')
@@ -60,7 +54,6 @@ export class OrganizationMembersController {
 
     return this.organizationMembersService.findAllByOrgSlug(slug, pageNum, limitNum);
   }
-
 
   @Patch('set-default')
   @ApiOperation({ summary: 'Set a default organization for a user' })
@@ -82,11 +75,7 @@ export class OrganizationMembersController {
     // TODO: Get requestUserId from JWT token when authentication is implemented
     @Query('requestUserId') requestUserId: string,
   ) {
-    return this.organizationMembersService.update(
-      id,
-      updateOrganizationMemberDto,
-      requestUserId,
-    );
+    return this.organizationMembersService.update(id, updateOrganizationMemberDto, requestUserId);
   }
 
   @Delete(':id')
@@ -107,9 +96,7 @@ export class OrganizationMembersController {
   }
 
   @Get('organization/:organizationId/stats')
-  getOrganizationStats(
-    @Param('organizationId', ParseUUIDPipe) organizationId: string,
-  ) {
+  getOrganizationStats(@Param('organizationId', ParseUUIDPipe) organizationId: string) {
     return this.organizationMembersService.getOrganizationStats(organizationId);
   }
 
@@ -123,9 +110,6 @@ export class OrganizationMembersController {
     @Param('userId', ParseUUIDPipe) userId: string,
     @Param('organizationId', ParseUUIDPipe) organizationId: string,
   ) {
-    return this.organizationMembersService.findByUserAndOrganization(
-      userId,
-      organizationId,
-    );
+    return this.organizationMembersService.findByUserAndOrganization(userId, organizationId);
   }
 }

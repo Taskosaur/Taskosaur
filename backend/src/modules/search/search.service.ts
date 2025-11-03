@@ -38,93 +38,40 @@ export class SearchService {
 
   async globalSearch(searchDto: GlobalSearchDto): Promise<SearchResponse> {
     const startTime = Date.now();
-    const {
-      query,
-      entityType = SearchEntityType.ALL,
-      page = 1,
-      limit = 20,
-    } = searchDto;
+    const { query, entityType = SearchEntityType.ALL, page = 1, limit = 20 } = searchDto;
     const offset = (page - 1) * limit;
 
     let results: SearchResult[] = [];
     let total = 0;
 
     // Search based on entity type
-    if (
-      entityType === SearchEntityType.ALL ||
-      entityType === SearchEntityType.TASKS
-    ) {
-      const taskResults = await this.searchTasks(
-        query,
-        searchDto,
-        offset,
-        limit,
-      );
+    if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.TASKS) {
+      const taskResults = await this.searchTasks(query, searchDto, offset, limit);
       results.push(...taskResults);
     }
 
-    if (
-      entityType === SearchEntityType.ALL ||
-      entityType === SearchEntityType.PROJECTS
-    ) {
-      const projectResults = await this.searchProjects(
-        query,
-        searchDto,
-        offset,
-        limit,
-      );
+    if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.PROJECTS) {
+      const projectResults = await this.searchProjects(query, searchDto, offset, limit);
       results.push(...projectResults);
     }
 
-    if (
-      entityType === SearchEntityType.ALL ||
-      entityType === SearchEntityType.USERS
-    ) {
-      const userResults = await this.searchUsers(
-        query,
-        searchDto,
-        offset,
-        limit,
-      );
+    if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.USERS) {
+      const userResults = await this.searchUsers(query, searchDto, offset, limit);
       results.push(...userResults);
     }
 
-    if (
-      entityType === SearchEntityType.ALL ||
-      entityType === SearchEntityType.COMMENTS
-    ) {
-      const commentResults = await this.searchComments(
-        query,
-        searchDto,
-        offset,
-        limit,
-      );
+    if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.COMMENTS) {
+      const commentResults = await this.searchComments(query, searchDto, offset, limit);
       results.push(...commentResults);
     }
 
-    if (
-      entityType === SearchEntityType.ALL ||
-      entityType === SearchEntityType.ATTACHMENTS
-    ) {
-      const attachmentResults = await this.searchAttachments(
-        query,
-        searchDto,
-        offset,
-        limit,
-      );
+    if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.ATTACHMENTS) {
+      const attachmentResults = await this.searchAttachments(query, searchDto, offset, limit);
       results.push(...attachmentResults);
     }
 
-    if (
-      entityType === SearchEntityType.ALL ||
-      entityType === SearchEntityType.SPRINTS
-    ) {
-      const sprintResults = await this.searchSprints(
-        query,
-        searchDto,
-        offset,
-        limit,
-      );
+    if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.SPRINTS) {
+      const sprintResults = await this.searchSprints(query, searchDto, offset, limit);
       results.push(...sprintResults);
     }
 
@@ -365,11 +312,7 @@ export class SearchService {
       projectKey: task.project.slug,
       organizationId: task.project.workspace.organizationId,
       workspaceId: task.project.workspaceId,
-      relevanceScore: this.calculateRelevanceScore(
-        task.title,
-        task.description || '',
-        query,
-      ),
+      relevanceScore: this.calculateRelevanceScore(task.title, task.description || '', query),
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       metadata: {
@@ -419,11 +362,7 @@ export class SearchService {
       projectKey: project.slug,
       organizationId: project.workspace.organizationId,
       workspaceId: project.workspaceId,
-      relevanceScore: this.calculateRelevanceScore(
-        project.name,
-        project.description || '',
-        query,
-      ),
+      relevanceScore: this.calculateRelevanceScore(project.name, project.description || '', query),
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       metadata: {
@@ -600,11 +539,7 @@ export class SearchService {
       projectId: attachment.task.projectId,
       projectKey: attachment.task.project.slug,
       organizationId: attachment.task.project.workspace.organizationId,
-      relevanceScore: this.calculateRelevanceScore(
-        attachment.fileName,
-        '',
-        query,
-      ),
+      relevanceScore: this.calculateRelevanceScore(attachment.fileName, '', query),
       createdAt: attachment.createdAt,
       updatedAt: attachment.createdAt,
       metadata: {
@@ -663,11 +598,7 @@ export class SearchService {
       projectKey: sprint.project.slug,
       organizationId: sprint.project.workspace.organizationId,
       workspaceId: sprint.project.workspaceId,
-      relevanceScore: this.calculateRelevanceScore(
-        sprint.name,
-        sprint.goal || '',
-        query,
-      ),
+      relevanceScore: this.calculateRelevanceScore(sprint.name, sprint.goal || '', query),
       createdAt: sprint.createdAt,
       updatedAt: sprint.updatedAt,
       metadata: {
@@ -678,11 +609,7 @@ export class SearchService {
     }));
   }
 
-  private addScopeFilters(
-    where: any,
-    searchDto: GlobalSearchDto,
-    prefix: string = '',
-  ) {
+  private addScopeFilters(where: any, searchDto: GlobalSearchDto, prefix: string = '') {
     if (searchDto.projectId) {
       where[`${prefix}projectId`] = searchDto.projectId;
     } else if (searchDto.workspaceId) {
@@ -694,11 +621,7 @@ export class SearchService {
     }
   }
 
-  private calculateRelevanceScore(
-    title: string,
-    description: string,
-    query: string,
-  ): number {
+  private calculateRelevanceScore(title: string, description: string, query: string): number {
     const queryLower = query.toLowerCase();
     const titleLower = title.toLowerCase();
     const descLower = (description || '').toLowerCase();
@@ -787,10 +710,7 @@ export class SearchService {
       take: limit,
     });
 
-    const suggestions = [
-      ...taskTitles.map((t) => t.title),
-      ...projectNames.map((p) => p.name),
-    ];
+    const suggestions = [...taskTitles.map((t) => t.title), ...projectNames.map((p) => p.name)];
 
     // Remove duplicates and return
     return [...new Set(suggestions)].slice(0, limit);

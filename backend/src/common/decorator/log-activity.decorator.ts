@@ -11,5 +11,4 @@ export interface ActivityLogConfig {
   entityIdName?: string | string[];
 }
 
-export const LogActivity = (config: ActivityLogConfig) =>
-  SetMetadata('activity-log', config);
+export const LogActivity = (config: ActivityLogConfig) => SetMetadata('activity-log', config);

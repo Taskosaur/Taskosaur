@@ -1,14 +1,7 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { TaskStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  CreateTaskStatusDto,
-  CreateTaskStatusFromProjectDto,
-} from './dto/create-task-status.dto';
+import { CreateTaskStatusDto, CreateTaskStatusFromProjectDto } from './dto/create-task-status.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 
 @Injectable()
@@ -29,10 +22,7 @@ export class TaskStatusesService {
   }
   constructor(private prisma: PrismaService) {}
 
-  async create(
-    createTaskStatusDto: CreateTaskStatusDto,
-    userId: string,
-  ): Promise<TaskStatus> {
+  async create(createTaskStatusDto: CreateTaskStatusDto, userId: string): Promise<TaskStatus> {
     try {
       const taskCount = await this.prisma.taskStatus.count({
         where: {
@@ -86,9 +76,7 @@ export class TaskStatusesService {
       });
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException(
-          'Status with this name already exists in this workflow',
-        );
+        throw new ConflictException('Status with this name already exists in this workflow');
       }
       throw error;
     }
@@ -237,9 +225,7 @@ export class TaskStatusesService {
       return taskStatus;
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException(
-          'Status with this name already exists in this workflow',
-        );
+        throw new ConflictException('Status with this name already exists in this workflow');
       }
       if (error.code === 'P2025') {
         throw new NotFoundException('Task status not found');
@@ -443,9 +429,7 @@ export class TaskStatusesService {
       });
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException(
-          'Status with this name already exists in this workflow',
-        );
+        throw new ConflictException('Status with this name already exists in this workflow');
       }
       throw error;
     }

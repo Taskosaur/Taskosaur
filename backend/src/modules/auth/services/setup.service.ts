@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  ConflictException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, ConflictException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { SystemUserSeederService } from '../../../seeder/system-user.seeder.service';
 import { SetupAdminDto } from '../dto/setup-admin.dto';
@@ -18,16 +13,14 @@ export class SetupService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly systemUserSeeder: SystemUserSeederService,
-  ) { }
+  ) {}
 
   async isSetupRequired(): Promise<boolean> {
     const userCount = await this.prisma.user.count();
     return userCount === 0;
   }
 
-  async setupSuperAdmin(
-    setupAdminDto: SetupAdminDto,
-  ): Promise<Omit<User, 'password'>> {
+  async setupSuperAdmin(setupAdminDto: SetupAdminDto): Promise<Omit<User, 'password'>> {
     // Prevent concurrent setup attempts
     if (SetupService.setupInProgress) {
       throw new ConflictException('Setup is already in progress');
@@ -40,9 +33,7 @@ export class SetupService {
         // Double-check no users exist within transaction
         const userCount = await prismaTransaction.user.count();
         if (userCount > 0) {
-          throw new ConflictException(
-            'System setup has already been completed',
-          );
+          throw new ConflictException('System setup has already been completed');
         }
 
         this.logger.log('Starting system setup...');
@@ -100,9 +91,7 @@ export class SetupService {
           },
         });
 
-        this.logger.log(
-          `Super admin created successfully: ${superAdmin.email}`,
-        );
+        this.logger.log(`Super admin created successfully: ${superAdmin.email}`);
 
         const { password, ...superAdminWithoutPassword } = superAdmin;
         return superAdminWithoutPassword;

@@ -11,9 +11,7 @@ export class AuditService {
    * @param overrides Optional overrides for createdBy/updatedBy
    * @returns Object with createdBy and optionally updatedBy
    */
-  getCreateAuditData(
-    overrides: { createdBy?: string; updatedBy?: string } = {},
-  ) {
+  getCreateAuditData(overrides: { createdBy?: string; updatedBy?: string } = {}) {
     const currentUserId = RequestContextService.getCurrentUserId();
 
     return {

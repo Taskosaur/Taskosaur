@@ -20,9 +20,7 @@ export class TaskCommentsSeederService {
     const createdComments: TaskComment[] = [];
 
     // Add comments to selected tasks (not all tasks need comments)
-    const tasksWithComments = tasks
-      .filter((_, index) => index % 2 === 0)
-      .slice(0, 10); // Every 2nd task, max 10
+    const tasksWithComments = tasks.filter((_, index) => index % 2 === 0).slice(0, 10); // Every 2nd task, max 10
 
     for (const task of tasksWithComments) {
       const commentsData = this.getCommentsDataForTask(task);
@@ -43,9 +41,7 @@ export class TaskCommentsSeederService {
           });
 
           createdComments.push(comment);
-          console.log(
-            `   ✓ Created comment by ${authorUser.firstName} on task: ${task.title}`,
-          );
+          console.log(`   ✓ Created comment by ${authorUser.firstName} on task: ${task.title}`);
 
           // Add some replies to main comments (30% chance)
           if (Math.random() < 0.3 && commentsData.length > 1) {
@@ -65,24 +61,18 @@ export class TaskCommentsSeederService {
               });
 
               createdComments.push(reply);
-              console.log(
-                `   ✓ Created reply by ${replyAuthor.firstName} to comment`,
-              );
+              console.log(`   ✓ Created reply by ${replyAuthor.firstName} to comment`);
             } catch (error) {
               // Ignore reply creation errors
             }
           }
         } catch (error) {
-          console.log(
-            `   ⚠ Error creating comment on task ${task.title}: ${error.message}`,
-          );
+          console.log(`   ⚠ Error creating comment on task ${task.title}: ${error.message}`);
         }
       }
     }
 
-    console.log(
-      `✅ Task comments seeding completed. Created ${createdComments.length} comments.`,
-    );
+    console.log(`✅ Task comments seeding completed. Created ${createdComments.length} comments.`);
     return createdComments;
   }
 

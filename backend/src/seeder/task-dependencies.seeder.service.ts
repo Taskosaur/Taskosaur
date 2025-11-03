@@ -53,21 +53,15 @@ export class TaskDependenciesSeederService {
           createdDependencies.push(dependency);
 
           // Get task titles for logging
-          const dependentTask = projectTasks.find(
-            (t) => t.id === dependencyData.dependentTaskId,
-          );
-          const blockingTask = projectTasks.find(
-            (t) => t.id === dependencyData.blockingTaskId,
-          );
+          const dependentTask = projectTasks.find((t) => t.id === dependencyData.dependentTaskId);
+          const blockingTask = projectTasks.find((t) => t.id === dependencyData.blockingTaskId);
 
           console.log(
             `   ✓ Created dependency: "${dependentTask?.title}" ${dependencyData.type} "${blockingTask?.title}"`,
           );
         } catch (error) {
           // Skip if dependency already exists or there's a constraint violation
-          console.log(
-            `   ⚠ Dependency creation skipped (might already exist)`,
-          );
+          console.log(`   ⚠ Dependency creation skipped (might already exist)`);
         }
       }
     }
@@ -86,9 +80,7 @@ export class TaskDependenciesSeederService {
     }> = [];
 
     // Sort tasks by creation date to establish logical order
-    const sortedTasks = [...tasks].sort(
-      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
-    );
+    const sortedTasks = [...tasks].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
     // Create logical dependencies based on task types and names
     for (let i = 0; i < sortedTasks.length; i++) {
@@ -109,16 +101,10 @@ export class TaskDependenciesSeederService {
     }
 
     // Limit to reasonable number of dependencies (avoid over-complication)
-    return dependencies.slice(
-      0,
-      Math.min(dependencies.length, Math.floor(tasks.length / 2)),
-    );
+    return dependencies.slice(0, Math.min(dependencies.length, Math.floor(tasks.length / 2)));
   }
 
-  private shouldCreateDependency(
-    dependentTask: Task,
-    blockingTask: Task,
-  ): boolean {
+  private shouldCreateDependency(dependentTask: Task, blockingTask: Task): boolean {
     const dependent = dependentTask.title.toLowerCase();
     const blocking = blockingTask.title.toLowerCase();
 
@@ -179,11 +165,7 @@ export class TaskDependenciesSeederService {
 
     // Deployment depends on implementation
     if (dependent.includes('deploy') || dependent.includes('release')) {
-      if (
-        blocking.includes('implement') ||
-        blocking.includes('test') ||
-        blocking.includes('bug')
-      ) {
+      if (blocking.includes('implement') || blocking.includes('test') || blocking.includes('bug')) {
         return true;
       }
     }
@@ -219,10 +201,7 @@ export class TaskDependenciesSeederService {
     return false;
   }
 
-  private getDependencyType(
-    dependentTask: Task,
-    blockingTask: Task,
-  ): DependencyType {
+  private getDependencyType(dependentTask: Task, blockingTask: Task): DependencyType {
     // Most dependencies in software development are BLOCKS (finish-to-start)
     // The blocking task must be completed before the dependent task can start
 

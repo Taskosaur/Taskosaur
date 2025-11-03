@@ -1,13 +1,6 @@
-import {
-  IsString,
-  IsOptional,
-  IsNotEmpty,
-  IsUrl,
-  IsObject,
-} from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, IsUrl, IsObject } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-
 
 export class DefaultWorkspaceDto {
   @ApiProperty({
@@ -41,8 +34,7 @@ export class CreateOrganizationDto {
 
   @ApiProperty({
     description: 'Organization description',
-    example:
-      'Leading technology company focused on innovative solutions for modern businesses.',
+    example: 'Leading technology company focused on innovative solutions for modern businesses.',
     required: false,
     maxLength: 500,
   })

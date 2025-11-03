@@ -287,11 +287,8 @@ export class TaskStatusSeederService {
 
     try {
       // Delete status transitions first
-      const deletedTransitions =
-        await this.prisma.statusTransition.deleteMany();
-      console.log(
-        `   ✓ Deleted ${deletedTransitions.count} status transitions`,
-      );
+      const deletedTransitions = await this.prisma.statusTransition.deleteMany();
+      console.log(`   ✓ Deleted ${deletedTransitions.count} status transitions`);
 
       // Delete task statuses
       const deletedStatuses = await this.prisma.taskStatus.deleteMany();

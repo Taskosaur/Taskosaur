@@ -74,8 +74,7 @@ export class CreateWorkspaceDto {
   settings?: Record<string, any>;
 
   @ApiProperty({
-    description:
-      'The unique identifier of the organization this workspace belongs to',
+    description: 'The unique identifier of the organization this workspace belongs to',
     example: 'b8d3f4e5-2345-6789-0abc-def123456789',
     format: 'uuid',
     required: true,

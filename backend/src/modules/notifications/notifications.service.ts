@@ -5,7 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async createNotification(data: {
     title: string;
@@ -157,7 +157,7 @@ export class NotificationsService {
     if (!task || !assigneeIds?.length) return;
 
     // Create notifications for all assignees concurrently
-    const notificationPromises = assigneeIds.map(assigneeId =>
+    const notificationPromises = assigneeIds.map((assigneeId) =>
       this.createNotification({
         title: 'New Task Assignment',
         message: `You have been assigned to task "${task.title}"`,
@@ -169,13 +169,12 @@ export class NotificationsService {
         actionUrl: `/tasks/${taskId}`,
         createdBy: assignedBy,
         priority: NotificationPriority.HIGH,
-      })
+      }),
     );
 
     // Execute all notifications concurrently and return results
     return Promise.all(notificationPromises);
   }
-
 
   async notifyTaskStatusChanged(
     taskId: string,
@@ -204,14 +203,14 @@ export class NotificationsService {
     const usersToNotify = new Set<string>();
 
     // Add all assignees
-    task.assignees?.forEach(assignee => {
+    task.assignees?.forEach((assignee) => {
       if (assignee.id !== changedBy) {
         usersToNotify.add(assignee.id);
       }
     });
 
     // Add all reporters
-    task.reporters?.forEach(reporter => {
+    task.reporters?.forEach((reporter) => {
       if (reporter.id !== changedBy) {
         usersToNotify.add(reporter.id);
       }
@@ -236,7 +235,6 @@ export class NotificationsService {
 
     return Promise.all(notifications);
   }
-
 
   async notifyTaskDueSoon(taskId: string) {
     const task = await this.prisma.task.findUnique({
@@ -267,7 +265,7 @@ export class NotificationsService {
         entityId: taskId,
         actionUrl: `/tasks/${taskId}`,
         priority: NotificationPriority.HIGH,
-      })
+      }),
     );
 
     return Promise.all(notifications);
@@ -719,10 +717,7 @@ export class NotificationsService {
               expiresAt: invitation.expiresAt,
             },
             parent:
-              invitation.project ||
-              invitation.workspace ||
-              invitation.organization ||
-              undefined,
+              invitation.project || invitation.workspace || invitation.organization || undefined,
           };
         }
 
@@ -760,6 +755,4 @@ export class NotificationsService {
       return null;
     }
   }
-
-
 }

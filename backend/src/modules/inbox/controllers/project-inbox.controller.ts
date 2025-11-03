@@ -48,10 +48,7 @@ export class ProjectInboxController {
   @ApiOperation({ summary: 'Create inbox for project' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiResponse({ status: HttpStatus.CREATED, description: 'Inbox created successfully' })
-  async createInbox(
-    @Param('projectId') projectId: string,
-    @Body() dto: CreateInboxDto,
-  ) {
+  async createInbox(@Param('projectId') projectId: string, @Body() dto: CreateInboxDto) {
     return this.inboxService.createInbox(projectId, dto);
   }
 
@@ -67,10 +64,7 @@ export class ProjectInboxController {
   @ApiOperation({ summary: 'Update inbox configuration' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Inbox updated successfully' })
-  async updateInbox(
-    @Param('projectId') projectId: string,
-    @Body() dto: UpdateInboxDto,
-  ) {
+  async updateInbox(@Param('projectId') projectId: string, @Body() dto: UpdateInboxDto) {
     return this.inboxService.updateInbox(projectId, dto);
   }
 
@@ -78,27 +72,21 @@ export class ProjectInboxController {
   @ApiOperation({ summary: 'Setup or update email account' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Email account configured successfully' })
-  async setupEmailAccount(
-    @Param('projectId') projectId: string,
-    @Body() dto: SetupEmailDto,
-  ) {
+  async setupEmailAccount(@Param('projectId') projectId: string, @Body() dto: SetupEmailDto) {
     return this.inboxService.setupEmailAccount(projectId, dto);
   }
 
-   @Post('sync')
+  @Post('sync')
   @ApiOperation({ summary: 'Manually trigger email sync' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Email sync job queued successfully' })
-  async syncInbox(
-    @Param('projectId') projectId: string,
-    @CurrentUser() user: any,
-  ) {
+  async syncInbox(@Param('projectId') projectId: string, @CurrentUser() user: any) {
     const jobId = await this.emailSyncQueue.addManualSyncJob(projectId, user?.id);
-    
-    return { 
+
+    return {
       message: 'Email sync job queued successfully',
       jobId,
-      status: 'queued'
+      status: 'queued',
     };
   }
 
@@ -110,10 +98,7 @@ export class ProjectInboxController {
   @ApiQuery({ name: 'fromEmail', required: false, description: 'Filter by sender email' })
   @ApiQuery({ name: 'search', required: false, description: 'Search in subject and content' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Messages retrieved successfully' })
-  async getMessages(
-    @Param('projectId') projectId: string,
-    @Query() filters: MessageFiltersDto,
-  ) {
+  async getMessages(@Param('projectId') projectId: string, @Query() filters: MessageFiltersDto) {
     return this.inboxService.getInboxMessages(projectId, filters);
   }
 
@@ -131,10 +116,7 @@ export class ProjectInboxController {
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiParam({ name: 'messageId', description: 'Message ID' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Message converted to task successfully' })
-  async convertToTask(
-    @Param('messageId') messageId: string,
-    @CurrentUser() user: any,
-  ) {
+  async convertToTask(@Param('messageId') messageId: string, @CurrentUser() user: any) {
     return this.inboxService.convertToTask(messageId, user.id);
   }
 
@@ -159,10 +141,7 @@ export class ProjectInboxController {
   @ApiOperation({ summary: 'Create inbox rule' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiResponse({ status: HttpStatus.CREATED, description: 'Rule created successfully' })
-  async createRule(
-    @Param('projectId') projectId: string,
-    @Body() dto: CreateRuleDto,
-  ) {
+  async createRule(@Param('projectId') projectId: string, @Body() dto: CreateRuleDto) {
     return this.inboxService.createRule(projectId, dto);
   }
 
@@ -171,10 +150,7 @@ export class ProjectInboxController {
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiParam({ name: 'ruleId', description: 'Rule ID' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Rule updated successfully' })
-  async updateRule(
-    @Param('ruleId') ruleId: string,
-    @Body() dto: CreateRuleDto,
-  ) {
+  async updateRule(@Param('ruleId') ruleId: string, @Body() dto: CreateRuleDto) {
     return this.inboxService.updateRule(ruleId, dto);
   }
 

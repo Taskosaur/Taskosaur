@@ -12,7 +12,7 @@ export class EmailReplyService {
   constructor(
     private prisma: PrismaService,
     private crypto: CryptoService,
-  ) { }
+  ) {}
 
   private decodeHtml(html: string): string {
     return decode(html);
@@ -88,8 +88,12 @@ export class EmailReplyService {
       };
 
       if (inboxMessage.projectInbox.emailSignature) {
-        const hasEscapedHtml = /&lt;|&gt;|&amp;|&quot;|&#39;/.test(inboxMessage.projectInbox.emailSignature);
-        const htmlSignature = hasEscapedHtml ? this.decodeHtml(inboxMessage.projectInbox.emailSignature) : inboxMessage.projectInbox.emailSignature;
+        const hasEscapedHtml = /&lt;|&gt;|&amp;|&quot;|&#39;/.test(
+          inboxMessage.projectInbox.emailSignature,
+        );
+        const htmlSignature = hasEscapedHtml
+          ? this.decodeHtml(inboxMessage.projectInbox.emailSignature)
+          : inboxMessage.projectInbox.emailSignature;
         mailOptions.html += `<br><br>${htmlSignature.replace(/\n/g, '<br>')}`;
       } else {
         const defaultSignature = `
@@ -111,10 +115,7 @@ export class EmailReplyService {
         data: {
           emailMessageId,
           sentAsEmail: true,
-          emailRecipients: [
-            inboxMessage.fromEmail,
-            ...inboxMessage.ccEmails,
-          ],
+          emailRecipients: [inboxMessage.fromEmail, ...inboxMessage.ccEmails],
           emailSentAt: new Date(),
         },
       });

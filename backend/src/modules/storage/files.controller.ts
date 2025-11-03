@@ -1,12 +1,5 @@
 // src/modules/files/files.controller.ts
-import {
-  Controller,
-  Get,
-  Param,
-  Res,
-  NotFoundException,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Param, Res, NotFoundException, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { join } from 'path';
 import { createReadStream, existsSync } from 'fs';
@@ -39,7 +32,7 @@ export class FilesController {
 
     // Stream the file
     const fileStream = createReadStream(filePath);
-    
+
     // Set appropriate headers
     res.set({
       'Content-Type': this.getMimeType(filename),

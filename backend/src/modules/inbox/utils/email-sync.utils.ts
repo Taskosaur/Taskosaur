@@ -21,22 +21,24 @@ export class EmailSyncUtils {
       if (Array.isArray(message.references)) {
         // Already an array - filter out invalid entries
         references = message.references
-          .filter(ref => ref && typeof ref === 'string')
-          .map(ref => ref.trim())
-          .filter(ref => ref.length > 0);
+          .filter((ref) => ref && typeof ref === 'string')
+          .map((ref) => ref.trim())
+          .filter((ref) => ref.length > 0);
       } else if (typeof message.references === 'string' && message.references.trim()) {
         // String format - split by whitespace (RFC 5322 allows space-separated list)
         references = message.references
           .trim()
           .split(/\s+/)
-          .map(ref => ref.trim())
-          .filter(ref => ref.length > 0);
+          .map((ref) => ref.trim())
+          .filter((ref) => ref.length > 0);
       } else if (message.references instanceof Set) {
         // Some parsers return Set - convert to array
         references = Array.from(message.references)
-          .filter((ref): ref is string => ref !== null && ref !== undefined && typeof ref === 'string')
-          .map(ref => ref.trim())
-          .filter(ref => ref.length > 0);
+          .filter(
+            (ref): ref is string => ref !== null && ref !== undefined && typeof ref === 'string',
+          )
+          .map((ref) => ref.trim())
+          .filter((ref) => ref.length > 0);
       }
     }
 
@@ -102,9 +104,7 @@ export class EmailSyncUtils {
     }
     if (typeof address === 'object') {
       if (address.address) {
-        return address.name
-          ? `${address.name} <${address.address}>`
-          : address.address;
+        return address.name ? `${address.name} <${address.address}>` : address.address;
       }
     }
     return '';
@@ -113,7 +113,7 @@ export class EmailSyncUtils {
   static formatAddressList(addresses: any): string[] {
     if (!addresses) return [];
     if (Array.isArray(addresses)) {
-      return addresses.map(addr => {
+      return addresses.map((addr) => {
         if (typeof addr === 'string') return addr;
         return addr.address || '';
       });
@@ -149,7 +149,8 @@ export class EmailSyncUtils {
 
       if (/@/.test(line) || /\+?\d{1,4}[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}/.test(line)) {
         const remainingLines = lines.slice(i);
-        const avgLength = remainingLines.reduce((sum, l) => sum + l.length, 0) / remainingLines.length;
+        const avgLength =
+          remainingLines.reduce((sum, l) => sum + l.length, 0) / remainingLines.length;
 
         if (avgLength < 60 && i > lines.length * 0.6) {
           signatureStartLine = i;
@@ -171,7 +172,7 @@ export class EmailSyncUtils {
     if (!html) return { body: html, signature: '' };
 
     const signatureStart = html.search(/<div[^>]*class="[^"]*gmail_signature[^"]*"/i);
-    
+
     if (signatureStart !== -1) {
       const body = html.substring(0, signatureStart).trim();
       const signature = html.substring(signatureStart).trim();
@@ -182,7 +183,7 @@ export class EmailSyncUtils {
     if (outlookStart !== -1) {
       return {
         body: html.substring(0, outlookStart).trim(),
-        signature: html.substring(outlookStart).trim()
+        signature: html.substring(outlookStart).trim(),
       };
     }
 
@@ -190,7 +191,7 @@ export class EmailSyncUtils {
     if (dashMatch && dashMatch.index) {
       return {
         body: html.substring(0, dashMatch.index).trim(),
-        signature: html.substring(dashMatch.index).trim()
+        signature: html.substring(dashMatch.index).trim(),
       };
     }
 
@@ -258,7 +259,7 @@ export class EmailSyncUtils {
 
   static extractVisibleReply(content: string, isHtml: boolean = false): string {
     if (!content) return '';
-    return isHtml 
+    return isHtml
       ? EmailSyncUtils.extractVisibleReplyHtml(content)
       : EmailSyncUtils.extractVisibleReplyText(content);
   }
@@ -285,7 +286,7 @@ export class EmailSyncUtils {
     const lastTask = await prisma.task.findFirst({
       where: { projectId },
       orderBy: { taskNumber: 'desc' },
-       select: { taskNumber: true },
+      select: { taskNumber: true },
     });
     return (lastTask?.taskNumber || 0) + 1;
   }

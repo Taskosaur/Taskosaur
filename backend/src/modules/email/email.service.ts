@@ -19,7 +19,7 @@ export class EmailService {
     @InjectQueue('email') private emailQueue: Queue,
     private prisma: PrismaService,
     private configService: ConfigService,
-  ) { }
+  ) {}
 
   async sendEmail(emailDto: SendEmailDto): Promise<void> {
     const jobData: EmailJobData = {
@@ -30,9 +30,7 @@ export class EmailService {
       priority: emailDto.priority || EmailPriority.NORMAL,
     };
 
-    const priority = this.getPriorityNumber(
-      emailDto.priority || EmailPriority.NORMAL,
-    );
+    const priority = this.getPriorityNumber(emailDto.priority || EmailPriority.NORMAL);
 
     await this.emailQueue.add('send-email', jobData, {
       priority,
@@ -44,9 +42,7 @@ export class EmailService {
       },
     });
 
-    this.logger.log(
-      `Email queued for ${emailDto.to} with template ${emailDto.template}`,
-    );
+    this.logger.log(`Email queued for ${emailDto.to} with template ${emailDto.template}`);
   }
 
   async sendBulkEmail(bulkEmailDto: BulkEmailDto): Promise<void> {
@@ -60,18 +56,14 @@ export class EmailService {
         priority: bulkEmailDto.priority || EmailPriority.NORMAL,
       } as EmailJobData,
       opts: {
-        priority: this.getPriorityNumber(
-          bulkEmailDto.priority || EmailPriority.NORMAL,
-        ),
+        priority: this.getPriorityNumber(bulkEmailDto.priority || EmailPriority.NORMAL),
         delay: index * 100, // Stagger emails by 100ms to avoid rate limiting
         attempts: 3,
       },
     }));
 
     await this.emailQueue.addBulk(jobs);
-    this.logger.log(
-      `Bulk email queued for ${bulkEmailDto.recipients.length} recipients`,
-    );
+    this.logger.log(`Bulk email queued for ${bulkEmailDto.recipients.length} recipients`);
   }
 
   // Notification helpers
@@ -155,7 +147,6 @@ export class EmailService {
     }
   }
 
-
   async sendDueDateReminderEmail(taskId: string): Promise<void> {
     try {
       const task = await this.prisma.task.findUnique({
@@ -178,14 +169,12 @@ export class EmailService {
         return;
       }
 
-      const hoursUntilDue = Math.round(
-        (task.dueDate.getTime() - Date.now()) / (1000 * 60 * 60),
-      );
+      const hoursUntilDue = Math.round((task.dueDate.getTime() - Date.now()) / (1000 * 60 * 60));
 
       // Send reminder to all assignees
       const emailPromises = task.assignees
-        .filter(assignee => assignee.email) // Only assignees with email
-        .map(assignee =>
+        .filter((assignee) => assignee.email) // Only assignees with email
+        .map((assignee) =>
           this.sendEmail({
             to: assignee.email,
             subject: `Task Due Soon: ${task.title}`,
@@ -210,18 +199,15 @@ export class EmailService {
               taskUrl: `${this.configService.get('FRONTEND_URL')}/tasks/${task.slug}`,
             },
             priority: hoursUntilDue <= 2 ? EmailPriority.HIGH : EmailPriority.NORMAL,
-          })
+          }),
         );
 
       // Send all emails concurrently
       await Promise.all(emailPromises);
     } catch (error) {
-      this.logger.error(
-        `Failed to send due date reminder email: ${error.message}`,
-      );
+      this.logger.error(`Failed to send due date reminder email: ${error.message}`);
     }
   }
-
 
   async sendTaskStatusChangedEmail(
     taskId: string,
@@ -316,12 +302,9 @@ export class EmailService {
         priority: EmailPriority.NORMAL,
       });
     } catch (error) {
-      this.logger.error(
-        `Failed to send status changed email: ${error.message}`,
-      );
+      this.logger.error(`Failed to send status changed email: ${error.message}`);
     }
   }
-
 
   async sendWeeklySummaryEmail(userId: string): Promise<void> {
     try {
@@ -339,8 +322,9 @@ export class EmailService {
       const [tasksCompleted, tasksAssigned, totalTimeSpent] = await Promise.all([
         this.prisma.task.count({
           where: {
-            assignees: { // Changed from assigneeId to assignees relation
-              some: { id: userId }
+            assignees: {
+              // Changed from assigneeId to assignees relation
+              some: { id: userId },
             },
             status: {
               category: 'DONE',
@@ -352,8 +336,9 @@ export class EmailService {
         }),
         this.prisma.task.count({
           where: {
-            assignees: { // Changed from assigneeId to assignees relation
-              some: { id: userId }
+            assignees: {
+              // Changed from assigneeId to assignees relation
+              some: { id: userId },
             },
             createdAt: {
               gte: oneWeekAgo,
@@ -375,8 +360,9 @@ export class EmailService {
 
       const overdueTasks = await this.prisma.task.findMany({
         where: {
-          assignees: { // Changed from assigneeId to assignees relation
-            some: { id: userId }
+          assignees: {
+            // Changed from assigneeId to assignees relation
+            some: { id: userId },
           },
           dueDate: {
             lt: new Date(),
@@ -404,9 +390,7 @@ export class EmailService {
           summary: {
             tasksCompleted,
             tasksAssigned,
-            totalTimeSpent: Math.round(
-              (totalTimeSpent._sum.timeSpent || 0) / 60,
-            ), // Convert to hours
+            totalTimeSpent: Math.round((totalTimeSpent._sum.timeSpent || 0) / 60), // Convert to hours
             overdueTasks: overdueTasks.map((task) => ({
               key: task.slug,
               title: task.title,
@@ -419,12 +403,9 @@ export class EmailService {
         priority: EmailPriority.LOW,
       });
     } catch (error) {
-      this.logger.error(
-        `Failed to send weekly summary email: ${error.message}`,
-      );
+      this.logger.error(`Failed to send weekly summary email: ${error.message}`);
     }
   }
-
 
   private getPriorityNumber(priority: EmailPriority): number {
     switch (priority) {
@@ -480,9 +461,7 @@ export class EmailService {
 
       this.logger.log(`Password reset email queued for ${email}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to send password reset email: ${error.message}`,
-      );
+      this.logger.error(`Failed to send password reset email: ${error.message}`);
       throw error; // Re-throw to handle at caller level
     }
   }
@@ -497,10 +476,7 @@ export class EmailService {
     try {
       const emailData = {
         ...data,
-        supportEmail: this.configService.get(
-          'SUPPORT_EMAIL',
-          'support@taskosaur.com',
-        ),
+        supportEmail: this.configService.get('SUPPORT_EMAIL', 'support@taskosaur.com'),
         companyName: 'Taskosaur',
       };
 
@@ -512,10 +488,7 @@ export class EmailService {
         priority: EmailPriority.HIGH,
       });
     } catch (error) {
-      console.error(
-        `Failed to send password reset confirmation email to ${email}:`,
-        error,
-      );
+      console.error(`Failed to send password reset confirmation email to ${email}:`, error);
       // Don't throw error here as password was already reset successfully
     }
   }
@@ -533,10 +506,7 @@ export class EmailService {
     try {
       const emailData = {
         ...data,
-        supportEmail: this.configService.get(
-          'SUPPORT_EMAIL',
-          'support@taskosaur.com',
-        ),
+        supportEmail: this.configService.get('SUPPORT_EMAIL', 'support@taskosaur.com'),
         companyName: 'Taskosaur',
       };
 
@@ -556,42 +526,38 @@ export class EmailService {
     }
   }
   async sendDirectAddNotificationEmail(
-  email: string,
-  data: {
-    inviterName: string;
-    entityName: string;
-    entityType: 'workspace' | 'project';
-    role: string;
-    entityUrl: string;
-    organizationName?: string;
-  },
-): Promise<void> {
-  try {
-    const emailData = {
-      ...data,
-      supportEmail: this.configService.get(
-        'SUPPORT_EMAIL',
-        'support@taskosaur.com',
-      ),
-      companyName: 'Taskosaur',
-    };
+    email: string,
+    data: {
+      inviterName: string;
+      entityName: string;
+      entityType: 'workspace' | 'project';
+      role: string;
+      entityUrl: string;
+      organizationName?: string;
+    },
+  ): Promise<void> {
+    try {
+      const emailData = {
+        ...data,
+        supportEmail: this.configService.get('SUPPORT_EMAIL', 'support@taskosaur.com'),
+        companyName: 'Taskosaur',
+      };
 
-    const entityTypeLabel = data.entityType === 'workspace' ? 'workspace' : 'project';
-    
-    await this.sendEmail({
-      to: email,
-      subject: `You've been added to ${data.entityName} - Taskosaur`,
-      template: EmailTemplate.DIRECT_ADD_NOTIFICATION,
-      data: emailData,
-      priority: EmailPriority.NORMAL,
-    });
-  } catch (error) {
-    console.error(
-      `Failed to send direct add notification email to ${email} for ${data.entityType} ${data.entityName}:`,
-      error,
-    );
-    throw error;
+      const entityTypeLabel = data.entityType === 'workspace' ? 'workspace' : 'project';
+
+      await this.sendEmail({
+        to: email,
+        subject: `You've been added to ${data.entityName} - Taskosaur`,
+        template: EmailTemplate.DIRECT_ADD_NOTIFICATION,
+        data: emailData,
+        priority: EmailPriority.NORMAL,
+      });
+    } catch (error) {
+      console.error(
+        `Failed to send direct add notification email to ${email} for ${data.entityType} ${data.entityName}:`,
+        error,
+      );
+      throw error;
+    }
   }
-}
-
 }

@@ -20,16 +20,12 @@ export class OrganizationMembersService {
   constructor(
     private prisma: PrismaService,
     private workspaceMembersService: WorkspaceMembersService,
-  ) { }
+  ) {}
 
   async create(
     createOrganizationMemberDto: CreateOrganizationMemberDto,
   ): Promise<OrganizationMember> {
-    const {
-      userId,
-      organizationId,
-      role = OrganizationRole.MEMBER,
-    } = createOrganizationMemberDto;
+    const { userId, organizationId, role = OrganizationRole.MEMBER } = createOrganizationMemberDto;
 
     // Verify organization exists
     const organization = await this.prisma.organization.findUnique({
@@ -102,9 +98,7 @@ export class OrganizationMembersService {
       return orgMember;
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException(
-          'User is already a member of this organization',
-        );
+        throw new ConflictException('User is already a member of this organization');
       }
       throw error;
     }
@@ -113,11 +107,7 @@ export class OrganizationMembersService {
   async inviteByEmail(
     inviteOrganizationMemberDto: InviteOrganizationMemberDto,
   ): Promise<OrganizationMember> {
-    const {
-      email,
-      organizationId,
-      role = OrganizationRole.MEMBER,
-    } = inviteOrganizationMemberDto;
+    const { email, organizationId, role = OrganizationRole.MEMBER } = inviteOrganizationMemberDto;
 
     // Find user by email
     const user = await this.prisma.user.findUnique({
@@ -136,10 +126,7 @@ export class OrganizationMembersService {
     });
   }
 
-  async findAll(
-    organizationId?: string,
-    search?: string,
-  ): Promise<OrganizationMember[]> {
+  async findAll(organizationId?: string, search?: string): Promise<OrganizationMember[]> {
     const whereClause: any = {};
 
     if (organizationId) {
@@ -253,10 +240,7 @@ export class OrganizationMembersService {
             },
           },
         },
-        orderBy: [
-          { role: 'asc' },
-          { joinedAt: 'asc' },
-        ],
+        orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
         skip,
         take: limit,
       }),
@@ -267,7 +251,6 @@ export class OrganizationMembersService {
 
     return { data, total, page, limit };
   }
-
 
   async findOne(id: string): Promise<OrganizationMember> {
     const member = await this.prisma.organizationMember.findUnique({
@@ -385,9 +368,7 @@ export class OrganizationMembersService {
       requesterMember.role === OrganizationRole.MANAGER;
 
     if (!isOwner && !isAdmin) {
-      throw new ForbiddenException(
-        'Only organization owners and admins can update member roles',
-      );
+      throw new ForbiddenException('Only organization owners and admins can update member roles');
     }
 
     // Prevent demoting the organization owner
@@ -395,9 +376,7 @@ export class OrganizationMembersService {
       member.organization.ownerId === member.userId &&
       updateOrganizationMemberDto.role !== OrganizationRole.OWNER
     ) {
-      throw new BadRequestException(
-        'Cannot change the role of organization owner',
-      );
+      throw new BadRequestException('Cannot change the role of organization owner');
     }
 
     const updatedMember = await this.prisma.organizationMember.update({
@@ -490,16 +469,12 @@ export class OrganizationMembersService {
       requesterMember.role === OrganizationRole.MANAGER;
 
     if (!isSelfRemoval && !isOwner && !isAdmin) {
-      throw new ForbiddenException(
-        'You can only remove yourself or you must be an admin/owner',
-      );
+      throw new ForbiddenException('You can only remove yourself or you must be an admin/owner');
     }
 
     // Prevent removing the organization owner
     if (member.organization.ownerId === member.userId) {
-      throw new BadRequestException(
-        'Cannot remove organization owner from organization',
-      );
+      throw new BadRequestException('Cannot remove organization owner from organization');
     }
 
     // Use transaction to remove member from organization and all related workspaces/projects

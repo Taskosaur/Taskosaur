@@ -13,9 +13,7 @@ export interface EmailSyncJobData {
 export class EmailSyncQueueService {
   private readonly logger = new Logger(EmailSyncQueueService.name);
 
-  constructor(
-    @InjectQueue('email-sync') private emailSyncQueue: Queue<EmailSyncJobData>,
-  ) {}
+  constructor(@InjectQueue('email-sync') private emailSyncQueue: Queue<EmailSyncJobData>) {}
 
   async addManualSyncJob(projectId: string, userId?: string): Promise<string> {
     const job = await this.emailSyncQueue.add(
@@ -59,7 +57,7 @@ export class EmailSyncQueueService {
     }
 
     const state = await job.getState();
-    
+
     return {
       id: job.id,
       data: job.data,

@@ -74,9 +74,7 @@ export function createAuditMiddleware(): any {
       if (params.args.data) {
         // Check if this is a meaningful update (not just timestamp updates)
         const dataKeys = Object.keys(params.args.data);
-        const hasMeaningfulUpdate = dataKeys.some(
-          (key) => !EXCLUDED_UPDATE_FIELDS.includes(key),
-        );
+        const hasMeaningfulUpdate = dataKeys.some((key) => !EXCLUDED_UPDATE_FIELDS.includes(key));
 
         // Set updatedBy if this is a meaningful update and field is not already set
         if (hasMeaningfulUpdate && params.args.data.updatedBy === undefined) {
@@ -92,10 +90,7 @@ export function createAuditMiddleware(): any {
         if (params.args.create.createdBy === undefined) {
           params.args.create.createdBy = currentUserId;
         }
-        if (
-          params.args.create.updatedBy === undefined &&
-          modelName !== 'User'
-        ) {
+        if (params.args.create.updatedBy === undefined && modelName !== 'User') {
           params.args.create.updatedBy = currentUserId;
         }
       }
@@ -103,9 +98,7 @@ export function createAuditMiddleware(): any {
       // For update case
       if (params.args.update) {
         const dataKeys = Object.keys(params.args.update);
-        const hasMeaningfulUpdate = dataKeys.some(
-          (key) => !EXCLUDED_UPDATE_FIELDS.includes(key),
-        );
+        const hasMeaningfulUpdate = dataKeys.some((key) => !EXCLUDED_UPDATE_FIELDS.includes(key));
 
         if (hasMeaningfulUpdate && params.args.update.updatedBy === undefined) {
           params.args.update.updatedBy = currentUserId;

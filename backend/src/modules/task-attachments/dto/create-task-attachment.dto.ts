@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsInt,
-  IsPositive,
-  IsUUID,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, IsPositive, IsUUID } from 'class-validator';
 
 export class CreateTaskAttachmentDto {
   @IsString()

@@ -1,16 +1,9 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { Label } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateLabelDto } from './dto/create-label.dto';
 import { UpdateLabelDto } from './dto/update-label.dto';
-import {
-  AssignLabelDto,
-  AssignMultipleLabelsDto,
-} from './dto/assign-label.dto';
+import { AssignLabelDto, AssignMultipleLabelsDto } from './dto/assign-label.dto';
 
 @Injectable()
 export class LabelsService {
@@ -81,9 +74,7 @@ export class LabelsService {
       });
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException(
-          'Label with this name already exists in this project',
-        );
+        throw new ConflictException('Label with this name already exists in this project');
       }
       throw error;
     }
@@ -190,11 +181,7 @@ export class LabelsService {
     return label;
   }
 
-  async update(
-    id: string,
-    updateLabelDto: UpdateLabelDto,
-    userId: string,
-  ): Promise<Label> {
+  async update(id: string, updateLabelDto: UpdateLabelDto, userId: string): Promise<Label> {
     try {
       const label = await this.prisma.label.update({
         where: { id },
@@ -244,9 +231,7 @@ export class LabelsService {
       return label;
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException(
-          'Label with this name already exists in this project',
-        );
+        throw new ConflictException('Label with this name already exists in this project');
       }
       if (error.code === 'P2025') {
         throw new NotFoundException('Label not found');
@@ -292,9 +277,7 @@ export class LabelsService {
     }
 
     if (task.projectId !== label.projectId) {
-      throw new ConflictException(
-        'Task and label must belong to the same project',
-      );
+      throw new ConflictException('Task and label must belong to the same project');
     }
 
     try {

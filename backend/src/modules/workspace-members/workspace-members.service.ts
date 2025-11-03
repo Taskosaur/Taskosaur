@@ -20,16 +20,10 @@ import { UpdateWorkspaceMemberDto } from './dto/update-workspace-member.dto';
 
 @Injectable()
 export class WorkspaceMembersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
-  async create(
-    createWorkspaceMemberDto: CreateWorkspaceMemberDto,
-  ): Promise<WorkspaceMember> {
-    const {
-      userId,
-      workspaceId,
-      role = WorkspaceRole.MEMBER,
-    } = createWorkspaceMemberDto;
+  async create(createWorkspaceMemberDto: CreateWorkspaceMemberDto): Promise<WorkspaceMember> {
+    const { userId, workspaceId, role = WorkspaceRole.MEMBER } = createWorkspaceMemberDto;
 
     // Verify workspace exists and get organization info
     const workspace = await this.prisma.workspace.findUnique({
@@ -65,7 +59,7 @@ export class WorkspaceMembersService {
         },
       },
     });
-    console.log(JSON.stringify(user))
+    console.log(JSON.stringify(user));
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -128,12 +122,10 @@ export class WorkspaceMembersService {
           });
         }
       }
-      return wsMember
+      return wsMember;
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException(
-          'User is already a member of this workspace',
-        );
+        throw new ConflictException('User is already a member of this workspace');
       }
       throw error;
     }
@@ -142,11 +134,7 @@ export class WorkspaceMembersService {
   async inviteByEmail(
     inviteWorkspaceMemberDto: InviteWorkspaceMemberDto,
   ): Promise<WorkspaceMember> {
-    const {
-      email,
-      workspaceId,
-      role = WorkspaceRole.MEMBER,
-    } = inviteWorkspaceMemberDto;
+    const { email, workspaceId, role = WorkspaceRole.MEMBER } = inviteWorkspaceMemberDto;
 
     // Find user by email
     const user = await this.prisma.user.findUnique({
@@ -222,10 +210,7 @@ export class WorkspaceMembersService {
             },
           },
         },
-        orderBy: [
-          { role: 'asc' },
-          { joinedAt: 'asc' },
-        ],
+        orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
       });
 
       return { data, total: data.length };
@@ -266,10 +251,7 @@ export class WorkspaceMembersService {
             },
           },
         },
-        orderBy: [
-          { role: 'asc' },
-          { joinedAt: 'asc' },
-        ],
+        orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
         skip,
         take: limit,
       }),
@@ -404,9 +386,7 @@ export class WorkspaceMembersService {
     });
 
     if (!requesterWorkspaceMember && !requesterOrgMember) {
-      throw new ForbiddenException(
-        'You are not a member of this workspace or organization',
-      );
+      throw new ForbiddenException('You are not a member of this workspace or organization');
     }
 
     // Permission check: organization owner, org admins, or workspace admins can update
@@ -499,7 +479,6 @@ export class WorkspaceMembersService {
     return updatedMember;
   }
 
-
   async remove(id: string, requestUserId: string): Promise<void> {
     // Get current member info
     const member = await this.prisma.workspaceMember.findUnique({
@@ -542,12 +521,11 @@ export class WorkspaceMembersService {
     const isOrgOwner = member.workspace.organization.ownerId === requestUserId;
     const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
     const isWorkspaceAdmin =
-      requesterWorkspaceMember?.role === WorkspaceRole.OWNER || requesterWorkspaceMember?.role === WorkspaceRole.MANAGER;
+      requesterWorkspaceMember?.role === WorkspaceRole.OWNER ||
+      requesterWorkspaceMember?.role === WorkspaceRole.MANAGER;
 
     if (!isSelfRemoval && !isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin) {
-      throw new ForbiddenException(
-        'You can only remove yourself or you must be an admin',
-      );
+      throw new ForbiddenException('You can only remove yourself or you must be an admin');
     }
 
     // Use transaction to remove member from workspace and all related projects
@@ -574,7 +552,6 @@ export class WorkspaceMembersService {
       });
     });
   }
-
 
   async getUserWorkspaces(userId: string): Promise<WorkspaceMember[]> {
     return this.prisma.workspaceMember.findMany({

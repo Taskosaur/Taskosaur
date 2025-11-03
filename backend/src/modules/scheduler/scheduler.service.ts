@@ -10,7 +10,7 @@ export class SchedulerService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
-  ) { }
+  ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
   async checkDueDateReminders() {
@@ -28,7 +28,7 @@ export class SchedulerService {
             lte: oneDayFromNow,
           },
           assignees: {
-            some: {} // At least one assignee
+            some: {}, // At least one assignee
           },
           status: {
             category: {
@@ -49,7 +49,7 @@ export class SchedulerService {
             lte: oneHourFromNow,
           },
           assignees: {
-            some: {} // At least one assignee
+            some: {}, // At least one assignee
           },
           status: {
             category: {
@@ -87,7 +87,7 @@ export class SchedulerService {
             lt: new Date(),
           },
           assignees: {
-            some: {} // At least one assignee
+            some: {}, // At least one assignee
           },
           status: {
             category: {
@@ -110,7 +110,7 @@ export class SchedulerService {
       });
 
       // Group overdue tasks by assignee using Map
-      const tasksByAssignee = new Map<string, { assignee: any, tasks: any[] }>();
+      const tasksByAssignee = new Map<string, { assignee: any; tasks: any[] }>();
 
       // Process each task and its assignees
       for (const task of overdueTasks) {
@@ -124,7 +124,7 @@ export class SchedulerService {
           if (!tasksByAssignee.has(assigneeId)) {
             tasksByAssignee.set(assigneeId, {
               assignee: assignee,
-              tasks: []
+              tasks: [],
             });
           }
 
@@ -152,14 +152,12 @@ export class SchedulerService {
               dueDate: task.dueDate,
               project: task.project.name,
               organization: task.project.workspace.organization.name,
-              daysOverdue: Math.ceil(
-                (Date.now() - task.dueDate.getTime()) / (1000 * 60 * 60 * 24),
-              ),
+              daysOverdue: Math.ceil((Date.now() - task.dueDate.getTime()) / (1000 * 60 * 60 * 24)),
               // Additional info for shared tasks
               isShared: task.assignees.length > 1,
               coAssignees: task.assignees
-                .filter(a => a.id !== assignee.id)
-                .map(a => `${a.firstName} ${a.lastName}`)
+                .filter((a) => a.id !== assignee.id)
+                .map((a) => `${a.firstName} ${a.lastName}`)
                 .join(', '),
             })),
           },
@@ -179,7 +177,6 @@ export class SchedulerService {
       this.logger.error('Failed to check overdue tasks:', error);
     }
   }
-
 
   @Cron('0 9 * * 1') // Monday at 9 AM
   async sendWeeklySummaries() {
@@ -255,8 +252,8 @@ export class SchedulerService {
 
       this.logger.log(
         `Cleanup completed: ${deletedNotifications.count} notifications, ` +
-        `${deletedActivityLogs.count} activity logs, ` +
-        `${deletedRuleExecutions.count} rule executions`,
+          `${deletedActivityLogs.count} activity logs, ` +
+          `${deletedRuleExecutions.count} rule executions`,
       );
     } catch (error) {
       this.logger.error('Failed to cleanup old data:', error);
@@ -298,7 +295,7 @@ export class SchedulerService {
 
       this.logger.log(
         `Sprint status updates: ${sprintsToActivate.count} activated, ` +
-        `${sprintsToComplete.count} completed`,
+          `${sprintsToComplete.count} completed`,
       );
     } catch (error) {
       this.logger.error('Failed to update sprint statuses:', error);
@@ -318,66 +315,65 @@ export class SchedulerService {
       });
 
       for (const org of organizations) {
-        const [tasksCreated, tasksCompleted, totalTimeSpent, activeUsers] =
-          await Promise.all([
-            this.prisma.task.count({
-              where: {
+        const [tasksCreated, tasksCompleted, totalTimeSpent, activeUsers] = await Promise.all([
+          this.prisma.task.count({
+            where: {
+              project: {
+                workspace: {
+                  organizationId: org.id,
+                },
+              },
+              createdAt: {
+                gte: oneWeekAgo,
+              },
+            },
+          }),
+          this.prisma.task.count({
+            where: {
+              project: {
+                workspace: {
+                  organizationId: org.id,
+                },
+              },
+              status: {
+                category: 'DONE',
+              },
+              updatedAt: {
+                gte: oneWeekAgo,
+              },
+            },
+          }),
+          this.prisma.timeEntry.aggregate({
+            where: {
+              task: {
                 project: {
                   workspace: {
                     organizationId: org.id,
                   },
                 },
-                createdAt: {
-                  gte: oneWeekAgo,
+              },
+              date: {
+                gte: oneWeekAgo,
+              },
+            },
+            _sum: {
+              timeSpent: true,
+            },
+          }),
+          this.prisma.user.count({
+            where: {
+              organizationMembers: {
+                some: {
+                  organizationId: org.id,
                 },
               },
-            }),
-            this.prisma.task.count({
-              where: {
-                project: {
-                  workspace: {
-                    organizationId: org.id,
-                  },
-                },
-                status: {
-                  category: 'DONE',
-                },
-                updatedAt: {
-                  gte: oneWeekAgo,
-                },
+              // lastActiveAt: { gte: oneWeekAgo }, // Remove until we add lastActiveAt field
+              updatedAt: {
+                gte: oneWeekAgo,
               },
-            }),
-            this.prisma.timeEntry.aggregate({
-              where: {
-                task: {
-                  project: {
-                    workspace: {
-                      organizationId: org.id,
-                    },
-                  },
-                },
-                date: {
-                  gte: oneWeekAgo,
-                },
-              },
-              _sum: {
-                timeSpent: true,
-              },
-            }),
-            this.prisma.user.count({
-              where: {
-                organizationMembers: {
-                  some: {
-                    organizationId: org.id,
-                  },
-                },
-                // lastActiveAt: { gte: oneWeekAgo }, // Remove until we add lastActiveAt field
-                updatedAt: {
-                  gte: oneWeekAgo,
-                },
-              },
-            }),
-          ]);
+            },
+          }),
+        ]);
 
         // Store analytics data (you could create an Analytics model for this)
         this.logger.debug(
@@ -385,9 +381,7 @@ export class SchedulerService {
         );
       }
 
-      this.logger.log(
-        `Generated analytics for ${organizations.length} organizations`,
-      );
+      this.logger.log(`Generated analytics for ${organizations.length} organizations`);
     } catch (error) {
       this.logger.error('Failed to generate analytics:', error);
     }

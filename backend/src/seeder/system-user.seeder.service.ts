@@ -42,21 +42,15 @@ export class SystemUserSeederService {
         data: systemUserData,
       });
 
-      console.log(
-        `   ✓ Created system user: ${systemUser.email} (ID: ${systemUser.id})`,
-      );
-      console.log(
-        '   ⚠️  System user is INACTIVE and cannot be used for authentication',
-      );
+      console.log(`   ✓ Created system user: ${systemUser.email} (ID: ${systemUser.id})`);
+      console.log('   ⚠️  System user is INACTIVE and cannot be used for authentication');
 
       return systemUser;
     } catch (error) {
       // If user already exists, try to find and return it
       if (error.code === 'P2002') {
         // Unique constraint violation
-        console.log(
-          '   ⚠ System user already exists, fetching existing user...',
-        );
+        console.log('   ⚠ System user already exists, fetching existing user...');
 
         const existingUser = await this.prisma.user.findUnique({
           where: { id: SYSTEM_USER_ID },

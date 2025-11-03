@@ -9,7 +9,7 @@ import {
 
 @Injectable()
 export class OrganizationsSeederService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async seed(users: any[]) {
     console.log('🌱 Seeding organizations...');
@@ -20,19 +20,15 @@ export class OrganizationsSeederService {
 
     // Find admin/super admin user to be owner
     const adminUser =
-      users.find(
-        (user) => user.role === 'SUPER_ADMIN' || user.role === 'ADMIN',
-      ) || users[0];
+      users.find((user) => user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') || users[0];
 
     const organizationsData = [
       {
         name: 'Taskosaur Inc.',
         slug: 'taskosaur-inc',
-        description:
-          'A comprehensive task management solution for modern teams',
+        description: 'A comprehensive task management solution for modern teams',
         website: 'https://taskosaur.com',
-        avatar:
-          'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=150',
+        avatar: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=150',
         ownerId: adminUser.id,
         createdBy: adminUser.id,
         updatedBy: adminUser.id,
@@ -55,8 +51,7 @@ export class OrganizationsSeederService {
         slug: 'tech-innovators',
         description: 'Innovation-driven technology consultancy',
         website: 'https://techinnovators.example.com',
-        avatar:
-          'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150',
+        avatar: 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150',
         ownerId: adminUser.id,
         createdBy: adminUser.id,
         updatedBy: adminUser.id,
@@ -126,9 +121,7 @@ export class OrganizationsSeederService {
             defaultWorkflow.statuses,
             orgData.createdBy,
           );
-          console.log(
-            `   ✓ Created default workflow and transitions for: ${organization.name}`,
-          );
+          console.log(`   ✓ Created default workflow and transitions for: ${organization.name}`);
         }
 
         // Add organization members
@@ -137,9 +130,7 @@ export class OrganizationsSeederService {
         createdOrganizations.push(organization);
         console.log(`   ✓ Created organization: ${organization.name}`);
       } catch (error) {
-        console.log(
-          `   ⚠ Organization ${orgData.slug} might already exist, skipping...`,
-        );
+        console.log(`   ⚠ Organization ${orgData.slug} might already exist, skipping...`);
         // Try to find existing organization
         const existingOrg = await this.prisma.organization.findUnique({
           where: { slug: orgData.slug },
@@ -163,13 +154,10 @@ export class OrganizationsSeederService {
     userId: string,
   ) {
     // Create a map of status names to IDs
-    const statusMap = new Map(
-      statuses.map((status) => [status.name, status.id]),
-    );
+    const statusMap = new Map(statuses.map((status) => [status.name, status.id]));
 
     const transitionsToCreate = DEFAULT_STATUS_TRANSITIONS.filter(
-      (transition) =>
-        statusMap.has(transition.from) && statusMap.has(transition.to),
+      (transition) => statusMap.has(transition.from) && statusMap.has(transition.to),
     ).map((transition) => ({
       name: `${transition.from} → ${transition.to}`,
       workflowId,
@@ -208,13 +196,9 @@ export class OrganizationsSeederService {
             role: memberRoles[i - 1],
           },
         });
-        console.log(
-          `   ✓ Added ${users[i].email} to organization as ${memberRoles[i - 1]}`,
-        );
+        console.log(`   ✓ Added ${users[i].email} to organization as ${memberRoles[i - 1]}`);
       } catch (error) {
-        console.log(
-          `   ⚠ User ${users[i].email} might already be a member, skipping...`,
-        );
+        console.log(`   ⚠ User ${users[i].email} might already be a member, skipping...`);
       }
     }
   }

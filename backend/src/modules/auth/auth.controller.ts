@@ -12,13 +12,7 @@ import {
   ParseUUIDPipe,
   BadRequestException,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBody,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -32,10 +26,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { SetupService } from './services/setup.service';
-import {
-  AccessControlService,
-  AccessResult,
-} from 'src/common/access-control.utils';
+import { AccessControlService, AccessResult } from 'src/common/access-control.utils';
 export enum ScopeType {
   ORGANIZATION = 'organization',
   WORKSPACE = 'workspace',
@@ -100,9 +91,7 @@ export class AuthController {
     status: 401,
     description: 'Invalid refresh token',
   })
-  async refreshToken(
-    @Body() refreshTokenDto: RefreshTokenDto,
-  ): Promise<AuthResponseDto> {
+  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto): Promise<AuthResponseDto> {
     return this.authService.refreshToken(refreshTokenDto.refresh_token);
   }
 
@@ -210,9 +199,7 @@ export class AuthController {
     description: 'Token verification result',
     type: VerifyResetTokenResponseDto,
   })
-  async verifyResetToken(
-    @Param('token') token: string,
-  ): Promise<VerifyResetTokenResponseDto> {
+  async verifyResetToken(@Param('token') token: string): Promise<VerifyResetTokenResponseDto> {
     const { isValid } = await this.authService.verifyResetToken(token);
     return {
       valid: isValid,
@@ -251,10 +238,7 @@ export class AuthController {
       throw new Error('Passwords do not match');
     }
 
-    await this.authService.resetPassword(
-      resetPasswordDto.token,
-      resetPasswordDto.password,
-    );
+    await this.authService.resetPassword(resetPasswordDto.token, resetPasswordDto.password);
     return {
       success: true,
       message: 'Password has been reset successfully',

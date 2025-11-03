@@ -34,9 +34,7 @@ import { UpdateTaskDependencyDto } from './dto/update-task-dependency.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('task-dependencies')
 export class TaskDependenciesController {
-  constructor(
-    private readonly taskDependenciesService: TaskDependenciesService,
-  ) {}
+  constructor(private readonly taskDependenciesService: TaskDependenciesService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new task dependency' })
@@ -172,9 +170,6 @@ export class TaskDependenciesController {
     @Param('dependentTaskId', ParseUUIDPipe) dependentTaskId: string,
     @Param('blockingTaskId', ParseUUIDPipe) blockingTaskId: string,
   ) {
-    return this.taskDependenciesService.removeByTasks(
-      dependentTaskId,
-      blockingTaskId,
-    );
+    return this.taskDependenciesService.removeByTasks(dependentTaskId, blockingTaskId);
   }
 }

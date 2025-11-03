@@ -15,7 +15,12 @@ import { OrganizationMembersService } from '../organization-members/organization
     }),
   ],
   controllers: [InvitationsController],
-  providers: [InvitationsService, EmailService, WorkspaceMembersService, OrganizationMembersService],
+  providers: [
+    InvitationsService,
+    EmailService,
+    WorkspaceMembersService,
+    OrganizationMembersService,
+  ],
   exports: [InvitationsService],
 })
 export class InvitationsModule {}

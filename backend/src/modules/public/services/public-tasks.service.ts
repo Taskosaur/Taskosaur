@@ -97,7 +97,7 @@ export class PublicTasksService {
     };
   }
 
-  async getPublicTask(taskId: string): Promise<Task | any> {
+  async getPublicTask(taskId: string): Promise<any> {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: {

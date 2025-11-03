@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsEnum,
-  IsOptional,
-  IsObject,
-  IsUUID,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsOptional, IsObject, IsUUID } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { TriggerType, ActionType, RuleStatus } from '@prisma/client';
 
@@ -20,8 +13,7 @@ export class CreateAutomationRuleDto {
 
   @ApiProperty({
     description: 'Description of what this rule does',
-    example:
-      'Automatically assigns high priority bug tasks to senior developers when created',
+    example: 'Automatically assigns high priority bug tasks to senior developers when created',
     required: false,
   })
   @IsString()

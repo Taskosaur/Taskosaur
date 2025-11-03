@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Param,
-  UseGuards,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Get, Query, Param, UseGuards, HttpStatus } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -29,10 +22,7 @@ export class EmailTemplatesController {
   @ApiQuery({ name: 'category', required: false, description: 'Filter by category' })
   @ApiQuery({ name: 'search', required: false, description: 'Search templates' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Email templates retrieved successfully' })
-  async getTemplates(
-    @Query('category') category?: string,
-    @Query('search') search?: string,
-  ) {
+  async getTemplates(@Query('category') category?: string, @Query('search') search?: string) {
     if (search) {
       return this.emailTemplatesService.searchTemplates(search);
     }

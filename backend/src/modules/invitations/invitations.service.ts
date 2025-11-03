@@ -19,15 +19,11 @@ export class InvitationsService {
     private prisma: PrismaService,
     private emailService: EmailService,
     private workspaceMemberService: WorkspaceMembersService,
-    private organizationMemberService: OrganizationMembersService
-  ) { }
+    private organizationMemberService: OrganizationMembersService,
+  ) {}
 
   async createInvitation(dto: CreateInvitationDto, inviterId: string) {
-    const targetCount = [
-      dto.organizationId,
-      dto.workspaceId,
-      dto.projectId,
-    ].filter(Boolean).length;
+    const targetCount = [dto.organizationId, dto.workspaceId, dto.projectId].filter(Boolean).length;
 
     if (targetCount !== 1) {
       throw new BadRequestException(
@@ -140,7 +136,7 @@ export class InvitationsService {
     dto: CreateInvitationDto,
     userId: string,
     inviterId: string,
-    organizationId: string
+    organizationId: string,
   ) {
     return await this.prisma.$transaction(async (prisma) => {
       const user = await prisma.user.findUnique({
@@ -149,7 +145,7 @@ export class InvitationsService {
           id: true,
           email: true,
           firstName: true,
-          lastName: true
+          lastName: true,
         },
       });
 
@@ -288,8 +284,6 @@ export class InvitationsService {
       }
     });
   }
-
-
 
   async acceptInvitation(token: string, userId: string) {
     const invitation = await this.prisma.invitation.findUnique({
@@ -438,13 +432,10 @@ export class InvitationsService {
             ? 'workspace'
             : 'project',
         entityName:
-          invitation.organization?.name ||
-          invitation.workspace?.name ||
-          invitation.project?.name,
+          invitation.organization?.name || invitation.workspace?.name || invitation.project?.name,
       },
     };
   }
-
 
   async declineInvitation(token: string) {
     const invitation = await this.prisma.invitation.findUnique({
@@ -588,9 +579,7 @@ export class InvitationsService {
         },
       });
       if (member) {
-        throw new BadRequestException(
-          'User is already a member of this organization',
-        );
+        throw new BadRequestException('User is already a member of this organization');
       }
     }
 
@@ -601,9 +590,7 @@ export class InvitationsService {
         },
       });
       if (member) {
-        throw new BadRequestException(
-          'User is already a member of this workspace',
-        );
+        throw new BadRequestException('User is already a member of this workspace');
       }
     }
 
@@ -614,9 +601,7 @@ export class InvitationsService {
         },
       });
       if (member) {
-        throw new BadRequestException(
-          'User is already a member of this project',
-        );
+        throw new BadRequestException('User is already a member of this project');
       }
     }
   }

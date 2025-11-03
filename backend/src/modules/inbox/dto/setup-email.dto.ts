@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsNumber,
-  IsBoolean,
-  IsOptional,
-  IsEmail,
-  IsNotEmpty
-} from 'class-validator';
+import { IsString, IsNumber, IsBoolean, IsOptional, IsEmail, IsNotEmpty } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class SetupEmailDto {
@@ -73,5 +66,4 @@ export class SetupEmailDto {
   @IsBoolean()
   @IsOptional()
   smtpUseTls?: boolean;
-
 }

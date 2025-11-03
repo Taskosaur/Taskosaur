@@ -32,17 +32,11 @@ export class SprintsController {
   }
 
   @Get()
-  findAll(
-    @Query('projectId') projectId?: string,
-    @Query('status') status?: SprintStatus,
-  ) {
+  findAll(@Query('projectId') projectId?: string, @Query('status') status?: SprintStatus) {
     return this.sprintsService.findAll(projectId, status);
   }
   @Get('slug')
-  findAllByProjectSlug(
-    @Query('slug') slug?: string,
-    @Query('status') status?: SprintStatus,
-  ) {
+  findAllByProjectSlug(@Query('slug') slug?: string, @Query('status') status?: SprintStatus) {
     return this.sprintsService.findAllByProjectSlug(slug, status);
   }
 
