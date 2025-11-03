@@ -1,10 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import {
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import { CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { useAuth } from "@/contexts/auth-context";

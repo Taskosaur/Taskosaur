@@ -1,19 +1,28 @@
 // components/charts/project/sprint-velocity-chart.tsx
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, Legend } from "recharts"
-import { ChartWrapper } from "../chart-wrapper"
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from "recharts";
+import { ChartWrapper } from "../chart-wrapper";
 
 const chartConfig = {
   velocity: { label: "Story Points", color: "#3B82F6" },
   average: { label: "Average Velocity", color: "#94A3B8" },
-}
+};
 
 interface SprintVelocityChartProps {
   data: Array<{
-    id: string
-    name: string
-    createdAt: string
-    tasks: Array<{ storyPoints: number | null }>
-  }>
+    id: string;
+    name: string;
+    createdAt: string;
+    tasks: Array<{ storyPoints: number | null }>;
+  }>;
 }
 
 // Custom tooltip component
@@ -40,15 +49,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const CustomizedAxisTick = ({ x, y, payload }: any) => {
   return (
     <g transform={`translate(${x},${y})`}>
-      <text 
-        x={0} 
-        y={0} 
-        dy={16} 
-        textAnchor="end" 
-        fill="#666" 
-        transform="rotate(-35)"
-        fontSize={12}
-      >
+      <text x={0} y={0} dy={16} textAnchor="end" fill="#666" transform="rotate(-35)" fontSize={12}>
         {payload.value}
       </text>
     </g>
@@ -56,21 +57,22 @@ const CustomizedAxisTick = ({ x, y, payload }: any) => {
 };
 
 export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
-  const chartData = data?.map(sprint => ({
+  const chartData = data?.map((sprint) => ({
     sprint: sprint.name,
     velocity: sprint.tasks.reduce((acc, task) => acc + (task.storyPoints || 0), 0),
-    date: new Date(sprint.createdAt).toLocaleDateString()
-  }))
+    date: new Date(sprint.createdAt).toLocaleDateString(),
+  }));
 
   // Calculate average velocity
-  const averageVelocity = chartData?.length > 0 
-    ? chartData.reduce((sum, item) => sum + item.velocity, 0) / chartData.length 
-    : 0;
+  const averageVelocity =
+    chartData?.length > 0
+      ? chartData.reduce((sum, item) => sum + item.velocity, 0) / chartData.length
+      : 0;
 
   // Add average to each data point for the line
-  const chartDataWithAverage = chartData?.map(item => ({
+  const chartDataWithAverage = chartData?.map((item) => ({
     ...item,
-    average: Math.round(averageVelocity)
+    average: Math.round(averageVelocity),
   }));
 
   return (
@@ -81,28 +83,20 @@ export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
       className="border-[var(--border)]"
     >
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart 
-          data={chartDataWithAverage} 
-          margin={{ top: 5, right: 30, left: 20, bottom: 35 }}
-        >
+        <LineChart data={chartDataWithAverage} margin={{ top: 5, right: 30, left: 20, bottom: 35 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis 
-            dataKey="sprint" 
-            tick={<CustomizedAxisTick />}
-            interval={0}
-            height={60}
-          />
-          <YAxis 
-            label={{ 
-              value: 'Story Points', 
-              angle: -90, 
-              position: 'insideLeft',
+          <XAxis dataKey="sprint" tick={<CustomizedAxisTick />} interval={0} height={60} />
+          <YAxis
+            label={{
+              value: "Story Points",
+              angle: -90,
+              position: "insideLeft",
               offset: -10,
-              style: { textAnchor: 'middle' } 
+              style: { textAnchor: "middle" },
             }}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Legend 
+          <Legend
             verticalAlign="top"
             height={36}
             formatter={(value) => (
@@ -111,20 +105,20 @@ export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
               </span>
             )}
           />
-          <Line 
-            type="monotone" 
-            dataKey="velocity" 
+          <Line
+            type="monotone"
+            dataKey="velocity"
             name="velocity"
-            stroke={chartConfig.velocity.color} 
+            stroke={chartConfig.velocity.color}
             strokeWidth={3}
             dot={{ fill: chartConfig.velocity.color, strokeWidth: 2, r: 5 }}
             activeDot={{ r: 7, fill: chartConfig.velocity.color }}
           />
-          <Line 
-            type="monotone" 
-            dataKey="average" 
+          <Line
+            type="monotone"
+            dataKey="average"
             name="average"
-            stroke={chartConfig.average.color} 
+            stroke={chartConfig.average.color}
             strokeWidth={2}
             strokeDasharray="5 5"
             dot={false}
@@ -132,5 +126,5 @@ export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
         </LineChart>
       </ResponsiveContainer>
     </ChartWrapper>
-  )
+  );
 }

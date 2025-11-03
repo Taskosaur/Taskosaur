@@ -4,16 +4,11 @@ interface NotificationSkeletonProps {
   count?: number;
 }
 
-const NotificationSkeleton: React.FC<NotificationSkeletonProps> = ({
-  count = 5,
-}) => {
+const NotificationSkeleton: React.FC<NotificationSkeletonProps> = ({ count = 5 }) => {
   return (
     <div className="space-y-2 divide-y divide-[var(--border)]">
       {Array.from({ length: count }).map((_, idx) => (
-        <div
-          key={idx}
-          className="flex flex-col gap-1 px-2 sm:px-4 py-4 animate-pulse"
-        >
+        <div key={idx} className="flex flex-col gap-1 px-2 sm:px-4 py-4 animate-pulse">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-3 flex-1">
               <div className="w-4 h-4 rounded bg-[var(--border)] mt-1" />

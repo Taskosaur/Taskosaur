@@ -22,10 +22,7 @@ interface TaskAttachmentsProps {
   isUploading: boolean;
   loadingAttachments: boolean;
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  onDownloadAttachment: (
-    attachmentId: string,
-    fileName: string
-  ) => Promise<void>;
+  onDownloadAttachment: (attachmentId: string, fileName: string) => Promise<void>;
   onDeleteAttachment: (attachmentId: string) => Promise<void>;
   hasAccess?: boolean;
   setLoading?: (loading: boolean) => void;
@@ -51,10 +48,10 @@ const TaskAttachments: React.FC<TaskAttachmentsProps> = ({
   const { getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Create refs for each attachment preview
   const previewRefs = useRef<{ [key: string]: AttachmentPreviewRef | null }>({});
-  
+
   // Track loading state for each attachment
   const [loadingStates, setLoadingStates] = useState<{ [key: string]: boolean }>({});
 
@@ -87,7 +84,7 @@ const TaskAttachments: React.FC<TaskAttachmentsProps> = ({
       setLoading(loadingAttachments);
     }
   }, [loadingAttachments]);
-  
+
   // Poll for loading state changes from refs
   useEffect(() => {
     const interval = setInterval(() => {
@@ -100,7 +97,7 @@ const TaskAttachments: React.FC<TaskAttachmentsProps> = ({
       });
       setLoadingStates(newLoadingStates);
     }, 100);
-    
+
     return () => clearInterval(interval);
   }, [attachments]);
 
@@ -108,7 +105,7 @@ const TaskAttachments: React.FC<TaskAttachmentsProps> = ({
     <div className="task-attachments-container">
       <div className="space-y-4">
         <SectionHeader icon={HiPaperClip} title="Attachments" />
-        
+
         {!loadingAttachments && (
           <>
             {/* Existing attachments list */}
@@ -122,11 +119,9 @@ const TaskAttachments: React.FC<TaskAttachmentsProps> = ({
                         previewRefs.current[attachment.id] = el;
                       }}
                       attachment={attachment}
-                      onDownload={() =>
-                        onDownloadAttachment(attachment.id, attachment.fileName)
-                      }
+                      onDownload={() => onDownloadAttachment(attachment.id, attachment.fileName)}
                     />
-                    
+
                     {/* Attachment bar - no click handler on the bar itself */}
                     <div className="flex items-center justify-between p-3 border border-[var(--border)] rounded-lg bg-[var(--muted)]/30 hover:bg-[var(--accent)] transition-colors">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -163,9 +158,7 @@ const TaskAttachments: React.FC<TaskAttachmentsProps> = ({
                         <Tooltip content="Download" position="top" color="primary">
                           <ActionButton
                             variant="outline"
-                            onClick={() =>
-                              onDownloadAttachment(attachment.id, attachment.fileName)
-                            }
+                            onClick={() => onDownloadAttachment(attachment.id, attachment.fileName)}
                             secondary
                             className="h-8 px-3 text-xs cursor-pointer"
                           >
@@ -190,18 +183,18 @@ const TaskAttachments: React.FC<TaskAttachmentsProps> = ({
               </div>
             )}
 
-          {/* Upload button - only show if hasAccess */}
-          {hasAccess && (
-            <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                id="file-upload"
-                multiple
-                onChange={onFileUpload}
-                disabled={isUploading}
-                className="hidden"
-                accept="
+            {/* Upload button - only show if hasAccess */}
+            {hasAccess && (
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  id="file-upload"
+                  multiple
+                  onChange={onFileUpload}
+                  disabled={isUploading}
+                  className="hidden"
+                  accept="
             image/jpeg,
             image/png,
             image/gif,
@@ -218,27 +211,27 @@ const TaskAttachments: React.FC<TaskAttachmentsProps> = ({
             video/ogg,
             video/quicktime
           "
-              />
+                />
 
-              <div className="flex justify-end items-center w-full">
-                <ActionButton
-                  onClick={handleButtonClick}
-                  disabled={isUploading}
-                  primary
-                  showPlusIcon={!isUploading}
-                >
-                  {isUploading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Uploading...
-                    </div>
-                  ) : (
-                    <div className="text-center">Add Attachment</div>
-                  )}
-                </ActionButton>
+                <div className="flex justify-end items-center w-full">
+                  <ActionButton
+                    onClick={handleButtonClick}
+                    disabled={isUploading}
+                    primary
+                    showPlusIcon={!isUploading}
+                  >
+                    {isUploading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        Uploading...
+                      </div>
+                    ) : (
+                      <div className="text-center">Add Attachment</div>
+                    )}
+                  </ActionButton>
+                </div>
               </div>
-            </div>
-          )}
+            )}
           </>
         )}
       </div>

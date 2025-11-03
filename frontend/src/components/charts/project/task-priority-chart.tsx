@@ -1,5 +1,5 @@
 // components/charts/project/task-priority-chart.tsx
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { ChartWrapper } from "../chart-wrapper";
 
 const chartConfig = {
@@ -8,10 +8,10 @@ const chartConfig = {
   MEDIUM: { label: "Medium", color: "#F59E0B" },
   HIGH: { label: "High", color: "#EF4444" },
   HIGHEST: { label: "Highest", color: "#DC2626" },
-}
+};
 
 interface TaskPriorityChartProps {
-  data: Array<{ priority: string; _count: { priority: number } }>
+  data: Array<{ priority: string; _count: { priority: number } }>;
 }
 
 // Custom label component to show both priority and count
@@ -22,7 +22,7 @@ const renderCustomizedLabel = ({
   innerRadius,
   outerRadius,
   name,
-  value
+  value,
 }: any) => {
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -33,7 +33,7 @@ const renderCustomizedLabel = ({
     <text
       x={x}
       y={y}
-      fill="var(--accent-foreground, #fff)" 
+      fill="var(--accent-foreground, #fff)"
       textAnchor={x > cx ? "start" : "end"}
       dominantBaseline="central"
       fontSize={12}
@@ -58,11 +58,12 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 export function TaskPriorityChart({ data }: TaskPriorityChartProps) {
-  const chartData = data?.map(item => ({
-    name: chartConfig[item.priority]?.label || item.priority,
-    value: item._count.priority,
-    fill: chartConfig[item.priority]?.color || "#8B5CF6"
-  })) || [];
+  const chartData =
+    data?.map((item) => ({
+      name: chartConfig[item.priority]?.label || item.priority,
+      value: item._count.priority,
+      fill: chartConfig[item.priority]?.color || "#8B5CF6",
+    })) || [];
 
   // Calculate total for percentage display
   const total = chartData?.reduce((sum, item) => sum + item.value, 0);
@@ -93,17 +94,18 @@ export function TaskPriorityChart({ data }: TaskPriorityChartProps) {
             ))}
           </Pie>
           <Tooltip content={<CustomTooltip />} />
-          <Legend 
-            verticalAlign="bottom" 
+          <Legend
+            verticalAlign="bottom"
             height={36}
             formatter={(value, entry: any, index) => (
               <span key={entry} className="text-sm text-gray-700">
-                {value}: {chartData[index]?.value} ({(chartData[index]?.value / total * 100).toFixed(1)}%)
+                {value}: {chartData[index]?.value} (
+                {((chartData[index]?.value / total) * 100).toFixed(1)}%)
               </span>
             )}
           />
         </PieChart>
       </ResponsiveContainer>
     </ChartWrapper>
-  )
+  );
 }

@@ -1,13 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Building2,
-  FolderOpen,
-  Users,
-  CheckCircle,
-  Bug,
-  Zap,
-  Clock,
-} from "lucide-react";
+import { Building2, FolderOpen, Users, CheckCircle, Bug, Zap, Clock } from "lucide-react";
 import { StatCard } from "@/components/common/StatCard";
 
 interface OrganizationKPIMetricsProps {
@@ -46,10 +38,7 @@ interface KPICard {
   visible: boolean;
 }
 
-export function OrganizationKPIMetrics({
-  data,
-  visibleCards = [],
-}: OrganizationKPIMetricsProps) {
+export function OrganizationKPIMetrics({ data, visibleCards = [] }: OrganizationKPIMetricsProps) {
   const [cards, setCards] = useState<KPICard[]>([
     {
       id: "workspaces",
@@ -207,17 +196,12 @@ export function OrganizationKPIMetrics({
           visibleCount <= 4
             ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
             : visibleCount <= 6
-            ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
-            : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8"
+              ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+              : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8"
         }`}
       >
         {visibleCardsFiltered.map((card) => (
-          <StatCard
-            key={card.id}
-            label={card.label}
-            value={card.value}
-            icon={card.icon}
-          />
+          <StatCard key={card.id} label={card.label} value={card.value} icon={card.icon} />
         ))}
       </div>
     </div>

@@ -24,8 +24,11 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         </AuthProvider>
       </SetupChecker>
       <AutomationLoader
-        enabled={process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_AUTOMATION === 'true'}
-        showDevPanel={process.env.NODE_ENV === 'development'}
+        enabled={
+          process.env.NODE_ENV === "development" ||
+          process.env.NEXT_PUBLIC_ENABLE_AUTOMATION === "true"
+        }
+        showDevPanel={process.env.NODE_ENV === "development"}
         enableConsoleAccess={true}
       />
       <Toaster expand={false} richColors closeButton />

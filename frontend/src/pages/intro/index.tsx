@@ -135,9 +135,7 @@ const QuizPage = () => {
         <div className="hidden lg:block w-1/2 bg-[var(--primary)] p-8">
           <div className="h-full flex items-center justify-center">
             {currentQuestionData.svg || (
-              <div className="text-center text-[var(--primary-foreground)]">
-                Taskosaur
-              </div>
+              <div className="text-center text-[var(--primary-foreground)]">Taskosaur</div>
             )}
           </div>
         </div>
@@ -152,8 +150,7 @@ const QuizPage = () => {
                   Question {currentQuestion + 1} of {totalQuestions}
                 </span>
                 <span className="text-sm font-medium text-[var(--foreground)]">
-                  {Math.round(((currentQuestion + 1) / totalQuestions) * 100)}%
-                  Complete
+                  {Math.round(((currentQuestion + 1) / totalQuestions) * 100)}% Complete
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
@@ -179,8 +176,7 @@ const QuizPage = () => {
             {/* Options */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {currentQuestionData.options.map((option) => {
-                const isSelected =
-                  answers[currentQuestionData.id] === option.value;
+                const isSelected = answers[currentQuestionData.id] === option.value;
                 return (
                   <button
                     key={option.id}

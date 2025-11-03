@@ -15,16 +15,10 @@ import { ViewMode } from "@/types";
 import { TokenManager } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
-import {
-  FilterDropdown,
-  useGenericFilters,
-} from "@/components/common/FilterDropdown";
+import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
 import { CheckSquare, Flame, User, Users } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
-import SortingManager, {
-  SortOrder,
-  SortField,
-} from "@/components/tasks/SortIngManager";
+import SortingManager, { SortOrder, SortField } from "@/components/tasks/SortIngManager";
 import { useProjectContext } from "@/contexts/project-context";
 import Tooltip from "@/components/common/ToolTip";
 import Pagination from "@/components/common/Pagination";
@@ -67,9 +61,7 @@ const SprintTasksTable = () => {
   const projectApi = useProjectContext();
   const [kanban, setKanban] = useState<any[]>([]);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<"list" | "kanban" | "gantt">(
-    "list"
-  );
+  const [currentView, setCurrentView] = useState<"list" | "kanban" | "gantt">("list");
   const isAuth = isAuthenticated();
   const [searchInput, setSearchInput] = useState("");
   const [kabBanSettingModal, setKabBanSettingModal] = useState(false);
@@ -143,9 +135,7 @@ const SprintTasksTable = () => {
 
   // Show pagination if there are tasks and multiple pages
   const showPagination = useMemo(() => {
-    return (
-      currentView !== "kanban" && tasks.length > 0 && pagination.totalPages > 1
-    );
+    return currentView !== "kanban" && tasks.length > 0 && pagination.totalPages > 1;
   }, [tasks.length, pagination.totalPages]);
 
   // Search handlers
@@ -175,9 +165,7 @@ const SprintTasksTable = () => {
 
         if (isAuth) {
           // Authenticated flow - get workspace first, then project
-          const ws = await workspaceContext.getWorkspaceBySlug(
-            workspaceSlug as string
-          );
+          const ws = await workspaceContext.getWorkspaceBySlug(workspaceSlug as string);
           setWorkspace(ws);
 
           if (ws) {
@@ -258,11 +246,7 @@ const SprintTasksTable = () => {
       } else {
         // Public flow - use public task API
         if (workspaceSlug && projectSlug) {
-          await getPublicProjectTasks(
-            workspaceSlug as string,
-            projectSlug as string,
-            params
-          );
+          await getPublicProjectTasks(workspaceSlug as string, projectSlug as string, params);
         }
       }
       const uniqueStatuses = Array.from(
@@ -297,12 +281,7 @@ const SprintTasksTable = () => {
   ]);
 
   const loadKanbanData = useCallback(
-    async (
-      projSlug: string,
-      sprintId: string,
-      statusId?: string,
-      page: number = 1
-    ) => {
+    async (projSlug: string, sprintId: string, statusId?: string, page: number = 1) => {
       if (!isAuth) return;
 
       try {
@@ -322,9 +301,7 @@ const SprintTasksTable = () => {
           setKanban((prevKanban) => {
             return prevKanban.map((status) => {
               if (status.statusId === statusId) {
-                const newStatusData = response.data.find(
-                  (s) => s.statusId === statusId
-                );
+                const newStatusData = response.data.find((s) => s.statusId === statusId);
                 if (newStatusData) {
                   return {
                     ...status,
@@ -348,12 +325,7 @@ const SprintTasksTable = () => {
 
   const handleLoadMoreKanbanTasks = useCallback(
     async (statusId: string, page: number) => {
-      await loadKanbanData(
-        projectSlug as string,
-        sprintId as string,
-        statusId,
-        page
-      );
+      await loadKanbanData(projectSlug as string, sprintId as string, statusId, page);
     },
     [loadKanbanData, projectSlug]
   );
@@ -517,8 +489,7 @@ const SprintTasksTable = () => {
         selected: selectedStatuses.includes(status.id),
         count: tasks.filter((task) => {
           const taskStatusId =
-            task.statusId ||
-            (typeof task.status === "object" ? task.status?.id : task.status);
+            task.statusId || (typeof task.status === "object" ? task.status?.id : task.status);
           return taskStatusId === status.id;
         }).length,
         color: status.color || "#6b7280",
@@ -548,9 +519,7 @@ const SprintTasksTable = () => {
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
             Array.isArray(task.assignees)
-              ? task.assignees.some(
-                  (assignee) => assignee.id === member.user.id
-                )
+              ? task.assignees.some((assignee) => assignee.id === member.user.id)
               : false
           ).length
         : 0,
@@ -567,9 +536,7 @@ const SprintTasksTable = () => {
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
             Array.isArray(task.reporters)
-              ? task.reporters.some(
-                  (reporter) => reporter.id === member.user.id
-                )
+              ? task.reporters.some((reporter) => reporter.id === member.user.id)
               : false
           ).length
         : 0,
@@ -604,8 +571,7 @@ const SprintTasksTable = () => {
         selectedIds: selectedPriorities,
         searchable: false,
         onToggle: togglePriority,
-        onSelectAll: () =>
-          setSelectedPriorities(priorityFilters.map((p) => p.id)),
+        onSelectAll: () => setSelectedPriorities(priorityFilters.map((p) => p.id)),
         onClearAll: () => setSelectedPriorities([]),
       }),
       createSection({
@@ -616,8 +582,7 @@ const SprintTasksTable = () => {
         selectedIds: selectedAssignees,
         searchable: true,
         onToggle: toggleAssignee,
-        onSelectAll: () =>
-          setSelectedAssignees(assigneeFilters.map((a) => a.id)),
+        onSelectAll: () => setSelectedAssignees(assigneeFilters.map((a) => a.id)),
         onClearAll: () => setSelectedAssignees([]),
       }),
       createSection({
@@ -628,8 +593,7 @@ const SprintTasksTable = () => {
         selectedIds: selectedReporters,
         searchable: true,
         onToggle: toggleReporter,
-        onSelectAll: () =>
-          setSelectedReporters(reporterFilters.map((r) => r.id)),
+        onSelectAll: () => setSelectedReporters(reporterFilters.map((r) => r.id)),
         onClearAll: () => setSelectedReporters([]),
       }),
     ],
@@ -655,10 +619,7 @@ const SprintTasksTable = () => {
   }, [loadTasks]);
 
   const handleAddColumn = (columnId: string) => {
-    const columnConfigs: Record<
-      string,
-      { label: string; type: ColumnConfig["type"] }
-    > = {
+    const columnConfigs: Record<string, { label: string; type: ColumnConfig["type"] }> = {
       description: { label: "Description", type: "text" },
       taskNumber: { label: "Task Number", type: "number" },
       timeline: { label: "Timeline", type: "dateRange" },
@@ -712,18 +673,12 @@ const SprintTasksTable = () => {
     const sorted = [...tasks].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
-      if (
-        ["createdAt", "updatedAt", "completedAt", "timeline"].includes(
-          sortField
-        )
-      ) {
+      if (["createdAt", "updatedAt", "completedAt", "timeline"].includes(sortField)) {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
       }
       if (typeof aValue === "string" && typeof bValue === "string") {
-        return sortOrder === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
+        return sortOrder === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
       }
       // Handle number comparison
       if (typeof aValue === "number" && typeof bValue === "number") {
@@ -737,11 +692,7 @@ const SprintTasksTable = () => {
 
   const renderContent = () => {
     if (isInitialLoad || isLoading) {
-      return currentView === "kanban" ? (
-        <KanbanColumnSkeleton />
-      ) : (
-        <TaskTableSkeleton />
-      );
+      return currentView === "kanban" ? <KanbanColumnSkeleton /> : <TaskTableSkeleton />;
     }
 
     if (error) {
@@ -774,20 +725,14 @@ const SprintTasksTable = () => {
     switch (currentView) {
       case "kanban":
         if (!kanban.length) {
-          return currentView === "kanban" ? (
-            <KanbanColumnSkeleton />
-          ) : (
-            <TaskTableSkeleton />
-          );
+          return currentView === "kanban" ? <KanbanColumnSkeleton /> : <TaskTableSkeleton />;
         }
         return kanban?.length ? (
           <div>
             <KanbanBoard
               kanbanData={kanban}
               projectId={project?.id || ""}
-              onRefresh={() =>
-                loadKanbanData(projectSlug as string, sprintId as string)
-              }
+              onRefresh={() => loadKanbanData(projectSlug as string, sprintId as string)}
               onLoadMore={handleLoadMoreKanbanTasks}
               kabBanSettingModal={kabBanSettingModal}
               setKabBanSettingModal={setKabBanSettingModal}
@@ -799,8 +744,7 @@ const SprintTasksTable = () => {
         ) : (
           <div className="text-center py-12">
             <p className="text-muted-foreground">
-              No workflow found. Create workflow statuses to use the Kanban
-              view.
+              No workflow found. Create workflow statuses to use the Kanban view.
             </p>
           </div>
         );
@@ -824,9 +768,7 @@ const SprintTasksTable = () => {
             addTaskStatuses={availableTaskStatuses}
             onTaskRefetch={handleTaskRefetch}
             showAddTaskRow={false}
-            showBulkActionBar={
-              hasAccess || userRole == "OWNER" || userRole === "MANAGER"
-            }
+            showBulkActionBar={hasAccess || userRole == "OWNER" || userRole === "MANAGER"}
           />
         );
     }
@@ -924,11 +866,7 @@ const SprintTasksTable = () => {
               )}
               {currentView === "kanban" && isAuthenticated() && hasAccess && (
                 <div className="flex items-center gap-2">
-                  <Tooltip
-                    content="Manage Columns"
-                    position="top"
-                    color="primary"
-                  >
+                  <Tooltip content="Manage Columns" position="top" color="primary">
                     <ColumnManager
                       currentView={currentView}
                       availableColumns={columns}

@@ -1,6 +1,4 @@
 // pages/invite/invalid.tsx
-;
-
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +9,7 @@ export default function InvalidInvitePage() {
   const router = useRouter();
   const { msg } = router.query;
 
-  const errorMessage = msg as string || "Invalid or expired invitation link";
+  const errorMessage = (msg as string) || "Invalid or expired invitation link";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -20,17 +18,13 @@ export default function InvalidInvitePage() {
           <div className="mx-auto h-16 w-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
             <HiExclamationTriangle className="h-8 w-8 text-red-600" />
           </div>
-          <CardTitle className="text-xl font-bold text-gray-900">
-            Invalid Invitation
-          </CardTitle>
+          <CardTitle className="text-xl font-bold text-gray-900">Invalid Invitation</CardTitle>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           <Alert variant="destructive">
             <HiExclamationTriangle className="h-4 w-4" />
-            <AlertDescription>
-              {errorMessage}
-            </AlertDescription>
+            <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
 
           <div className="text-sm text-gray-600 space-y-2">
@@ -50,12 +44,8 @@ export default function InvalidInvitePage() {
             >
               Go to Home
             </Button>
-            
-            <Button
-              onClick={() => router.push("/login")}
-              variant="outline"
-              className="w-full"
-            >
+
+            <Button onClick={() => router.push("/login")} variant="outline" className="w-full">
               <HiArrowLeft className="h-4 w-4 mr-2" />
               Back to Login
             </Button>

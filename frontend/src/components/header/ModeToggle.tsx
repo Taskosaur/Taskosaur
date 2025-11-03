@@ -1,5 +1,3 @@
-;
-
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import Tooltip from "../common/ToolTip";
@@ -30,9 +28,7 @@ export function ModeToggle() {
       >
         <CgDarkMode className="header-mode-toggle-icon" />
         {!hideThemeLabel && (
-          <span className="hidden max-[530px]:inline-block text-sm font-medium">
-            Theme
-          </span>
+          <span className="hidden max-[530px]:inline-block text-sm font-medium">Theme</span>
         )}
       </Button>
     </Tooltip>

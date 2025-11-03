@@ -1,10 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  HiXMark,
-  HiPaperAirplane,
-  HiSparkles,
-  HiArrowPath,
-} from "react-icons/hi2";
+import { HiXMark, HiPaperAirplane, HiSparkles, HiArrowPath } from "react-icons/hi2";
 import { useChatContext } from "@/contexts/chat-context";
 import { mcpServer, extractContextFromPath } from "@/lib/mcp-server";
 import { usePathname, useRouter } from "next/navigation";
@@ -29,8 +24,7 @@ export default function ChatPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
-  const [isContextManuallyCleared, setIsContextManuallyCleared] =
-    useState(false);
+  const [isContextManuallyCleared, setIsContextManuallyCleared] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pathname = usePathname();
@@ -39,7 +33,6 @@ export default function ChatPanel() {
   const { getCurrentUser } = useAuth();
   const [panelWidth, setPanelWidth] = useState(400);
   const resizing = useRef(false);
-
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -57,11 +50,11 @@ export default function ChatPanel() {
   };
 
   useEffect(() => {
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
   // Auto-resize textarea function
@@ -69,8 +62,8 @@ export default function ChatPanel() {
     const textarea = textareaRef.current;
     if (textarea) {
       // Reset height to auto to get the correct scrollHeight
-      textarea.style.height = 'auto';
-      
+      textarea.style.height = "auto";
+
       // Calculate new height based on content
       const newHeight = Math.min(textarea.scrollHeight, 120); // Max height of 120px
       textarea.style.height = `${newHeight}px`;
@@ -78,11 +71,14 @@ export default function ChatPanel() {
   }, []);
 
   // Handle input change with auto-resize
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-    // Adjust height after state update
-    setTimeout(adjustTextareaHeight, 0);
-  }, [adjustTextareaHeight]);
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setInputValue(e.target.value);
+      // Adjust height after state update
+      setTimeout(adjustTextareaHeight, 0);
+    },
+    [adjustTextareaHeight]
+  );
 
   // Load messages from session storage (improved logic)
   const loadMessagesFromHistory = useCallback(() => {
@@ -99,12 +95,12 @@ export default function ChatPanel() {
         // Only load if we have substantial history (more than just a greeting)
         if (chatHistory.length > 2) {
           const convertedMessages: Message[] = chatHistory.map((msg, index) => ({
-            role: msg.role === 'system' ? 'assistant' : msg.role,
+            role: msg.role === "system" ? "assistant" : msg.role,
             content: msg.content,
             timestamp: new Date(Date.now() - (chatHistory.length - index) * 1000),
-            isStreaming: false
+            isStreaming: false,
           }));
-          
+
           setMessages(convertedMessages);
           return true;
         }
@@ -119,12 +115,12 @@ export default function ChatPanel() {
   useEffect(() => {
     // Get current user
     const currentUser = getCurrentUser();
-    const token = localStorage.getItem('access_token');
-    const currentOrgId = localStorage.getItem('currentOrganizationId');
+    const token = localStorage.getItem("access_token");
+    const currentOrgId = localStorage.getItem("currentOrganizationId");
 
     setUser(currentUser);
     setCurrentOrganizationId(currentOrgId);
-    
+
     if (token && currentUser) {
       // Initialize MCP server with context
       const pathContext = extractContextFromPath(pathname);
@@ -150,23 +146,24 @@ export default function ChatPanel() {
       mcpServer.updateContext(pathContext);
     }
   }, [pathname, user, isContextManuallyCleared]);
-  
-    if (
-      currentOrganizationId !== null &&
-      currentOrganizationId !== localStorage.getItem('currentOrganizationId') && messages.length > 2
-    ) {
-      const newOrgId = localStorage.getItem('currentOrganizationId');
-      setCurrentOrganizationId(newOrgId);
-      setMessages(prev => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            "⚠️ Organization changed. My previous responses may no longer apply to the correct workspace or projects.",
-          timestamp: new Date(),
-        },
-      ]);
-    }
+
+  if (
+    currentOrganizationId !== null &&
+    currentOrganizationId !== localStorage.getItem("currentOrganizationId") &&
+    messages.length > 2
+  ) {
+    const newOrgId = localStorage.getItem("currentOrganizationId");
+    setCurrentOrganizationId(newOrgId);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content:
+          "⚠️ Organization changed. My previous responses may no longer apply to the correct workspace or projects.",
+        timestamp: new Date(),
+      },
+    ]);
+  }
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -176,7 +173,7 @@ export default function ChatPanel() {
   useEffect(() => {
     const handleWorkspaceCreated = (event: CustomEvent) => {
       const { workspaceSlug, workspaceName } = event.detail;
-      
+
       // Navigate to the new workspace
       router.push(`/${workspaceSlug}`);
 
@@ -209,24 +206,12 @@ export default function ChatPanel() {
     };
     // Add event listeners
     if (typeof window !== "undefined") {
-      window.addEventListener(
-        "aiWorkspaceCreated",
-        handleWorkspaceCreated as EventListener
-      );
-      window.addEventListener(
-        "aiProjectCreated",
-        handleProjectCreated as EventListener
-      );
+      window.addEventListener("aiWorkspaceCreated", handleWorkspaceCreated as EventListener);
+      window.addEventListener("aiProjectCreated", handleProjectCreated as EventListener);
 
       return () => {
-        window.removeEventListener(
-          "aiWorkspaceCreated",
-          handleWorkspaceCreated as EventListener
-        );
-        window.removeEventListener(
-          "aiProjectCreated",
-          handleProjectCreated as EventListener
-        );
+        window.removeEventListener("aiWorkspaceCreated", handleWorkspaceCreated as EventListener);
+        window.removeEventListener("aiProjectCreated", handleProjectCreated as EventListener);
       };
     }
   }, [router]);
@@ -238,10 +223,7 @@ export default function ChatPanel() {
       const lastMessageIndex = updatedMessages.length - 1;
       const lastMessage = updatedMessages[lastMessageIndex];
 
-      if (
-        lastMessage &&
-        lastMessage.role === "assistant"
-      ) {
+      if (lastMessage && lastMessage.role === "assistant") {
         // Create a new message object instead of mutating
         updatedMessages[lastMessageIndex] = {
           ...lastMessage,
@@ -303,11 +285,7 @@ export default function ChatPanel() {
       setMessages((prev) => {
         const updatedMessages = [...prev];
         const lastMessage = updatedMessages[updatedMessages.length - 1];
-        if (
-          lastMessage &&
-          lastMessage.role === "assistant" &&
-          lastMessage.isStreaming
-        ) {
+        if (lastMessage && lastMessage.role === "assistant" && lastMessage.isStreaming) {
           lastMessage.isStreaming = false;
 
           // Sync final content from MCP history to ensure consistency
@@ -315,14 +293,9 @@ export default function ChatPanel() {
             const mcpHistory = mcpServer.getHistory();
             if (mcpHistory.length > 0) {
               const lastMcpMessage = mcpHistory[mcpHistory.length - 1];
-              if (
-                lastMcpMessage.role === "assistant" &&
-                lastMcpMessage.content
-              ) {
+              if (lastMcpMessage.role === "assistant" && lastMcpMessage.content) {
                 // Only sync if the MCP content is substantially longer (indicating it has the full content)
-                if (
-                  lastMcpMessage.content.length > lastMessage.content.length
-                ) {
+                if (lastMcpMessage.content.length > lastMessage.content.length) {
                   lastMessage.content = lastMcpMessage.content;
                 }
               }
@@ -331,9 +304,7 @@ export default function ChatPanel() {
             console.warn("[Chat] Failed to sync final content:", error);
           }
         } else {
-          console.warn(
-            "[Chat] No streaming assistant message found to mark as complete"
-          );
+          console.warn("[Chat] No streaming assistant message found to mark as complete");
         }
         return updatedMessages;
       });
@@ -385,7 +356,7 @@ export default function ChatPanel() {
       setError("Failed to clear context. Please try again.");
     }
   };
-  
+
   // Improved sync logic that only runs on mount/chat open, not during active messaging
   useEffect(() => {
     const syncWithMcpHistory = () => {
@@ -405,22 +376,18 @@ export default function ChatPanel() {
 
           // Only sync if there's a meaningful difference (more than 1 message gap)
           if (Math.abs(mcpHistory.length - currentHistoryLength) > 1) {
-
-            const syncedMessages: Message[] = mcpHistory.map(
-              (msg: ChatMessage, index: number) => ({
-                role: msg.role === "system" ? "assistant" : msg.role,
-                content: msg.content,
-                timestamp:
-                  messages[index]?.timestamp ||
-                  new Date(Date.now() - (mcpHistory.length - index) * 1000),
-                isStreaming: false,
-              })
-            );
+            const syncedMessages: Message[] = mcpHistory.map((msg: ChatMessage, index: number) => ({
+              role: msg.role === "system" ? "assistant" : msg.role,
+              content: msg.content,
+              timestamp:
+                messages[index]?.timestamp ||
+                new Date(Date.now() - (mcpHistory.length - index) * 1000),
+              isStreaming: false,
+            }));
 
             // Preserve system messages from manual context clearing
             const systemMessages = messages.filter(
-              (m) =>
-                m.role === "system" && m.content.includes("Context cleared")
+              (m) => m.role === "system" && m.content.includes("Context cleared")
             );
             setMessages([...systemMessages, ...syncedMessages]);
           }
@@ -440,23 +407,21 @@ export default function ChatPanel() {
   return (
     <>
       {/* Chat Panel - positioned below header */}
-      <div 
+      <div
         className={`fixed top-0 right-0 bottom-0 bg-[var(--background)] border-l border-[var(--border)] z-40 transform transition-transform duration-300 ease-in-out h-full pb-20 ${
-          isChatOpen ? 'translate-x-0' : 'translate-x-full'
+          isChatOpen ? "translate-x-0" : "translate-x-full"
         }`}
         style={{ width: `${panelWidth}px` }}
       >
-      <div
-        onMouseDown={handleMouseDown}
-        className="absolute left-0 top-0 bottom-0 w-0.5 cursor-col-resize bg-transparent hover:bg-gray-300/40"
-      />
+        <div
+          onMouseDown={handleMouseDown}
+          className="absolute left-0 top-0 bottom-0 w-0.5 cursor-col-resize bg-transparent hover:bg-gray-300/40"
+        />
         {/* Chat Header */}
         <div className="flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--background)]">
           <div className="flex items-center gap-2">
             <HiSparkles className="w-5 h-5 text-blue-600" />
-            <h2 className="text-lg font-semibold text-primary">
-              AI Assistant
-            </h2>
+            <h2 className="text-lg font-semibold text-primary">AI Assistant</h2>
           </div>
           <div className="flex items-center gap-2">
             {/* Context Clear Button */}
@@ -486,11 +451,11 @@ export default function ChatPanel() {
         </div>
 
         <div className="flex flex-col h-full">
-          <div 
+          <div
             className="flex-1 overflow-y-auto px-4 py-4 space-y-6 chatgpt-scrollbar h-full"
-            style={{ 
-              scrollbarWidth: 'none', /* Firefox */
-              msOverflowStyle: 'none'  /* Internet Explorer 10+ */
+            style={{
+              scrollbarWidth: "none" /* Firefox */,
+              msOverflowStyle: "none" /* Internet Explorer 10+ */,
             }}
           >
             {messages.length === 0 ? (
@@ -506,7 +471,9 @@ export default function ChatPanel() {
                     I can help you manage tasks, projects, and workspaces
                   </p>
                   <div className="text-left bg-[var(--accent)] rounded-lg p-4">
-                    <p className="text-sm font-medium mb-2 text-[var(--muted-foreground)]">Try these commands:</p>
+                    <p className="text-sm font-medium mb-2 text-[var(--muted-foreground)]">
+                      Try these commands:
+                    </p>
                     <ul className="text-sm space-y-1.5 text-gray-600 dark:text-gray-400">
                       <li className="flex items-start gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></span>
@@ -540,7 +507,7 @@ export default function ChatPanel() {
               <>
                 {messages.map((message, index) => (
                   <div key={index} className="group">
-                    {message.role === 'user' ? (
+                    {message.role === "user" ? (
                       // User Message - Right aligned like
                       <div className="flex justify-end mb-4">
                         <div className="flex items-start gap-3 max-w-[80%]">
@@ -550,11 +517,12 @@ export default function ChatPanel() {
                             </div>
                           </div>
                           <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#1E2939] text-sm font-medium flex-shrink-0">
-                            {user?.firstName?.[0]?.toUpperCase() + user?.lastName?.[0]?.toUpperCase() || 'U'}
+                            {user?.firstName?.[0]?.toUpperCase() +
+                              user?.lastName?.[0]?.toUpperCase() || "U"}
                           </div>
                         </div>
                       </div>
-                    ) : message.role === 'system' ? (
+                    ) : message.role === "system" ? (
                       // System Message - Centered
                       <div className="flex justify-center mb-4">
                         <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-2 text-sm max-w-[90%]">
@@ -583,10 +551,10 @@ export default function ChatPanel() {
                     {message.timestamp && (
                       <div className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 -mt-2 mb-2">
                         <span className="text-xs text-gray-400 dark:text-gray-500">
-                          {message.timestamp.toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: true 
+                          {message.timestamp.toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
                           })}
                         </span>
                       </div>
@@ -612,26 +580,24 @@ export default function ChatPanel() {
           {/* Chat Input Area - Fixed at bottom with auto-expanding textarea */}
           <div className="flex-shrink-0 border-t border-[var(--border)] bg-[var(--background)] pt-4 px-2">
             <div className="flex gap-3 items-end">
-                <textarea
-                  ref={textareaRef}
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyPress}
-                  placeholder={
-                    !user 
-                      ? "Please log in to use AI assistant..." 
-                      : "Message AI Assistant..."
-                  }
-                  disabled={isLoading || !user}
-                  rows={1}
-                  className="flex-1 px-4 py-3 bg-[var(--muted)] border-[var(--border)] focus:ring-1 focus:ring-[var(--border)] focus:border-transparent transition-all duration-200 rounded-xl shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
-                  style={{ 
-                    minHeight: '48px', 
-                    maxHeight: '120px',
-                    lineHeight: '1.5',
-                    height: '48px'
-                  }}
-                />
+              <textarea
+                ref={textareaRef}
+                value={inputValue}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyPress}
+                placeholder={
+                  !user ? "Please log in to use AI assistant..." : "Message AI Assistant..."
+                }
+                disabled={isLoading || !user}
+                rows={1}
+                className="flex-1 px-4 py-3 bg-[var(--muted)] border-[var(--border)] focus:ring-1 focus:ring-[var(--border)] focus:border-transparent transition-all duration-200 rounded-xl shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+                style={{
+                  minHeight: "48px",
+                  maxHeight: "120px",
+                  lineHeight: "1.5",
+                  height: "48px",
+                }}
+              />
               <button
                 onClick={handleSendMessage}
                 disabled={!inputValue.trim() || isLoading || !user}
@@ -647,14 +613,14 @@ export default function ChatPanel() {
           </div>
         </div>
       </div>
-      
+
       {/* Global styles for content squeeze and hidden scrollbars */}
       <style jsx global>{`
         body.chat-open .flex-1.overflow-y-scroll {
           margin-right: 400px !important;
           transition: margin-right 300ms ease-in-out;
         }
-        
+
         .flex-1.overflow-y-scroll {
           transition: margin-right 300ms ease-in-out;
         }
@@ -668,7 +634,7 @@ export default function ChatPanel() {
         .chatgpt-scrollbar {
           scroll-behavior: smooth;
           scrollbar-width: none; /* Firefox */
-          -ms-overflow-style: none;  /* Internet Explorer 10+ */
+          -ms-overflow-style: none; /* Internet Explorer 10+ */
         }
       `}</style>
     </>

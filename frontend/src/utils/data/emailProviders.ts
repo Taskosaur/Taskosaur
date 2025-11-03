@@ -12,7 +12,7 @@ export const EMAIL_PROVIDERS: EmailProvider[] = [
     smtpPort: 587,
     requiresAppPassword: true,
     setupInstructions:
-    "You need to enable 2-factor authentication and create an app-specific password.",
+      "You need to enable 2-factor authentication and create an app-specific password.",
   },
   {
     id: "outlook",

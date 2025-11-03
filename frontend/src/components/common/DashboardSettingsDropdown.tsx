@@ -8,13 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Settings,
-  Activity,
-  BarChart3,
-  CheckSquare,
-  RefreshCw,
-} from "lucide-react";
+import { Settings, Activity, BarChart3, CheckSquare, RefreshCw } from "lucide-react";
 import ActionButton from "./ActionButton";
 
 interface SettingsItem {
@@ -64,13 +58,9 @@ export function DashboardSettingsDropdown({
         <div className="bg-gradient-to-r from-[var(--accent)] to-[var(--muted)] p-4 border-none">
           <div className="flex items-center gap-2">
             <Settings className="h-4 w-4 text-[var(--primary)]" />
-            <h3 className="font-semibold text-[var(--card-foreground)]">
-              {title}
-            </h3>
+            <h3 className="font-semibold text-[var(--card-foreground)]">{title}</h3>
           </div>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">
-            {description}
-          </p>
+          <p className="text-sm text-[var(--muted-foreground)] mt-1">{description}</p>
         </div>
 
         {/* Content */}

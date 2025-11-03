@@ -16,9 +16,7 @@ import {
 
 export const workspaceApi = {
   // Workspace CRUD operations
-  createWorkspace: async (
-    workspaceData: CreateWorkspaceData
-  ): Promise<Workspace> => {
+  createWorkspace: async (workspaceData: CreateWorkspaceData): Promise<Workspace> => {
     try {
       // Generate slug if not provided
       const finalWorkspaceData = {
@@ -33,10 +31,7 @@ export const workspaceApi = {
             .trim(),
       };
 
-      const response = await api.post<Workspace>(
-        "/workspaces",
-        finalWorkspaceData
-      );
+      const response = await api.post<Workspace>("/workspaces", finalWorkspaceData);
       return response.data;
     } catch (error) {
       console.error("Create workspace error:", error);
@@ -60,18 +55,13 @@ export const workspaceApi = {
   ): Promise<Workspace[]> => {
     try {
       // Validate organizationId format
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(organizationId)) {
-        throw new Error(
-          `Invalid organizationId format: ${organizationId}. Expected UUID format.`
-        );
+        throw new Error(`Invalid organizationId format: ${organizationId}. Expected UUID format.`);
       }
 
       const response = await api.get<Workspace[]>(
-        `/workspaces?organizationId=${organizationId}&search=${encodeURIComponent(
-          search || ""
-        )}`
+        `/workspaces?organizationId=${organizationId}&search=${encodeURIComponent(search || "")}`
       );
       return response.data;
     } catch (error) {
@@ -90,10 +80,7 @@ export const workspaceApi = {
     }
   },
 
-  getWorkspaceBySlug: async (
-    slug: string,
-    organizationId: string
-  ): Promise<Workspace> => {
+  getWorkspaceBySlug: async (slug: string, organizationId: string): Promise<Workspace> => {
     try {
       const response = await api.get<Workspace>(
         `/workspaces/organization/${organizationId}/slug/${slug}`
@@ -110,10 +97,7 @@ export const workspaceApi = {
     workspaceData: Partial<WorkspaceData>
   ): Promise<Workspace> => {
     try {
-      const response = await api.patch<Workspace>(
-        `/workspaces/${workspaceId}`,
-        workspaceData
-      );
+      const response = await api.patch<Workspace>(`/workspaces/${workspaceId}`, workspaceData);
       return response.data;
     } catch (error) {
       console.error("Update workspace error:", error);
@@ -121,9 +105,7 @@ export const workspaceApi = {
     }
   },
 
-  deleteWorkspace: async (
-    workspaceId: string
-  ): Promise<{ success: boolean; message: string }> => {
+  deleteWorkspace: async (workspaceId: string): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await api.delete(`/workspaces/${workspaceId}`);
 
@@ -152,36 +134,30 @@ export const workspaceApi = {
     search?: string,
     page?: number,
     limit?: number
-  ): Promise<{ data: WorkspaceMember[], total: number; page: number }> => {
+  ): Promise<{ data: WorkspaceMember[]; total: number; page: number }> => {
     try {
       const params = new URLSearchParams();
 
-      if (workspaceId) params.append('workspaceId', workspaceId);
-      if (search) params.append('search', search);
-      if (page !== undefined) params.append('page', page.toString());
-      if (limit !== undefined) params.append('limit', limit.toString());
+      if (workspaceId) params.append("workspaceId", workspaceId);
+      if (search) params.append("search", search);
+      if (page !== undefined) params.append("page", page.toString());
+      if (limit !== undefined) params.append("limit", limit.toString());
 
-      const response = await api.get<{ data: WorkspaceMember[], total: number; page: number }>(
+      const response = await api.get<{ data: WorkspaceMember[]; total: number; page: number }>(
         `/workspace-members?${params.toString()}`
       );
 
       // Return the paginated data structure safely
       return response.data;
     } catch (error) {
-      console.error('Get workspace members error:', error);
+      console.error("Get workspace members error:", error);
       throw error;
     }
   },
 
-
-  addMemberToWorkspace: async (
-    memberData: AddMemberToWorkspaceData
-  ): Promise<WorkspaceMember> => {
+  addMemberToWorkspace: async (memberData: AddMemberToWorkspaceData): Promise<WorkspaceMember> => {
     try {
-      const response = await api.post<WorkspaceMember>(
-        "/workspace-members",
-        memberData
-      );
+      const response = await api.post<WorkspaceMember>("/workspace-members", memberData);
       return response.data;
     } catch (error) {
       console.error("Add member to workspace error:", error);
@@ -189,9 +165,7 @@ export const workspaceApi = {
     }
   },
 
-  inviteMemberToWorkspace: async (
-    inviteData: InviteMemberToWorkspaceData
-  ): Promise<any> => {
+  inviteMemberToWorkspace: async (inviteData: InviteMemberToWorkspaceData): Promise<any> => {
     try {
       const response = await api.post("/workspace-members/invite", inviteData);
       return response.data;
@@ -331,20 +305,14 @@ export const workspaceApi = {
   ): Promise<WorkspaceChartDataResponse> => {
     try {
       const allChartTypes = Object.values(WorkspaceChartType);
-      return await workspaceApi.getMultipleCharts(
-        organizationId,
-        workspaceSlug,
-        allChartTypes
-      );
+      return await workspaceApi.getMultipleCharts(organizationId, workspaceSlug, allChartTypes);
     } catch (error) {
       console.error("Get all workspace charts error:", error);
       throw error;
     }
   },
 
-  archiveWorkspace: async (
-    workspaceId: string
-  ): Promise<{ success: boolean; message: string }> => {
+  archiveWorkspace: async (workspaceId: string): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await api.patch(`/workspaces/archive/${workspaceId}`);
 

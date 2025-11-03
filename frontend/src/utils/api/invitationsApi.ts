@@ -1,17 +1,20 @@
 import api from "@/lib/api";
-import { AcceptInvitationResponse, CreateInvitationData, DeclineInvitationResponse, EntityType, Invitation, InvitationFilters, InvitationStatus, VerifyInvitationResponse } from "@/types";
+import {
+  AcceptInvitationResponse,
+  CreateInvitationData,
+  DeclineInvitationResponse,
+  EntityType,
+  Invitation,
+  InvitationFilters,
+  InvitationStatus,
+  VerifyInvitationResponse,
+} from "@/types";
 
 export const invitationApi = {
   // Updated invitation creation to match backend DTO
-  createInvitation: async (
-    invitationData: CreateInvitationData
-  ): Promise<Invitation> => {
+  createInvitation: async (invitationData: CreateInvitationData): Promise<Invitation> => {
     try {
-     
-      const response = await api.post<Invitation>(
-        "/invitations",
-        invitationData
-      );
+      const response = await api.post<Invitation>("/invitations", invitationData);
       return response.data;
     } catch (error) {
       console.error("Create invitation error:", error);
@@ -49,18 +52,14 @@ export const invitationApi = {
     return invitationApi.createInvitation(invitationData);
   },
 
-  getUserInvitations: async (
-    filters: InvitationFilters = {}
-  ): Promise<Invitation[]> => {
+  getUserInvitations: async (filters: InvitationFilters = {}): Promise<Invitation[]> => {
     try {
       const params = new URLSearchParams();
       if (filters.status) params.append("status", filters.status);
       if (filters.entityType) params.append("entityType", filters.entityType);
       if (filters.entityId) params.append("entityId", filters.entityId);
 
-      const response = await api.get<Invitation[]>(
-        `/invitations/user?${params.toString()}`
-      );
+      const response = await api.get<Invitation[]>(`/invitations/user?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error("Get user invitations error:", error);
@@ -68,13 +67,9 @@ export const invitationApi = {
     }
   },
 
-  acceptInvitation: async (
-    token: string
-  ): Promise<AcceptInvitationResponse> => {
+  acceptInvitation: async (token: string): Promise<AcceptInvitationResponse> => {
     try {
-      const response = await api.patch<AcceptInvitationResponse>(
-        `/invitations/${token}/accept`
-      );
+      const response = await api.patch<AcceptInvitationResponse>(`/invitations/${token}/accept`);
       return response.data;
     } catch (error) {
       console.error("Accept invitation error:", error);
@@ -82,13 +77,9 @@ export const invitationApi = {
     }
   },
 
-  declineInvitation: async (
-    token: string
-  ): Promise<DeclineInvitationResponse> => {
+  declineInvitation: async (token: string): Promise<DeclineInvitationResponse> => {
     try {
-      const response = await api.patch<DeclineInvitationResponse>(
-        `/invitations/${token}/decline`
-      );
+      const response = await api.patch<DeclineInvitationResponse>(`/invitations/${token}/decline`);
       return response.data;
     } catch (error) {
       console.error("Decline invitation error:", error);
@@ -106,9 +97,7 @@ export const invitationApi = {
     }
   },
 
-  getOrganizationInvitations: async (
-    organizationId: string
-  ): Promise<Invitation[]> => {
+  getOrganizationInvitations: async (organizationId: string): Promise<Invitation[]> => {
     try {
       return await invitationApi.getUserInvitations({
         entityType: "organization",
@@ -120,9 +109,7 @@ export const invitationApi = {
     }
   },
 
-  getWorkspaceInvitations: async (
-    workspaceId: string
-  ): Promise<Invitation[]> => {
+  getWorkspaceInvitations: async (workspaceId: string): Promise<Invitation[]> => {
     try {
       return await invitationApi.getUserInvitations({
         entityType: "workspace",
@@ -239,9 +226,7 @@ export const invitationApi = {
   },
 
   canRespond: (invitation: Invitation): boolean => {
-    return (
-      invitation.status === "PENDING" && !invitationApi.isExpired(invitation)
-    );
+    return invitation.status === "PENDING" && !invitationApi.isExpired(invitation);
   },
 
   // Date formatting utilities
@@ -264,9 +249,7 @@ export const invitationApi = {
     if (diffInMs < 0) return "Expired";
 
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    const diffInHours = Math.floor(
-      (diffInMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-    );
+    const diffInHours = Math.floor((diffInMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
     if (diffInDays > 0) {
       return `${diffInDays} day${diffInDays > 1 ? "s" : ""} remaining`;
@@ -278,9 +261,7 @@ export const invitationApi = {
   },
 
   // Bulk operations - updated to use new structure
-  bulkCreateInvitations: async (
-    invitations: CreateInvitationData[]
-  ): Promise<Invitation[]> => {
+  bulkCreateInvitations: async (invitations: CreateInvitationData[]): Promise<Invitation[]> => {
     try {
       const createPromises = invitations.map((invitation) =>
         invitationApi.createInvitation(invitation)
@@ -298,9 +279,7 @@ export const invitationApi = {
     return emailRegex.test(email);
   },
 
-  validateInvitationData: (
-    data: CreateInvitationData
-  ): { isValid: boolean; errors: string[] } => {
+  validateInvitationData: (data: CreateInvitationData): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
 
     if (!data.inviteeEmail) {
@@ -312,17 +291,13 @@ export const invitationApi = {
     // Check that at least one entity ID is provided
     const hasEntity = data.organizationId || data.workspaceId || data.projectId;
     if (!hasEntity) {
-      errors.push(
-        "At least one entity ID (organization, workspace, or project) is required"
-      );
+      errors.push("At least one entity ID (organization, workspace, or project) is required");
     }
 
     // Check that only one entity ID is provided
-    const entityCount = [
-      data.organizationId,
-      data.workspaceId,
-      data.projectId,
-    ].filter(Boolean).length;
+    const entityCount = [data.organizationId, data.workspaceId, data.projectId].filter(
+      Boolean
+    ).length;
     if (entityCount > 1) {
       errors.push("Only one entity ID should be provided");
     }
@@ -371,13 +346,9 @@ export const invitationApi = {
       expired: invitations.filter((inv) => invitationApi.isExpired(inv)).length,
     };
   },
-  verifyInvitation: async (
-    token: string
-  ): Promise<VerifyInvitationResponse> => {
+  verifyInvitation: async (token: string): Promise<VerifyInvitationResponse> => {
     try {
-      const response = await api.get<VerifyInvitationResponse>(
-        `/invitations/verify/${token}`
-      );
+      const response = await api.get<VerifyInvitationResponse>(`/invitations/verify/${token}`);
       return response.data;
     } catch (error: any) {
       console.error("Verify invitation error:", error);
@@ -408,9 +379,7 @@ export const invitationApi = {
         invitation: Invitation;
         emailSent: boolean;
         emailError?: string;
-      }>(
-        `/invitations/${invitationId}/resend`
-      );
+      }>(`/invitations/${invitationId}/resend`);
       return response.data;
     } catch (error: any) {
       console.error("Resend invitation error:", error);

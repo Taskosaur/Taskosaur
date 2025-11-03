@@ -1,6 +1,6 @@
-import React from 'react'
-import { Skeleton } from '../ui/skeleton'
-import { Card, CardContent, CardHeader, CardTitle } from '../ui'
+import React from "react";
+import { Skeleton } from "../ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui";
 const WorkFlowSkeleton = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -15,10 +15,7 @@ const WorkFlowSkeleton = () => {
           <CardContent className="pt-0">
             <div className="space-y-2">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="p-3 rounded-lg bg-[var(--card)]/20 animate-pulse"
-                >
+                <div key={i} className="p-3 rounded-lg bg-[var(--card)]/20 animate-pulse">
                   <div className="flex items-center justify-between mb-2 gap-2">
                     <Skeleton className="h-3 w-1/2" />
                     <Skeleton className="h-4 w-12 rounded-md" />
@@ -86,7 +83,7 @@ const WorkFlowSkeleton = () => {
         </Card>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default WorkFlowSkeleton
+export default WorkFlowSkeleton;

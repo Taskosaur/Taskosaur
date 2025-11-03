@@ -49,12 +49,10 @@ export default function OrganizationMembers({
   organization,
   pendingInvitationsRef,
 }: OrganizationMembersProps) {
-  const { updatedOrganizationMemberRole, removeOrganizationMember } =
-    useOrganization();
+  const { updatedOrganizationMemberRole, removeOrganizationMember } = useOrganization();
   const { getCurrentUser } = useAuth();
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [memberToRemove, setMemberToRemove] =
-    useState<OrganizationMember | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<OrganizationMember | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [inviteData, setInviteData] = useState({
     email: "",
@@ -102,10 +100,7 @@ export default function OrganizationMembers({
       return false;
     }
 
-    if (
-      currentUserRole === OrganizationRole.MANAGER &&
-      member.role === OrganizationRole.MANAGER
-    ) {
+    if (currentUserRole === OrganizationRole.MANAGER && member.role === OrganizationRole.MANAGER) {
       return false;
     }
 
@@ -135,11 +130,7 @@ export default function OrganizationMembers({
     return canManageMembers;
   };
   const getAvailableRolesForMember = (member: OrganizationMember) => {
-    const roles = [
-      OrganizationRole.VIEWER,
-      OrganizationRole.MEMBER,
-      OrganizationRole.MANAGER,
-    ];
+    const roles = [OrganizationRole.VIEWER, OrganizationRole.MEMBER, OrganizationRole.MANAGER];
     if (isCurrentUserOwner || currentUserRole === "OWNER") {
       roles.push(OrganizationRole.OWNER);
     }
@@ -175,21 +166,14 @@ export default function OrganizationMembers({
     }
   };
 
-  const handleRoleChange = async (
-    memberId: string,
-    newRole: OrganizationRole
-  ) => {
+  const handleRoleChange = async (memberId: string, newRole: OrganizationRole) => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
       toast.error("User not authenticated");
       return;
     }
     try {
-      await updatedOrganizationMemberRole(
-        memberId,
-        { role: newRole as any },
-        currentUser.id
-      );
+      await updatedOrganizationMemberRole(memberId, { role: newRole as any }, currentUser.id);
       setIsLoading(true);
       toast.success("Member role updated successfully");
       onMembersChange();
@@ -252,8 +236,7 @@ export default function OrganizationMembers({
         await pendingInvitationsRef.current.refreshInvitations();
       }
     } catch (error: any) {
-      const errorMessage =
-        error?.response?.data?.message || "Failed to send invitation";
+      const errorMessage = error?.response?.data?.message || "Failed to send invitation";
       toast.error(errorMessage);
       console.error("Invite member error:", error);
     } finally {
@@ -323,8 +306,7 @@ export default function OrganizationMembers({
           {members.map((member) => {
             const canEdit = canUpdateMember(member);
             const availableRoles = getAvailableRolesForMember(member);
-            const isCurrentUser =
-              member.userId === getCurrentUserId() && isCurrentUserOwner;
+            const isCurrentUser = member.userId === getCurrentUserId() && isCurrentUserOwner;
             const canRemove = canRemoveMember(member);
             return (
               <div key={member.id} className="organizations-members-row">
@@ -415,9 +397,9 @@ export default function OrganizationMembers({
                           isCurrentUser
                             ? "Leave Organization"
                             : currentUserRole === OrganizationRole.MANAGER &&
-                              member.role === OrganizationRole.MANAGER
-                            ? "Cannot remove other managers"
-                            : "Remove Member"
+                                member.role === OrganizationRole.MANAGER
+                              ? "Cannot remove other managers"
+                              : "Remove Member"
                         }
                         position="top"
                         color="danger"
@@ -444,9 +426,7 @@ export default function OrganizationMembers({
               <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-[var(--muted)] flex items-center justify-center">
                 <HiUsers className="w-6 h-6 text-[var(--muted-foreground)]" />
               </div>
-              <h3 className="organizations-members-empty-title">
-                No members found
-              </h3>
+              <h3 className="organizations-members-empty-title">No members found</h3>
               <p className="text-sm text-[var(--muted-foreground)] mb-4">
                 Start by inviting team members to your organization.
               </p>
@@ -485,25 +465,20 @@ export default function OrganizationMembers({
                 id="invite-email"
                 type="email"
                 value={inviteData.email}
-                onChange={(e) =>
-                  setInviteData((prev) => ({ ...prev, email: e.target.value }))
-                }
+                onChange={(e) => setInviteData((prev) => ({ ...prev, email: e.target.value }))}
                 className="mt-1 border-none bg-background text-[var(--foreground)]"
                 placeholder="Enter email address"
                 required
               />
-              {inviteData.email &&
-                !invitationApi.validateEmail(inviteData.email) && (
-                  <p className="text-xs text-[var(--destructive)] mt-1">
-                    Please enter a valid email address
-                  </p>
-                )}
+              {inviteData.email && !invitationApi.validateEmail(inviteData.email) && (
+                <p className="text-xs text-[var(--destructive)] mt-1">
+                  Please enter a valid email address
+                </p>
+              )}
             </div>
 
             <div>
-              <Label className="text-sm font-medium text-[var(--foreground)]">
-                Role
-              </Label>
+              <Label className="text-sm font-medium text-[var(--foreground)]">Role</Label>
               <Select
                 value={inviteData.role}
                 onValueChange={(value) =>
@@ -524,9 +499,7 @@ export default function OrganizationMembers({
                 >
                   <SelectValue placeholder="Select a role">
                     {inviteData.role && (
-                      <span className="text-[var(--foreground)]">
-                        {inviteData.role}
-                      </span>
+                      <span className="text-[var(--foreground)]">{inviteData.role}</span>
                     )}
                   </SelectValue>
                 </SelectTrigger>
@@ -543,15 +516,9 @@ export default function OrganizationMembers({
                       return true;
                     })
                     .map((r) => (
-                      <SelectItem
-                        key={r.id}
-                        value={r.name}
-                        className="hover:bg-[var(--hover-bg)]"
-                      >
+                      <SelectItem key={r.id} value={r.name} className="hover:bg-[var(--hover-bg)]">
                         <div className="flex flex-col items-start py-1">
-                          <span className="font-medium text-[var(--foreground)]">
-                            {r.name}
-                          </span>
+                          <span className="font-medium text-[var(--foreground)]">{r.name}</span>
                           <span className="text-xs text-[var(--muted-foreground)] mt-0.5">
                             {r.description}
                           </span>
@@ -619,9 +586,7 @@ export default function OrganizationMembers({
               <Button
                 type="submit"
                 disabled={
-                  isLoading ||
-                  !inviteData.email ||
-                  !invitationApi.validateEmail(inviteData.email)
+                  isLoading || !inviteData.email || !invitationApi.validateEmail(inviteData.email)
                 }
                 className="h-8 bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 hover:shadow-md transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -646,23 +611,18 @@ export default function OrganizationMembers({
           onClose={() => setMemberToRemove(null)}
           onConfirm={() => handleRemoveMember(memberToRemove)}
           title={
-            memberToRemove.userId === getCurrentUserId()
-              ? "Leave Organization"
-              : "Remove Member"
+            memberToRemove.userId === getCurrentUserId() ? "Leave Organization" : "Remove Member"
           }
           message={
             memberToRemove.userId === getCurrentUserId()
               ? "Are you sure you want to leave this organization? You will lose access to all organization resources."
               : `Are you sure you want to remove ${
-                  memberToRemove.user?.firstName &&
-                  memberToRemove.user?.lastName
+                  memberToRemove.user?.firstName && memberToRemove.user?.lastName
                     ? `${memberToRemove.user.firstName} ${memberToRemove.user.lastName}`
                     : memberToRemove.user?.username || "this member"
                 } from the organization?`
           }
-          confirmText={
-            memberToRemove.userId === getCurrentUserId() ? "Leave" : "Remove"
-          }
+          confirmText={memberToRemove.userId === getCurrentUserId() ? "Leave" : "Remove"}
           cancelText="Cancel"
         />
       )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export interface CalendarEvent {
   id: string;
@@ -7,63 +7,63 @@ export interface CalendarEvent {
   end: Date;
   location?: string;
   attendees?: string[];
-  type: 'meeting' | 'appointment' | 'reminder' | 'block';
+  type: "meeting" | "appointment" | "reminder" | "block";
   isAllDay?: boolean;
   color?: string;
 }
 
 export interface CalendarIntegration {
   isConnected: boolean;
-  provider?: 'google' | 'outlook' | 'apple';
+  provider?: "google" | "outlook" | "apple";
   email?: string;
 }
 
 export function useCalendar() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [integration, setIntegration] = useState<CalendarIntegration>({
-    isConnected: false
+    isConnected: false,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const mockEvents: CalendarEvent[] = [
     {
-      id: '1',
-      title: 'Daily Standup',
+      id: "1",
+      title: "Daily Standup",
       start: new Date(new Date().setHours(9, 0, 0, 0)),
       end: new Date(new Date().setHours(9, 30, 0, 0)),
-      type: 'meeting',
-      location: 'Video Call',
-      attendees: ['team@company.com'],
-      color: '#10B981'
+      type: "meeting",
+      location: "Video Call",
+      attendees: ["team@company.com"],
+      color: "#10B981",
     },
     {
-      id: '2',
-      title: 'Client Presentation',
+      id: "2",
+      title: "Client Presentation",
       start: new Date(new Date().setHours(14, 0, 0, 0)),
       end: new Date(new Date().setHours(15, 0, 0, 0)),
-      type: 'meeting',
-      location: 'Conference Room A',
-      attendees: ['client@example.com', 'manager@company.com'],
-      color: '#8B5CF6'
+      type: "meeting",
+      location: "Conference Room A",
+      attendees: ["client@example.com", "manager@company.com"],
+      color: "#8B5CF6",
     },
     {
-      id: '3',
-      title: 'Project Review',
+      id: "3",
+      title: "Project Review",
       start: new Date(new Date().setHours(16, 0, 0, 0)),
       end: new Date(new Date().setHours(17, 30, 0, 0)),
-      type: 'meeting',
-      attendees: ['dev-team@company.com'],
-      color: '#F59E0B'
+      type: "meeting",
+      attendees: ["dev-team@company.com"],
+      color: "#F59E0B",
     },
     {
-      id: '4',
-      title: 'Focus Time - Development',
+      id: "4",
+      title: "Focus Time - Development",
       start: new Date(new Date().setHours(10, 0, 0, 0)),
       end: new Date(new Date().setHours(12, 0, 0, 0)),
-      type: 'block',
-      color: '#EF4444'
-    }
+      type: "block",
+      color: "#EF4444",
+    },
   ];
 
   const getTodayEvents = () => {
@@ -72,10 +72,12 @@ export function useCalendar() {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    return events.filter(event => {
-      const eventDate = new Date(event.start);
-      return eventDate >= today && eventDate < tomorrow;
-    }).sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+    return events
+      .filter((event) => {
+        const eventDate = new Date(event.start);
+        return eventDate >= today && eventDate < tomorrow;
+      })
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
   };
 
   // Get upcoming events (next 7 days)
@@ -85,19 +87,21 @@ export function useCalendar() {
     const futureDate = new Date(today);
     futureDate.setDate(futureDate.getDate() + days);
 
-    return events.filter(event => {
-      const eventDate = new Date(event.start);
-      return eventDate >= today && eventDate < futureDate;
-    }).sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+    return events
+      .filter((event) => {
+        const eventDate = new Date(event.start);
+        return eventDate >= today && eventDate < futureDate;
+      })
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
   };
 
   // Format time for display
   const formatEventTime = (start: Date, end: Date) => {
     const formatTime = (date: Date) => {
-      return date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
+      return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
       });
     };
 
@@ -105,10 +109,10 @@ export function useCalendar() {
   };
 
   // Connect to calendar provider
-  const connectCalendar = async (provider: 'google' | 'outlook' | 'apple') => {
+  const connectCalendar = async (provider: "google" | "outlook" | "apple") => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       // Mock integration - replace with actual OAuth flow
       await new Promise((resolve, reject) => {
@@ -121,26 +125,26 @@ export function useCalendar() {
           }
         }, 1000);
       });
-      
+
       const integrationData = {
         isConnected: true,
         provider,
-        email: `user@${provider === 'google' ? 'gmail.com' : provider === 'outlook' ? 'outlook.com' : 'icloud.com'}`
+        email: `user@${provider === "google" ? "gmail.com" : provider === "outlook" ? "outlook.com" : "icloud.com"}`,
       };
-      
+
       setIntegration(integrationData);
-      
+
       // Load mock events after connection
       setEvents(mockEvents);
-      
+
       // Store integration in localStorage
-      localStorage.setItem('calendarIntegration', JSON.stringify(integrationData));
-      
+      localStorage.setItem("calendarIntegration", JSON.stringify(integrationData));
     } catch (error) {
-      console.error('Failed to connect calendar:', error);
-      const errorMessage = error instanceof Error ? error.message : `Failed to connect to ${provider} calendar`;
+      console.error("Failed to connect calendar:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : `Failed to connect to ${provider} calendar`;
       setError(errorMessage);
-      
+
       // Reset integration state on error
       setIntegration({ isConnected: false });
       setEvents([]);
@@ -153,12 +157,12 @@ export function useCalendar() {
   const disconnectCalendar = () => {
     setIntegration({ isConnected: false });
     setEvents([]);
-    localStorage.removeItem('calendarIntegration');
+    localStorage.removeItem("calendarIntegration");
   };
 
   // Load saved integration on mount
   useEffect(() => {
-    const savedIntegration = localStorage.getItem('calendarIntegration');
+    const savedIntegration = localStorage.getItem("calendarIntegration");
     if (savedIntegration) {
       try {
         const parsed = JSON.parse(savedIntegration);
@@ -167,7 +171,7 @@ export function useCalendar() {
           setEvents(mockEvents);
         }
       } catch (error) {
-        console.error('Failed to parse saved calendar integration:', error);
+        console.error("Failed to parse saved calendar integration:", error);
       }
     }
   }, [mockEvents]);
@@ -181,6 +185,6 @@ export function useCalendar() {
     getUpcomingEvents,
     formatEventTime,
     connectCalendar,
-    disconnectCalendar
+    disconnectCalendar,
   };
 }

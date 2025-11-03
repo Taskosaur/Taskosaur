@@ -1,21 +1,21 @@
 /**
  * Taskosaur Browser Automation System
- * 
+ *
  * This module provides comprehensive browser-based automation for the Taskosaur application.
  * It can be used for testing, browser console manipulation, and MCP system integration.
  */
 
 // Import all automation modules
-import * as AuthAutomation from './auth';
-import * as WorkspaceAutomation from './workspace';
-import * as ProjectAutomation from './project';
-import * as TaskAutomation from './tasks';
-import * as Helpers from './helpers';
-import * as MemberAutomation from './members';
-import * as SprintAutomation from './sprints';
+import * as AuthAutomation from "./auth";
+import * as WorkspaceAutomation from "./workspace";
+import * as ProjectAutomation from "./project";
+import * as TaskAutomation from "./tasks";
+import * as Helpers from "./helpers";
+import * as MemberAutomation from "./members";
+import * as SprintAutomation from "./sprints";
 
 // Re-export types and interfaces
-export type { AutomationResult } from './helpers';
+export type { AutomationResult } from "./helpers";
 
 /**
  * Main Taskosaur Automation class
@@ -68,24 +68,24 @@ export class TaskosaurAutomation {
   public createSprint = SprintAutomation.createSprint;
 
   // Secondary Navigation Management
-  public  async navigateToDashboard() {
-  try {
-    await Helpers.navigateTo('/');
-    await Helpers.waitForElement('.dashboard-container, .space-y-6', 10000);
-    await Helpers.waitFor(1000);
-    return {
-      success: true,
-      message: 'Navigated to dashboard',
-      data: { currentPath: window.location.pathname }
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: 'Failed to navigate to dashboard',
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
+  public async navigateToDashboard() {
+    try {
+      await Helpers.navigateTo("/");
+      await Helpers.waitForElement(".dashboard-container, .space-y-6", 10000);
+      await Helpers.waitFor(1000);
+      return {
+        success: true,
+        message: "Navigated to dashboard",
+        data: { currentPath: window.location.pathname },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "Failed to navigate to dashboard",
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+      };
+    }
   }
-}
   /**
    * Utility methods for common operations
    */
@@ -94,7 +94,7 @@ export class TaskosaurAutomation {
     generateSlug: Helpers.generateSlug,
     navigateTo: Helpers.navigateTo,
     getCurrentContext: Helpers.getCurrentContext,
-    isAuthenticated: Helpers.isAuthenticated
+    isAuthenticated: Helpers.isAuthenticated,
   };
 
   /**
@@ -111,7 +111,7 @@ export class TaskosaurAutomation {
       projectDescription: string,
       tasks: Array<{
         title: string;
-        priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'HIGHEST';
+        priority?: "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
         description?: string;
         dueDate?: string;
         labels?: string[];
@@ -123,7 +123,7 @@ export class TaskosaurAutomation {
           workspaceName,
           workspaceDescription
         );
-        
+
         if (!workspaceResult.success) {
           throw new Error(`Workspace creation failed: ${workspaceResult.error}`);
         }
@@ -147,7 +147,7 @@ export class TaskosaurAutomation {
         const taskResults = [];
         for (const taskData of tasks) {
           await Helpers.waitFor(500); // Brief pause between task creation
-          
+
           const taskResult = await TaskAutomation.createTask(
             workspaceSlug,
             projectSlug,
@@ -158,8 +158,8 @@ export class TaskosaurAutomation {
           taskResults.push(taskResult);
         }
 
-        const successfulTasks = taskResults.filter(result => result.success).length;
-        const failedTasks = taskResults.filter(result => !result.success);
+        const successfulTasks = taskResults.filter((result) => result.success).length;
+        const failedTasks = taskResults.filter((result) => !result.success);
 
         return {
           success: true,
@@ -171,16 +171,15 @@ export class TaskosaurAutomation {
               total: tasks.length,
               successful: successfulTasks,
               failed: failedTasks.length,
-              failures: failedTasks
-            }
-          }
+              failures: failedTasks,
+            },
+          },
         };
-
       } catch (error) {
         return {
           success: false,
-          message: 'Complete project setup failed',
-          error: error instanceof Error ? error.message : 'Unknown error occurred'
+          message: "Complete project setup failed",
+          error: error instanceof Error ? error.message : "Unknown error occurred",
         };
       }
     },
@@ -192,7 +191,7 @@ export class TaskosaurAutomation {
       workspaceSlug: string,
       projectSlug: string,
       operations: Array<{
-        type: 'create' | 'update' | 'delete';
+        type: "create" | "update" | "delete";
         taskId?: string;
         taskTitle?: string;
         newStatus?: string;
@@ -203,39 +202,69 @@ export class TaskosaurAutomation {
 
       for (const operation of operations) {
         await Helpers.waitFor(300); // Brief pause between operations
-        
+
         let result;
         switch (operation.type) {
-          case 'create':
+          case "create":
             if (operation.taskTitle) {
-              result = await TaskAutomation.createTask(workspaceSlug, projectSlug, operation.taskTitle, operation.taskData || {});
+              result = await TaskAutomation.createTask(
+                workspaceSlug,
+                projectSlug,
+                operation.taskTitle,
+                operation.taskData || {}
+              );
             } else {
-              result = { success: false, message: 'Task title required for create operation', error: 'Missing taskTitle' };
+              result = {
+                success: false,
+                message: "Task title required for create operation",
+                error: "Missing taskTitle",
+              };
             }
             break;
-          case 'update':
+          case "update":
             if (operation.taskId && operation.newStatus) {
-              result = await TaskAutomation.updateTaskStatus(workspaceSlug, projectSlug, operation.taskId, operation.newStatus);
+              result = await TaskAutomation.updateTaskStatus(
+                workspaceSlug,
+                projectSlug,
+                operation.taskId,
+                operation.newStatus
+              );
             } else {
-              result = { success: false, message: 'Task ID and new status required for update operation', error: 'Missing taskId or newStatus' };
+              result = {
+                success: false,
+                message: "Task ID and new status required for update operation",
+                error: "Missing taskId or newStatus",
+              };
             }
             break;
-          case 'delete':
+          case "delete":
             if (operation.taskId) {
-              result = await TaskAutomation.deleteTask(workspaceSlug, projectSlug, operation.taskId);
+              result = await TaskAutomation.deleteTask(
+                workspaceSlug,
+                projectSlug,
+                operation.taskId
+              );
             } else {
-              result = { success: false, message: 'Task ID required for delete operation', error: 'Missing taskId' };
+              result = {
+                success: false,
+                message: "Task ID required for delete operation",
+                error: "Missing taskId",
+              };
             }
             break;
           default:
-            result = { success: false, message: `Unknown operation type: ${operation.type}`, error: 'Invalid operation type' };
+            result = {
+              success: false,
+              message: `Unknown operation type: ${operation.type}`,
+              error: "Invalid operation type",
+            };
         }
 
         results.push({ operation, result });
       }
 
-      const successful = results.filter(r => r.result.success).length;
-      const failed = results.filter(r => !r.result.success).length;
+      const successful = results.filter((r) => r.result.success).length;
+      const failed = results.filter((r) => !r.result.success).length;
 
       return {
         success: failed === 0,
@@ -244,10 +273,10 @@ export class TaskosaurAutomation {
           total: operations.length,
           successful,
           failed,
-          results
-        }
+          results,
+        },
       };
-    }
+    },
   };
 
   /**
@@ -256,8 +285,8 @@ export class TaskosaurAutomation {
   public async initialize(): Promise<Helpers.AutomationResult> {
     try {
       // Check if we're in a browser environment
-      if (typeof window === 'undefined') {
-        throw new Error('Automation system requires browser environment');
+      if (typeof window === "undefined") {
+        throw new Error("Automation system requires browser environment");
       }
 
       // Check if we're on a Taskosaur domain
@@ -269,21 +298,20 @@ export class TaskosaurAutomation {
 
       return {
         success: true,
-        message: 'Automation system initialized successfully',
+        message: "Automation system initialized successfully",
         data: {
           domain: hostname,
           authenticated: authStatus.data?.authenticated || false,
           context: currentContext,
-          version: '1.0.0'
-        }
+          version: "1.0.0",
+        },
       };
-
     } catch (error) {
-      console.error('❌ Failed to initialize automation system:', error);
+      console.error("❌ Failed to initialize automation system:", error);
       return {
         success: false,
-        message: 'Failed to initialize automation system',
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        message: "Failed to initialize automation system",
+        error: error instanceof Error ? error.message : "Unknown error occurred",
       };
     }
   }
@@ -298,7 +326,7 @@ export {
   WorkspaceAutomation as workspace,
   ProjectAutomation as project,
   TaskAutomation as task,
-  Helpers as helpers
+  Helpers as helpers,
 };
 
 // Export direct function access for convenience
@@ -309,7 +337,7 @@ export const {
   register,
   forgotPassword,
   checkAuthenticationStatus,
-  
+
   // Workspace functions
   createWorkspace,
   navigateToWorkspace,
@@ -318,7 +346,7 @@ export const {
   editWorkspace,
   getCurrentWorkspace,
   searchWorkspaces,
-  
+
   // Project functions
   createProject,
   navigateToProject,
@@ -327,7 +355,7 @@ export const {
   editProject,
   getCurrentProject,
   searchProjects,
-  
+
   // Task functions
   createTask,
   updateTaskStatus,
@@ -347,7 +375,7 @@ export const {
   createSprint,
 
   //Secondary Navigation Management
-  navigateToDashboard
+  navigateToDashboard,
 } = automation;
 
 /**
@@ -355,17 +383,17 @@ export const {
  * Makes automation functions available globally in browser console
  */
 export function enableBrowserConsoleAccess(): void {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     // Make main automation instance available globally
     (window as any).TaskosaurAutomation = automation;
-    
+
     // Make individual modules available
     (window as any).taskosaurAuth = AuthAutomation;
     (window as any).taskosaurWorkspace = WorkspaceAutomation;
     (window as any).taskosaurProject = ProjectAutomation;
     (window as any).taskosaurTask = TaskAutomation;
     (window as any).taskosaurHelpers = Helpers;
-    
+
     // Make workflows available
     (window as any).taskosaurWorkflows = automation.workflows;
   }
@@ -384,17 +412,17 @@ export const MCPIntegration = {
       login: automation.login,
       logout: automation.logout,
       checkAuth: automation.checkAuthenticationStatus,
-      
+
       // Workspace Management
       createWorkspace: automation.createWorkspace,
       listWorkspaces: automation.listWorkspaces,
       navigateToWorkspace: automation.navigateToWorkspace,
-      
+
       // Project Management
       createProject: automation.createProject,
       listProjects: automation.listProjects,
       navigateToProject: automation.navigateToProject,
-      
+
       // Task Management
       createTask: automation.createTask,
       updateTaskStatus: automation.updateTaskStatus,
@@ -404,18 +432,17 @@ export const MCPIntegration = {
       filterTasksByStatus: automation.filterTasksByStatus,
       clearTaskFilters: automation.clearTaskFilters,
       navigateToTasksView: automation.navigateToTasksView,
-      
+
       // Workflows
       completeProjectSetup: automation.workflows.completeProjectSetup,
       bulkTaskOperations: automation.workflows.bulkTaskOperations,
-      
+
       // Utilities
       getCurrentContext: Helpers.getCurrentContext,
       waitFor: Helpers.waitFor,
-      
     };
   },
-  
+
   /**
    * Get function metadata for MCP system
    */
@@ -423,38 +450,44 @@ export const MCPIntegration = {
     return {
       functions: [
         {
-          name: 'login',
-          description: 'Log into Taskosaur application',
-          parameters: ['email', 'password'],
-          returns: 'AutomationResult'
+          name: "login",
+          description: "Log into Taskosaur application",
+          parameters: ["email", "password"],
+          returns: "AutomationResult",
         },
         {
-          name: 'createWorkspace',
-          description: 'Create a new workspace',
-          parameters: ['name', 'description'],
-          returns: 'AutomationResult'
+          name: "createWorkspace",
+          description: "Create a new workspace",
+          parameters: ["name", "description"],
+          returns: "AutomationResult",
         },
         {
-          name: 'createProject',
-          description: 'Create a new project in a workspace',
-          parameters: ['workspaceSlug', 'name', 'description', 'options?'],
-          returns: 'AutomationResult'
+          name: "createProject",
+          description: "Create a new project in a workspace",
+          parameters: ["workspaceSlug", "name", "description", "options?"],
+          returns: "AutomationResult",
         },
         {
-          name: 'createTask',
-          description: 'Create a new task in a project',
-          parameters: ['workspaceSlug', 'projectSlug', 'taskTitle', 'options?'],
-          returns: 'AutomationResult'
+          name: "createTask",
+          description: "Create a new task in a project",
+          parameters: ["workspaceSlug", "projectSlug", "taskTitle", "options?"],
+          returns: "AutomationResult",
         },
         {
-          name: 'completeProjectSetup',
-          description: 'Complete workflow to create workspace, project, and tasks',
-          parameters: ['workspaceName', 'workspaceDescription', 'projectName', 'projectDescription', 'tasks'],
-          returns: 'AutomationResult'
-        }
-      ]
+          name: "completeProjectSetup",
+          description: "Complete workflow to create workspace, project, and tasks",
+          parameters: [
+            "workspaceName",
+            "workspaceDescription",
+            "projectName",
+            "projectDescription",
+            "tasks",
+          ],
+          returns: "AutomationResult",
+        },
+      ],
     };
-  }
+  },
 };
 
 // Default export

@@ -50,7 +50,7 @@
 }
 
 .header-dropdown-menu-badge {
-  @apply h-5 px-2 text-xs border-none bg-[var(--primary)]/10 text-[var(--primary)]
+  @apply h-5 px-2 text-xs border-none bg-[var(--primary)]/10 text-[var(--primary)];
 }
 
 .header-dropdown-menu-body {
@@ -650,7 +650,7 @@
   @apply flex items-center  rounded cursor-pointer transition-all duration-200  w-full;
 }
 
-.header-user-menu-item:hover, 
+.header-user-menu-item:hover,
 .header-user-menu-item-logout:hover {
   background-color: #f3f4f6;
   transition: background-color 0.2s ease;
@@ -667,7 +667,7 @@
 }
 
 .header-user-menu-icon-container {
-  @apply  rounded flex items-center justify-center flex-shrink-0;
+  @apply rounded flex items-center justify-center flex-shrink-0;
 }
 
 .header-user-menu-icon-container-settings {

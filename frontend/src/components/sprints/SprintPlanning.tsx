@@ -69,10 +69,7 @@ const getPriorityConfig = (priority: TaskPriority) => {
   }
 };
 
-export default function SprintPlanning({
-  projectId,
-  sprintId,
-}: SprintPlanningProps) {
+export default function SprintPlanning({ projectId, sprintId }: SprintPlanningProps) {
   const [backlogTasks, setBacklogTasks] = useState<Task[]>([]);
   const [sprintTasks, setSprintTasks] = useState<Task[]>([]);
   const [currentSprint, setCurrentSprint] = useState<Sprint | null>(null);
@@ -88,7 +85,7 @@ export default function SprintPlanning({
       goal: "Implement user authentication and basic security",
       startDate: "2024-01-15T00:00:00Z",
       endDate: "2024-01-29T00:00:00Z",
-      status: 'ACTIVE',
+      status: "ACTIVE",
       projectId,
       createdAt: "2024-01-10T00:00:00Z",
       updatedAt: "2024-01-10T00:00:00Z",
@@ -116,7 +113,7 @@ export default function SprintPlanning({
       priority: "HIGH",
       taskNumber: 5,
       projectId,
-  // reporterId: "user-1",
+      // reporterId: "user-1",
 
       reporter: {
         id: "user-1",
@@ -148,7 +145,7 @@ export default function SprintPlanning({
       priority: "MEDIUM",
       taskNumber: 6,
       projectId,
-  // reporterId: "user-2",
+      // reporterId: "user-2",
       reporter: {
         id: "user-2",
         firstName: "Jane",
@@ -179,7 +176,7 @@ export default function SprintPlanning({
       priority: "LOW",
       taskNumber: 7,
       projectId,
-  // reporterId: "user-3",
+      // reporterId: "user-3",
       reporter: {
         id: "user-3",
         firstName: "Alice",
@@ -214,7 +211,7 @@ export default function SprintPlanning({
       taskNumber: 1,
       projectId,
       sprintId: "sprint-1",
-  // reporterId: "user-1",
+      // reporterId: "user-1",
       reporter: {
         id: "user-1",
         firstName: "John",
@@ -246,9 +243,7 @@ export default function SprintPlanning({
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         // Find the current sprint
-        const sprint = sprintId
-          ? mockSprints.find((s) => s.id === sprintId)
-          : mockSprints[0];
+        const sprint = sprintId ? mockSprints.find((s) => s.id === sprintId) : mockSprints[0];
         setCurrentSprint(sprint || null);
 
         setBacklogTasks(mockBacklogTasks);
@@ -287,10 +282,7 @@ export default function SprintPlanning({
   };
 
   const getTotalEstimate = (tasks: Task[]) => {
-    return tasks.reduce(
-      (total, task) => total + (task.originalEstimate || 0),
-      0
-    );
+    return tasks.reduce((total, task) => total + (task.originalEstimate || 0), 0);
   };
 
   const formatTime = (minutes: number) => {
@@ -319,13 +311,8 @@ export default function SprintPlanning({
     e.preventDefault();
     if (draggedTask && draggedTask.sprintId === currentSprint?.id) {
       // Move task from sprint to backlog
-      setSprintTasks((prev) =>
-        prev.filter((task) => task.id !== draggedTask.id)
-      );
-      setBacklogTasks((prev) => [
-        ...prev,
-        { ...draggedTask, sprintId: undefined },
-      ]);
+      setSprintTasks((prev) => prev.filter((task) => task.id !== draggedTask.id));
+      setBacklogTasks((prev) => [...prev, { ...draggedTask, sprintId: undefined }]);
     }
   };
 
@@ -333,13 +320,8 @@ export default function SprintPlanning({
     e.preventDefault();
     if (draggedTask && !draggedTask.sprintId) {
       // Move task from backlog to sprint
-      setBacklogTasks((prev) =>
-        prev.filter((task) => task.id !== draggedTask.id)
-      );
-      setSprintTasks((prev) => [
-        ...prev,
-        { ...draggedTask, sprintId: currentSprint?.id },
-      ]);
+      setBacklogTasks((prev) => prev.filter((task) => task.id !== draggedTask.id));
+      setSprintTasks((prev) => [...prev, { ...draggedTask, sprintId: currentSprint?.id }]);
     }
   };
 
@@ -351,10 +333,7 @@ export default function SprintPlanning({
     } else {
       // Move from backlog to sprint
       setBacklogTasks((prev) => prev.filter((t) => t.id !== task.id));
-      setSprintTasks((prev) => [
-        ...prev,
-        { ...task, sprintId: currentSprint?.id },
-      ]);
+      setSprintTasks((prev) => [...prev, { ...task, sprintId: currentSprint?.id }]);
     }
   };
 
@@ -363,11 +342,7 @@ export default function SprintPlanning({
       key={task.id}
       className={`sprints-planning-task-card ${
         draggedTask?.id === task.id ? "sprints-planning-task-card-dragging" : ""
-      } ${
-        inSprint
-          ? "sprints-planning-task-card-sprint"
-          : "sprints-planning-task-card-backlog"
-      }`}
+      } ${inSprint ? "sprints-planning-task-card-sprint" : "sprints-planning-task-card-backlog"}`}
       draggable
       onDragStart={(e) => handleDragStart(e, task)}
       onDragEnd={handleDragEnd}
@@ -382,18 +357,13 @@ export default function SprintPlanning({
             {(() => {
               const config = getPriorityConfig(task.priority);
               return (
-                <Badge
-                  className={`sprints-planning-task-priority-badge ${config.className}`}
-                >
+                <Badge className={`sprints-planning-task-priority-badge ${config.className}`}>
                   {task.priority}
                 </Badge>
               );
             })()}
             {task.storyPoints && (
-              <Badge
-                variant="secondary"
-                className="sprints-planning-task-points-badge"
-              >
+              <Badge variant="secondary" className="sprints-planning-task-points-badge">
                 {task.storyPoints} SP
               </Badge>
             )}
@@ -403,9 +373,7 @@ export default function SprintPlanning({
         <h4 className="sprints-planning-task-title">{task.title}</h4>
 
         {task.description && (
-          <p className="sprints-planning-task-description">
-            {task.description}
-          </p>
+          <p className="sprints-planning-task-description">{task.description}</p>
         )}
 
         <div className="sprints-planning-task-footer">
@@ -463,9 +431,7 @@ export default function SprintPlanning({
             <HiCalendar className="sprints-planning-title-icon" />
             Sprint Planning
           </h2>
-          <p className="sprints-planning-subtitle">
-            {currentSprint?.name || "Select a sprint"}
-          </p>
+          <p className="sprints-planning-subtitle">{currentSprint?.name || "Select a sprint"}</p>
         </div>
         <div className="sprints-planning-actions">
           <Button variant="outline" className="sprints-planning-save-button">
@@ -499,9 +465,7 @@ export default function SprintPlanning({
               </h3>
               <p className="sprints-planning-info-section-text">
                 {currentSprint
-                  ? `${formatDate(currentSprint.startDate)} - ${formatDate(
-                      currentSprint.endDate
-                    )}`
+                  ? `${formatDate(currentSprint.startDate)} - ${formatDate(currentSprint.endDate)}`
                   : "No dates set"}
               </p>
             </div>
@@ -546,9 +510,7 @@ export default function SprintPlanning({
                   <div className="sprints-planning-empty-icon-container">
                     <HiClipboardDocumentList className="sprints-planning-empty-icon" />
                   </div>
-                  <p className="sprints-planning-empty-text">
-                    No tasks in backlog
-                  </p>
+                  <p className="sprints-planning-empty-text">No tasks in backlog</p>
                 </div>
               )}
             </div>
@@ -608,9 +570,7 @@ export default function SprintPlanning({
               <div className="sprints-planning-summary-stat-icon-container-blue sprints-planning-summary-stat-icon-container-blue-dark">
                 <HiClipboardDocumentList className="sprints-planning-summary-stat-icon-blue sprints-planning-summary-stat-icon-blue-dark" />
               </div>
-              <div className="sprints-planning-summary-stat-value">
-                {sprintTasks.length}
-              </div>
+              <div className="sprints-planning-summary-stat-value">{sprintTasks.length}</div>
               <div className="sprints-planning-summary-stat-label">Tasks</div>
             </div>
             <div className="sprints-planning-summary-stat">
@@ -620,9 +580,7 @@ export default function SprintPlanning({
               <div className="sprints-planning-summary-stat-value">
                 {getTotalStoryPoints(sprintTasks)}
               </div>
-              <div className="sprints-planning-summary-stat-label">
-                Story Points
-              </div>
+              <div className="sprints-planning-summary-stat-label">Story Points</div>
             </div>
             <div className="sprints-planning-summary-stat">
               <div className="sprints-planning-summary-stat-icon-container-purple sprints-planning-summary-stat-icon-container-purple-dark">
@@ -631,9 +589,7 @@ export default function SprintPlanning({
               <div className="sprints-planning-summary-stat-value">
                 {formatTime(getTotalEstimate(sprintTasks))}
               </div>
-              <div className="sprints-planning-summary-stat-label">
-                Estimated Time
-              </div>
+              <div className="sprints-planning-summary-stat-label">Estimated Time</div>
             </div>
             <div className="sprints-planning-summary-stat">
               <div className="sprints-planning-summary-stat-icon-container-orange sprints-planning-summary-stat-icon-container-orange-dark">
@@ -642,9 +598,7 @@ export default function SprintPlanning({
               <div className="sprints-planning-summary-stat-value">
                 {(currentSprint as any)?.capacity || 0}h
               </div>
-              <div className="sprints-planning-summary-stat-label">
-                Capacity
-              </div>
+              <div className="sprints-planning-summary-stat-label">Capacity</div>
             </div>
           </div>
         </CardContent>

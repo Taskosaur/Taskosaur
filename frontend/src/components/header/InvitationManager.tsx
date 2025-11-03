@@ -48,7 +48,7 @@ export default function InvitationManager({ userId, className = "" }: Invitation
   const [loading, setLoading] = useState(false);
 
   const searchParams = useSearchParams();
-const router = useRouter();
+  const router = useRouter();
   // Fetch pending invitations
   useEffect(() => {
     const fetchInvitations = async () => {
@@ -75,9 +75,7 @@ const router = useRouter();
   useEffect(() => {
     const tokenFromParam = searchParams.get("token");
     const tokenFromLS =
-      typeof window !== "undefined"
-        ? localStorage.getItem("pendingInvitation")
-        : null;
+      typeof window !== "undefined" ? localStorage.getItem("pendingInvitation") : null;
     const token = tokenFromParam || tokenFromLS;
 
     if (!token) return;
@@ -124,10 +122,7 @@ const router = useRouter();
     return getEntityType(invite).charAt(0);
   };
 
-  const handleInviteAction = async (
-    token: string,
-    action: "accept" | "decline"
-  ) => {
+  const handleInviteAction = async (token: string, action: "accept" | "decline") => {
     try {
       setProcessingInvite(true);
       if (action === "accept") {
@@ -142,10 +137,10 @@ const router = useRouter();
 
       // Optionally trigger a page refresh or navigation
       if (action === "accept") {
-          router.refresh();
+        router.refresh();
       }
     } catch (error) {
-      toast.error(error?.message || "Failed to accept the invitation")
+      toast.error(error?.message || "Failed to accept the invitation");
       console.error(`Failed to ${action} invitation:`, error);
     } finally {
       setProcessingInvite(false);
@@ -158,42 +153,28 @@ const router = useRouter();
     <>
       <DropdownMenu>
         <Tooltip content="Invitations" position="bottom" color="primary">
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`header-button-base ${className}`}
-          >
-            <TbMailPlus className="header-button-icon" />
-            {pendingInvites.length > 0 && (
-              <Badge
-                variant="secondary"
-                className="header-notification-badge header-notification-badge-green"
-              >
-                {pendingInvites.length > 99 ? "99+" : pendingInvites.length}
-              </Badge>
-            )}
-            <span className="hidden max-[530px]:inline-block text-sm font-medium">
-              Invitations
-            </span>
-          </Button>
-
-        </DropdownMenuTrigger>
-      </Tooltip>
-        <DropdownMenuContent
-          className="header-dropdown-menu-content"
-          align="end"
-          sideOffset={4}
-        >
-          <div className="header-dropdown-menu-header">
-            <div className="header-dropdown-menu-title">
-              <span className="header-dropdown-menu-title-text">
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className={`header-button-base ${className}`}>
+              <TbMailPlus className="header-button-icon" />
+              {pendingInvites.length > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="header-notification-badge header-notification-badge-green"
+                >
+                  {pendingInvites.length > 99 ? "99+" : pendingInvites.length}
+                </Badge>
+              )}
+              <span className="hidden max-[530px]:inline-block text-sm font-medium">
                 Invitations
               </span>
-              <Badge
-                variant="secondary"
-                className="header-dropdown-menu-badge"
-              >
+            </Button>
+          </DropdownMenuTrigger>
+        </Tooltip>
+        <DropdownMenuContent className="header-dropdown-menu-content" align="end" sideOffset={4}>
+          <div className="header-dropdown-menu-header">
+            <div className="header-dropdown-menu-title">
+              <span className="header-dropdown-menu-title-text">Invitations</span>
+              <Badge variant="secondary" className="header-dropdown-menu-badge">
                 {pendingInvites.length}
               </Badge>
             </div>
@@ -223,17 +204,12 @@ const router = useRouter();
             ) : pendingInvites.length === 0 ? (
               <div className="header-empty-state">
                 <TbMailPlus className="header-empty-icon" />
-                <p className="header-empty-text">
-                  No pending invitations
-                </p>
+                <p className="header-empty-text">No pending invitations</p>
               </div>
             ) : (
               <div className="header-invitations-item-container">
                 {pendingInvites.map((invite) => (
-                  <div
-                    key={invite.id}
-                    className="header-invitations-item"
-                  >
+                  <div key={invite.id} className="header-invitations-item">
                     <div className="header-invitations-item-layout">
                       <div className="header-invitations-item-avatar">
                         <span className="header-invitations-item-avatar-text">
@@ -241,13 +217,16 @@ const router = useRouter();
                         </span>
                       </div>
                       <div className="header-invitations-item-content">
-                        <div className="header-invitations-item-title">
-                          {getEntityName(invite)}
-                        </div>
+                        <div className="header-invitations-item-title">{getEntityName(invite)}</div>
                         <div className="header-invitations-item-meta">
-                          <span className="header-invitations-item-meta-emphasis">{getEntityType(invite)}</span> • 
-                          Role: <span className="header-invitations-item-meta-emphasis">{invite.role}</span> • 
-                          Expires: {formatInviteDate(invite.expiresAt)}
+                          <span className="header-invitations-item-meta-emphasis">
+                            {getEntityType(invite)}
+                          </span>{" "}
+                          • Role:{" "}
+                          <span className="header-invitations-item-meta-emphasis">
+                            {invite.role}
+                          </span>{" "}
+                          • Expires: {formatInviteDate(invite.expiresAt)}
                         </div>
                         <div className="header-invitations-item-actions">
                           <ActionButton

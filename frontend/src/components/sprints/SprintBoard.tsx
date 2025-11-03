@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import TaskColumn from '@/components/tasks/TaskColumn';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import SprintSelector from './SprintSelector';
-import SprintProgress from './SprintProgress';
+import React, { useState, useEffect } from "react";
+import TaskColumn from "@/components/tasks/TaskColumn";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import SprintSelector from "./SprintSelector";
+import SprintProgress from "./SprintProgress";
 import {
   HiPlay,
   HiCheck,
@@ -12,10 +12,10 @@ import {
   HiCalendar,
   HiFlag,
   HiChartBar,
-  HiClipboardDocumentList
-} from 'react-icons/hi2';
+  HiClipboardDocumentList,
+} from "react-icons/hi2";
 import { HiLightningBolt } from "react-icons/hi";
-import { Sprint, Task, TaskStatus } from '@/types';
+import { Sprint, Task, TaskStatus } from "@/types";
 interface SprintBoardProps {
   projectId: string;
   sprintId?: string;
@@ -44,25 +44,25 @@ const LoadingSkeleton = () => (
 
 const getSprintStatusConfig = (status: string) => {
   switch (status) {
-    case 'PLANNED':
-      return { 
-        className: 'sprints-status-planned sprints-status-planned-dark',
-        icon: HiClock 
+    case "PLANNED":
+      return {
+        className: "sprints-status-planned sprints-status-planned-dark",
+        icon: HiClock,
       };
-    case 'ACTIVE':
-      return { 
-        className: 'sprints-status-active sprints-status-active-dark',
-        icon: HiPlay 
+    case "ACTIVE":
+      return {
+        className: "sprints-status-active sprints-status-active-dark",
+        icon: HiPlay,
       };
-    case 'COMPLETED':
-      return { 
-        className: 'sprints-status-completed sprints-status-completed-dark',
-        icon: HiCheck 
+    case "COMPLETED":
+      return {
+        className: "sprints-status-completed sprints-status-completed-dark",
+        icon: HiCheck,
       };
     default:
-      return { 
-        className: 'sprints-status-default',
-        icon: HiClock 
+      return {
+        className: "sprints-status-default",
+        icon: HiClock,
       };
   }
 };
@@ -79,202 +79,202 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
   // Mock data - in real app, this would come from API
   const mockStatuses: TaskStatus[] = [
     {
-      id: 'status-1',
-      name: 'Sprint Backlog',
-      description: 'Tasks planned for this sprint',
-      color: '#64748b',
-      category: 'TODO' as any,
+      id: "status-1",
+      name: "Sprint Backlog",
+      description: "Tasks planned for this sprint",
+      color: "#64748b",
+      category: "TODO" as any,
       order: 1,
       isDefault: true,
-      workflowId: 'workflow-1'
+      workflowId: "workflow-1",
     },
     {
-      id: 'status-2',
-      name: 'In Progress',
-      description: 'Tasks currently being worked on',
-      color: '#f59e0b',
-      category: 'IN_PROGRESS' as any,
+      id: "status-2",
+      name: "In Progress",
+      description: "Tasks currently being worked on",
+      color: "#f59e0b",
+      category: "IN_PROGRESS" as any,
       order: 2,
       isDefault: false,
-      workflowId: 'workflow-1'
+      workflowId: "workflow-1",
     },
     {
-      id: 'status-3',
-      name: 'Testing',
-      description: 'Tasks being tested',
-      color: '#3b82f6',
-      category: 'IN_PROGRESS' as any,
+      id: "status-3",
+      name: "Testing",
+      description: "Tasks being tested",
+      color: "#3b82f6",
+      category: "IN_PROGRESS" as any,
       order: 3,
       isDefault: false,
-      workflowId: 'workflow-1'
+      workflowId: "workflow-1",
     },
     {
-      id: 'status-4',
-      name: 'Done',
-      description: 'Completed tasks',
-      color: '#10b981',
-      category: 'DONE' as any,
+      id: "status-4",
+      name: "Done",
+      description: "Completed tasks",
+      color: "#10b981",
+      category: "DONE" as any,
       order: 4,
       isDefault: false,
-      workflowId: 'workflow-1'
-    }
+      workflowId: "workflow-1",
+    },
   ];
 
   const mockSprints: Sprint[] = [
     {
-      id: 'sprint-1',
-      name: 'Sprint 1 - Authentication',
-      goal: 'Implement user authentication and basic security features',
-      startDate: '2024-01-15',
-      endDate: '2024-01-29',
-      status: 'ACTIVE' as any,
+      id: "sprint-1",
+      name: "Sprint 1 - Authentication",
+      goal: "Implement user authentication and basic security features",
+      startDate: "2024-01-15",
+      endDate: "2024-01-29",
+      status: "ACTIVE" as any,
       projectId,
       capacity: 120,
       velocity: 0,
-      createdAt: '2024-01-10T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z'
+      createdAt: "2024-01-10T10:00:00Z",
+      updatedAt: "2024-01-15T10:00:00Z",
     },
     {
-      id: 'sprint-2',
-      name: 'Sprint 2 - Dashboard',
-      goal: 'Build the main dashboard and navigation',
-      startDate: '2024-01-30',
-      endDate: '2024-02-13',
-      status: 'PLANNED' as any,
+      id: "sprint-2",
+      name: "Sprint 2 - Dashboard",
+      goal: "Build the main dashboard and navigation",
+      startDate: "2024-01-30",
+      endDate: "2024-02-13",
+      status: "PLANNED" as any,
       projectId,
       capacity: 100,
       velocity: 0,
-      createdAt: '2024-01-10T10:00:00Z',
-      updatedAt: '2024-01-10T10:00:00Z'
-    }
+      createdAt: "2024-01-10T10:00:00Z",
+      updatedAt: "2024-01-10T10:00:00Z",
+    },
   ];
 
   const mockSprintTasks: Task[] = [
     {
-      id: 'task-1',
-      title: 'Setup JWT authentication',
-      description: 'Implement JWT token-based authentication system',
-      type: 'STORY' as any,
-      priority: 'HIGH' as any,
+      id: "task-1",
+      title: "Setup JWT authentication",
+      description: "Implement JWT token-based authentication system",
+      type: "STORY" as any,
+      priority: "HIGH" as any,
       taskNumber: 1,
       projectId,
-      sprintId: 'sprint-1',
-  // reporter: 'user-1',
+      sprintId: "sprint-1",
+      // reporter: 'user-1',
       reporter: {
-        id: 'user-1',
-        firstName: 'John',
-        lastName: 'Doe',
-        avatar: '/api/placeholder/40/40'
+        id: "user-1",
+        firstName: "John",
+        lastName: "Doe",
+        avatar: "/api/placeholder/40/40",
       },
-      statusId: 'status-2',
+      statusId: "status-2",
       status: mockStatuses[1],
-  // assigneeId: 'user-2',
+      // assigneeId: 'user-2',
       assignee: {
-        id: 'user-2',
-        firstName: 'Jane',
-        lastName: 'Smith',
-        avatar: '/api/placeholder/40/40'
+        id: "user-2",
+        firstName: "Jane",
+        lastName: "Smith",
+        avatar: "/api/placeholder/40/40",
       },
       storyPoints: 8,
       originalEstimate: 480,
       remainingEstimate: 240,
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-18T14:30:00Z'
+      createdAt: "2024-01-15T10:00:00Z",
+      updatedAt: "2024-01-18T14:30:00Z",
     },
     {
-      id: 'task-2',
-      title: 'Create login/register forms',
-      description: 'Design and implement user-friendly login and registration forms',
-      type: 'STORY' as any,
-      priority: 'HIGH' as any,
+      id: "task-2",
+      title: "Create login/register forms",
+      description: "Design and implement user-friendly login and registration forms",
+      type: "STORY" as any,
+      priority: "HIGH" as any,
       taskNumber: 2,
       projectId,
-      sprintId: 'sprint-1',
-  // reporter: 'user-1',
+      sprintId: "sprint-1",
+      // reporter: 'user-1',
       reporter: {
-        id: 'user-1',
-        firstName: 'John',
-        lastName: 'Doe',
-        avatar: '/api/placeholder/40/40'
+        id: "user-1",
+        firstName: "John",
+        lastName: "Doe",
+        avatar: "/api/placeholder/40/40",
       },
-      statusId: 'status-4',
+      statusId: "status-4",
       status: mockStatuses[3],
-  // assigneeId: 'user-3',
+      // assigneeId: 'user-3',
       assignee: {
-        id: 'user-3',
-        firstName: 'Alice',
-        lastName: 'Johnson',
-        avatar: '/api/placeholder/40/40'
+        id: "user-3",
+        firstName: "Alice",
+        lastName: "Johnson",
+        avatar: "/api/placeholder/40/40",
       },
       storyPoints: 5,
       originalEstimate: 300,
       remainingEstimate: 0,
-      completedAt: '2024-01-20T16:00:00Z',
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-20T16:00:00Z'
+      completedAt: "2024-01-20T16:00:00Z",
+      createdAt: "2024-01-15T10:00:00Z",
+      updatedAt: "2024-01-20T16:00:00Z",
     },
     {
-      id: 'task-3',
-      title: 'Implement password reset',
-      description: 'Add forgot password and reset password functionality',
-      type: 'STORY' as any,
-      priority: 'MEDIUM' as any,
+      id: "task-3",
+      title: "Implement password reset",
+      description: "Add forgot password and reset password functionality",
+      type: "STORY" as any,
+      priority: "MEDIUM" as any,
       taskNumber: 3,
       projectId,
-      sprintId: 'sprint-1',
-  // reporter: 'user-2',
+      sprintId: "sprint-1",
+      // reporter: 'user-2',
       reporter: {
-        id: 'user-2',
-        firstName: 'Jane',
-        lastName: 'Smith',
-        avatar: '/api/placeholder/40/40'
+        id: "user-2",
+        firstName: "Jane",
+        lastName: "Smith",
+        avatar: "/api/placeholder/40/40",
       },
-      statusId: 'status-1',
+      statusId: "status-1",
       status: mockStatuses[0],
-  // assigneeId: 'user-1',
+      // assigneeId: 'user-1',
       assignee: {
-        id: 'user-1',
-        firstName: 'John',
-        lastName: 'Doe',
-        avatar: '/api/placeholder/40/40'
+        id: "user-1",
+        firstName: "John",
+        lastName: "Doe",
+        avatar: "/api/placeholder/40/40",
       },
       storyPoints: 3,
       originalEstimate: 180,
       remainingEstimate: 180,
-      createdAt: '2024-01-16T09:00:00Z',
-      updatedAt: '2024-01-16T09:00:00Z'
+      createdAt: "2024-01-16T09:00:00Z",
+      updatedAt: "2024-01-16T09:00:00Z",
     },
     {
-      id: 'task-4',
-      title: 'Add email verification',
-      description: 'Implement email verification for new user accounts',
-      type: 'STORY' as any,
-      priority: 'LOW' as any,
+      id: "task-4",
+      title: "Add email verification",
+      description: "Implement email verification for new user accounts",
+      type: "STORY" as any,
+      priority: "LOW" as any,
       taskNumber: 4,
       projectId,
-      sprintId: 'sprint-1',
-  // reporter: 'user-3',
+      sprintId: "sprint-1",
+      // reporter: 'user-3',
       reporter: {
-        id: 'user-3',
-        firstName: 'Alice',
-        lastName: 'Johnson',
-        avatar: '/api/placeholder/40/40'
+        id: "user-3",
+        firstName: "Alice",
+        lastName: "Johnson",
+        avatar: "/api/placeholder/40/40",
       },
-      statusId: 'status-3',
+      statusId: "status-3",
       status: mockStatuses[2],
-  // assigneeId: 'user-2',
+      // assigneeId: 'user-2',
       assignee: {
-        id: 'user-2',
-        firstName: 'Jane',
-        lastName: 'Smith',
-        avatar: '/api/placeholder/40/40'
+        id: "user-2",
+        firstName: "Jane",
+        lastName: "Smith",
+        avatar: "/api/placeholder/40/40",
       },
       storyPoints: 2,
       originalEstimate: 120,
       remainingEstimate: 60,
-      createdAt: '2024-01-17T11:00:00Z',
-      updatedAt: '2024-01-21T15:30:00Z'
-    }
+      createdAt: "2024-01-17T11:00:00Z",
+      updatedAt: "2024-01-21T15:30:00Z",
+    },
   ];
 
   useEffect(() => {
@@ -282,24 +282,24 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
       try {
         setIsLoading(true);
         // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
         setSprints(mockSprints);
         setStatuses(mockStatuses);
-        
+
         // Set current sprint
-        const sprint = sprintId 
-          ? mockSprints.find(s => s.id === sprintId)
-          : mockSprints.find(s => s.status === 'ACTIVE');
-        
+        const sprint = sprintId
+          ? mockSprints.find((s) => s.id === sprintId)
+          : mockSprints.find((s) => s.status === "ACTIVE");
+
         if (sprint) {
           setCurrentSprint(sprint);
           // Filter tasks for current sprint
-          const sprintTasks = mockSprintTasks.filter(task => task.sprintId === sprint.id);
+          const sprintTasks = mockSprintTasks.filter((task) => task.sprintId === sprint.id);
           setTasks(sprintTasks);
         }
       } catch (error) {
-        console.error('Error loading sprint data:', error);
+        console.error("Error loading sprint data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -315,39 +315,41 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
 
   // Helper function for consistent date formatting to prevent hydration issues
   const formatDate = (dateString: string) => {
-    if (!currentDate) return 'Loading...';
+    if (!currentDate) return "Loading...";
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
+      return new Date(dateString).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
       });
     } catch {
-      return 'Invalid date';
+      return "Invalid date";
     }
   };
 
   const getFilteredTasks = (statusId: string) => {
-    return tasks.filter(task => task.statusId === statusId);
+    return tasks.filter((task) => task.statusId === statusId);
   };
 
   const handleTaskMove = async (taskId: string, newStatusId: string) => {
     try {
-      setTasks(prevTasks => 
-        prevTasks.map(task => 
-          task.id === taskId 
-            ? { 
-                ...task, 
-                statusId: newStatusId, 
-                status: statuses.find(s => s.id === newStatusId) || task.status,
-                completedAt: statuses.find(s => s.id === newStatusId)?.category === 'DONE' ? (currentDate?.toISOString() || new Date().toISOString()) : undefined
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                statusId: newStatusId,
+                status: statuses.find((s) => s.id === newStatusId) || task.status,
+                completedAt:
+                  statuses.find((s) => s.id === newStatusId)?.category === "DONE"
+                    ? currentDate?.toISOString() || new Date().toISOString()
+                    : undefined,
               }
             : task
         )
       );
-      
     } catch (error) {
-      console.error('Error moving task:', error);
+      console.error("Error moving task:", error);
     }
   };
 
@@ -368,7 +370,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
   const handleSprintChange = (sprint: Sprint) => {
     setCurrentSprint(sprint);
     // Filter tasks for selected sprint
-    const sprintTasks = mockSprintTasks.filter(task => task.sprintId === sprint.id);
+    const sprintTasks = mockSprintTasks.filter((task) => task.sprintId === sprint.id);
     setTasks(sprintTasks);
   };
 
@@ -376,8 +378,8 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
     if (currentSprint) {
       const updatedSprint = {
         ...currentSprint,
-        status: 'ACTIVE' as any,
-        startDate: (currentDate || new Date()).toISOString().split('T')[0]
+        status: "ACTIVE" as any,
+        startDate: (currentDate || new Date()).toISOString().split("T")[0],
       };
       setCurrentSprint(updatedSprint);
     }
@@ -387,8 +389,8 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
     if (currentSprint) {
       const updatedSprint = {
         ...currentSprint,
-        status: 'COMPLETED' as any,
-        endDate: (currentDate || new Date()).toISOString().split('T')[0]
+        status: "COMPLETED" as any,
+        endDate: (currentDate || new Date()).toISOString().split("T")[0],
       };
       setCurrentSprint(updatedSprint);
     }
@@ -404,12 +406,8 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
         <div className="sprints-empty-icon-container">
           <HiLightningBolt className="sprints-empty-icon" />
         </div>
-        <h3 className="sprints-empty-title">
-          No Sprint Selected
-        </h3>
-        <p className="sprints-empty-description">
-          Please select a sprint to view the board
-        </p>
+        <h3 className="sprints-empty-title">No Sprint Selected</h3>
+        <p className="sprints-empty-description">Please select a sprint to view the board</p>
       </div>
     );
   }
@@ -418,10 +416,10 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
   const StatusIcon = sprintStatusConfig.icon;
 
   // Calculate sprint statistics
-  const completedTasks = tasks.filter(task => task.status?.category === 'DONE').length;
+  const completedTasks = tasks.filter((task) => task.status?.category === "DONE").length;
   const totalStoryPoints = tasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
   const completedStoryPoints = tasks
-    .filter(task => task.status?.category === 'DONE')
+    .filter((task) => task.status?.category === "DONE")
     .reduce((sum, task) => sum + (task.storyPoints || 0), 0);
 
   return (
@@ -437,17 +435,13 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
               </div>
               <div className="sprints-header-details">
                 <div className="sprints-header-title-row">
-                  <h2 className="sprints-header-title">
-                    {currentSprint.name}
-                  </h2>
+                  <h2 className="sprints-header-title">{currentSprint.name}</h2>
                   <Badge className={sprintStatusConfig.className}>
                     <StatusIcon className="w-3 h-3 mr-1" />
                     {currentSprint.status}
                   </Badge>
                 </div>
-                <p className="sprints-header-goal">
-                  {currentSprint.goal}
-                </p>
+                <p className="sprints-header-goal">{currentSprint.goal}</p>
                 <div className="sprints-header-meta">
                   <div className="sprints-header-meta-item">
                     <HiCalendar className="sprints-header-meta-icon" />
@@ -472,20 +466,17 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
                 sprints={sprints}
                 onSprintChange={handleSprintChange}
               />
-              
-              {currentSprint.status === 'PLANNING' && (
-                <Button 
-                  onClick={handleStartSprint}
-                  className="sprints-start-button"
-                >
+
+              {currentSprint.status === "PLANNING" && (
+                <Button onClick={handleStartSprint} className="sprints-start-button">
                   <HiPlay className="sprints-button-icon" />
                   Start Sprint
                 </Button>
               )}
-              
-              {currentSprint.status === 'ACTIVE' && (
-                <Button 
-                  onClick={handleCompleteSprint} 
+
+              {currentSprint.status === "ACTIVE" && (
+                <Button
+                  onClick={handleCompleteSprint}
                   variant="outline"
                   className="sprints-complete-button"
                 >
@@ -503,7 +494,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
 
       {/* Sprint Board */}
       <div className="sprints-board-grid">
-        {statuses.map(status => (
+        {statuses.map((status) => (
           <TaskColumn
             key={status.id}
             status={status}
@@ -530,9 +521,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
                 <p className="sprints-stats-value">
                   {completedTasks}/{tasks.length}
                 </p>
-                <p className="sprints-stats-label">
-                  Tasks Completed
-                </p>
+                <p className="sprints-stats-label">Tasks Completed</p>
               </div>
             </div>
           </CardContent>
@@ -548,9 +537,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
                 <p className="sprints-stats-value">
                   {completedStoryPoints}/{totalStoryPoints}
                 </p>
-                <p className="sprints-stats-label">
-                  Story Points
-                </p>
+                <p className="sprints-stats-label">Story Points</p>
               </div>
             </div>
           </CardContent>
@@ -566,9 +553,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
                 <p className="sprints-stats-value">
                   {tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0}%
                 </p>
-                <p className="sprints-stats-label">
-                  Completion Rate
-                </p>
+                <p className="sprints-stats-label">Completion Rate</p>
               </div>
             </div>
           </CardContent>

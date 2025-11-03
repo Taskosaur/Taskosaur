@@ -1,6 +1,0 @@
-[
-  { "id": "1", "name": "John Doe", "role": "Lead", "avatar": "JD" },
-  { "id": "2", "name": "Jane Smith", "role": "Developer", "avatar": "JS" },
-  { "id": "3", "name": "Mike Johnson", "role": "Designer", "avatar": "MJ" },
-  { "id": "4", "name": "Sarah Williams", "role": "Product Manager", "avatar": "SW" }
-]

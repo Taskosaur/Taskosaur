@@ -1,10 +1,8 @@
-;
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Organization, CreateOrganizationDto } from '@/types';
-import { Button } from '@/components/ui';
-import { organizationApi } from '@/utils/api';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Organization, CreateOrganizationDto } from "@/types";
+import { Button } from "@/components/ui";
+import { organizationApi } from "@/utils/api";
 
 interface OrganizationFormProps {
   organization?: Organization;
@@ -12,19 +10,19 @@ interface OrganizationFormProps {
   onCancel?: () => void;
 }
 
-export default function OrganizationForm({ 
-  organization, 
-  onSuccess, 
-  onCancel 
+export default function OrganizationForm({
+  organization,
+  onSuccess,
+  onCancel,
 }: OrganizationFormProps) {
   const router = useRouter();
   const isEditing = !!organization;
 
   const [formData, setFormData] = useState<CreateOrganizationDto>({
-    name: organization?.name || '',
-    slug: organization?.slug || '',
-    description: organization?.description || '',
-    website: organization?.website || '',
+    name: organization?.name || "",
+    slug: organization?.slug || "",
+    description: organization?.description || "",
+    website: organization?.website || "",
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -34,17 +32,17 @@ export default function OrganizationForm({
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Organization name is required';
+      newErrors.name = "Organization name is required";
     }
 
     if (!formData.slug.trim()) {
-      newErrors.slug = 'Organization slug is required';
+      newErrors.slug = "Organization slug is required";
     } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
-      newErrors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens';
+      newErrors.slug = "Slug can only contain lowercase letters, numbers, and hyphens";
     }
 
     if (formData.website && !isValidUrl(formData.website)) {
-      newErrors.website = 'Please enter a valid URL';
+      newErrors.website = "Please enter a valid URL";
     }
 
     setErrors(newErrors);
@@ -63,15 +61,15 @@ export default function OrganizationForm({
   const generateSlug = (name: string) => {
     return name
       .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
       .trim();
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       name,
       slug: isEditing ? prev.slug : generateSlug(name),
@@ -80,7 +78,7 @@ export default function OrganizationForm({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -88,7 +86,7 @@ export default function OrganizationForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -96,7 +94,7 @@ export default function OrganizationForm({
     setIsLoading(true);
     try {
       let result: Organization;
-      
+
       if (isEditing) {
         result = await organizationApi.updateOrganization(organization.id, formData);
       } else {
@@ -109,8 +107,8 @@ export default function OrganizationForm({
         router.push(`/organizations/${result.slug}`);
       }
     } catch (error) {
-      console.error('Error saving organization:', error);
-      setErrors({ submit: 'Failed to save organization. Please try again.' });
+      console.error("Error saving organization:", error);
+      setErrors({ submit: "Failed to save organization. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -132,9 +130,7 @@ export default function OrganizationForm({
           placeholder="Enter organization name"
           required
         />
-        {errors.name && (
-          <p className="form-error-text">{errors.name}</p>
-        )}
+        {errors.name && <p className="form-error-text">{errors.name}</p>}
       </div>
 
       <div className="organizations-form-field">
@@ -152,11 +148,10 @@ export default function OrganizationForm({
           required
         />
         <p className="organizations-form-slug-hint">
-          This will be used in your organization URL. Only lowercase letters, numbers, and hyphens are allowed.
+          This will be used in your organization URL. Only lowercase letters, numbers, and hyphens
+          are allowed.
         </p>
-        {errors.slug && (
-          <p className="form-error-text">{errors.slug}</p>
-        )}
+        {errors.slug && <p className="form-error-text">{errors.slug}</p>}
       </div>
 
       <div className="organizations-form-field">
@@ -187,9 +182,7 @@ export default function OrganizationForm({
           className="form-input-primary"
           placeholder="https://your-website.com"
         />
-        {errors.website && (
-          <p className="form-error-text">{errors.website}</p>
-        )}
+        {errors.website && <p className="form-error-text">{errors.website}</p>}
       </div>
 
       {errors.submit && (
@@ -200,21 +193,12 @@ export default function OrganizationForm({
 
       <div className="organizations-form-actions">
         {onCancel && (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onCancel}
-            disabled={isLoading}
-          >
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={isLoading}>
             Cancel
           </Button>
         )}
-        <Button
-          type="submit"
-          
-          disabled={isLoading}
-        >
-          {isEditing ? 'Update Organization' : 'Create Organization'}
+        <Button type="submit" disabled={isLoading}>
+          {isEditing ? "Update Organization" : "Create Organization"}
         </Button>
       </div>
     </form>

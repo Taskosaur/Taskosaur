@@ -1,6 +1,0 @@
-[
-  { "id": 1, "user": "John Doe", "action": "completed task", "target": "Update homepage design", "time": "2 hours ago" },
-  { "id": 2, "user": "Jane Smith", "action": "commented on", "target": "API integration", "time": "3 hours ago" },
-  { "id": 3, "user": "Mike Johnson", "action": "created project", "target": "Mobile App Redesign", "time": "5 hours ago" },
-  { "id": 4, "user": "Sarah Williams", "action": "assigned task to you", "target": "Fix navigation bug", "time": "1 day ago" }
-]

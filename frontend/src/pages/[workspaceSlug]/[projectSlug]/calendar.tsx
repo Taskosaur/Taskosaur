@@ -9,9 +9,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { PageHeader } from "@/components/common/PageHeader";
 import ActionButton from "@/components/common/ActionButton";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  HiCalendarDays,
-} from "react-icons/hi2";
+import { HiCalendarDays } from "react-icons/hi2";
 import ErrorState from "@/components/common/ErrorState";
 
 const LoadingSkeleton = () => (
@@ -75,8 +73,7 @@ function ProjectTasksCalendarPageContent() {
     return projects.find((project) => project.slug === slug);
   };
   const organizationId =
-    localStorage.getItem("currentOrganizationId") ||
-    localStorage.getItem("organizationId");
+    localStorage.getItem("currentOrganizationId") || localStorage.getItem("organizationId");
   const handleTaskCreated = async () => {
     try {
       if (projectData?.id) {
@@ -101,18 +98,13 @@ function ProjectTasksCalendarPageContent() {
         return;
       }
 
-      if (
-        typeof workspaceSlug !== "string" ||
-        typeof projectSlug !== "string"
-      ) {
+      if (typeof workspaceSlug !== "string" || typeof projectSlug !== "string") {
         setError("Invalid workspace or project slug");
         setLoading(false);
         return;
       }
 
-      const workspace = await workspaceContext.getWorkspaceBySlug(
-        workspaceSlug
-      );
+      const workspace = await workspaceContext.getWorkspaceBySlug(workspaceSlug);
       if (!workspace) {
         setError("Workspace not found");
         setLoading(false);
@@ -120,9 +112,7 @@ function ProjectTasksCalendarPageContent() {
       }
       setWorkspaceData(workspace);
 
-      const projects = await projectContext.getProjectsByWorkspace(
-        workspace.id
-      );
+      const projects = await projectContext.getProjectsByWorkspace(workspace.id);
       const project = findProjectBySlug(projects || [], projectSlug);
 
       if (!project) {
@@ -192,9 +182,7 @@ function ProjectTasksCalendarPageContent() {
   }
 
   if (!workspaceData || !projectData) {
-    return (
-      <ErrorState error="Project or workspace not found" onRetry={loadData} />
-    );
+    return <ErrorState error="Project or workspace not found" onRetry={loadData} />;
   }
 
   return (
@@ -208,11 +196,7 @@ function ProjectTasksCalendarPageContent() {
                 description={`View and manage tasks for ${projectData?.name} project in calendar format.`}
                 actions={
                   userAccess?.role !== "VIEWER" && (
-                    <ActionButton
-                      primary
-                      showPlusIcon
-                      onClick={() => setNewTaskModalOpen(true)}
-                    >
+                    <ActionButton primary showPlusIcon onClick={() => setNewTaskModalOpen(true)}>
                       Create Task
                     </ActionButton>
                   )
@@ -233,8 +217,7 @@ function ProjectTasksCalendarPageContent() {
                           No tasks found
                         </p>
                         <p className="text-xs text-[var(--muted-foreground)] mb-4">
-                          Create your first task for {projectData?.name} to see
-                          it on the calendar
+                          Create your first task for {projectData?.name} to see it on the calendar
                         </p>
                         {userAccess?.role !== "VIEWER" && (
                           <ActionButton

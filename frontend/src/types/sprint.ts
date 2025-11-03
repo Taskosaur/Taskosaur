@@ -7,8 +7,8 @@ export interface Sprint {
   description?: string;
   startDate?: string;
   endDate?: string;
-  capacity?:number;
-  velocity?:number;
+  capacity?: number;
+  velocity?: number;
   status: SprintStatus;
   projectId?: string;
   createdBy?: string;

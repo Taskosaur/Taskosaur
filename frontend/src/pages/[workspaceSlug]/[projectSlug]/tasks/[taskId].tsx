@@ -55,18 +55,14 @@ function TaskDetailContent() {
   }
 
   if (error) {
-    return (
-      <ErrorState error={error} />
-    );
+    return <ErrorState error={error} />;
   }
 
   if (!task) {
     return (
       <div className="p-4">
         <div className="text-center py-12">
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">
-            Task not found
-          </h2>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">Task not found</h2>
         </div>
       </div>
     );

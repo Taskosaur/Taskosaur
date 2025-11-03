@@ -1,9 +1,6 @@
 // components/charts/project/task-status-chart.tsx
 import { PieChart, Pie, ResponsiveContainer, Cell, Legend } from "recharts";
-import {
-  ChartTooltip,
-  ChartTooltipContent
-} from "@/components/ui/chart";
+import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
 
 interface StatusInfo {
@@ -41,25 +38,21 @@ export function TaskStatusChart({ data }: TaskStatusChartProps) {
   });
 
   // Build dynamic config from status data for legend
-  const chartConfig = sortedData?.reduce((config, item) => {
-    if (item.status) {
-      config[item.status.id] = {
-        label: item.status.name,
-        color: item.status.color,
-      };
-    }
-    return config;
-  }, {} as Record<string, { label: string; color: string }>);
+  const chartConfig = sortedData?.reduce(
+    (config, item) => {
+      if (item.status) {
+        config[item.status.id] = {
+          label: item.status.name,
+          color: item.status.color,
+        };
+      }
+      return config;
+    },
+    {} as Record<string, { label: string; color: string }>
+  );
 
   // Custom label renderer
-  const renderCustomizedLabel = ({
-    cx,
-    cy,
-    midAngle,
-    innerRadius,
-    outerRadius,
-    percent,
-  }: any) => {
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -69,7 +62,7 @@ export function TaskStatusChart({ data }: TaskStatusChartProps) {
       <text
         x={x}
         y={y}
-        fill="var(--accent-foreground, #fff)" 
+        fill="var(--accent-foreground, #fff)"
         textAnchor={x > cx ? "start" : "end"}
         dominantBaseline="central"
         fontSize={12}
@@ -104,15 +97,13 @@ export function TaskStatusChart({ data }: TaskStatusChartProps) {
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
-          <ChartTooltip content={<ChartTooltipContent className="bg-[var(--accent)] border-0"/>} />
+          <ChartTooltip content={<ChartTooltipContent className="bg-[var(--accent)] border-0" />} />
           <Legend
             verticalAlign="bottom"
             height={36}
             iconType="circle"
             iconSize={10}
-            formatter={(value) => (
-              <span className="text-muted-foreground text-xs">{value}</span>
-            )}
+            formatter={(value) => <span className="text-muted-foreground text-xs">{value}</span>}
           />
         </PieChart>
       </ResponsiveContainer>

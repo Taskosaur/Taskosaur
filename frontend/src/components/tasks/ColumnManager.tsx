@@ -68,10 +68,7 @@ export function ColumnManager({
           </Button>
         </DropdownMenuTrigger>
       </Tooltip>
-      <DropdownMenuContent
-        align="end"
-        className="w-64 bg-[var(--card)] border-[var(--border)]"
-      >
+      <DropdownMenuContent align="end" className="w-64 bg-[var(--card)] border-[var(--border)]">
         <DropdownMenuLabel className="text-xs font-semibold  flex justify-between items-center">
           <span>Manage View Columns</span>
           {onResetColumns && (
@@ -124,9 +121,7 @@ export function ColumnManager({
                 <div className="flex items-center gap-2">
                   <Icon className="w-4 h-4 text-gray-500" />
                   <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground">
-                      {column.label}
-                    </span>
+                    <span className="text-xs text-muted-foreground">{column.label}</span>
                   </div>
                 </div>
                 {isActive && (

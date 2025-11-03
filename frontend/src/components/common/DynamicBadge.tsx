@@ -53,11 +53,7 @@ export const DynamicBadge: React.FC<DynamicBadgeProps> = ({
       className={cn(badgeVariants({ size, variant }), className)}
       style={{
         backgroundColor:
-          variant === "solid"
-            ? bgColor
-            : variant === "subtle"
-            ? `${bgColor}26`
-            : "transparent",
+          variant === "solid" ? bgColor : variant === "subtle" ? `${bgColor}26` : "transparent",
         color: effectiveTextColor,
         borderColor: variant === "outline" ? bgColor : "transparent",
       }}

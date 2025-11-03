@@ -13,7 +13,11 @@
     "build": "next build",
     "build:dist": "next build && mkdir -p ../dist && mv out ../dist/public",
     "start": "NODE_ENV=production node server.js",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
+    "format:all": "npm run format && npm run lint:fix"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -64,6 +68,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9.32.0",
     "eslint-config-next": "^15.2.3",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.6",
     "typescript": "^5"

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 interface ChatContextType {
   isChatOpen: boolean;
@@ -13,7 +13,7 @@ export const useChatContext = () => {
     // Return a default value when context is not available
     return {
       isChatOpen: false,
-      toggleChat: () => {}
+      toggleChat: () => {},
     };
   }
   return context;
@@ -27,27 +27,23 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   const toggleChat = () => {
-    setIsChatOpen(prev => !prev);
+    setIsChatOpen((prev) => !prev);
   };
 
   useEffect(() => {
     // Apply body class for layout shift when chat is open
-    if (typeof document !== 'undefined') {
-      document.body.classList.toggle('chat-open', isChatOpen);
+    if (typeof document !== "undefined") {
+      document.body.classList.toggle("chat-open", isChatOpen);
     }
-    
+
     return () => {
-      if (typeof document !== 'undefined') {
-        document.body.classList.remove('chat-open');
+      if (typeof document !== "undefined") {
+        document.body.classList.remove("chat-open");
       }
     };
   }, [isChatOpen]);
 
-  return (
-    <ChatContext.Provider value={{ isChatOpen, toggleChat }}>
-      {children}
-    </ChatContext.Provider>
-  );
+  return <ChatContext.Provider value={{ isChatOpen, toggleChat }}>{children}</ChatContext.Provider>;
 }
 
 export default ChatProvider;

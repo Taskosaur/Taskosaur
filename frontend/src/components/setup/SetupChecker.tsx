@@ -12,7 +12,7 @@ export default function SetupChecker({ children }: { children: React.ReactNode }
       try {
         // Check if any users exist in the system
         const { exists } = await authApi.checkUsersExist();
-        
+
         if (!exists) {
           // Redirect to setup if not already there
           if (pathname !== "/setup") {

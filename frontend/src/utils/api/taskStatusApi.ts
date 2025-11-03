@@ -1,20 +1,17 @@
-
 import api from "@/lib/api";
-import { CreateTaskStatusDto, CreateTaskStatusFromProjectDto, TaskStatus, UpdateTaskStatusDto } from "@/types";
-
-
+import {
+  CreateTaskStatusDto,
+  CreateTaskStatusFromProjectDto,
+  TaskStatus,
+  UpdateTaskStatusDto,
+} from "@/types";
 
 // Task Status API - aligned with your NestJS controller
 export const taskStatusApi = {
   // Create task status
-  createTaskStatus: async (
-    taskStatusData: CreateTaskStatusDto
-  ): Promise<TaskStatus> => {
+  createTaskStatus: async (taskStatusData: CreateTaskStatusDto): Promise<TaskStatus> => {
     try {
-      const response = await api.post<TaskStatus>(
-        "/task-statuses",
-        taskStatusData
-      );
+      const response = await api.post<TaskStatus>("/task-statuses", taskStatusData);
       return response.data;
     } catch (error) {
       console.error("Create task status error:", error);
@@ -74,10 +71,7 @@ export const taskStatusApi = {
     taskStatusData: UpdateTaskStatusDto
   ): Promise<TaskStatus> => {
     try {
-      const response = await api.patch<TaskStatus>(
-        `/task-statuses/${statusId}`,
-        taskStatusData
-      );
+      const response = await api.patch<TaskStatus>(`/task-statuses/${statusId}`, taskStatusData);
       return response.data;
     } catch (error) {
       console.error("Update task status error:", error);
@@ -88,10 +82,7 @@ export const taskStatusApi = {
     statusUpdates: { id: string; position: number }[]
   ): Promise<TaskStatus[]> => {
     try {
-      const response = await api.patch<TaskStatus[]>(
-        "/task-statuses/positions",
-        { statusUpdates }
-      );
+      const response = await api.patch<TaskStatus[]>("/task-statuses/positions", { statusUpdates });
       return response.data;
     } catch (error) {
       console.error("Update task status positions error:", error);
@@ -100,9 +91,7 @@ export const taskStatusApi = {
   },
 
   // Delete task status
-  deleteTaskStatus: async (
-    statusId: string
-  ): Promise<{ success: boolean; message: string }> => {
+  deleteTaskStatus: async (statusId: string): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await api.delete(`/task-statuses/${statusId}`);
 

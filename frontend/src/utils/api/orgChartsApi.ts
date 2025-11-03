@@ -1,24 +1,18 @@
 import api from "@/lib/api";
-import { ChartDataResponse, ChartType} from "@/types";
+import { ChartDataResponse, ChartType } from "@/types";
 
 // Chart type enum matching backend
-
 
 export const orgChartsApi = {
   /**
    * Get multiple chart data types in a single request
    */
-  getMultipleCharts: async (
-    orgId: string,
-    chartTypes: ChartType[]
-  ): Promise<ChartDataResponse> => {
+  getMultipleCharts: async (orgId: string, chartTypes: ChartType[]): Promise<ChartDataResponse> => {
     try {
       const params = new URLSearchParams();
-      chartTypes.forEach(type => params.append('types', type));
+      chartTypes.forEach((type) => params.append("types", type));
 
-      const response = await api.get(
-        `/organizations/${orgId}/charts?${params.toString()}`
-      );
+      const response = await api.get(`/organizations/${orgId}/charts?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error("Get multiple charts error:", error);
@@ -29,14 +23,9 @@ export const orgChartsApi = {
   /**
    * Get single chart data type
    */
-  getSingleChart: async (
-    orgId: string,
-    chartType: ChartType
-  ): Promise<any> => {
+  getSingleChart: async (orgId: string, chartType: ChartType): Promise<any> => {
     try {
-      const response = await api.get(
-        `/organizations/${orgId}/charts?types=${chartType}`
-      );
+      const response = await api.get(`/organizations/${orgId}/charts?types=${chartType}`);
       return response.data[chartType];
     } catch (error) {
       console.error(`Get ${chartType} chart error:`, error);
@@ -56,5 +45,4 @@ export const orgChartsApi = {
       throw error;
     }
   },
-
 };

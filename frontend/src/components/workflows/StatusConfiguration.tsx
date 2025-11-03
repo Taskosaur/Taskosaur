@@ -2,35 +2,16 @@ import React, { useState } from "react";
 import { Badge, Button, Input, Select, Textarea } from "@/components/ui";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
 import { taskStatusApi } from "@/utils/api/taskStatusApi";
-import {
-  CreateTaskStatusDto,
-  StatusCategory,
-  TaskStatus,
-  Workflow,
-} from "@/types";
+import { CreateTaskStatusDto, StatusCategory, TaskStatus, Workflow } from "@/types";
 import Tooltip from "../common/ToolTip";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog";
-import {
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 
 interface StatusConfigurationProps {
   workflow: Workflow;
-  onUpdateStatus: (
-    statusId: string,
-    updatedStatus: Partial<TaskStatus>
-  ) => void;
+  onUpdateStatus: (statusId: string, updatedStatus: Partial<TaskStatus>) => void;
   onCreateStatus: (newStatus: TaskStatus) => void;
   onDeleteStatus: (statusId: string) => void;
 }
@@ -40,9 +21,7 @@ export default function StatusConfiguration({
   onDeleteStatus,
 }: StatusConfigurationProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState<TaskStatus | null>(
-    null
-  );
+  const [showDeleteModal, setShowDeleteModal] = useState<TaskStatus | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -79,9 +58,7 @@ export default function StatusConfiguration({
     if (!formData.name.trim()) return;
     try {
       setIsCreating(true);
-      const statuses = Array.isArray(workflow.statuses)
-        ? workflow.statuses
-        : [];
+      const statuses = Array.isArray(workflow.statuses) ? workflow.statuses : [];
       const maxPosition = Math.max(...statuses.map((s) => s.position || 0), 0);
 
       const createStatusData: CreateTaskStatusDto = {
@@ -91,9 +68,7 @@ export default function StatusConfiguration({
         position: maxPosition + 1,
         workflowId: workflow.id,
       };
-      const createdStatus = await taskStatusApi.createTaskStatus(
-        createStatusData
-      );
+      const createdStatus = await taskStatusApi.createTaskStatus(createStatusData);
 
       onCreateStatus(createdStatus);
       setShowCreateModal(false);
@@ -137,9 +112,7 @@ export default function StatusConfiguration({
   };
 
   const statuses = Array.isArray(workflow.statuses) ? workflow.statuses : [];
-  const sortedStatuses = [...statuses].sort(
-    (a, b) => (a.position || 0) - (b.position || 0)
-  );
+  const sortedStatuses = [...statuses].sort((a, b) => (a.position || 0) - (b.position || 0));
 
   const toTaskStatus = (status: any): TaskStatus => ({
     id: status.id,
@@ -147,8 +120,7 @@ export default function StatusConfiguration({
     color: status.color,
     category: status.category,
     order: 1,
-    description:
-      typeof status.description === "string" ? status.description : "",
+    description: typeof status.description === "string" ? status.description : "",
     isDefault: !!status.isDefault,
     workflowId: status.workflowId ?? "",
   });
@@ -158,9 +130,7 @@ export default function StatusConfiguration({
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-md font-semibold text-[var(--foreground)]">
-            Status Configuration
-          </h3>
+          <h3 className="text-md font-semibold text-[var(--foreground)]">Status Configuration</h3>
           <p className="text-[var(--muted-foreground)] text-sm">
             Manage individual statuses for {workflow.name}
           </p>
@@ -211,14 +181,13 @@ export default function StatusConfiguration({
                   <div className="col-span-2">
                     <Badge
                       className={`inline-block px-2 py-1 text-xs rounded-full border-none whitespace-nowrap ${getCategoryColor(
-                        (status?.category ??
-                          StatusCategory.TODO) as StatusCategory
+                        (status?.category ?? StatusCategory.TODO) as StatusCategory
                       )}`}
                       variant="secondary"
                     >
                       {status?.category && status.category === "IN_PROGRESS"
                         ? "IN PROGRESS"
-                        : status.category ?? StatusCategory.TODO}
+                        : (status.category ?? StatusCategory.TODO)}
                     </Badge>
                   </div>
                   <div className="col-span-1">
@@ -239,9 +208,7 @@ export default function StatusConfiguration({
                       {!status.isDefault && (
                         <Tooltip content="Delete" position="top" color="danger">
                           <button
-                            onClick={() =>
-                              setShowDeleteModal(toTaskStatus(status))
-                            }
+                            onClick={() => setShowDeleteModal(toTaskStatus(status))}
                             className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                           >
                             <svg
@@ -292,9 +259,7 @@ export default function StatusConfiguration({
                 <Input
                   type="text"
                   value={formData.name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                   className="h-10 border-input bg-background text-[var(--foreground)]"
                   placeholder="Status name"
                   disabled={isCreating}
@@ -324,8 +289,7 @@ export default function StatusConfiguration({
               {/* Category */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-[var(--foreground)]">
-                  Category{" "}
-                  <span className="text-red-500">*</span>
+                  Category <span className="text-red-500">*</span>
                 </label>
                 <Select
                   value={formData.category}
@@ -342,9 +306,7 @@ export default function StatusConfiguration({
                   </SelectTrigger>
                   <SelectContent className="bg-[var(--card)] border border-[var(--border)]">
                     <SelectItem value={StatusCategory.TODO}>To Do</SelectItem>
-                    <SelectItem value={StatusCategory.IN_PROGRESS}>
-                      In Progress
-                    </SelectItem>
+                    <SelectItem value={StatusCategory.IN_PROGRESS}>In Progress</SelectItem>
                     <SelectItem value={StatusCategory.DONE}>Done</SelectItem>
                   </SelectContent>
                 </Select>
@@ -371,19 +333,12 @@ export default function StatusConfiguration({
                     {predefinedColors.map((color) => (
                       <button
                         key={color}
-                        onClick={() =>
-                          !isCreating &&
-                          setFormData((prev) => ({ ...prev, color }))
-                        }
+                        onClick={() => !isCreating && setFormData((prev) => ({ ...prev, color }))}
                         className={`w-6 h-6 rounded-full border-2 ${
                           formData.color === color
                             ? "border-gray-900 dark:border-white"
                             : "border-gray-300 dark:border-gray-600"
-                        } ${
-                          isCreating
-                            ? "cursor-not-allowed opacity-50"
-                            : "cursor-pointer"
-                        }`}
+                        } ${isCreating ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
                         style={{ backgroundColor: color }}
                         disabled={isCreating}
                       />

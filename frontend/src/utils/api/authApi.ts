@@ -39,10 +39,7 @@ export const authApi = {
   },
   resetPassword: async (data: ResetPasswordData): Promise<ApiResponse> => {
     try {
-      const response = await api.post<ApiResponse>(
-        "/auth/reset-password",
-        data
-      );
+      const response = await api.post<ApiResponse>("/auth/reset-password", data);
       return response.data;
     } catch (error: any) {
       console.error("Reset password error:", error);
@@ -51,19 +48,14 @@ export const authApi = {
   },
   forgotPassword: async (data: ForgotPasswordData): Promise<ApiResponse> => {
     try {
-      const response = await api.post<ApiResponse>(
-        "/auth/forgot-password",
-        data
-      );
+      const response = await api.post<ApiResponse>("/auth/forgot-password", data);
       return response.data;
     } catch (error: any) {
       console.error("Forgot password error:", error);
       throw new Error(error.message || "Failed to send password reset email");
     }
   },
-  validateResetToken: async (
-    token: string
-  ): Promise<ApiResponse<{ valid: boolean }>> => {
+  validateResetToken: async (token: string): Promise<ApiResponse<{ valid: boolean }>> => {
     try {
       const response = await api.get<ApiResponse<{ valid: boolean }>>(
         `/auth/verify-reset-token/${token}`
@@ -90,10 +82,7 @@ export const authApi = {
     }
   },
 
-  getUserAccess: async (data: {
-    name: string;
-    id: string;
-  }): Promise<ApiResponse> => {
+  getUserAccess: async (data: { name: string; id: string }): Promise<ApiResponse> => {
     try {
       const response = await api.get<ApiResponse>(
         `/auth/access-control?scope=${data.name}&id=${data.id}`
@@ -128,16 +117,10 @@ export const authApi = {
     const hasTokens = TokenManager.getAccessToken();
     return !!(hasTokens && user);
   },
-  uploadFileToS3: async (
-    file: File,
-    key: string
-  ): Promise<UploadFileResponse> => {
-    const presignResponse = await api.get<{ url: string }>(
-      "/s3/presigned-put-url",
-      {
-        params: { key },
-      }
-    );
+  uploadFileToS3: async (file: File, key: string): Promise<UploadFileResponse> => {
+    const presignResponse = await api.get<{ url: string }>("/s3/presigned-put-url", {
+      params: { key },
+    });
     const uploadUrl = presignResponse.data.url;
     const uploadResponse = await fetch(uploadUrl, {
       method: "PUT",
@@ -161,9 +144,7 @@ export const authApi = {
     return response.data;
   },
 
-  setupSuperAdmin: async (
-    setupData: SetupAdminData
-  ): Promise<SetupResponse> => {
+  setupSuperAdmin: async (setupData: SetupAdminData): Promise<SetupResponse> => {
     const response = await api.post<SetupResponse>("/auth/setup", setupData);
     return response.data;
   },
@@ -180,10 +161,7 @@ export const authApi = {
       };
     }
     try {
-      const response = await api.post<ApiResponse>(
-        "/users/change-password",
-        data
-      );
+      const response = await api.post<ApiResponse>("/users/change-password", data);
       return response.data;
     } catch (error: any) {
       console.error("Change password error:", error);

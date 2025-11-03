@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 import { taskApi } from "@/utils/api/taskApi";
 import {
   getCurrentOrganizationId,
@@ -75,9 +69,7 @@ interface TaskContextType extends TaskState {
     endDate?: string
   ) => Promise<Task[]>;
 
-  getTaskStatusByProject: (params: {
-    projectId: string;
-  }) => Promise<{ data: TaskStatus[] }>;
+  getTaskStatusByProject: (params: { projectId: string }) => Promise<{ data: TaskStatus[] }>;
 
   getFilteredTasks: (params: {
     projectId?: string;
@@ -121,14 +113,8 @@ interface TaskContextType extends TaskState {
     organizationId?: string,
     params?: GetTasksParams
   ) => Promise<TasksResponse>;
-  getTodayAgenda: (
-    organizationId?: string,
-    params?: GetTasksParams
-  ) => Promise<TasksResponse>;
-  getTasksByProject: (
-    projectId: string,
-    organizationId: string
-  ) => Promise<Task[]>;
+  getTodayAgenda: (organizationId?: string, params?: GetTasksParams) => Promise<TasksResponse>;
+  getTasksByProject: (projectId: string, organizationId: string) => Promise<Task[]>;
   getPublicProjectTasks: (
     workspaceSlug: string,
     projectSlug: string,
@@ -140,10 +126,7 @@ interface TaskContextType extends TaskState {
       type?: string;
     }
   ) => Promise<PaginatedTaskResponse>;
-  getTasksBySprint: (
-    organizationId: string,
-    sprintId: string
-  ) => Promise<Task[]>;
+  getTasksBySprint: (organizationId: string, sprintId: string) => Promise<Task[]>;
   getSubtasksByParent: (
     parentTaskId: string,
     isAuth: boolean,
@@ -156,7 +139,11 @@ interface TaskContextType extends TaskState {
   getTaskById: (taskId: string, isAuth: boolean) => Promise<Task>;
   updateTask: (taskId: string, taskData: UpdateTaskRequest) => Promise<Task>;
   deleteTask: (taskId: string) => Promise<void>;
-  bulkDeleteTasks: (taskIds: string[], projectId?: string, allDelete?: boolean) => Promise<{
+  bulkDeleteTasks: (
+    taskIds: string[],
+    projectId?: string,
+    allDelete?: boolean
+  ) => Promise<{
     deletedCount: number;
     failedTasks: Array<{ id: string; reason: string }>;
   }>;
@@ -173,16 +160,12 @@ interface TaskContextType extends TaskState {
 
   // Enhanced methods with automatic hierarchy context
   getCurrentTasks: () => Promise<Task[]>; // Uses current project context
-  getCurrentOrganizationTasks: (
-    params?: GetTasksParams
-  ) => Promise<TasksResponse>; // Uses current organization
+  getCurrentOrganizationTasks: (params?: GetTasksParams) => Promise<TasksResponse>; // Uses current organization
   getCurrentWorkspaceTasks: () => Promise<Task[]>; // Uses current workspace
   getCurrentProjectLabels: () => Promise<TaskLabel[]>; // Uses current project
 
   // Task comment operations
-  createTaskComment: (
-    commentData: CreateTaskCommentRequest
-  ) => Promise<TaskComment>;
+  createTaskComment: (commentData: CreateTaskCommentRequest) => Promise<TaskComment>;
   getTaskComments: (taskId: string, isAuth: boolean) => Promise<TaskComment[]>;
   updateTaskComment: (
     commentId: string,
@@ -193,35 +176,22 @@ interface TaskContextType extends TaskState {
 
   // Task attachment operations
   uploadAttachment: (taskId: string, file: File) => Promise<TaskAttachment>;
-  createAttachment: (
-    attachmentData: CreateAttachmentRequest
-  ) => Promise<TaskAttachment>;
-  getTaskAttachments: (
-    taskId: string,
-    isAuth: boolean
-  ) => Promise<TaskAttachment[]>;
+  createAttachment: (attachmentData: CreateAttachmentRequest) => Promise<TaskAttachment>;
+  getTaskAttachments: (taskId: string, isAuth: boolean) => Promise<TaskAttachment[]>;
   getAttachmentById: (attachmentId: string) => Promise<TaskAttachment>;
   downloadAttachment: (attachmentId: string) => Promise<Blob>;
   previewFile: (attachmentId: string) => Promise<Blob>;
   getAttachmentStats: (taskId?: string) => Promise<AttachmentStats>;
-  deleteAttachment: (
-    attachmentId: string,
-    requestUserId: string
-  ) => Promise<void>;
+  deleteAttachment: (attachmentId: string, requestUserId: string) => Promise<void>;
 
   // Task label operations
   createLabel: (labelData: CreateLabelRequest) => Promise<TaskLabel>;
   getProjectLabels: (projectId: string) => Promise<TaskLabel[]>;
   getLabelById: (labelId: string) => Promise<TaskLabel>;
-  updateLabel: (
-    labelId: string,
-    labelData: UpdateLabelRequest
-  ) => Promise<TaskLabel>;
+  updateLabel: (labelId: string, labelData: UpdateLabelRequest) => Promise<TaskLabel>;
   deleteLabel: (labelId: string) => Promise<void>;
   assignLabelToTask: (assignData: AssignLabelRequest) => Promise<void>;
-  assignMultipleLabelsToTask: (
-    assignData: AssignMultipleLabelsRequest
-  ) => Promise<void>;
+  assignMultipleLabelsToTask: (assignData: AssignMultipleLabelsRequest) => Promise<void>;
   removeLabelFromTask: (taskId: string, labelId: string) => Promise<void>;
   getTaskLabels: (taskId: string) => Promise<TaskLabel[]>;
   searchLabels: (projectId: string, query: string) => Promise<TaskLabel[]>;
@@ -238,10 +208,7 @@ interface TaskContextType extends TaskState {
   getTasksByStatus: (statusId: string) => Task[];
   getTasksByPriority: (priority: Task["priority"]) => Task[];
   isTaskOverdue: (task: Task) => boolean;
-  updateSubtask: (
-    subtaskId: string,
-    subtaskData: UpdateTaskRequest
-  ) => Promise<Task>;
+  updateSubtask: (subtaskId: string, subtaskData: UpdateTaskRequest) => Promise<Task>;
   deleteSubtask: (subtaskId: string) => Promise<void>;
 
   // Add assignTaskAssignees to context type
@@ -303,8 +270,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
       }));
       throw error;
     }
-  },
-  []);
+  }, []);
 
   // Memoized context value
   const contextValue = useMemo(
@@ -316,10 +282,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         if (!params.projectId) {
           throw new Error("No projectId provided for getTaskStatusByProject");
         }
-        return await handleApiOperation(
-          () => taskApi.getTaskStatusByProject(params),
-          false
-        );
+        return await handleApiOperation(() => taskApi.getTaskStatusByProject(params), false);
       },
 
       getFilteredTasks: async (params: {
@@ -332,12 +295,9 @@ export function TaskProvider({ children }: TaskProviderProps) {
         priorities?: ("LOW" | "MEDIUM" | "HIGH" | "HIGHEST")[];
       }): Promise<PaginatedTaskResponse> => {
         const organizationId =
-          localStorage.getItem("currentOrganizationId") ||
-          taskApi.getCurrentOrganization();
+          localStorage.getItem("currentOrganizationId") || taskApi.getCurrentOrganization();
         if (!organizationId) {
-          throw new Error(
-            "No organization selected. Please select an organization first."
-          );
+          throw new Error("No organization selected. Please select an organization first.");
         }
 
         const result = await handleApiOperation(
@@ -374,17 +334,12 @@ export function TaskProvider({ children }: TaskProviderProps) {
         limit?: number;
         includeSubtasks?: boolean;
       }): Promise<any> => {
-        const result = await handleApiOperation(
-          () => taskApi.getTaskKanbanStatus(params),
-          false
-        );
+        const result = await handleApiOperation(() => taskApi.getTaskKanbanStatus(params), false);
         return result;
       },
 
       createTask: async (taskData: CreateTaskRequest): Promise<Task> => {
-        const result = await handleApiOperation(() =>
-          taskApi.createTask(taskData)
-        );
+        const result = await handleApiOperation(() => taskApi.createTask(taskData));
 
         // Add new task to state if it's not a subtask
         if (!result.parentTaskId) {
@@ -396,12 +351,8 @@ export function TaskProvider({ children }: TaskProviderProps) {
 
         return result;
       },
-      createTaskWithAttachements: async (
-        taskData: CreateTaskRequest
-      ): Promise<Task> => {
-        const result = await handleApiOperation(() =>
-          taskApi.createTaskWithAttachements(taskData)
-        );
+      createTaskWithAttachements: async (taskData: CreateTaskRequest): Promise<Task> => {
+        const result = await handleApiOperation(() => taskApi.createTaskWithAttachements(taskData));
 
         // Add new task to state if it's not a subtask
         if (!result.parentTaskId) {
@@ -413,9 +364,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
 
         return result;
       },
-      createSubtask: async (
-        subtaskData: CreateSubtaskRequest
-      ): Promise<Task> => {
+      createSubtask: async (subtaskData: CreateSubtaskRequest): Promise<Task> => {
         const result = await taskApi.createSubtask(subtaskData);
         setTaskState((prev) => {
           const updatedSubtasks = [...prev.subtTask, result];
@@ -435,10 +384,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         });
         return result;
       },
-      updateSubtask: async (
-        subtaskId: string,
-        subtaskData: UpdateTaskRequest
-      ): Promise<Task> => {
+      updateSubtask: async (subtaskId: string, subtaskData: UpdateTaskRequest): Promise<Task> => {
         const result = await taskApi.updateTask(subtaskId, subtaskData);
 
         setTaskState((prev) => {
@@ -471,17 +417,13 @@ export function TaskProvider({ children }: TaskProviderProps) {
         await taskApi.deleteTask(subtaskId);
 
         setTaskState((prev) => {
-          const updatedSubtasks = prev.subtTask.filter(
-            (subtask) => subtask.id !== subtaskId
-          );
+          const updatedSubtasks = prev.subtTask.filter((subtask) => subtask.id !== subtaskId);
           const updatedCurrentTask = prev.currentTask?.childTasks?.some(
             (child) => child.id === subtaskId
           )
             ? {
                 ...prev.currentTask,
-                childTasks: prev.currentTask.childTasks.filter(
-                  (child) => child.id !== subtaskId
-                ),
+                childTasks: prev.currentTask.childTasks.filter((child) => child.id !== subtaskId),
               }
             : prev.currentTask;
 
@@ -548,22 +490,13 @@ export function TaskProvider({ children }: TaskProviderProps) {
         endDate?: string
       ): Promise<Task[]> => {
         const result = await handleApiOperation(
-          () =>
-            taskApi.getPublicCalendarTask(
-              workspaceSlug,
-              projectSlug,
-              startDate,
-              endDate
-            ),
+          () => taskApi.getPublicCalendarTask(workspaceSlug, projectSlug, startDate, endDate),
           false
         );
         return Array.isArray(result) ? result : [];
       },
 
-      getTasksByProject: async (
-        projectId: string,
-        organizationId: string
-      ): Promise<Task[]> => {
+      getTasksByProject: async (projectId: string, organizationId: string): Promise<Task[]> => {
         const result = await handleApiOperation(() =>
           taskApi.getTasksByProject(projectId, organizationId)
         );
@@ -599,10 +532,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         return result;
       },
 
-      getTasksBySprint: async (
-        organizationId: string,
-        sprintId: string
-      ): Promise<Task[]> => {
+      getTasksBySprint: async (organizationId: string, sprintId: string): Promise<Task[]> => {
         const result = await handleApiOperation(() =>
           taskApi.getTasksBySprint(sprintId, organizationId)
         );
@@ -622,13 +552,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
       ): Promise<PaginatedTaskResponse> => {
         const result = await handleApiOperation(
           () =>
-            taskApi.getSubtasksByParent(
-              parentTaskId,
-              isAuth,
-              workspaceSlug,
-              projectSlug,
-              options
-            ),
+            taskApi.getSubtasksByParent(parentTaskId, isAuth, workspaceSlug, projectSlug, options),
           false
         );
         setTaskState((prev) => ({
@@ -651,10 +575,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         handleApiOperation(() => taskApi.getSubtasksOnly(projectId), false),
 
       getTaskById: async (taskId: string, isAuth: boolean): Promise<Task> => {
-        const result = await handleApiOperation(
-          () => taskApi.getTaskById(taskId, isAuth),
-          false
-        );
+        const result = await handleApiOperation(() => taskApi.getTaskById(taskId, isAuth), false);
 
         // Update current task if it's the same ID
         setTaskState((prev) => ({
@@ -665,35 +586,25 @@ export function TaskProvider({ children }: TaskProviderProps) {
         return result;
       },
 
-      updateTask: async (
-        taskId: string,
-        taskData: UpdateTaskRequest
-      ): Promise<Task> => {
-        const result = await handleApiOperation(
-          () => taskApi.updateTask(taskId, taskData),
-          false
-        );
+      updateTask: async (taskId: string, taskData: UpdateTaskRequest): Promise<Task> => {
+        const result = await handleApiOperation(() => taskApi.updateTask(taskId, taskData), false);
         setTaskState((prev) => ({
           ...prev,
-          tasks: prev.tasks.map((task) =>
-            task.id === taskId ? { ...task, ...result } : task
-          ),
+          tasks: prev.tasks.map((task) => (task.id === taskId ? { ...task, ...result } : task)),
           subtTask: prev.subtTask.map((subtask) =>
             subtask.id === taskId ? { ...subtask, ...result } : subtask
           ),
           currentTask:
             prev.currentTask?.id === taskId
               ? { ...prev.currentTask, ...result }
-              : prev.currentTask?.childTasks?.some(
-                  (child) => child.id === taskId
-                )
-              ? {
-                  ...prev.currentTask,
-                  childTasks: prev.currentTask.childTasks.map((child) =>
-                    child.id === taskId ? { ...child, ...result } : child
-                  ),
-                }
-              : prev.currentTask,
+              : prev.currentTask?.childTasks?.some((child) => child.id === taskId)
+                ? {
+                    ...prev.currentTask,
+                    childTasks: prev.currentTask.childTasks.map((child) =>
+                      child.id === taskId ? { ...child, ...result } : child
+                    ),
+                  }
+                : prev.currentTask,
         }));
 
         return result;
@@ -707,23 +618,19 @@ export function TaskProvider({ children }: TaskProviderProps) {
           currentTask:
             prev.currentTask?.id === taskId
               ? null
-              : prev.currentTask?.childTasks?.some(
-                  (child) => child.id === taskId
-                )
-              ? {
-                  ...prev.currentTask,
-                  childTasks: prev.currentTask.childTasks.filter(
-                    (child) => child.id !== taskId
-                  ),
-                }
-              : prev.currentTask,
+              : prev.currentTask?.childTasks?.some((child) => child.id === taskId)
+                ? {
+                    ...prev.currentTask,
+                    childTasks: prev.currentTask.childTasks.filter((child) => child.id !== taskId),
+                  }
+                : prev.currentTask,
         }));
       },
 
       bulkDeleteTasks: async (
         taskIds: string[],
         projectId?: string,
-        allDelete?: boolean,
+        allDelete?: boolean
       ): Promise<{
         deletedCount: number;
         failedTasks: Array<{ id: string; reason: string }>;
@@ -740,33 +647,25 @@ export function TaskProvider({ children }: TaskProviderProps) {
 
         setTaskState((prev) => ({
           ...prev,
-          tasks: prev.tasks.filter(
-            (task) => !successfullyDeletedIds.includes(task.id)
-          ),
-          subtTask: prev.subtTask.filter(
-            (subtask) => !successfullyDeletedIds.includes(subtask.id)
-          ),
+          tasks: prev.tasks.filter((task) => !successfullyDeletedIds.includes(task.id)),
+          subtTask: prev.subtTask.filter((subtask) => !successfullyDeletedIds.includes(subtask.id)),
           currentTask:
-            prev.currentTask &&
-            successfullyDeletedIds.includes(prev.currentTask.id)
+            prev.currentTask && successfullyDeletedIds.includes(prev.currentTask.id)
               ? null
               : prev.currentTask?.childTasks
-              ? {
-                  ...prev.currentTask,
-                  childTasks: prev.currentTask.childTasks.filter(
-                    (child) => !successfullyDeletedIds.includes(child.id)
-                  ),
-                }
-              : prev.currentTask,
+                ? {
+                    ...prev.currentTask,
+                    childTasks: prev.currentTask.childTasks.filter(
+                      (child) => !successfullyDeletedIds.includes(child.id)
+                    ),
+                  }
+                : prev.currentTask,
         }));
 
         return result;
       },
 
-      updateTaskStatus: async (
-        taskId: string,
-        statusId: string
-      ): Promise<Task> => {
+      updateTaskStatus: async (taskId: string, statusId: string): Promise<Task> => {
         const result = await handleApiOperation(
           () => taskApi.updateTaskStatus(taskId, statusId),
           false
@@ -774,13 +673,9 @@ export function TaskProvider({ children }: TaskProviderProps) {
         // Update task in state
         setTaskState((prev) => ({
           ...prev,
-          tasks: prev.tasks.map((task) =>
-            task.id === taskId ? { ...task, statusId } : task
-          ),
+          tasks: prev.tasks.map((task) => (task.id === taskId ? { ...task, statusId } : task)),
           currentTask:
-            prev.currentTask?.id === taskId
-              ? { ...prev.currentTask, statusId }
-              : prev.currentTask,
+            prev.currentTask?.id === taskId ? { ...prev.currentTask, statusId } : prev.currentTask,
         }));
         return result;
       },
@@ -807,10 +702,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         workflowId?: string;
         organizationId?: string;
       }): Promise<TaskStatus[]> => {
-        const result = await handleApiOperation(
-          () => taskApi.getAllTaskStatuses(params),
-          false
-        );
+        const result = await handleApiOperation(() => taskApi.getAllTaskStatuses(params), false);
 
         setTaskState((prev) => ({
           ...prev,
@@ -824,9 +716,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         handleApiOperation(() => taskApi.getTasksByWorkspace(workspaceId)),
 
       // Task comment operations
-      createTaskComment: async (
-        commentData: CreateTaskCommentRequest
-      ): Promise<TaskComment> => {
+      createTaskComment: async (commentData: CreateTaskCommentRequest): Promise<TaskComment> => {
         const result = await taskApi.createTaskComment(commentData);
 
         // Add comment to state if it's for the current task's comments
@@ -843,10 +733,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         return result;
       },
 
-      getTaskComments: async (
-        taskId: string,
-        isAuth: boolean
-      ): Promise<TaskComment[]> => {
+      getTaskComments: async (taskId: string, isAuth: boolean): Promise<TaskComment[]> => {
         const result = await taskApi.getTaskComments(taskId, isAuth);
 
         setTaskState((prev) => ({
@@ -875,26 +762,18 @@ export function TaskProvider({ children }: TaskProviderProps) {
         return result;
       },
 
-      deleteTaskComment: async (
-        commentId: string,
-        userId: string
-      ): Promise<void> => {
+      deleteTaskComment: async (commentId: string, userId: string): Promise<void> => {
         await taskApi.deleteTaskComment(commentId, userId);
 
         // Remove comment from state
         setTaskState((prev) => ({
           ...prev,
-          taskComments: prev.taskComments.filter(
-            (comment) => comment.id !== commentId
-          ),
+          taskComments: prev.taskComments.filter((comment) => comment.id !== commentId),
         }));
       },
 
       // Task attachment operations
-      uploadAttachment: async (
-        taskId: string,
-        file: File
-      ): Promise<TaskAttachment> => {
+      uploadAttachment: async (taskId: string, file: File): Promise<TaskAttachment> => {
         const result = await taskApi.uploadAttachment(taskId, file);
 
         // Add attachment to state if it's for the current task's attachments
@@ -911,18 +790,10 @@ export function TaskProvider({ children }: TaskProviderProps) {
         return result;
       },
 
-      createAttachment: (
-        attachmentData: CreateAttachmentRequest
-      ): Promise<TaskAttachment> =>
-        handleApiOperation(
-          () => taskApi.createAttachment(attachmentData),
-          false
-        ),
+      createAttachment: (attachmentData: CreateAttachmentRequest): Promise<TaskAttachment> =>
+        handleApiOperation(() => taskApi.createAttachment(attachmentData), false),
 
-      getTaskAttachments: async (
-        taskId: string,
-        isAuth: boolean
-      ): Promise<TaskAttachment[]> => {
+      getTaskAttachments: async (taskId: string, isAuth: boolean): Promise<TaskAttachment[]> => {
         const result = await handleApiOperation(
           () => taskApi.getTaskAttachments(taskId, isAuth),
           false
@@ -937,10 +808,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
       },
 
       getAttachmentById: (attachmentId: string): Promise<TaskAttachment> =>
-        handleApiOperation(
-          () => taskApi.getAttachmentById(attachmentId),
-          false
-        ),
+        handleApiOperation(() => taskApi.getAttachmentById(attachmentId), false),
 
       downloadAttachment: async (attachmentId: string): Promise<Blob> => {
         return taskApi.downloadAttachment(attachmentId);
@@ -953,10 +821,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
       getAttachmentStats: (taskId?: string): Promise<AttachmentStats> =>
         handleApiOperation(() => taskApi.getAttachmentStats(taskId), false),
 
-      deleteAttachment: async (
-        attachmentId: string,
-        requestUserId: string
-      ): Promise<void> => {
+      deleteAttachment: async (attachmentId: string, requestUserId: string): Promise<void> => {
         await handleApiOperation(
           () => taskApi.deleteAttachment(attachmentId, requestUserId),
           false
@@ -976,10 +841,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         handleApiOperation(() => taskApi.createLabel(labelData), false),
 
       getProjectLabels: async (projectId: string): Promise<TaskLabel[]> => {
-        const result = await handleApiOperation(
-          () => taskApi.getProjectLabels(projectId),
-          false
-        );
+        const result = await handleApiOperation(() => taskApi.getProjectLabels(projectId), false);
 
         setTaskState((prev) => ({
           ...prev,
@@ -992,14 +854,8 @@ export function TaskProvider({ children }: TaskProviderProps) {
       getLabelById: (labelId: string): Promise<TaskLabel> =>
         handleApiOperation(() => taskApi.getLabelById(labelId), false),
 
-      updateLabel: (
-        labelId: string,
-        labelData: UpdateLabelRequest
-      ): Promise<TaskLabel> =>
-        handleApiOperation(
-          () => taskApi.updateLabel(labelId, labelData),
-          false
-        ),
+      updateLabel: (labelId: string, labelData: UpdateLabelRequest): Promise<TaskLabel> =>
+        handleApiOperation(() => taskApi.updateLabel(labelId, labelData), false),
 
       deleteLabel: (labelId: string): Promise<void> =>
         handleApiOperation(() => taskApi.deleteLabel(labelId), false),
@@ -1007,25 +863,14 @@ export function TaskProvider({ children }: TaskProviderProps) {
       assignLabelToTask: (assignData: AssignLabelRequest): Promise<void> =>
         handleApiOperation(() => taskApi.assignLabelToTask(assignData), false),
 
-      assignMultipleLabelsToTask: (
-        assignData: AssignMultipleLabelsRequest
-      ): Promise<void> =>
-        handleApiOperation(
-          () => taskApi.assignMultipleLabelsToTask(assignData),
-          false
-        ),
+      assignMultipleLabelsToTask: (assignData: AssignMultipleLabelsRequest): Promise<void> =>
+        handleApiOperation(() => taskApi.assignMultipleLabelsToTask(assignData), false),
 
       removeLabelFromTask: (taskId: string, labelId: string): Promise<void> =>
-        handleApiOperation(
-          () => taskApi.removeLabelFromTask(taskId, labelId),
-          false
-        ),
+        handleApiOperation(() => taskApi.removeLabelFromTask(taskId, labelId), false),
 
       getTaskLabels: async (taskId: string): Promise<TaskLabel[]> => {
-        const result = await handleApiOperation(
-          () => taskApi.getTaskLabels(taskId),
-          false
-        );
+        const result = await handleApiOperation(() => taskApi.getTaskLabels(taskId), false);
 
         setTaskState((prev) => ({
           ...prev,
@@ -1047,33 +892,23 @@ export function TaskProvider({ children }: TaskProviderProps) {
         if (projectId) {
           const organizationId = getCurrentOrganizationId();
           if (!organizationId) {
-            throw new Error(
-              "No organization selected. Please select an organization first."
-            );
+            throw new Error("No organization selected. Please select an organization first.");
           }
           await contextValue.getTasksByProject(projectId, organizationId);
         } else {
           const organizationId = getCurrentOrganizationId();
           if (!organizationId) {
-            throw new Error(
-              "No organization selected. Please select an organization first."
-            );
+            throw new Error("No organization selected. Please select an organization first.");
           }
           await contextValue.getAllTasks(organizationId);
         }
       },
 
-      refreshTaskComments: async (
-        taskId: string,
-        isAuth: boolean
-      ): Promise<void> => {
+      refreshTaskComments: async (taskId: string, isAuth: boolean): Promise<void> => {
         await contextValue.getTaskComments(taskId, isAuth);
       },
 
-      refreshTaskAttachments: async (
-        taskId: string,
-        isAuth: boolean
-      ): Promise<void> => {
+      refreshTaskAttachments: async (taskId: string, isAuth: boolean): Promise<void> => {
         await contextValue.getTaskAttachments(taskId, isAuth);
       },
 
@@ -1114,9 +949,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
       }> => {
         const orgId = organizationId || taskApi.getCurrentOrganization();
         if (!orgId) {
-          throw new Error(
-            "No organization selected. Please select an organization first."
-          );
+          throw new Error("No organization selected. Please select an organization first.");
         }
         const result = await handleApiOperation(() =>
           taskApi.getTasksByOrganization(orgId, params)
@@ -1145,14 +978,10 @@ export function TaskProvider({ children }: TaskProviderProps) {
       }> => {
         const orgId = organizationId || taskApi.getCurrentOrganization();
         if (!orgId) {
-          throw new Error(
-            "No organization selected. Please select an organization first."
-          );
+          throw new Error("No organization selected. Please select an organization first.");
         }
 
-        const result = await handleApiOperation(() =>
-          taskApi.getTodayAgenda(orgId, params)
-        );
+        const result = await handleApiOperation(() => taskApi.getTodayAgenda(orgId, params));
         return result;
       },
 
@@ -1160,40 +989,27 @@ export function TaskProvider({ children }: TaskProviderProps) {
       getCurrentTasks: async (): Promise<Task[]> => {
         const projectId = getCurrentProjectId();
         if (!projectId) {
-          throw new Error(
-            "No project selected. Please select a project first."
-          );
+          throw new Error("No project selected. Please select a project first.");
         }
         const organizationId = getCurrentOrganizationId();
         if (!organizationId) {
-          throw new Error(
-            "No organization selected. Please select an organization first."
-          );
+          throw new Error("No organization selected. Please select an organization first.");
         }
         return await contextValue.getTasksByProject(projectId, organizationId);
       },
 
-      getCurrentOrganizationTasks: async (
-        params?: GetTasksParams
-      ): Promise<TasksResponse> => {
+      getCurrentOrganizationTasks: async (params?: GetTasksParams): Promise<TasksResponse> => {
         const organizationId = getCurrentOrganizationId();
         if (!organizationId) {
-          throw new Error(
-            "No organization selected. Please select an organization first."
-          );
+          throw new Error("No organization selected. Please select an organization first.");
         }
-        return await contextValue.getTasksByOrganization(
-          organizationId,
-          params
-        );
+        return await contextValue.getTasksByOrganization(organizationId, params);
       },
 
       getCurrentWorkspaceTasks: async (): Promise<Task[]> => {
         const workspaceId = getCurrentWorkspaceId();
         if (!workspaceId) {
-          throw new Error(
-            "No workspace selected. Please select a workspace first."
-          );
+          throw new Error("No workspace selected. Please select a workspace first.");
         }
         return await contextValue.getTasksByWorkspace(workspaceId);
       },
@@ -1201,17 +1017,12 @@ export function TaskProvider({ children }: TaskProviderProps) {
       getCurrentProjectLabels: async (): Promise<TaskLabel[]> => {
         const projectId = getCurrentProjectId();
         if (!projectId) {
-          throw new Error(
-            "No project selected. Please select a project first."
-          );
+          throw new Error("No project selected. Please select a project first.");
         }
         return await contextValue.getProjectLabels(projectId);
       },
 
-      assignTaskAssignees: async (
-        taskId: string,
-        assigneeIds: string[]
-      ): Promise<any> => {
+      assignTaskAssignees: async (taskId: string, assigneeIds: string[]): Promise<any> => {
         const result = await handleApiOperation(
           () => taskApi.assignTaskAssignees(taskId, assigneeIds),
           false
@@ -1227,9 +1038,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
                 }
               : prev.currentTask,
           tasks: prev.tasks.map((task) =>
-            task.id === taskId
-              ? { ...task, assignees: result.assignees || [] }
-              : task
+            task.id === taskId ? { ...task, assignees: result.assignees || [] } : task
           ),
         }));
 
@@ -1239,9 +1048,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
     [taskState, handleApiOperation]
   );
 
-  return (
-    <TaskContext.Provider value={contextValue}>{children}</TaskContext.Provider>
-  );
+  return <TaskContext.Provider value={contextValue}>{children}</TaskContext.Provider>;
 }
 
 export default TaskProvider;

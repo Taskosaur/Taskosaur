@@ -8,16 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Eye,
-  EyeOff,
-  Loader2,
-  Mail,
-  Lock,
-  ArrowRight,
-  Sparkle,
-} from "lucide-react";
-
+import { Eye, EyeOff, Loader2, Mail, Lock, ArrowRight, Sparkle } from "lucide-react";
+import Image from "next/image";
+import { useTheme } from "next-themes";
 interface FormData {
   email: string;
   password: string;
@@ -27,6 +20,8 @@ interface FormData {
 export function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
+
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
@@ -72,31 +67,35 @@ export function LoginForm() {
       className="login-form-container"
     >
       {/* Header */}
-      <div className="login-form-header">
+      <div className="signup-form-header  flex justify-center items-center flex-col">
         {/* Mobile Logo */}
-        {/* <div className="login-form-mode-toggle">
-          <ModeToggle />
-        </div> */}
+
+        <div className="signup-mobile-logo">
+          <div className="signup-mobile-logo-icon">
+            <Image
+              src="/favicon.svg"
+              alt="Taskosaur Logo"
+              width={50}
+              height={50}
+              className={`size-10 ${
+                resolvedTheme === "light" ? " filter invert brightness-200" : ""
+              }`}
+            />
+          </div>
+        </div>
 
         <div className="login-form-header-content">
           <h1 className="login-form-title">
             {/* Show as flex row on max-md, block on md+ */}
             <div className="md:hidden">
               Welcome back to
-              <span className="flex items-center justify-center ">
-                Taskosaur{" "}
-                <span className="ml-2">
-                  <Sparkle />
-                </span>
-              </span>
+              <span className="flex items-center justify-center ">Taskosaur </span>
             </div>
 
             {/* Block for md+ */}
             <span className="hidden md:block">Welcome back</span>
           </h1>
-          <p className="login-form-subtitle">
-            Login to continue your productive journey
-          </p>
+          <p className="login-form-subtitle">Login to continue your productive journey</p>
         </div>
       </div>
 
@@ -172,11 +171,7 @@ export function LoginForm() {
               className="login-password-toggle"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
         </motion.div>
@@ -216,11 +211,7 @@ export function LoginForm() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="login-submit-button"
-          >
+          <Button type="submit" disabled={isLoading} className="login-submit-button">
             {isLoading ? (
               <>
                 <Loader2 className="login-loading-spinner" />

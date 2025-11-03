@@ -15,9 +15,7 @@ export default function WorkspaceProjectsPage() {
       emptyStateTitle="No projects found"
       emptyStateDescription="Create your first project to get started with organizing your tasks and collaborating with your team."
       enablePagination={false}
-      generateProjectLink={(project, workspaceSlug) => 
-        `/${workspaceSlug}/${project.slug}`
-      }
+      generateProjectLink={(project, workspaceSlug) => `/${workspaceSlug}/${project.slug}`}
     />
   );
 }

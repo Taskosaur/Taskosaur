@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Command,
   CommandEmpty,
@@ -12,11 +7,7 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,8 +52,7 @@ export function NewProjectModal({
   const workspaceContext = useWorkspace();
   const projectContext = useProject();
 
-  const { getWorkspacesByOrganization, getWorkspaceById, getWorkspaceBySlug } =
-    workspaceContext;
+  const { getWorkspacesByOrganization, getWorkspaceById, getWorkspaceBySlug } = workspaceContext;
   const { createProject } = projectContext;
   const isWorkspacePreSelected = Boolean(workspaceSlug);
   const [formData, setFormData] = useState({
@@ -122,15 +112,11 @@ export function NewProjectModal({
     workspace.name.toLowerCase().includes(workspaceSearch.toLowerCase())
   );
 
-  const selectedCategory = PROJECT_CATEGORIES.find(
-    (cat) => cat.id === formData.category
-  );
+  const selectedCategory = PROJECT_CATEGORIES.find((cat) => cat.id === formData.category);
   const filteredWorkflows = workflows.filter((wf) =>
     wf.name.toLowerCase().includes(workflowSearch.toLowerCase())
   );
-  const selectedWorkflow = workflows.find(
-    (wf) => wf.id === formData.workflowId
-  );
+  const selectedWorkflow = workflows.find((wf) => wf.id === formData.workflowId);
 
   const VISIBILITY_OPTIONS = [
     {
@@ -208,9 +194,7 @@ export function NewProjectModal({
 
         const workspaceId = getCurrentWorkspaceId();
         if (workspaceId && workspacesData) {
-          const currentWorkspace = workspacesData.find(
-            (ws) => ws.id === workspaceId
-          );
+          const currentWorkspace = workspacesData.find((ws) => ws.id === workspaceId);
           if (currentWorkspace) {
             setFormData((prev) => ({ ...prev, workspace: currentWorkspace }));
           } else {
@@ -227,8 +211,7 @@ export function NewProjectModal({
       }
     } catch (error) {
       if (requestIdRef.current === requestId) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Failed to load workspaces";
+        const errorMessage = error instanceof Error ? error.message : "Failed to load workspaces";
         setError(errorMessage);
         toast.error(errorMessage);
         console.error("Failed to load workspaces:", error);
@@ -300,8 +283,7 @@ export function NewProjectModal({
       handleClose();
       document.body.style.pointerEvents = "auto";
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to create project";
+      const errorMessage = error instanceof Error ? error.message : "Failed to create project";
       toast.error(errorMessage);
       console.error("Failed to create project:", error);
     } finally {
@@ -351,19 +333,14 @@ export function NewProjectModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent
-        className="projects-modal-container border-none"
-        style={dynamicStyles}
-      >
+      <DialogContent className="projects-modal-container border-none" style={dynamicStyles}>
         <DialogHeader className="projects-modal-header">
           <div className="projects-modal-header-content">
             <div className="projects-modal-icon bg-[var(--dynamic-primary)]">
               <HiFolderPlus className="projects-modal-icon-content" />
             </div>
             <div className="projects-modal-info">
-              <DialogTitle className="projects-modal-title">
-                Create new project
-              </DialogTitle>
+              <DialogTitle className="projects-modal-title">Create new project</DialogTitle>
               <p className="projects-modal-description">
                 Organize your tasks and collaborate with your team
               </p>
@@ -398,16 +375,13 @@ export function NewProjectModal({
                 className="projects-form-label-icon"
                 style={{ color: "var(--dynamic-primary)" }}
               />
-              Project name{" "}
-              <span className="projects-form-label-required">*</span>
+              Project name <span className="projects-form-label-required">*</span>
             </Label>
             <Input
               id="name"
               placeholder="Enter project name"
               value={formData.name}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, name: e.target.value }))
-              }
+              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
               className="projects-form-input border-none"
               style={
                 {
@@ -443,10 +417,8 @@ export function NewProjectModal({
                   className="projects-url-preview-code border-none"
                   style={{ color: "var(--dynamic-primary)" }}
                 >
-                  {formData.workspace
-                    ? `/${formData.workspace.slug}`
-                    : "/workspace"}
-                  /{projectSlug || "project-name"}
+                  {formData.workspace ? `/${formData.workspace.slug}` : "/workspace"}/
+                  {projectSlug || "project-name"}
                 </code>
               </div>
             )}
@@ -461,11 +433,7 @@ export function NewProjectModal({
               />
               Workflow <span className="projects-form-label-required">*</span>
             </Label>
-            <Popover
-              open={workflowOpen}
-              onOpenChange={setWorkflowOpen}
-              modal={true}
-            >
+            <Popover open={workflowOpen} onOpenChange={setWorkflowOpen} modal={true}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -473,15 +441,13 @@ export function NewProjectModal({
                   className="projects-workspace-button border-none"
                   style={{ borderColor: "var(--border)" }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor =
-                      "var(--dynamic-primary-20)";
+                    e.currentTarget.style.borderColor = "var(--dynamic-primary-20)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.borderColor = "var(--border)";
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor =
-                      "var(--dynamic-primary)";
+                    e.currentTarget.style.borderColor = "var(--dynamic-primary)";
                     e.currentTarget.style.boxShadow = `0 0 0 3px var(--dynamic-primary-20)`;
                   }}
                   onBlur={(e) => {
@@ -495,10 +461,7 @@ export function NewProjectModal({
                   <HiChevronDown className="projects-workspace-dropdown-icon" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent
-                className="projects-workspace-popover border-none"
-                align="start"
-              >
+              <PopoverContent className="projects-workspace-popover border-none" align="start">
                 <Command className="projects-workspace-command border-none">
                   <CommandInput
                     placeholder="Search workflows..."
@@ -521,9 +484,7 @@ export function NewProjectModal({
                       >
                         <div className="flex flex-col flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-[14px] font-medium">
-                              {workflow.name}
-                            </span>
+                            <span className="text-[14px] font-medium">{workflow.name}</span>
                             {/* Removed StatusBadge for Default */}
                           </div>
                           <div className="flex flex-wrap gap-1 mt-1">
@@ -566,11 +527,7 @@ export function NewProjectModal({
               />
               Visibility <span className="projects-form-label-required">*</span>
             </Label>
-            <Popover
-              open={visibilityOpen}
-              onOpenChange={setVisibilityOpen}
-              modal={true}
-            >
+            <Popover open={visibilityOpen} onOpenChange={setVisibilityOpen} modal={true}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -578,15 +535,13 @@ export function NewProjectModal({
                   className="projects-workspace-button border-none"
                   style={{ borderColor: "var(--border)" }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor =
-                      "var(--dynamic-primary-20)";
+                    e.currentTarget.style.borderColor = "var(--dynamic-primary-20)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.borderColor = "var(--border)";
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor =
-                      "var(--dynamic-primary)";
+                    e.currentTarget.style.borderColor = "var(--dynamic-primary)";
                     e.currentTarget.style.boxShadow = `0 0 0 3px var(--dynamic-primary-20)`;
                   }}
                   onBlur={(e) => {
@@ -595,18 +550,13 @@ export function NewProjectModal({
                   }}
                 >
                   <span className="projects-workspace-selected">
-                   
-                    {VISIBILITY_OPTIONS.find(
-                      (v) => v.value === formData.visibility
-                    )?.label || "Select visibility"}
+                    {VISIBILITY_OPTIONS.find((v) => v.value === formData.visibility)?.label ||
+                      "Select visibility"}
                   </span>
                   <HiChevronDown className="projects-workspace-dropdown-icon" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent
-                className="projects-workspace-popover border-none"
-                align="start"
-              >
+              <PopoverContent className="projects-workspace-popover border-none" align="start">
                 <Command className="projects-workspace-command border-none">
                   <CommandEmpty className="projects-workspace-command-empty">
                     No visibility options found.
@@ -626,10 +576,7 @@ export function NewProjectModal({
                         className="projects-workspace-command-item"
                       >
                         <div className="flex items-center gap-2 flex-1">
-                     
-                          <span className="text-[14px] font-medium">
-                            {option.label}
-                          </span>
+                          <span className="text-[14px] font-medium">{option.label}</span>
                         </div>
                         <span className="text-[12px] text-muted-foreground ml-7">
                           {option.description}
@@ -660,14 +607,9 @@ export function NewProjectModal({
                   className="projects-form-label-icon"
                   style={{ color: "var(--dynamic-primary)" }}
                 />
-                Workspace{" "}
-                <span className="projects-form-label-required">*</span>
+                Workspace <span className="projects-form-label-required">*</span>
               </Label>
-              <Popover
-                open={workspaceOpen}
-                onOpenChange={setWorkspaceOpen}
-                modal={true}
-              >
+              <Popover open={workspaceOpen} onOpenChange={setWorkspaceOpen} modal={true}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -677,15 +619,13 @@ export function NewProjectModal({
                       borderColor: "var(--border)",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor =
-                        "var(--dynamic-primary-20)";
+                      e.currentTarget.style.borderColor = "var(--dynamic-primary-20)";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.borderColor = "var(--border)";
                     }}
                     onFocus={(e) => {
-                      e.currentTarget.style.borderColor =
-                        "var(--dynamic-primary)";
+                      e.currentTarget.style.borderColor = "var(--dynamic-primary)";
                       e.currentTarget.style.boxShadow = `0 0 0 3px var(--dynamic-primary-20)`;
                     }}
                     onBlur={(e) => {
@@ -695,25 +635,16 @@ export function NewProjectModal({
                     disabled={isLoadingWorkspaces}
                   >
                     {isLoadingWorkspaces ? (
-                      <span className="projects-workspace-loading">
-                        Loading workspaces...
-                      </span>
+                      <span className="projects-workspace-loading">Loading workspaces...</span>
                     ) : formData.workspace ? (
-                      <span className="projects-workspace-selected">
-                        {formData.workspace.name}
-                      </span>
+                      <span className="projects-workspace-selected">{formData.workspace.name}</span>
                     ) : (
-                      <span className="projects-workspace-placeholder">
-                        Select workspace
-                      </span>
+                      <span className="projects-workspace-placeholder">Select workspace</span>
                     )}
                     <HiChevronDown className="projects-workspace-dropdown-icon" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent
-                  className="projects-workspace-popover border-none"
-                  align="start"
-                >
+                <PopoverContent className="projects-workspace-popover border-none" align="start">
                   <Command className="projects-workspace-command border-none">
                     <CommandInput
                       placeholder="Search workspaces..."
@@ -725,8 +656,8 @@ export function NewProjectModal({
                       {isLoadingWorkspaces
                         ? "Loading workspaces..."
                         : filteredWorkspaces.length === 0 && workspaceSearch
-                        ? "No workspaces found."
-                        : "Type to search workspaces"}
+                          ? "No workspaces found."
+                          : "Type to search workspaces"}
                     </CommandEmpty>
                     <CommandGroup className="projects-workspace-command-group">
                       {filteredWorkspaces.map((workspace) => (
@@ -834,11 +765,7 @@ export function NewProjectModal({
               />
               Project Colors
             </Label>
-            <Popover
-              open={categoryOpen}
-              onOpenChange={setCategoryOpen}
-              modal={true}
-            >
+            <Popover open={categoryOpen} onOpenChange={setCategoryOpen} modal={true}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -849,15 +776,13 @@ export function NewProjectModal({
                     height: "2.5rem", // Match input height
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor =
-                      "var(--dynamic-primary-20)";
+                    e.currentTarget.style.borderColor = "var(--dynamic-primary-20)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.borderColor = "var(--border)";
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor =
-                      "var(--dynamic-primary)";
+                    e.currentTarget.style.borderColor = "var(--dynamic-primary)";
                     e.currentTarget.style.boxShadow = `0 0 0 3px var(--dynamic-primary-20)`;
                   }}
                   onBlur={(e) => {
@@ -877,10 +802,7 @@ export function NewProjectModal({
                   <HiChevronDown className="projects-workspace-dropdown-icon" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent
-                className="projects-workspace-popover border-none"
-                align="start"
-              >
+              <PopoverContent className="projects-workspace-popover border-none" align="start">
                 <Command className="projects-workspace-command border-none">
                   <CommandEmpty className="projects-workspace-command-empty">
                     No categories found.
@@ -899,9 +821,7 @@ export function NewProjectModal({
                             style={{ backgroundColor: category.color }}
                           />
                           <div className="flex flex-col">
-                            <span className="text-[14px] font-medium">
-                              {category.label}
-                            </span>
+                            <span className="text-[14px] font-medium">{category.label}</span>
                             <span className="text-[12px] text-muted-foreground">
                               {category.description}
                             </span>
@@ -927,19 +847,10 @@ export function NewProjectModal({
 
           {/* Submit Buttons */}
           <div className="projects-form-actions flex gap-2 justify-end mt-6">
-            <ActionButton
-              type="button"
-              secondary
-              onClick={handleClose}
-              disabled={isSubmitting}
-            >
+            <ActionButton type="button" secondary onClick={handleClose} disabled={isSubmitting}>
               Cancel
             </ActionButton>
-            <ActionButton
-              type="submit"
-              primary
-              disabled={!isValid || isSubmitting}
-            >
+            <ActionButton type="submit" primary disabled={!isValid || isSubmitting}>
               {isSubmitting ? "Creating project..." : "Create project"}
             </ActionButton>
           </div>

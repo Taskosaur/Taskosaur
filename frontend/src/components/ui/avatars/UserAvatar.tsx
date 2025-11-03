@@ -15,11 +15,7 @@ interface UserAvatarProps {
   color?: "primary" | "secondary" | "success" | "danger" | "warning" | "info";
 }
 
-export default function UserAvatar({
-  user,
-  size = "md",
-  color = "primary",
-}: UserAvatarProps) {
+export default function UserAvatar({ user, size = "md", color = "primary" }: UserAvatarProps) {
   const [imageError, setImageError] = useState(false);
 
   const sizeStyles = {
@@ -81,8 +77,7 @@ export default function UserAvatar({
 
   const userName = getUserName();
   const initial = userName ? userName.charAt(0).toUpperCase() : "U";
-  const avatarImage =
-    typeof user !== "string" && user ? user.avatar : undefined;
+  const avatarImage = typeof user !== "string" && user ? user.avatar : undefined;
 
   // Only show image if we have a valid URL/path and no error occurred
   const shouldShowImage =

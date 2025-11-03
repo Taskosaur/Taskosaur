@@ -28,9 +28,7 @@ export function DashboardHeader({
           <h1 className="dashboard-greeting">
             {greeting}, {currentUser?.firstName || "User"}!
           </h1>
-          <p className="dashboard-date-info">
-            {currentDate} • Ready to tackle your goals?
-          </p>
+          <p className="dashboard-date-info">{currentDate} • Ready to tackle your goals?</p>
         </div>
       </div>
 
@@ -47,11 +45,7 @@ export function DashboardHeader({
         {(() => {
           return (
             <>
-              <ActionButton
-                showPlusIcon
-                primary
-                onClick={() => setNewTaskModalOpen(true)}
-              >
+              <ActionButton showPlusIcon primary onClick={() => setNewTaskModalOpen(true)}>
                 New Task
               </ActionButton>
               <NewTaskModal

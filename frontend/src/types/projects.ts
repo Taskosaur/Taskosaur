@@ -1,7 +1,7 @@
 export enum ProjectVisibility {
-  PRIVATE = 'PRIVATE',
-  INTERNAL = 'INTERNAL',
-  PUBLIC = 'PUBLIC'
+  PRIVATE = "PRIVATE",
+  INTERNAL = "INTERNAL",
+  PUBLIC = "PUBLIC",
 }
 
 export interface ProjectSettings {
@@ -28,7 +28,7 @@ export interface Project {
   slug?: string;
   settings?: ProjectSettings;
   createdAt?: string;
-  createdBy?:string,
+  createdBy?: string;
   updatedAt?: string;
   workspace?: {
     id: string;
@@ -74,11 +74,11 @@ export interface ProjectStats {
   completionRate: number;
 }
 export enum ProjectChartType {
-  TASK_STATUS = 'task-status',
-  TASK_TYPE = 'task-type',
-  KPI_METRICS = 'kpi-metrics',
-  TASK_PRIORITY = 'task-priority',
-  SPRINT_VELOCITY = 'sprint-velocity'
+  TASK_STATUS = "task-status",
+  TASK_TYPE = "task-type",
+  KPI_METRICS = "kpi-metrics",
+  TASK_PRIORITY = "task-priority",
+  SPRINT_VELOCITY = "sprint-velocity",
 }
 export interface ProjectChartDataResponse {
   [key: string]: any;

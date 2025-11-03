@@ -6,10 +6,7 @@ import { inboxApi } from "@/utils/api/inboxApi";
 import { useInbox } from "@/contexts/inbox-context";
 import { useProjectContext } from "@/contexts/project-context";
 import { useDebounce } from "@/hooks/useDebounce";
-import {
-  InboxFormData,
-  EmailSetupData,
-} from "@/types/emailIntegration";
+import { InboxFormData, EmailSetupData } from "@/types/emailIntegration";
 import Stepper from "../shared/Stepper";
 import CompletedConfigView from "../shared/CompletedConfigView";
 import InboxConfigurationStep from "./setup-steps/InboxConfigurationStep";
@@ -20,9 +17,7 @@ interface EmailIntegrationSettingsProps {
   projectId: string;
 }
 
-export default function EmailIntegrationSettings({
-  projectId,
-}: EmailIntegrationSettingsProps) {
+export default function EmailIntegrationSettings({ projectId }: EmailIntegrationSettingsProps) {
   const {
     currentInbox,
     isSyncing,
@@ -47,7 +42,7 @@ export default function EmailIntegrationSettings({
   const [setupLoading, setSetupLoading] = useState(false);
   const [loadingInbox, setLoadingInbox] = useState(true);
   const [isReconfiguring, setIsReconfiguring] = useState(false);
-    const [formData, setFormData] = useState<InboxFormData>({
+  const [formData, setFormData] = useState<InboxFormData>({
     name: "",
     description: "",
     emailAddress: "",
@@ -89,11 +84,9 @@ export default function EmailIntegrationSettings({
       setHasUnsavedChanges(false);
 
       if (!currentInbox.emailAccount) {
-     
         setCurrentStep(2);
       } else {
-        
-        setCurrentStep(4); 
+        setCurrentStep(4);
       }
     } else {
       setCurrentStep(1);
@@ -136,9 +129,7 @@ export default function EmailIntegrationSettings({
       return availableUsers;
     }
 
-    const selectedUser = allUsers.find(
-      (user) => user.user.id === formData.defaultAssigneeId
-    );
+    const selectedUser = allUsers.find((user) => user.user.id === formData.defaultAssigneeId);
 
     if (selectedUser) {
       return [selectedUser, ...availableUsers];
@@ -152,8 +143,7 @@ export default function EmailIntegrationSettings({
       try {
         const [statuses, users]: any = await Promise.all([
           projectContext.getTaskStatusByProject(projectId),
-          projectContext.getProjectMembers?.(projectId, search) ||
-          Promise.resolve([]),
+          projectContext.getProjectMembers?.(projectId, search) || Promise.resolve([]),
         ]);
 
         setAvailableStatuses(statuses || []);
@@ -183,10 +173,7 @@ export default function EmailIntegrationSettings({
       errors.name = "Name must be less than 100 characters";
     }
 
-    if (
-      data.emailAddress &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.emailAddress)
-    ) {
+    if (data.emailAddress && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.emailAddress)) {
       errors.emailAddress = "Please enter a valid email address";
     }
 
@@ -195,8 +182,7 @@ export default function EmailIntegrationSettings({
     }
 
     if (data.autoReplyEnabled && !data.autoReplyTemplate.trim()) {
-      errors.autoReplyTemplate =
-        "Auto-reply message is required when auto-reply is enabled";
+      errors.autoReplyTemplate = "Auto-reply message is required when auto-reply is enabled";
     }
 
     return errors;
@@ -228,8 +214,7 @@ export default function EmailIntegrationSettings({
       setIsSaving(true);
       const inboxData = {
         ...formData,
-        defaultStatusId:
-          formData.defaultStatusId || availableStatuses[0]?.id || "",
+        defaultStatusId: formData.defaultStatusId || availableStatuses[0]?.id || "",
         syncInterval: formData.syncInterval || 5,
       };
 
@@ -243,9 +228,7 @@ export default function EmailIntegrationSettings({
         setCurrentStep(2);
       }
     } catch (error: any) {
-      toast.error(
-        currentInbox ? "Failed to update inbox" : "Failed to create inbox"
-      );
+      toast.error(currentInbox ? "Failed to update inbox" : "Failed to create inbox");
     } finally {
       setIsSaving(false);
     }
@@ -265,9 +248,7 @@ export default function EmailIntegrationSettings({
       toast.success("Email account configured successfully!");
       setCurrentStep(3);
     } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Failed to setup email account"
-      );
+      toast.error(error.response?.data?.message || "Failed to setup email account");
       throw error;
     } finally {
       setSetupLoading(false);
@@ -319,7 +300,6 @@ export default function EmailIntegrationSettings({
     setCurrentStep(2);
   };
 
-
   if (currentStep === 4 && currentInbox?.emailAccount) {
     return (
       <CompletedConfigView
@@ -349,9 +329,7 @@ export default function EmailIntegrationSettings({
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <HiEnvelope className="w-5 h-5 text-[var(--primary)]" />
-                <span className="text-md font-semibold">
-                  Email Integration Setup
-                </span>
+                <span className="text-md font-semibold">Email Integration Setup</span>
               </div>
               <p className="text-sm font-normal text-[var(--muted-foreground)]/60 mt-2">
                 Configure your email account to sync with tasks

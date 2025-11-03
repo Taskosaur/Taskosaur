@@ -114,8 +114,6 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
       return processedLines.join("\n");
     }, [md]);
 
-   
-
     // Split content by checkbox placeholders and render appropriately
     const parts = processedMarkdown.split(/(__CHECKBOX_\d+__[x ]__.*?)(?=\n|$)/);
 
@@ -165,7 +163,6 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
           onChange={(val) => onChange(val || "")}
           hideToolbar={false}
           className="task-md-editor"
-          
           textareaProps={{
             placeholder: "Describe the task in detail...",
             className:
@@ -174,9 +171,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
           height={420}
           preview="edit"
           visibleDragbar={false}
-          commandsFilter={(command) =>
-            command && command.name === "live" ? false : command
-          }
+          commandsFilter={(command) => (command && command.name === "live" ? false : command)}
         />
       </div>
     );

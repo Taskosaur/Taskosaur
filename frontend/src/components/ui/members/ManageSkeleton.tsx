@@ -1,10 +1,10 @@
-import React from 'react';
-import { Skeleton } from '../skeleton';
-import { Card, CardContent } from '../card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../tabs';
+import React from "react";
+import { Skeleton } from "../skeleton";
+import { Card, CardContent } from "../card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../tabs";
 
 interface DynamicManageSkeletonProps {
-  entityType?: 'organization' | 'workspace' | 'project';
+  entityType?: "organization" | "workspace" | "project";
   showTabs?: boolean;
   tabCount?: number;
   showHeader?: boolean;
@@ -12,7 +12,7 @@ interface DynamicManageSkeletonProps {
 }
 
 const DynamicManageSkeleton: React.FC<DynamicManageSkeletonProps> = ({
-  entityType = 'organization',
+  entityType = "organization",
   showTabs = true,
   tabCount = 3,
   showHeader = true,
@@ -48,7 +48,6 @@ const DynamicManageSkeleton: React.FC<DynamicManageSkeletonProps> = ({
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <div className="mx-auto p-4 space-y-4 animate-pulse">
-        
         {/* Page Header */}
         {showHeader && (
           <div className="flex items-start gap-3">
@@ -113,7 +112,10 @@ const DynamicManageSkeleton: React.FC<DynamicManageSkeletonProps> = ({
                         <Skeleton className="h-3 w-5/6 rounded" />
                         <div className="space-y-3 mt-4">
                           {Array.from({ length: 3 }).map((_, i) => (
-                            <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-[var(--muted)]/30">
+                            <div
+                              key={i}
+                              className="flex items-center justify-between p-3 rounded-lg bg-[var(--muted)]/30"
+                            >
                               <Skeleton className="h-4 w-40 rounded" />
                               <div className="flex items-center gap-2">
                                 <Skeleton className="h-5 w-5 rounded-full" />
@@ -126,9 +128,7 @@ const DynamicManageSkeleton: React.FC<DynamicManageSkeletonProps> = ({
                       </>
                     ) : (
                       // Members-like content
-                      <div className="space-y-3">
-                        {renderMemberRows()}
-                      </div>
+                      <div className="space-y-3">{renderMemberRows()}</div>
                     )}
                   </CardContent>
                 </Card>
@@ -150,7 +150,7 @@ const DynamicManageSkeleton: React.FC<DynamicManageSkeletonProps> = ({
                     </div>
                     <Skeleton className="h-9 w-64 rounded" />
                   </div>
-                  
+
                   {/* Table header */}
                   <div className="px-4 py-3 bg-[var(--muted)]/30 border-b border-[var(--border)] mb-4">
                     <div className="grid grid-cols-12 gap-3">
@@ -161,11 +161,9 @@ const DynamicManageSkeleton: React.FC<DynamicManageSkeletonProps> = ({
                       <Skeleton className="col-span-2 h-3 rounded" />
                     </div>
                   </div>
-                  
+
                   {/* Member rows */}
-                  <div className="space-y-3">
-                    {renderMemberRows()}
-                  </div>
+                  <div className="space-y-3">{renderMemberRows()}</div>
                 </CardContent>
               </Card>
             </div>

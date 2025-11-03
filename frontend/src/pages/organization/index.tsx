@@ -76,9 +76,7 @@ function IntroQuestions({ onComplete }: { onComplete: () => void }) {
         onComplete();
       } catch (error: any) {
         console.error("Error:", error);
-        toast.error(
-          error?.message || "Failed to complete setup. Please try again."
-        );
+        toast.error(error?.message || "Failed to complete setup. Please try again.");
       } finally {
         setIsSubmitting(false);
       }
@@ -141,8 +139,7 @@ function IntroQuestions({ onComplete }: { onComplete: () => void }) {
   };
 
   const isAnswerSelected =
-    answers[currentQuestionData.id] !== undefined &&
-    answers[currentQuestionData.id] !== "";
+    answers[currentQuestionData.id] !== undefined && answers[currentQuestionData.id] !== "";
 
   return (
     <div className="h-screen bg-[var(--background)] flex flex-col">
@@ -178,9 +175,7 @@ function IntroQuestions({ onComplete }: { onComplete: () => void }) {
             {currentQuestionData.type === "input" ? (
               <div className="space-y-6">
                 <div className="space-y-4">
-                  <Label className="text-sm font-medium">
-                    {currentQuestionData.inputLabel}
-                  </Label>
+                  <Label className="text-sm font-medium">{currentQuestionData.inputLabel}</Label>
                   <Input
                     type="text"
                     value={answers[currentQuestionData.id] || ""}
@@ -197,7 +192,7 @@ function IntroQuestions({ onComplete }: { onComplete: () => void }) {
                   <div className="mt-6 pt-6 border-t border-[var(--border)] space-y-6">
                     <div className="space-y-4">
                       <Label className="text-sm font-medium text-[var(--foreground)]">
-                        Workspace Name 
+                        Workspace Name
                       </Label>
                       <Input
                         type="text"
@@ -210,7 +205,7 @@ function IntroQuestions({ onComplete }: { onComplete: () => void }) {
 
                     <div className="space-y-4">
                       <Label className="text-sm font-medium text-[var(--foreground)]">
-                        Project Name 
+                        Project Name
                       </Label>
                       <Input
                         type="text"
@@ -226,8 +221,7 @@ function IntroQuestions({ onComplete }: { onComplete: () => void }) {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {currentQuestionData.options.map((option) => {
-                  const isSelected =
-                    answers[currentQuestionData.id] === option.value;
+                  const isSelected = answers[currentQuestionData.id] === option.value;
                   return (
                     <button
                       key={option.id}
@@ -239,9 +233,7 @@ function IntroQuestions({ onComplete }: { onComplete: () => void }) {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-medium text-lg">
-                          {option.text}
-                        </span>
+                        <span className="font-medium text-lg">{option.text}</span>
                         {isSelected && (
                           <CheckCircle className="h-6 w-6 text-blue-500 flex-shrink-0" />
                         )}

@@ -7,10 +7,7 @@ interface EmptyStateProps {
   priorityFilter?: string;
 }
 
-const EmptyState: React.FC<EmptyStateProps> = ({
-  searchQuery = "",
-  priorityFilter = "all",
-}) => {
+const EmptyState: React.FC<EmptyStateProps> = ({ searchQuery = "", priorityFilter = "all" }) => {
   const noTasksMessage =
     searchQuery || priorityFilter !== "all" ? "No tasks found" : "No tasks yet";
   const descriptionMessage =

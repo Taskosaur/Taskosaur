@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/auth-context";
 import TaskDetailClient from "@/components/tasks/TaskDetailClient";
 import ErrorState from "@/components/common/ErrorState";
 
-
 function TaskDetailContent() {
   const router = useRouter();
   const { workspaceSlug, projectSlug, taskId } = router.query;
@@ -63,9 +62,7 @@ function TaskDetailContent() {
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">
-            Task not found
-          </h2>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">Task not found</h2>
         </div>
       </div>
     );

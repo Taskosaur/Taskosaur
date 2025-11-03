@@ -1,10 +1,10 @@
 import React from "react";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
 import { HiFolder } from "react-icons/hi";
 import { InfoPanel } from "@/components/common/InfoPanel";
 import { StatusBadge } from "@/components/badges/StatusBadge";
 import ActionButton from "@/components/common/ActionButton";
-import { Project } from '@/types';
+import { Project } from "@/types";
 
 interface ProjectsWithPaginationProps {
   projects: Project[];
@@ -24,7 +24,7 @@ const isValidProject = (project: Project): boolean => {
 };
 
 const getWorkspaceSlug = (project: Project): string => {
-  return project.workspace?.slug || '';
+  return project.workspace?.slug || "";
 };
 
 const generateProjectUrl = (project: Project): string => {
@@ -58,8 +58,12 @@ const ProjectsWithPagination: React.FC<ProjectsWithPaginationProps> = ({
   const displayedProjects = validProjects.slice(0, 3);
 
   const firstValidProject = validProjects[0];
-  const workspaceProjectsUrl = firstValidProject ? generateWorkspaceProjectsUrl(firstValidProject) : '/workspaces';
-  const newProjectUrl = firstValidProject ? generateNewProjectUrl(firstValidProject) : '/workspaces';
+  const workspaceProjectsUrl = firstValidProject
+    ? generateWorkspaceProjectsUrl(firstValidProject)
+    : "/workspaces";
+  const newProjectUrl = firstValidProject
+    ? generateNewProjectUrl(firstValidProject)
+    : "/workspaces";
 
   const handleProjectClick = (project: Project) => {
     const projectUrl = generateProjectUrl(project);
@@ -88,10 +92,9 @@ const ProjectsWithPagination: React.FC<ProjectsWithPaginationProps> = ({
               No projects found
             </p>
             <p className="text-xs text-[var(--muted-foreground)] mb-3">
-              {projects.length > 0 
+              {projects.length > 0
                 ? "Projects found but missing workspace data."
-                : "Create your first project to get started."
-              }
+                : "Create your first project to get started."}
             </p>
             <ActionButton
               primary
@@ -127,10 +130,7 @@ const ProjectsWithPagination: React.FC<ProjectsWithPaginationProps> = ({
                   </div>
                 </div>
                 <div className="flex items-center">
-                  <StatusBadge
-                    status={project.status}
-                    type="project"
-                  />
+                  <StatusBadge status={project.status} type="project" />
                 </div>
               </div>
             ))}

@@ -7,20 +7,9 @@ interface DividerProps {
   orientation?: "horizontal" | "vertical";
 }
 
-const Divider: React.FC<DividerProps> = ({
-  label,
-  className,
-  orientation = "horizontal",
-}) => {
+const Divider: React.FC<DividerProps> = ({ label, className, orientation = "horizontal" }) => {
   if (orientation === "vertical") {
-    return (
-      <div
-        className={cn(
-          "w-px h-full bg-[var(--border)] mx-4",
-          className
-        )}
-      />
-    );
+    return <div className={cn("w-px h-full bg-[var(--border)] mx-4", className)} />;
   }
 
   return (

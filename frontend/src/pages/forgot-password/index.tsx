@@ -1,7 +1,5 @@
-;
-
-import { useAuth } from '@/contexts/auth-context';
-import AuthRedirect from '@/components/auth/AuthRedirect';
+import { useAuth } from "@/contexts/auth-context";
+import AuthRedirect from "@/components/auth/AuthRedirect";
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -9,20 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  AlertCircle,
-  CheckCircle2,
-  Loader2,
-  Mail,
-  ArrowRight,
-  ArrowLeft,
-} from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Mail, ArrowRight, ArrowLeft } from "lucide-react";
 import { LoginContent } from "@/components/login/LoginContent";
 import { ModeToggle } from "@/components/header/ModeToggle";
-import { ForgotPasswordData } from '@/types';
+import { ForgotPasswordData } from "@/types";
 
 function ForgotPasswordForm() {
-    const {forgotPassword} = useAuth()
+  const { forgotPassword } = useAuth();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -43,9 +34,7 @@ function ForgotPasswordForm() {
       if (response.success) {
         setIsSuccess(true);
       } else {
-        setError(
-          response.message || "Failed to send reset email. Please try again."
-        );
+        setError(response.message || "Failed to send reset email. Please try again.");
       }
     } catch (err: any) {
       setError(err.message || "Failed to send reset email. Please try again.");
@@ -74,9 +63,7 @@ function ForgotPasswordForm() {
         <div className="login-form-header">
           <div className="login-form-header-content">
             <h1 className="login-form-title">Check your email</h1>
-            <p className="login-form-subtitle">
-              We've sent a password reset link to {email}
-            </p>
+            <p className="login-form-subtitle">We've sent a password reset link to {email}</p>
           </div>
         </div>
 

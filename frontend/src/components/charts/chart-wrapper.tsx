@@ -1,11 +1,5 @@
 // components/ui/chart-wrapper.tsx
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { ReactNode } from "react";
 
@@ -22,16 +16,14 @@ export function ChartWrapper({
   description,
   children,
   config,
-  className="analytics-chart-container",
+  className = "analytics-chart-container",
 }: ChartWrapperProps) {
   return (
     <Card className={className}>
       <CardHeader>
         <CardTitle className="text-lg font-semibold">{title}</CardTitle>
         {description && (
-          <CardDescription className="text-sm text-muted-foreground">
-            {description}
-          </CardDescription>
+          <CardDescription className="text-sm text-muted-foreground">{description}</CardDescription>
         )}
       </CardHeader>
       <CardContent>

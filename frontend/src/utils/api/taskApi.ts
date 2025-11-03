@@ -56,83 +56,81 @@ export const taskApi = {
       throw error;
     }
   },
-  createTaskWithAttachements: async (
-    taskData: CreateTaskRequest,
-  ): Promise<Task> => {
+  createTaskWithAttachements: async (taskData: CreateTaskRequest): Promise<Task> => {
     try {
       const formData = new FormData();
 
       // Append all task data fields to FormData
-      formData.append('title', taskData.title);
-      formData.append('projectId', taskData.projectId);
-      formData.append('statusId', taskData.statusId);
+      formData.append("title", taskData.title);
+      formData.append("projectId", taskData.projectId);
+      formData.append("statusId", taskData.statusId);
 
       // Append optional string fields
       if (taskData.description) {
-        formData.append('description', taskData.description);
+        formData.append("description", taskData.description);
       }
       if (taskData.type) {
-        formData.append('type', taskData.type);
+        formData.append("type", taskData.type);
       }
       if (taskData.priority) {
-        formData.append('priority', taskData.priority);
+        formData.append("priority", taskData.priority);
       }
       if (taskData.startDate) {
-        formData.append('startDate', taskData.startDate);
+        formData.append("startDate", taskData.startDate);
       }
       if (taskData.dueDate) {
-        formData.append('dueDate', taskData.dueDate);
+        formData.append("dueDate", taskData.dueDate);
       }
       if (taskData.sprintId) {
-        formData.append('sprintId', taskData.sprintId);
+        formData.append("sprintId", taskData.sprintId);
       }
       if (taskData.parentTaskId) {
-        formData.append('parentTaskId', taskData.parentTaskId);
+        formData.append("parentTaskId", taskData.parentTaskId);
       }
       if (taskData.completedAt !== undefined) {
-        formData.append('completedAt', taskData.completedAt || '');
+        formData.append("completedAt", taskData.completedAt || "");
       }
 
       // Append number fields
       if (taskData.storyPoints !== undefined) {
-        formData.append('storyPoints', taskData.storyPoints.toString());
+        formData.append("storyPoints", taskData.storyPoints.toString());
       }
       if (taskData.originalEstimate !== undefined) {
-        formData.append('originalEstimate', taskData.originalEstimate.toString());
+        formData.append("originalEstimate", taskData.originalEstimate.toString());
       }
       if (taskData.remainingEstimate !== undefined) {
-        formData.append('remainingEstimate', taskData.remainingEstimate.toString());
+        formData.append("remainingEstimate", taskData.remainingEstimate.toString());
       }
 
       // Append array fields as JSON strings
       if (taskData.assigneeIds && taskData.assigneeIds.length > 0) {
-        formData.append('assigneeIds', JSON.stringify(taskData.assigneeIds));
+        formData.append("assigneeIds", JSON.stringify(taskData.assigneeIds));
       }
       if (taskData.reporterIds && taskData.reporterIds.length > 0) {
-        formData.append('reporterIds', JSON.stringify(taskData.reporterIds));
+        formData.append("reporterIds", JSON.stringify(taskData.reporterIds));
       }
 
       // Append custom fields as JSON string
       if (taskData.customFields) {
-        formData.append('customFields', JSON.stringify(taskData.customFields));
+        formData.append("customFields", JSON.stringify(taskData.customFields));
       }
 
       // Append files
       if (taskData.attachments && taskData.attachments.length > 0) {
         taskData.attachments.forEach((file) => {
-          formData.append('attachments', file);
+          formData.append("attachments", file);
         });
       }
 
-      const response = await api.post<Task>('/tasks/create-task-attachment', formData, {
+      const response = await api.post<Task>("/tasks/create-task-attachment", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
 
       return response.data;
     } catch (error) {
-      console.error('Create task error:', error);
+      console.error("Create task error:", error);
       throw error;
     }
   },
@@ -172,24 +170,19 @@ export const taskApi = {
       queryParams.append("organizationId", organizationId);
 
       // Optional filters
-      if (params?.workspaceId)
-        queryParams.append("workspaceId", params.workspaceId);
+      if (params?.workspaceId) queryParams.append("workspaceId", params.workspaceId);
       if (params?.projectId) queryParams.append("projectId", params.projectId);
       if (params?.sprintId) queryParams.append("sprintId", params.sprintId);
-      if (params?.parentTaskId)
-        queryParams.append("parentTaskId", params.parentTaskId);
-      if (params?.priorities)
-        queryParams.append("priorities", params.priorities);
+      if (params?.parentTaskId) queryParams.append("parentTaskId", params.parentTaskId);
+      if (params?.priorities) queryParams.append("priorities", params.priorities);
       if (params?.statuses) queryParams.append("statuses", params.statuses);
       if (params?.search) queryParams.append("search", params.search);
       if (params?.assignees) queryParams.append("assigneeIds", params.assignees);
       if (params?.reporters) queryParams.append("reporterIds", params.reporters);
 
       // Pagination
-      if (params?.page !== undefined)
-        queryParams.append("page", String(params.page));
-      if (params?.limit !== undefined)
-        queryParams.append("limit", String(params.limit));
+      if (params?.page !== undefined) queryParams.append("page", String(params.page));
+      if (params?.limit !== undefined) queryParams.append("limit", String(params.limit));
 
       const query = queryParams.toString();
       const url = `/tasks${query ? `?${query}` : ""}`;
@@ -222,22 +215,17 @@ export const taskApi = {
       queryParams.append("organizationId", organizationId);
 
       // Optional filters
-      if (params?.workspaceId)
-        queryParams.append("workspaceId", params.workspaceId);
+      if (params?.workspaceId) queryParams.append("workspaceId", params.workspaceId);
       if (params?.projectId) queryParams.append("projectId", params.projectId);
       if (params?.sprintId) queryParams.append("sprintId", params.sprintId);
-      if (params?.parentTaskId)
-        queryParams.append("parentTaskId", params.parentTaskId);
-      if (params?.priorities)
-        queryParams.append("priorities", params.priorities);
+      if (params?.parentTaskId) queryParams.append("parentTaskId", params.parentTaskId);
+      if (params?.priorities) queryParams.append("priorities", params.priorities);
       if (params?.statuses) queryParams.append("statuses", params.statuses);
       if (params?.search) queryParams.append("search", params.search);
 
       // Pagination
-      if (params?.page !== undefined)
-        queryParams.append("page", String(params.page));
-      if (params?.limit !== undefined)
-        queryParams.append("limit", String(params.limit));
+      if (params?.page !== undefined) queryParams.append("page", String(params.page));
+      if (params?.limit !== undefined) queryParams.append("limit", String(params.limit));
 
       const query = queryParams.toString();
       const url = `/tasks/all-tasks${query ? `?${query}` : ""}`;
@@ -264,8 +252,9 @@ export const taskApi = {
       if (endDate) queryParams.append("endDate", endDate);
 
       const query = queryParams.toString();
-      const url = `/public/workspaces/${workspaceSlug}/projects/${projectSlug}/calendar${query ? `?${query}` : ""
-        }`;
+      const url = `/public/workspaces/${workspaceSlug}/projects/${projectSlug}/calendar${
+        query ? `?${query}` : ""
+      }`;
 
       const response = await api.get<Task[]>(url);
       return response.data;
@@ -275,10 +264,7 @@ export const taskApi = {
     }
   },
 
-  getTasksByProject: async (
-    projectId: string,
-    organizationId: string
-  ): Promise<Task[]> => {
+  getTasksByProject: async (projectId: string, organizationId: string): Promise<Task[]> => {
     try {
       if (!organizationId) {
         throw new Error("organizationId is required");
@@ -327,10 +313,7 @@ export const taskApi = {
       throw error;
     }
   },
-  getTasksBySprint: async (
-    sprintId: string,
-    organizationId: string
-  ): Promise<Task[]> => {
+  getTasksBySprint: async (sprintId: string, organizationId: string): Promise<Task[]> => {
     try {
       if (!sprintId || typeof sprintId !== "string") {
         throw new Error(`Invalid sprintId: ${sprintId}`);
@@ -353,26 +336,21 @@ export const taskApi = {
     params: GetTasksParams = {}
   ): Promise<TasksResponse> => {
     try {
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(organizationId)) {
-        throw new Error(
-          `Invalid organizationId format: ${organizationId}. Expected UUID format.`
-        );
+        throw new Error(`Invalid organizationId format: ${organizationId}. Expected UUID format.`);
       }
 
       // Build query parameters
       const queryParams = new URLSearchParams();
       if (params.page) queryParams.append("page", params.page.toString());
       if (params.limit) queryParams.append("limit", params.limit.toString());
-      if (params.assigneeId)
-        queryParams.append("assigneeId", params.assigneeId);
+      if (params.assigneeId) queryParams.append("assigneeId", params.assigneeId);
       if (params.priority) queryParams.append("priority", params.priority); // ✅ Add priority
       if (params.search) queryParams.append("search", params.search); // ✅ Add search
 
       const queryString = queryParams.toString();
-      const url = `/tasks/organization/${organizationId}${queryString ? `?${queryString}` : ""
-        }`;
+      const url = `/tasks/organization/${organizationId}${queryString ? `?${queryString}` : ""}`;
 
       const response = await api.get<TasksResponse>(url);
       return response.data;
@@ -411,26 +389,18 @@ export const taskApi = {
         response = await api.get<PaginatedTaskResponse>(
           `/tasks?organizationId=${encodeURIComponent(
             organizationId
-          )}&parentTaskId=${encodeURIComponent(
-            uuid
-          )}&page=${page}&limit=${limit}`
+          )}&parentTaskId=${encodeURIComponent(uuid)}&page=${page}&limit=${limit}`
         );
       } else {
         // Public users: call public project tasks endpoint
         if (!workspaceSlug || !projectSlug) {
-          throw new Error(
-            "WorkspaceSlug and ProjectSlug are required for public tasks"
-          );
+          throw new Error("WorkspaceSlug and ProjectSlug are required for public tasks");
         }
 
         response = await api.get<PaginatedTaskResponse>(
-          `/public/project-tasks/${encodeURIComponent(
-            workspaceSlug
-          )}/projects/${encodeURIComponent(
+          `/public/project-tasks/${encodeURIComponent(workspaceSlug)}/projects/${encodeURIComponent(
             projectSlug
-          )}/tasks?parentTaskId=${encodeURIComponent(
-            uuid
-          )}&page=${page}&limit=${limit}`
+          )}/tasks?parentTaskId=${encodeURIComponent(uuid)}&page=${page}&limit=${limit}`
         );
       }
 
@@ -443,9 +413,7 @@ export const taskApi = {
 
   getTasksOnly: async (projectId?: string): Promise<Task[]> => {
     try {
-      const query = projectId
-        ? `?projectId=${projectId}&parentTaskId=null`
-        : "?parentTaskId=null";
+      const query = projectId ? `?projectId=${projectId}&parentTaskId=null` : "?parentTaskId=null";
       const response = await api.get<Task[]>(`/tasks${query}`);
       return response.data;
     } catch (error) {
@@ -480,10 +448,7 @@ export const taskApi = {
     }
   },
 
-  updateTask: async (
-    taskId: string,
-    taskData: UpdateTaskRequest
-  ): Promise<Task> => {
+  updateTask: async (taskId: string, taskData: UpdateTaskRequest): Promise<Task> => {
     try {
       const response = await api.patch<Task>(`/tasks/${taskId}`, taskData);
       return response.data;
@@ -510,10 +475,8 @@ export const taskApi = {
       let query = "";
       if (params) {
         const queryParams = new URLSearchParams();
-        if (params.workflowId)
-          queryParams.append("workflowId", params.workflowId);
-        if (params.organizationId)
-          queryParams.append("organizationId", params.organizationId);
+        if (params.workflowId) queryParams.append("workflowId", params.workflowId);
+        if (params.organizationId) queryParams.append("organizationId", params.organizationId);
         query = queryParams.toString();
       }
       const url = `/task-statuses${query ? `?${query}` : ""}`;
@@ -551,9 +514,7 @@ export const taskApi = {
 
   getTasksByWorkspace: async (workspaceId: string): Promise<Task[]> => {
     try {
-      const response = await api.get<Task[]>(
-        `/tasks?workspaceId=${workspaceId}`
-      );
+      const response = await api.get<Task[]>(`/tasks?workspaceId=${workspaceId}`);
       return response.data;
     } catch (error) {
       console.error("Get tasks by workspace error:", error);
@@ -562,14 +523,9 @@ export const taskApi = {
   },
 
   // Task Comment operations
-  createTaskComment: async (
-    commentData: CreateTaskCommentRequest
-  ): Promise<TaskComment> => {
+  createTaskComment: async (commentData: CreateTaskCommentRequest): Promise<TaskComment> => {
     try {
-      const response = await api.post<TaskComment>(
-        "/task-comments",
-        commentData
-      );
+      const response = await api.post<TaskComment>("/task-comments", commentData);
       return response.data;
     } catch (error) {
       console.error("Create task comment error:", error);
@@ -577,20 +533,13 @@ export const taskApi = {
     }
   },
 
-  getTaskComments: async (
-    taskId: string,
-    isAuth: boolean
-  ): Promise<TaskComment[]> => {
+  getTaskComments: async (taskId: string, isAuth: boolean): Promise<TaskComment[]> => {
     try {
       let response;
       if (isAuth) {
-        response = await api.get<TaskComment[]>(
-          `/task-comments?taskId=${taskId}`
-        );
+        response = await api.get<TaskComment[]>(`/task-comments?taskId=${taskId}`);
       } else {
-        response = await api.get<TaskComment[]>(
-          `/public/project-tasks/comments/${taskId}`
-        );
+        response = await api.get<TaskComment[]>(`/public/project-tasks/comments/${taskId}`);
       }
       return response.data;
     } catch (error) {
@@ -616,10 +565,7 @@ export const taskApi = {
     }
   },
 
-  deleteTaskComment: async (
-    commentId: string,
-    userId: string
-  ): Promise<void> => {
+  deleteTaskComment: async (commentId: string, userId: string): Promise<void> => {
     try {
       await api.delete(`/task-comments/${commentId}?userId=${userId}`);
     } catch (error) {
@@ -629,10 +575,7 @@ export const taskApi = {
   },
 
   // Task Attachment operations
-  uploadAttachment: async (
-    taskId: string,
-    file: File
-  ): Promise<TaskAttachment> => {
+  uploadAttachment: async (taskId: string, file: File): Promise<TaskAttachment> => {
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -655,14 +598,9 @@ export const taskApi = {
     }
   },
 
-  createAttachment: async (
-    attachmentData: CreateAttachmentRequest
-  ): Promise<TaskAttachment> => {
+  createAttachment: async (attachmentData: CreateAttachmentRequest): Promise<TaskAttachment> => {
     try {
-      const response = await api.post<TaskAttachment>(
-        "/task-attachments",
-        attachmentData
-      );
+      const response = await api.post<TaskAttachment>("/task-attachments", attachmentData);
       return response.data;
     } catch (error) {
       console.error("Create attachment error:", error);
@@ -670,20 +608,13 @@ export const taskApi = {
     }
   },
 
-  getTaskAttachments: async (
-    taskId: string,
-    isAuth: boolean
-  ): Promise<TaskAttachment[]> => {
+  getTaskAttachments: async (taskId: string, isAuth: boolean): Promise<TaskAttachment[]> => {
     try {
       let response;
       if (isAuth) {
-        response = await api.get<TaskAttachment[]>(
-          `/task-attachments/task/${taskId}`
-        );
+        response = await api.get<TaskAttachment[]>(`/task-attachments/task/${taskId}`);
       } else {
-        response = await api.get<TaskAttachment[]>(
-          `/public/project-tasks/attachments/${taskId}`
-        );
+        response = await api.get<TaskAttachment[]>(`/public/project-tasks/attachments/${taskId}`);
       }
       return response.data;
     } catch (error) {
@@ -694,9 +625,7 @@ export const taskApi = {
 
   getAttachmentById: async (attachmentId: string): Promise<TaskAttachment> => {
     try {
-      const response = await api.get<TaskAttachment>(
-        `/task-attachments/${attachmentId}`
-      );
+      const response = await api.get<TaskAttachment>(`/task-attachments/${attachmentId}`);
       return response.data;
     } catch (error) {
       console.error("Get attachment by ID error:", error);
@@ -706,12 +635,9 @@ export const taskApi = {
 
   downloadAttachment: async (attachmentId: string): Promise<Blob> => {
     try {
-      const response = await api.get(
-        `/task-attachments/${attachmentId}/download`,
-        {
-          responseType: "blob",
-        }
-      );
+      const response = await api.get(`/task-attachments/${attachmentId}/download`, {
+        responseType: "blob",
+      });
       return response.data;
     } catch (error) {
       console.error("Download attachment error:", error);
@@ -745,10 +671,7 @@ export const taskApi = {
         }
       } else {
         // Normal JSON response
-        message =
-          error?.response?.data?.message ||
-          error?.message ||
-          "Failed to preview file.";
+        message = error?.response?.data?.message || error?.message || "Failed to preview file.";
       }
 
       throw { message, status };
@@ -758,9 +681,7 @@ export const taskApi = {
   getAttachmentStats: async (taskId?: string): Promise<AttachmentStats> => {
     try {
       const query = taskId ? `?taskId=${taskId}` : "";
-      const response = await api.get<AttachmentStats>(
-        `/task-attachments/stats${query}`
-      );
+      const response = await api.get<AttachmentStats>(`/task-attachments/stats${query}`);
       return response.data;
     } catch (error) {
       console.error("Get attachment stats error:", error);
@@ -768,14 +689,9 @@ export const taskApi = {
     }
   },
 
-  deleteAttachment: async (
-    attachmentId: string,
-    requestUserId: string
-  ): Promise<void> => {
+  deleteAttachment: async (attachmentId: string, requestUserId: string): Promise<void> => {
     try {
-      await api.delete(
-        `/task-attachments/${attachmentId}?requestUserId=${requestUserId}`
-      );
+      await api.delete(`/task-attachments/${attachmentId}?requestUserId=${requestUserId}`);
     } catch (error) {
       console.error("Delete attachment error:", error);
       throw error;
@@ -795,9 +711,7 @@ export const taskApi = {
 
   getProjectLabels: async (projectId: string): Promise<TaskLabel[]> => {
     try {
-      const response = await api.get<TaskLabel[]>(
-        `/labels?projectId=${projectId}`
-      );
+      const response = await api.get<TaskLabel[]>(`/labels?projectId=${projectId}`);
       return response.data;
     } catch (error) {
       console.error("Get project labels error:", error);
@@ -815,15 +729,9 @@ export const taskApi = {
     }
   },
 
-  updateLabel: async (
-    labelId: string,
-    labelData: UpdateLabelRequest
-  ): Promise<TaskLabel> => {
+  updateLabel: async (labelId: string, labelData: UpdateLabelRequest): Promise<TaskLabel> => {
     try {
-      const response = await api.patch<TaskLabel>(
-        `/labels/${labelId}`,
-        labelData
-      );
+      const response = await api.patch<TaskLabel>(`/labels/${labelId}`, labelData);
       return response.data;
     } catch (error) {
       console.error("Update label error:", error);
@@ -849,9 +757,7 @@ export const taskApi = {
     }
   },
 
-  assignMultipleLabelsToTask: async (
-    assignData: AssignMultipleLabelsRequest
-  ): Promise<void> => {
+  assignMultipleLabelsToTask: async (assignData: AssignMultipleLabelsRequest): Promise<void> => {
     try {
       await api.post("/task-labels/assign-multiple", assignData);
     } catch (error) {
@@ -860,10 +766,7 @@ export const taskApi = {
     }
   },
 
-  removeLabelFromTask: async (
-    taskId: string,
-    labelId: string
-  ): Promise<void> => {
+  removeLabelFromTask: async (taskId: string, labelId: string): Promise<void> => {
     try {
       await api.delete(`/task-labels/${taskId}/${labelId}`);
     } catch (error) {
@@ -874,9 +777,7 @@ export const taskApi = {
 
   getTaskLabels: async (taskId: string): Promise<TaskLabel[]> => {
     try {
-      const response = await api.get<TaskLabel[]>(
-        `/task-labels?taskId=${taskId}`
-      );
+      const response = await api.get<TaskLabel[]>(`/task-labels?taskId=${taskId}`);
       return response.data;
     } catch (error) {
       console.error("Get task labels error:", error);
@@ -884,10 +785,7 @@ export const taskApi = {
     }
   },
 
-  searchLabels: async (
-    projectId: string,
-    query: string
-  ): Promise<TaskLabel[]> => {
+  searchLabels: async (projectId: string, query: string): Promise<TaskLabel[]> => {
     try {
       const response = await api.get<TaskLabel[]>(
         `/labels/search?projectId=${projectId}&q=${encodeURIComponent(query)}`
@@ -914,12 +812,9 @@ export const taskApi = {
     params: GetTasksParams = {}
   ): Promise<TasksResponse> => {
     try {
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(organizationId)) {
-        throw new Error(
-          `Invalid organizationId format: ${organizationId}. Expected UUID format.`
-        );
+        throw new Error(`Invalid organizationId format: ${organizationId}. Expected UUID format.`);
       }
 
       // Build query parameters
@@ -999,8 +894,7 @@ export const taskApi = {
     priorities?: ("LOW" | "MEDIUM" | "HIGH" | "HIGHEST")[];
   }): Promise<PaginatedTaskResponse> => {
     try {
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(params.organizationId)) {
         throw new Error(
           `Invalid organizationId format: ${params.organizationId}. Expected UUID format.`
@@ -1042,9 +936,7 @@ export const taskApi = {
     } catch (error: any) {
       if (error.response?.status === 400) {
         console.error("Invalid request parameters:", error.response.data);
-        throw new Error(
-          error.response.data.message || "Invalid request parameters"
-        );
+        throw new Error(error.response.data.message || "Invalid request parameters");
       }
       console.error("Get filtered tasks error:", error);
       throw error;
@@ -1066,7 +958,7 @@ export const taskApi = {
   bulkDeleteTasks: async (
     taskIds: string[],
     projectId?: string,
-    allDelete?: boolean,
+    allDelete?: boolean
   ): Promise<{
     deletedCount: number;
     failedTasks: Array<{ id: string; reason: string }>;
@@ -1078,7 +970,7 @@ export const taskApi = {
       }>({
         url: `/tasks/bulk-delete`,
         method: "POST",
-        data: { taskIds , projectId, all: allDelete},
+        data: { taskIds, projectId, all: allDelete },
       });
 
       return response.data;

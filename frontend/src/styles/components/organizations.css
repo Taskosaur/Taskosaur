@@ -194,12 +194,12 @@
 
 .organizations-members-table-header {
   @apply px-4 py-3 border-b border-[var(--border)];
-   min-width: 640px;
+  min-width: 640px;
 }
 
 .organizations-members-table-header-grid {
   @apply grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider;
-   min-width: 640px;
+  min-width: 640px;
 }
 
 .organizations-members-table-body {

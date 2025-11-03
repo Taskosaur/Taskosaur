@@ -1,5 +1,12 @@
 import { HiExclamationTriangle } from "react-icons/hi2";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
 import { Button } from "../ui";
 
 export const DeleteConfirmModal = ({
@@ -26,10 +33,8 @@ export const DeleteConfirmModal = ({
         </DialogTitle>
         <DialogDescription className="text-center text-[var(--muted-foreground)]">
           Are you sure you want to delete{" "}
-          <span className="font-semibold text-[var(--foreground)]">
-            "{sprintName}"
-          </span>
-          ? This action cannot be undone and will remove all associated data.
+          <span className="font-semibold text-[var(--foreground)]">"{sprintName}"</span>? This
+          action cannot be undone and will remove all associated data.
         </DialogDescription>
       </DialogHeader>
       <DialogFooter className="gap-2 mt-4 flex flex-row">

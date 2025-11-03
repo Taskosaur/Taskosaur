@@ -35,9 +35,7 @@ import { ProjectInviteMemberModal } from "@/components/projects/ProjectInviteMem
 import Tooltip from "@/components/common/ToolTip";
 import { roles } from "@/utils/data/projectData";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
-import PendingInvitations, {
-  PendingInvitationsRef,
-} from "@/components/common/PendingInvitations";
+import PendingInvitations, { PendingInvitationsRef } from "@/components/common/PendingInvitations";
 import WorkspaceMembersSkeleton from "@/components/skeletons/WorkspaceMembersSkeleton";
 import ErrorState from "@/components/common/ErrorState";
 import Pagination from "@/components/common/Pagination";
@@ -147,9 +145,7 @@ function ProjectMembersContent() {
     if (!workspace?.id) return;
     getUserAccess({ name: "workspace", id: workspace?.id })
       .then((data) => {
-        setHasAccess(
-          data?.canChange || data?.role === "OWNER" || data?.role === "MANAGER"
-        );
+        setHasAccess(data?.canChange || data?.role === "OWNER" || data?.role === "MANAGER");
       })
       .catch((error) => {
         console.error("Error fetching user access:", error);
@@ -161,9 +157,7 @@ function ProjectMembersContent() {
     getUserAccess({ name: "project", id: project?.id })
       .then((data) => {
         setUserAccess(data);
-        setHasAccess(
-          data?.canChange || data?.role === "OWNER" || data?.role === "MANAGER"
-        );
+        setHasAccess(data?.canChange || data?.role === "OWNER" || data?.role === "MANAGER");
       })
       .catch((error) => {
         console.error("Error fetching user access:", error);
@@ -180,11 +174,7 @@ function ProjectMembersContent() {
 
   // Check if current user can manage members
   const canManageMembers = () => {
-    return (
-      userAccess?.role === "OWNER" ||
-      userAccess?.role === "MANAGER" ||
-      hasAccess
-    );
+    return userAccess?.role === "OWNER" || userAccess?.role === "MANAGER" || hasAccess;
   };
 
   // Check if a member's role can be updated
@@ -274,8 +264,7 @@ function ProjectMembersContent() {
         if (requestIdRef.current !== requestId || !isMountedRef.current) {
           return;
         }
-        const workspaceData =
-          workspace || (await getWorkspaceBySlug(workspaceSlug));
+        const workspaceData = workspace || (await getWorkspaceBySlug(workspaceSlug));
         if (!workspaceData) {
           setError("Workspace not found");
           setLoading(false);
@@ -283,9 +272,7 @@ function ProjectMembersContent() {
         }
         setWorkspace(workspaceData);
         const projectsData = await getProjectsByWorkspace(workspaceData.id);
-        const foundProject = projectsData?.find(
-          (p: any) => p.slug === projectSlug
-        );
+        const foundProject = projectsData?.find((p: any) => p.slug === projectSlug);
         if (!foundProject) {
           setError("Project not found");
           setLoading(false);
@@ -312,30 +299,22 @@ function ProjectMembersContent() {
           }
           setTotalMembers(membersData.total);
           if (Array.isArray(membersData.data) && membersData.data.length > 0) {
-            const processedMembers = membersData.data.map(
-              (member: ProjectMember) => ({
-                id: member.id,
-                email: member.user?.email || "",
-                firstName: member.user?.firstName || "Unknown",
-                lastName: member.user?.lastName || "User",
-                username: member.user?.username || "",
-                role: member.role || "DEVELOPER",
-                status: member.user?.status || "ACTIVE",
-                avatarUrl: member.user?.avatar || "",
-                joinedAt:
-                  member.joinedAt ||
-                  member.createdAt ||
-                  new Date().toISOString(),
-                lastActive: member.user?.lastLoginAt || "",
-                userId: member?.userId,
-                projectId: member?.projectId,
-              })
-            );
+            const processedMembers = membersData.data.map((member: ProjectMember) => ({
+              id: member.id,
+              email: member.user?.email || "",
+              firstName: member.user?.firstName || "Unknown",
+              lastName: member.user?.lastName || "User",
+              username: member.user?.username || "",
+              role: member.role || "DEVELOPER",
+              status: member.user?.status || "ACTIVE",
+              avatarUrl: member.user?.avatar || "",
+              joinedAt: member.joinedAt || member.createdAt || new Date().toISOString(),
+              lastActive: member.user?.lastLoginAt || "",
+              userId: member?.userId,
+              projectId: member?.projectId,
+            }));
             setMembers(processedMembers);
-            fetchPrevention.markFetchComplete(
-              "project-members",
-              processedMembers
-            );
+            fetchPrevention.markFetchComplete("project-members", processedMembers);
           } else {
             setMembers([]);
             fetchPrevention.markFetchComplete("project-members", []);
@@ -406,9 +385,7 @@ function ProjectMembersContent() {
     };
   }, []);
 
-  const activeMembers = members.filter(
-    (member) => member.status?.toLowerCase() !== "pending"
-  );
+  const activeMembers = members.filter((member) => member.status?.toLowerCase() !== "pending");
 
   const refreshMembers = async () => {
     if (!project) return;
@@ -422,23 +399,20 @@ function ProjectMembersContent() {
       );
 
       if (Array.isArray(membersData.data) && membersData.data.length > 0) {
-        const processedMembers = membersData.data.map(
-          (member: ProjectMember) => ({
-            id: member.id,
-            email: member.user?.email || "",
-            firstName: member.user?.firstName || "Unknown",
-            lastName: member.user?.lastName || "User",
-            username: member.user?.username || "",
-            role: member.role || "DEVELOPER",
-            status: member.user?.status || "ACTIVE",
-            avatarUrl: member.user?.avatar,
-            joinedAt:
-              member.joinedAt || member.createdAt || new Date().toISOString(),
-            lastActive: member.user?.lastLoginAt,
-            userId: member?.userId,
-            projectId: member?.projectId,
-          })
-        );
+        const processedMembers = membersData.data.map((member: ProjectMember) => ({
+          id: member.id,
+          email: member.user?.email || "",
+          firstName: member.user?.firstName || "Unknown",
+          lastName: member.user?.lastName || "User",
+          username: member.user?.username || "",
+          role: member.role || "DEVELOPER",
+          status: member.user?.status || "ACTIVE",
+          avatarUrl: member.user?.avatar,
+          joinedAt: member.joinedAt || member.createdAt || new Date().toISOString(),
+          lastActive: member.user?.lastLoginAt,
+          userId: member?.userId,
+          projectId: member?.projectId,
+        }));
         setMembers(processedMembers);
       } else {
         setMembers([]);
@@ -489,8 +463,7 @@ function ProjectMembersContent() {
       await refreshMembers();
       toast.success("Member role updated successfully");
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to update role";
+      const errorMessage = err instanceof Error ? err.message : "Failed to update role";
       toast.error(errorMessage);
     } finally {
       setUpdatingMember(null);
@@ -519,9 +492,7 @@ function ProjectMembersContent() {
 
       toast.success("Member removed successfully");
     } catch (err) {
-      const errorMessage = err.message
-        ? err.message
-        : "Failed to remove member";
+      const errorMessage = err.message ? err.message : "Failed to remove member";
       toast.error(errorMessage);
       setMemberToRemove(null);
     } finally {
@@ -560,9 +531,7 @@ function ProjectMembersContent() {
       }
     } catch (error: any) {
       const errorMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Failed to send invitation";
+        error?.response?.data?.message || error?.message || "Failed to send invitation";
       toast.error(errorMessage);
       console.error("Invite member error:", error);
       throw error;
@@ -595,10 +564,7 @@ function ProjectMembersContent() {
   }
 
   return (
-    <div
-      className="dashboard-container space-y-6 pt-0"
-      data-automation-id="invite-member-btn"
-    >
+    <div className="dashboard-container space-y-6 pt-0" data-automation-id="invite-member-btn">
       <PageHeader
         title={`${project?.name || "Project"} Members`}
         description={
@@ -732,11 +698,11 @@ function ProjectMembersContent() {
                                     isCurrentUser
                                       ? "Leave Project"
                                       : isOwner
-                                      ? "Project owner cannot be removed"
-                                      : userAccess?.role === "MANAGER" &&
-                                        member.role === "MANAGER"
-                                      ? "Cannot remove other managers"
-                                      : "Remove Member"
+                                        ? "Project owner cannot be removed"
+                                        : userAccess?.role === "MANAGER" &&
+                                            member.role === "MANAGER"
+                                          ? "Cannot remove other managers"
+                                          : "Remove Member"
                                   }
                                   position="top"
                                   color="danger"
@@ -759,9 +725,7 @@ function ProjectMembersContent() {
                               {canEditRole ? (
                                 <Select
                                   value={member.role}
-                                  onValueChange={(value) =>
-                                    handleRoleUpdate(member.id, value)
-                                  }
+                                  onValueChange={(value) => handleRoleUpdate(member.id, value)}
                                   disabled={updatingMember === member.id}
                                 >
                                   <SelectTrigger className="h-8 text-xs border-[var(--border)] bg-background text-[var(--foreground)] w-auto min-w-[100px]">
@@ -774,8 +738,7 @@ function ProjectMembersContent() {
                                         value={role.name}
                                         className="hover:bg-[var(--hover-bg)]"
                                       >
-                                        {role.name.charAt(0) +
-                                          role.name.slice(1).toLowerCase()}
+                                        {role.name.charAt(0) + role.name.slice(1).toLowerCase()}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -846,9 +809,7 @@ function ProjectMembersContent() {
                               {canEditRole ? (
                                 <Select
                                   value={member.role}
-                                  onValueChange={(value) =>
-                                    handleRoleUpdate(member.id, value)
-                                  }
+                                  onValueChange={(value) => handleRoleUpdate(member.id, value)}
                                   disabled={updatingMember === member.id}
                                 >
                                   <SelectTrigger className="h-7 text-xs border-none shadow-none bg-background text-[var(--foreground)]">
@@ -861,8 +822,7 @@ function ProjectMembersContent() {
                                         value={role.name}
                                         className="hover:bg-[var(--hover-bg)]"
                                       >
-                                        {role.name.charAt(0) +
-                                          role.name.slice(1).toLowerCase()}
+                                        {role.name.charAt(0) + role.name.slice(1).toLowerCase()}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -886,11 +846,11 @@ function ProjectMembersContent() {
                                     isCurrentUser
                                       ? "Leave Project"
                                       : isOwner
-                                      ? "Project owner cannot be removed"
-                                      : userAccess?.role === "MANAGER" &&
-                                        member.role === "MANAGER"
-                                      ? "Cannot remove other managers"
-                                      : "Remove Member"
+                                        ? "Project owner cannot be removed"
+                                        : userAccess?.role === "MANAGER" &&
+                                            member.role === "MANAGER"
+                                          ? "Cannot remove other managers"
+                                          : "Remove Member"
                                   }
                                   position="top"
                                   color="danger"
@@ -913,7 +873,7 @@ function ProjectMembersContent() {
                     );
                   })}
                   <div className="px-4">
-                    {totalMembers> 10 && (
+                    {totalMembers > 10 && (
                       <Pagination
                         pagination={{
                           currentPage: currentPage,
@@ -964,9 +924,7 @@ function ProjectMembersContent() {
                 </div>
                 <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
                   <span>Members:</span>
-                  <span className="font-medium text-[var(--foreground)]">
-                    {members.length}
-                  </span>
+                  <span className="font-medium text-[var(--foreground)]">{members.length}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
                   <span>Active Members:</span>
@@ -990,18 +948,11 @@ function ProjectMembersContent() {
               <div className="space-y-2">
                 {roles.map((role) => {
                   const count = members.filter(
-                    (m) =>
-                      m.role === role.name &&
-                      m.status?.toLowerCase() !== "pending"
+                    (m) => m.role === role.name && m.status?.toLowerCase() !== "pending"
                   ).length;
                   return (
-                    <div
-                      key={role.id}
-                      className="flex items-center justify-between text-xs"
-                    >
-                      <span className="text-[var(--muted-foreground)]">
-                        {role.name}
-                      </span>
+                    <div key={role.id} className="flex items-center justify-between text-xs">
+                      <span className="text-[var(--muted-foreground)]">{role.name}</span>
                       <Badge
                         variant={role.variant}
                         className="h-5 px-2 text-xs border-none bg-[var(--primary)]/10 text-[var(--primary)]"
@@ -1039,19 +990,13 @@ function ProjectMembersContent() {
           isOpen={true}
           onClose={() => setMemberToRemove(null)}
           onConfirm={() => handleRemoveMember(memberToRemove)}
-          title={
-            memberToRemove.userId === getCurrentUserId()
-              ? "Leave Project"
-              : "Remove Member"
-          }
+          title={memberToRemove.userId === getCurrentUserId() ? "Leave Project" : "Remove Member"}
           message={
             memberToRemove.userId === getCurrentUserId()
               ? "Are you sure you want to leave this project? You will lose access to all project resources."
               : "Are you sure you want to remove this member from the Project?"
           }
-          confirmText={
-            memberToRemove.userId === getCurrentUserId() ? "Leave" : "Remove"
-          }
+          confirmText={memberToRemove.userId === getCurrentUserId() ? "Leave" : "Remove"}
           cancelText="Cancel"
         />
       )}

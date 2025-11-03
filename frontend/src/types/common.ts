@@ -20,7 +20,7 @@ export interface Deadline {
   id: string;
   title: string;
   slug?: string;
-  type: 'project' | 'task';
+  type: "project" | "task";
   workspace?: string; // Assuming workspace is identified by a string ID or name
   workspaceSlug?: string;
   projectSlug?: string;

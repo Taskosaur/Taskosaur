@@ -1,21 +1,17 @@
-
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useProject } from '@/contexts/project-context';
-import { useWorkspace } from '@/contexts/workspace-context';
-import {
-  getCurrentProjectId,
-  setCurrentProjectId,
-} from '@/utils/hierarchyContext';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useProject } from "@/contexts/project-context";
+import { useWorkspace } from "@/contexts/workspace-context";
+import { getCurrentProjectId, setCurrentProjectId } from "@/utils/hierarchyContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/DropdownMenu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { HiChevronDown, HiCheck } from 'react-icons/hi2';
-import { Project } from '@/types';
+} from "@/components/ui/DropdownMenu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { HiChevronDown, HiCheck } from "react-icons/hi2";
+import { Project } from "@/types";
 
 interface ProjectSelectorProps {
   currentWorkspaceSlug: string | null;
@@ -45,24 +41,23 @@ export default function ProjectSelector({
   }, [currentWorkspaceSlug]);
 
   /* ---------------- fetch projects ---------------- */
-useEffect(() => {
-  if (!currentWorkspace?.id) return;
+  useEffect(() => {
+    if (!currentWorkspace?.id) return;
 
-  const fetchProjects = async () => {
-    setIsLoading(true);
-    try {
-      const data = await getProjectsByWorkspace(currentWorkspace.id);
-      setProjects(data ?? []);
-    } catch (error) {
-      console.error("Failed to fetch projects:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const fetchProjects = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getProjectsByWorkspace(currentWorkspace.id);
+        setProjects(data ?? []);
+      } catch (error) {
+        console.error("Failed to fetch projects:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  fetchProjects();
-}, [currentWorkspace?.id]);
-
+    fetchProjects();
+  }, [currentWorkspace?.id]);
 
   /* ---------------- resolve current project ---------------- */
   useEffect(() => {
@@ -74,10 +69,7 @@ useEffect(() => {
     // 1. Try URL slug
     let project =
       currentProjectSlug &&
-      projects.find(
-        (p) =>
-          (p.slug || slugify(p.name)) === currentProjectSlug
-      );
+      projects.find((p) => (p.slug || slugify(p.name)) === currentProjectSlug);
 
     // 2. Fallback to localStorage id
     if (!project) {
@@ -92,7 +84,7 @@ useEffect(() => {
     if (!currentWorkspaceSlug) return;
 
     setCurrentProjectId(project.id);
-    window.dispatchEvent(new CustomEvent('projectChanged'));
+    window.dispatchEvent(new CustomEvent("projectChanged"));
 
     router.replace(`/${currentWorkspaceSlug}/${project.slug || slugify(project.name)}`);
   };
@@ -103,10 +95,10 @@ useEffect(() => {
     s
       .toLowerCase()
       .trim()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
 
   /* ---------------- render ---------------- */
   return (
@@ -115,9 +107,9 @@ useEffect(() => {
         <div className="layout-project-selector-trigger">
           <div
             className="layout-project-selector-icon"
-            style={{ backgroundColor: currentProject?.color || 'var(--sidebar-primary)' }}
+            style={{ backgroundColor: currentProject?.color || "var(--sidebar-primary)" }}
           >
-            {currentProject ? getProjectKey(currentProject) : 'P'}
+            {currentProject ? getProjectKey(currentProject) : "P"}
           </div>
 
           <div className="layout-project-selector-content">
@@ -125,7 +117,7 @@ useEffect(() => {
               <div className="layout-project-selector-loading" />
             ) : (
               <div className="layout-project-selector-title">
-                {currentProject ? currentProject.name : 'Select Project'}
+                {currentProject ? currentProject.name : "Select Project"}
               </div>
             )}
           </div>
@@ -144,15 +136,13 @@ useEffect(() => {
             key={project.id}
             onClick={() => handleProjectSelect(project)}
             className={`layout-project-selector-item ${
-              currentProject?.id === project.id
-                ? 'layout-project-selector-item-selected'
-                : ''
+              currentProject?.id === project.id ? "layout-project-selector-item-selected" : ""
             }`}
           >
             <Avatar className="layout-project-selector-item-avatar">
               <AvatarFallback
                 className="layout-project-selector-item-avatar-fallback"
-                style={{ backgroundColor: project.color || 'var(--primary)' }}
+                style={{ backgroundColor: project.color || "var(--primary)" }}
               >
                 {getProjectKey(project)}
               </AvatarFallback>
@@ -161,7 +151,7 @@ useEffect(() => {
             <div className="layout-project-selector-item-content">
               <div className="layout-project-selector-item-name">{project.name}</div>
               <div className="layout-project-selector-item-description">
-                {project.description || 'No description'}
+                {project.description || "No description"}
               </div>
             </div>
 

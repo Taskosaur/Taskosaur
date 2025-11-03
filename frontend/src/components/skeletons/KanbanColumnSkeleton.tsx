@@ -13,10 +13,7 @@ export const KanbanColumnSkeleton: React.FC<KanbanColumnSkeletonProps> = ({
   return (
     <div className="flex gap-4 w-full">
       {Array.from({ length: columnCount }).map((_, colIdx) => (
-        <div
-          key={colIdx}
-          className="kanban-column-container animate-pulse flex-1"
-        >
+        <div key={colIdx} className="kanban-column-container animate-pulse flex-1">
           <div className="kanban-column-wrapper bg-[var(--muted)] rounded-md shadow-sm border border-[var(--border)]">
             <div className="kanban-column-header p-3 flex items-center justify-between border-b border-[var(--border)]">
               <div className="flex items-center gap-2">

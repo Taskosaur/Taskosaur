@@ -32,9 +32,7 @@ interface OrganizationAnalyticsProps {
   organizationId: string;
 }
 
-export function OrganizationAnalytics({
-  organizationId,
-}: OrganizationAnalyticsProps) {
+export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsProps) {
   const {
     analyticsData: data,
     analyticsLoading: loading,
@@ -48,9 +46,7 @@ export function OrganizationAnalytics({
   const [showTodayAgenda, setShowTodayAgenda] = useState(false);
 
   // Widget configuration
-  const [widgets, setWidgets] = useState<Widget[]>(
-    organizationAnalyticsWidgets
-  );
+  const [widgets, setWidgets] = useState<Widget[]>(organizationAnalyticsWidgets);
 
   const [kpiCards, setKpiCards] = useState<KPICard[]>(organizationKPICards);
 
@@ -72,18 +68,14 @@ export function OrganizationAnalytics({
   const toggleWidget = (widgetId: string) => {
     setWidgets((prev) =>
       prev.map((widget) =>
-        widget.id === widgetId
-          ? { ...widget, visible: !widget.visible }
-          : widget
+        widget.id === widgetId ? { ...widget, visible: !widget.visible } : widget
       )
     );
   };
 
   const toggleKPICard = (cardId: string) => {
     setKpiCards((prev) =>
-      prev.map((card) =>
-        card.id === cardId ? { ...card, visible: !card.visible } : card
-      )
+      prev.map((card) => (card.id === cardId ? { ...card, visible: !card.visible } : card))
     );
   };
 
@@ -92,9 +84,7 @@ export function OrganizationAnalytics({
   };
 
   const resetKPICards = () => {
-    setKpiCards((prev) =>
-      prev.map((card) => ({ ...card, visible: card.isDefault }))
-    );
+    setKpiCards((prev) => prev.map((card) => ({ ...card, visible: card.isDefault })));
   };
 
   const showAllKPICards = () => {
@@ -103,15 +93,21 @@ export function OrganizationAnalytics({
 
   // Save preferences to localStorage
   useEffect(() => {
-    const widgetPreferences = widgets.reduce((acc, widget) => {
-      acc[widget.id] = widget.visible;
-      return acc;
-    }, {} as Record<string, boolean>);
+    const widgetPreferences = widgets.reduce(
+      (acc, widget) => {
+        acc[widget.id] = widget.visible;
+        return acc;
+      },
+      {} as Record<string, boolean>
+    );
 
-    const kpiPreferences = kpiCards.reduce((acc, card) => {
-      acc[card.id] = card.visible;
-      return acc;
-    }, {} as Record<string, boolean>);
+    const kpiPreferences = kpiCards.reduce(
+      (acc, card) => {
+        acc[card.id] = card.visible;
+        return acc;
+      },
+      {} as Record<string, boolean>
+    );
 
     localStorage.setItem(
       `organization-analytics-preferences-${organizationId}`,
@@ -124,9 +120,7 @@ export function OrganizationAnalytics({
 
   // Load preferences from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem(
-      `organization-analytics-preferences-${organizationId}`
-    );
+    const saved = localStorage.getItem(`organization-analytics-preferences-${organizationId}`);
 
     if (saved) {
       try {
@@ -191,11 +185,7 @@ export function OrganizationAnalytics({
     });
   };
 
-  if (error)
-    <ErrorState
-      error="Error loading organization analytics:"
-      onRetry={handleFetchData}
-    />;
+  if (error) <ErrorState error="Error loading organization analytics:" onRetry={handleFetchData} />;
 
   return (
     <div className="space-y-6">
@@ -222,11 +212,7 @@ export function OrganizationAnalytics({
                 <Calendar className="h-4 w-4" />
               </ActionButton>
             </Tooltip>
-            <Tooltip
-              content="Dashboard Settings"
-              position="left"
-              color="primary"
-            >
+            <Tooltip content="Dashboard Settings" position="left" color="primary">
               <DashboardSettingsDropdown sections={settingSections} />
             </Tooltip>
           </div>
@@ -236,15 +222,8 @@ export function OrganizationAnalytics({
       {/* No Data Message */}
       {!data && !loading && !error && (
         <Alert>
-          <AlertDescription>
-            No analytics data available for this organization.
-          </AlertDescription>
-          <Button
-            onClick={handleFetchData}
-            variant="outline"
-            size="sm"
-            className="mt-2"
-          >
+          <AlertDescription>No analytics data available for this organization.</AlertDescription>
+          <Button onClick={handleFetchData} variant="outline" size="sm" className="mt-2">
             Load Data
           </Button>
         </Alert>
@@ -256,8 +235,7 @@ export function OrganizationAnalytics({
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">No widgets to display</h3>
             <p className="text-muted-foreground">
-              All widgets are currently hidden. Use the customize button to show
-              widgets.
+              All widgets are currently hidden. Use the customize button to show widgets.
             </p>
             <Button onClick={resetWidgets} variant="outline" className="mt-4">
               Show All Widgets

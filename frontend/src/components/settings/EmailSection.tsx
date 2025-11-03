@@ -1,12 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import ActionButton from "@/components/common/ActionButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,23 +22,20 @@ export default function EmailSection() {
 
   const [loading, setLoading] = useState(false);
 
-  const handleEmailSubmit = useCallback(
-    async () => {
-      if (!currentUser || fetchingRef.current) return;
-      fetchingRef.current = true;
-      setLoading(true);
-      try {
-        await updateUserEmail(currentUser.id, { email });
-        toast.success("Email updated successfully!");
-      } catch {
-        toast.error("Failed to update email. Please try again.");
-      } finally {
-        setLoading(false);
-        fetchingRef.current = false;
-      }
-    },
-    [currentUser, email, updateUserEmail]
-  );
+  const handleEmailSubmit = useCallback(async () => {
+    if (!currentUser || fetchingRef.current) return;
+    fetchingRef.current = true;
+    setLoading(true);
+    try {
+      await updateUserEmail(currentUser.id, { email });
+      toast.success("Email updated successfully!");
+    } catch {
+      toast.error("Failed to update email. Please try again.");
+    } finally {
+      setLoading(false);
+      fetchingRef.current = false;
+    }
+  }, [currentUser, email, updateUserEmail]);
 
   return (
     <Card className="border-none bg-[var(--card)]">
@@ -67,7 +58,7 @@ export default function EmailSection() {
           </Badge>
         </div>
       </CardHeader>
-      
+
       <CardContent className="pt-0">
         <div className="space-y-3">
           <div className="space-y-1">

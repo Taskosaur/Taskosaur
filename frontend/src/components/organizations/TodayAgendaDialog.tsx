@@ -38,24 +38,21 @@ const getPriorityConfig = (priority: string) => {
     case "MEDIUM":
       return {
         color: "bg-amber-500",
-        bgClass:
-          "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400",
+        bgClass: "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400",
         iconClass: "text-amber-500",
         label: "Medium Priority",
       };
     case "LOW":
       return {
         color: "bg-green-500",
-        bgClass:
-          "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400",
+        bgClass: "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400",
         iconClass: "text-green-500",
         label: "Low Priority",
       };
     default:
       return {
         color: "bg-[var(--muted)]",
-        bgClass:
-          "bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]",
+        bgClass: "bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]",
         iconClass: "text-[var(--muted-foreground)]",
         label: "Normal",
       };
@@ -120,12 +117,8 @@ const TaskAgendaItem: React.FC<TaskAgendaItemProps> = ({ task, onClick }) => {
       aria-label={`Open task: ${task.title}`}
       title={`Click to view task details`}
     >
-     
-
       <div className="flex items-center gap-3 w-full">
-        <div
-          className={`w-1.5 h-1.5 rounded-full ${priorityConfig.color} flex-shrink-0`}
-        />
+        <div className={`w-1.5 h-1.5 rounded-full ${priorityConfig.color} flex-shrink-0`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
@@ -146,7 +139,7 @@ const TaskAgendaItem: React.FC<TaskAgendaItemProps> = ({ task, onClick }) => {
               </Badge>
             </div>
           </div>
-          
+
           {/* Consistent spacing for due date area */}
           <div className="flex items-center gap-1 mt-1.5 min-h-[16px]">
             {task.dueDate ? (
@@ -193,9 +186,7 @@ export function TodayAgendaDialog({
                 </div>
                 {upcomingTasks.length > 0 && (
                   <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-white">
-                      {upcomingTasks.length}
-                    </span>
+                    <span className="text-[10px] font-bold text-white">{upcomingTasks.length}</span>
                   </div>
                 )}
               </div>
@@ -217,11 +208,7 @@ export function TodayAgendaDialog({
             {upcomingTasks.length > 0 ? (
               <div className="space-y-3">
                 {upcomingTasks.map((task) => (
-                  <TaskAgendaItem
-                    key={task.id}
-                    task={task}
-                    onClick={handleTaskClick}
-                  />
+                  <TaskAgendaItem key={task.id} task={task} onClick={handleTaskClick} />
                 ))}
               </div>
             ) : (

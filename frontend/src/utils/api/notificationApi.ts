@@ -1,6 +1,13 @@
 import api from "@/lib/api";
-import { Notification, NotificationFilters, NotificationPriority, NotificationResponse, NotificationStats, NotificationType, RecentNotificationsResponse } from "@/types";
-
+import {
+  Notification,
+  NotificationFilters,
+  NotificationPriority,
+  NotificationResponse,
+  NotificationStats,
+  NotificationType,
+  RecentNotificationsResponse,
+} from "@/types";
 
 export const notificationApi = {
   // Get user notifications with filters and pagination
@@ -12,10 +19,7 @@ export const notificationApi = {
 
       // Add filters as query parameters
       if (filters.limit !== undefined) {
-        params.append(
-          "limit",
-          Math.min(Math.max(1, filters.limit), 100).toString()
-        );
+        params.append("limit", Math.min(Math.max(1, filters.limit), 100).toString());
       }
 
       if (filters.page !== undefined) {
@@ -34,10 +38,7 @@ export const notificationApi = {
         params.append("organizationId", filters.organizationId);
       }
 
-
-      const response = await api.get<NotificationResponse>(
-        `/notifications?${params.toString()}`
-      );
+      const response = await api.get<NotificationResponse>(`/notifications?${params.toString()}`);
 
       return response.data;
     } catch (error) {
@@ -47,15 +48,12 @@ export const notificationApi = {
   },
 
   // Get unread notification count
-  getUnreadNotificationCount: async (
-    organizationId?: string
-  ): Promise<{ count: number }> => {
+  getUnreadNotificationCount: async (organizationId?: string): Promise<{ count: number }> => {
     try {
       const params = new URLSearchParams();
       if (organizationId) {
         params.append("organizationId", organizationId);
       }
-
 
       const response = await api.get<{ count: number }>(
         `/notifications/unread-count?${params.toString()}`
@@ -79,16 +77,12 @@ export const notificationApi = {
       const params = new URLSearchParams();
 
       if (filters.limit !== undefined) {
-        params.append(
-          "limit",
-          Math.min(Math.max(1, filters.limit), 50).toString()
-        );
+        params.append("limit", Math.min(Math.max(1, filters.limit), 50).toString());
       }
 
       if (filters.organizationId) {
         params.append("organizationId", filters.organizationId);
       }
-
 
       const response = await api.get<RecentNotificationsResponse>(
         `/notifications/recent?${params.toString()}`
@@ -118,16 +112,12 @@ export const notificationApi = {
       }
 
       if (filters.limit !== undefined) {
-        params.append(
-          "limit",
-          Math.min(Math.max(1, filters.limit), 100).toString()
-        );
+        params.append("limit", Math.min(Math.max(1, filters.limit), 100).toString());
       }
 
       if (filters.organizationId) {
         params.append("organizationId", filters.organizationId);
       }
-
 
       const response = await api.get<NotificationResponse>(
         `/notifications/by-type/${type}?${params.toString()}`
@@ -141,23 +131,15 @@ export const notificationApi = {
   },
 
   // Get notification by ID
-  getNotificationById: async (
-    notificationId: string
-  ): Promise<Notification> => {
+  getNotificationById: async (notificationId: string): Promise<Notification> => {
     try {
       // Validate notificationId format
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(notificationId)) {
-        throw new Error(
-          `Invalid notificationId format: ${notificationId}. Expected UUID format.`
-        );
+        throw new Error(`Invalid notificationId format: ${notificationId}. Expected UUID format.`);
       }
 
-
-      const response = await api.get<Notification>(
-        `/notifications/${notificationId}`
-      );
+      const response = await api.get<Notification>(`/notifications/${notificationId}`);
 
       return response.data;
     } catch (error) {
@@ -167,19 +149,13 @@ export const notificationApi = {
   },
 
   // Mark notification as read
-  markNotificationAsRead: async (
-    notificationId: string
-  ): Promise<{ message: string }> => {
+  markNotificationAsRead: async (notificationId: string): Promise<{ message: string }> => {
     try {
       // Validate notificationId format
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(notificationId)) {
-        throw new Error(
-          `Invalid notificationId format: ${notificationId}. Expected UUID format.`
-        );
+        throw new Error(`Invalid notificationId format: ${notificationId}. Expected UUID format.`);
       }
-
 
       const response = await api.patch<{ message: string }>(
         `/notifications/${notificationId}/read`
@@ -193,15 +169,12 @@ export const notificationApi = {
   },
 
   // Mark all notifications as read
-  markAllNotificationsAsRead: async (
-    organizationId?: string
-  ): Promise<{ message: string }> => {
+  markAllNotificationsAsRead: async (organizationId?: string): Promise<{ message: string }> => {
     try {
       const params = new URLSearchParams();
       if (organizationId) {
         params.append("organizationId", organizationId);
       }
-
 
       const response = await api.patch<{ message: string }>(
         `/notifications/mark-all-read?${params.toString()}`
@@ -215,15 +188,12 @@ export const notificationApi = {
   },
 
   // Mark all unread notifications as read
-  markAllUnreadAsRead: async (
-    organizationId?: string
-  ): Promise<{ message: string }> => {
+  markAllUnreadAsRead: async (organizationId?: string): Promise<{ message: string }> => {
     try {
       const params = new URLSearchParams();
       if (organizationId) {
         params.append("organizationId", organizationId);
       }
-
 
       const response = await api.patch<{ message: string }>(
         `/notifications/mark-all-unread-read?${params.toString()}`
@@ -240,17 +210,12 @@ export const notificationApi = {
   deleteNotification: async (notificationId: string): Promise<void> => {
     try {
       // Validate notificationId format
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(notificationId)) {
-        throw new Error(
-          `Invalid notificationId format: ${notificationId}. Expected UUID format.`
-        );
+        throw new Error(`Invalid notificationId format: ${notificationId}. Expected UUID format.`);
       }
 
-
       await api.delete(`/notifications/${notificationId}`);
-
     } catch (error) {
       console.error("Failed to delete notification:", error);
       throw error;
@@ -258,31 +223,24 @@ export const notificationApi = {
   },
 
   // Delete multiple notifications
-  deleteMultipleNotifications: async (
-    notificationIds: string[]
-  ): Promise<void> => {
+  deleteMultipleNotifications: async (notificationIds: string[]): Promise<void> => {
     try {
       if (!Array.isArray(notificationIds) || notificationIds.length === 0) {
         throw new Error("notificationIds must be a non-empty array");
       }
 
       // Validate all notification IDs
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
       for (const id of notificationIds) {
         if (!uuidRegex.test(id)) {
-          throw new Error(
-            `Invalid notificationId format: ${id}. Expected UUID format.`
-          );
+          throw new Error(`Invalid notificationId format: ${id}. Expected UUID format.`);
         }
       }
-
 
       await api.delete("/notifications/bulk", {
         data: { notificationIds },
       });
-
     } catch (error) {
       console.error("Failed to delete multiple notifications:", error);
       throw error;
@@ -290,15 +248,12 @@ export const notificationApi = {
   },
 
   // Get notification statistics
-  getNotificationStats: async (
-    organizationId?: string
-  ): Promise<NotificationStats> => {
+  getNotificationStats: async (organizationId?: string): Promise<NotificationStats> => {
     try {
       const params = new URLSearchParams();
       if (organizationId) {
         params.append("organizationId", organizationId);
       }
-
 
       const response = await api.get<NotificationStats>(
         `/notifications/stats/summary?${params.toString()}`
@@ -346,7 +301,6 @@ export const notificationApi = {
     filters: Omit<NotificationFilters, "type"> = {}
   ): Promise<NotificationResponse[]> => {
     try {
-
       const taskNotificationTypes: NotificationType[] = [
         "TASK_ASSIGNED",
         "TASK_STATUS_CHANGED",
@@ -372,7 +326,6 @@ export const notificationApi = {
     deleteAfterRead: boolean = false
   ): Promise<{ message: string }> => {
     try {
-
       // First mark all as read
       await notificationApi.markAllNotificationsAsRead(organizationId);
 
@@ -399,7 +352,6 @@ export const notificationApi = {
   // Helper function to refresh notification count (useful for real-time updates)
   refreshNotificationData: async (organizationId?: string) => {
     try {
-
       const [unreadCount, recentNotifications, stats] = await Promise.all([
         notificationApi.getUnreadNotificationCount(organizationId),
         notificationApi.getRecentNotifications({ limit: 5, organizationId }),
@@ -449,19 +401,14 @@ export const notificationApi = {
   }> => {
     try {
       // Validate UUIDs
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
       if (!uuidRegex.test(userId)) {
-        throw new Error(
-          `Invalid userId format: ${userId}. Expected UUID format.`
-        );
+        throw new Error(`Invalid userId format: ${userId}. Expected UUID format.`);
       }
 
       if (!uuidRegex.test(organizationId)) {
-        throw new Error(
-          `Invalid organizationId format: ${organizationId}. Expected UUID format.`
-        );
+        throw new Error(`Invalid organizationId format: ${organizationId}. Expected UUID format.`);
       }
 
       const params = new URLSearchParams();
@@ -492,10 +439,7 @@ export const notificationApi = {
       }
 
       if (filters.limit !== undefined) {
-        params.append(
-          "limit",
-          Math.min(Math.max(1, filters.limit), 100).toString()
-        );
+        params.append("limit", Math.min(Math.max(1, filters.limit), 100).toString());
       }
       const response = await api.get(
         `/notifications/user/${userId}/organization/${organizationId}?${params.toString()}`

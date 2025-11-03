@@ -11,12 +11,7 @@ import {
 import { invitationApi } from "@/utils/api/invitationsApi";
 import { HiMail } from "react-icons/hi";
 import { Input, Label, Select } from "../ui";
-import {
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 export const ProjectInviteMemberModal = ({
   isOpen,
@@ -95,52 +90,42 @@ export const ProjectInviteMemberModal = ({
                 </p>
               )}
             </div>
-
-        <div>
-          <Label className="text-sm font-medium text-[var(--foreground)]">
-            Role
-          </Label>
-          <Select value={role} onValueChange={setRole}>
-            <SelectTrigger
-              className="projects-workspace-button border-none mt-1"
-              onFocus={(e) => {
-                e.currentTarget.style.boxShadow = "none";
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.boxShadow = "none";
-              }}
-            >
-              <SelectValue placeholder="Select a role">
-                {role && (
-                  <span className="text-[var(--foreground)]">{role}</span>
-                )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent className="border-none bg-[var(--card)]">
-              {availableRoles.map((r) => (
-                <SelectItem
-                  key={r.id}
-                  value={r.name}
-                  className="hover:bg-[var(--hover-bg)]"
+            <div>
+              <Label className="text-sm font-medium text-[var(--foreground)]">Role</Label>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger
+                  className="projects-workspace-button border-none mt-1"
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
                 >
-                  <div className="flex flex-col items-start py-1">
-                    <span className="font-medium text-[var(--foreground)]">
-                      {r.name}
-                    </span>
-                    <span className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                      {r.description}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {!role && (
-            <p className="text-xs text-[var(--muted-foreground)] mt-1">
-              Please select a role for the member
-            </p>
-          )}
-        </div>            <DialogFooter className="flex justify-end gap-3">
+                  <SelectValue placeholder="Select a role">
+                    {role && <span className="text-[var(--foreground)]">{role}</span>}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="border-none bg-[var(--card)]">
+                  {availableRoles.map((r) => (
+                    <SelectItem key={r.id} value={r.name} className="hover:bg-[var(--hover-bg)]">
+                      <div className="flex flex-col items-start py-1">
+                        <span className="font-medium text-[var(--foreground)]">{r.name}</span>
+                        <span className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                          {r.description}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!role && (
+                <p className="text-xs text-[var(--muted-foreground)] mt-1">
+                  Please select a role for the member
+                </p>
+              )}
+            </div>{" "}
+            <DialogFooter className="flex justify-end gap-3">
               <ActionButton
                 secondary
                 type="button"

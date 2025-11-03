@@ -43,7 +43,7 @@ export default function CreateWorkflowForm({
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = "Workflow name is required";
     } else if (formData.name.trim().length < 3) {
@@ -51,7 +51,8 @@ export default function CreateWorkflowForm({
     } else if (formData.name.trim().length > 50) {
       newErrors.name = "Workflow name must be less than 50 characters";
     } else if (!/^[a-zA-Z0-9\s\-_]+$/.test(formData.name.trim())) {
-      newErrors.name = "Workflow name can only contain letters, numbers, spaces, hyphens, and underscores";
+      newErrors.name =
+        "Workflow name can only contain letters, numbers, spaces, hyphens, and underscores";
     }
 
     if (formData.description && formData.description.length > 200) {
@@ -93,7 +94,7 @@ export default function CreateWorkflowForm({
 
   const handleClose = () => {
     if (isSubmitting) return;
-    
+
     setFormData({
       name: "",
       description: "",
@@ -119,10 +120,9 @@ export default function CreateWorkflowForm({
                 Create {isProjectLevel ? "project" : ""} workflow
               </DialogTitle>
               <DialogDescription className="projects-modal-description">
-                {isProjectLevel 
+                {isProjectLevel
                   ? "Create a new workflow for this project to define task statuses and flow"
-                  : "Create a new workflow template for use across multiple projects"
-                }
+                  : "Create a new workflow template for use across multiple projects"}
               </DialogDescription>
             </div>
           </div>
@@ -131,7 +131,10 @@ export default function CreateWorkflowForm({
         <form onSubmit={handleSubmit} className="projects-modal-form">
           {/* Error Alert */}
           {error && (
-            <Alert variant="destructive" className="bg-[var(--destructive)]/10 border-[var(--destructive)]/20 text-[var(--destructive)]">
+            <Alert
+              variant="destructive"
+              className="bg-[var(--destructive)]/10 border-[var(--destructive)]/20 text-[var(--destructive)]"
+            >
               <HiExclamationTriangle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
@@ -140,9 +143,9 @@ export default function CreateWorkflowForm({
           {/* Workflow Name */}
           <div className="projects-form-field">
             <Label htmlFor="name" className="projects-form-label">
-              <HiSparkles 
-                className="projects-form-label-icon" 
-                style={{ color: 'hsl(var(--primary))' }}
+              <HiSparkles
+                className="projects-form-label-icon"
+                style={{ color: "hsl(var(--primary))" }}
               />
               Workflow name <span className="projects-form-label-required">*</span>
             </Label>
@@ -150,38 +153,38 @@ export default function CreateWorkflowForm({
               id="name"
               placeholder="e.g., Development Workflow, Bug Triage Process"
               value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
               className="projects-form-input border-none"
-              style={{
-                '--tw-ring-color': 'hsl(var(--primary) / 0.2)',
-              } as any}
+              style={
+                {
+                  "--tw-ring-color": "hsl(var(--primary) / 0.2)",
+                } as any
+              }
               onFocus={(e) => {
-                e.target.style.boxShadow = 'none';
+                e.target.style.boxShadow = "none";
               }}
               onBlur={(e) => {
-                e.target.style.boxShadow = 'none';
+                e.target.style.boxShadow = "none";
               }}
               autoFocus
               disabled={isSubmitting || isLoading}
             />
             <p className="projects-form-hint">
-              <HiSparkles 
-                className="projects-form-hint-icon" 
-                style={{ color: 'hsl(var(--primary))' }}
+              <HiSparkles
+                className="projects-form-hint-icon"
+                style={{ color: "hsl(var(--primary))" }}
               />
               Choose a clear, descriptive name for your workflow.
             </p>
-            {errors.name && (
-              <p className="text-sm text-[var(--destructive)] mt-1">{errors.name}</p>
-            )}
+            {errors.name && <p className="text-sm text-[var(--destructive)] mt-1">{errors.name}</p>}
           </div>
 
           {/* Description */}
           <div className="projects-form-field">
             <Label htmlFor="description" className="projects-form-label">
-              <HiDocumentText 
-                className="projects-form-label-icon" 
-                style={{ color: 'hsl(var(--primary))' }}
+              <HiDocumentText
+                className="projects-form-label-icon"
+                style={{ color: "hsl(var(--primary))" }}
               />
               Description
             </Label>
@@ -189,21 +192,21 @@ export default function CreateWorkflowForm({
               id="description"
               placeholder="Describe the purpose and usage of this workflow..."
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
               className="projects-form-textarea border-none"
               rows={3}
               onFocus={(e) => {
-                e.target.style.boxShadow = 'none';
+                e.target.style.boxShadow = "none";
               }}
               onBlur={(e) => {
-                e.target.style.boxShadow = 'none';
+                e.target.style.boxShadow = "none";
               }}
               disabled={isSubmitting || isLoading}
             />
             <p className="projects-form-hint">
-              <HiDocumentText 
-                className="projects-form-hint-icon" 
-                style={{ color: 'hsl(var(--primary))' }}
+              <HiDocumentText
+                className="projects-form-hint-icon"
+                style={{ color: "hsl(var(--primary))" }}
               />
               Provide context about when and how this workflow should be used.
             </p>
@@ -218,22 +221,23 @@ export default function CreateWorkflowForm({
               <Checkbox
                 id="isDefault"
                 checked={formData.isDefault}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isDefault: checked as boolean }))}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({ ...prev, isDefault: checked as boolean }))
+                }
                 disabled={isSubmitting || isLoading}
                 className="border-[var(--border)] mt-1"
               />
               <div className="space-y-1 leading-none">
-                <Label 
-                  htmlFor="isDefault" 
+                <Label
+                  htmlFor="isDefault"
                   className="text-[var(--foreground)] font-medium cursor-pointer"
                 >
                   Set as default workflow
                 </Label>
                 <p className="text-sm text-[var(--muted-foreground)]">
-                  {isProjectLevel 
+                  {isProjectLevel
                     ? "This workflow will be used by default for new tasks in this project"
-                    : "This workflow will be used by default for new projects in your organization"
-                  }
+                    : "This workflow will be used by default for new projects in your organization"}
                 </p>
               </div>
             </div>
@@ -249,11 +253,7 @@ export default function CreateWorkflowForm({
             >
               Cancel
             </ActionButton>
-            <ActionButton
-              type="submit"
-              primary
-              disabled={!isValid || isSubmitting || isLoading}
-            >
+            <ActionButton type="submit" primary disabled={!isValid || isSubmitting || isLoading}>
               {isSubmitting || isLoading ? (
                 <>
                   <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />

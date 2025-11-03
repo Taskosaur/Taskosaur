@@ -40,18 +40,22 @@ const SortingManager: React.FC<SortingManagerProps> = ({
   onResetSort,
   availableFields = DEFAULT_SORT_FIELDS,
 }) => {
-  const groupedFields = availableFields.reduce((acc, field) => {
-    const validCategories = ["date", "text", "number", "user"] as const;
-    const category: "date" | "text" | "number" | "user" =
-      validCategories.includes(field.category as any)
+  const groupedFields = availableFields.reduce(
+    (acc, field) => {
+      const validCategories = ["date", "text", "number", "user"] as const;
+      const category: "date" | "text" | "number" | "user" = validCategories.includes(
+        field.category as any
+      )
         ? (field.category as "date" | "text" | "number" | "user")
         : "text";
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(field as SortFieldConfig);
-    return acc;
-  }, {} as Record<"date" | "text" | "number" | "user", SortFieldConfig[]>);
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(field as SortFieldConfig);
+      return acc;
+    },
+    {} as Record<"date" | "text" | "number" | "user", SortFieldConfig[]>
+  );
 
   const handleSortOrderToggle = () => {
     onSortOrderChange(sortOrder === "asc" ? "desc" : "asc");
@@ -83,11 +87,8 @@ const SortingManager: React.FC<SortingManagerProps> = ({
           </Button>
         </DropdownMenuTrigger>
       </Tooltip>
-     
-      <DropdownMenuContent
-        align="end"
-        className="w-64 bg-[var(--card)] border-[var(--border)]"
-      >
+
+      <DropdownMenuContent align="end" className="w-64 bg-[var(--card)] border-[var(--border)]">
         <DropdownMenuLabel className="text-xs font-semibold flex justify-between items-center">
           <span>Sort Options</span>
           <Tooltip content="Reset" position="top" color="primary">
@@ -110,9 +111,7 @@ const SortingManager: React.FC<SortingManagerProps> = ({
         <DropdownMenuSeparator />
         {/* Sort Direction Controls */}
         <div className="px-2">
-          <div className="text-xs font-medium text-[var(--foreground)] mb-2">
-            Direction
-          </div>
+          <div className="text-xs font-medium text-[var(--foreground)] mb-2">Direction</div>
           <div className="flex gap-1">
             <Button
               variant={sortOrder === "asc" ? "default" : "outline"}
@@ -165,9 +164,7 @@ const SortingManager: React.FC<SortingManagerProps> = ({
                   >
                     <div className="flex items-center gap-2">
                       <Icon className="w-4 h-4 text-gray-500" />
-                      <span className="text-xs text-muted-foreground">
-                        {field.label}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{field.label}</span>
                     </div>
                     {isActive && (
                       <HiCheckCircle className="w-4 h-4 text-[var(--primary)] animate-in zoom-in-50 duration-200" />

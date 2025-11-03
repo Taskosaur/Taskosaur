@@ -7,10 +7,7 @@ interface PriorityBadgeProps {
   className?: string;
 }
 
-const PriorityBadge: React.FC<PriorityBadgeProps> = ({
-  priority,
-  className,
-}) => {
+const PriorityBadge: React.FC<PriorityBadgeProps> = ({ priority, className }) => {
   const getPriorityConfig = (priority: string) => {
     const normalizedPriority = String(priority || "low").toLowerCase();
 

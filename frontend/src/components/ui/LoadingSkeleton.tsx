@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 interface LoadingSkeletonProps {
   className?: string;
@@ -6,7 +6,7 @@ interface LoadingSkeletonProps {
 
 export function LoadingSkeleton({ className }: LoadingSkeletonProps) {
   return (
-    <div className={cn('max-w-7xl mx-auto p-6', className)}>
+    <div className={cn("max-w-7xl mx-auto p-6", className)}>
       <div className="animate-pulse">
         <div className="h-6 skeleton-secondary w-1/4 mb-3"></div>
         <div className="h-4 skeleton-secondary w-1/2 mb-6"></div>

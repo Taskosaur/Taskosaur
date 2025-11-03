@@ -76,7 +76,7 @@
   .task-page-main {
     order: 1;
   }
-  
+
   .task-page-sidebar {
     order: 2;
   }
@@ -173,7 +173,9 @@
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
   max-height: 12rem;
   overflow-y: auto;
 }
@@ -1032,11 +1034,9 @@
   color: var(--red-400);
 }
 
-
 .wmde-markdown {
   background: var(--background) !important;
 }
-
 
 /* Hide up/down arrows in textarea (for Chrome, Edge, Safari) */
 .hide-arrows::-webkit-resizer,
@@ -1056,13 +1056,10 @@
 
 .task-md-editor {
   background: var(--background) !important;
-
 }
 
 .task-md-editor .w-md-editor-toolbar {
   background: var(--background) !important;
- 
-
 }
 .task-md-editor .w-md-editor-toolbar ul li button,
 .task-md-editor .w-md-editor-toolbar ul li svg {
@@ -1152,8 +1149,6 @@
   line-height: 1.6 !important;
 }
 
-
-
 .task-description-view .wmde-markdown p,
 .task-description-view .markdown-content p {
   margin: 0.75em 0 !important;
@@ -1205,8 +1200,6 @@
   color: var(--foreground) !important;
 }
 
-
-
 .task-description-view .wmde-markdown code,
 .task-description-view .markdown-content code {
   font-size: 13px !important;
@@ -1214,7 +1207,7 @@
   color: var(--foreground) !important;
   padding: 0.2em 0.4em !important;
   border-radius: 3px !important;
-  font-family: 'Monaco', 'Courier New', monospace !important;
+  font-family: "Monaco", "Courier New", monospace !important;
 }
 
 .task-description-view .wmde-markdown pre,
@@ -1255,7 +1248,6 @@
   padding-left: 1em !important;
   margin: 1em 0 !important;
   color: var(--muted-foreground) !important;
- 
 }
 
 .task-description-view .wmde-markdown a,
@@ -1320,7 +1312,7 @@
 /* Empty state styling */
 .task-description-view > div:first-child:last-child {
   color: var(--muted-foreground) !important;
- 
+
   font-size: 14px !important;
 }
 
@@ -1423,12 +1415,12 @@
   .activity-timeline {
     width: 16px;
   }
-  
+
   .timeline-bullet {
     width: 14px;
     height: 14px;
   }
-  
+
   .timeline-bullet-inner {
     width: 6px;
     height: 6px;

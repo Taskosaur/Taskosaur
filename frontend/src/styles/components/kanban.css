@@ -264,8 +264,6 @@
   @apply flex-1 h-8 text-sm;
 }
 
-
-
 /* Status Row - View Mode */
 .kanban-status-row-view {
   @apply flex items-center gap-3 p-3 rounded-lg cursor-move transition border;
@@ -308,7 +306,6 @@
   border-color: var(--border);
 }
 
-
 .kanban-status-row-menu-delete {
   @apply text-red-600 cursor-pointer hover:bg-[var(--muted)];
 }
@@ -332,8 +329,6 @@
   @apply flex-1 bg-transparent text-sm outline-none;
 }
 
-
-
 .kanban-add-status-button {
   @apply w-full gap-2 py-3 text-sm;
   color: var(--muted-foreground);
@@ -344,5 +339,3 @@
   @apply flex justify-between items-center pt-4 text-xs;
   color: var(--muted-foreground);
 }
-
-

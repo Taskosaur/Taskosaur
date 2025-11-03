@@ -12,12 +12,12 @@
 }
 
 .resize-handle::before {
-  content: '';
+  content: "";
   @apply absolute top-0 right-0 w-4 h-full -mr-2 cursor-ew-resize opacity-0;
 }
 
 .resize-handle::after {
-  content: '';
+  content: "";
   @apply absolute inset-0 opacity-0 bg-indigo-500 transition-opacity duration-200;
 }
 

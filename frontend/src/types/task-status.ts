@@ -7,8 +7,8 @@ export interface TaskStatus {
   category?: TaskCategory;
   position?: number;
   isDefault?: boolean;
-  description?:string;
-  order?:number,
+  description?: string;
+  order?: number;
   workflowId?: string;
   createdAt?: string;
   updatedAt?: string;

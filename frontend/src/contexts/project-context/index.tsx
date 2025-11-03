@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useMemo,
-  useCallback,
-} from "react";
+import React, { createContext, useContext, useState, useMemo, useCallback } from "react";
 import { projectApi } from "@/utils/api/projectApi";
 
 import { taskStatusApi } from "@/utils/api/taskStatusApi";
@@ -63,9 +57,7 @@ interface ProjectContextType extends ProjectState {
     isAuthenticated: boolean,
     workspaceSlug?: string
   ) => Promise<Project>;
-  archiveProject: (
-    projectId: string
-  ) => Promise<{ success: boolean; message: string }>;
+  archiveProject: (projectId: string) => Promise<{ success: boolean; message: string }>;
   getProjectsByOrganization: (
     organizationId: string,
     filters?: {
@@ -78,24 +70,14 @@ interface ProjectContextType extends ProjectState {
     }
   ) => Promise<Project[]>;
 
-  updateProject: (
-    projectId: string,
-    projectData: Partial<ProjectData>
-  ) => Promise<Project>;
-  deleteProject: (
-    projectId: string
-  ) => Promise<{ success: boolean; message: string }>;
+  updateProject: (projectId: string, projectData: Partial<ProjectData>) => Promise<Project>;
+  deleteProject: (projectId: string) => Promise<{ success: boolean; message: string }>;
   getProjectsByUserId: (userId: string) => Promise<Project[]>;
 
   // Project member methods
-  inviteMemberToProject: (
-    inviteData: InviteMemberData
-  ) => Promise<ProjectMember>;
+  inviteMemberToProject: (inviteData: InviteMemberData) => Promise<ProjectMember>;
   addMemberToProject: (memberData: AddMemberData) => Promise<ProjectMember>;
-  getProjectMembers: (
-    projectId: string,
-    search?: string
-  ) => Promise<ProjectMember[]>;
+  getProjectMembers: (projectId: string, search?: string) => Promise<ProjectMember[]>;
   getProjectMembersPagination: (
     projectId: string,
     search?: string,
@@ -106,9 +88,7 @@ interface ProjectContextType extends ProjectState {
     organizationId: string,
     search?: string
   ) => Promise<OrganizationMember[]>;
-  getProjectMembersByWorkspace: (
-    workspaceId: string
-  ) => Promise<ProjectMember[]>;
+  getProjectMembersByWorkspace: (workspaceId: string) => Promise<ProjectMember[]>;
   updateProjectMemberRole: (
     memberId: string,
     requestUserId: string,
@@ -135,17 +115,9 @@ interface ProjectContextType extends ProjectState {
   createTaskStatusFromProject: (
     taskStatusData: CreateTaskStatusFromProjectDto
   ) => Promise<TaskStatus>;
-  deleteTaskStatus: (
-    statusId: string
-  ) => Promise<{ success: boolean; message: string }>;
-  updateTaskStatus: (
-    statusId: string,
-    taskStatusData: UpdateTaskStatusDto
-  ) => Promise<TaskStatus>;
-  fetchAnalyticsData: (
-    organizationId: string,
-    isAuthenticated: boolean
-  ) => Promise<void>;
+  deleteTaskStatus: (statusId: string) => Promise<{ success: boolean; message: string }>;
+  updateTaskStatus: (statusId: string, taskStatusData: UpdateTaskStatusDto) => Promise<TaskStatus>;
+  fetchAnalyticsData: (organizationId: string, isAuthenticated: boolean) => Promise<void>;
   clearAnalyticsError: () => void;
 }
 
@@ -207,8 +179,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       }));
       throw error;
     }
-  },
-  []);
+  }, []);
   const fetchAnalyticsData = useCallback(
     async (projectSlug: string, isAuthenticated: boolean): Promise<void> => {
       try {
@@ -219,10 +190,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
           refreshingAnalytics: true,
         }));
 
-        const results = await projectApi.getAllCharts(
-          projectSlug,
-          isAuthenticated
-        );
+        const results = await projectApi.getAllCharts(projectSlug, isAuthenticated);
 
         // Process each chart and handle individual errors
         const processChartData = (data: any, chartName: string) => {
@@ -238,22 +206,10 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         };
 
         const analyticsData = {
-          taskStatus: processChartData(
-            results[ProjectChartType.TASK_STATUS],
-            "Task Status"
-          ),
-          taskType: processChartData(
-            results[ProjectChartType.TASK_TYPE],
-            "Task Type"
-          ),
-          kpiMetrics: processChartData(
-            results[ProjectChartType.KPI_METRICS],
-            "KPI Metrics"
-          ),
-          taskPriority: processChartData(
-            results[ProjectChartType.TASK_PRIORITY],
-            "Task Priority"
-          ),
+          taskStatus: processChartData(results[ProjectChartType.TASK_STATUS], "Task Status"),
+          taskType: processChartData(results[ProjectChartType.TASK_TYPE], "Task Type"),
+          kpiMetrics: processChartData(results[ProjectChartType.KPI_METRICS], "KPI Metrics"),
+          taskPriority: processChartData(results[ProjectChartType.TASK_PRIORITY], "Task Priority"),
           sprintVelocity: processChartData(
             results[ProjectChartType.SPRINT_VELOCITY],
             "Sprint Velocity"
@@ -268,9 +224,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         }));
       } catch (err) {
         console.error("Error fetching analytics data:", err);
-        const errorMessage = err?.message
-          ? err.message
-          : "Failed to load project analytics data";
+        const errorMessage = err?.message ? err.message : "Failed to load project analytics data";
 
         setProjectState((prev) => ({
           ...prev,
@@ -290,9 +244,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
       // Project methods with state management
       listProjects: async (): Promise<Project[]> => {
-        const result = await handleApiOperation(() =>
-          projectApi.listProjects()
-        );
+        const result = await handleApiOperation(() => projectApi.listProjects());
 
         setProjectState((prev) => ({
           ...prev,
@@ -303,9 +255,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       },
 
       createProject: async (projectData: ProjectData): Promise<Project> => {
-        const result = await handleApiOperation(() =>
-          projectApi.createProject(projectData)
-        );
+        const result = await handleApiOperation(() => projectApi.createProject(projectData));
 
         // Add new project to state
         setProjectState((prev) => ({
@@ -317,18 +267,12 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       },
 
       getProjectById: async (projectId: string): Promise<Project> => {
-        const result = await handleApiOperation(
-          () => projectApi.getProjectById(projectId),
-          false
-        );
+        const result = await handleApiOperation(() => projectApi.getProjectById(projectId), false);
 
         // Update current project if it's the same ID
         setProjectState((prev) => ({
           ...prev,
-          currentProject:
-            prev.currentProject?.id === projectId
-              ? result
-              : prev.currentProject,
+          currentProject: prev.currentProject?.id === projectId ? result : prev.currentProject,
         }));
 
         return result;
@@ -339,8 +283,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         workspaceSlug?: string
       ): Promise<Project> => {
         const result = await handleApiOperation(
-          () =>
-            projectApi.getProjectBySlug(slug, isAuthenticated, workspaceSlug),
+          () => projectApi.getProjectBySlug(slug, isAuthenticated, workspaceSlug),
           false
         );
         // Optionally update currentProject if slug matches
@@ -418,20 +361,14 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         return result;
       },
 
-      deleteProject: async (
-        projectId: string
-      ): Promise<{ success: boolean; message: string }> => {
-        const result = await handleApiOperation(
-          () => projectApi.deleteProject(projectId),
-          false
-        );
+      deleteProject: async (projectId: string): Promise<{ success: boolean; message: string }> => {
+        const result = await handleApiOperation(() => projectApi.deleteProject(projectId), false);
 
         // Remove project from state
         setProjectState((prev) => ({
           ...prev,
           projects: prev.projects.filter((project) => project.id !== projectId),
-          currentProject:
-            prev.currentProject?.id === projectId ? null : prev.currentProject,
+          currentProject: prev.currentProject?.id === projectId ? null : prev.currentProject,
         }));
 
         return result;
@@ -441,9 +378,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         handleApiOperation(() => projectApi.getProjectsByUserId(userId), false),
 
       // Project member methods
-      inviteMemberToProject: async (
-        inviteData: InviteMemberData
-      ): Promise<ProjectMember> => {
+      inviteMemberToProject: async (inviteData: InviteMemberData): Promise<ProjectMember> => {
         const result = await handleApiOperation(
           () => projectApi.inviteMemberToProject(inviteData),
           false
@@ -452,9 +387,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         // Add new member to state if it's for the current project's members
         if (
           projectState.projectMembers.length > 0 &&
-          projectState.projectMembers.some(
-            (m) => m.projectId === inviteData.projectId
-          )
+          projectState.projectMembers.some((m) => m.projectId === inviteData.projectId)
         ) {
           setProjectState((prev) => ({
             ...prev,
@@ -465,9 +398,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         return result;
       },
 
-      addMemberToProject: async (
-        memberData: AddMemberData
-      ): Promise<ProjectMember> => {
+      addMemberToProject: async (memberData: AddMemberData): Promise<ProjectMember> => {
         const result = await handleApiOperation(
           () => projectApi.addMemberToProject(memberData),
           false
@@ -476,9 +407,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         // Add new member to state if it's for the current project's members
         if (
           projectState.projectMembers.length > 0 &&
-          projectState.projectMembers.some(
-            (m) => m.projectId === memberData.projectId
-          )
+          projectState.projectMembers.some((m) => m.projectId === memberData.projectId)
         ) {
           setProjectState((prev) => ({
             ...prev,
@@ -489,10 +418,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         return result;
       },
 
-      getProjectMembers: async (
-        projectId: string,
-        search?: string
-      ): Promise<ProjectMember[]> => {
+      getProjectMembers: async (projectId: string, search?: string): Promise<ProjectMember[]> => {
         const result = await handleApiOperation(
           () => projectApi.getProjectMembers(projectId, search),
           false
@@ -540,13 +466,8 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         return result;
       },
 
-      getProjectMembersByWorkspace: (
-        workspaceId: string
-      ): Promise<ProjectMember[]> =>
-        handleApiOperation(
-          () => projectApi.getProjectMembersByWorkspace(workspaceId),
-          false
-        ),
+      getProjectMembersByWorkspace: (workspaceId: string): Promise<ProjectMember[]> =>
+        handleApiOperation(() => projectApi.getProjectMembersByWorkspace(workspaceId), false),
 
       updateProjectMemberRole: async (
         memberId: string,
@@ -554,8 +475,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         role: string
       ): Promise<ProjectMember> => {
         const result = await handleApiOperation(
-          () =>
-            projectApi.updateProjectMemberRole(memberId, requestUserId, role),
+          () => projectApi.updateProjectMemberRole(memberId, requestUserId, role),
           false
         );
 
@@ -582,9 +502,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         // Remove member from state
         setProjectState((prev) => ({
           ...prev,
-          projectMembers: prev.projectMembers.filter(
-            (member) => member.id !== memberId
-          ),
+          projectMembers: prev.projectMembers.filter((member) => member.id !== memberId),
         }));
 
         return result;
@@ -592,10 +510,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
       // Stats and utility methods
       getProjectStats: async (projectId: string): Promise<ProjectStats> => {
-        const result = await handleApiOperation(
-          () => projectApi.getProjectStats(projectId),
-          false
-        );
+        const result = await handleApiOperation(() => projectApi.getProjectStats(projectId), false);
 
         setProjectState((prev) => ({
           ...prev,
@@ -633,19 +548,14 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         );
       },
 
-      getProjectMemberRole: (
-        projectId: string,
-        userId: string
-      ): string | null => {
+      getProjectMemberRole: (projectId: string, userId: string): string | null => {
         const member = projectState.projectMembers.find(
           (member) => member.projectId === projectId && member.userId === userId
         );
         return member?.role || null;
       },
 
-      getTaskStatusByProject: async (
-        projectId: string
-      ): Promise<TaskStatus[]> => {
+      getTaskStatusByProject: async (projectId: string): Promise<TaskStatus[]> => {
         return await taskStatusApi.getTaskStatusByProject(projectId);
       },
 
@@ -672,9 +582,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       },
       fetchAnalyticsData,
 
-      archiveProject: async (
-        projectId: string
-      ): Promise<{ success: boolean; message: string }> => {
+      archiveProject: async (projectId: string): Promise<{ success: boolean; message: string }> => {
         return handleApiOperation(async () => {
           const result = await projectApi.archiveProject(projectId);
           return result;
@@ -684,11 +592,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
     [projectState, handleApiOperation, fetchAnalyticsData]
   );
 
-  return (
-    <ProjectContext.Provider value={contextValue}>
-      {children}
-    </ProjectContext.Provider>
-  );
+  return <ProjectContext.Provider value={contextValue}>{children}</ProjectContext.Provider>;
 }
 
 export default ProjectProvider;

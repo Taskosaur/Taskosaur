@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { HiXMark } from 'react-icons/hi2';
-import { ArrowDownToLine } from 'lucide-react';
-import ActionButton from '@/components/common/ActionButton';
-import Tooltip from '@/components/common/ToolTip';
+import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { HiXMark } from "react-icons/hi2";
+import { ArrowDownToLine } from "lucide-react";
+import ActionButton from "@/components/common/ActionButton";
+import Tooltip from "@/components/common/ToolTip";
 
 interface VideoPreviewModalProps {
   isOpen: boolean;
@@ -34,21 +34,21 @@ export function VideoPreviewModal({
   }, [isOpen]);
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       });
     } catch {
       return dateString;
@@ -57,10 +57,10 @@ export function VideoPreviewModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent 
+      <DialogContent
         showCloseButton={false}
         className="!max-w-[80vw] !w-[80vw] max-h-[90vh] p-0 overflow-hidden border-none gap-0"
-        style={{ maxWidth: '80vw', width: '80vw' }}
+        style={{ maxWidth: "80vw", width: "80vw" }}
       >
         {/* Header */}
         <DialogHeader className="px-6 py-4 border-b border-[var(--border)]">
@@ -75,11 +75,7 @@ export function VideoPreviewModal({
             </div>
             <div className="flex items-center gap-2 ml-4">
               <Tooltip content="Download Video">
-                <ActionButton
-                  onClick={onDownload}
-                  secondary
-                  className="h-9 px-3"
-                >
+                <ActionButton onClick={onDownload} secondary className="h-9 px-3">
                   <ArrowDownToLine className="w-4 h-4" />
                 </ActionButton>
               </Tooltip>
@@ -98,7 +94,10 @@ export function VideoPreviewModal({
         </DialogHeader>
 
         {/* Video Container */}
-        <div className="relative flex items-center justify-center bg-[var(--background)] overflow-auto" style={{ height: 'calc(90vh - 100px)' }}>
+        <div
+          className="relative flex items-center justify-center bg-[var(--background)] overflow-auto"
+          style={{ height: "calc(90vh - 100px)" }}
+        >
           <div className="p-8 flex items-center justify-center">
             <video
               src={videoUrl}

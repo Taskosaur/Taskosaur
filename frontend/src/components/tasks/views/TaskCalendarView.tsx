@@ -213,12 +213,10 @@ export default function TaskCalendarView({
           <div className="w-10 h-10 bg-[var(--primary)]/10 rounded-lg flex items-center justify-center mx-auto mb-3">
             <HiCalendarDays className="w-5 h-5 text-[var(--primary)]" />
           </div>
-          <p className="text-sm font-medium text-[var(--foreground)] mb-1">
-            No tasks scheduled
-          </p>
+          <p className="text-sm font-medium text-[var(--foreground)] mb-1">No tasks scheduled</p>
           <p className="text-xs text-[var(--muted-foreground)] max-w-md mx-auto">
-            Tasks with due dates will appear on the calendar. Create tasks with
-            specific due dates to visualize your schedule.
+            Tasks with due dates will appear on the calendar. Create tasks with specific due dates
+            to visualize your schedule.
           </p>
         </div>
       </div>
@@ -242,9 +240,7 @@ export default function TaskCalendarView({
       {/* Calendar Days */}
       <div className="grid grid-cols-7">
         {calendarDays.map((day, index) => {
-          const isSelected =
-            selectedDay &&
-            day.date.toDateString() === selectedDay.toDateString();
+          const isSelected = selectedDay && day.date.toDateString() === selectedDay.toDateString();
 
           return (
             <div
@@ -252,9 +248,7 @@ export default function TaskCalendarView({
               className={`min-h-[100px] p-2 transition-all duration-200 cursor-pointer bg-[var(--card)] border-r border-b border-[var(--border)] last:border-r-0 hover:bg-[var(--accent)] ${
                 day.isToday ? "ring-1 ring-inset ring-[var(--primary)]" : ""
               } ${
-                isSelected
-                  ? "bg-[var(--primary)]/5 ring-1 ring-[var(--primary)]"
-                  : ""
+                isSelected ? "bg-[var(--primary)]/5 ring-1 ring-[var(--primary)]" : ""
               } ${!day.isCurrentMonth ? "opacity-40" : ""}`}
               onClick={() => setSelectedDay(day.date)}
             >
@@ -262,9 +256,7 @@ export default function TaskCalendarView({
               <div className="flex items-center justify-between mb-1">
                 <span
                   className={`text-xs font-semibold ${
-                    day.isToday
-                      ? "text-[var(--primary)]"
-                      : "text-[var(--foreground)]"
+                    day.isToday ? "text-[var(--primary)]" : "text-[var(--foreground)]"
                   }`}
                 >
                   {day.dayOfMonth}
@@ -304,9 +296,7 @@ export default function TaskCalendarView({
                         <p className="font-medium truncate flex-1">
                           {task.title || "Untitled Task"}
                         </p>
-                        {task.assignee && (
-                          <UserAvatar user={task.assignee} size="xs" />
-                        )}
+                        {task.assignee && <UserAvatar user={task.assignee} size="xs" />}
                       </div>
                     </div>
                   );
@@ -345,9 +335,7 @@ export default function TaskCalendarView({
               </div>
               <div
                 className={`text-sm font-bold mt-1 ${
-                  day.isToday
-                    ? "text-[var(--primary)]"
-                    : "text-[var(--foreground)]"
+                  day.isToday ? "text-[var(--primary)]" : "text-[var(--foreground)]"
                 }`}
               >
                 {day.dayOfMonth}
@@ -378,10 +366,10 @@ export default function TaskCalendarView({
                   {hour === 0
                     ? "12 AM"
                     : hour === 12
-                    ? "12 PM"
-                    : hour < 12
-                    ? `${hour} AM`
-                    : `${hour - 12} PM`}
+                      ? "12 PM"
+                      : hour < 12
+                        ? `${hour} AM`
+                        : `${hour - 12} PM`}
                 </span>
               </div>
             ))}
@@ -390,10 +378,7 @@ export default function TaskCalendarView({
           {/* Day columns container */}
           <div className="flex-1 grid grid-cols-7">
             {weekDays.map((day, dayIndex) => (
-              <div
-                key={day.date.toISOString()}
-                className="bg-[var(--card)] relative"
-              >
+              <div key={day.date.toISOString()} className="bg-[var(--card)] relative">
                 {Array.from({ length: 24 }, (_, hour) => (
                   <div
                     key={hour}
@@ -404,17 +389,15 @@ export default function TaskCalendarView({
                       hour === 0
                         ? "12 AM"
                         : hour === 12
-                        ? "12 PM"
-                        : hour < 12
-                        ? `${hour} AM`
-                        : `${hour - 12} PM`
+                          ? "12 PM"
+                          : hour < 12
+                            ? `${hour} AM`
+                            : `${hour - 12} PM`
                     }`}
                   >
                     {/* Tasks for this time slot */}
                     {day.tasks
-                      .filter(
-                        () => Math.random() > 0.85 && hour >= 8 && hour <= 18
-                      ) // Show tasks during work hours
+                      .filter(() => Math.random() > 0.85 && hour >= 8 && hour <= 18) // Show tasks during work hours
                       .slice(0, 1)
                       .map((task, taskIndex) => (
                         <div
@@ -426,12 +409,8 @@ export default function TaskCalendarView({
                           }}
                         >
                           <div className="flex items-center gap-1 w-full">
-                            <span className="truncate flex-1">
-                              {task.title}
-                            </span>
-                            {task.assignee && (
-                              <UserAvatar user={task.assignee} size="xs" />
-                            )}
+                            <span className="truncate flex-1">{task.title}</span>
+                            {task.assignee && <UserAvatar user={task.assignee} size="xs" />}
                           </div>
                         </div>
                       ))}
@@ -479,14 +458,9 @@ export default function TaskCalendarView({
             <p className="text-xs text-[var(--muted-foreground)]">
               {viewMode === "month"
                 ? `${
-                    calendarDays.filter(
-                      (day) => day.isCurrentMonth && day.tasks.length > 0
-                    ).length
+                    calendarDays.filter((day) => day.isCurrentMonth && day.tasks.length > 0).length
                   } days with tasks this month`
-                : `${weekDays.reduce(
-                    (sum, day) => sum + day.tasks.length,
-                    0
-                  )} tasks this week`}
+                : `${weekDays.reduce((sum, day) => sum + day.tasks.length, 0)} tasks this week`}
             </p>
           </div>
 
@@ -575,17 +549,14 @@ export default function TaskCalendarView({
 
           {(() => {
             const dayTasks =
-              calendarDays.find(
-                (day) => day.date.toDateString() === selectedDay.toDateString()
-              )?.tasks || [];
+              calendarDays.find((day) => day.date.toDateString() === selectedDay.toDateString())
+                ?.tasks || [];
 
             if (dayTasks.length === 0) {
               return (
                 <div className="text-center py-4">
                   <HiCalendarDays className="w-6 h-6 mx-auto mb-1 text-muted-foreground opacity-50" />
-                  <p className="text-xs text-muted-foreground">
-                    No tasks scheduled for this day
-                  </p>
+                  <p className="text-xs text-muted-foreground">No tasks scheduled for this day</p>
                 </div>
               );
             }
@@ -613,12 +584,8 @@ export default function TaskCalendarView({
                             {task.title || "Untitled Task"}
                           </h5>
                           <div className="flex items-center gap-1 mb-1">
-                            <StatusBadge
-                              status={task.status?.name || "No Status"}
-                            />
-                            {task.priority && (
-                              <PriorityBadge priority={task.priority} />
-                            )}
+                            <StatusBadge status={task.status?.name || "No Status"} />
+                            {task.priority && <PriorityBadge priority={task.priority} />}
                             {isOverdue && (
                               <span className="inline-block text-xs px-1.5 py-0 h-4 rounded bg-red-500 text-white dark:bg-red-700 dark:text-white">
                                 Overdue
@@ -627,7 +594,7 @@ export default function TaskCalendarView({
                           </div>
                           {task.description && (
                             <div className="text-xs text-[var(--muted-foreground)] line-clamp-1">
-                           {task.description}
+                              {task.description}
                             </div>
                           )}
                         </div>
@@ -636,12 +603,9 @@ export default function TaskCalendarView({
                             <UserAvatar user={task.assignee} size="xs" />
                             <div className="text-right">
                               <p className="text-xs font-medium text-foreground">
-                                {task.assignee.firstName}{" "}
-                                {task.assignee.lastName}
+                                {task.assignee.firstName} {task.assignee.lastName}
                               </p>
-                              <p className="text-[10px] text-muted-foreground">
-                                Assignee
-                              </p>
+                              <p className="text-[10px] text-muted-foreground">Assignee</p>
                             </div>
                           </div>
                         )}

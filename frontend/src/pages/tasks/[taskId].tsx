@@ -27,9 +27,7 @@ function TaskDetailContent() {
         tags: (taskData as any).tags || [],
         reporter: (taskData as any).reporter || null,
         updatedAt:
-          (taskData as any).updatedAt ||
-          (taskData as any).createdAt ||
-          new Date().toISOString(),
+          (taskData as any).updatedAt || (taskData as any).createdAt || new Date().toISOString(),
       };
 
       setTask(enhancedTask);

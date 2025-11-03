@@ -1,5 +1,5 @@
-import { useAuth } from '@/contexts/auth-context';
-import AuthRedirect from '@/components/auth/AuthRedirect';
+import { useAuth } from "@/contexts/auth-context";
+import AuthRedirect from "@/components/auth/AuthRedirect";
 import { ModeToggle } from "@/components/header/ModeToggle";
 import { LoginContent } from "@/components/login/LoginContent";
 import { LoginForm } from "@/components/login/LoginForm";
@@ -23,7 +23,6 @@ export default function LoginPage() {
           </div>
           <div className="login-form-panel">
             <div className="login-form-wrapper">
-             
               <LoginForm />
             </div>
           </div>

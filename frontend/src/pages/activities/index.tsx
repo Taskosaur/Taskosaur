@@ -35,13 +35,7 @@ import { ActivityFilters, ActivityItem, ActivityResponse } from "@/types";
 import Tooltip from "@/components/common/ToolTip";
 import ErrorState from "@/components/common/ErrorState";
 
-type EntityTypeFilter =
-  | "Task"
-  | "Project"
-  | "Workspace"
-  | "Organization"
-  | "User"
-  | "all";
+type EntityTypeFilter = "Task" | "Project" | "Workspace" | "Organization" | "User" | "all";
 
 // Simple Next/Previous Pagination Component
 interface ActivityPaginationProps {
@@ -113,9 +107,7 @@ function ActivityPageContent() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
   const [activityError, setActivityError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<
-    ActivityResponse["pagination"] | null
-  >(null);
+  const [pagination, setPagination] = useState<ActivityResponse["pagination"] | null>(null);
   const [currentOrgId, setCurrentOrgId] = useState("");
 
   const { user } = useAuth();
@@ -161,8 +153,7 @@ function ActivityPageContent() {
     },
   ];
 
-  const currentFilter =
-    filterOptions.find((f) => f.value === activeFilter) || filterOptions[0];
+  const currentFilter = filterOptions.find((f) => f.value === activeFilter) || filterOptions[0];
 
   const loadActivities = async (
     page: number = 1,
@@ -183,17 +174,12 @@ function ActivityPageContent() {
         filters.entityType = entityTypeFilter;
       }
 
-      const response: ActivityResponse = await getOrganizationRecentActivity(
-        currentOrgId,
-        filters
-      );
+      const response: ActivityResponse = await getOrganizationRecentActivity(currentOrgId, filters);
       setActivities(response.activities);
       setPagination(response.pagination);
     } catch (error) {
       console.error("Error loading organization activities:", error);
-      setActivityError(
-        error?.message ? error.message : "Failed to load activities"
-      );
+      setActivityError(error?.message ? error.message : "Failed to load activities");
     } finally {
       setIsLoadingActivity(false);
     }
@@ -217,9 +203,7 @@ function ActivityPageContent() {
         await loadActivities(pagination?.currentPage || 1, activeFilter);
       } catch (error) {
         console.error("Error refreshing activities:", error);
-        setActivityError(
-          error?.message ? error.message : "Failed to refresh activities"
-        );
+        setActivityError(error?.message ? error.message : "Failed to refresh activities");
       }
     }
   };
@@ -231,9 +215,7 @@ function ActivityPageContent() {
   };
 
   if (activityError) {
-    return (
-      <ErrorState error={activityError} onRetry={handleRefreshActivities} />
-    );
+    return <ErrorState error={activityError} onRetry={handleRefreshActivities} />;
   }
 
   return (
@@ -264,11 +246,7 @@ function ActivityPageContent() {
                 )}
 
                 <DropdownMenu>
-                  <Tooltip
-                    content="Filter activities"
-                    position="top"
-                    color="primary"
-                  >
+                  <Tooltip content="Filter activities" position="top" color="primary">
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
@@ -304,9 +282,7 @@ function ActivityPageContent() {
                           >
                             <Icon
                               className={`w-4 h-4 ${
-                                isActive
-                                  ? option.color
-                                  : "text-[var(--muted-foreground)]"
+                                isActive ? option.color : "text-[var(--muted-foreground)]"
                               }`}
                             />
                             <span
@@ -352,11 +328,7 @@ function ActivityPageContent() {
               isLoading={isLoadingActivity}
               error={activityError}
               onRetry={handleRefreshActivities}
-              onClearFilter={
-                activeFilter !== "all"
-                  ? () => handleFilterChange("all")
-                  : undefined
-              }
+              onClearFilter={activeFilter !== "all" ? () => handleFilterChange("all") : undefined}
             />
 
             {/* Simple Next/Previous Pagination */}

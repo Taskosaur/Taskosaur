@@ -18,12 +18,12 @@ interface MemberSelectProps {
   label: string;
   selectedMembers: any[];
   onChange: (members: any[]) => void;
-  members: any[]; 
+  members: any[];
   disabled?: boolean;
   placeholder?: string;
   editMode?: boolean;
   type?: "assignee" | "reporter";
-  projectId?: string; 
+  projectId?: string;
 }
 
 function MemberSelect({
@@ -76,10 +76,7 @@ function MemberSelect({
       abortControllerRef.current = new AbortController();
 
       try {
-        const fetchedMembers = await getProjectMembers(
-          projectId,
-          search.trim() || undefined
-        );
+        const fetchedMembers = await getProjectMembers(projectId, search.trim() || undefined);
 
         // Normalize member data
         const normalizedMembers = Array.isArray(fetchedMembers)
@@ -158,9 +155,7 @@ function MemberSelect({
 
     const baseLabel = label.endsWith("s") ? label.slice(0, -1) : label;
     const displayLabel =
-      selectedMembers.length === 0
-        ? `No ${baseLabel.toLowerCase()} selected`
-        : "";
+      selectedMembers.length === 0 ? `No ${baseLabel.toLowerCase()} selected` : "";
 
     return (
       <div className="space-y-2">
@@ -194,10 +189,7 @@ function MemberSelect({
                   key={member.id}
                   user={{
                     ...member,
-                    avatar:
-                      member.avatarUrl ||
-                      member.avatar ||
-                      "/default-avatar.png",
+                    avatar: member.avatarUrl || member.avatar || "/default-avatar.png",
                   }}
                   size="sm"
                 />
@@ -209,9 +201,7 @@ function MemberSelect({
               )}
             </>
           ) : (
-            <span className="text-sm text-[var(--muted-foreground)]">
-              {displayLabel}
-            </span>
+            <span className="text-sm text-[var(--muted-foreground)]">{displayLabel}</span>
           )}
         </div>
 
@@ -229,11 +219,7 @@ function MemberSelect({
             >
               <DropdownMenuTrigger asChild>
                 <div className="w-full h-0 opacity-0 pointer-events-none">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    disabled={disabled}
-                  >
+                  <Button variant="outline" className="w-full" disabled={disabled}>
                     {displayText}
                   </Button>
                 </div>
@@ -258,18 +244,12 @@ function MemberSelect({
 
                 <div className="max-h-48 overflow-y-auto">
                   {searchError ? (
-                    <div className="p-2 text-sm text-red-500 text-center">
-                      {searchError}
-                    </div>
+                    <div className="p-2 text-sm text-red-500 text-center">{searchError}</div>
                   ) : members.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground">
-                      No members found.
-                    </div>
+                    <div className="p-2 text-sm text-muted-foreground">No members found.</div>
                   ) : (
                     members.map((member) => {
-                      const isSelected = selectedMembers.some(
-                        (m) => m.id === member.id
-                      );
+                      const isSelected = selectedMembers.some((m) => m.id === member.id);
                       return (
                         <div
                           key={member.id}
@@ -283,10 +263,7 @@ function MemberSelect({
                           <UserAvatar
                             user={{
                               ...member,
-                              avatar:
-                                member.avatarUrl ||
-                                member.avatar ||
-                                "/default-avatar.png",
+                              avatar: member.avatarUrl || member.avatar || "/default-avatar.png",
                             }}
                             size="sm"
                           />
@@ -294,9 +271,7 @@ function MemberSelect({
                             <span className="text-sm">
                               {member.firstName} {member.lastName}
                             </span>
-                            <span className="text-xs text-gray-500">
-                              {member.email}
-                            </span>
+                            <span className="text-xs text-gray-500">{member.email}</span>
                           </div>
                         </div>
                       );
@@ -321,8 +296,7 @@ function MemberSelect({
               key={member.id}
               user={{
                 ...member,
-                avatar:
-                  member.avatarUrl || member.avatar || "/default-avatar.png",
+                avatar: member.avatarUrl || member.avatar || "/default-avatar.png",
               }}
               size="sm"
             />
@@ -343,11 +317,7 @@ function MemberSelect({
             className="w-full justify-between border-[var(--border)] bg-[var(--background)] text-left"
             disabled={disabled}
           >
-            <span
-              className={
-                selectedMembers.length === 0 ? "text-muted-foreground" : ""
-              }
-            >
+            <span className={selectedMembers.length === 0 ? "text-muted-foreground" : ""}>
               {displayText}
             </span>
             <ChevronDown className="h-4 w-4 opacity-50" />
@@ -369,35 +339,23 @@ function MemberSelect({
 
           <div className="max-h-48 overflow-y-auto">
             {searchError ? (
-              <div className="p-2 text-sm text-red-500 text-center">
-                {searchError}
-              </div>
+              <div className="p-2 text-sm text-red-500 text-center">{searchError}</div>
             ) : members.length === 0 ? (
-              <div className="p-2 text-sm text-muted-foreground">
-                No members found.
-              </div>
+              <div className="p-2 text-sm text-muted-foreground">No members found.</div>
             ) : (
               members.map((member) => {
-                const isSelected = selectedMembers.some(
-                  (m) => m.id === member.id
-                );
+                const isSelected = selectedMembers.some((m) => m.id === member.id);
                 return (
                   <div
                     key={member.id}
                     className="flex items-center gap-2 p-2 hover:bg-[var(--accent)] cursor-pointer"
                     onClick={() => handleMemberToggle(member)}
                   >
-                    <Checkbox
-                      checked={isSelected}
-                      onChange={() => handleMemberToggle(member)}
-                    />
+                    <Checkbox checked={isSelected} onChange={() => handleMemberToggle(member)} />
                     <UserAvatar
                       user={{
                         ...member,
-                        avatar:
-                          member.avatarUrl ||
-                          member.avatar ||
-                          "/default-avatar.png",
+                        avatar: member.avatarUrl || member.avatar || "/default-avatar.png",
                       }}
                       size="sm"
                     />
@@ -405,9 +363,7 @@ function MemberSelect({
                       <span className="text-sm">
                         {member.firstName} {member.lastName}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        {member.email}
-                      </span>
+                      <span className="text-xs text-gray-500">{member.email}</span>
                     </div>
                   </div>
                 );

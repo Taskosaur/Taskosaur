@@ -39,9 +39,7 @@ const CustomTooltip = ({ active, payload }: any) => {
         <p className="text-sm text-blue-600">{`Assigned Tasks: ${data.activeTasks}`}</p>
         <p className="text-sm text-purple-600">{`Reported Tasks: ${data.reportedTasks}`}</p>
         <p className="text-sm text-gray-500">
-          {`Workload: ${
-            data.activeTasks > 10 ? "High" : data.activeTasks > 5 ? "Medium" : "Low"
-          }`}
+          {`Workload: ${data.activeTasks > 10 ? "High" : data.activeTasks > 5 ? "Medium" : "Low"}`}
         </p>
       </div>
     );
@@ -53,12 +51,11 @@ export function MemberWorkloadChart({ data }: MemberWorkloadChartProps) {
   // Sort data by active tasks (descending) and filter out inactive members
   const sortedData = [...data]
     .sort((a, b) => b.activeTasks - a.activeTasks)
-    .filter(item => item.activeTasks > 0 || item.reportedTasks > 0);
-  
+    .filter((item) => item.activeTasks > 0 || item.reportedTasks > 0);
+
   // Prepare data for stacked area chart
   const chartData = sortedData.map((item) => {
-    const workloadLevel =
-      item.activeTasks > 10 ? "high" : item.activeTasks > 5 ? "medium" : "low";
+    const workloadLevel = item.activeTasks > 10 ? "high" : item.activeTasks > 5 ? "medium" : "low";
 
     return {
       memberName: item.memberName,
@@ -77,14 +74,11 @@ export function MemberWorkloadChart({ data }: MemberWorkloadChartProps) {
       className="border-[var(--border)]"
     >
       <ResponsiveContainer width="100%" height={400}>
-        <AreaChart
-          data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-        >
+        <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis 
-            dataKey="memberName" 
-            angle={-45} 
+          <XAxis
+            dataKey="memberName"
+            angle={-45}
             textAnchor="end"
             height={60}
             interval={0}
@@ -94,12 +88,12 @@ export function MemberWorkloadChart({ data }: MemberWorkloadChartProps) {
           <Tooltip content={<CustomTooltip />} />
           <defs>
             <linearGradient id="colorAssigned" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.2}/>
+              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.2} />
             </linearGradient>
             <linearGradient id="colorReported" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.2}/>
+              <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.2} />
             </linearGradient>
           </defs>
           <Area

@@ -1,17 +1,17 @@
 // components/charts/workspace/kpi-metrics.tsx
-import { StatCard } from "@/components/common/StatCard"
-import { Badge } from "@/components/ui/badge"
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react"
+import { StatCard } from "@/components/common/StatCard";
+import { Badge } from "@/components/ui/badge";
+import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
 
 interface KPIMetricsProps {
   data: {
-    totalProjects: number
-    activeProjects: number
-    completedProjects: number
-    totalTasks: number
-    overdueTasks: number
-    completionRate: number
-  }
+    totalProjects: number;
+    activeProjects: number;
+    completedProjects: number;
+    totalTasks: number;
+    overdueTasks: number;
+    completionRate: number;
+  };
 }
 
 export function KPIMetrics({ data }: KPIMetricsProps) {
@@ -45,16 +45,16 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
             data?.completionRate > 70
               ? "default"
               : data?.completionRate > 50
-              ? "secondary"
-              : "destructive"
+                ? "secondary"
+                : "destructive"
           }
           className="text-xs"
         >
           {data?.completionRate > 70
             ? "Excellent"
             : data?.completionRate > 50
-            ? "Good"
-            : "Needs Focus"}
+              ? "Good"
+              : "Needs Focus"}
         </Badge>
       ),
     },
@@ -73,19 +73,8 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
           <CheckCircle className="h-4 w-4" />
         ),
       statSuffix: (
-        <Badge
-          variant={
-            data?.overdueTasks === 0
-              ? "default"
-              : "outline"
-          }
-          className="text-xs"
-        >
-          {data?.overdueTasks === 0
-            ? "Perfect"
-            : data?.overdueTasks < 10
-            ? "Good"
-            : "Critical"}
+        <Badge variant={data?.overdueTasks === 0 ? "default" : "outline"} className="text-xs">
+          {data?.overdueTasks === 0 ? "Perfect" : data?.overdueTasks < 10 ? "Good" : "Critical"}
         </Badge>
       ),
     },
@@ -93,10 +82,7 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
       label: "Task Health",
       value:
         data?.totalTasks > 0
-          ? `${(
-              ((data?.totalTasks - data?.overdueTasks) / data?.totalTasks) *
-              100
-            ).toFixed(1)}%`
+          ? `${(((data?.totalTasks - data?.overdueTasks) / data?.totalTasks) * 100).toFixed(1)}%`
           : "0%",
       icon:
         data?.overdueTasks === 0 ? (
@@ -105,15 +91,12 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
           <AlertTriangle className="h-4 w-4" />
         ),
       statSuffix: (
-        <Badge
-          variant={data?.overdueTasks === 0 ? "default" : "outline"}
-          className="text-xs"
-        >
+        <Badge variant={data?.overdueTasks === 0 ? "default" : "outline"} className="text-xs">
           {data?.overdueTasks === 0 ? "Perfect" : "Monitor"}
         </Badge>
       ),
     },
-  ]
+  ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -127,5 +110,5 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
         />
       ))}
     </div>
-  )
+  );
 }

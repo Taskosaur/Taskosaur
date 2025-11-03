@@ -54,7 +54,6 @@ export interface GetWorkflowActivityParams {
   entityType?: string;
 }
 
-
 export interface Workflow extends WorkflowData {
   id: string;
   organizationId: string;
@@ -71,5 +70,3 @@ export interface Workflow extends WorkflowData {
     transitions: number;
   };
 }
-
-

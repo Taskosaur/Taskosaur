@@ -75,194 +75,188 @@ const formatDate = (dateString?: string) => {
   });
 };
 
-const PendingInvitations = forwardRef<
-  PendingInvitationsRef,
-  PendingInvitationsProps
->(({ entity, entityType, members }, ref) => {
-  const { showPendingInvitations } = useOrganization();
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [resendingId, setResendingId] = useState<string | null>(null);
+const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsProps>(
+  ({ entity, entityType, members }, ref) => {
+    const { showPendingInvitations } = useOrganization();
+    const [invitations, setInvitations] = useState<Invitation[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [resendingId, setResendingId] = useState<string | null>(null);
 
-  const fetchInvites = async () => {
-    if (!entity?.id) return;
+    const fetchInvites = async () => {
+      if (!entity?.id) return;
 
-    try {
-      const data = await showPendingInvitations(entityType, entity.id);
-      setInvitations(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Error fetching invitations:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchInvites();
-  }, [entity, entityType]);
-
-  // Expose refresh method to parent component
-  useImperativeHandle(ref, () => ({
-    refreshInvitations: fetchInvites,
-  }));
-
-  const handleResendInvite = async (inviteId: string) => {
-    try {
-      setResendingId(inviteId);
-      const result = await invitationApi.resendInvitation(inviteId);
-
-      if (result.emailSent) {
-        toast.success("Invitation resent successfully - email sent");
-      } else {
-        toast.warning(
-          "Invitation updated but email failed to send. The invitee can still use the updated invitation link."
-        );
-        console.warn("Email delivery failed:", result.emailError);
+      try {
+        const data = await showPendingInvitations(entityType, entity.id);
+        setInvitations(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Error fetching invitations:", err);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      await fetchInvites(); // Refresh the list
-    } catch (error: any) {
-      const errorMessage = error?.message || "Failed to resend invitation";
-      toast.error(errorMessage);
-    } finally {
-      setResendingId(null);
-    }
-  };
+    useEffect(() => {
+      fetchInvites();
+    }, [entity, entityType]);
 
-  const pendingInvites = invitations.filter((i) => i.status === "PENDING");
-  const declinedInvites = invitations.filter((i) => i.status === "DECLINED");
+    // Expose refresh method to parent component
+    useImperativeHandle(ref, () => ({
+      refreshInvitations: fetchInvites,
+    }));
 
-  const totalInvites = pendingInvites.length + declinedInvites.length;
+    const handleResendInvite = async (inviteId: string) => {
+      try {
+        setResendingId(inviteId);
+        const result = await invitationApi.resendInvitation(inviteId);
 
-  return (
-    <Card className="bg-[var(--card)]  border-none shadow-sm  gap-0 space-y-0 h-[270px] flex flex-col">
-      <CardHeader className="px-4 py-0 flex-shrink-0">
-        <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
-          <HiEnvelope className="w-5 h-5 text-[var(--muted-foreground)]" />
-          Invitations ({totalInvites})
-        </CardTitle>
-      </CardHeader>
+        if (result.emailSent) {
+          toast.success("Invitation resent successfully - email sent");
+        } else {
+          toast.warning(
+            "Invitation updated but email failed to send. The invitee can still use the updated invitation link."
+          );
+          console.warn("Email delivery failed:", result.emailError);
+        }
 
-      <CardContent className="p-0 overflow-y-auto flex-1">
-        {loading ? (
-          <div className="p-6 text-sm text-center text-[var(--muted-foreground)]">
-            Loading invitations...
-          </div>
-        ) : totalInvites === 0 ? (
-          <div className="p-4 text-center py-8">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-[var(--muted)] flex items-center justify-center">
-              <HiEnvelope className="w-6 h-6 text-[var(--muted-foreground)]" />
+        await fetchInvites(); // Refresh the list
+      } catch (error: any) {
+        const errorMessage = error?.message || "Failed to resend invitation";
+        toast.error(errorMessage);
+      } finally {
+        setResendingId(null);
+      }
+    };
+
+    const pendingInvites = invitations.filter((i) => i.status === "PENDING");
+    const declinedInvites = invitations.filter((i) => i.status === "DECLINED");
+
+    const totalInvites = pendingInvites.length + declinedInvites.length;
+
+    return (
+      <Card className="bg-[var(--card)]  border-none shadow-sm  gap-0 space-y-0 h-[270px] flex flex-col">
+        <CardHeader className="px-4 py-0 flex-shrink-0">
+          <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
+            <HiEnvelope className="w-5 h-5 text-[var(--muted-foreground)]" />
+            Invitations ({totalInvites})
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="p-0 overflow-y-auto flex-1">
+          {loading ? (
+            <div className="p-6 text-sm text-center text-[var(--muted-foreground)]">
+              Loading invitations...
             </div>
-            <h3 className="text-sm font-medium text-[var(--foreground)] mb-1">
-              No pending or declined invitations
-            </h3>
-            <p className="text-xs text-[var(--muted-foreground)]">
-              Invitations to this {entityType} will appear here until they’re
-              accepted or declined.
-            </p>
-          </div>
-        ) : (
-          <>
-        
-            <div className="">
-              {[...pendingInvites, ...declinedInvites].map((invite) => (
-                <div key={invite.id} className="px-4 py-3  transition-colors">
-                  <div className="grid grid-cols-7 gap-3 items-center">
-                    {/* Invitee Info */}
-                    <div className="col-span-5">
-                      <div className="flex items-center gap-3">
-                        <UserAvatar
-                          user={{
-                            firstName:
-                              invite.inviteeEmail?.[0]?.toUpperCase() || "",
-                            lastName: "",
-                            avatar: undefined,
-                          }}
-                          size="sm"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-[var(--foreground)] truncate">
-                            {invite.inviteeEmail}
-                          </div>
-                          <div className="text-[14px] text-[var(--muted-foreground)] truncate">
-                            Invited by{" "}
-                            {invite.inviter?.firstName
-                              ? `${invite.inviter.firstName} ${invite.inviter.lastName || ""
-                              }`
-                              : "Unknown"}
-                          </div>
-                          <div className="text-[12px] text-[var(--muted-foreground)] flex items-center gap-2">
-                            {formatDate(invite.createdAt)}
-                            <Badge
-                              variant="outline"
-                              className={`text-[11px] bg-transparent px-1.5 py-0.5 rounded-md border-none ${getStatusBadgeClass(
-                                invite.status
-                              )}`}
-                            >
-                              {invite.status}
-                            </Badge>
+          ) : totalInvites === 0 ? (
+            <div className="p-4 text-center py-8">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-[var(--muted)] flex items-center justify-center">
+                <HiEnvelope className="w-6 h-6 text-[var(--muted-foreground)]" />
+              </div>
+              <h3 className="text-sm font-medium text-[var(--foreground)] mb-1">
+                No pending or declined invitations
+              </h3>
+              <p className="text-xs text-[var(--muted-foreground)]">
+                Invitations to this {entityType} will appear here until they’re accepted or
+                declined.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="">
+                {[...pendingInvites, ...declinedInvites].map((invite) => (
+                  <div key={invite.id} className="px-4 py-3  transition-colors">
+                    <div className="grid grid-cols-7 gap-3 items-center">
+                      {/* Invitee Info */}
+                      <div className="col-span-5">
+                        <div className="flex items-center gap-3">
+                          <UserAvatar
+                            user={{
+                              firstName: invite.inviteeEmail?.[0]?.toUpperCase() || "",
+                              lastName: "",
+                              avatar: undefined,
+                            }}
+                            size="sm"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium text-[var(--foreground)] truncate">
+                              {invite.inviteeEmail}
+                            </div>
+                            <div className="text-[14px] text-[var(--muted-foreground)] truncate">
+                              Invited by{" "}
+                              {invite.inviter?.firstName
+                                ? `${invite.inviter.firstName} ${invite.inviter.lastName || ""}`
+                                : "Unknown"}
+                            </div>
+                            <div className="text-[12px] text-[var(--muted-foreground)] flex items-center gap-2">
+                              {formatDate(invite.createdAt)}
+                              <Badge
+                                variant="outline"
+                                className={`text-[11px] bg-transparent px-1.5 py-0.5 rounded-md border-none ${getStatusBadgeClass(
+                                  invite.status
+                                )}`}
+                              >
+                                {invite.status}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                   
+                      {/* Actions */}
 
-                    {/* Actions */}
+                      <div className="col-span-2 flex justify-end">
+                        {invite.status === "PENDING" && (
+                          <DropdownMenu>
+                            <Tooltip content="All Actions">
+                              <DropdownMenuTrigger asChild className="bg-[var(--card)]">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 cursor-pointer"
+                                >
+                                  <BsThreeDotsVertical className="w-5 h-5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                            </Tooltip>
 
-                    <div className="col-span-2 flex justify-end">
-                      {invite.status === "PENDING" && (
-                        <DropdownMenu>
-                          <Tooltip content="All Actions">
-
-                            <DropdownMenuTrigger asChild className="bg-[var(--card)]">
-
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 cursor-pointer"
-                              >
-                                <BsThreeDotsVertical className="w-5 h-5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                          </Tooltip>
-
-                          <DropdownMenuContent align="end" className="w-40 bg-[var(--card)] border-none shadow-md">
-                            <DropdownMenuItem
-                              onClick={() => handleResendInvite(invite.id)}
-                              disabled={resendingId === invite.id}
-                              className="flex text-xs items-center gap-2 cursor-pointer hover:bg-[var(--accent)]"
+                            <DropdownMenuContent
+                              align="end"
+                              className="w-40 bg-[var(--card)] border-none shadow-md"
                             >
-                              <HiArrowPath
-                                className={`w-4 h-4 ${resendingId === invite.id
-                                    ? "animate-spin"
-                                    : ""
+                              <DropdownMenuItem
+                                onClick={() => handleResendInvite(invite.id)}
+                                disabled={resendingId === invite.id}
+                                className="flex text-xs items-center gap-2 cursor-pointer hover:bg-[var(--accent)]"
+                              >
+                                <HiArrowPath
+                                  className={`w-4 h-4 ${
+                                    resendingId === invite.id ? "animate-spin" : ""
                                   }`}
-                              />
-                              Resend Invitation
-                            </DropdownMenuItem>
+                                />
+                                Resend Invitation
+                              </DropdownMenuItem>
 
-                            {/* <DropdownMenuItem
+                              {/* <DropdownMenuItem
                               // onClick={() => handleResetInvite(invite.id)}
                               className="flex text-xs text-red-600 items-center gap-2 cursor-pointer hover:bg-[var(--accent)]"
                             >
                               <RxReset className="w-3 h-3" />
                               Decline Invitation
                             </DropdownMenuItem> */}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
-});
+                ))}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+);
 
 PendingInvitations.displayName = "PendingInvitations";
 

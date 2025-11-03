@@ -1,7 +1,12 @@
 // components/charts/organization/task-type-chart.tsx
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
-import { ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart"
-import { ChartWrapper } from "../chart-wrapper"
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import {
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart";
+import { ChartWrapper } from "../chart-wrapper";
 
 const chartConfig = {
   STORY: { label: "Story", color: "#10B981" },
@@ -9,20 +14,20 @@ const chartConfig = {
   BUG: { label: "Bug", color: "#EF4444" },
   EPIC: { label: "Epic", color: "#8B5CF6" },
   FEATURE: { label: "Feature", color: "#F59E0B" },
-}
+};
 
 interface TaskTypeChartProps {
-  data: Array<{ type: string; _count: { type: number } }>
+  data: Array<{ type: string; _count: { type: number } }>;
 }
 
 export function TaskTypeChart({ data }: TaskTypeChartProps) {
-  const chartData = data?.map(item => ({
+  const chartData = data?.map((item) => ({
     name: chartConfig[item.type]?.label || item.type,
     value: item._count.type,
-    fill: chartConfig[item.type]?.color || "#8B5CF6"
-  }))
+    fill: chartConfig[item.type]?.color || "#8B5CF6",
+  }));
 
-  const totalTasks = chartData?.reduce((sum, item) => sum + item.value, 0)
+  const totalTasks = chartData?.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <ChartWrapper
@@ -45,27 +50,22 @@ export function TaskTypeChart({ data }: TaskTypeChartProps) {
             labelLine={false}
           >
             {chartData?.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={entry.fill}
-                stroke="#fff"
-                strokeWidth={2}
-              />
+              <Cell key={`cell-${index}`} fill={entry.fill} stroke="#fff" strokeWidth={2} />
             ))}
           </Pie>
-          <ChartTooltip 
-            content={<ChartTooltipContent className="border-0 bg-[var(--accent)]"/>}
+          <ChartTooltip
+            content={<ChartTooltipContent className="border-0 bg-[var(--accent)]" />}
             wrapperStyle={{ outline: "none" }}
           />
-          <ChartLegend 
+          <ChartLegend
             content={<ChartLegendContent />}
             wrapperStyle={{
               paddingTop: "16px",
-              fontSize: "14px"
+              fontSize: "14px",
             }}
           />
         </PieChart>
       </ResponsiveContainer>
     </ChartWrapper>
-  )
+  );
 }

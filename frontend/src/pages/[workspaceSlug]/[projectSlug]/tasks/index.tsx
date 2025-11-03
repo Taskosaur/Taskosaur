@@ -20,15 +20,9 @@ import TabView from "@/components/tasks/TabView";
 import Pagination from "@/components/common/Pagination";
 import { KanbanBoard } from "@/components/tasks/KanbanBoard";
 import { ColumnManager } from "@/components/tasks/ColumnManager";
-import {
-  FilterDropdown,
-  useGenericFilters,
-} from "@/components/common/FilterDropdown";
+import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
 import { CheckSquare, Flame, User, Users } from "lucide-react";
-import SortingManager, {
-  SortOrder,
-  SortField,
-} from "@/components/tasks/SortIngManager";
+import SortingManager, { SortOrder, SortField } from "@/components/tasks/SortIngManager";
 import Tooltip from "@/components/common/ToolTip";
 import { TokenManager } from "@/lib/api";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
@@ -77,17 +71,13 @@ function ProjectTasksContent() {
   const [kanban, setKanban] = useState<any[]>([]);
   const [localError, setLocalError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
-  const [currentView, setCurrentView] = useState<"list" | "kanban" | "gantt">(
-    () => {
-      const type =
-        typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search).get("type")
-          : null;
-      return type === "list" || type === "gantt" || type === "kanban"
-        ? type
-        : "list";
-    }
-  );
+  const [currentView, setCurrentView] = useState<"list" | "kanban" | "gantt">(() => {
+    const type =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("type")
+        : null;
+    return type === "list" || type === "gantt" || type === "kanban" ? type : "list";
+  });
   const [kabBanSettingModal, setKabBanSettingModal] = useState(false);
   const [ganttViewMode, setGanttViewMode] = useState<ViewMode>("days");
   const [currentPage, setCurrentPage] = useState(1);
@@ -113,9 +103,7 @@ function ProjectTasksContent() {
 
   const handleTaskSelect = (taskId: string) => {
     setSelectedTasks((prev) =>
-      prev.includes(taskId)
-        ? prev.filter((id) => id !== taskId)
-        : [...prev, taskId]
+      prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]
     );
   };
   const error = contextError || localError;
@@ -261,7 +249,7 @@ function ProjectTasksContent() {
     try {
       setLocalError(null);
 
-  const ws: Workspace | null = null;
+      const ws: Workspace | null = null;
       // if (hasValidAuth) {
       //   ws = await workspaceApi.getWorkspaceBySlug(workspaceSlug as string);
       //   if (!ws) {
@@ -277,9 +265,7 @@ function ProjectTasksContent() {
       );
 
       if (!proj) {
-        throw new Error(
-          `Project "${projectSlug}" not found in workspace "${workspaceSlug}"`
-        );
+        throw new Error(`Project "${projectSlug}" not found in workspace "${workspaceSlug}"`);
       }
 
       setWorkspace((proj.workspace as Workspace) || null);
@@ -288,18 +274,9 @@ function ProjectTasksContent() {
       return { ws, proj };
     } catch (error) {
       console.error("LoadInitialData error:", error);
-      setLocalError(
-        error instanceof Error ? error.message : "Failed to load initial data"
-      );
+      setLocalError(error instanceof Error ? error.message : "Failed to load initial data");
     }
-  }, [
-    hasValidAuth,
-    workspaceSlug,
-    projectSlug,
-    workspaceApi,
-    projectApi,
-    isAuth,
-  ]);
+  }, [hasValidAuth, workspaceSlug, projectSlug, workspaceApi, projectApi, isAuth]);
 
   const loadStatusData = useCallback(async () => {
     if (!project?.id || statusesLoaded || !isAuth) return;
@@ -347,21 +324,12 @@ function ProjectTasksContent() {
       setPublicTasksTotal(publicTaskResponse.total || 0);
     } catch (error) {
       console.error("Failed to load public tasks:", error);
-      setLocalError(
-        error instanceof Error ? error.message : "Failed to load public tasks"
-      );
+      setLocalError(error instanceof Error ? error.message : "Failed to load public tasks");
     } finally {
       setIsLoadingPublic(false);
       setIsInitialLoad(false);
     }
-  }, [
-    isAuth,
-    workspaceSlug,
-    projectSlug,
-    pageSize,
-    currentPage,
-    getPublicProjectTasks,
-  ]);
+  }, [isAuth, workspaceSlug, projectSlug, pageSize, currentPage, getPublicProjectTasks]);
 
   const loadTasks = useCallback(async () => {
     if (!isAuth) return;
@@ -401,9 +369,7 @@ function ProjectTasksContent() {
       await getAllTasks(currentOrganizationId, params);
     } catch (error) {
       console.error("Failed to load tasks:", error);
-      setLocalError(
-        error instanceof Error ? error.message : "Failed to load tasks"
-      );
+      setLocalError(error instanceof Error ? error.message : "Failed to load tasks");
     } finally {
       setIsInitialLoad(false);
     }
@@ -470,9 +436,7 @@ function ProjectTasksContent() {
           setKanban((prevKanban) => {
             return prevKanban.map((status) => {
               if (status.statusId === statusId) {
-                const newStatusData = response.data.find(
-                  (s) => s.statusId === statusId
-                );
+                const newStatusData = response.data.find((s) => s.statusId === statusId);
                 if (newStatusData) {
                   return {
                     ...status,
@@ -561,8 +525,7 @@ function ProjectTasksContent() {
     };
 
     const filtersChanged =
-      JSON.stringify(currentFilters) !==
-      JSON.stringify(previousFiltersRef.current);
+      JSON.stringify(currentFilters) !== JSON.stringify(previousFiltersRef.current);
     previousFiltersRef.current = currentFilters;
 
     if (firstRenderRef.current) {
@@ -597,19 +560,13 @@ function ProjectTasksContent() {
     const sorted = [...displayTasks].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
-      if (
-        ["createdAt", "updatedAt", "completedAt", "timeline"].includes(
-          sortField
-        )
-      ) {
+      if (["createdAt", "updatedAt", "completedAt", "timeline"].includes(sortField)) {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
       }
 
       if (typeof aValue === "string" && typeof bValue === "string") {
-        return sortOrder === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
+        return sortOrder === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
       }
 
       if (typeof aValue === "number" && typeof bValue === "number") {
@@ -643,9 +600,7 @@ function ProjectTasksContent() {
             name: priority.name,
             value: priority.value,
             selected: selectedPriorities.includes(priority.value),
-            count: displayTasks.filter(
-              (task) => task.priority === priority.value
-            ).length,
+            count: displayTasks.filter((task) => task.priority === priority.value).length,
             color: priority.color,
           }))
         : [],
@@ -661,9 +616,7 @@ function ProjectTasksContent() {
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
             Array.isArray(task.assignees)
-              ? task.assignees.some(
-                  (assignee) => assignee.id === member.user.id
-                )
+              ? task.assignees.some((assignee) => assignee.id === member.user.id)
               : false
           ).length
         : 0,
@@ -680,9 +633,7 @@ function ProjectTasksContent() {
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
             Array.isArray(task.reporters)
-              ? task.reporters.some(
-                  (reporter) => reporter.id === member.user.id
-                )
+              ? task.reporters.some((reporter) => reporter.id === member.user.id)
               : false
           ).length
         : 0,
@@ -696,9 +647,7 @@ function ProjectTasksContent() {
 
       try {
         setSelectedStatuses((prev) => {
-          const newSelection = prev.includes(id)
-            ? prev.filter((x) => x !== id)
-            : [...prev, id];
+          const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
 
           const params = new URLSearchParams(window.location.search);
           if (newSelection.length > 0) {
@@ -724,9 +673,7 @@ function ProjectTasksContent() {
 
       try {
         setSelectedPriorities((prev) => {
-          const newSelection = prev.includes(id)
-            ? prev.filter((x) => x !== id)
-            : [...prev, id];
+          const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
 
           const params = new URLSearchParams(window.location.search);
           if (newSelection.length > 0) {
@@ -772,8 +719,7 @@ function ProjectTasksContent() {
               selectedIds: selectedStatuses,
               searchable: false,
               onToggle: safeToggleStatus,
-              onSelectAll: () =>
-                setSelectedStatuses(statusFilters.map((s) => s.id)),
+              onSelectAll: () => setSelectedStatuses(statusFilters.map((s) => s.id)),
               onClearAll: () => setSelectedStatuses([]),
             }),
             createSection({
@@ -784,8 +730,7 @@ function ProjectTasksContent() {
               selectedIds: selectedPriorities,
               searchable: false,
               onToggle: safeTogglePriority,
-              onSelectAll: () =>
-                setSelectedPriorities(priorityFilters.map((p) => p.id)),
+              onSelectAll: () => setSelectedPriorities(priorityFilters.map((p) => p.id)),
               onClearAll: () => setSelectedPriorities([]),
             }),
             createSection({
@@ -796,8 +741,7 @@ function ProjectTasksContent() {
               selectedIds: selectedAssignees,
               searchable: true,
               onToggle: toggleAssignee,
-              onSelectAll: () =>
-                setSelectedAssignees(assigneeFilters.map((a) => a.id)),
+              onSelectAll: () => setSelectedAssignees(assigneeFilters.map((a) => a.id)),
               onClearAll: () => setSelectedAssignees([]),
             }),
             createSection({
@@ -808,8 +752,7 @@ function ProjectTasksContent() {
               selectedIds: selectedReporters,
               searchable: true,
               onToggle: toggleReporter,
-              onSelectAll: () =>
-                setSelectedReporters(reporterFilters.map((r) => r.id)),
+              onSelectAll: () => setSelectedReporters(reporterFilters.map((r) => r.id)),
               onClearAll: () => setSelectedReporters([]),
             }),
           ]
@@ -856,10 +799,7 @@ function ProjectTasksContent() {
   }, [isAuth]);
 
   const handleAddColumn = (columnId: string) => {
-    const columnConfigs: Record<
-      string,
-      { label: string; type: ColumnConfig["type"] }
-    > = {
+    const columnConfigs: Record<string, { label: string; type: ColumnConfig["type"] }> = {
       description: { label: "Description", type: "text" },
       taskNumber: { label: "Task Number", type: "number" },
       timeline: { label: "Timeline", type: "dateRange" },
@@ -936,14 +876,7 @@ function ProjectTasksContent() {
     } else if (!isAuth) {
       loadPublicTasks();
     }
-  }, [
-    loadInitialData,
-    isAuth,
-    currentOrganizationId,
-    project?.id,
-    loadTasks,
-    loadPublicTasks,
-  ]);
+  }, [loadInitialData, isAuth, currentOrganizationId, project?.id, loadTasks, loadPublicTasks]);
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
@@ -960,11 +893,7 @@ function ProjectTasksContent() {
 
   const renderContent = () => {
     if (isInitialLoad || displayLoading) {
-      return currentView === "kanban" ? (
-        <KanbanColumnSkeleton />
-      ) : (
-        <TaskTableSkeleton />
-      );
+      return currentView === "kanban" ? <KanbanColumnSkeleton /> : <TaskTableSkeleton />;
     }
 
     if (!displayTasks.length) {
@@ -982,18 +911,14 @@ function ProjectTasksContent() {
           return (
             <div className="text-center py-12">
               <p className="text-[var(--muted-foreground)]">
-                Kanban view is available for authenticated users only. Please
-                log in to access this view.
+                Kanban view is available for authenticated users only. Please log in to access this
+                view.
               </p>
             </div>
           );
         }
         if (!kanban.length) {
-          return currentView === "kanban" ? (
-            <KanbanColumnSkeleton />
-          ) : (
-            <TaskTableSkeleton />
-          );
+          return currentView === "kanban" ? <KanbanColumnSkeleton /> : <TaskTableSkeleton />;
         }
         return kanban.length ? (
           <KanbanBoard
@@ -1010,8 +935,7 @@ function ProjectTasksContent() {
         ) : (
           <div className="text-center py-12">
             <p className="text-[var(--muted-foreground)]">
-              No workflow found. Create workflow statuses to use the Kanban
-              view.
+              No workflow found. Create workflow statuses to use the Kanban view.
             </p>
           </div>
         );
@@ -1020,8 +944,8 @@ function ProjectTasksContent() {
           return (
             <div className="text-center py-12">
               <p className="text-[var(--muted-foreground)]">
-                Gantt view is available for authenticated users only. Please log
-                in to access this view.
+                Gantt view is available for authenticated users only. Please log in to access this
+                view.
               </p>
             </div>
           );
@@ -1050,9 +974,7 @@ function ProjectTasksContent() {
             onTaskSelect={handleTaskSelect}
             selectedTasks={selectedTasks}
             showBulkActionBar={
-              hasAccess ||
-              userAccess?.role === "OWNER" ||
-              userAccess?.role === "MANAGER"
+              hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER"
             }
             totalTask={pagination.totalCount}
           />
@@ -1061,9 +983,7 @@ function ProjectTasksContent() {
   };
 
   const showPagination =
-    currentView !== "kanban" &&
-    displayTasks.length > 0 &&
-    pagination.totalPages > 1;
+    currentView !== "kanban" && displayTasks.length > 0 && pagination.totalPages > 1;
   if (error) return <ErrorState error={error} onRetry={handleRetry} />;
 
   return (
@@ -1072,9 +992,7 @@ function ProjectTasksContent() {
       <div className="sticky top-0 z-30 bg-[var(--background)]">
         <PageHeader
           title={project ? `${project.name} Tasks` : "Project Tasks"}
-          description={`Manage and track all tasks for ${
-            project?.name || "this project"
-          }`}
+          description={`Manage and track all tasks for ${project?.name || "this project"}`}
           actions={
             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
               <div className="flex items-center gap-2">
@@ -1139,9 +1057,7 @@ function ProjectTasksContent() {
                   try {
                     await handleTaskCreated();
                   } catch (error) {
-                    const errorMessage = error?.message
-                      ? error.message
-                      : "Failed to refresh tasks";
+                    const errorMessage = error?.message ? error.message : "Failed to refresh tasks";
                     console.error("Error creating task:", errorMessage);
                     if (isAuth) {
                       await loadTasks();
@@ -1166,11 +1082,9 @@ function ProjectTasksContent() {
               return;
             }
             setCurrentView(v);
-            router.push(
-              `/${workspaceSlug}/${projectSlug}/tasks?type=${v}`,
-              undefined,
-              { shallow: true }
-            );
+            router.push(`/${workspaceSlug}/${projectSlug}/tasks?type=${v}`, undefined, {
+              shallow: true,
+            });
           }}
           viewKanban={isAuth}
           viewGantt={isAuth}
@@ -1216,15 +1130,9 @@ function ProjectTasksContent() {
               {/* Kanban view controls - Only for authenticated users */}
               {isAuth &&
                 currentView === "kanban" &&
-                (hasAccess ||
-                  userAccess?.role === "OWNER" ||
-                  userAccess?.role === "MANAGER") && (
+                (hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER") && (
                   <div className="flex items-center gap-2">
-                    <Tooltip
-                      content="Manage Columns"
-                      position="top"
-                      color="primary"
-                    >
+                    <Tooltip content="Manage Columns" position="top" color="primary">
                       <ColumnManager
                         currentView={currentView}
                         availableColumns={columns}

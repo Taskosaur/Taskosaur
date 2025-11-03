@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect } from "react";
 
 interface FetchState {
   isLoading: boolean;
@@ -32,20 +32,20 @@ export function useGlobalFetchPrevention(): UseGlobalFetchPreventionReturn {
   const shouldPreventFetch = useCallback((fetchKey: string): boolean => {
     const currentState = globalFetchState.get(fetchKey);
     const now = Date.now();
-    
+
     if (!currentState) {
       return false;
     }
-    
+
     // Prevent if currently loading
     if (currentState.isLoading) {
       return true;
     }
     // Prevent if recently completed (within cache duration)
-    if (currentState.hasCompleted && (now - currentState.timestamp) < CACHE_DURATION) {
+    if (currentState.hasCompleted && now - currentState.timestamp < CACHE_DURATION) {
       return true;
     }
-    
+
     return false;
   }, []);
 
@@ -87,11 +87,15 @@ export function useGlobalFetchPrevention(): UseGlobalFetchPreventionReturn {
   const getCachedData = useCallback((fetchKey: string) => {
     const currentState = globalFetchState.get(fetchKey);
     const now = Date.now();
-    
-    if (currentState && currentState.hasCompleted && (now - currentState.timestamp) < CACHE_DURATION) {
+
+    if (
+      currentState &&
+      currentState.hasCompleted &&
+      now - currentState.timestamp < CACHE_DURATION
+    ) {
       return currentState.data;
     }
-    
+
     return null;
   }, []);
 

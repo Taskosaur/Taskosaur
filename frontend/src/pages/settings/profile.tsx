@@ -36,7 +36,7 @@ export default function ProfilePage() {
 
   return (
     <div className="dashboard-container">
-      <div >
+      <div>
         {/* Header */}
         <PageHeader
           icon={<HiCog6Tooth className="w-5 h-5 text-[var(--primary)]" />}
@@ -61,10 +61,7 @@ export default function ProfilePage() {
         </div>
 
         {/* AI Settings Modal */}
-        <AISettingsModal
-          isOpen={isAIModalOpen}
-          onClose={() => setIsAIModalOpen(false)}
-        />
+        <AISettingsModal isOpen={isAIModalOpen} onClose={() => setIsAIModalOpen(false)} />
       </div>
     </div>
   );

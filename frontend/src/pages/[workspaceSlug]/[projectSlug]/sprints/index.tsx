@@ -45,11 +45,7 @@ function SprintsPageContent() {
   useEffect(() => {
     if (projectSlug && workspaceSlug) {
       const isAuth = isAuthenticated();
-      listSprints(
-        { slug: projectSlug as string }, 
-        isAuth, 
-        workspaceSlug as string
-      );
+      listSprints({ slug: projectSlug as string }, isAuth, workspaceSlug as string);
     }
   }, [projectSlug, workspaceSlug]);
 
@@ -57,35 +53,25 @@ function SprintsPageContent() {
     loadData();
   }, [workspaceSlug, projectSlug]);
 
-
   const findProjectBySlug = (projects: any[], slug: string) => {
-    return projects.find(
-      (project) => project.slug === slug
-    );
+    return projects.find((project) => project.slug === slug);
   };
 
   const loadData = async () => {
     try {
       const isAuth = authContext.isAuthenticated();
-      
-      if (
-        typeof workspaceSlug !== "string" ||
-        typeof projectSlug !== "string"
-      ) {
+
+      if (typeof workspaceSlug !== "string" || typeof projectSlug !== "string") {
         return;
       }
 
       if (isAuth) {
-        const workspace = await workspaceContext.getWorkspaceBySlug(
-          workspaceSlug
-        );
+        const workspace = await workspaceContext.getWorkspaceBySlug(workspaceSlug);
         if (!workspace) {
           return;
         }
 
-        const projects = await projectContext.getProjectsByWorkspace(
-          workspace.id
-        );
+        const projects = await projectContext.getProjectsByWorkspace(workspace.id);
         const project = findProjectBySlug(projects || [], projectSlug);
 
         if (!project) {
@@ -94,11 +80,7 @@ function SprintsPageContent() {
         setProjectData(project);
       } else {
         try {
-          const project = await projectContext.getProjectBySlug(
-            projectSlug,
-            false,
-            workspaceSlug
-          );
+          const project = await projectContext.getProjectBySlug(projectSlug, false, workspaceSlug);
           setProjectData(project);
         } catch (error) {
           console.error("Error loading public project data:", error);
@@ -111,7 +93,7 @@ function SprintsPageContent() {
 
   useEffect(() => {
     if (!projectData?.id) return;
-    
+
     const isAuth = authContext.isAuthenticated();
     if (isAuth) {
       // Only check user access for authenticated users
@@ -144,11 +126,7 @@ function SprintsPageContent() {
 
       if (projectSlug && workspaceSlug) {
         const isAuth = isAuthenticated();
-        await listSprints(
-          { slug: projectSlug as string }, 
-          isAuth, 
-          workspaceSlug as string
-        );
+        await listSprints({ slug: projectSlug as string }, isAuth, workspaceSlug as string);
       }
 
       setIsSprintModalOpen(false);
@@ -169,11 +147,7 @@ function SprintsPageContent() {
 
       if (projectSlug && workspaceSlug) {
         const isAuth = isAuthenticated();
-        await listSprints(
-          { slug: projectSlug as string }, 
-          isAuth, 
-          workspaceSlug as string
-        );
+        await listSprints({ slug: projectSlug as string }, isAuth, workspaceSlug as string);
       }
     } catch (error) {
       console.error("Error deleting sprint:", error);
@@ -182,10 +156,7 @@ function SprintsPageContent() {
     }
   };
 
-  const handleStatusChange = async (
-    sprintId: string,
-    action: "start" | "complete"
-  ) => {
+  const handleStatusChange = async (sprintId: string, action: "start" | "complete") => {
     try {
       if (action === "start") {
         await startSprint(sprintId);
@@ -195,11 +166,7 @@ function SprintsPageContent() {
 
       if (projectSlug && workspaceSlug) {
         const isAuth = isAuthenticated();
-        await listSprints(
-          { slug: projectSlug as string }, 
-          isAuth, 
-          workspaceSlug as string
-        );
+        await listSprints({ slug: projectSlug as string }, isAuth, workspaceSlug as string);
       }
     } catch (error) {
       console.error(`Error ${action}ing sprint:`, error);
@@ -207,15 +174,11 @@ function SprintsPageContent() {
   };
 
   if (isLoading) {
-    return (
-      <CardsSkeleton count={3} />
-    );
+    return <CardsSkeleton count={3} />;
   }
 
   if (error) {
-    return (
-      <ErrorState error={error} />
-    );
+    return <ErrorState error={error} />;
   }
 
   return (
@@ -256,9 +219,7 @@ function SprintsPageContent() {
                   setDeletingSprint(sprint);
                   setIsDeleteModalOpen(true);
                 }}
-                onStatusChange={(action) =>
-                  handleStatusChange(sprint.id, action)
-                }
+                onStatusChange={(action) => handleStatusChange(sprint.id, action)}
                 hasAccess={hasAccess}
               />
             ))}
@@ -268,14 +229,10 @@ function SprintsPageContent() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-[var(--muted)] flex items-center justify-center">
               <HiRocketLaunch className="w-8 h-8 text-[var(--muted-foreground)]" />
             </div>
-            <h3 className="text-lg font-semibold text-[var(--foreground)] mb-2">
-              No sprints yet
-            </h3>
+            <h3 className="text-lg font-semibold text-[var(--foreground)] mb-2">No sprints yet</h3>
             <p className="text-[var(--muted-foreground)] mb-6 max-w-md mx-auto">
-              Create your first sprint to start organizing your work into
-              focused iterations.
+              Create your first sprint to start organizing your work into focused iterations.
             </p>
-          
           </div>
         )}
 

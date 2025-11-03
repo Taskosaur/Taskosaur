@@ -82,11 +82,7 @@ export function WorkspacesCard({
         <p className="text-xs text-[var(--muted-foreground)] mb-3">
           {emptyStateConfig.description}
         </p>
-        <ActionButton
-          onClick={() => setShowNewWorkspaceDialog(true)}
-          primary
-          showPlusIcon
-        >
+        <ActionButton onClick={() => setShowNewWorkspaceDialog(true)} primary showPlusIcon>
           {emptyStateConfig.buttonText}
         </ActionButton>
       </div>
@@ -95,12 +91,7 @@ export function WorkspacesCard({
 
   return (
     <>
-      <InfoPanel
-        title={title}
-        subtitle={subtitle}
-        viewAllHref="/workspaces"
-        viewAllText="View all"
-      >
+      <InfoPanel title={title} subtitle={subtitle} viewAllHref="/workspaces" viewAllText="View all">
         {renderWorkspaceContent()}
       </InfoPanel>
 

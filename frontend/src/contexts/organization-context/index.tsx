@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-} from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import { organizationApi } from "@/utils/api/organizationApi";
 import { workflowsApi } from "@/utils/api/workflowsApi";
 import { taskStatusApi } from "@/utils/api/taskStatusApi";
@@ -54,9 +47,7 @@ interface OrganizationState {
 interface OrganizationContextType extends OrganizationState {
   // Organization methods
   getUserOrganizations: (userId: string) => Promise<Organization[]>;
-  createOrganization: (
-    organizationData: CreateOrganizationData
-  ) => Promise<Organization>;
+  createOrganization: (organizationData: CreateOrganizationData) => Promise<Organization>;
   getOrganizationById: (organizationId: string) => Promise<Organization>;
   updateOrganization: (
     organizationId: string,
@@ -84,10 +75,7 @@ interface OrganizationContextType extends OrganizationState {
     limit?: number
   ) => Promise<{ data: OrganizationMember[]; total: number; page: number }>;
   getOrganizationWorkFlows: (slug: string) => Promise<Workflow[]>;
-  updateWorkflow: (
-    workflowId: string,
-    workflowData: UpdateWorkflowData
-  ) => Promise<Workflow>;
+  updateWorkflow: (workflowId: string, workflowData: UpdateWorkflowData) => Promise<Workflow>;
   updatedOrganizationMemberRole: (
     memberId: string,
     updateData: UpdateMemberRoleData,
@@ -105,9 +93,7 @@ interface OrganizationContextType extends OrganizationState {
   // Add analytics methods
   fetchAnalyticsData: (organizationId: string) => Promise<void>;
   clearAnalyticsError: () => void;
-  setDefaultOrganization: (
-    organizationId: string
-  ) => Promise<OrganizationMember>;
+  setDefaultOrganization: (organizationId: string) => Promise<OrganizationMember>;
 
   universalSearch: (
     query: string,
@@ -122,16 +108,12 @@ interface OrganizationContextType extends OrganizationState {
   ) => Promise<any>;
 }
 
-const OrganizationContext = createContext<OrganizationContextType | undefined>(
-  undefined
-);
+const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
 
 export const useOrganization = (): OrganizationContextType => {
   const context = useContext(OrganizationContext);
   if (!context) {
-    throw new Error(
-      "useOrganization must be used within an OrganizationProvider"
-    );
+    throw new Error("useOrganization must be used within an OrganizationProvider");
   }
   return context;
 };
@@ -141,19 +123,17 @@ interface OrganizationProviderProps {
 }
 
 export function OrganizationProvider({ children }: OrganizationProviderProps) {
-  const [organizationState, setOrganizationState] = useState<OrganizationState>(
-    {
-      organizations: [],
-      currentOrganization: null,
-      isLoading: false,
-      error: null,
-      // Initialize analytics state
-      analyticsData: null,
-      analyticsLoading: false,
-      analyticsError: null,
-      refreshingAnalytics: false,
-    }
-  );
+  const [organizationState, setOrganizationState] = useState<OrganizationState>({
+    organizations: [],
+    currentOrganization: null,
+    isLoading: false,
+    error: null,
+    // Initialize analytics state
+    analyticsData: null,
+    analyticsLoading: false,
+    analyticsError: null,
+    refreshingAnalytics: false,
+  });
 
   useEffect(() => {
     const initializeCurrentOrganization = () => {
@@ -202,8 +182,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
 
       return result;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "An error occurred";
+      const errorMessage = error instanceof Error ? error.message : "An error occurred";
       setOrganizationState((prev) => ({
         ...prev,
         isLoading: false,
@@ -211,77 +190,71 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
       }));
       throw error;
     }
-  },
-  []);
+  }, []);
 
   // Add fetchAnalyticsData function
-  const fetchAnalyticsData = useCallback(
-    async (organizationId: string): Promise<void> => {
-      try {
-        setOrganizationState((prev) => ({
-          ...prev,
-          analyticsLoading: true,
-          analyticsError: null,
-          refreshingAnalytics: true,
-        }));
+  const fetchAnalyticsData = useCallback(async (organizationId: string): Promise<void> => {
+    try {
+      setOrganizationState((prev) => ({
+        ...prev,
+        analyticsLoading: true,
+        analyticsError: null,
+        refreshingAnalytics: true,
+      }));
 
-        // Get all charts data - returns an object, not an array
-        const results = await orgChartsApi.getAllCharts(organizationId);
+      // Get all charts data - returns an object, not an array
+      const results = await orgChartsApi.getAllCharts(organizationId);
 
-        // Check for any failed requests (charts with error property)
-        const failedCharts = Object.entries(results).filter(
-          ([, data]) => data && typeof data === "object" && "error" in data
-        );
+      // Check for any failed requests (charts with error property)
+      const failedCharts = Object.entries(results).filter(
+        ([, data]) => data && typeof data === "object" && "error" in data
+      );
 
-        if (failedCharts.length > 0) {
-          console.error("Some chart requests failed:", failedCharts);
-        }
-
-        // Extract chart data using ChartType enum keys
-        const analyticsData = {
-          kpiMetrics: results[ChartType.KPI_METRICS],
-          projectPortfolio: results[ChartType.PROJECT_PORTFOLIO],
-          teamUtilization: results[ChartType.TEAM_UTILIZATION],
-          taskDistribution: results[ChartType.TASK_DISTRIBUTION],
-          taskType: results[ChartType.TASK_TYPE],
-          sprintMetrics: results[ChartType.SPRINT_METRICS],
-          qualityMetrics: results[ChartType.QUALITY_METRICS],
-          workspaceProjectCount: results[ChartType.WORKSPACE_PROJECT_COUNT],
-          memberWorkload: results[ChartType.MEMBER_WORKLOAD],
-          resourceAllocation: results[ChartType.RESOURCE_ALLOCATION],
-        };
-
-        setOrganizationState((prev) => ({
-          ...prev,
-          analyticsData,
-          analyticsLoading: false,
-          refreshingAnalytics: false,
-        }));
-      } catch (err) {
-        console.error("Error fetching analytics data:", err);
-        const errorMessage = err?.message
-          ? err.message
-          : "Failed to load organization analytics data";
-
-        setOrganizationState((prev) => ({
-          ...prev,
-          analyticsLoading: false,
-          refreshingAnalytics: false,
-          analyticsError: errorMessage,
-        }));
+      if (failedCharts.length > 0) {
+        console.error("Some chart requests failed:", failedCharts);
       }
-    },
-    []
-  );
+
+      // Extract chart data using ChartType enum keys
+      const analyticsData = {
+        kpiMetrics: results[ChartType.KPI_METRICS],
+        projectPortfolio: results[ChartType.PROJECT_PORTFOLIO],
+        teamUtilization: results[ChartType.TEAM_UTILIZATION],
+        taskDistribution: results[ChartType.TASK_DISTRIBUTION],
+        taskType: results[ChartType.TASK_TYPE],
+        sprintMetrics: results[ChartType.SPRINT_METRICS],
+        qualityMetrics: results[ChartType.QUALITY_METRICS],
+        workspaceProjectCount: results[ChartType.WORKSPACE_PROJECT_COUNT],
+        memberWorkload: results[ChartType.MEMBER_WORKLOAD],
+        resourceAllocation: results[ChartType.RESOURCE_ALLOCATION],
+      };
+
+      setOrganizationState((prev) => ({
+        ...prev,
+        analyticsData,
+        analyticsLoading: false,
+        refreshingAnalytics: false,
+      }));
+    } catch (err) {
+      console.error("Error fetching analytics data:", err);
+      const errorMessage = err?.message
+        ? err.message
+        : "Failed to load organization analytics data";
+
+      setOrganizationState((prev) => ({
+        ...prev,
+        analyticsLoading: false,
+        refreshingAnalytics: false,
+        analyticsError: errorMessage,
+      }));
+    }
+  }, []);
 
   // Helper function for organization redirect logic
   const checkOrganizationAndRedirect = useCallback((): string => {
     try {
       if (typeof window === "undefined") return "/login";
 
-      const currentOrganizationId = localStorage.getItem(
-        "currentOrganizationId"
-      );
+      const currentOrganizationId = localStorage.getItem("currentOrganizationId");
 
       if (currentOrganizationId) {
         return "/dashboard";
@@ -298,9 +271,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
   const apiMethods = useMemo(
     () => ({
       getUserOrganizations: async (userId: string): Promise<Organization[]> => {
-        const result = await handleApiOperation(() =>
-          organizationApi.getUserOrganizations(userId)
-        );
+        const result = await handleApiOperation(() => organizationApi.getUserOrganizations(userId));
         setOrganizationState((prev) => ({
           ...prev,
           organizations: result,
@@ -322,10 +293,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
       },
 
       getOrganizationById: (organizationId: string): Promise<Organization> =>
-        handleApiOperation(
-          () => organizationApi.getOrganizationById(organizationId),
-          false
-        ),
+        handleApiOperation(() => organizationApi.getOrganizationById(organizationId), false),
 
       updateOrganization: async (
         organizationId: string,
@@ -349,20 +317,13 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
       },
 
       deleteOrganization: async (organizationId: string): Promise<void> => {
-        await handleApiOperation(
-          () => organizationApi.deleteOrganization(organizationId),
-          false
-        );
+        await handleApiOperation(() => organizationApi.deleteOrganization(organizationId), false);
 
         setOrganizationState((prev) => ({
           ...prev,
-          organizations: prev.organizations.filter(
-            (org) => org.id !== organizationId
-          ),
+          organizations: prev.organizations.filter((org) => org.id !== organizationId),
           currentOrganization:
-            prev.currentOrganization?.id === organizationId
-              ? null
-              : prev.currentOrganization,
+            prev.currentOrganization?.id === organizationId ? null : prev.currentOrganization,
         }));
 
         if (typeof window !== "undefined") {
@@ -375,18 +336,14 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
       },
 
       refreshOrganizations: async (userId: string): Promise<void> => {
-        const result = await handleApiOperation(() =>
-          organizationApi.getUserOrganizations(userId)
-        );
+        const result = await handleApiOperation(() => organizationApi.getUserOrganizations(userId));
         setOrganizationState((prev) => ({
           ...prev,
           organizations: result,
         }));
       },
 
-      getOrganizationStats: async (
-        organizationId: string
-      ): Promise<OrganizationStats> => {
+      getOrganizationStats: async (organizationId: string): Promise<OrganizationStats> => {
         const result = await handleApiOperation(
           () => organizationApi.getOrganizationStats(organizationId),
           false
@@ -399,20 +356,13 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
         filters: ActivityFilters
       ): Promise<ActivityResponse> => {
         return handleApiOperation(
-          () =>
-            organizationApi.getOrganizationRecentActivity(
-              organizationId,
-              filters
-            ),
+          () => organizationApi.getOrganizationRecentActivity(organizationId, filters),
           false
         );
       },
 
       getOrganizationBySlug: async (slug: string): Promise<Organization> => {
-        return handleApiOperation(
-          () => organizationApi.getOrganizationBySlug(slug),
-          false
-        );
+        return handleApiOperation(() => organizationApi.getOrganizationBySlug(slug), false);
       },
 
       getOrganizationMembers: async (
@@ -436,12 +386,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
         requestUserId: string
       ): Promise<OrganizationMember> => {
         const result = handleApiOperation(
-          () =>
-            organizationApi.updatedOrganizationMemberRole(
-              memberId,
-              updateData,
-              requestUserId
-            ),
+          () => organizationApi.updatedOrganizationMemberRole(memberId, updateData, requestUserId),
           false
         );
         return result;
@@ -452,22 +397,16 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
         requestUserId: string
       ): Promise<{ success: boolean; message: string }> => {
         return handleApiOperation(
-          () =>
-            organizationApi.removeOrganizationMember(memberId, requestUserId),
+          () => organizationApi.removeOrganizationMember(memberId, requestUserId),
           false
         );
       },
 
       getOrganizationWorkFlows: async (slug: string): Promise<Workflow[]> => {
-        return handleApiOperation(
-          () => organizationApi.getOrganizationWorkFlows(slug),
-          false
-        );
+        return handleApiOperation(() => organizationApi.getOrganizationWorkFlows(slug), false);
       },
 
-      createWorkflow: async (
-        workflowData: CreateWorkflowData
-      ): Promise<Workflow> => {
+      createWorkflow: async (workflowData: CreateWorkflowData): Promise<Workflow> => {
         return workflowsApi.createWorkflow(workflowData);
       },
 
@@ -484,12 +423,8 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
         return taskStatusApi.updateTaskStatusPositions(statusUpdates);
       },
 
-      setDefaultOrganization: async (
-        organizationId: string
-      ): Promise<OrganizationMember> => {
-        return handleApiOperation(() =>
-          organizationApi.setDefaultOrganization(organizationId)
-        );
+      setDefaultOrganization: async (organizationId: string): Promise<OrganizationMember> => {
+        return handleApiOperation(() => organizationApi.setDefaultOrganization(organizationId));
       },
 
       // Add analytics methods
@@ -501,12 +436,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
         page: number = 1,
         limit: number = 20
       ): Promise<any> => {
-        return organizationApi.universalSearch(
-          query,
-          organizationId,
-          page,
-          limit
-        );
+        return organizationApi.universalSearch(query, organizationId, page, limit);
       },
 
       showPendingInvitations: async (
@@ -552,9 +482,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
       checkOrganizationAndRedirect,
 
       isUserInOrganization: (organizationId: string): boolean => {
-        return organizationState.organizations.some(
-          (org) => org.id === organizationId
-        );
+        return organizationState.organizations.some((org) => org.id === organizationId);
       },
     }),
     [checkOrganizationAndRedirect, organizationState]
@@ -571,9 +499,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
   );
 
   return (
-    <OrganizationContext.Provider value={contextValue}>
-      {children}
-    </OrganizationContext.Provider>
+    <OrganizationContext.Provider value={contextValue}>{children}</OrganizationContext.Provider>
   );
 }
 

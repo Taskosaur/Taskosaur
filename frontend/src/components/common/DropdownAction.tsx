@@ -102,7 +102,6 @@ interface DropdownActionProps {
   itemType: "user" | "status" | "projectMember";
   forceOpen?: boolean;
   onOpenStateChange?: (isOpen: boolean) => void;
-  
 }
 
 // Type guards
@@ -199,18 +198,14 @@ const ItemDisplay = ({
 }) => {
   if (!item) {
     return (
-      <span className="text-sm text-[var(--muted-foreground)] truncate block">
-        {placeholder}
-      </span>
+      <span className="text-sm text-[var(--muted-foreground)] truncate block">{placeholder}</span>
     );
   }
 
   const displayData = getDisplayData(item);
   if (!displayData) {
     return (
-      <span className="text-sm text-[var(--muted-foreground)] truncate block">
-        {placeholder}
-      </span>
+      <span className="text-sm text-[var(--muted-foreground)] truncate block">{placeholder}</span>
     );
   }
 
@@ -292,7 +287,7 @@ export default function DropdownAction({
 
   const handleOpenChange = async (open: boolean) => {
     setIsOpen(open);
-    
+
     // Notify parent of state change
     onOpenStateChange?.(open);
 
@@ -373,9 +368,7 @@ export default function DropdownAction({
               <div className="w-6 h-6 bg-[var(--destructive)]/10 rounded-full flex items-center justify-center">
                 <HiXMark className="w-3 h-3 text-[var(--destructive)]" />
               </div>
-              <span className="text-xs">
-                {itemType === "status" ? "Clear Status" : "Unassign"}
-              </span>
+              <span className="text-xs">{itemType === "status" ? "Clear Status" : "Unassign"}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1" />
           </>
@@ -383,12 +376,7 @@ export default function DropdownAction({
 
         {isLoading ? (
           <div className="p-4 text-center text-sm text-[var(--muted-foreground)]">
-            Loading{" "}
-            {itemType === "user"
-              ? "users"
-              : itemType === "status"
-              ? "statuses"
-              : "members"}
+            Loading {itemType === "user" ? "users" : itemType === "status" ? "statuses" : "members"}
             ...
           </div>
         ) : filteredItems.length > 0 ? (
@@ -434,9 +422,7 @@ export default function DropdownAction({
                   </>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-medium truncate">
-                    {displayData.name}
-                  </div>
+                  <div className="text-xs font-medium truncate">{displayData.name}</div>
                   {!hideSubtext && (
                     <div className="text-[12px] text-[var(--muted-foreground)] truncate">
                       {displayData.subtext}
@@ -448,12 +434,7 @@ export default function DropdownAction({
           })
         ) : (
           <div className="p-4 text-center text-sm text-[var(--muted-foreground)]">
-            No{" "}
-            {itemType === "user"
-              ? "users"
-              : itemType === "status"
-              ? "statuses"
-              : "members"}{" "}
+            No {itemType === "user" ? "users" : itemType === "status" ? "statuses" : "members"}{" "}
             found.
           </div>
         )}

@@ -103,56 +103,50 @@ export default function OrganizationSettingsComponent({
 
   // Check if form is valid
   const isFormValid = (): boolean => {
-    return (
-      settings.general.name.trim().length > 0 &&
-      isValidUrl(settings.general.website)
-    );
+    return settings.general.name.trim().length > 0 && isValidUrl(settings.general.website);
   };
 
   const dangerZoneActions = [
-  {
-    name: "delete",
-    type: "delete" as const,
-    label: "Delete Organization",
-    description: "Permanently delete this organization and all its data",
-    handler: async () => {
-      try {
-        await deleteOrganization(organization.id);
-      } catch (error: any) {
-        let errorMsg = "Failed to delete organization";
+    {
+      name: "delete",
+      type: "delete" as const,
+      label: "Delete Organization",
+      description: "Permanently delete this organization and all its data",
+      handler: async () => {
+        try {
+          await deleteOrganization(organization.id);
+        } catch (error: any) {
+          let errorMsg = "Failed to delete organization";
 
-        // Extract detailed API error safely
-        const apiErr =
-          error?.response?.data ||
-          error?.data ||
-          (typeof error === "object" ? error : null);
+          // Extract detailed API error safely
+          const apiErr =
+            error?.response?.data || error?.data || (typeof error === "object" ? error : null);
 
-        if (apiErr) {
-          if (typeof apiErr === "string") {
-            errorMsg = apiErr;
-          } else if (apiErr.message) {
-            errorMsg = apiErr.message;
-            if (apiErr.error || apiErr.statusCode) {
-              errorMsg += ` (${apiErr.error || ""}${
-                apiErr.statusCode ? `, ${apiErr.statusCode}` : ""
-              })`;
+          if (apiErr) {
+            if (typeof apiErr === "string") {
+              errorMsg = apiErr;
+            } else if (apiErr.message) {
+              errorMsg = apiErr.message;
+              if (apiErr.error || apiErr.statusCode) {
+                errorMsg += ` (${apiErr.error || ""}${
+                  apiErr.statusCode ? `, ${apiErr.statusCode}` : ""
+                })`;
+              }
+            } else {
+              errorMsg = JSON.stringify(apiErr);
             }
-          } else {
-            errorMsg = JSON.stringify(apiErr);
+          } else if (error?.message) {
+            errorMsg = error.message;
+          } else if (typeof error === "string") {
+            errorMsg = error;
           }
-        } else if (error?.message) {
-          errorMsg = error.message;
-        } else if (typeof error === "string") {
-          errorMsg = error;
+
+          throw new Error(errorMsg);
         }
-
-        throw new Error(errorMsg);
-      }
+      },
+      variant: "destructive" as const,
     },
-    variant: "destructive" as const,
-  },
-];
-
+  ];
 
   const handleSave = async () => {
     if (!isFormValid()) {
@@ -189,11 +183,7 @@ export default function OrganizationSettingsComponent({
       setHasUnsavedChanges(false);
       toast.success("Organization settings updated successfully!");
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to update organization"
-      );
+      toast.error(error instanceof Error ? error.message : "Failed to update organization");
     } finally {
       setIsLoading(false);
     }
@@ -218,10 +208,7 @@ export default function OrganizationSettingsComponent({
           <div className="space-y-4">
             {/* Organization Name */}
             <div className="space-y-2">
-              <Label
-                htmlFor="org-name"
-                className="text-sm font-medium text-[var(--foreground)]"
-              >
+              <Label htmlFor="org-name" className="text-sm font-medium text-[var(--foreground)]">
                 Organization Name <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -240,9 +227,7 @@ export default function OrganizationSettingsComponent({
                 disabled={!hasAccess}
               />
               {settings.general.name.trim().length === 0 && (
-                <p className="text-xs text-red-500">
-                  Organization name is required
-                </p>
+                <p className="text-xs text-red-500">Organization name is required</p>
               )}
             </div>
 
@@ -275,10 +260,7 @@ export default function OrganizationSettingsComponent({
 
             {/* Website */}
             <div className="space-y-2">
-              <Label
-                htmlFor="org-website"
-                className="text-sm font-medium text-[var(--foreground)]"
-              >
+              <Label htmlFor="org-website" className="text-sm font-medium text-[var(--foreground)]">
                 Website
               </Label>
               <Input
@@ -295,12 +277,11 @@ export default function OrganizationSettingsComponent({
                 placeholder="https://example.com"
                 disabled={!hasAccess}
               />
-              {settings.general.website &&
-                !isValidUrl(settings.general.website) && (
-                  <p className="text-xs text-red-500">
-                    Please enter a valid URL (e.g., https://example.com)
-                  </p>
-                )}
+              {settings.general.website && !isValidUrl(settings.general.website) && (
+                <p className="text-xs text-red-500">
+                  Please enter a valid URL (e.g., https://example.com)
+                </p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -324,22 +305,20 @@ export default function OrganizationSettingsComponent({
         </div>
       </div>
 
-  {/* Danger Zone - Only show if user has access */}
-  {hasAccess && (
+      {/* Danger Zone - Only show if user has access */}
+      {hasAccess && (
         <div className="rounded-md border-none bg-red-50 dark:bg-red-950/20">
           <div className="p-6">
             <div className="flex items-start gap-3">
               <HiExclamationTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-1" />
               <div className="flex-1">
-                <h4 className="font-medium text-red-800 dark:text-red-400">
-                  Danger Zone
-                </h4>
+                <h4 className="font-medium text-red-800 dark:text-red-400">Danger Zone</h4>
                 <p className="text-sm text-red-700 dark:text-red-500 mb-4">
                   These actions cannot be undone. Please proceed with caution.
                 </p>
                 <DangerZoneModal
                   triggerText="Delete Organization"
-                  triggerVariant= "destructive"
+                  triggerVariant="destructive"
                   entity={{
                     type: "organization",
                     name: organization.name,

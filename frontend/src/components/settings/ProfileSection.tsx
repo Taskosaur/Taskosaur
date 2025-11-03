@@ -152,8 +152,7 @@ export default function ProfileSection() {
                 <AvatarImage
                   src={previewUrl || currentUser?.avatar || ""}
                   alt={
-                    `${profileData.firstName} ${profileData.lastName}`.trim() ||
-                    "Profile Picture"
+                    `${profileData.firstName} ${profileData.lastName}`.trim() || "Profile Picture"
                   }
                   className="object-cover"
                 />
@@ -311,14 +310,10 @@ export default function ProfileSection() {
 
               {/* Bio */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-[var(--foreground)]">
-                  Bio
-                </Label>
+                <Label className="text-sm font-medium text-[var(--foreground)]">Bio</Label>
                 <textarea
                   value={profileData.bio}
-                  onChange={(e) =>
-                    setProfileData((prev) => ({ ...prev, bio: e.target.value }))
-                  }
+                  onChange={(e) => setProfileData((prev) => ({ ...prev, bio: e.target.value }))}
                   rows={3}
                   className="w-full px-3 py-2 text-xs rounded-md resize-none bg-[var(--background)] border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
                   placeholder="Tell us about yourself..."
@@ -362,19 +357,14 @@ export default function ProfileSection() {
             /* Display Mode - User Details as Paragraphs */
             <div className="space-y-2">
               <div>
-                <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
-                  Full Name
-                </h4>
+                <h4 className="text-sm font-medium text-[var(--muted-foreground)]">Full Name</h4>
                 <p className="text-[var(--foreground)] text-sm">
-                  {`${profileData.firstName} ${profileData.lastName}`.trim() ||
-                    "Not provided"}
+                  {`${profileData.firstName} ${profileData.lastName}`.trim() || "Not provided"}
                 </p>
               </div>
 
               <div>
-                <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
-                  Email
-                </h4>
+                <h4 className="text-sm font-medium text-[var(--muted-foreground)]">Email</h4>
                 <p className="text-[var(--foreground)] text-sm">
                   {profileData.email || "Not provided"}
                 </p>
@@ -385,20 +375,14 @@ export default function ProfileSection() {
                   <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
                     Mobile Number
                   </h4>
-                  <p className="text-[var(--foreground)] text-sm">
-                    {profileData.mobileNumber}
-                  </p>
+                  <p className="text-[var(--foreground)] text-sm">{profileData.mobileNumber}</p>
                 </div>
               )}
 
               {profileData.bio && (
                 <div>
-                  <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
-                    Bio
-                  </h4>
-                  <p className="text-[var(--foreground)] leading-6 text-sm">
-                    {profileData.bio}
-                  </p>
+                  <h4 className="text-sm font-medium text-[var(--muted-foreground)]">Bio</h4>
+                  <p className="text-[var(--foreground)] leading-6 text-sm">{profileData.bio}</p>
                 </div>
               )}
             </div>

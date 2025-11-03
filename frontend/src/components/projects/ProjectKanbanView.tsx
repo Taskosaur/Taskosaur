@@ -39,11 +39,7 @@ interface SimpleTaskCardProps {
   projectSlug: string;
 }
 
-const SimpleTaskCard: React.FC<SimpleTaskCardProps> = ({
-  task,
-  workspaceSlug,
-  projectSlug,
-}) => {
+const SimpleTaskCard: React.FC<SimpleTaskCardProps> = ({ task, workspaceSlug, projectSlug }) => {
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString("en-US", {
@@ -129,9 +125,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
               projectSlug={projectSlug}
             />
           ))}
-          {tasks.length === 0 && (
-            <div className="projects-kanban-empty">No tasks</div>
-          )}
+          {tasks.length === 0 && <div className="projects-kanban-empty">No tasks</div>}
 
           {hasAccess && (
             <Link

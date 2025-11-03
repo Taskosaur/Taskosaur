@@ -4,7 +4,7 @@ export interface WorkspaceData {
   name: string;
   description?: string;
   color?: string;
-  slug?:string;
+  slug?: string;
 }
 
 export interface Workspace {
@@ -27,9 +27,8 @@ export interface Workspace {
   };
   members?: {
     role: WorkspaceRole;
-  }[]
+  }[];
 }
-
 
 export interface WorkspaceMember {
   id: string;
@@ -85,7 +84,7 @@ export interface ActivityLog {
   metadata?: Record<string, any>;
   createdAt: string;
   updatedAt: string;
-  type:string;
+  type: string;
   user: {
     id: string;
     name: string;
@@ -108,7 +107,7 @@ export interface WorkspaceActivityResponse {
 export interface GetWorkspaceActivityParams {
   limit?: number;
   page?: number;
-  entityType?:string;
+  entityType?: string;
 }
 
 export interface AddMemberToWorkspaceData {
@@ -135,7 +134,7 @@ export interface ActivityLog {
   metadata?: Record<string, any>;
   createdAt: string;
   updatedAt: string;
-  type:string;
+  type: string;
   user: {
     id: string;
     name: string;
@@ -158,16 +157,16 @@ export interface WorkspaceActivityResponse {
 export interface GetWorkspaceActivityParams {
   limit?: number;
   page?: number;
-  entityType?:string;
+  entityType?: string;
 }
 
 export enum WorkspaceChartType {
-  PROJECT_STATUS = 'project-status',
-  TASK_PRIORITY = 'task-priority',
-  KPI_METRICS = 'kpi-metrics',
-  TASK_TYPE = 'task-type',
-  SPRINT_STATUS = 'sprint-status',
-  MONTHLY_COMPLETION = 'monthly-completion'
+  PROJECT_STATUS = "project-status",
+  TASK_PRIORITY = "task-priority",
+  KPI_METRICS = "kpi-metrics",
+  TASK_TYPE = "task-type",
+  SPRINT_STATUS = "sprint-status",
+  MONTHLY_COMPLETION = "monthly-completion",
 }
 export interface WorkspaceChartDataResponse {
   [key: string]: any;

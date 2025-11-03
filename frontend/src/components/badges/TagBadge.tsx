@@ -1,6 +1,4 @@
-;
-
-import React from 'react';
+import React from "react";
 
 interface TagBadgeProps {
   tag: string;
@@ -8,15 +6,11 @@ interface TagBadgeProps {
   className?: string;
 }
 
-export const TagBadge: React.FC<TagBadgeProps> = ({
-  tag,
-  color,
-  className,
-}) => {
+export const TagBadge: React.FC<TagBadgeProps> = ({ tag, color, className }) => {
   if (color) {
     return (
-      <span 
-        className={`tagbadge-base tagbadge-colored ${className || ''}`}
+      <span
+        className={`tagbadge-base tagbadge-colored ${className || ""}`}
         style={{ backgroundColor: color }}
       >
         {tag}
@@ -24,9 +18,5 @@ export const TagBadge: React.FC<TagBadgeProps> = ({
     );
   }
 
-  return (
-    <span className={`tagbadge-base tagbadge-default ${className || ''}`}>
-      {tag}
-    </span>
-  );
+  return <span className={`tagbadge-base tagbadge-default ${className || ""}`}>{tag}</span>;
 };

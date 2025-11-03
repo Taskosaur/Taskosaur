@@ -6,7 +6,7 @@
 }
 
 .dashboard-content {
-  @apply  mx-auto p-4 space-y-6;
+  @apply mx-auto p-4 space-y-6;
 }
 
 /* Today's Agenda Modal */

@@ -1,5 +1,3 @@
-;
-
 import MembersManager from "@/components/shared/MembersManager";
 
 interface ProjectMembersProps {

@@ -15,14 +15,8 @@ import Pagination from "@/components/common/Pagination";
 import ErrorState from "@/components/common/ErrorState";
 import EmptyState from "@/components/common/EmptyState";
 import { ColumnManager } from "@/components/tasks/ColumnManager";
-import {
-  FilterDropdown,
-  useGenericFilters,
-} from "@/components/common/FilterDropdown";
-import SortIngManager, {
-  SortOrder,
-  SortField,
-} from "@/components/tasks/SortIngManager";
+import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
+import SortIngManager, { SortOrder, SortField } from "@/components/tasks/SortIngManager";
 import Tooltip from "@/components/common/ToolTip";
 
 import { HiXMark } from "react-icons/hi2";
@@ -64,16 +58,9 @@ interface PaginationInfo {
 
 function TasksPageContent() {
   const router = useRouter();
-  const {
-    getAllTasks,
-    getCalendarTask,
-    isLoading: taskLoading,
-    taskResponse,
-    tasks,
-  } = useTask();
+  const { getAllTasks, getCalendarTask, isLoading: taskLoading, taskResponse, tasks } = useTask();
   const { getWorkspacesByOrganization } = useWorkspaceContext();
-  const { getProjectsByOrganization, getTaskStatusByProject } =
-    useProjectContext();
+  const { getProjectsByOrganization, getTaskStatusByProject } = useProjectContext();
   const { getCurrentUser, getUserAccess } = useAuth();
   const { createSection } = useGenericFilters();
 
@@ -103,9 +90,7 @@ function TasksPageContent() {
   const [currentView, setCurrentView] = useState<ViewType>(() => {
     if (typeof window === "undefined") return "list";
     const type = new URLSearchParams(window.location.search).get("type");
-    return type === "list" || type === "gantt" || type === "kanban"
-      ? type
-      : "list";
+    return type === "list" || type === "gantt" || type === "kanban" ? type : "list";
   });
 
   const [ganttViewMode, setGanttViewMode] = useState<ViewMode>("days");
@@ -178,7 +163,7 @@ function TasksPageContent() {
 
     getUserAccess({ name: "organization", id: currentOrganizationId })
       .then((data) => {
-        setHasAccess(data?.canChange), setUserAcess(data);
+        (setHasAccess(data?.canChange), setUserAcess(data));
       })
       .catch((error) => console.error("Error fetching user access:", error));
   }, [currentOrganizationId]);
@@ -212,13 +197,11 @@ function TasksPageContent() {
 
     try {
       setError(null);
-      const [workspacesData, projectsData, organizationMembers] =
-        await Promise.all([
-          getWorkspacesByOrganization(currentOrganizationId),
-          getProjectsByOrganization(currentOrganizationId),
-          getOrganizationMembers(currentOrganizationId),
-        ]);
-
+      const [workspacesData, projectsData, organizationMembers] = await Promise.all([
+        getWorkspacesByOrganization(currentOrganizationId),
+        getProjectsByOrganization(currentOrganizationId),
+        getOrganizationMembers(currentOrganizationId),
+      ]);
 
       setWorkspaces(workspacesData || []);
       setProjects(projectsData || []);
@@ -302,9 +285,7 @@ function TasksPageContent() {
       // const data = await getCalendarTask(currentOrganizationId);
       // setGanttTasks(data || []);
     } catch (error) {
-      setGanttError(
-        error?.message ? error.message : "Failed to load Gantt data"
-      );
+      setGanttError(error?.message ? error.message : "Failed to load Gantt data");
       setGanttTasks([]);
     } finally {
       setGanttLoading(false);
@@ -342,10 +323,7 @@ function TasksPageContent() {
 
   // Column management
   const handleAddColumn = useCallback((columnId: string) => {
-    const columnConfigs: Record<
-      string,
-      { label: string; type: ColumnConfig["type"] }
-    > = {
+    const columnConfigs: Record<string, { label: string; type: ColumnConfig["type"] }> = {
       description: { label: "Description", type: "text" },
       taskNumber: { label: "Task Number", type: "number" },
       timeline: { label: "Timeline", type: "dateRange" },
@@ -388,9 +366,7 @@ function TasksPageContent() {
   // Filter handlers
   const toggleWorkspace = useCallback((id: string) => {
     setSelectedWorkspaces((prev) => {
-      const newSelection = prev.includes(id)
-        ? prev.filter((x) => x !== id)
-        : [...prev, id];
+      const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
       return newSelection;
     });
     setCurrentPage(1);
@@ -487,8 +463,7 @@ function TasksPageContent() {
   );
 
   const workspaceFilters = useMemo(() => {
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     return workspaces
       .filter((workspace) => workspace.id && uuidRegex.test(workspace.id))
@@ -502,8 +477,7 @@ function TasksPageContent() {
   }, [workspaces, projects, selectedWorkspaces]);
 
   const projectFilters = useMemo(() => {
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     return projects
       .filter(
@@ -518,8 +492,7 @@ function TasksPageContent() {
         value: project.id,
         selected: selectedProjects.includes(project.id),
         count: tasks.filter((task) => task.projectId === project.id).length,
-        workspace:
-          workspaces.find((w) => w.id === project.workspaceId)?.name || "",
+        workspace: workspaces.find((w) => w.id === project.workspaceId)?.name || "",
         workspaceId: project.workspaceId,
       }));
   }, [projects, selectedProjects, tasks, workspaces, selectedWorkspaces]);
@@ -533,8 +506,7 @@ function TasksPageContent() {
         selected: selectedStatuses.includes(status.id),
         count: tasks.filter((task) => {
           const taskStatusId =
-            task.statusId ||
-            (typeof task.status === "object" ? task.status?.id : task.status);
+            task.statusId || (typeof task.status === "object" ? task.status?.id : task.status);
           return taskStatusId === status.id;
         }).length,
         color: status.color || "#6b7280",
@@ -568,9 +540,7 @@ function TasksPageContent() {
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
             Array.isArray(task.assignees)
-              ? task.assignees.some(
-                  (assignee) => assignee.id === member.user.id
-                )
+              ? task.assignees.some((assignee) => assignee.id === member.user.id)
               : false
           ).length
         : 0,
@@ -587,9 +557,7 @@ function TasksPageContent() {
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
             Array.isArray(task.reporters)
-              ? task.reporters.some(
-                  (reporter) => reporter.id === member.user.id
-                )
+              ? task.reporters.some((reporter) => reporter.id === member.user.id)
               : false
           ).length
         : 0,
@@ -607,8 +575,7 @@ function TasksPageContent() {
         selectedIds: selectedWorkspaces,
         searchable: true,
         onToggle: toggleWorkspace,
-        onSelectAll: () =>
-          setSelectedWorkspaces(workspaceFilters.map((w) => w.id)),
+        onSelectAll: () => setSelectedWorkspaces(workspaceFilters.map((w) => w.id)),
         onClearAll: () => setSelectedWorkspaces([]),
       }),
       createSection({
@@ -633,9 +600,7 @@ function TasksPageContent() {
         onSelectAll: statusFilterEnabled
           ? () => setSelectedStatuses(statusFilters.map((s) => s.id))
           : undefined,
-        onClearAll: statusFilterEnabled
-          ? () => setSelectedStatuses([])
-          : undefined,
+        onClearAll: statusFilterEnabled ? () => setSelectedStatuses([]) : undefined,
         disabled: !statusFilterEnabled,
       }),
       createSection({
@@ -646,8 +611,7 @@ function TasksPageContent() {
         selectedIds: selectedPriorities,
         searchable: false,
         onToggle: togglePriority,
-        onSelectAll: () =>
-          setSelectedPriorities(priorityFilters.map((p) => p.id)),
+        onSelectAll: () => setSelectedPriorities(priorityFilters.map((p) => p.id)),
         onClearAll: () => setSelectedPriorities([]),
       }),
       createSection({
@@ -658,8 +622,7 @@ function TasksPageContent() {
         selectedIds: selectedAssignees,
         searchable: true,
         onToggle: toggleAssignee,
-        onSelectAll: () =>
-          setSelectedAssignees(assigneeFilters.map((a) => a.id)),
+        onSelectAll: () => setSelectedAssignees(assigneeFilters.map((a) => a.id)),
         onClearAll: () => setSelectedAssignees([]),
       }),
       createSection({
@@ -670,8 +633,7 @@ function TasksPageContent() {
         selectedIds: selectedReporters,
         searchable: true,
         onToggle: toggleReporter,
-        onSelectAll: () =>
-          setSelectedReporters(reporterFilters.map((r) => r.id)),
+        onSelectAll: () => setSelectedReporters(reporterFilters.map((r) => r.id)),
         onClearAll: () => setSelectedReporters([]),
       }),
     ],
@@ -706,20 +668,14 @@ function TasksPageContent() {
       let bValue = b[sortField];
 
       // Handle date fields
-      if (
-        ["createdAt", "updatedAt", "completedAt", "timeline"].includes(
-          sortField
-        )
-      ) {
+      if (["createdAt", "updatedAt", "completedAt", "timeline"].includes(sortField)) {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
       }
 
       // Handle string comparison
       if (typeof aValue === "string" && typeof bValue === "string") {
-        return sortOrder === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
+        return sortOrder === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
       }
 
       // Handle number comparison
@@ -775,9 +731,7 @@ function TasksPageContent() {
             columns={columns}
             showAddTaskRow={false}
             showBulkActionBar={
-              hasAccess ||
-              userAccess?.role === "OWNER" ||
-              userAccess?.role === "MANAGER"
+              hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER"
             }
           />
         );
@@ -819,11 +773,7 @@ function TasksPageContent() {
                   )}
                 </div>
                 {currentView === "list" && (
-                  <Tooltip
-                    content="Advanced Filters"
-                    position="top"
-                    color="primary"
-                  >
+                  <Tooltip content="Advanced Filters" position="top" color="primary">
                     <FilterDropdown
                       sections={filterSections}
                       title="Advanced Filters"
@@ -838,11 +788,7 @@ function TasksPageContent() {
                 )}
               </div>
               {userAccess?.role !== "VIEWER" && (
-                <ActionButton
-                  primary
-                  showPlusIcon
-                  onClick={() => setNewTaskModalOpen(true)}
-                >
+                <ActionButton primary showPlusIcon onClick={() => setNewTaskModalOpen(true)}>
                   Create Task
                 </ActionButton>
               )}
@@ -917,10 +863,7 @@ function TasksPageContent() {
         </div>
       )}
 
-      <NewTaskModal
-        isOpen={isNewTaskModalOpen}
-        onClose={() => setNewTaskModalOpen(false)}
-      />
+      <NewTaskModal isOpen={isNewTaskModalOpen} onClose={() => setNewTaskModalOpen(false)} />
     </div>
   );
 }

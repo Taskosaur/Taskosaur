@@ -33,9 +33,7 @@ export const sprintApi = {
 
       let response;
       if (isAuthenticated) {
-        response = await api.get<Sprint[]>(
-          `/sprints/slug?${params.toString()}`
-        );
+        response = await api.get<Sprint[]>(`/sprints/slug?${params.toString()}`);
       } else {
         if (!workspaceSlug || !filters.slug) {
           throw new Error(
@@ -43,9 +41,7 @@ export const sprintApi = {
           );
         }
         response = await api.get<Sprint[]>(
-          `/public/workspaces/${workspaceSlug}/projects/${
-            filters.slug
-          }/sprints`
+          `/public/workspaces/${workspaceSlug}/projects/${filters.slug}/sprints`
         );
       }
 
@@ -69,17 +65,12 @@ export const sprintApi = {
   getActiveSprint: async (projectId: string): Promise<Sprint | null> => {
     try {
       // Validate projectId format
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(projectId)) {
-        throw new Error(
-          `Invalid projectId format: ${projectId}. Expected UUID format.`
-        );
+        throw new Error(`Invalid projectId format: ${projectId}. Expected UUID format.`);
       }
 
-      const response = await api.get<Sprint>(
-        `/sprints/project/${projectId}/active`
-      );
+      const response = await api.get<Sprint>(`/sprints/project/${projectId}/active`);
       return response.data;
     } catch (error) {
       // Return null if no active sprint found (404)
@@ -91,15 +82,9 @@ export const sprintApi = {
     }
   },
 
-  updateSprint: async (
-    sprintId: string,
-    sprintData: UpdateSprintData
-  ): Promise<Sprint> => {
+  updateSprint: async (sprintId: string, sprintData: UpdateSprintData): Promise<Sprint> => {
     try {
-      const response = await api.patch<Sprint>(
-        `/sprints/${sprintId}`,
-        sprintData
-      );
+      const response = await api.patch<Sprint>(`/sprints/${sprintId}`, sprintData);
       return response.data;
     } catch (error) {
       console.error("Update sprint error:", error);
@@ -127,9 +112,7 @@ export const sprintApi = {
     }
   },
 
-  deleteSprint: async (
-    sprintId: string
-  ): Promise<{ success: boolean; message: string }> => {
+  deleteSprint: async (sprintId: string): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await api.delete(`/sprints/${sprintId}`);
 
@@ -158,11 +141,7 @@ export const sprintApi = {
     workspaceSlug?: string
   ): Promise<Sprint[]> => {
     try {
-      return await sprintApi.getSprints(
-        { slug },
-        isAuthenticated,
-        workspaceSlug
-      );
+      return await sprintApi.getSprints({ slug }, isAuthenticated, workspaceSlug);
     } catch (error) {
       console.error("Get sprints by project error:", error);
       throw error;
@@ -240,8 +219,7 @@ export const sprintApi = {
     const inProgressTasks = sprint._count?.inProgressTasks || 0;
     const todoTasks = sprint._count?.todoTasks || 0;
 
-    const completionRate =
-      totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+    const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
     let daysRemaining: number | undefined;
     let isOverdue = false;
@@ -346,9 +324,7 @@ export const sprintApi = {
     updateData: UpdateSprintData
   ): Promise<Sprint[]> => {
     try {
-      const updatePromises = sprintIds.map((id) =>
-        sprintApi.updateSprint(id, updateData)
-      );
+      const updatePromises = sprintIds.map((id) => sprintApi.updateSprint(id, updateData));
       return await Promise.all(updatePromises);
     } catch (error) {
       console.error("Bulk update sprints error:", error);

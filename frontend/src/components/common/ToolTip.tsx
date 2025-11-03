@@ -82,15 +82,15 @@ const Tooltip = ({ children, content, position = "top", color = "dark", delay = 
             style={getTooltipStyle()}
           >
             {content}
-            <div 
-            className={`fixed w-2 h-2 transform rotate-45 ${colorClasses[color].split(' ')[0]}`}
-            style={{
-              ...(position === 'top' && { bottom: '-4px', left: '50%', marginLeft: '-4px' }),
-              ...(position === 'bottom' && { top: '-4px', left: '50%', marginLeft: '-4px' }),
-              ...(position === 'left' && { right: '-4px', top: '50%', marginTop: '-4px' }),
-              ...(position === 'right' && { left: '-4px', top: '50%', marginTop: '-4px' }),
-            }}
-          />
+            <div
+              className={`fixed w-2 h-2 transform rotate-45 ${colorClasses[color].split(" ")[0]}`}
+              style={{
+                ...(position === "top" && { bottom: "-4px", left: "50%", marginLeft: "-4px" }),
+                ...(position === "bottom" && { top: "-4px", left: "50%", marginLeft: "-4px" }),
+                ...(position === "left" && { right: "-4px", top: "50%", marginTop: "-4px" }),
+                ...(position === "right" && { left: "-4px", top: "50%", marginTop: "-4px" }),
+              }}
+            />
           </div>,
           document.body
         )}

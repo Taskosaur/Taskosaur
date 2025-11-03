@@ -1,21 +1,24 @@
-import { useAuth } from '@/contexts/auth-context';
-import { TokenManager } from '@/lib/api';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from "@/contexts/auth-context";
+import { TokenManager } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
 
 interface AuthRedirectProps {
   children: React.ReactNode;
-  redirectTo?: () => Promise<string>; 
+  redirectTo?: () => Promise<string>;
   requireAuth?: boolean;
 }
 
-
-export default function AuthRedirect({ 
-  children, 
-  redirectTo = async () => '/dashboard',
-  requireAuth = true 
+export default function AuthRedirect({
+  children,
+  redirectTo = async () => "/dashboard",
+  requireAuth = true,
 }: AuthRedirectProps) {
-  const { getCurrentUser, isAuthenticated: contextIsAuthenticated, isLoading: authLoading } = useAuth();
+  const {
+    getCurrentUser,
+    isAuthenticated: contextIsAuthenticated,
+    isLoading: authLoading,
+  } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [shouldShowChildren, setShouldShowChildren] = useState(false);
@@ -25,12 +28,12 @@ export default function AuthRedirect({
       const isAuth = contextIsAuthenticated();
       const hasTokens = !!TokenManager.getAccessToken();
       const currentUser = getCurrentUser();
-      
+
       const isFullyAuthenticated = isAuth && hasTokens && currentUser;
-      
+
       return isFullyAuthenticated;
     } catch (error) {
-      console.error('Auth status check error:', error);
+      console.error("Auth status check error:", error);
       return false;
     }
   }, [contextIsAuthenticated, getCurrentUser]);
@@ -43,10 +46,9 @@ export default function AuthRedirect({
     const performAuthCheck = async () => {
       try {
         const isAuthenticated = checkAuthStatus();
-        
+
         if (requireAuth) {
           if (isAuthenticated) {
-
             router.push(await redirectTo());
 
             setShouldShowChildren(false);

@@ -43,10 +43,8 @@ function ResetPasswordForm() {
   const hasLowerCase = /[a-z]/.test(formData.password);
   const hasNumber = /\d/.test(formData.password);
   const passwordsMatch =
-    formData.password === formData.confirmPassword &&
-    formData.confirmPassword.length > 0;
-  const isPasswordValid =
-    isPasswordLongEnough && hasUpperCase && hasLowerCase && hasNumber;
+    formData.password === formData.confirmPassword && formData.confirmPassword.length > 0;
+  const isPasswordValid = isPasswordLongEnough && hasUpperCase && hasLowerCase && hasNumber;
 
   useEffect(() => {
     // Validate token on component mount
@@ -123,9 +121,7 @@ function ResetPasswordForm() {
       if (response.success) {
         setIsSuccess(true);
       } else {
-        setError(
-          response.message || "Failed to reset password. Please try again."
-        );
+        setError(response.message || "Failed to reset password. Please try again.");
       }
     } catch (err: any) {
       setError(err.message || "Failed to reset password. Please try again.");
@@ -161,8 +157,8 @@ function ResetPasswordForm() {
             <AlertDescription className="font-medium">
               <span className="login-error-title">Reset Link Expired</span>
               <span className="login-error-message">
-                This link may have expired or been used already. Password reset
-                links are only valid for 24 hours.
+                This link may have expired or been used already. Password reset links are only valid
+                for 24 hours.
               </span>
             </AlertDescription>
           </Alert>
@@ -209,9 +205,7 @@ function ResetPasswordForm() {
         <div className="login-form-header">
           <div className="login-form-header-content">
             <h1 className="login-form-title">Password Reset Successful</h1>
-            <p className="login-form-subtitle">
-              Your password has been successfully updated
-            </p>
+            <p className="login-form-subtitle">Your password has been successfully updated</p>
           </div>
         </div>
 
@@ -223,12 +217,10 @@ function ResetPasswordForm() {
           <Alert className="login-error-alert border-green-200 bg-green-50 text-green-800 dark:border-green-800/30 dark:bg-green-900/20">
             <CheckCircle2 className="login-field-icon text-green-600" />
             <AlertDescription className="font-medium">
-              <span className="login-error-title text-green-800 dark:text-green-200">
-                All Set!
-              </span>
+              <span className="login-error-title text-green-800 dark:text-green-200">All Set!</span>
               <span className="login-error-message text-green-700 dark:text-green-300">
-                Your password has been successfully reset. You can now sign in
-                with your new password.
+                Your password has been successfully reset. You can now sign in with your new
+                password.
               </span>
             </AlertDescription>
           </Alert>
@@ -277,9 +269,7 @@ function ResetPasswordForm() {
       <div className="login-form-header">
         <div className="login-form-header-content">
           <h1 className="login-form-title">Set New Password</h1>
-          <p className="login-form-subtitle">
-            Create a strong password for your account
-          </p>
+          <p className="login-form-subtitle">Create a strong password for your account</p>
         </div>
       </div>
 
@@ -332,11 +322,7 @@ function ResetPasswordForm() {
               className="login-password-toggle"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
 
@@ -354,9 +340,7 @@ function ResetPasswordForm() {
               <div className="signup-requirements-grid">
                 <div
                   className={`signup-requirement-item ${
-                    isPasswordLongEnough
-                      ? "signup-requirement-valid"
-                      : "signup-requirement-invalid"
+                    isPasswordLongEnough ? "signup-requirement-valid" : "signup-requirement-invalid"
                   }`}
                 >
                   <CheckCircle2
@@ -370,9 +354,7 @@ function ResetPasswordForm() {
                 </div>
                 <div
                   className={`signup-requirement-item ${
-                    hasUpperCase
-                      ? "signup-requirement-valid"
-                      : "signup-requirement-invalid"
+                    hasUpperCase ? "signup-requirement-valid" : "signup-requirement-invalid"
                   }`}
                 >
                   <CheckCircle2
@@ -386,9 +368,7 @@ function ResetPasswordForm() {
                 </div>
                 <div
                   className={`signup-requirement-item ${
-                    hasLowerCase
-                      ? "signup-requirement-valid"
-                      : "signup-requirement-invalid"
+                    hasLowerCase ? "signup-requirement-valid" : "signup-requirement-invalid"
                   }`}
                 >
                   <CheckCircle2
@@ -402,9 +382,7 @@ function ResetPasswordForm() {
                 </div>
                 <div
                   className={`signup-requirement-item ${
-                    hasNumber
-                      ? "signup-requirement-valid"
-                      : "signup-requirement-invalid"
+                    hasNumber ? "signup-requirement-valid" : "signup-requirement-invalid"
                   }`}
                 >
                   <CheckCircle2
@@ -450,15 +428,9 @@ function ResetPasswordForm() {
               size="sm"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               className="login-password-toggle"
-              aria-label={
-                showConfirmPassword ? "Hide password" : "Show password"
-              }
+              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
             >
-              {showConfirmPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
+              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
           {formData.confirmPassword && (
@@ -466,9 +438,7 @@ function ResetPasswordForm() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className={`signup-password-match ${
-                passwordsMatch
-                  ? "signup-password-match-valid"
-                  : "signup-password-match-invalid"
+                passwordsMatch ? "signup-password-match-valid" : "signup-password-match-invalid"
               }`}
             >
               <CheckCircle2
@@ -478,9 +448,7 @@ function ResetPasswordForm() {
                     : "signup-password-match-icon-invalid"
                 }
               />
-              <span>
-                {passwordsMatch ? "Passwords match" : "Passwords do not match"}
-              </span>
+              <span>{passwordsMatch ? "Passwords match" : "Passwords do not match"}</span>
             </motion.div>
           )}
         </motion.div>

@@ -28,7 +28,7 @@ export interface Organization {
   memberCount?: number;
   workspaceCount?: number;
   workspaces?: Workspace[];
-  isDefault?: boolean
+  isDefault?: boolean;
 }
 
 export interface OrganizationResponse {
@@ -77,8 +77,8 @@ export interface CreateOrganizationData {
   description?: string;
   website?: string;
   settings?: OrganizationSettings;
-  defaultWorkspace ?: {name: string};
-  defaultProject ?: {name: string};
+  defaultWorkspace?: { name: string };
+  defaultProject?: { name: string };
 }
 
 export interface ActivityFilters {
@@ -247,16 +247,16 @@ export interface OrganizationActivity {
   createdAt: string;
 }
 export enum ChartType {
-  KPI_METRICS = 'kpi-metrics',
-  PROJECT_PORTFOLIO = 'project-portfolio',
-  TEAM_UTILIZATION = 'team-utilization',
-  TASK_DISTRIBUTION = 'task-distribution',
-  TASK_TYPE = 'task-type',
-  SPRINT_METRICS = 'sprint-metrics',
-  QUALITY_METRICS = 'quality-metrics',
-  WORKSPACE_PROJECT_COUNT = 'workspace-project-count',
-  MEMBER_WORKLOAD = 'member-workload',
-  RESOURCE_ALLOCATION = 'resource-allocation'
+  KPI_METRICS = "kpi-metrics",
+  PROJECT_PORTFOLIO = "project-portfolio",
+  TEAM_UTILIZATION = "team-utilization",
+  TASK_DISTRIBUTION = "task-distribution",
+  TASK_TYPE = "task-type",
+  SPRINT_METRICS = "sprint-metrics",
+  QUALITY_METRICS = "quality-metrics",
+  WORKSPACE_PROJECT_COUNT = "workspace-project-count",
+  MEMBER_WORKLOAD = "member-workload",
+  RESOURCE_ALLOCATION = "resource-allocation",
 }
 
 // Type definitions for better type safety

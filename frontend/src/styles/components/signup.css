@@ -397,7 +397,7 @@
   .signup-form-panel {
     @apply p-12;
   }
-  
+
   .signup-form-wrapper {
     @apply max-w-lg;
   }
@@ -408,27 +408,27 @@
   .signup-form-header {
     @apply mb-4;
   }
-  
+
   .signup-form-title {
     @apply text-xl lg:text-2xl mb-1;
   }
-  
+
   .signup-form-subtitle {
     @apply text-xs lg:text-sm;
   }
-  
+
   .signup-form {
     @apply space-y-3;
   }
-  
+
   .signup-divider-container {
     @apply my-4;
   }
-  
+
   .signup-footer {
     @apply mt-4;
   }
-  
+
   .signup-mobile-logo {
     @apply mb-3;
   }

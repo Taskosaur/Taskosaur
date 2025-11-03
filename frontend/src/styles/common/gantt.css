@@ -14,11 +14,7 @@
   }
 
   .gantt-task-row:hover {
-    background: linear-gradient(
-      90deg,
-      var(--accent) 0%,
-      transparent 100%
-    );
+    background: linear-gradient(90deg, var(--accent) 0%, transparent 100%);
   }
 
   .gantt-task-info {
@@ -59,7 +55,7 @@
   }
 
   .gantt-task-bar::before {
-    content: '';
+    content: "";
     @apply absolute inset-0 opacity-0 transition-opacity duration-300;
     background: linear-gradient(
       45deg,
@@ -74,20 +70,11 @@
   }
 
   .gantt-grid-line {
-    background: linear-gradient(
-      to bottom,
-      transparent 0%,
-      var(--border) 50%,
-      transparent 100%
-    );
+    background: linear-gradient(to bottom, transparent 0%, var(--border) 50%, transparent 100%);
   }
 
   .gantt-today-line {
-    background: linear-gradient(
-      to bottom,
-      var(--primary) 0%,
-      rgba(var(--primary-rgb), 0.5) 100%
-    );
+    background: linear-gradient(to bottom, var(--primary) 0%, rgba(var(--primary-rgb), 0.5) 100%);
     box-shadow: 0 0 10px rgba(var(--primary-rgb), 0.3);
   }
 
@@ -109,11 +96,7 @@
 
   .gantt-progress-indicator {
     @apply rounded-sm;
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.8) 0%,
-      rgba(255, 255, 255, 0.4) 100%
-    );
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
   }
 
   .gantt-task-bar-animate {
@@ -166,11 +149,11 @@
   .gantt-wrapper {
     @apply p-4;
   }
-  
+
   .gantt-task-info {
     @apply min-w-40;
   }
-  
+
   .gantt-timeline-header {
     @apply text-xs;
   }

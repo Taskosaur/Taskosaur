@@ -1,16 +1,11 @@
-  import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { HiSparkles, HiKey, HiLink, HiEyeSlash } from "react-icons/hi2";
 import { settingsApi, Setting } from "@/utils/api/settingsApi";
 import api from "@/lib/api";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ActionButton from "../common/ActionButton";
 import { HiCog, HiEye } from "react-icons/hi";
 
@@ -19,10 +14,7 @@ interface AISettingsModalProps {
   onClose: () => void;
 }
 
-export default function AISettingsModal({
-  isOpen,
-  onClose,
-}: AISettingsModalProps) {
+export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
   const [isEnabled, setIsEnabled] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("");
@@ -97,11 +89,7 @@ export default function AISettingsModal({
     }
   };
 
-  const saveSetting = async (
-    key: string,
-    value: string,
-    description?: string
-  ) => {
+  const saveSetting = async (key: string, value: string, description?: string) => {
     await settingsApi.setSetting({
       key,
       value,
@@ -117,11 +105,7 @@ export default function AISettingsModal({
 
     try {
       await Promise.all([
-        saveSetting(
-          "ai_enabled",
-          isEnabled.toString(),
-          "Enable/disable AI chat functionality"
-        ),
+        saveSetting("ai_enabled", isEnabled.toString(), "Enable/disable AI chat functionality"),
         saveSetting("ai_api_key", apiKey, "AI provider API key"),
         saveSetting("ai_model", model, "AI model to use"),
         saveSetting("ai_api_url", apiUrl, "API endpoint URL"),
@@ -182,10 +166,7 @@ export default function AISettingsModal({
       }
     } catch (error: any) {
       console.error("Connection test failed:", error);
-      const errorMessage =
-        error.response?.data?.error ||
-        error.message ||
-        "Connection test failed";
+      const errorMessage = error.response?.data?.error || error.message || "Connection test failed";
       setMessage({ type: "error", text: errorMessage });
       toast.error(errorMessage);
     } finally {
@@ -199,9 +180,7 @@ export default function AISettingsModal({
   };
 
   const isFormValid = isEnabled
-    ? apiKey.trim().length > 0 &&
-      model.trim().length > 0 &&
-      apiUrl.trim().length > 0
+    ? apiKey.trim().length > 0 && model.trim().length > 0 && apiUrl.trim().length > 0
     : true;
 
   return (
@@ -213,9 +192,7 @@ export default function AISettingsModal({
               <HiSparkles className="projects-modal-icon-content" />
             </div>
             <div className="projects-modal-info">
-              <DialogTitle className="projects-modal-title">
-                AI Assistant Settings
-              </DialogTitle>
+              <DialogTitle className="projects-modal-title">AI Assistant Settings</DialogTitle>
               <p className="projects-modal-description">
                 Configure your AI chat functionality and API settings
               </p>
@@ -265,11 +242,7 @@ export default function AISettingsModal({
                 className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500 hover:text-[hsl(var(--primary))] transition-colors"
                 tabIndex={-1}
               >
-                {showApiKey ? (
-                  <HiEyeSlash className="w-4 h-4" />
-                ) : (
-                  <HiEye className="w-4 h-4" />
-                )}
+                {showApiKey ? <HiEyeSlash className="w-4 h-4" /> : <HiEye className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -371,11 +344,7 @@ export default function AISettingsModal({
                     setIsEnabled(newValue);
                   }}
                   disabled={
-                    isLoading ||
-                    isSaving ||
-                    !apiKey.trim() ||
-                    !model.trim() ||
-                    !apiUrl.trim()
+                    isLoading || isSaving || !apiKey.trim() || !model.trim() || !apiUrl.trim()
                   }
                   className="sr-only peer"
                 />
@@ -392,33 +361,29 @@ export default function AISettingsModal({
           {/* Setup Guide & Providers - Always visible */}
 
           <div className="mt-4 p-3 bg-[var(--border)] rounded-lg">
-            <h3 className="projects-url-preview-label mb-2 text-[14px]">
-              Popular AI Providers:
-            </h3>
+            <h3 className="projects-url-preview-label mb-2 text-[14px]">Popular AI Providers:</h3>
             <ul
               className="text-xs space-y-1 text-[var(--accent-foreground)]"
               style={{ fontSize: "13px" }}
             >
               <li>
-                • <strong>OpenRouter:</strong> https://openrouter.ai/api/v1
-                (100+ models, free options available)
+                • <strong>OpenRouter:</strong> https://openrouter.ai/api/v1 (100+ models, free
+                options available)
               </li>
               <li>
-                • <strong>OpenAI:</strong> https://api.openai.com/v1 (GPT
+                • <strong>OpenAI:</strong> https://api.openai.com/v1 (GPT models)
+              </li>
+              <li>
+                • <strong>Anthropic:</strong> https://api.anthropic.com/v1 (Claude models)
+              </li>
+              <li>
+                • <strong>Google:</strong> https://generativelanguage.googleapis.com/v1beta (Gemini
                 models)
-              </li>
-              <li>
-                • <strong>Anthropic:</strong> https://api.anthropic.com/v1
-                (Claude models)
-              </li>
-              <li>
-                • <strong>Google:</strong>{" "}
-                https://generativelanguage.googleapis.com/v1beta (Gemini models)
               </li>
             </ul>
             <p className="text-xs" style={{ fontSize: "13px" }}>
-              • API keys are encrypted and stored securely • Test connection
-              after changes • The URL determines which provider is used
+              • API keys are encrypted and stored securely • Test connection after changes • The URL
+              determines which provider is used
             </p>
           </div>
 

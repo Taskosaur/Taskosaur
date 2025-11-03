@@ -8,23 +8,12 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EntityCard } from "@/components/common/EntityCard";
 import ActionButton from "@/components/common/ActionButton";
-import {
-  HiFolder,
-  HiClipboardDocumentList,
-  HiCalendarDays,
-  HiXMark,
-} from "react-icons/hi2";
+import { HiFolder, HiClipboardDocumentList, HiCalendarDays, HiXMark } from "react-icons/hi2";
 import { HiSearch, HiChevronDown, HiViewBoards } from "react-icons/hi";
 import { DynamicBadge } from "@/components/common/DynamicBadge";
 import { NewProjectModal } from "@/components/projects/NewProjectModal";
-import {
-  availableStatuses,
-  availablePriorities,
-} from "@/utils/data/projectFilters";
-import {
-  FilterDropdown,
-  useGenericFilters,
-} from "@/components/common/FilterDropdown";
+import { availableStatuses, availablePriorities } from "@/utils/data/projectFilters";
+import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
 import { CheckSquare, Flame } from "lucide-react";
 import ErrorState from "@/components/common/ErrorState";
 import { EmptyState } from "@/components/ui";
@@ -122,8 +111,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 
   // Project icon component
   const ProjectLeadingIcon = ({ project }: { project: any }) => {
-    const hasImage =
-      project.avatar || project.image || project.logo || project.icon;
+    const hasImage = project.avatar || project.image || project.logo || project.icon;
 
     if (hasImage) {
       return (
@@ -187,8 +175,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
         name: status.name,
         value: status.value,
         selected: selectedStatuses.includes(status.value),
-        count: projects.filter((project) => project.status === status.value)
-          .length,
+        count: projects.filter((project) => project.status === status.value).length,
         color: status.color,
         icon: status.icon,
       })),
@@ -202,8 +189,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
         name: priority.name,
         value: priority.value,
         selected: selectedPriorities.includes(priority.value),
-        count: projects.filter((project) => project.priority === priority.value)
-          .length,
+        count: projects.filter((project) => project.priority === priority.value).length,
         color: priority.color,
         icon: priority.icon,
       })),
@@ -222,8 +208,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
         searchable: false,
         multiSelect: true,
         onToggle: toggleStatus,
-        onSelectAll: () =>
-          setSelectedStatuses(statusFilters.map((s) => s.value)),
+        onSelectAll: () => setSelectedStatuses(statusFilters.map((s) => s.value)),
         onClearAll: () => setSelectedStatuses([]),
       }),
       createSection({
@@ -236,8 +221,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
         multiSelect: true,
         allowSelectAll: false,
         onToggle: togglePriority,
-        onSelectAll: () =>
-          setSelectedPriorities(priorityFilters.map((p) => p.value)),
+        onSelectAll: () => setSelectedPriorities(priorityFilters.map((p) => p.value)),
         onClearAll: () => setSelectedPriorities([]),
       }),
     ],
@@ -311,10 +295,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
             setWorkspace(workspaceData);
 
             // Call workspace projects API with filters
-            projectsData = await getProjectsByWorkspace(
-              workspaceData.id,
-              filters
-            );
+            projectsData = await getProjectsByWorkspace(workspaceData.id, filters);
           } else {
             // Call workspace projects API with filters
             projectsData = await getProjectsByWorkspace(workspace.id, filters);
@@ -341,10 +322,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
             router.back();
             return;
           }
-          if (
-            error.message?.includes("401") ||
-            error.message?.includes("Unauthorized")
-          ) {
+          if (error.message?.includes("401") || error.message?.includes("Unauthorized")) {
             toast.error("Authentication required. Please log in again.");
           } else {
             toast.error(
@@ -376,10 +354,8 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
   // Check user access
   useEffect(() => {
     if (contextId) {
-      const accessType =
-        contextType === "workspace" ? "workspace" : "organization";
-      const accessId =
-        contextType === "workspace" && workspace ? workspace.id : contextId;
+      const accessType = contextType === "workspace" ? "workspace" : "organization";
+      const accessId = contextType === "workspace" && workspace ? workspace.id : contextId;
 
       if (contextType === "workspace" && !workspace) return;
 
@@ -419,13 +395,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [
-    contextId,
-    contextType,
-    selectedStatuses,
-    selectedPriorities,
-    debouncedSearchQuery,
-  ]);
+  }, [contextId, contextType, selectedStatuses, selectedPriorities, debouncedSearchQuery]);
 
   // Effect for pagination
   useEffect(() => {
@@ -495,8 +465,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     }
   };
 
-  const totalActiveFilters =
-    selectedStatuses.length + selectedPriorities.length;
+  const totalActiveFilters = selectedStatuses.length + selectedPriorities.length;
 
   if (error) {
     return <ErrorState error={error} onRetry={retryFetch} />;
@@ -507,10 +476,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
   }
 
   const displayTitle =
-    contextType === "workspace" && workspace
-      ? `${workspace.name} Projects`
-      : title;
-
+    contextType === "workspace" && workspace ? `${workspace.name} Projects` : title;
 
   return (
     <div className="dashboard-container">
@@ -548,11 +514,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                     )}
                   </div>
                   <div className="flex-shrink-0">
-                    <Tooltip
-                      content="Advanced Filters"
-                      position="top"
-                      color="primary"
-                    >
+                    <Tooltip content="Advanced Filters" position="top" color="primary">
                       <FilterDropdown
                         sections={filterSections}
                         title="Advanced Filters"
@@ -582,11 +544,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
               {/* Create Project button for desktop (inline with search/filter) */}
               {hasAccess && (
                 <div className="hidden md:block">
-                  <ActionButton
-                    primary
-                    showPlusIcon
-                    onClick={() => setIsNewProjectModalOpen(true)}
-                  >
+                  <ActionButton primary showPlusIcon onClick={() => setIsNewProjectModalOpen(true)}>
                     Create Project
                   </ActionButton>
                 </div>
@@ -598,15 +556,9 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
         <NewProjectModal
           isOpen={isNewProjectModalOpen}
           onClose={() => setIsNewProjectModalOpen(false)}
-          workspaceSlug={
-            contextType === "workspace" ? workspaceSlug : undefined
-          }
+          workspaceSlug={contextType === "workspace" ? workspaceSlug : undefined}
           onProjectCreated={handleProjectCreated}
-          initialData={
-            contextType === "organization"
-              ? { organizationId: contextId }
-              : undefined
-          }
+          initialData={contextType === "organization" ? { organizationId: contextId } : undefined}
         />
 
         {/* Content Area */}
@@ -666,21 +618,13 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                         footer={
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-4">
-                              <Tooltip
-                                content="Number of Tasks"
-                                position="top"
-                                color="primary"
-                              >
+                              <Tooltip content="Number of Tasks" position="top" color="primary">
                                 <span className="flex items-center gap-1">
                                   <HiClipboardDocumentList size={12} />
                                   {project._count?.tasks || 0}
                                 </span>
                               </Tooltip>
-                              <Tooltip
-                                content="Start Date"
-                                position="top"
-                                color="primary"
-                              >
+                              <Tooltip content="Start Date" position="top" color="primary">
                                 <span className="flex items-center gap-1">
                                   <HiCalendarDays size={12} />
                                   {formatDate(project.updatedAt)}

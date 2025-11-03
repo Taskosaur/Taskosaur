@@ -15,7 +15,14 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({
   children,
   redirectTo = "/login",
-  publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/terms-of-service", "/privacy-policy"],
+  publicRoutes = [
+    "/login",
+    "/register",
+    "/forgot-password",
+    "/reset-password",
+    "/terms-of-service",
+    "/privacy-policy",
+  ],
 }: ProtectedRouteProps) {
   const {
     getCurrentUser,
@@ -32,11 +39,12 @@ export default function ProtectedRoute({
   const isPublicRoute = publicRoutes.includes(router.pathname);
 
   //For Public
-  const isProjectRoute = router.pathname.includes('/[workspaceSlug]/[projectSlug]');
+  const isProjectRoute = router.pathname.includes("/[workspaceSlug]/[projectSlug]");
 
   // Check the actual path to exclude settings and members routes
-  const actualPath = router.asPath.split('?')[0]; // Remove query params
-  const isSettingsOrMembersRoute = actualPath.endsWith('/settings') || actualPath.endsWith('/members');
+  const actualPath = router.asPath.split("?")[0]; // Remove query params
+  const isSettingsOrMembersRoute =
+    actualPath.endsWith("/settings") || actualPath.endsWith("/members");
   const isPublicProjectRoute = isProjectRoute && !isSettingsOrMembersRoute;
 
   const checkAuthStatus = useCallback(async (): Promise<{
@@ -90,10 +98,7 @@ export default function ProtectedRoute({
       }
       return { isAuth: true, isOrg: true };
     } catch (error) {
-      console.error(
-        "[checkAuthStatus] Protected route auth check error:",
-        error
-      );
+      console.error("[checkAuthStatus] Protected route auth check error:", error);
       return { isAuth: false, redirectPath: redirectTo, isOrg: false };
     }
   }, [
@@ -132,9 +137,7 @@ export default function ProtectedRoute({
       <div className="flex items-center justify-center min-h-screen bg-[var(--background)]">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-[var(--border)] border-t-[var(--primary)]"></div>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Verifying access...
-          </p>
+          <p className="text-sm text-[var(--muted-foreground)]">Verifying access...</p>
         </div>
       </div>
     );

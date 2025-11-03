@@ -1,11 +1,7 @@
 import React, { useState, useRef } from "react";
 import { Users, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Command,
@@ -79,17 +75,13 @@ export default function SearchableAssigneeDropdown({
                   alt={`${selectedUser.user.firstName} ${selectedUser.user.lastName}`}
                 />
                 <AvatarFallback className="text-xs">
-                  {getInitials(
-                    selectedUser.user.firstName,
-                    selectedUser.user.lastName
-                  )}
+                  {getInitials(selectedUser.user.firstName, selectedUser.user.lastName)}
                 </AvatarFallback>
               </Avatar>
               <span>{`${selectedUser.user.firstName} ${selectedUser.user.lastName}`}</span>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-muted-foreground">
-            
               <span>Select default assignee</span>
             </div>
           )}
@@ -143,9 +135,7 @@ export default function SearchableAssigneeDropdown({
                   </Avatar>
                   <div className="flex flex-col">
                     <span className="text-sm">{`${user.user.firstName} ${user.user.lastName}`}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {user.user.email}
-                    </span>
+                    <span className="text-xs text-muted-foreground">{user.user.email}</span>
                   </div>
                 </CommandItem>
               ))}

@@ -168,11 +168,7 @@ export const calculateTaskPosition = (
     }
 
     // Check if task starts in this period
-    if (
-      startIndex === -1 &&
-      taskStart >= periodStart &&
-      taskStart <= periodEnd
-    ) {
+    if (startIndex === -1 && taskStart >= periodStart && taskStart <= periodEnd) {
       startIndex = i;
     }
 

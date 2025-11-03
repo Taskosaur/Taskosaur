@@ -1,8 +1,5 @@
 import Link from "next/link";
-import {
-  HiClock,
-  HiChatBubbleLeft,
-} from "react-icons/hi2";
+import { HiClock, HiChatBubbleLeft } from "react-icons/hi2";
 import { InfoPanel } from "@/components/common/InfoPanel";
 
 import { Button } from "@/components/ui/button";
@@ -24,7 +21,7 @@ export interface ActivityFeedItem {
   entityId?: string;
   createdAt: string | Date;
   metadata?: { comment?: string } & Record<string, unknown>;
-  newValue?: { 
+  newValue?: {
     title?: string;
     taskId?: string;
     task?: {
@@ -73,7 +70,7 @@ function getEntityLink(activity: ActivityFeedItem): string {
   if (!activity.entityType) return "#";
 
   const entityType = activity.entityType.toLowerCase();
-  
+
   // For task attachments, get the task ID from newValue
   if (entityType === "task attachment" || entityType === "task attchment") {
     const taskId = activity.newValue?.taskId || activity.newValue?.task?.id;
@@ -81,9 +78,9 @@ function getEntityLink(activity: ActivityFeedItem): string {
       return `/tasks/${taskId}`;
     }
   }
-  
+
   if (!activity.entityId) return "#";
-  
+
   switch (entityType) {
     case "task":
       return `/tasks/${activity.entityId}`;
@@ -102,12 +99,9 @@ function normalizeActivity(activity: any): ActivityFeedItem {
   const user = activity.user || {};
 
   const userName =
-    user.name ||
-    `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
-    "Unknown User";
+    user.name || `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Unknown User";
 
-  const description =
-    activity.description || activity.newValue?.title || "Activity";
+  const description = activity.description || activity.newValue?.title || "Activity";
 
   return {
     id: activity.id || "",
@@ -214,12 +208,14 @@ export function ActivityFeedPanel({
                       <span className="activity-content-user-name">
                         {activity.newValue?.user?.firstName && activity.newValue?.user?.lastName
                           ? `${activity.newValue.user.firstName} ${activity.newValue.user.lastName}`
-                          : activity.newValue?.member?.user?.firstName && activity.newValue?.member?.user?.lastName
-                          ? `${activity.newValue.member.user.firstName} ${activity.newValue.member.user.lastName}`
-                          : activity.newValue?.user?.email || activity.newValue?.member?.user?.email || "Unknown User"}
-                      </span>
-                      {" "}to join{" "}
-                      {activity.newValue?.entity?.type || "organization/workspace/project"}
+                          : activity.newValue?.member?.user?.firstName &&
+                              activity.newValue?.member?.user?.lastName
+                            ? `${activity.newValue.member.user.firstName} ${activity.newValue.member.user.lastName}`
+                            : activity.newValue?.user?.email ||
+                              activity.newValue?.member?.user?.email ||
+                              "Unknown User"}
+                      </span>{" "}
+                      to join {activity.newValue?.entity?.type || "organization/workspace/project"}
                     </>
                   ) : (
                     activity.action
@@ -227,11 +223,8 @@ export function ActivityFeedPanel({
                 </span>
                 {activity.entityId && activity.type !== "invitation_sent" && (
                   <span>
-                    <Link
-                      href={getEntityLink(activity)}
-                      className="activity-content-link"
-                    >
-                      View {activity.entityType?.replace(/\s*Att[a]?chment$/i, '')}
+                    <Link href={getEntityLink(activity)} className="activity-content-link">
+                      View {activity.entityType?.replace(/\s*Att[a]?chment$/i, "")}
                     </Link>
                   </span>
                 )}
@@ -252,9 +245,7 @@ export function ActivityFeedPanel({
                 <div className="activity-comment-container">
                   <div className="activity-comment-content">
                     <HiChatBubbleLeft className="activity-comment-icon" />
-                    <p className="activity-comment-text">
-                      {activity.metadata.comment}
-                    </p>
+                    <p className="activity-comment-text">{activity.metadata.comment}</p>
                   </div>
                 </div>
               )}
