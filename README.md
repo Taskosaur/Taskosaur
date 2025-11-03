@@ -40,6 +40,7 @@ Taskosaur combines traditional project management features with AI Mode, allowin
   - [🤖 AI Mode Capabilities](#-ai-mode-capabilities)
 - [Quick Start](#quick-start)
 - [Development](#development)
+  - [Code Quality & Git Hooks](#code-quality--git-hooks)
 - [Project Structure](#project-structure)
 - [Development Roadmap](#development-roadmap)
 - [Deployment](#deployment)
@@ -367,6 +368,33 @@ npm run fe:start          # Start production server
 
 # Code Quality
 npm run fe:lint           # Run ESLint
+```
+
+### Code Quality & Git Hooks
+
+Automatic code formatting and linting with **Prettier**, **ESLint**, and **Husky**.
+
+```bash
+# Format and lint everything
+npm run format              # Format backend + frontend
+npm run lint                # Lint with auto-fix
+npm run format:all          # Format and lint everything
+
+# Individual commands
+npm run be:format           # Backend only
+npm run fe:format           # Frontend only
+npm run be:lint             # Backend lint
+npm run fe:lint             # Frontend lint
+```
+
+**Pre-commit Hook**: Automatically formats, lints, and validates code on every commit.
+
+```bash
+# Commits run checks automatically
+git commit -m "feat: add feature"
+
+# Bypass checks in emergencies only
+git commit -m "fix: urgent hotfix" --no-verify
 ```
 
 ## Project Structure
