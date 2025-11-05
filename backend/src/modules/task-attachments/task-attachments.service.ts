@@ -296,7 +296,7 @@ export class TaskAttachmentsService {
       await this.storageService.streamFromS3(attachment.storageKey, res);
     } else if (attachment.url) {
       // Stream from local storage
-      await this.storageService.streamFromLocal(attachment.url, res);
+      this.storageService.streamFromLocal(attachment.url, res);
     } else {
       throw new NotFoundException('Attachment not found');
     }

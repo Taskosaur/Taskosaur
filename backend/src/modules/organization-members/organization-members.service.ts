@@ -525,7 +525,20 @@ export class OrganizationMembersService {
       select: { role: true },
     });
 
-    let organizations;
+    type OrgType = {
+      id: string;
+      name: string;
+      slug: string;
+      ownerId: string;
+      description: string | null;
+      avatar: string | null;
+      website: string | null;
+      _count: { members: number; workspaces: number };
+      createdAt: Date;
+      members: Array<{ role: string; joinedAt: Date; isDefault: boolean }>;
+    };
+
+    let organizations: OrgType[];
 
     // 2. If SUPER_ADMIN → fetch all organizations
     if (user?.role === 'SUPER_ADMIN') {

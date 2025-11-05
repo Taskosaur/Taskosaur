@@ -9,7 +9,7 @@ import {
   User,
   UserSource,
 } from '@prisma/client';
-import { simpleParser } from 'mailparser';
+import { simpleParser, ParsedMail } from 'mailparser';
 import * as nodemailer from 'nodemailer';
 import { ImapFlow } from 'imapflow';
 import { EmailSyncUtils } from '../utils/email-sync.utils';
@@ -42,6 +42,13 @@ interface EmailMessage {
 @Injectable()
 export class EmailSyncService {
   private readonly logger = new Logger(EmailSyncService.name);
+
+  // Wrapper function to properly type simpleParser call
+  private async parseEmailMessage(source: Buffer): Promise<ParsedMail> {
+    // Use unknown to safely handle mailparser's lacking type definitions
+    const parser = simpleParser as unknown as (source: Buffer) => Promise<ParsedMail>;
+    return await parser(source);
+  }
 
   constructor(
     private prisma: PrismaService,
@@ -192,7 +199,7 @@ export class EmailSyncService {
     let client: ImapFlow | null = null;
 
     try {
-      const password = await this.crypto.decrypt(account.imapPassword!);
+      const password = this.crypto.decrypt(account.imapPassword!);
 
       client = new ImapFlow({
         host: account.imapHost!,
@@ -242,7 +249,7 @@ export class EmailSyncService {
 
         for await (const message of messagesIterable) {
           try {
-            const parsed = await simpleParser(message.source);
+            const parsed: ParsedMail = await this.parseEmailMessage(message.source as Buffer);
 
             // Build base message object with normalized data
             // Note: references parsing is handled by EmailSyncUtils.extractThreadId
@@ -268,8 +275,14 @@ export class EmailSyncService {
             };
 
             // Clean text/html to remove signatures and quoted content
-            const cleanText = EmailSyncUtils.extractVisibleReply(baseMessage.text || '', false);
-            const cleanHtml = EmailSyncUtils.extractVisibleReply(baseMessage.html || '', true);
+            const cleanText = EmailSyncUtils.extractVisibleReply(
+              String(baseMessage.text || ''),
+              false,
+            );
+            const cleanHtml = EmailSyncUtils.extractVisibleReply(
+              String(baseMessage.html || ''),
+              true,
+            );
 
             // Extract signatures separately
             const { signature: textSignature } = EmailSyncUtils.extractSignature(cleanText);
@@ -622,16 +635,17 @@ export class EmailSyncService {
     for (const attachment of attachments) {
       try {
         // Upload to S3
+        const contentBuffer = Buffer.from(String(attachment.content), 'base64');
         const file: Express.Multer.File = {
-          originalname: attachment.filename || 'attachment',
-          mimetype: attachment.contentType || 'application/octet-stream',
-          buffer: Buffer.from(attachment.content, 'base64'),
-          size: attachment.size || Buffer.from(attachment.content, 'base64').length,
+          originalname: String(attachment.filename || 'attachment'),
+          mimetype: String(attachment.contentType || 'application/octet-stream'),
+          buffer: contentBuffer,
+          size: (attachment.size as number) || contentBuffer.length,
           fieldname: 'attachment',
           encoding: '7bit',
-          stream: Readable.from(Buffer.from(attachment.content, 'base64')), // Create readable stream from buffer
+          stream: Readable.from(contentBuffer), // Create readable stream from buffer
           destination: '',
-          filename: attachment.filename || 'attachment',
+          filename: String(attachment.filename || 'attachment'),
           path: '',
         };
         const { url, key, size } = await this.storageService.saveFile(
@@ -648,7 +662,11 @@ export class EmailSyncService {
           storageUrl: url,
         });
       } catch (error) {
-        this.logger.error(`Failed to upload attachment ${attachment.filename}:`, error.message);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.error(
+          `Failed to upload attachment ${String(attachment.filename)}:`,
+          errorMessage,
+        );
         // Continue with other attachments, but log the failure
       }
     }
@@ -684,7 +702,8 @@ export class EmailSyncService {
           }
         }
       } catch (error) {
-        this.logger.error(`Error applying rule ${rule.name}:`, error.message);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Error applying rule ${rule.name}:`, errorMessage);
       }
     }
   }
@@ -694,22 +713,26 @@ export class EmailSyncService {
     // In production, you'd want a more sophisticated rule engine
 
     if (conditions.any) {
-      return conditions.any.some((condition) => this.evaluateCondition(condition, message));
+      return (conditions.any as any[]).some((condition) =>
+        this.evaluateCondition(condition, message),
+      );
     }
 
     if (conditions.all) {
-      return conditions.all.every((condition) => this.evaluateCondition(condition, message));
+      return (conditions.all as any[]).every((condition) =>
+        this.evaluateCondition(condition, message),
+      );
     }
 
     return this.evaluateCondition(conditions, message);
   }
 
   private evaluateCondition(condition: any, message: any): boolean {
-    for (const [field, rules] of Object.entries(condition)) {
+    for (const [field, rules] of Object.entries(condition as Record<string, unknown>)) {
       const fieldValue = this.getFieldValue(field, message);
 
       if (typeof rules === 'object' && rules !== null) {
-        for (const [operator, value] of Object.entries(rules)) {
+        for (const [operator, value] of Object.entries(rules as Record<string, unknown>)) {
           switch (operator) {
             case 'contains':
               return fieldValue?.toLowerCase().includes((value as string).toLowerCase());
@@ -738,9 +761,9 @@ export class EmailSyncService {
       case 'body':
         return message.bodyText || message.bodyHtml;
       case 'to':
-        return message.toEmails.join(',');
+        return (message.toEmails as string[]).join(',');
       case 'cc':
-        return message.ccEmails.join(',');
+        return (message.ccEmails as string[]).join(',');
       default:
         return '';
     }
@@ -890,7 +913,7 @@ export class EmailSyncService {
           await this.copyAttachmentsToTask(
             inboxMessage.attachments,
             existingTask.id,
-            defaultAuthorId,
+            String(defaultAuthorId),
           );
         }
         // Update message
@@ -918,7 +941,7 @@ export class EmailSyncService {
         this.logger.warn(`   Thread ID: ${message.threadId}`);
         this.logger.warn(`   In-Reply-To: ${message.inReplyTo || 'none'}`);
         this.logger.warn(
-          `   References: ${message.references?.length ? message.references.join(', ') : 'none'}`,
+          `   References: ${message.references?.length ? (message.references as string[]).join(', ') : 'none'}`,
         );
         this.logger.warn(`   Subject: ${message.subject}`);
         this.logger.warn(`   From: ${message.fromEmail}`);
@@ -954,10 +977,13 @@ export class EmailSyncService {
           `📧 Creating new task from original email (not a reply): ${message.subject}`,
         );
       }
-      const taskNumber = await EmailSyncUtils.getNextTaskNumber(inbox.projectId, this.prisma);
+      const taskNumber = await EmailSyncUtils.getNextTaskNumber(
+        String(inbox.projectId),
+        this.prisma,
+      );
       const slug = await EmailSyncUtils.generateTaskSlug(
-        message.subject,
-        inbox.projectId,
+        String(message.subject),
+        String(inbox.projectId),
         this.prisma,
       );
       const sprintResult = await this.prisma.sprint.findFirst({
@@ -995,7 +1021,7 @@ export class EmailSyncService {
       // Only add labels if they exist
       if (message._ruleLabels && message._ruleLabels.length > 0) {
         taskData.labels = {
-          connect: message._ruleLabels.map((labelId) => ({ id: labelId })),
+          connect: (message._ruleLabels as string[]).map((labelId) => ({ id: labelId })),
         };
       }
 
@@ -1006,7 +1032,7 @@ export class EmailSyncService {
         await this.copyAttachmentsToTask(
           inboxMessage.attachments,
           task.id,
-          repoterId || inbox.defaultAuthorId,
+          String(repoterId || inbox.defaultAuthorId),
         );
       }
       // Update message
@@ -1067,7 +1093,7 @@ export class EmailSyncService {
       }
 
       // Create SMTP transporter
-      const password = await this.crypto.decrypt(inbox.emailAccount.smtpPassword!);
+      const password = this.crypto.decrypt(inbox.emailAccount.smtpPassword!);
       const transporter = nodemailer.createTransport({
         host: inbox.emailAccount.smtpHost!,
         port: inbox.emailAccount.smtpPort!,
@@ -1134,7 +1160,7 @@ export class EmailSyncService {
     let client: ImapFlow | null = null;
 
     try {
-      const password = await this.crypto.decrypt(account.imapPassword!);
+      const password = this.crypto.decrypt(account.imapPassword!);
 
       client = new ImapFlow({
         host: account.imapHost!,

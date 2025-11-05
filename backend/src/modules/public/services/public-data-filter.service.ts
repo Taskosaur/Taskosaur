@@ -26,19 +26,20 @@ export class PublicDataFilterService {
     };
 
     // Only include stats if explicitly requested and project allows it
-    if (includeStats && project.settings?.allowPublicStats !== false) {
+    if (includeStats && (project as { settings?: { allowPublicStats?: boolean } }).settings?.allowPublicStats !== false) {
+      const projectWithCounts = project as { _count?: { tasks?: number; sprints?: number }; completionRate?: number };
       filtered.stats = {
         // Cap sensitive numbers to prevent business intelligence gathering
-        taskCount: project._count?.tasks ? Math.min(project._count.tasks, 100) : 0,
-        completionRate: project.completionRate || 0,
-        hasActiveSprints: (project._count?.sprints || 0) > 0
+        taskCount: projectWithCounts._count?.tasks ? Math.min(projectWithCounts._count.tasks, 100) : 0,
+        completionRate: projectWithCounts.completionRate || 0,
+        hasActiveSprints: (projectWithCounts._count?.sprints || 0) > 0
       };
     }
 
     return filtered;
   }
 
-  filterTaskData(task: any): PublicTaskDto {
+  filterTaskData(task: Task & { status?: { id: string; name: string; color?: string; category?: string }; labels?: Array<{ id: string; name: string; color?: string }>; subtasks?: Array<Task & { project?: { visibility?: string } }> }): PublicTaskDto {
     const filtered: PublicTaskDto = {
       id: task.id,
       title: task.title,
@@ -69,15 +70,15 @@ export class PublicDataFilterService {
     if (task.subtasks) {
       filtered.subtasks = task.subtasks
         .filter(subtask => subtask.project?.visibility === 'PUBLIC')
-        .map(subtask => this.filterTaskData(subtask));
+        .map(subtask => this.filterTaskData(subtask as Task & { status?: { id: string; name: string; color?: string; category?: string }; labels?: Array<{ id: string; name: string; color?: string }>; subtasks?: Array<Task & { project?: { visibility?: string } }> }));
     }
 
     return filtered;
   }
 
-  filterSprintData(sprint: any): PublicSprintDto {
+  filterSprintData(sprint: Sprint & { tasks?: Array<Task & { status?: { category?: string } }> }): PublicSprintDto {
     const totalTasks = sprint.tasks?.length || 0;
-    const completedTasks = sprint.tasks?.filter(task =>
+    const completedTasks = sprint.tasks?.filter((task: Task & { status?: { category?: string } }) =>
       task.status?.category === 'DONE'
     ).length || 0;
 
@@ -97,14 +98,14 @@ export class PublicDataFilterService {
 
     // Add filtered tasks if present
     if (sprint.tasks) {
-      filtered.tasks = sprint.tasks.map(task => this.filterTaskData(task));
+      filtered.tasks = sprint.tasks.map(task => this.filterTaskData(task as Task & { status?: { id: string; name: string; color?: string; category?: string }; labels?: Array<{ id: string; name: string; color?: string }>; subtasks?: Array<Task & { project?: { visibility?: string } }> }));
     }
 
     return filtered;
   }
 
   // Helper method to check if project is public
-  isProjectPublic(project: any): boolean {
+  isProjectPublic(project: { visibility?: string }): boolean {
     return project?.visibility === 'PUBLIC';
   }
 

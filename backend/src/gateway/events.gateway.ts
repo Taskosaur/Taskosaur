@@ -34,7 +34,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(private jwtService: JwtService) {}
 
-  async handleConnection(client: AuthenticatedSocket) {
+  handleConnection(client: AuthenticatedSocket) {
     try {
       // Extract token from handshake
       const token = client.handshake.auth.token || client.handshake.query.token;
@@ -89,7 +89,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // Join organization room
   @SubscribeMessage('join:organization')
-  async joinOrganization(
+  joinOrganization(
     @MessageBody() data: { organizationId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
@@ -101,7 +101,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // Join workspace room
   @SubscribeMessage('join:workspace')
-  async joinWorkspace(
+  joinWorkspace(
     @MessageBody() data: { workspaceId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
@@ -113,7 +113,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // Join project room
   @SubscribeMessage('join:project')
-  async joinProject(
+  joinProject(
     @MessageBody() data: { projectId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
@@ -125,7 +125,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // Join task room for task-specific updates
   @SubscribeMessage('join:task')
-  async joinTask(
+  joinTask(
     @MessageBody() data: { taskId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
@@ -136,7 +136,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // Leave rooms
   @SubscribeMessage('leave:organization')
-  async leaveOrganization(@ConnectedSocket() client: AuthenticatedSocket) {
+  leaveOrganization(@ConnectedSocket() client: AuthenticatedSocket) {
     if (client.organizationId) {
       client.leave(`org:${client.organizationId}`);
       client.emit('left:organization', {
@@ -147,7 +147,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('leave:workspace')
-  async leaveWorkspace(@ConnectedSocket() client: AuthenticatedSocket) {
+  leaveWorkspace(@ConnectedSocket() client: AuthenticatedSocket) {
     if (client.workspaceId) {
       client.leave(`workspace:${client.workspaceId}`);
       client.emit('left:workspace', { workspaceId: client.workspaceId });
@@ -156,7 +156,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('leave:project')
-  async leaveProject(@ConnectedSocket() client: AuthenticatedSocket) {
+  leaveProject(@ConnectedSocket() client: AuthenticatedSocket) {
     if (client.projectId) {
       client.leave(`project:${client.projectId}`);
       client.emit('left:project', { projectId: client.projectId });
@@ -165,7 +165,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('leave:task')
-  async leaveTask(
+  leaveTask(
     @MessageBody() data: { taskId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {

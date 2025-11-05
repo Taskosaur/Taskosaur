@@ -162,10 +162,10 @@ export class ProjectInboxService {
 
     // Encrypt passwords
     if (data.imapPassword) {
-      encryptedData.imapPassword = await this.crypto.encrypt(data.imapPassword);
+      encryptedData.imapPassword = this.crypto.encrypt(data.imapPassword);
     }
     if (data.smtpPassword) {
-      encryptedData.smtpPassword = await this.crypto.encrypt(data.smtpPassword);
+      encryptedData.smtpPassword = this.crypto.encrypt(data.smtpPassword);
     }
     await this.prisma.projectInbox.update({
       where: { id: inbox.id },

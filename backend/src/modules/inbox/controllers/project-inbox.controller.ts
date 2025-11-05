@@ -81,7 +81,10 @@ export class ProjectInboxController {
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Email sync job queued successfully' })
   async syncInbox(@Param('projectId') projectId: string, @CurrentUser() user: any) {
-    const jobId = await this.emailSyncQueue.addManualSyncJob(projectId, user?.id);
+    const jobId = await this.emailSyncQueue.addManualSyncJob(
+      projectId,
+      user?.id as string | undefined,
+    );
 
     return {
       message: 'Email sync job queued successfully',
@@ -117,7 +120,7 @@ export class ProjectInboxController {
   @ApiParam({ name: 'messageId', description: 'Message ID' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Message converted to task successfully' })
   async convertToTask(@Param('messageId') messageId: string, @CurrentUser() user: any) {
-    return this.inboxService.convertToTask(messageId, user.id);
+    return this.inboxService.convertToTask(messageId, user.id as string);
   }
 
   @Post('messages/:messageId/ignore')

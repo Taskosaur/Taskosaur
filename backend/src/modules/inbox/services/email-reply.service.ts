@@ -70,7 +70,7 @@ export class EmailReplyService {
     try {
       this.logger.log(`Sending comment ${commentId} as email reply`);
 
-      const transporter = await this.getTransporter(account);
+      const transporter = this.getTransporter(account);
       const emailMessageId = this.generateMessageId();
       const hasEscapedHtml = /&lt;|&gt;|&amp;|&quot;|&#39;/.test(comment.content);
 
@@ -131,13 +131,13 @@ export class EmailReplyService {
     }
   }
 
-  private async getTransporter(account: EmailAccount) {
+  private getTransporter(account: EmailAccount) {
     return this.createBasicTransporter(account);
   }
 
-  private async createBasicTransporter(account: EmailAccount) {
+  private createBasicTransporter(account: EmailAccount) {
     try {
-      const smtpPassword = await this.crypto.decrypt(account.smtpPassword!);
+      const smtpPassword = this.crypto.decrypt(account.smtpPassword!);
 
       return nodemailer.createTransport({
         host: account.smtpHost!,
@@ -200,7 +200,7 @@ export class EmailReplyService {
     }
 
     try {
-      const transporter = await this.getTransporter(account);
+      const transporter = this.getTransporter(account);
 
       const mailOptions = {
         from: `${message.projectInbox.name} <${account.emailAddress}>`,
@@ -230,7 +230,7 @@ export class EmailReplyService {
     }
 
     try {
-      const transporter = await this.getTransporter(account);
+      const transporter = this.getTransporter(account);
 
       const isValid = await transporter.verify();
 

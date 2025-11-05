@@ -260,7 +260,18 @@ export class GanttService {
     });
 
     // Group tasks by assignee using Map
-    const resourceMap = new Map();
+    type ResourceType = {
+      assignee: { id: string; name: string; avatar: string | null };
+      tasks: Array<{
+        id: string;
+        title: string;
+        start: Date | null;
+        end: Date | null;
+        storyPoints: number;
+      }>;
+      workload: number;
+    };
+    const resourceMap = new Map<string, ResourceType>();
 
     tasks.forEach((task) => {
       // Since each task can have multiple assignees, iterate through all of them
@@ -280,7 +291,7 @@ export class GanttService {
           });
         }
 
-        const resource = resourceMap.get(assigneeId);
+        const resource = resourceMap.get(assigneeId)!;
 
         // Add task to this assignee's list
         resource.tasks.push({
@@ -347,8 +358,8 @@ export class GanttService {
       };
     }
 
-    const start = new Date(Math.min(...allDates.map((d) => d.getTime())));
-    const end = new Date(Math.max(...allDates.map((d) => d.getTime())));
+    const start = new Date(Math.min(...allDates.map((d: Date) => d.getTime())));
+    const end = new Date(Math.max(...allDates.map((d: Date) => d.getTime())));
     const duration = Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
 
     return { start, end, duration };
@@ -380,7 +391,7 @@ export class GanttService {
   private findLongestPath(
     task: GanttTask,
     taskMap: Map<string, GanttTask>,
-    dependencies: any[],
+    dependencies: Array<{ blockingTaskId: string; dependentTaskId: string }>,
   ): string[] {
     const path = [task.id];
 
@@ -388,7 +399,7 @@ export class GanttService {
     const dependentTasks = dependencies
       .filter((dep) => dep.blockingTaskId === task.id)
       .map((dep) => taskMap.get(dep.dependentTaskId))
-      .filter(Boolean);
+      .filter((task): task is GanttTask => task !== undefined);
 
     if (dependentTasks.length === 0) {
       return path;
@@ -397,7 +408,7 @@ export class GanttService {
     // Recursively find the longest path from dependent tasks
     let longestSubPath: string[] = [];
     dependentTasks.forEach((depTask) => {
-      const subPath = this.findLongestPath(depTask!, taskMap, dependencies);
+      const subPath = this.findLongestPath(depTask, taskMap, dependencies);
       if (subPath.length > longestSubPath.length) {
         longestSubPath = subPath;
       }
@@ -429,6 +440,8 @@ export class GanttService {
       }
     });
 
-    return milestones.sort((a, b) => a.date.getTime() - b.date.getTime());
+    return milestones.sort(
+      (a: { date: Date }, b: { date: Date }) => a.date.getTime() - b.date.getTime(),
+    );
   }
 }

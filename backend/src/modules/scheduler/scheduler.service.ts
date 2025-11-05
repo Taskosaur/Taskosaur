@@ -109,8 +109,18 @@ export class SchedulerService {
         },
       });
 
+      // Define types for better type safety
+      type TaskAssignee = {
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+      };
+
+      type OverdueTask = (typeof overdueTasks)[number];
+
       // Group overdue tasks by assignee using Map
-      const tasksByAssignee = new Map<string, { assignee: any; tasks: any[] }>();
+      const tasksByAssignee = new Map<string, { assignee: TaskAssignee; tasks: OverdueTask[] }>();
 
       // Process each task and its assignees
       for (const task of overdueTasks) {
@@ -134,9 +144,9 @@ export class SchedulerService {
       }
 
       // Send overdue notifications to each assignee
-      const emailPromises: any = [];
+      const emailPromises: Promise<void>[] = [];
 
-      for (const [assigneeId, { assignee, tasks }] of tasksByAssignee) {
+      for (const [, { assignee, tasks }] of tasksByAssignee) {
         const emailPromise = this.emailService.sendEmail({
           to: assignee.email,
           subject: `Overdue Tasks (${tasks.length})`,
@@ -152,7 +162,9 @@ export class SchedulerService {
               dueDate: task.dueDate,
               project: task.project.name,
               organization: task.project.workspace.organization.name,
-              daysOverdue: Math.ceil((Date.now() - task.dueDate.getTime()) / (1000 * 60 * 60 * 24)),
+              daysOverdue: task.dueDate
+                ? Math.ceil((Date.now() - task.dueDate.getTime()) / (1000 * 60 * 60 * 24))
+                : 0,
               // Additional info for shared tasks
               isShared: task.assignees.length > 1,
               coAssignees: task.assignees

@@ -35,8 +35,11 @@ const AUDITABLE_MODELS = [
 // Fields that should be excluded from automatic updatedBy setting
 const EXCLUDED_UPDATE_FIELDS = ['createdAt', 'updatedAt', 'createdBy'];
 
-export function createAuditMiddleware(): any {
-  return async (params, next) => {
+export function createAuditMiddleware(): Prisma.Middleware {
+  return (
+    params: Prisma.MiddlewareParams,
+    next: (params: Prisma.MiddlewareParams) => Promise<any>,
+  ) => {
     let currentUserId = RequestContextService.getCurrentUserId();
 
     // Use system user as fallback for operations without user context
@@ -44,7 +47,7 @@ export function createAuditMiddleware(): any {
       currentUserId = SYSTEM_USER_ID;
     }
 
-    const modelName = params.model;
+    const modelName = params.model as string;
 
     // Only apply to auditable models
     if (!modelName || !AUDITABLE_MODELS.includes(modelName)) {
@@ -73,8 +76,10 @@ export function createAuditMiddleware(): any {
     if (params.action === 'update' || params.action === 'updateMany') {
       if (params.args.data) {
         // Check if this is a meaningful update (not just timestamp updates)
-        const dataKeys = Object.keys(params.args.data);
-        const hasMeaningfulUpdate = dataKeys.some((key) => !EXCLUDED_UPDATE_FIELDS.includes(key));
+        const dataKeys = Object.keys(params.args.data as Record<string, unknown>);
+        const hasMeaningfulUpdate = dataKeys.some(
+          (key: string) => !EXCLUDED_UPDATE_FIELDS.includes(key),
+        );
 
         // Set updatedBy if this is a meaningful update and field is not already set
         if (hasMeaningfulUpdate && params.args.data.updatedBy === undefined) {
@@ -97,8 +102,10 @@ export function createAuditMiddleware(): any {
 
       // For update case
       if (params.args.update) {
-        const dataKeys = Object.keys(params.args.update);
-        const hasMeaningfulUpdate = dataKeys.some((key) => !EXCLUDED_UPDATE_FIELDS.includes(key));
+        const dataKeys = Object.keys(params.args.update as Record<string, unknown>);
+        const hasMeaningfulUpdate = dataKeys.some(
+          (key: string) => !EXCLUDED_UPDATE_FIELDS.includes(key),
+        );
 
         if (hasMeaningfulUpdate && params.args.update.updatedBy === undefined) {
           params.args.update.updatedBy = currentUserId;
@@ -108,12 +115,13 @@ export function createAuditMiddleware(): any {
 
     // Handle createMany operations
     if (params.action === 'createMany' && params.args.data) {
-      if (Array.isArray(params.args.data)) {
-        params.args.data = params.args.data.map((item) => ({
+      const data = params.args.data as unknown;
+      if (Array.isArray(data)) {
+        params.args.data = data.map((item: Record<string, unknown>) => ({
           ...item,
-          createdBy: item.createdBy ?? currentUserId,
+          createdBy: (item.createdBy as string | undefined) ?? currentUserId,
           ...(modelName !== 'User' && {
-            updatedBy: item.updatedBy ?? currentUserId,
+            updatedBy: (item.updatedBy as string | undefined) ?? currentUserId,
           }),
         }));
       }

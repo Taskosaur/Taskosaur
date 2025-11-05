@@ -18,7 +18,7 @@ export class CryptoService {
     }
   }
 
-  async encrypt(text: string): Promise<string> {
+  encrypt(text: string): string {
     if (!text) return text;
 
     try {
@@ -37,7 +37,7 @@ export class CryptoService {
     }
   }
 
-  async decrypt(encryptedText: string): Promise<string> {
+  decrypt(encryptedText: string): string {
     if (!encryptedText) return encryptedText;
 
     try {
@@ -62,14 +62,14 @@ export class CryptoService {
     }
   }
 
-  async encryptJson(obj: any): Promise<string | null> {
+  encryptJson(obj: any): string | null {
     if (!obj) return null;
     return this.encrypt(JSON.stringify(obj));
   }
 
-  async decryptJson<T = any>(encryptedText: string): Promise<T | null> {
+  decryptJson<T = any>(encryptedText: string): T | null {
     if (!encryptedText) return null;
-    const decrypted = await this.decrypt(encryptedText);
+    const decrypted = this.decrypt(encryptedText);
     return JSON.parse(decrypted) as T;
   }
 

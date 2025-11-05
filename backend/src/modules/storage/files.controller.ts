@@ -17,7 +17,7 @@ export class FilesController {
   @ApiParam({ name: 'filename', description: 'Filename' })
   @ApiResponse({ status: 200, description: 'File served successfully' })
   @ApiResponse({ status: 404, description: 'File not found' })
-  async serveTaskFile(
+  serveTaskFile(
     @Param('taskId') taskId: string,
     @Param('filename') filename: string,
     @Res() res: Response,

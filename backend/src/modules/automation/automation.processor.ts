@@ -113,7 +113,7 @@ export class AutomationProcessor {
         return value === condition.equals;
       }
       if ('in' in condition) {
-        return Array.isArray(condition.in) && condition.in.includes(value);
+        return Array.isArray(condition.in) && (condition.in as unknown[]).includes(value);
       }
       if ('not' in condition) {
         return value !== condition.not;

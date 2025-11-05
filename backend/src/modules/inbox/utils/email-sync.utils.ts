@@ -13,7 +13,11 @@ export class EmailSyncUtils {
    * @param message - Email message object with messageId, references, and inReplyTo fields
    * @returns Thread ID (should be consistent for all messages in the same conversation)
    */
-  static extractThreadId(message: any): string {
+  static extractThreadId(message: {
+    messageId?: string;
+    inReplyTo?: string;
+    references?: string[] | string | Set<string>;
+  }): string {
     // Normalize references to always be an array of valid message IDs
     let references: string[] = [];
 
@@ -21,24 +25,26 @@ export class EmailSyncUtils {
       if (Array.isArray(message.references)) {
         // Already an array - filter out invalid entries
         references = message.references
-          .filter((ref) => ref && typeof ref === 'string')
-          .map((ref) => ref.trim())
-          .filter((ref) => ref.length > 0);
+          .filter(
+            (ref): ref is string => ref !== null && ref !== undefined && typeof ref === 'string',
+          )
+          .map((ref: string) => ref.trim())
+          .filter((ref: string) => ref.length > 0);
       } else if (typeof message.references === 'string' && message.references.trim()) {
         // String format - split by whitespace (RFC 5322 allows space-separated list)
         references = message.references
           .trim()
           .split(/\s+/)
-          .map((ref) => ref.trim())
-          .filter((ref) => ref.length > 0);
+          .map((ref: string) => ref.trim())
+          .filter((ref: string) => ref.length > 0);
       } else if (message.references instanceof Set) {
         // Some parsers return Set - convert to array
         references = Array.from(message.references)
           .filter(
             (ref): ref is string => ref !== null && ref !== undefined && typeof ref === 'string',
           )
-          .map((ref) => ref.trim())
-          .filter((ref) => ref.length > 0);
+          .map((ref: string) => ref.trim())
+          .filter((ref: string) => ref.length > 0);
       }
     }
 
@@ -264,7 +270,11 @@ export class EmailSyncUtils {
       : EmailSyncUtils.extractVisibleReplyText(content);
   }
 
-  static async generateTaskSlug(title: string, projectId: string, prisma: any): Promise<string> {
+  static async generateTaskSlug(
+    title: string,
+    projectId: string,
+    prisma: { task: { findFirst: (args: any) => Promise<any> } },
+  ): Promise<string> {
     const baseSlug = title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -282,7 +292,10 @@ export class EmailSyncUtils {
     return slug;
   }
 
-  static async getNextTaskNumber(projectId: string, prisma: any): Promise<number> {
+  static async getNextTaskNumber(
+    projectId: string,
+    prisma: { task: { findFirst: (args: any) => Promise<{ taskNumber: number } | null> } },
+  ): Promise<number> {
     const lastTask = await prisma.task.findFirst({
       where: { projectId },
       orderBy: { taskNumber: 'desc' },

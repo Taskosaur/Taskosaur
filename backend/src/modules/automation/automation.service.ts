@@ -313,7 +313,7 @@ export class AutomationService {
     return { taskId, labelId, label: taskLabel.label, success: true };
   }
 
-  private async sendNotification(userId: string, message: string, triggerData: any): Promise<any> {
+  private sendNotification(userId: string, message: string, triggerData: any): any {
     // Send real-time notification via WebSocket
     this.eventsGateway.emitNotification(userId, {
       type: 'automation',

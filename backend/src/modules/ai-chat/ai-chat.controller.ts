@@ -20,7 +20,7 @@ export class AiChatController {
   @Delete('context/:sessionId')
   @ApiOperation({ summary: 'Clear conversation context for a session' })
   @ApiResponse({ status: 200, description: 'Context cleared successfully' })
-  async clearContext(@Param('sessionId') sessionId: string): Promise<{ success: boolean }> {
+  clearContext(@Param('sessionId') sessionId: string): { success: boolean } {
     return this.aiChatService.clearContext(sessionId);
   }
 }

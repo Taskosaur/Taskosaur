@@ -137,11 +137,17 @@ export class OrganizationsService {
         });
       }
       // Conditionally create project if provided
-      let project;
+      let project:
+        | {
+            id: string;
+            sprints: Array<{ isDefault: boolean; id: string }>;
+            workflow: { statuses: Array<{ id: string; name: string }> };
+          }
+        | undefined;
       if (createOrganizationDto.defaultProject && workspace) {
         const projectSlug = await this.generateUniqueProjectSlug(
           createOrganizationDto.defaultProject.name,
-          workspace.id,
+          workspace.id as string,
         );
 
         project = await this.prisma.project.create({
@@ -187,7 +193,7 @@ export class OrganizationsService {
       }
       // Create default tasks if project was created
       if (project) {
-        const defaultSprint = project.sprints.find((s) => s.isDefault);
+        const defaultSprint = project.sprints.find((s: { isDefault: boolean }) => s.isDefault);
         if (!project.workflow || project.workflow.statuses.length === 0) {
           throw new NotFoundException('Default workflow or statuses not found for the project');
         }
@@ -195,7 +201,8 @@ export class OrganizationsService {
         await this.prisma.task.createMany({
           data: DEFAULT_TASKS.map((task, index) => {
             const status =
-              workflowStatuses.find((s) => s.name === task.status) ?? workflowStatuses[0];
+              workflowStatuses.find((s: { name: string }) => s.name === task.status) ??
+              workflowStatuses[0];
             return {
               title: task.title,
               description: task.description,

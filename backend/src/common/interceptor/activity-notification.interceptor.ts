@@ -189,9 +189,14 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
         // Handle multiple assignees from requestData or responseData
         const assigneeIds =
           requestData.assigneeIds ||
-          (requestData.assignees ? requestData.assignees.map((a) => a.id) : undefined) ||
-          (responseData.assignees ? responseData.assignees.map((a) => a.id) : undefined);
-        responseData.assigneeIds || [];
+          (requestData.assignees
+            ? (requestData.assignees as Array<{ id: string }>).map((a) => a.id)
+            : undefined) ||
+          (responseData.assignees
+            ? (responseData.assignees as Array<{ id: string }>).map((a) => a.id)
+            : undefined) ||
+          responseData.assigneeIds ||
+          [];
 
         if (Array.isArray(assigneeIds)) {
           recipients.push(...assigneeIds);

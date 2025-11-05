@@ -5,9 +5,18 @@ import * as commandsData from '../../constants/commands.json';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 import { ProjectsService } from '../projects/projects.service';
 
+interface Command {
+  name: string;
+  params: string[];
+}
+
+interface CommandsData {
+  commands: Command[];
+}
+
 @Injectable()
 export class AiChatService {
-  private commands: any;
+  private commands: CommandsData;
   // Store conversation context per session/user
   private conversationContexts: Map<
     string,
@@ -238,7 +247,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
     const requiredParams = command.params.filter((p) => !p.endsWith('?'));
     const missing = requiredParams.filter(
-      (param) => !parameters[param] || parameters[param].toString().trim() === '',
+      (param) => !parameters[param] || String(parameters[param]).toString().trim() === '',
     );
 
     if (missing.length > 0) {
@@ -557,7 +566,8 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
         success: true,
       };
     } catch (error: any) {
-      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage?.includes('Failed to fetch') || errorMessage?.includes('NetworkError')) {
         return {
           message: '',
           success: false,
@@ -568,7 +578,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       return {
         message: '',
         success: false,
-        error: error.message || 'Failed to process chat request',
+        error: errorMessage || 'Failed to process chat request',
       };
     }
   }
@@ -599,12 +609,12 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     if (commandName === 'createWorkspace') {
       if (parameters.name) {
         // Convert workspace name to slug format
-        const workspaceSlug = parameters.name
+        const workspaceSlug = String(parameters.name)
           .toLowerCase()
           .replace(/\s+/g, '-')
           .replace(/[^a-z0-9-]/g, '');
         context.workspaceSlug = workspaceSlug;
-        context.workspaceName = parameters.name;
+        context.workspaceName = String(parameters.name);
         // Clear project context when creating new workspace
         delete context.projectSlug;
         delete context.projectName;
@@ -612,7 +622,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     }
 
     // Update project context
-    const slugify = (str) =>
+    const slugify = (str: string | undefined) =>
       str
         ?.toLowerCase()
         .replace(/\s+/g, '-')

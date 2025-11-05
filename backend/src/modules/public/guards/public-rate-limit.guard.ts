@@ -6,7 +6,7 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 export const RATE_LIMIT_KEY = 'rate_limit';
 export const RateLimit = (limit: number, windowMs: number = 60000) => {
-  return (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) => {
+  return (target: object, propertyKey?: string, descriptor?: PropertyDescriptor) => {
     if (descriptor) {
       Reflect.defineMetadata(RATE_LIMIT_KEY, { limit, windowMs }, descriptor.value);
     } else {
@@ -19,7 +19,7 @@ export const RateLimit = (limit: number, windowMs: number = 60000) => {
 export class PublicRateLimitGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const ip = this.getClientIp(request);
     const endpoint = this.getEndpointType(request.url);
@@ -62,7 +62,7 @@ export class PublicRateLimitGuard implements CanActivate {
     }
 
     // Add rate limit headers
-    const response = context.switchToHttp().getResponse();
+    const response = context.switchToHttp().getResponse<{ setHeader: (name: string, value: number) => void }>();
     response.setHeader('X-RateLimit-Limit', limit);
     response.setHeader('X-RateLimit-Remaining', Math.max(0, limit - entry.count));
     response.setHeader('X-RateLimit-Reset', Math.ceil(entry.resetTime / 1000));
@@ -70,11 +70,14 @@ export class PublicRateLimitGuard implements CanActivate {
     return true;
   }
 
-  private getClientIp(request: any): string {
+  private getClientIp(request: { ip?: string; connection?: { remoteAddress?: string }; socket?: { remoteAddress?: string }; headers?: Record<string, string | string[]> }): string {
+    const forwardedFor = request.headers?.['x-forwarded-for'];
+    const forwardedIp = typeof forwardedFor === 'string' ? forwardedFor.split(',')[0] : Array.isArray(forwardedFor) ? forwardedFor[0] : undefined;
+
     return request.ip ||
            request.connection?.remoteAddress ||
            request.socket?.remoteAddress ||
-           request.headers['x-forwarded-for']?.split(',')[0] ||
+           forwardedIp ||
            'unknown';
   }
 

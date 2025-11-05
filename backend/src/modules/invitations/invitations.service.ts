@@ -624,13 +624,16 @@ export class InvitationsService {
 
     const invitationUrl = `${process.env.FRONTEND_URL}/invite?token=${invitation.token}`;
 
-    await this.emailService.sendInvitationEmail(invitation.inviteeEmail, {
-      inviterName,
-      entityName,
-      entityType,
-      role: invitation.role,
+    await this.emailService.sendInvitationEmail(invitation.inviteeEmail as string, {
+      inviterName: inviterName,
+      entityName: entityName,
+      entityType: entityType,
+      role: invitation.role as string,
       invitationUrl,
-      expiresAt: invitation.expiresAt.toLocaleDateString(),
+      expiresAt:
+        invitation.expiresAt instanceof Date
+          ? (invitation.expiresAt as Date).toLocaleDateString()
+          : String(invitation.expiresAt),
     });
   }
   // src/modules/invitations/invitations.service.ts

@@ -121,7 +121,7 @@ export class StorageService {
       throw new NotFoundException('File not found in S3');
     }
   }
-  async streamFromLocal(filePath: string, res: Response): Promise<void> {
+  streamFromLocal(filePath: string, res: Response): void {
     // Check if file exists
     const relativePath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
     const normalizedPath = path.normalize(relativePath);
