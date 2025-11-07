@@ -86,7 +86,14 @@ export class PublicTasksService {
       skip: skip || 0,
     });
     const total = await this.prisma.task.count({ where: whereClause });
-    const filterTasks = tasks.map(task => this.dataFilter.filterTaskData(task));
+    const filterTasks = tasks.map(task => this.dataFilter.filterTaskData({
+      ...task,
+      labels: task.labels.map(tl => ({ id: tl.label.id, name: tl.label.name, color: tl.label.color })),
+      subtasks: task.childTasks?.map(ct => ({
+        ...ct,
+        labels: ct.labels.map(tl => ({ id: tl.label.id, name: tl.label.name, color: tl.label.color }))
+      }))
+    }));
 
     return {
       data: filterTasks,
@@ -303,7 +310,10 @@ export class PublicTasksService {
       name: status.name,
       color: status.color,
       category: status.category,
-      tasks: status.tasks.map(task => this.dataFilter.filterTaskData(task))
+      tasks: status.tasks.map(task => this.dataFilter.filterTaskData({
+        ...task,
+        labels: task.labels.map(tl => ({ id: tl.label.id, name: tl.label.name, color: tl.label.color }))
+      }))
     }));
 
     return { columns };

@@ -43,16 +43,16 @@ export class PublicDataFilterService {
     const filtered: PublicTaskDto = {
       id: task.id,
       title: task.title,
-      description: task.description,
+      description: task.description ?? undefined,
       type: task.type,
       priority: task.priority,
-      dueDate: task.dueDate,
+      dueDate: task.dueDate ?? undefined,
       createdAt: task.createdAt,
       status: {
-        id: task.status?.id,
-        name: task.status?.name,
-        color: task.status?.color,
-        category: task.status?.category
+        id: task.status?.id ?? '',
+        name: task.status?.name ?? '',
+        color: task.status?.color ?? '',
+        category: task.status?.category ?? ''
       },
       isPublicView: true
     };
@@ -62,7 +62,7 @@ export class PublicDataFilterService {
       filtered.labels = task.labels.map(label => ({
         id: label.id,
         name: label.name,
-        color: label.color
+        color: label.color ?? ''
       }));
     }
 
@@ -87,10 +87,10 @@ export class PublicDataFilterService {
     const filtered: PublicSprintDto = {
       id: sprint.id,
       name: sprint.name,
-      description: sprint.description,
+      description: sprint.goal ?? undefined,
       status: sprint.status,
-      startDate: sprint.startDate,
-      endDate: sprint.endDate,
+      startDate: sprint.startDate ?? undefined,
+      endDate: sprint.endDate ?? undefined,
       createdAt: sprint.createdAt,
       progress,
       isPublicView: true

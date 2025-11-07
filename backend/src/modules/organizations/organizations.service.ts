@@ -140,8 +140,9 @@ export class OrganizationsService {
       let project:
         | {
             id: string;
+            slug: string;
             sprints: Array<{ isDefault: boolean; id: string }>;
-            workflow: { statuses: Array<{ id: string; name: string }> };
+            workflow: { statuses: Array<{ id: string; name: string }> } | null;
           }
         | undefined;
       if (createOrganizationDto.defaultProject && workspace) {
@@ -179,11 +180,22 @@ export class OrganizationsService {
               },
             },
           },
-          include: {
-            sprints: true,
+          select: {
+            id: true,
+            slug: true,
+            sprints: {
+              select: {
+                id: true,
+                isDefault: true,
+              },
+            },
             workflow: {
-              include: {
+              select: {
                 statuses: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
                   orderBy: { position: 'asc' },
                 },
               },

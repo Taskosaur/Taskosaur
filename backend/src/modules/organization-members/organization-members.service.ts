@@ -564,6 +564,7 @@ export class OrganizationMembersService {
               id: true,
               role: true,
               joinedAt: true,
+              isDefault: true,
             },
             take: 1,
           },
