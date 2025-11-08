@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import Image from "next/image";
 import {
   Eye,
   EyeOff,
@@ -21,6 +22,7 @@ import {
   ArrowRight,
   Shield,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 interface FormData {
   firstName: string;
@@ -33,6 +35,8 @@ interface FormData {
 
 export function RegisterForm() {
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
+
   const searchParams = useSearchParams();
   const { register } = useAuth();
   const initialEmail = searchParams.get("email") ?? "";
@@ -142,7 +146,15 @@ export function RegisterForm() {
         {/* Mobile Logo */}
         <div className="signup-mobile-logo">
           <div className="signup-mobile-logo-icon">
-            <UserPlus className="signup-mobile-logo-plus" />
+            <Image
+              src="/favicon.svg"
+              alt="Taskosaur Logo"
+              width={50}
+              height={50}
+              className={`size-10 ${
+                resolvedTheme === "light" ? " filter invert brightness-200" : ""
+              }`}
+            />
           </div>
         </div>
 

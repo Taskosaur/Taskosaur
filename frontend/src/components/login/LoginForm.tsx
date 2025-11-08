@@ -17,7 +17,8 @@ import {
   ArrowRight,
   Sparkle,
 } from "lucide-react";
-
+import Image from "next/image";
+import { useTheme } from "next-themes";
 interface FormData {
   email: string;
   password: string;
@@ -27,6 +28,8 @@ interface FormData {
 export function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
+
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
@@ -72,22 +75,33 @@ export function LoginForm() {
       className="login-form-container"
     >
       {/* Header */}
-      <div className="login-form-header">
+      <div className="signup-form-header  flex justify-center items-center flex-col">
         {/* Mobile Logo */}
-        {/* <div className="login-form-mode-toggle">
-          <ModeToggle />
-        </div> */}
 
+ <div className="signup-mobile-logo">
+           <div className="signup-mobile-logo-icon">
+             <Image
+               src="/favicon.svg"
+               alt="Taskosaur Logo"
+               width={50}
+               height={50}
+               className={`size-10 ${
+                 resolvedTheme === "light" ? " filter invert brightness-200" : ""
+               }`}
+             />
+           </div>
+         </div>
+        
         <div className="login-form-header-content">
           <h1 className="login-form-title">
+         
             {/* Show as flex row on max-md, block on md+ */}
             <div className="md:hidden">
+              
               Welcome back to
               <span className="flex items-center justify-center ">
                 Taskosaur{" "}
-                <span className="ml-2">
-                  <Sparkle />
-                </span>
+               
               </span>
             </div>
 
