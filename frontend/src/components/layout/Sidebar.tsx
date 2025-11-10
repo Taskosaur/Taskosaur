@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
-import {
-  getSidebarCollapsedState,
-  toggleSidebar as toggleSidebarUtil,
-} from "@/utils/sidebarUtils";
+import { getSidebarCollapsedState, toggleSidebar as toggleSidebarUtil } from "@/utils/sidebarUtils";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/router";
 import ResizableSidebar from "./ResizableSidebar";
@@ -34,8 +31,7 @@ interface NavItem {
 
 const usePathnameParsing = (pathname: string, isMounted: boolean) => {
   return useMemo(() => {
-    if (!isMounted)
-      return { currentWorkspaceSlug: null, currentProjectSlug: null };
+    if (!isMounted) return { currentWorkspaceSlug: null, currentProjectSlug: null };
 
     const parts = pathname.split("/").filter(Boolean);
 
@@ -51,14 +47,7 @@ const usePathnameParsing = (pathname: string, isMounted: boolean) => {
     ];
 
     // Define workspace-level routes that should not be treated as project slugs
-    const workspaceRoutes = [
-      "projects",
-      "members",
-      "activities",
-      "tasks",
-      "analytics",
-      "settings",
-    ];
+    const workspaceRoutes = ["projects", "members", "activities", "tasks", "analytics", "settings"];
 
     if (parts.length === 0 || globalRoutes.includes(parts[0])) {
       return { currentWorkspaceSlug: null, currentProjectSlug: null };
@@ -96,10 +85,7 @@ export default function Sidebar() {
   });
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
-  const { currentWorkspaceSlug, currentProjectSlug } = usePathnameParsing(
-    pathname,
-    isMounted
-  );
+  const { currentWorkspaceSlug, currentProjectSlug } = usePathnameParsing(pathname, isMounted);
 
   useEffect(() => {
     setIsMounted(true);
@@ -118,11 +104,7 @@ export default function Sidebar() {
     if (!isMounted) return;
 
     const handleResize = () => {
-      if (
-        window.innerWidth < 768 &&
-        !isSidebarCollapsed &&
-        !hasUserInteracted
-      ) {
+      if (window.innerWidth < 768 && !isSidebarCollapsed && !hasUserInteracted) {
         toggleSidebarUtil(setIsSidebarCollapsed, true);
       }
     };
@@ -263,18 +245,14 @@ export default function Sidebar() {
       },
       {
         name: "Tasks",
-        href: `/${currentWorkspaceSlug || ""}/${
-          currentProjectSlug || ""
-        }/tasks`,
+        href: `/${currentWorkspaceSlug || ""}/${currentProjectSlug || ""}/tasks`,
         icon: <HiClipboardList size={16} />,
         title: "Tasks",
         disabled: false,
       },
       {
         name: "Sprints",
-        href: `/${currentWorkspaceSlug || ""}/${
-          currentProjectSlug || ""
-        }/sprints`,
+        href: `/${currentWorkspaceSlug || ""}/${currentProjectSlug || ""}/sprints`,
         icon: <HiLightningBolt size={16} />,
         title: "Sprints",
         disabled: false,
@@ -350,12 +328,7 @@ export default function Sidebar() {
           },
         ]
       : [];
-  }, [
-    currentWorkspaceSlug,
-    currentProjectSlug,
-    isAuth,
-    defaultProjectNavItems,
-  ]);
+  }, [currentWorkspaceSlug, currentProjectSlug, isAuth, defaultProjectNavItems]);
 
   const navigationItems: NavItem[] = useMemo(() => {
     // For unauthenticated users, always show project navigation (disabled)
@@ -421,16 +394,10 @@ export default function Sidebar() {
       setIsSidebarCollapsed(event.detail.collapsed);
     };
 
-    window.addEventListener(
-      "sidebarStateChange",
-      handleSidebarStateChange as EventListener
-    );
+    window.addEventListener("sidebarStateChange", handleSidebarStateChange as EventListener);
 
     return () => {
-      window.removeEventListener(
-        "sidebarStateChange",
-        handleSidebarStateChange as EventListener
-      );
+      window.removeEventListener("sidebarStateChange", handleSidebarStateChange as EventListener);
     };
   }, []);
   useEffect(() => {
@@ -440,11 +407,7 @@ export default function Sidebar() {
       }
       try {
         if (!isAuth) {
-          const project = await getProjectBySlug(
-            currentProjectSlug,
-            isAuth,
-            currentWorkspaceSlug
-          );
+          const project = await getProjectBySlug(currentProjectSlug, isAuth, currentWorkspaceSlug);
           return;
         }
       } catch (error) {
@@ -453,12 +416,7 @@ export default function Sidebar() {
     };
 
     fetchProject();
-  }, [
-    isAuth,
-    currentWorkspaceSlug,
-    currentProjectSlug,
-    defaultProjectNavItems
-  ]);
+  }, [isAuth, currentWorkspaceSlug, currentProjectSlug, defaultProjectNavItems]);
 
   const normalize = (url) => url.replace(/\/$/, "");
 
@@ -484,7 +442,7 @@ export default function Sidebar() {
                 <HiViewBoards size={16} />
               </div>
               <span className="layout-sidebar-header-dashboard-title">
-                {currentProject ? currentProject.name:"Project"}
+                {currentProject ? currentProject.name : "Project"}
               </span>
             </div>
           </div>
@@ -498,8 +456,7 @@ export default function Sidebar() {
               globalNavItems.length > 0 &&
               (() => {
                 const activeItem = globalNavItems.find(
-                  (item) =>
-                    pathname.replace(/\/$/, "") === item.href.replace(/\/$/, "")
+                  (item) => pathname.replace(/\/$/, "") === item.href.replace(/\/$/, "")
                 );
 
                 return (
@@ -535,11 +492,7 @@ export default function Sidebar() {
       <nav className="layout-sidebar-nav">
         <ul className="layout-sidebar-nav-list">
           {navigationItems.map((item) => {
-            const isItemActive = isActive(
-              pathname,
-              item.href,
-              item.name === "Overview"
-            );
+            const isItemActive = isActive(pathname, item.href, item.name === "Overview");
 
             return (
               <li key={item.name} className="layout-sidebar-nav-item">
@@ -555,12 +508,8 @@ export default function Sidebar() {
                     style={{ cursor: "pointer", opacity: 0.6 }}
                     title="Login required to access this feature"
                   >
-                    <span className="layout-sidebar-nav-link-icon">
-                      {item.icon}
-                    </span>
-                    <span className="layout-sidebar-nav-link-text">
-                      {item.name}
-                    </span>
+                    <span className="layout-sidebar-nav-link-icon">{item.icon}</span>
+                    <span className="layout-sidebar-nav-link-text">{item.name}</span>
                   </div>
                 ) : (
                   // Enabled navigation item
@@ -572,12 +521,8 @@ export default function Sidebar() {
                         : "layout-sidebar-nav-link-inactive"
                     }`}
                   >
-                    <span className="layout-sidebar-nav-link-icon">
-                      {item.icon}
-                    </span>
-                    <span className="layout-sidebar-nav-link-text">
-                      {item.name}
-                    </span>
+                    <span className="layout-sidebar-nav-link-icon">{item.icon}</span>
+                    <span className="layout-sidebar-nav-link-text">{item.name}</span>
                   </Link>
                 )}
               </li>
@@ -611,11 +556,7 @@ export default function Sidebar() {
 
         <div className="layout-sidebar-mini-nav">
           {miniSidebarNavItems.map((item) => {
-            const isItemActive = isActive(
-              pathname,
-              item.href,
-              item.name === "Overview"
-            );
+            const isItemActive = isActive(pathname, item.href, item.name === "Overview");
             const linkProps = item.disabled
               ? {
                   onClick: handleDisabledClick,
@@ -690,17 +631,11 @@ export default function Sidebar() {
 
           <div className="layout-sidebar-main">
             {isMounted ? (
-              <ResizableSidebar
-                minWidth={200}
-                maxWidth={400}
-                className="layout-sidebar-resizable"
-              >
+              <ResizableSidebar minWidth={200} maxWidth={400} className="layout-sidebar-resizable">
                 {renderFullSidebar()}
               </ResizableSidebar>
             ) : (
-              <div className="layout-sidebar-resizable-fallback">
-                {renderFullSidebar()}
-              </div>
+              <div className="layout-sidebar-resizable-fallback">{renderFullSidebar()}</div>
             )}
           </div>
         </div>

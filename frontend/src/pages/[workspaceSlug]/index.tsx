@@ -8,12 +8,12 @@ export default function WorkspacePage() {
   const { error } = useWorkspace();
 
   if (error) {
-    router.replace('/workspaces');
+    router.replace("/workspaces");
     return null;
   }
 
   if (!workspaceSlug) {
-    router.replace('/workspaces');
+    router.replace("/workspaces");
     return null;
   }
 

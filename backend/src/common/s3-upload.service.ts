@@ -24,13 +24,12 @@ export class S3UploadService {
     buffer: Buffer,
     key: string,
     filename?: string,
-    contentType?: string
+    contentType?: string,
   ): Promise<{ url: string; key: string }> {
     try {
       // Determine content type
-      const mimeType = contentType ||
-        (filename ? lookup(filename) || null : null) ||
-        'application/octet-stream';
+      const mimeType =
+        contentType || (filename ? lookup(filename) || null : null) || 'application/octet-stream';
 
       const command = new PutObjectCommand({
         Bucket: this.bucketName,
@@ -54,7 +53,7 @@ export class S3UploadService {
 
   async uploadEmailAttachment(
     messageId: string,
-    attachment: any
+    attachment: any,
   ): Promise<{ url: string; key: string; size: number }> {
     try {
       // Generate unique key for the attachment
@@ -71,7 +70,7 @@ export class S3UploadService {
         buffer,
         key,
         attachment.filename,
-        attachment.contentType
+        attachment.contentType,
       );
 
       return {

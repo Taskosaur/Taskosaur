@@ -77,32 +77,22 @@ export default function InboxConfigurationStep({
             value={formData.emailAddress}
             onChange={(e) => onFieldChange("emailAddress", e.target.value)}
             placeholder="support@company.com"
-            className={`h-10 ${
-              validationErrors.emailAddress ? "border-red-500" : ""
-            }`}
+            className={`h-10 ${validationErrors.emailAddress ? "border-red-500" : ""}`}
           />
           {validationErrors.emailAddress && (
-            <p className="text-sm text-red-600 mt-1">
-              {validationErrors.emailAddress}
-            </p>
+            <p className="text-sm text-red-600 mt-1">{validationErrors.emailAddress}</p>
           )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label
-              className="pb-2 text-sm font-medium"
-              htmlFor="defaultTaskType"
-            >
+            <Label className="pb-2 text-sm font-medium" htmlFor="defaultTaskType">
               Default Task Type
             </Label>
             <Select
               value={formData.defaultTaskType}
               onValueChange={(value) =>
-                onFieldChange(
-                  "defaultTaskType",
-                  value as InboxFormData["defaultTaskType"]
-                )
+                onFieldChange("defaultTaskType", value as InboxFormData["defaultTaskType"])
               }
             >
               <SelectTrigger className="w-full border-[var(--border)] h-10">
@@ -129,19 +119,13 @@ export default function InboxConfigurationStep({
           </div>
 
           <div>
-            <Label
-              className="pb-2 text-sm font-medium"
-              htmlFor="defaultPriority"
-            >
+            <Label className="pb-2 text-sm font-medium" htmlFor="defaultPriority">
               Default Priority
             </Label>
             <Select
               value={formData.defaultPriority}
               onValueChange={(value) =>
-                onFieldChange(
-                  "defaultPriority",
-                  value as InboxFormData["defaultPriority"]
-                )
+                onFieldChange("defaultPriority", value as InboxFormData["defaultPriority"])
               }
             >
               <SelectTrigger className="w-full border-[var(--border)] h-10">
@@ -183,11 +167,7 @@ export default function InboxConfigurationStep({
               </SelectTrigger>
               <SelectContent className="bg-[var(--card)] border-[var(--border)]">
                 {availableStatuses.map((status) => (
-                  <SelectItem
-                    className="hover:bg-[var(--muted)]"
-                    key={status.id}
-                    value={status.id}
-                  >
+                  <SelectItem className="hover:bg-[var(--muted)]" key={status.id} value={status.id}>
                     <div className="flex items-center space-x-2">
                       {status.color && (
                         <div
@@ -202,17 +182,12 @@ export default function InboxConfigurationStep({
               </SelectContent>
             </Select>
             {validationErrors.defaultStatusId && (
-              <p className="text-sm text-red-600 mt-1">
-                {validationErrors.defaultStatusId}
-              </p>
+              <p className="text-sm text-red-600 mt-1">{validationErrors.defaultStatusId}</p>
             )}
           </div>
 
           <div>
-            <Label
-              className="pb-2 text-sm font-medium"
-              htmlFor="defaultAssignee"
-            >
+            <Label className="pb-2 text-sm font-medium" htmlFor="defaultAssignee">
               Default Assignee
             </Label>
             <SearchableAssigneeDropdown
@@ -227,10 +202,7 @@ export default function InboxConfigurationStep({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex items-center justify-between">
             <div>
-              <Label
-                className="pb-2 cursor-pointer text-sm font-medium"
-                htmlFor="autoCreateTask"
-              >
+              <Label className="pb-2 cursor-pointer text-sm font-medium" htmlFor="autoCreateTask">
                 Auto-create Tasks
               </Label>
               <p className="text-sm text-[var(--muted-foreground)]/60">
@@ -240,58 +212,40 @@ export default function InboxConfigurationStep({
             <Switch
               id="autoCreateTask"
               checked={formData.autoCreateTask}
-              onCheckedChange={(checked) =>
-                onFieldChange("autoCreateTask", checked)
-              }
+              onCheckedChange={(checked) => onFieldChange("autoCreateTask", checked)}
             />
           </div>
 
           <div className="flex items-center justify-between">
             <div>
-              <Label
-                className="pb-2 cursor-pointer text-sm font-medium"
-                htmlFor="autoReply"
-              >
+              <Label className="pb-2 cursor-pointer text-sm font-medium" htmlFor="autoReply">
                 Auto-reply
               </Label>
-              <p className="text-sm text-[var(--muted-foreground)]/60">
-                Send automatic replies
-              </p>
+              <p className="text-sm text-[var(--muted-foreground)]/60">Send automatic replies</p>
             </div>
             <Switch
               id="autoReply"
               checked={formData.autoReplyEnabled}
-              onCheckedChange={(checked) =>
-                onFieldChange("autoReplyEnabled", checked)
-              }
+              onCheckedChange={(checked) => onFieldChange("autoReplyEnabled", checked)}
             />
           </div>
         </div>
 
         {formData.autoReplyEnabled && (
           <div>
-            <Label
-              className="pb-2 text-sm font-medium"
-              htmlFor="autoReplyTemplate"
-            >
+            <Label className="pb-2 text-sm font-medium" htmlFor="autoReplyTemplate">
               Auto-reply Message <span className="text-red-500">*</span>
             </Label>
             <Textarea
               id="autoReplyTemplate"
               value={formData.autoReplyTemplate}
-              onChange={(e) =>
-                onFieldChange("autoReplyTemplate", e.target.value)
-              }
+              onChange={(e) => onFieldChange("autoReplyTemplate", e.target.value)}
               placeholder="Thank you for contacting us. We'll respond within 24 hours."
               rows={3}
-              className={
-                validationErrors.autoReplyTemplate ? "border-red-500" : ""
-              }
+              className={validationErrors.autoReplyTemplate ? "border-red-500" : ""}
             />
             {validationErrors.autoReplyTemplate && (
-              <p className="text-sm text-red-600 mt-1">
-                {validationErrors.autoReplyTemplate}
-              </p>
+              <p className="text-sm text-red-600 mt-1">{validationErrors.autoReplyTemplate}</p>
             )}
           </div>
         )}

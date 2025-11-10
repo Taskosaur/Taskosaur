@@ -28,9 +28,7 @@ export const SprintTasksPanel: React.FC<SprintTasksPanelProps> = ({
 
   const handleTaskSelect = (taskId: string) => {
     setSelectedTasks((prev) =>
-      prev.includes(taskId)
-        ? prev.filter((id) => id !== taskId)
-        : [...prev, taskId]
+      prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]
     );
   };
 
@@ -113,7 +111,7 @@ export const SprintTasksPanel: React.FC<SprintTasksPanelProps> = ({
             ) : error ? (
               <div className="sprints-tasks-error">{error}</div>
             ) : (
-              <TaskTable 
+              <TaskTable
                 tasks={tasks}
                 selectedTasks={selectedTasks}
                 onTaskSelect={handleTaskSelect}

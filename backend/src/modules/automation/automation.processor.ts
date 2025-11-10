@@ -19,7 +19,7 @@ export class AutomationProcessor {
   constructor(
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
-  ) { }
+  ) {}
 
   @Process('execute-rule')
   async handleRuleExecution(job: Job<AutomationJobData>) {
@@ -28,9 +28,7 @@ export class AutomationProcessor {
     let rule: any = null;
 
     try {
-      this.logger.log(
-        `Executing automation rule ${ruleId} for trigger ${triggerType}`,
-      );
+      this.logger.log(`Executing automation rule ${ruleId} for trigger ${triggerType}`);
 
       // Get the rule details
       rule = await this.prisma.automationRule.findUnique({
@@ -44,9 +42,7 @@ export class AutomationProcessor {
 
       // Check if rule conditions are met
       if (!this.evaluateConditions(rule, triggerData)) {
-        this.logger.debug(
-          `Rule ${ruleId} conditions not met, skipping execution`,
-        );
+        this.logger.debug(`Rule ${ruleId} conditions not met, skipping execution`);
         return { success: true, skipped: true };
       }
 
@@ -67,9 +63,7 @@ export class AutomationProcessor {
         },
       });
 
-      this.logger.log(
-        `Rule ${ruleId} executed successfully in ${executionTime}ms`,
-      );
+      this.logger.log(`Rule ${ruleId} executed successfully in ${executionTime}ms`);
       return { success: true, executionTime, result: actionResult };
     } catch (error) {
       const executionTime = Date.now() - startTime;
@@ -119,7 +113,7 @@ export class AutomationProcessor {
         return value === condition.equals;
       }
       if ('in' in condition) {
-        return Array.isArray(condition.in) && condition.in.includes(value);
+        return Array.isArray(condition.in) && (condition.in as unknown[]).includes(value);
       }
       if ('not' in condition) {
         return value !== condition.not;
@@ -157,18 +151,10 @@ export class AutomationProcessor {
         return this.addLabel(triggerData.taskId, config.labelId);
 
       case ActionType.SEND_NOTIFICATION:
-        return this.sendNotification(
-          config.userId,
-          config.message,
-          triggerData,
-        );
+        return this.sendNotification(config.userId, config.message, triggerData);
 
       case ActionType.ADD_COMMENT:
-        return this.addComment(
-          triggerData.taskId,
-          config.content,
-          rule.createdBy,
-        );
+        return this.addComment(triggerData.taskId, config.content, rule.createdBy);
 
       case ActionType.CHANGE_PRIORITY:
         return this.changePriority(triggerData.taskId, config.priority);
@@ -186,8 +172,8 @@ export class AutomationProcessor {
       where: { id: taskId },
       data: {
         assignees: {
-          set: assigneeIds.map(id => ({ id })) // Replace all assignees with new ones
-        }
+          set: assigneeIds.map((id) => ({ id })), // Replace all assignees with new ones
+        },
       },
       include: {
         project: { select: { id: true } },
@@ -197,14 +183,14 @@ export class AutomationProcessor {
             firstName: true,
             lastName: true,
             email: true,
-            avatar: true
-          }
+            avatar: true,
+          },
         },
       },
     });
 
     // Send real-time notification to each assignee
-    task.assignees.forEach(assignee => {
+    task.assignees.forEach((assignee) => {
       this.eventsGateway.emitTaskAssigned(task.project.id, taskId, {
         assigneeId: assignee.id,
         assignee: {
@@ -221,15 +207,11 @@ export class AutomationProcessor {
       success: true,
       taskId,
       assigneeIds, // Return array instead of single ID
-      assignees: task.assignees // Include full assignee data
+      assignees: task.assignees, // Include full assignee data
     };
   }
 
-
-  private async changeTaskStatus(
-    taskId: string,
-    statusId: string,
-  ): Promise<any> {
+  private async changeTaskStatus(taskId: string, statusId: string): Promise<any> {
     const task = await this.prisma.task.update({
       where: { id: taskId },
       data: { statusId },
@@ -276,11 +258,7 @@ export class AutomationProcessor {
     return { success: true, taskId, labelId };
   }
 
-  private async sendNotification(
-    userId: string,
-    message: string,
-    triggerData: any,
-  ): Promise<any> {
+  private async sendNotification(userId: string, message: string, triggerData: any): Promise<any> {
     await this.prisma.notification.create({
       data: {
         userId,
@@ -302,11 +280,7 @@ export class AutomationProcessor {
     return { success: true, userId, message };
   }
 
-  private async addComment(
-    taskId: string,
-    content: string,
-    authorId: string,
-  ): Promise<any> {
+  private async addComment(taskId: string, content: string, authorId: string): Promise<any> {
     const comment = await this.prisma.taskComment.create({
       data: {
         taskId,

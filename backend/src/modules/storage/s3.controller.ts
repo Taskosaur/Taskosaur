@@ -1,12 +1,7 @@
 // src/modules/s3/s3.controller.ts
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { S3Service } from './s3.service';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiQuery,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('s3')

@@ -13,9 +13,7 @@ import { UpdateTaskLabelDto } from './dto/update-task-lables.dto';
 export class TaskLabelsService {
   constructor(private prisma: PrismaService) {}
 
-  async assignLabel(
-    assignTaskLabelDto: AssignTaskLabelDto,
-  ): Promise<TaskLabel> {
+  async assignLabel(assignTaskLabelDto: AssignTaskLabelDto): Promise<TaskLabel> {
     const { taskId, labelId, userId } = assignTaskLabelDto;
 
     // Verify task exists
@@ -29,9 +27,7 @@ export class TaskLabelsService {
     }
 
     if (task.project.archive) {
-      throw new BadRequestException(
-        'Cannot assign label to task in archived project',
-      );
+      throw new BadRequestException('Cannot assign label to task in archived project');
     }
 
     // Verify label exists and belongs to the same project
@@ -44,9 +40,7 @@ export class TaskLabelsService {
     }
 
     if (label.projectId !== task.projectId) {
-      throw new BadRequestException(
-        'Label does not belong to the same project as the task',
-      );
+      throw new BadRequestException('Label does not belong to the same project as the task');
     }
 
     // Check if label is already assigned to the task

@@ -1,5 +1,12 @@
 // components/charts/organization/team-utilization-chart.tsx
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
+import {
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  ResponsiveContainer,
+} from "recharts";
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
 
@@ -18,7 +25,7 @@ export function TeamUtilizationChart({ data }: TeamUtilizationChartProps) {
   const chartData = data?.map((item) => ({
     role: chartConfig[item.role]?.label || item.role,
     count: item._count.role,
-    fullMark: Math.max(...data.map(d => d._count.role)) + 2, // Add some padding for better visualization
+    fullMark: Math.max(...data.map((d) => d._count.role)) + 2, // Add some padding for better visualization
     fill: chartConfig[item.role]?.color || "#8B5CF6",
   }));
 
@@ -34,14 +41,8 @@ export function TeamUtilizationChart({ data }: TeamUtilizationChartProps) {
           <PolarGrid />
           <PolarAngleAxis dataKey="role" />
           <PolarRadiusAxis />
-          <ChartTooltip content={<ChartTooltipContent className="border-0 bg-[var(--accent)]"/>} />
-          <Radar
-            name="Count"
-            dataKey="count"
-            stroke="#8884d8"
-            fill="#8884d8"
-            fillOpacity={0.6}
-          />
+          <ChartTooltip content={<ChartTooltipContent className="border-0 bg-[var(--accent)]" />} />
+          <Radar name="Count" dataKey="count" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
         </RadarChart>
       </ResponsiveContainer>
     </ChartWrapper>

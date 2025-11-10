@@ -86,10 +86,7 @@ export default function UserProfileMenu({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className={`header-user-trigger ${className}`}
-          >
+          <Button variant="ghost" className={`header-user-trigger ${className}`}>
             <Avatar className="header-user-avatar">
               <AvatarImage src={user?.avatar} alt={getInitials()} />
               <AvatarFallback className="header-user-avatar-fallback">
@@ -103,11 +100,7 @@ export default function UserProfileMenu({
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent
-          className="header-user-dropdown"
-          align="end"
-          sideOffset={6}
-        >
+        <DropdownMenuContent className="header-user-dropdown" align="end" sideOffset={6}>
           {/* User Info Header */}
           <div className="header-user-info-header">
             <Avatar className="header-user-info-avatar">
@@ -132,10 +125,7 @@ export default function UserProfileMenu({
             {hasOrganizationAccess && (
               <>
                 <DropdownMenuItem asChild>
-                  <Link
-                    href="/settings/profile"
-                    className="header-user-menu-item"
-                  >
+                  <Link href="/settings/profile" className="header-user-menu-item">
                     <div className="header-user-menu-icon-container header-user-menu-icon-container-settings">
                       <HiCog className="header-user-menu-icon-settings" />
                     </div>

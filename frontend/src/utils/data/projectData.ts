@@ -73,7 +73,6 @@ export const PROJECT_CATEGORIES = [
   },
 ];
 
-
 export const roles = [
   {
     id: "0",
@@ -100,7 +99,6 @@ export const roles = [
     variant: "secondary" as const,
   },
 ];
-
 
 export const ACTION_TYPES = [
   { value: "setPriority", label: "Set Priority" },

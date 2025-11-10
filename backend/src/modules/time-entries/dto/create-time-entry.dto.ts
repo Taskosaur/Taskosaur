@@ -12,8 +12,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class CreateTimeEntryDto {
   @ApiProperty({
     description: 'Description of the work performed',
-    example:
-      'Implemented JWT authentication middleware and tested login functionality',
+    example: 'Implemented JWT authentication middleware and tested login functionality',
     required: false,
     maxLength: 500,
   })

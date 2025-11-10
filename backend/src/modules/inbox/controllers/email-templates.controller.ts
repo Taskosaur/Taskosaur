@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Param,
-  UseGuards,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Get, Query, Param, UseGuards, HttpStatus } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -29,10 +22,7 @@ export class EmailTemplatesController {
   @ApiQuery({ name: 'category', required: false, description: 'Filter by category' })
   @ApiQuery({ name: 'search', required: false, description: 'Search templates' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Email templates retrieved successfully' })
-  async getTemplates(
-    @Query('category') category?: string,
-    @Query('search') search?: string,
-  ) {
+  getTemplates(@Query('category') category?: string, @Query('search') search?: string) {
     if (search) {
       return this.emailTemplatesService.searchTemplates(search);
     }
@@ -47,14 +37,14 @@ export class EmailTemplatesController {
   @Get('categories')
   @ApiOperation({ summary: 'Get template categories' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Template categories retrieved successfully' })
-  async getCategories() {
+  getCategories() {
     return this.emailTemplatesService.getTemplateCategories();
   }
 
   @Get('variables')
   @ApiOperation({ summary: 'Get common template variables' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Template variables retrieved successfully' })
-  async getVariables() {
+  getVariables() {
     return this.emailTemplatesService.getCommonVariables();
   }
 
@@ -63,7 +53,7 @@ export class EmailTemplatesController {
   @ApiParam({ name: 'id', description: 'Template ID' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Template retrieved successfully' })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Template not found' })
-  async getTemplate(@Param('id') id: string) {
+  getTemplate(@Param('id') id: string) {
     const template = this.emailTemplatesService.getTemplateById(id);
     if (!template) {
       return { error: 'Template not found' };

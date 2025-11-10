@@ -4,25 +4,25 @@ import { Avatar, AvatarFallback } from "../ui/avatar";
 import { HiCalendar, HiCheck, HiClock } from "react-icons/hi";
 import { HiBuildingOffice2, HiRocketLaunch } from "react-icons/hi2";
 
-const OrganizationSelectionCard = ({ 
-  organization, 
-  isSelected, 
-  onSelect 
-}: { 
-  organization: Organization; 
-  isSelected: boolean; 
+const OrganizationSelectionCard = ({
+  organization,
+  isSelected,
+  onSelect,
+}: {
+  organization: Organization;
+  isSelected: boolean;
   onSelect: (org: Organization) => void;
 }) => {
   const getInitials = (name: string) => {
-    return name?.charAt(0)?.toUpperCase() || '?';
+    return name?.charAt(0)?.toUpperCase() || "?";
   };
 
   return (
-    <Card 
+    <Card
       className={`organizations-selection-card ${
-        isSelected 
-          ? 'organizations-selection-card-selected' 
-          : 'organizations-selection-card-unselected'
+        isSelected
+          ? "organizations-selection-card-selected"
+          : "organizations-selection-card-unselected"
       }`}
       onClick={() => onSelect(organization)}
     >
@@ -35,20 +35,16 @@ const OrganizationSelectionCard = ({
           </Avatar>
           <div className="organizations-selection-card-info">
             <div className="organizations-selection-card-title-row">
-              <h3 className="organizations-selection-card-title">
-                {organization.name}
-              </h3>
+              <h3 className="organizations-selection-card-title">{organization.name}</h3>
               {isSelected && (
                 <div className="organizations-selection-card-check">
                   <HiCheck size={14} className="text-[var(--primary-foreground)]" />
                 </div>
               )}
             </div>
-            
+
             {organization.description && (
-              <p className="organizations-selection-card-description">
-                {organization.description}
-              </p>
+              <p className="organizations-selection-card-description">{organization.description}</p>
             )}
 
             <div className="organizations-selection-card-stats">

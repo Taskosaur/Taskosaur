@@ -1,14 +1,12 @@
-;
-
-import React from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { HiTrendingUp, HiTrendingDown } from 'react-icons/hi';
+import React from "react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { HiTrendingUp, HiTrendingDown } from "react-icons/hi";
 
 interface StatCardProps {
   title: string;
   value: number | string | React.ReactNode;
   icon?: React.ReactNode;
-  trend?: 'up' | 'down';
+  trend?: "up" | "down";
   trendValue?: string;
   className?: string;
 }
@@ -44,10 +42,18 @@ export const StatCard: React.FC<StatCardProps> = ({
       </CardHeader>
       {trend && trendValue && (
         <CardContent>
-          <div className={`mt-2 text-xs flex items-center font-medium ${
-            trend === 'up' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-          }`}>
-            {trend === 'up' ? <HiTrendingUp size={12} className="mr-1" /> : <HiTrendingDown size={12} className="mr-1" />}
+          <div
+            className={`mt-2 text-xs flex items-center font-medium ${
+              trend === "up"
+                ? "text-green-600 dark:text-green-400"
+                : "text-red-600 dark:text-red-400"
+            }`}
+          >
+            {trend === "up" ? (
+              <HiTrendingUp size={12} className="mr-1" />
+            ) : (
+              <HiTrendingDown size={12} className="mr-1" />
+            )}
             {trendValue}
           </div>
         </CardContent>

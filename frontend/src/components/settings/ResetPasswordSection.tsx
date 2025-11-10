@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import ActionButton from "@/components/common/ActionButton";
 import { Label } from "@/components/ui/label";
@@ -15,10 +9,7 @@ import { toast } from "sonner";
 
 function isValidPassword(password: string) {
   return (
-    password.length >= 8 &&
-    /[A-Z]/.test(password) &&
-    /[a-z]/.test(password) &&
-    /\d/.test(password)
+    password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password)
   );
 }
 
@@ -99,7 +90,7 @@ export default function ResetPasswordSection() {
 
   return (
     <Card className="border-none bg-[var(--card)] gap-2">
-      <CardHeader >
+      <CardHeader>
         <CardTitle className="text-sm font-medium text-[var(--foreground)]">
           Reset Password
         </CardTitle>
@@ -120,14 +111,11 @@ export default function ResetPasswordSection() {
                 <Input
                   type={showCurrentPassword ? "text" : "password"}
                   value={form.currentPassword}
-                  onChange={(e) =>
-                    setForm({ ...form, currentPassword: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
                   placeholder="Enter current password"
                   className={`h-8 text-xs bg-[var(--background)] border-[var(--border)] ${
                     errors.currentPassword ? "ring-2 ring-red-500" : ""
                   }`}
-              
                   required
                 />
                 <button
@@ -135,11 +123,7 @@ export default function ResetPasswordSection() {
                   className="absolute inset-y-0 right-0 pr-2 flex items-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                 >
-                  {showCurrentPassword ? (
-                    <EyeOff size={16} />
-                  ) : (
-                    <Eye size={16} />
-                  )}
+                  {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
               {errors.currentPassword && (
@@ -156,9 +140,7 @@ export default function ResetPasswordSection() {
                 <Input
                   type={showNewPassword ? "text" : "password"}
                   value={form.newPassword}
-                  onChange={(e) =>
-                    setForm({ ...form, newPassword: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
                   placeholder="Enter new password"
                   className={`h-8 text-xs bg-[var(--background)] border-[var(--border)] ${
                     errors.newPassword ? "ring-2 ring-red-500" : ""
@@ -191,9 +173,7 @@ export default function ResetPasswordSection() {
                 <Input
                   type={showConfirmPassword ? "text" : "password"}
                   value={form.confirmPassword}
-                  onChange={(e) =>
-                    setForm({ ...form, confirmPassword: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                   placeholder="Confirm new password"
                   className={`h-8 text-xs bg-[var(--background)] border-[var(--border)] ${
                     errors.confirmPassword ? "ring-2 ring-red-500" : ""
@@ -205,11 +185,7 @@ export default function ResetPasswordSection() {
                   className="absolute inset-y-0 right-0 pr-2 flex items-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
-                  {showConfirmPassword ? (
-                    <EyeOff size={16} />
-                  ) : (
-                    <Eye size={16} />
-                  )}
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
               {errors.confirmPassword && (

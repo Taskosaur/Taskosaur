@@ -21,9 +21,7 @@ export class EmailProcessor {
     const smtpPass = this.configService.get<string>('SMTP_PASS');
 
     if (!smtpHost || !smtpUser || !smtpPass) {
-      this.logger.warn(
-        'SMTP configuration missing. Email sending will be simulated.',
-      );
+      this.logger.warn('SMTP configuration missing. Email sending will be simulated.');
       return;
     }
 
@@ -49,19 +47,14 @@ export class EmailProcessor {
       const text = this.generateEmailText(template, data);
       if (this.transporter) {
         await this.transporter.sendMail({
-          from: this.configService.get<string>(
-            'SMTP_FROM',
-            'noreply@taskosaur.com',
-          ),
+          from: this.configService.get<string>('SMTP_FROM', 'noreply@taskosaur.com'),
           to,
           subject,
           html,
           text,
         });
 
-        this.logger.log(
-          `Email sent successfully to ${to} using template ${template}`,
-        );
+        this.logger.log(`Email sent successfully to ${to} using template ${template}`);
       } else {
         // Simulate email sending for development
         this.logger.log(
@@ -101,12 +94,12 @@ export class EmailProcessor {
            <div class="container">
             <div class="content">
               <p>A new task has been assigned to you by ${data.assignedBy.name}.</p>
-              
-              <div class="task-info priority-${data.task.priority?.toLowerCase()}">
+
+              <div class="task-info priority-${(data.task.priority as string | undefined)?.toLowerCase()}">
                 <p><strong>${data.task.key}:</strong> ${data.task.title}</p>
                 <p><strong>Project:</strong> ${data.project.name}</p>
                 <p><strong>Priority:</strong> ${data.task.priority}</p>
-                ${data.task.dueDate ? `<p><strong>Due Date:</strong> ${new Date(data.task.dueDate).toLocaleDateString()}</p>` : ''}
+                ${data.task.dueDate ? `<p><strong>Due Date:</strong> ${new Date(data.task.dueDate as string | number | Date).toLocaleDateString()}</p>` : ''}
                 ${data.task.description ? `<p><strong>Description:</strong> ${data.task.description}</p>` : ''}
               </div>
               
@@ -125,11 +118,11 @@ export class EmailProcessor {
           <div class="container">
             <div class="content">
               <p>Your assigned task is due in ${data.task.hoursUntilDue} hours.</p>
-              
-              <div class="task-info priority-${data.task.priority?.toLowerCase()}">
+
+              <div class="task-info priority-${(data.task.priority as string | undefined)?.toLowerCase()}">
                 <p><strong>${data.task.key}:</strong> ${data.task.title}</p>
                 <p><strong>Project:</strong> ${data.project.name}</p>
-                <p><strong>Due Date:</strong> ${new Date(data.task.dueDate).toLocaleString()}</p>
+                <p><strong>Due Date:</strong> ${new Date(data.task.dueDate as string | number | Date).toLocaleString()}</p>
                 <p><strong>Priority:</strong> ${data.task.priority}</p>
               </div>
               
@@ -179,21 +172,29 @@ export class EmailProcessor {
                 <p><strong>Time Tracked:</strong> ${data.summary.totalTimeSpent} hours</p>
               </div>
               
-              ${data.summary.overdueTasks.length > 0
-            ? `
+              ${
+                data.summary.overdueTasks.length > 0
+                  ? `
                 <div class="task-info priority-high">
                   <p><strong>Overdue Tasks (${data.summary.overdueTasks.length})</strong></p>
-                  ${data.summary.overdueTasks
-              .map(
-                (task) => `
+                  ${(
+                    data.summary.overdueTasks as Array<{
+                      url: string;
+                      key: string;
+                      title: string;
+                      project: string;
+                    }>
+                  )
+                    .map(
+                      (task) => `
                     <p><a href="${task.url}">${task.key}: ${task.title}</a> (${task.project})</p>
                   `,
-              )
-              .join('')}
+                    )
+                    .join('')}
                 </div>
               `
-            : '<p>All tasks are up to date.</p>'
-          }
+                  : '<p>All tasks are up to date.</p>'
+              }
             </div>
             <div class="footer">
               <p>Taskosaur - Modern Project Management</p>
@@ -258,7 +259,7 @@ export class EmailProcessor {
         bodyContent = `
         <div class="container">
           <div class="content">
-            <p>${data.inviterName} has invited you to join their ${data.entityType.toLowerCase()} on Taskosaur.</p>
+            <p>${data.inviterName} has invited you to join their ${(data.entityType as string).toLowerCase()} on Taskosaur.</p>
             
             <div class="task-info">
               <p><strong>${data.entityType}:</strong> ${data.entityName}</p>
@@ -286,7 +287,7 @@ export class EmailProcessor {
         bodyContent = `
             <div class="container">
               <div class="content">
-                <p>${data.inviterName} has added you to their ${data.entityType.toLowerCase()} on Taskosaur.</p>
+                <p>${data.inviterName} has added you to their ${(data.entityType as string).toLowerCase()} on Taskosaur.</p>
                 
                 <div class="task-info">
                   <p><strong>${data.entityType}:</strong> ${data.entityName}</p>
@@ -406,9 +407,8 @@ export class EmailProcessor {
       ${bodyContent}
     </body>
     </html>
-    `
+    `;
   }
-
 
   private generateEmailText(template: EmailTemplate, data: any): string {
     switch (template) {
@@ -423,7 +423,7 @@ You've been assigned a new task by ${data.assignedBy.name}.
 Task: ${data.task.key} - ${data.task.title}
 Project: ${data.project.name}
 Priority: ${data.task.priority}
-${data.task.dueDate ? `Due Date: ${new Date(data.task.dueDate).toLocaleDateString()}` : ''}
+${data.task.dueDate ? `Due Date: ${new Date(data.task.dueDate as string | number | Date).toLocaleDateString()}` : ''}
 
 ${data.task.description ? `Description: ${data.task.description}` : ''}
 
@@ -445,7 +445,7 @@ Your task is due in ${data.task.hoursUntilDue} hours.
 
 Task: ${data.task.key} - ${data.task.title}
 Project: ${data.project.name}
-Due Date: ${new Date(data.task.dueDate).toLocaleString()}
+Due Date: ${new Date(data.task.dueDate as string | number | Date).toLocaleString()}
 Priority: ${data.task.priority}
 
 View task: ${data.taskUrl}

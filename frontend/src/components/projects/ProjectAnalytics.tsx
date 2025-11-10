@@ -108,9 +108,7 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
   const toggleWidget = (widgetId: string) => {
     setWidgets((prev) =>
       prev.map((widget) =>
-        widget.id === widgetId
-          ? { ...widget, visible: !widget.visible }
-          : widget
+        widget.id === widgetId ? { ...widget, visible: !widget.visible } : widget
       )
     );
   };
@@ -144,10 +142,13 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
         console.error("Failed to load widget preferences:", error);
       }
     } else {
-      const preferences = widgets.reduce((acc, widget) => {
-        acc[widget.id] = widget.visible;
-        return acc;
-      }, {} as Record<string, boolean>);
+      const preferences = widgets.reduce(
+        (acc, widget) => {
+          acc[widget.id] = widget.visible;
+          return acc;
+        },
+        {} as Record<string, boolean>
+      );
 
       localStorage.setItem(`project-widgets`, JSON.stringify(preferences));
     }
@@ -158,26 +159,14 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
   }
 
   if (error) {
-    return (
-      <ErrorState
-        error={error}
-        onRetry={handleFetchData}
-      />
-    );
+    return <ErrorState error={error} onRetry={handleFetchData} />;
   }
 
   {
     !data && !loading && !error && (
       <Alert>
-        <AlertDescription>
-          No analytics data available for this organization.
-        </AlertDescription>
-        <Button
-          onClick={handleFetchData}
-          variant="outline"
-          size="sm"
-          className="mt-2"
-        >
+        <AlertDescription>No analytics data available for this organization.</AlertDescription>
+        <Button onClick={handleFetchData} variant="outline" size="sm" className="mt-2">
           Load Data
         </Button>
       </Alert>
@@ -212,11 +201,7 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
         description="Insights into your project performance and team productivity"
         actions={
           <div className="flex items-center gap-2">
-            <Tooltip
-              content="Dashboard Settings"
-              position="top"
-              color="primary"
-            >
+            <Tooltip content="Dashboard Settings" position="top" color="primary">
               <DashboardSettingsDropdown
                 sections={settingSections}
                 description="Customize your dashboard widgets"
@@ -232,8 +217,7 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">No widgets to display</h3>
             <p className="text-muted-foreground">
-              All widgets are currently hidden. Use the customize button to show
-              widgets.
+              All widgets are currently hidden. Use the customize button to show widgets.
             </p>
             <Button onClick={resetWidgets} variant="outline" className="mt-4">
               Show All Widgets

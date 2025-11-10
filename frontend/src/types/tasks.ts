@@ -3,13 +3,7 @@ import type { Project } from "./projects";
 import type { Sprint } from "./sprint";
 import { TaskStatus } from "./task-status";
 
-export type TaskPriority =
-  | "LOWEST"
-  | "LOW"
-  | "MEDIUM"
-  | "HIGH"
-  | "HIGHEST"
-  | "URGENT";
+export type TaskPriority = "LOWEST" | "LOW" | "MEDIUM" | "HIGH" | "HIGHEST" | "URGENT";
 export type TaskCategory = "TODO" | "IN_PROGRESS" | "DONE";
 
 export interface Task {

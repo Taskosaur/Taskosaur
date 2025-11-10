@@ -1,23 +1,23 @@
-import React from 'react';
-import Link from 'next/link';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/DropdownMenu';
-import { 
-  HiFolder, 
+} from "@/components/ui/DropdownMenu";
+import {
+  HiFolder,
   HiDotsVertical,
   HiPencil,
   HiTrash,
   HiUsers,
   HiCog,
   HiClock,
-} from 'react-icons/hi';
+} from "react-icons/hi";
 
 interface Workspace {
   id: string;
@@ -34,26 +34,22 @@ interface Workspace {
 interface WorkspaceCardProps {
   workspace: Workspace;
   className?: string;
-  variant?: 'simple' | 'detailed'; // New prop to control complexity
+  variant?: "simple" | "detailed"; // New prop to control complexity
   onEdit?: (workspace: Workspace) => void;
   onDelete?: (id: string) => void;
   onShowMembers?: (workspace: Workspace) => void;
 }
 
-export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({ 
-  workspace, 
+export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
+  workspace,
   className,
-  variant = 'simple',
+  variant = "simple",
   onEdit,
   onDelete,
   onShowMembers,
 }) => {
-
-
-  
-
   // Simple variant (original design for dashboard/sidebar)
-  if (variant === 'simple') {
+  if (variant === "simple") {
     return (
       <Link href={`/${workspace.slug}`}>
         <Card className={`content-card-hover ${className}`}>
@@ -81,7 +77,9 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
 
   // Detailed variant using shadcn components
   return (
-    <Card className={`relative group content-card hover:shadow-lg transition-all duration-200 hover:scale-105 ${className}`}>
+    <Card
+      className={`relative group content-card hover:shadow-lg transition-all duration-200 hover:scale-105 ${className}`}
+    >
       <CardContent className="p-6">
         {/* Header */}
         <div className="flex-between mb-3">
@@ -93,12 +91,10 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
               <h3 className="font-semibold text-[var(--foreground)] truncate group-hover:text-[var(--primary)] transition-colors">
                 {workspace.name}
               </h3>
-              <p className="text-sm text-[var(--muted-foreground)] truncate">
-                /{workspace.slug}
-              </p>
+              <p className="text-sm text-[var(--muted-foreground)] truncate">/{workspace.slug}</p>
             </div>
           </Link>
-          
+
           {/* Actions Menu */}
           {(onEdit || onDelete || onShowMembers) && (
             <DropdownMenu>
@@ -136,10 +132,7 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem asChild>
-                  <Link
-                    href={`/${workspace.slug}/settings`}
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <Link href={`/${workspace.slug}/settings`} onClick={(e) => e.stopPropagation()}>
                     <HiCog className="w-4 h-4 mr-2" />
                     Settings
                   </Link>
@@ -179,7 +172,7 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
           </div>
           <div className="flex-start gap-1">
             <HiFolder className="w-3 h-3" />
-            <span className="font-medium">{workspace.projectCount || 0}</span>  
+            <span className="font-medium">{workspace.projectCount || 0}</span>
           </div>
           {workspace.lastActivity && (
             <div className="flex-start gap-1">

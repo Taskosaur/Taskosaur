@@ -65,7 +65,7 @@ export function WorkspaceHeader({ workspace, workspaceSlug }: WorkspaceHeaderPro
           <HiPlus className="dashboard-icon-sm" />
           New Project
         </Button>
-        
+
         <NewProjectModal
           isOpen={isNewProjectModalOpen}
           onClose={() => setIsNewProjectModalOpen(false)}

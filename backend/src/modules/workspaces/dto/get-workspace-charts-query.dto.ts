@@ -33,10 +33,7 @@ export class GetWorkspaceChartsQueryDto {
     description: 'Types of workspace chart data to retrieve',
     enum: WorkspaceChartType,
     isArray: true,
-    example: [
-      WorkspaceChartType.KPI_METRICS,
-      WorkspaceChartType.PROJECT_STATUS,
-    ],
+    example: [WorkspaceChartType.KPI_METRICS, WorkspaceChartType.PROJECT_STATUS],
     required: true,
   })
   @IsArray()

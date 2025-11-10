@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Task, Sprint } from '@/types';
+import React, { useState, useEffect } from "react";
+import { Task, Sprint } from "@/types";
 
 interface SprintProgressProps {
   selectedSprint?: string | null;
@@ -14,106 +14,108 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
   // Mock sprint data
   const mockSprints: Sprint[] = [
     {
-      id: 'sprint-1',
-      name: 'Sprint 1 - Authentication',
-      goal: 'Implement user authentication and basic security',
-      startDate: '2024-01-15T00:00:00Z',
-      endDate: '2024-01-29T00:00:00Z',
+      id: "sprint-1",
+      name: "Sprint 1 - Authentication",
+      goal: "Implement user authentication and basic security",
+      startDate: "2024-01-15T00:00:00Z",
+      endDate: "2024-01-29T00:00:00Z",
       status: "ACTIVE",
-      projectId: 'project-1',
-      createdAt: '2024-01-10T00:00:00Z',
-      updatedAt: '2024-01-10T00:00:00Z'
+      projectId: "project-1",
+      createdAt: "2024-01-10T00:00:00Z",
+      updatedAt: "2024-01-10T00:00:00Z",
     },
     {
-      id: 'sprint-2',
-      name: 'Sprint 2 - Dashboard',
-      goal: 'Build the main dashboard and navigation',
-      startDate: '2024-01-30T00:00:00Z',
-      endDate: '2024-02-13T00:00:00Z',
+      id: "sprint-2",
+      name: "Sprint 2 - Dashboard",
+      goal: "Build the main dashboard and navigation",
+      startDate: "2024-01-30T00:00:00Z",
+      endDate: "2024-02-13T00:00:00Z",
       status: "PLANNING",
-      projectId: 'project-1',
-      createdAt: '2024-01-10T00:00:00Z',
-      updatedAt: '2024-01-10T00:00:00Z'
-    }
+      projectId: "project-1",
+      createdAt: "2024-01-10T00:00:00Z",
+      updatedAt: "2024-01-10T00:00:00Z",
+    },
   ];
 
   // Mock tasks data
   const mockTasks: Task[] = [
     {
-      id: 'task-1',
-      title: 'Setup JWT authentication',
-      description: 'Implement JWT token-based authentication system',
-      type: 'STORY' as any,
-      priority: 'HIGH' as any,
+      id: "task-1",
+      title: "Setup JWT authentication",
+      description: "Implement JWT token-based authentication system",
+      type: "STORY" as any,
+      priority: "HIGH" as any,
       taskNumber: 1,
-      projectId: 'project-1',
+      projectId: "project-1",
       // reporterId: 'user-1',
       reporter: {
-        id: 'user-1',
-        firstName: 'John',
-        lastName: 'Doe',
-        avatar: '/api/placeholder/40/40'
+        id: "user-1",
+        firstName: "John",
+        lastName: "Doe",
+        avatar: "/api/placeholder/40/40",
       },
-      statusId: 'status-2',
+      statusId: "status-2",
       status: {
-        id: 'status-2',
-        name: 'In Progress',
-        color: '#f59e0b',
-        category: 'IN_PROGRESS' as any,
+        id: "status-2",
+        name: "In Progress",
+        color: "#f59e0b",
+        category: "IN_PROGRESS" as any,
         order: 1,
         isDefault: false,
-        workflowId: 'workflow-1'
+        workflowId: "workflow-1",
       },
       storyPoints: 8,
-      createdAt: '2024-01-15T09:00:00Z',
-      updatedAt: '2024-01-15T09:00:00Z'
+      createdAt: "2024-01-15T09:00:00Z",
+      updatedAt: "2024-01-15T09:00:00Z",
     },
     {
-      id: 'task-2',
-      title: 'Create login form',
-      description: 'Design and implement user login form',
-      type: 'STORY' as any,
-      priority: 'MEDIUM' as any,
+      id: "task-2",
+      title: "Create login form",
+      description: "Design and implement user login form",
+      type: "STORY" as any,
+      priority: "MEDIUM" as any,
       taskNumber: 2,
-      projectId: 'project-1',
+      projectId: "project-1",
       // reporterId: 'user-1',
       reporter: {
-        id: 'user-1',
-        firstName: 'John',
-        lastName: 'Doe',
-        avatar: '/api/placeholder/40/40'
+        id: "user-1",
+        firstName: "John",
+        lastName: "Doe",
+        avatar: "/api/placeholder/40/40",
       },
-      statusId: 'status-5',
+      statusId: "status-5",
       status: {
-        id: 'status-5',
-        name: 'Done',
-        color: '#10b981',
-        category: 'DONE' as any,
+        id: "status-5",
+        name: "Done",
+        color: "#10b981",
+        category: "DONE" as any,
         order: 4,
         isDefault: false,
-        workflowId: 'workflow-1'
+        workflowId: "workflow-1",
       },
       storyPoints: 5,
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z'
-    }
+      createdAt: "2024-01-15T10:00:00Z",
+      updatedAt: "2024-01-15T10:00:00Z",
+    },
   ];
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
         // Find the current sprint
-        const sprint = selectedSprint ? mockSprints.find(s => s.id === selectedSprint) : mockSprints[0];
+        const sprint = selectedSprint
+          ? mockSprints.find((s) => s.id === selectedSprint)
+          : mockSprints[0];
         setCurrentSprint(sprint || null);
-        
+
         // Filter tasks for current sprint
-        const sprintTasks = mockTasks.filter(task => task.sprintId === selectedSprint);
+        const sprintTasks = mockTasks.filter((task) => task.sprintId === selectedSprint);
         setTasks(sprintTasks);
       } catch (error) {
-        console.error('Error loading sprint progress data:', error);
+        console.error("Error loading sprint progress data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -129,11 +131,11 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
 
   // Helper function for consistent date formatting to prevent hydration issues
   const formatDate = (dateString: string) => {
-    if (!currentDate) return 'Loading...';
+    if (!currentDate) return "Loading...";
     try {
       return new Date(dateString).toLocaleDateString();
     } catch {
-      return 'Invalid date';
+      return "Invalid date";
     }
   };
 
@@ -143,7 +145,7 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
 
   const getCompletedStoryPoints = () => {
     return tasks
-      .filter(task => task.status.category === 'DONE')
+      .filter((task) => task.status.category === "DONE")
       .reduce((total, task) => total + (task.storyPoints || 0), 0);
   };
 
@@ -176,12 +178,12 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
 
   const getTasksByStatus = () => {
     const statusCounts = {
-      'TODO': 0,
-      'IN_PROGRESS': 0,
-      'DONE': 0
+      TODO: 0,
+      IN_PROGRESS: 0,
+      DONE: 0,
     };
 
-    tasks.forEach(task => {
+    tasks.forEach((task) => {
       statusCounts[task.status.category]++;
     });
 
@@ -209,10 +211,10 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
     if (!currentSprint || !currentDate) return 0;
     const startDate = new Date(currentSprint.startDate);
     const endDate = new Date(currentSprint.endDate);
-    
+
     if (currentDate < startDate) return 0;
     if (currentDate > endDate) return 100;
-    
+
     const totalDuration = endDate.getTime() - startDate.getTime();
     const elapsed = currentDate.getTime() - startDate.getTime();
     return (elapsed / totalDuration) * 100;
@@ -249,9 +251,7 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
 
   return (
     <div className="sprints-progress-container sprints-progress-container-dark">
-      <h3 className="sprints-progress-title sprints-progress-title-dark">
-        Sprint Progress
-      </h3>
+      <h3 className="sprints-progress-title sprints-progress-title-dark">Sprint Progress</h3>
 
       {/* Sprint Timeline */}
       <div className="sprints-progress-timeline">
@@ -260,11 +260,11 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
             Sprint Timeline
           </span>
           <span className="sprints-progress-timeline-remaining sprints-progress-timeline-remaining-dark">
-            {daysRemaining > 0 ? `${daysRemaining} days remaining` : 'Sprint ended'}
+            {daysRemaining > 0 ? `${daysRemaining} days remaining` : "Sprint ended"}
           </span>
         </div>
         <div className="sprints-progress-bar-container sprints-progress-bar-container-dark">
-          <div 
+          <div
             className="sprints-progress-bar"
             style={{ width: `${Math.min(100, sprintProgress)}%` }}
           />
@@ -286,7 +286,7 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
             Story Points
           </div>
           <div className="sprints-progress-bar-container sprints-progress-bar-container-dark">
-            <div 
+            <div
               className="sprints-progress-stat-bar-indigo"
               style={{ width: `${completionPercentage}%` }}
             />
@@ -305,8 +305,12 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
             Time Spent
           </div>
           <div className="sprints-progress-bar-container sprints-progress-bar-container-dark">
-            <div 
-              className={timePercentage > 100 ? 'sprints-progress-stat-bar-red' : 'sprints-progress-stat-bar-green'}
+            <div
+              className={
+                timePercentage > 100
+                  ? "sprints-progress-stat-bar-red"
+                  : "sprints-progress-stat-bar-green"
+              }
               style={{ width: `${Math.min(100, timePercentage)}%` }}
             />
           </div>
@@ -324,9 +328,11 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
             Tasks Complete
           </div>
           <div className="sprints-progress-bar-container sprints-progress-bar-container-dark">
-            <div 
+            <div
               className="sprints-progress-stat-bar-purple"
-              style={{ width: `${tasks.length > 0 ? (statusCounts.DONE / tasks.length) * 100 : 0}%` }}
+              style={{
+                width: `${tasks.length > 0 ? (statusCounts.DONE / tasks.length) * 100 : 0}%`,
+              }}
             />
           </div>
           <div className="sprints-progress-stat-meta sprints-progress-stat-meta-dark">
@@ -358,8 +364,18 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
         </h4>
         <div className="sprints-progress-burndown-placeholder sprints-progress-burndown-placeholder-dark">
           <div className="sprints-progress-burndown-content">
-            <svg className="sprints-progress-burndown-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            <svg
+              className="sprints-progress-burndown-icon"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
             </svg>
             <p className="sprints-progress-burndown-text sprints-progress-burndown-text-dark">
               Burndown chart will be implemented here
@@ -378,7 +394,9 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
             <button className="sprints-progress-action-button sprints-progress-action-button-dark">
               View Sprint Report
             </button>
-            <span className="sprints-progress-actions-divider sprints-progress-actions-divider-dark">|</span>
+            <span className="sprints-progress-actions-divider sprints-progress-actions-divider-dark">
+              |
+            </span>
             <button className="sprints-progress-action-button sprints-progress-action-button-dark">
               Export Data
             </button>

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useTheme } from 'next-themes';
+import { useTheme } from "next-themes";
 import Image from "next/image";
 import { Award } from "lucide-react";
 
@@ -7,7 +7,6 @@ export function LoginContent() {
   const { resolvedTheme } = useTheme();
   return (
     <div className="login-hero-container">
-
       {/* Main Content */}
       <div className="login-hero-content">
         {/* Brand Header */}
@@ -31,9 +30,7 @@ export function LoginContent() {
 
             <div className="login-brand-subtitle-row">
               <Award className="login-brand-award-icon" />
-              <span className="login-brand-subtitle">
-                Award-winning Project Management
-              </span>
+              <span className="login-brand-subtitle">Award-winning Project Management</span>
             </div>
           </div>
 
@@ -44,8 +41,8 @@ export function LoginContent() {
           </h2>
 
           <p className="login-hero-description">
-            Experience the future of project management with AI-powered tools
-            that adapt to your team's unique workflow and boost productivity.
+            Experience the future of project management with AI-powered tools that adapt to your
+            team's unique workflow and boost productivity.
           </p>
         </motion.div>
       </div>

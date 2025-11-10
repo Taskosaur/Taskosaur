@@ -12,24 +12,15 @@ import {
   Role as OrganizationRole,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  CreateProjectMemberDto,
-  InviteProjectMemberDto,
-} from './dto/create-project-member.dto';
+import { CreateProjectMemberDto, InviteProjectMemberDto } from './dto/create-project-member.dto';
 import { UpdateProjectMemberDto } from './dto/update-project-member.dto';
 
 @Injectable()
 export class ProjectMembersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
-  async create(
-    createProjectMemberDto: CreateProjectMemberDto,
-  ): Promise<ProjectMember> {
-    const {
-      userId,
-      projectId,
-      role = ProjectRole.MEMBER,
-    } = createProjectMemberDto;
+  async create(createProjectMemberDto: CreateProjectMemberDto): Promise<ProjectMember> {
+    const { userId, projectId, role = ProjectRole.MEMBER } = createProjectMemberDto;
 
     // Verify project exists and get workspace/organization info
     const project = await this.prisma.project.findUnique({
@@ -81,10 +72,7 @@ export class ProjectMembersService {
       throw new NotFoundException('User not found');
     }
 
-    if (
-      user.workspaceMembers.length === 0 &&
-      user.organizationMembers.length === 0
-    ) {
+    if (user.workspaceMembers.length === 0 && user.organizationMembers.length === 0) {
       throw new BadRequestException(
         'User must be a member of the workspace or organization to join this project',
       );
@@ -141,14 +129,8 @@ export class ProjectMembersService {
     }
   }
 
-  async inviteByEmail(
-    inviteProjectMemberDto: InviteProjectMemberDto,
-  ): Promise<ProjectMember> {
-    const {
-      email,
-      projectId,
-      role = ProjectRole.MEMBER,
-    } = inviteProjectMemberDto;
+  async inviteByEmail(inviteProjectMemberDto: InviteProjectMemberDto): Promise<ProjectMember> {
+    const { email, projectId, role = ProjectRole.MEMBER } = inviteProjectMemberDto;
 
     // Find user by email
     const user = await this.prisma.user.findUnique({
@@ -229,10 +211,7 @@ export class ProjectMembersService {
           },
         },
       },
-      orderBy: [
-        { role: 'asc' },
-        { joinedAt: 'asc' },
-      ],
+      orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
     };
 
     // Apply pagination only if both page and limit are provided
@@ -245,7 +224,6 @@ export class ProjectMembersService {
 
     return { data, total, page, limit };
   }
-
 
   async findAllByWorkspace(workspaceId: string): Promise<any[]> {
     // Verify workspace exists
@@ -378,10 +356,7 @@ export class ProjectMembersService {
     return member;
   }
 
-  async findByUserAndProject(
-    userId: string,
-    projectId: string,
-  ): Promise<ProjectMember | null> {
+  async findByUserAndProject(userId: string, projectId: string): Promise<ProjectMember | null> {
     return this.prisma.projectMember.findUnique({
       where: {
         userId_projectId: {
@@ -442,47 +417,40 @@ export class ProjectMembersService {
     }
 
     // Check requester permissions at different levels
-    const [
-      requesterProjectMember,
-      requesterWorkspaceMember,
-      requesterOrgMember,
-    ] = await Promise.all([
-      this.findByUserAndProject(requestUserId, member.projectId),
-      this.prisma.workspaceMember.findUnique({
-        where: {
-          userId_workspaceId: {
-            userId: requestUserId,
-            workspaceId: member.project.workspaceId,
+    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] =
+      await Promise.all([
+        this.findByUserAndProject(requestUserId, member.projectId),
+        this.prisma.workspaceMember.findUnique({
+          where: {
+            userId_workspaceId: {
+              userId: requestUserId,
+              workspaceId: member.project.workspaceId,
+            },
           },
-        },
-      }),
-      this.prisma.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId: requestUserId,
-            organizationId: member.project.workspace.organizationId,
+        }),
+        this.prisma.organizationMember.findUnique({
+          where: {
+            userId_organizationId: {
+              userId: requestUserId,
+              organizationId: member.project.workspace.organizationId,
+            },
           },
-        },
-      }),
-    ]);
+        }),
+      ]);
 
-    if (
-      !requesterProjectMember &&
-      !requesterWorkspaceMember &&
-      !requesterOrgMember
-    ) {
+    if (!requesterProjectMember && !requesterWorkspaceMember && !requesterOrgMember) {
       throw new ForbiddenException(
         'You are not a member of this project, workspace, or organization',
       );
     }
 
     // Permission check: organization owner, org/workspace/project admins can update
-    const isOrgOwner =
-      member.project.workspace.organization.ownerId === requestUserId;
+    const isOrgOwner = member.project.workspace.organization.ownerId === requestUserId;
     const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
-    const isWorkspaceAdmin =
-      requesterWorkspaceMember?.role === WorkspaceRole.OWNER;
-    const isProjectAdmin = requesterProjectMember?.role === ProjectRole.OWNER || requesterProjectMember?.role === ProjectRole.MANAGER;
+    const isWorkspaceAdmin = requesterWorkspaceMember?.role === WorkspaceRole.OWNER;
+    const isProjectAdmin =
+      requesterProjectMember?.role === ProjectRole.OWNER ||
+      requesterProjectMember?.role === ProjectRole.MANAGER;
 
     if (!isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin && !isProjectAdmin) {
       throw new ForbiddenException('Only admins can update member roles');
@@ -546,49 +514,40 @@ export class ProjectMembersService {
     }
 
     // Check requester permissions
-    const [
-      requesterProjectMember,
-      requesterWorkspaceMember,
-      requesterOrgMember,
-    ] = await Promise.all([
-      this.findByUserAndProject(requestUserId, member.projectId),
-      this.prisma.workspaceMember.findUnique({
-        where: {
-          userId_workspaceId: {
-            userId: requestUserId,
-            workspaceId: member.project.workspaceId,
+    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] =
+      await Promise.all([
+        this.findByUserAndProject(requestUserId, member.projectId),
+        this.prisma.workspaceMember.findUnique({
+          where: {
+            userId_workspaceId: {
+              userId: requestUserId,
+              workspaceId: member.project.workspaceId,
+            },
           },
-        },
-      }),
-      this.prisma.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId: requestUserId,
-            organizationId: member.project.workspace.organizationId,
+        }),
+        this.prisma.organizationMember.findUnique({
+          where: {
+            userId_organizationId: {
+              userId: requestUserId,
+              organizationId: member.project.workspace.organizationId,
+            },
           },
-        },
-      }),
-    ]);
+        }),
+      ]);
 
     // Users can remove themselves, or admins can remove others
     const isSelfRemoval = member.userId === requestUserId;
-    const isOrgOwner =
-      member.project.workspace.organization.ownerId === requestUserId;
+    const isOrgOwner = member.project.workspace.organization.ownerId === requestUserId;
     const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
     const isWorkspaceAdmin =
-      requesterWorkspaceMember?.role === WorkspaceRole.OWNER || requesterWorkspaceMember?.role === WorkspaceRole.MANAGER;
-    const isProjectAdmin = requesterProjectMember?.role === ProjectRole.OWNER || requesterProjectMember?.role === ProjectRole.MANAGER;
+      requesterWorkspaceMember?.role === WorkspaceRole.OWNER ||
+      requesterWorkspaceMember?.role === WorkspaceRole.MANAGER;
+    const isProjectAdmin =
+      requesterProjectMember?.role === ProjectRole.OWNER ||
+      requesterProjectMember?.role === ProjectRole.MANAGER;
 
-    if (
-      !isSelfRemoval &&
-      !isOrgOwner &&
-      !isOrgAdmin &&
-      !isWorkspaceAdmin &&
-      !isProjectAdmin
-    ) {
-      throw new ForbiddenException(
-        'You can only remove yourself or you must be an admin',
-      );
+    if (!isSelfRemoval && !isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin && !isProjectAdmin) {
+      throw new ForbiddenException('You can only remove yourself or you must be an admin');
     }
 
     await this.prisma.projectMember.delete({

@@ -43,9 +43,7 @@ import { LogActivity } from 'src/common/decorator/log-activity.decorator';
 @UseGuards(JwtAuthGuard)
 @Controller('task-attachments')
 export class TaskAttachmentsController {
-  constructor(
-    private readonly taskAttachmentsService: TaskAttachmentsService,
-  ) { }
+  constructor(private readonly taskAttachmentsService: TaskAttachmentsService) {}
 
   // @Post()
   // @ApiOperation({ summary: 'Create a task attachment record manually' })
@@ -108,47 +106,47 @@ export class TaskAttachmentsController {
         fileSize: 50 * 1024 * 1024, // 50MB limit
       },
       fileFilter: (req, file, cb) => {
-      const allowedMimeTypes = [
-        // Images
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp',
-        'image/svg+xml',
+        const allowedMimeTypes = [
+          // Images
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'image/svg+xml',
 
-        // Documents
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          // Documents
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/vnd.ms-powerpoint',
+          'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 
-        // Text & Data
-        'text/plain',
-        'text/csv',
-        'text/markdown',
-        'application/json',
-        'application/xml',
-        'text/html',
-        'text/css',
-        'text/javascript',
+          // Text & Data
+          'text/plain',
+          'text/csv',
+          'text/markdown',
+          'application/json',
+          'application/xml',
+          'text/html',
+          'text/css',
+          'text/javascript',
 
-        // Archives
-        'application/zip',
-        'application/x-rar-compressed',
-        'application/x-7z-compressed',
+          // Archives
+          'application/zip',
+          'application/x-rar-compressed',
+          'application/x-7z-compressed',
 
-        // Videos
-        'video/mp4',
-        'video/webm',
-        'video/ogg',
-        'video/mpeg',
-        'video/quicktime',
-        'video/x-msvideo', // .avi
-        'video/x-matroska', // .mkv
-      ];
+          // Videos
+          'video/mp4',
+          'video/webm',
+          'video/ogg',
+          'video/mpeg',
+          'video/quicktime',
+          'video/x-msvideo', // .avi
+          'video/x-matroska', // .mkv
+        ];
 
         if (allowedMimeTypes.includes(file.mimetype)) {
           cb(null, true);
@@ -202,10 +200,7 @@ export class TaskAttachmentsController {
   @ApiParam({ name: 'id', description: 'Attachment ID' })
   @ApiResponse({ status: 200, description: 'File download' })
   @ApiResponse({ status: 404, description: 'Attachment not found' })
-  async downloadFile(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Res() res: Response,
-  ) {
+  async downloadFile(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
     try {
       await this.taskAttachmentsService.streamFile(id, res, true);
     } catch (error) {
@@ -222,10 +217,7 @@ export class TaskAttachmentsController {
   @ApiResponse({ status: 200, description: 'File stream' })
   @ApiResponse({ status: 400, description: 'File type not previewable' })
   @ApiResponse({ status: 404, description: 'Attachment not found' })
-  async previewFile(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Res() res: Response,
-  ) {
+  async previewFile(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
     try {
       await this.taskAttachmentsService.streamFile(id, res, false);
     } catch (error) {

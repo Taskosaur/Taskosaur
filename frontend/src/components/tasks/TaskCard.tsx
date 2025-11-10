@@ -25,51 +25,31 @@ export default function TaskCard({
     switch (type) {
       case TaskType.BUG:
         return (
-          <svg
-            className="w-4 h-4 text-red-500"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24">
             <path d="M14,12H10V10H14M14,16H10V14H14M20,8H17.19C16.74,7.22 16.12,6.55 15.37,6.04L17,4.41L15.59,3L13.42,5.17C12.96,5.06 12.5,5 12,5C11.5,5 11.04,5.06 10.59,5.17L8.41,3L7,4.41L8.62,6.04C7.88,6.55 7.26,7.22 6.81,8H4V10H6.09C6.04,10.33 6,10.66 6,11V12H4V14H6V15C6,15.34 6.04,15.67 6.09,16H4V18H6.81C7.85,19.79 9.78,21 12,21C14.22,21 16.15,19.79 17.19,18H20V16H17.91C17.96,15.67 18,15.34 18,15V14H20V12H18V11C18,10.66 17.96,10.33 17.91,10H20V8Z" />
           </svg>
         );
       case TaskType.STORY:
         return (
-          <svg
-            className="w-4 h-4 text-green-500"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24">
             <path d="M13,9H18.5L13,3.5V9M6,2H14L20,8V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V4C4,2.89 4.89,2 6,2M15,18V16H6V18H15M18,14V12H6V14H18Z" />
           </svg>
         );
       case TaskType.EPIC:
         return (
-          <svg
-            className="w-4 h-4 text-purple-500"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-4 h-4 text-purple-500" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,7H13V9H11V7M11,11H13V17H11V11Z" />
           </svg>
         );
       case TaskType.SUBTASK:
         return (
-          <svg
-            className="w-4 h-4 text-blue-500"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
             <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19Z" />
           </svg>
         );
       default:
         return (
-          <svg
-            className="w-4 h-4 text-blue-500"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
             <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
           </svg>
         );
@@ -192,11 +172,7 @@ export default function TaskCard({
             )}
           </div>
           <div className="flex items-center space-x-1">
-            <span
-              className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(
-                task.priority
-              )}`}
-            >
+            <span className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(task.priority)}`}>
               {getPriorityIcon(task.priority)}
             </span>
             <button
@@ -206,12 +182,7 @@ export default function TaskCard({
                 setShowDetailModal(true);
               }}
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -284,12 +255,7 @@ export default function TaskCard({
             {/* Comments count */}
             {task.comments && task.comments.length > 0 && (
               <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded flex items-center">
-                <svg
-                  className="w-3 h-3 mr-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -304,12 +270,7 @@ export default function TaskCard({
             {/* Attachments count */}
             {task.attachments && task.attachments.length > 0 && (
               <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded flex items-center">
-                <svg
-                  className="w-3 h-3 mr-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"

@@ -15,10 +15,7 @@ import {
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ProjectMembersService } from './project-members.service';
-import {
-  CreateProjectMemberDto,
-  InviteProjectMemberDto,
-} from './dto/create-project-member.dto';
+import { CreateProjectMemberDto, InviteProjectMemberDto } from './dto/create-project-member.dto';
 import { UpdateProjectMemberDto } from './dto/update-project-member.dto';
 
 @ApiBearerAuth('JWT-auth')
@@ -38,16 +35,16 @@ export class ProjectMembersController {
   }
 
   @Get()
-findAll(
-  @Query('projectId') projectId?: string,
-  @Query('search') search?: string,
-  @Query('page') page?: string,
-  @Query('limit') limit?: string,
-) {
-  const pageNumber = page ? parseInt(page, 10) : undefined;
-  const limitNumber = limit ? parseInt(limit, 10) : undefined;
-  return this.projectMembersService.findAll(projectId, search, pageNumber, limitNumber);
-}
+  findAll(
+    @Query('projectId') projectId?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNumber = page ? parseInt(page, 10) : undefined;
+    const limitNumber = limit ? parseInt(limit, 10) : undefined;
+    return this.projectMembersService.findAll(projectId, search, pageNumber, limitNumber);
+  }
 
   @Get('workspace/:workspaceId')
   findAllByWorkspace(@Param('workspaceId', ParseUUIDPipe) workspaceId: string) {
@@ -84,11 +81,7 @@ findAll(
     // TODO: Get requestUserId from JWT token when authentication is implemented
     @Query('requestUserId') requestUserId: string,
   ) {
-    return this.projectMembersService.update(
-      id,
-      updateProjectMemberDto,
-      requestUserId,
-    );
+    return this.projectMembersService.update(id, updateProjectMemberDto, requestUserId);
   }
 
   @Delete(':id')

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
-
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import CreateTask from "@/components/common/CreateTask";
@@ -11,16 +10,14 @@ import { useProject } from "@/contexts/project-context";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/router";
 
-
 function NewTaskPageContent() {
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
 
   const { getWorkspaceBySlug } = useWorkspace();
   const { getProjectBySlug } = useProject();
- 
-  
-  const {  isAuthenticated } = useAuth();
+
+  const { isAuthenticated } = useAuth();
 
   const [workspace, setWorkspace] = useState<any>(null);
   const [project, setProject] = useState<any>(null);
@@ -31,12 +28,24 @@ function NewTaskPageContent() {
     const fetchData = async () => {
       if (!isAuthenticated() || !workspaceSlug || !projectSlug || isInitializedRef.current) return;
       try {
-        const ws = await getWorkspaceBySlug(typeof workspaceSlug === "string" ? workspaceSlug : Array.isArray(workspaceSlug) ? workspaceSlug[0] : "");
+        const ws = await getWorkspaceBySlug(
+          typeof workspaceSlug === "string"
+            ? workspaceSlug
+            : Array.isArray(workspaceSlug)
+              ? workspaceSlug[0]
+              : ""
+        );
         setWorkspace(ws);
-        const proj = await getProjectBySlug(typeof projectSlug === "string" ? projectSlug : Array.isArray(projectSlug) ? projectSlug[0] : "",isAuthenticated());
+        const proj = await getProjectBySlug(
+          typeof projectSlug === "string"
+            ? projectSlug
+            : Array.isArray(projectSlug)
+              ? projectSlug[0]
+              : "",
+          isAuthenticated()
+        );
         setProject(proj);
-       
-             
+
         isInitializedRef.current = true;
       } catch (error) {
         console.error("Error initializing data:", error);
@@ -72,8 +81,20 @@ function NewTaskPageContent() {
   return (
     <>
       <CreateTask
-        workspaceSlug={typeof workspaceSlug === "string" ? workspaceSlug : Array.isArray(workspaceSlug) ? workspaceSlug[0] : ""}
-        projectSlug={typeof projectSlug === "string" ? projectSlug : Array.isArray(projectSlug) ? projectSlug[0] : ""}
+        workspaceSlug={
+          typeof workspaceSlug === "string"
+            ? workspaceSlug
+            : Array.isArray(workspaceSlug)
+              ? workspaceSlug[0]
+              : ""
+        }
+        projectSlug={
+          typeof projectSlug === "string"
+            ? projectSlug
+            : Array.isArray(projectSlug)
+              ? projectSlug[0]
+              : ""
+        }
         workspace={workspace}
         projects={project ? [project] : []}
       />

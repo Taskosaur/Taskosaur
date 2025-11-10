@@ -24,30 +24,25 @@ export function RegisterContent() {
                 width={50}
                 height={50}
                 className={`size-6 lg:size-10 ${resolvedTheme === "light" ? " filter invert brightness-200" : ""}`}
-
               />
               <h1 className="login-brand-title">Taskosaur</h1>
             </div>
 
             <div className="login-brand-subtitle-row">
               <Award className="login-brand-award-icon" />
-              <p className="login-brand-subtitle">
-                Award-winning Project Management
-              </p>
+              <p className="login-brand-subtitle">Award-winning Project Management</p>
             </div>
           </div>
 
           <h2 className="signup-hero-heading">
             Start your journey to
             <br />
-            <span className="signup-hero-heading-gradient">
-              effortless productivity
-            </span>
+            <span className="signup-hero-heading-gradient">effortless productivity</span>
           </h2>
 
           <p className="signup-hero-description">
-            Create your free account today and discover why thousands of teams
-            choose Taskosaur to streamline their workflow and achieve more.
+            Create your free account today and discover why thousands of teams choose Taskosaur to
+            streamline their workflow and achieve more.
           </p>
         </motion.div>
       </div>

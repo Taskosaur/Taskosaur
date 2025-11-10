@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { HiCog } from "react-icons/hi2";
@@ -11,7 +11,7 @@ interface RoleConfig {
 }
 
 interface RoleDistributionProps {
-  entityType: 'organization' | 'workspace' | 'project';
+  entityType: "organization" | "workspace" | "project";
   members: Array<{ role: string; status?: string }>;
   roles?: RoleConfig[];
   title?: string;
@@ -49,11 +49,11 @@ export const RoleDistribution: React.FC<RoleDistributionProps> = ({
   // Determine which roles to use based on entity type
   const getDefaultRoles = (): RoleConfig[] => {
     switch (entityType) {
-      case 'organization':
+      case "organization":
         return defaultOrganizationRoles;
-      case 'project':
+      case "project":
         return defaultProjectRoles;
-      case 'workspace':
+      case "workspace":
         return defaultWorkspaceRoles;
       default:
         return defaultOrganizationRoles;
@@ -64,22 +64,21 @@ export const RoleDistribution: React.FC<RoleDistributionProps> = ({
 
   // Count members by role (excluding pending members)
   const getRoleCount = (roleName: string): number => {
-    return members.filter(
-      (m) => m.role === roleName && m.status?.toLowerCase() !== "pending"
-    ).length;
+    return members.filter((m) => m.role === roleName && m.status?.toLowerCase() !== "pending")
+      .length;
   };
 
   // Get badge styling based on role
   const getBadgeClass = (variant?: string): string => {
     // Using the existing color system from theme
     switch (variant) {
-      case 'default':
+      case "default":
         return "bg-purple-500/10 text-purple-500 border-purple-500/20";
-      case 'success':
+      case "success":
         return "bg-green-500/10 text-green-500 border-green-500/20";
-      case 'info':
+      case "info":
         return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-      case 'secondary':
+      case "secondary":
         return "bg-[var(--muted)] text-[var(--muted-foreground)]";
       default:
         return "bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20";
@@ -87,9 +86,7 @@ export const RoleDistribution: React.FC<RoleDistributionProps> = ({
   };
 
   // Calculate total active members
-  const totalActiveMembers = members.filter(
-    m => m.status?.toLowerCase() !== "pending"
-  ).length;
+  const totalActiveMembers = members.filter((m) => m.status?.toLowerCase() !== "pending").length;
 
   return (
     <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
@@ -104,16 +101,13 @@ export const RoleDistribution: React.FC<RoleDistributionProps> = ({
           {/* Role breakdown */}
           {rolesConfig.map((role) => {
             const count = getRoleCount(role.name);
-            const percentage = totalActiveMembers > 0 
-              ? Math.round((count / totalActiveMembers) * 100) 
-              : 0;
+            const percentage =
+              totalActiveMembers > 0 ? Math.round((count / totalActiveMembers) * 100) : 0;
 
             return (
               <div key={role.name} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[var(--muted-foreground)]">
-                    {role.label || role.name}
-                  </span>
+                  <span className="text-[var(--muted-foreground)]">{role.label || role.name}</span>
                   <div className="flex items-center gap-2">
                     <Badge
                       variant={role.variant as any}
@@ -133,10 +127,13 @@ export const RoleDistribution: React.FC<RoleDistributionProps> = ({
                   <div className="w-full bg-[var(--muted)]/30 rounded-full h-1.5">
                     <div
                       className={`h-1.5 rounded-full transition-all duration-300 ${
-                        role.variant === 'default' ? 'bg-purple-500/50' :
-                        role.variant === 'success' ? 'bg-green-500/50' :
-                        role.variant === 'info' ? 'bg-blue-500/50' :
-                        'bg-[var(--muted-foreground)]/50'
+                        role.variant === "default"
+                          ? "bg-purple-500/50"
+                          : role.variant === "success"
+                            ? "bg-green-500/50"
+                            : role.variant === "info"
+                              ? "bg-blue-500/50"
+                              : "bg-[var(--muted-foreground)]/50"
                       }`}
                       style={{ width: `${percentage}%` }}
                     />
@@ -152,9 +149,7 @@ export const RoleDistribution: React.FC<RoleDistributionProps> = ({
               <span className="text-[var(--muted-foreground)] font-medium">
                 Total Active Members
               </span>
-              <span className="font-semibold text-[var(--foreground)]">
-                {totalActiveMembers}
-              </span>
+              <span className="font-semibold text-[var(--foreground)]">{totalActiveMembers}</span>
             </div>
           </div>
         </div>

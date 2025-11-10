@@ -49,11 +49,9 @@ async function bootstrap() {
   );
 
   // Check if Unix socket should be used
-  const useUnixSocket =
-    process.env.UNIX_SOCKET === '1' || !!process.env.UNIX_SOCKET_PATH;
+  const useUnixSocket = process.env.UNIX_SOCKET === '1' || !!process.env.UNIX_SOCKET_PATH;
   const unixSocketPath =
-    process.env.UNIX_SOCKET_PATH ||
-    join(__dirname, '..', 'tmp', 'taskosaur-backend.sock');
+    process.env.UNIX_SOCKET_PATH || join(__dirname, '..', 'tmp', 'taskosaur-backend.sock');
 
   // Get port and host from config
   const port = appConfig.port;
@@ -128,15 +126,11 @@ async function bootstrap() {
 
     await app.listen(unixSocketPath);
     logger.log(`Application is running on Unix socket: ${unixSocketPath}`);
-    logger.log(
-      `Swagger documentation available via Unix socket at /${swaggerConfig.path}`,
-    );
+    logger.log(`Swagger documentation available via Unix socket at /${swaggerConfig.path}`);
   } else {
     await app.listen(port, host);
     logger.log(`Application is running on: http://${host}:${port}`);
-    logger.log(
-      `Swagger documentation available at: http://${host}:${port}/${swaggerConfig.path}`,
-    );
+    logger.log(`Swagger documentation available at: http://${host}:${port}/${swaggerConfig.path}`);
   }
 }
 bootstrap();

@@ -29,7 +29,11 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, var(--muted-foreground) 0%, rgba(var(--muted-foreground-rgb, 107, 114, 128), 0.7) 100%);
+    background: linear-gradient(
+      180deg,
+      var(--muted-foreground) 0%,
+      rgba(var(--muted-foreground-rgb, 107, 114, 128), 0.7) 100%
+    );
     @apply rounded border border-white/20;
   }
 
@@ -52,7 +56,9 @@
 
   .kanban-card:hover {
     @apply -translate-y-0.5 scale-[1.01];
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
 
   .kanban-card.dragging {
@@ -67,7 +73,11 @@
 
   .kanban-column.drag-over {
     @apply scale-[1.01] border-2 border-[var(--primary)];
-    background: linear-gradient(135deg, var(--primary) 0%, rgba(var(--primary-rgb, 139, 92, 246), 0.1) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--primary) 0%,
+      rgba(var(--primary-rgb, 139, 92, 246), 0.1) 100%
+    );
     box-shadow: 0 0 0 4px rgba(var(--primary-rgb, 139, 92, 246), 0.1);
   }
 
@@ -82,14 +92,9 @@
 
   /* Task card shimmer effect */
   .kanban-card::before {
-    content: '';
+    content: "";
     @apply absolute inset-0 opacity-0 pointer-events-none rounded-[inherit];
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.1),
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
     background-size: 200px 100%;
     animation: shimmer 3s infinite;
   }
@@ -141,11 +146,12 @@
 }
 
 @keyframes pulse-status {
-  0%, 100% { 
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
-  50% { 
+  50% {
     transform: scale(1.1);
     opacity: 0.8;
   }

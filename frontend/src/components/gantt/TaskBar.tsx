@@ -54,8 +54,7 @@ export const TaskBar: React.FC<TaskBarProps> = ({
 
   const priorityColors = getPriorityColors(task.priority || "low");
 
-  const isOverdue =
-    taskEnd < new Date() && task.status.name.toLowerCase() !== "done";
+  const isOverdue = taskEnd < new Date() && task.status.name.toLowerCase() !== "done";
 
   const isDone = task.status.name.toLowerCase() === "done";
   const isInProgress = task.status.name.toLowerCase().includes("progress");
@@ -65,8 +64,8 @@ export const TaskBar: React.FC<TaskBarProps> = ({
       workspaceSlug && projectSlug
         ? `/${workspaceSlug}/${projectSlug}/tasks/${task.id}`
         : workspaceSlug
-        ? `/${workspaceSlug}/tasks/${task.id}`
-        : `/tasks/${task.id}`;
+          ? `/${workspaceSlug}/tasks/${task.id}`
+          : `/tasks/${task.id}`;
     router.push(href);
   };
 
@@ -92,8 +91,8 @@ export const TaskBar: React.FC<TaskBarProps> = ({
                 isWeekend(day) && viewMode === "days"
                   ? "bg-[var(--muted)]"
                   : isToday
-                  ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600"
-                  : "hover:bg-[var(--accent)]"
+                    ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600"
+                    : "hover:bg-[var(--accent)]"
               }`}
               style={{ width: `${cellWidth}px` }}
             >
@@ -109,11 +108,7 @@ export const TaskBar: React.FC<TaskBarProps> = ({
       <div
         className={`absolute rounded-lg shadow-md border-2 cursor-pointer transition-all group ${
           priorityColors.bg
-        } ${priorityColors.border} ${
-          isOverdue
-            ? "border-red-500 animate-pulse"
-            : ""
-        }`}
+        } ${priorityColors.border} ${isOverdue ? "border-red-500 animate-pulse" : ""}`}
         style={{
           left: `${barLeft}px`,
           width: `${finalBarWidth}px`,
@@ -123,9 +118,7 @@ export const TaskBar: React.FC<TaskBarProps> = ({
         }}
         title={`${task.title || "Untitled Task"}\nStatus: ${
           task.status.name
-        }\nDuration: ${actualDuration} ${
-          viewMode === "days" ? "days" : viewMode
-        }`}
+        }\nDuration: ${actualDuration} ${viewMode === "days" ? "days" : viewMode}`}
         tabIndex={0}
         role="button"
         onMouseEnter={() => onHover(task.id)}
@@ -139,33 +132,25 @@ export const TaskBar: React.FC<TaskBarProps> = ({
           {finalBarWidth > 60 && !isCompact && (
             <span className={`text-xs font-medium truncate text-white`}>
               {task.title?.substring(0, Math.floor(finalBarWidth / 10))}
-              {task.title && task.title.length > Math.floor(finalBarWidth / 10)
-                ? "..."
-                : ""}
+              {task.title && task.title.length > Math.floor(finalBarWidth / 10) ? "..." : ""}
             </span>
           )}
 
           {/* Icons */}
           <div className="flex items-center gap-1.5 ml-auto">
             {/* Status icons */}
-            {isDone && (
-              <HiCheckCircle className="w-4 h-4 text-white drop-shadow-sm" />
-            )}
+            {isDone && <HiCheckCircle className="w-4 h-4 text-white drop-shadow-sm" />}
             {isOverdue && !isDone && (
               <HiExclamationTriangle className="w-4 h-4 text-white drop-shadow-sm animate-pulse" />
             )}
-            {isInProgress && (
-              <HiClock className="w-4 h-4 text-white drop-shadow-sm" />
-            )}
+            {isInProgress && <HiClock className="w-4 h-4 text-white drop-shadow-sm" />}
           </div>
         </div>
 
         {/* Hover Tooltip */}
         {(isHovered || isFocused) && (
           <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-[var(--popover)] text-[var(--popover-foreground)] px-3 py-2 rounded-lg shadow-lg z-40 whitespace-nowrap max-w-xs border border-[var(--border)] text-sm">
-            <div className="font-semibold truncate text-sm">
-              {task.title || "Untitled Task"}
-            </div>
+            <div className="font-semibold truncate text-sm">{task.title || "Untitled Task"}</div>
             <div className="text-[var(--muted-foreground)] mt-1 text-xs">
               {new Date(task.startDate!).toLocaleDateString()} -{" "}
               {new Date(task.dueDate!).toLocaleDateString()}

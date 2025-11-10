@@ -23,20 +23,20 @@ import {
 
 // Types
 interface EntityInfo {
-  type: 'organization' | 'workspace' | 'project' | 'task';
+  type: "organization" | "workspace" | "project" | "task";
   name: string;
   displayName?: string;
 }
 
 interface ActionConfig {
   name: string;
-  type: 'delete' | 'archive' | 'edit' | 'transfer' | 'custom';
+  type: "delete" | "archive" | "edit" | "transfer" | "custom";
   label: string;
   description: string;
   confirmationMessage?: string;
   requiresNameConfirmation?: boolean;
   handler: (entityName?: string) => Promise<void>;
-  variant?: 'destructive' | 'warning' | 'default';
+  variant?: "destructive" | "warning" | "default";
 }
 
 interface DangerZoneModalProps {
@@ -44,13 +44,7 @@ interface DangerZoneModalProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   triggerText?: string;
-  triggerVariant?:
-    | "default"
-    | "destructive"
-    | "outline"
-    | "secondary"
-    | "ghost"
-    | "link";
+  triggerVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   entity: EntityInfo;
   actions: ActionConfig[];
   title?: string;
@@ -61,11 +55,11 @@ interface DangerZoneModalProps {
 // Action type to icon mapping
 const getActionIcon = (type: string) => {
   switch (type) {
-    case 'delete':
+    case "delete":
       return HiTrash;
-    case 'archive':
+    case "archive":
       return HiArchiveBox;
-    case 'edit':
+    case "edit":
       return HiPencil;
     default:
       return HiEllipsisHorizontal;
@@ -75,12 +69,12 @@ const getActionIcon = (type: string) => {
 // Action type to color mapping
 const getActionVariant = (variant?: string) => {
   switch (variant) {
-    case 'destructive':
-      return 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/30';
-    case 'warning':
-      return 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800/30';
+    case "destructive":
+      return "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/30";
+    case "warning":
+      return "bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800/30";
     default:
-      return 'bg-gray-50 dark:bg-gray-950/20 border-gray-200 dark:border-gray-800/30';
+      return "bg-gray-50 dark:bg-gray-950/20 border-gray-200 dark:border-gray-800/30";
   }
 };
 
@@ -107,8 +101,9 @@ export default function DangerZoneModal({
   const setDialogOpen = onOpenChange || setIsOpen;
 
   const entityDisplayName = entity.displayName || entity.name;
-  const confirmationText = selectedAction?.confirmationMessage || 
-    `Type **${entity.name}** to confirm ${selectedAction?.name || 'action'}`;
+  const confirmationText =
+    selectedAction?.confirmationMessage ||
+    `Type **${entity.name}** to confirm ${selectedAction?.name || "action"}`;
 
   const resetForm = useCallback(() => {
     setSelectedAction(null);
@@ -156,11 +151,11 @@ export default function DangerZoneModal({
 
   const isConfirmationValid = useCallback(() => {
     if (!selectedAction) return false;
-    
+
     if (selectedAction.requiresNameConfirmation !== false) {
       return confirmationInput.trim() === entity.name;
     }
-    
+
     return true;
   }, [selectedAction, confirmationInput, entity.name]);
 
@@ -183,11 +178,14 @@ export default function DangerZoneModal({
 
         // After organization deletion, simply reload the page
         // OrganizationSelector will handle selecting the new organization
-        if (entity.type === 'organization' && selectedAction.type === 'delete') {
-          window.location.href = '/dashboard';
+        if (entity.type === "organization" && selectedAction.type === "delete") {
+          window.location.href = "/dashboard";
         }
       } catch (error) {
-        const errMsg = error instanceof Error ? error.message : `Failed to ${selectedAction.name} ${entity.type}`;
+        const errMsg =
+          error instanceof Error
+            ? error.message
+            : `Failed to ${selectedAction.name} ${entity.type}`;
         setError(errMsg);
         toast.error(errMsg);
       } finally {
@@ -197,7 +195,8 @@ export default function DangerZoneModal({
     [selectedAction, isConfirmationValid, entity, handleOpenChange]
   );
 
-  const modalTitle = title || `${entity.type.charAt(0).toUpperCase() + entity.type.slice(1)} Danger Zone`;
+  const modalTitle =
+    title || `${entity.type.charAt(0).toUpperCase() + entity.type.slice(1)} Danger Zone`;
   const modalDescription = description || `Perform destructive actions on ${entityDisplayName}`;
 
   return (
@@ -213,9 +212,7 @@ export default function DangerZoneModal({
               <HiExclamationTriangle className="projects-modal-icon-content" />
             </div>
             <div className="projects-modal-info">
-              <DialogTitle className="projects-modal-title">
-                {modalTitle}
-              </DialogTitle>
+              <DialogTitle className="projects-modal-title">{modalTitle}</DialogTitle>
               <DialogDescription className="projects-modal-description">
                 {modalDescription}
               </DialogDescription>
@@ -223,19 +220,18 @@ export default function DangerZoneModal({
           </div>
         </DialogHeader>
 
-
         {!selectedAction ? (
           // Actions List View
           <div className="space-y-4">
             <div className="text-sm text-[var(--muted-foreground)] mb-4">
               Select an action to perform on <strong>{entityDisplayName}</strong>:
             </div>
-            
+
             <div className="space-y-3">
               {actions.map((action) => {
                 const IconComponent = getActionIcon(action.type);
                 const variantClass = getActionVariant(action.variant);
-                
+
                 return (
                   <div
                     key={action.name}
@@ -245,9 +241,7 @@ export default function DangerZoneModal({
                     <div className="flex items-start gap-3">
                       <IconComponent className="w-5 h-5 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
-                        <h4 className="font-medium text-[var(--foreground)]">
-                          {action.label}
-                        </h4>
+                        <h4 className="font-medium text-[var(--foreground)]">{action.label}</h4>
                         <p className="text-sm text-[var(--muted-foreground)] mt-1">
                           {action.description}
                         </p>
@@ -259,10 +253,7 @@ export default function DangerZoneModal({
             </div>
 
             <div className="projects-form-actions flex gap-2 justify-end mt-6">
-              <ActionButton
-                secondary
-                onClick={() => handleOpenChange(false)}
-              >
+              <ActionButton secondary onClick={() => handleOpenChange(false)}>
                 Cancel
               </ActionButton>
             </div>
@@ -275,12 +266,10 @@ export default function DangerZoneModal({
               <div className={`p-4 rounded-lg border ${getActionVariant(selectedAction.variant)}`}>
                 <div className="flex items-center gap-3">
                   {React.createElement(getActionIcon(selectedAction.type), {
-                    className: "w-5 h-5 flex-shrink-0"
+                    className: "w-5 h-5 flex-shrink-0",
                   })}
                   <div>
-                    <h4 className="font-medium text-[var(--foreground)]">
-                      {selectedAction.label}
-                    </h4>
+                    <h4 className="font-medium text-[var(--foreground)]">{selectedAction.label}</h4>
                     <p className="text-sm text-[var(--muted-foreground)]">
                       {selectedAction.description}
                     </p>
@@ -292,17 +281,17 @@ export default function DangerZoneModal({
               {selectedAction.requiresNameConfirmation !== false && (
                 <div className="projects-form-field">
                   <Label htmlFor="confirmation" className="projects-form-label">
-                    <HiExclamationTriangle 
-                      className="projects-form-label-icon" 
-                      style={{ color: 'var(--destructive)' }}
+                    <HiExclamationTriangle
+                      className="projects-form-label-icon"
+                      style={{ color: "var(--destructive)" }}
                     />
                     Confirmation <span className="projects-form-label-required">*</span>
                   </Label>
                   <div className="space-y-2">
-                    <div 
+                    <div
                       className="text-sm text-[var(--muted-foreground)]"
-                      dangerouslySetInnerHTML={{ 
-                        __html: confirmationText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      dangerouslySetInnerHTML={{
+                        __html: confirmationText.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>"),
                       }}
                     />
                     <Input
@@ -312,15 +301,15 @@ export default function DangerZoneModal({
                       onChange={handleConfirmationChange}
                       className="projects-form-input border-none"
                       style={{
-                        borderColor: 'var(--destructive)',
+                        borderColor: "var(--destructive)",
                       }}
                       onFocus={(e) => {
-                        e.target.style.borderColor = 'var(--destructive)';
+                        e.target.style.borderColor = "var(--destructive)";
                         e.target.style.boxShadow = `0 0 0 3px var(--destructive)/20`;
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = 'var(--destructive)';
-                        e.target.style.boxShadow = 'none';
+                        e.target.style.borderColor = "var(--destructive)";
+                        e.target.style.boxShadow = "none";
                       }}
                       autoFocus
                     />

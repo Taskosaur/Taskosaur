@@ -1,36 +1,24 @@
 import React from "react";
 
-
-
 interface TaskDetailSkeletonProps {
   showAttachmentSection?: boolean;
   showSubtasks?: boolean;
 }
 
 // Reusable skeleton primitive components
-const SkeletonBox = ({ 
-  className = "" 
-}: { 
-  className?: string 
-}) => (
+const SkeletonBox = ({ className = "" }: { className?: string }) => (
   <div className={`animate-pulse bg-[var(--skeleton)] rounded ${className}`} />
 );
 
-const SkeletonText = ({ 
+const SkeletonText = ({
   width = "w-full",
-  height = "h-4"
-}: { 
+  height = "h-4",
+}: {
   width?: string;
   height?: string;
-}) => (
-  <div className={`animate-pulse bg-[var(--skeleton)] rounded ${height} ${width}`} />
-);
+}) => <div className={`animate-pulse bg-[var(--skeleton)] rounded ${height} ${width}`} />;
 
-const SkeletonCircle = ({ 
-  size = "w-8 h-8" 
-}: { 
-  size?: string 
-}) => (
+const SkeletonCircle = ({ size = "w-8 h-8" }: { size?: string }) => (
   <div className={`animate-pulse bg-[var(--skeleton)] rounded-full ${size}`} />
 );
 
@@ -49,11 +37,11 @@ const HeaderSkeleton = () => (
       <div className="flex items-center gap-4">
         {/* Title */}
         <SkeletonText width="w-64" height="h-7" />
-        
+
         {/* Expand button (for modal view) */}
         <SkeletonBox className="w-5 h-5" />
       </div>
-      
+
       {/* Created by info */}
       <SkeletonText width="w-48" height="h-4" />
     </div>
@@ -81,7 +69,7 @@ const DescriptionSkeleton = () => (
 const AttachmentsSkeleton = () => (
   <div className="space-y-4">
     <SectionHeaderSkeleton />
-    
+
     <div className="space-y-3">
       {[...Array(3)].map((_, idx) => (
         <div
@@ -231,13 +219,13 @@ const SidebarSkeleton = () => (
         <SkeletonText width="w-24" height="h-4" />
         <SkeletonText width="w-8" height="h-4" />
       </div>
-      
+
       {/* Start Date */}
       <div className="space-y-2">
         <SkeletonText width="w-20" height="h-3" />
         <SkeletonBox className="w-full h-8 rounded-2xl" />
       </div>
-      
+
       {/* Due Date */}
       <div className="space-y-2">
         <SkeletonText width="w-20" height="h-3" />

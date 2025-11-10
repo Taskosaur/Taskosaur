@@ -1,11 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  useMemo,
-  useCallback,
-  type KeyboardEvent,
-} from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, type KeyboardEvent } from "react";
 import { useRouter } from "next/router";
 import { HiCalendarDays, HiClipboardDocumentList } from "react-icons/hi2";
 import type { Task, TaskGanttViewProps, TimeRange, ViewMode } from "@/types";
@@ -42,8 +35,7 @@ export default function TaskGanttView({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [internalViewMode, setInternalViewMode] = useState<ViewMode>("days");
-  const viewMode =
-    externalViewMode !== undefined ? externalViewMode : internalViewMode;
+  const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
   // Process tasks and generate time range
   const processedTasksData = useMemo(() => {
     try {
@@ -58,28 +50,18 @@ export default function TaskGanttView({
           if (task.createdAt) {
             const createdDate = parseDate(task.createdAt);
             startDate = createdDate.toISOString();
-            dueDate = new Date(
-              createdDate.getTime() + 7 * 24 * 60 * 60 * 1000
-            ).toISOString();
+            dueDate = new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
           } else {
             const today = new Date();
-            startDate = new Date(
-              today.getTime() + index * 24 * 60 * 60 * 1000
-            ).toISOString();
-            dueDate = new Date(
-              today.getTime() + (index + 7) * 24 * 60 * 60 * 1000
-            ).toISOString();
+            startDate = new Date(today.getTime() + index * 24 * 60 * 60 * 1000).toISOString();
+            dueDate = new Date(today.getTime() + (index + 7) * 24 * 60 * 60 * 1000).toISOString();
           }
         } else if (!startDate && dueDate) {
           const due = parseDate(dueDate);
-          startDate = new Date(
-            due.getTime() - 7 * 24 * 60 * 60 * 1000
-          ).toISOString();
+          startDate = new Date(due.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
         } else if (startDate && !dueDate) {
           const start = parseDate(startDate);
-          dueDate = new Date(
-            start.getTime() + 7 * 24 * 60 * 60 * 1000
-          ).toISOString();
+          dueDate = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
         }
 
         return { ...task, startDate, dueDate };
@@ -102,9 +84,7 @@ export default function TaskGanttView({
       return { processedTasks, earliest, latest };
     } catch (error) {
       console.error("Error processing Gantt tasks:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to process tasks"
-      );
+      setError(error instanceof Error ? error.message : "Failed to process tasks");
       return { processedTasks: [], earliest: new Date(), latest: new Date() };
     } finally {
       setIsLoading(false);
@@ -112,43 +92,40 @@ export default function TaskGanttView({
   }, [safeTasks]);
 
   // Generate time scale
-  const generateTimeScale = useCallback(
-    (start: Date, end: Date, mode: ViewMode) => {
-      const scale: Date[] = [];
-      const current = new Date(start);
+  const generateTimeScale = useCallback((start: Date, end: Date, mode: ViewMode) => {
+    const scale: Date[] = [];
+    const current = new Date(start);
 
-      try {
-        switch (mode) {
-          case "days":
-            while (current <= end && scale.length < 1000) {
-              scale.push(new Date(current));
-              current.setDate(current.getDate() + 1);
-            }
-            break;
-          case "weeks":
-            current.setDate(current.getDate() - current.getDay());
-            while (current <= end && scale.length < 200) {
-              scale.push(new Date(current));
-              current.setDate(current.getDate() + 7);
-            }
-            break;
-          case "months":
-            current.setDate(1);
-            while (current <= end && scale.length < 60) {
-              scale.push(new Date(current));
-              current.setMonth(current.getMonth() + 1);
-            }
-            break;
-        }
-      } catch (error) {
-        console.error("Error generating time scale:", error);
-        return [new Date()];
+    try {
+      switch (mode) {
+        case "days":
+          while (current <= end && scale.length < 1000) {
+            scale.push(new Date(current));
+            current.setDate(current.getDate() + 1);
+          }
+          break;
+        case "weeks":
+          current.setDate(current.getDate() - current.getDay());
+          while (current <= end && scale.length < 200) {
+            scale.push(new Date(current));
+            current.setDate(current.getDate() + 7);
+          }
+          break;
+        case "months":
+          current.setDate(1);
+          while (current <= end && scale.length < 60) {
+            scale.push(new Date(current));
+            current.setMonth(current.getMonth() + 1);
+          }
+          break;
       }
+    } catch (error) {
+      console.error("Error generating time scale:", error);
+      return [new Date()];
+    }
 
-      return scale;
-    },
-    []
-  );
+    return scale;
+  }, []);
 
   // Update state when processed data changes
   useEffect(() => {
@@ -186,8 +163,8 @@ export default function TaskGanttView({
           workspaceSlug && projectSlug
             ? `/${workspaceSlug}/${projectSlug}/tasks/${task.id}`
             : workspaceSlug
-            ? `/${workspaceSlug}/tasks/${task.id}`
-            : `/tasks/${task.id}`;
+              ? `/${workspaceSlug}/tasks/${task.id}`
+              : `/tasks/${task.id}`;
         router.push(href);
       }
     },
@@ -206,10 +183,7 @@ export default function TaskGanttView({
           const cellWidth = getViewModeWidth(viewMode);
           const scrollPosition = todayIndex * cellWidth;
           const containerWidth = scrollContainerRef.current.clientWidth;
-          const targetPosition = Math.max(
-            0,
-            scrollPosition - containerWidth / 2
-          );
+          const targetPosition = Math.max(0, scrollPosition - containerWidth / 2);
 
           scrollContainerRef.current.scrollTo({
             left: targetPosition,
@@ -230,11 +204,7 @@ export default function TaskGanttView({
     >
       {/* Empty Task Info Panel */}
       <div className="flex-shrink-0 w-80 border-r border-[var(--border)] bg-[var(--card)] py-1 sticky left-0 z-10">
-        <div
-          className={`${
-            isCompact ? "p-6" : "p-7"
-          } flex items-center gap-3 text-sm`}
-        >
+        <div className={`${isCompact ? "p-6" : "p-7"} flex items-center gap-3 text-sm`}>
           {/* Empty row content */}
         </div>
       </div>
@@ -343,8 +313,7 @@ export default function TaskGanttView({
                 const task = row.data;
                 const taskEnd = parseDate(task.dueDate);
                 const isOverdue =
-                  taskEnd < new Date() &&
-                  task.status?.name?.toLowerCase() !== "done";
+                  taskEnd < new Date() && task.status?.name?.toLowerCase() !== "done";
                 const isHovered = hoveredTask === task.id;
                 const isFocused = focusedTask === task.id;
 
@@ -360,21 +329,15 @@ export default function TaskGanttView({
                     }}
                     className={`flex items-center border-b border-[var(--border)] hover:bg-[var(--accent)] focus-within:bg-[var(--accent)] 
            ${isHovered ? "bg-[var(--accent)] " : ""} ${
-                      isFocused
-                        ? "bg-[var(--accent)] ring-2 ring-[var(--ring)] ring-offset-2"
-                        : ""
-                    } ${isOverdue ? "bg-red-50 dark:bg-red-900/10 " : ""}`}
+             isFocused ? "bg-[var(--accent)] ring-2 ring-[var(--ring)] ring-offset-2" : ""
+           } ${isOverdue ? "bg-red-50 dark:bg-red-900/10 " : ""}`}
                     onMouseEnter={() => setHoveredTask(task.id)}
                     onMouseLeave={() => setHoveredTask(null)}
                     onKeyDown={(e) => handleKeyDown(e, task)}
                     tabIndex={0}
                     role="row"
-                    aria-label={`Task: ${task.title}, Status: ${
-                      task.status?.name
-                    }, ${
-                      isOverdue
-                        ? "Overdue"
-                        : `Due ${new Date(task.dueDate!).toLocaleDateString()}`
+                    aria-label={`Task: ${task.title}, Status: ${task.status?.name}, ${
+                      isOverdue ? "Overdue" : `Due ${new Date(task.dueDate!).toLocaleDateString()}`
                     }`}
                   >
                     {/* Task Info Panel */}

@@ -49,14 +49,7 @@ export class SearchController {
               id: { type: 'string', format: 'uuid' },
               type: {
                 type: 'string',
-                enum: [
-                  'task',
-                  'project',
-                  'user',
-                  'comment',
-                  'attachment',
-                  'sprint',
-                ],
+                enum: ['task', 'project', 'user', 'comment', 'attachment', 'sprint'],
               },
               title: { type: 'string' },
               description: { type: 'string' },
@@ -83,9 +76,7 @@ export class SearchController {
     },
   })
   @ApiResponse({ status: 400, description: 'Invalid search parameters' })
-  globalSearch(
-    @Body() globalSearchDto: GlobalSearchDto,
-  ): Promise<SearchResponse> {
+  globalSearch(@Body() globalSearchDto: GlobalSearchDto): Promise<SearchResponse> {
     return this.searchService.globalSearch(globalSearchDto);
   }
 
@@ -146,9 +137,7 @@ export class SearchController {
     },
   })
   @ApiResponse({ status: 400, description: 'Invalid search filters' })
-  advancedSearch(
-    @Body() advancedSearchDto: AdvancedSearchDto,
-  ): Promise<SearchResponse> {
+  advancedSearch(@Body() advancedSearchDto: AdvancedSearchDto): Promise<SearchResponse> {
     return this.searchService.advancedSearch(advancedSearchDto);
   }
 
@@ -203,15 +192,7 @@ export class SearchController {
   @ApiQuery({
     name: 'type',
     description: 'Entity type to search',
-    enum: [
-      'all',
-      'tasks',
-      'projects',
-      'users',
-      'comments',
-      'attachments',
-      'sprints',
-    ],
+    enum: ['all', 'tasks', 'projects', 'users', 'comments', 'attachments', 'sprints'],
     required: false,
   })
   @ApiQuery({

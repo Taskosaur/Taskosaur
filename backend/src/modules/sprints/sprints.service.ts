@@ -14,10 +14,7 @@ import { UpdateSprintDto } from './dto/update-sprint.dto';
 export class SprintsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(
-    createSprintDto: CreateSprintDto,
-    userId: string,
-  ): Promise<Sprint> {
+  async create(createSprintDto: CreateSprintDto, userId: string): Promise<Sprint> {
     // Check if project exists
     const project = await this.prisma.project.findUnique({
       where: { slug: createSprintDto.projectId },
@@ -38,9 +35,7 @@ export class SprintsService {
       });
 
       if (activeSprint) {
-        throw new ConflictException(
-          'There is already an active sprint in this project',
-        );
+        throw new ConflictException('There is already an active sprint in this project');
       }
     }
 
@@ -135,10 +130,7 @@ export class SprintsService {
       ],
     });
   }
-  async findAllByProjectSlug(
-    slug?: string,
-    status?: SprintStatus,
-  ): Promise<Sprint[]> {
+  async findAllByProjectSlug(slug?: string, status?: SprintStatus): Promise<Sprint[]> {
     const whereClause: any = {
       archive: false,
     };
@@ -306,11 +298,7 @@ export class SprintsService {
     });
   }
 
-  async update(
-    id: string,
-    updateSprintDto: UpdateSprintDto,
-    userId: string,
-  ): Promise<Sprint> {
+  async update(id: string, updateSprintDto: UpdateSprintDto, userId: string): Promise<Sprint> {
     // If updating to active status, check for conflicts
     if (updateSprintDto.status === SprintStatus.ACTIVE) {
       const currentSprint = await this.prisma.sprint.findUnique({
@@ -333,9 +321,7 @@ export class SprintsService {
         });
 
         if (activeSprint) {
-          throw new ConflictException(
-            'There is already an active sprint in this project',
-          );
+          throw new ConflictException('There is already an active sprint in this project');
         }
       }
     }
@@ -416,9 +402,7 @@ export class SprintsService {
     }
 
     if (!sprint.startDate || !sprint.endDate) {
-      throw new BadRequestException(
-        'Sprint must have start and end dates to be started',
-      );
+      throw new BadRequestException('Sprint must have start and end dates to be started');
     }
 
     // Check for existing active sprint
@@ -430,9 +414,7 @@ export class SprintsService {
     });
 
     if (activeSprint) {
-      throw new ConflictException(
-        'There is already an active sprint in this project',
-      );
+      throw new ConflictException('There is already an active sprint in this project');
     }
 
     return this.update(id, { status: SprintStatus.ACTIVE }, 'system');

@@ -9,13 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  HiDocumentText,
-  HiCog,
-  HiUsers,
-  HiPaperClip,
-  HiTrash,
-} from "react-icons/hi2";
+import { HiDocumentText, HiCog, HiUsers, HiPaperClip, HiTrash } from "react-icons/hi2";
 
 import TaskDescription from "@/components/tasks/views/TaskDescription";
 import { useTask } from "@/contexts/task-context";
@@ -36,24 +30,14 @@ interface CreateTaskProps {
   projects: any[];
 }
 
-const TaskSectionHeader = ({
-  icon: Icon,
-  title,
-}: {
-  icon: any;
-  title: string;
-}) => (
+const TaskSectionHeader = ({ icon: Icon, title }: { icon: any; title: string }) => (
   <div className="flex items-center gap-2 mb-3">
     <Icon size={16} className="text-[var(--primary)]" />
     <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
   </div>
 );
 
-export default function CreateTask({
-  projectSlug,
-  workspace,
-  projects,
-}: CreateTaskProps) {
+export default function CreateTask({ projectSlug, workspace, projects }: CreateTaskProps) {
   const { createTaskWithAttachements } = useTask();
   const { getProjectMembers, getTaskStatusByProject } = useProject();
 
@@ -210,11 +194,7 @@ export default function CreateTask({
       const taskData: any = {
         title: formData.title.trim(),
         description: formData.description.trim() || "",
-        priority: formData.priority.toUpperCase() as
-          | "LOW"
-          | "MEDIUM"
-          | "HIGH"
-          | "HIGHEST",
+        priority: formData.priority.toUpperCase() as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
         type: formData.type as "TASK" | "BUG" | "EPIC" | "STORY" | "SUBTASK",
         startDate: new Date().toISOString(),
         dueDate: formData.dueDate
@@ -224,10 +204,8 @@ export default function CreateTask({
         statusId: formData.status,
       };
 
-      if (assignees.length > 0)
-        taskData.assigneeIds = assignees.map((a) => a.id);
-      if (reporters.length > 0)
-        taskData.reporterIds = reporters.map((r) => r.id);
+      if (assignees.length > 0) taskData.assigneeIds = assignees.map((a) => a.id);
+      if (reporters.length > 0) taskData.reporterIds = reporters.map((r) => r.id);
       if (attachments.length > 0) taskData.attachments = attachments;
 
       const newTask = await createTaskWithAttachements(taskData);
@@ -245,31 +223,21 @@ export default function CreateTask({
     <div className="dashboard-container">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <form
-            id="create-task-form"
-            onSubmit={handleSubmit}
-            className="flex flex-col gap-6"
-          >
+          <form id="create-task-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
             <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
               <CardHeader className="pb-0">
-                <TaskSectionHeader
-                  icon={HiDocumentText}
-                  title="Basic Information"
-                />
+                <TaskSectionHeader icon={HiDocumentText} title="Basic Information" />
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="title">
-                    Task Title{" "}
-                    <span className="projects-form-label-required">*</span>
+                    Task Title <span className="projects-form-label-required">*</span>
                   </Label>
                   <Input
                     id="title"
                     name="title"
                     value={formData.title}
-                    onChange={(e) =>
-                      handleFormDataChange("title", e.target.value)
-                    }
+                    onChange={(e) => handleFormDataChange("title", e.target.value)}
                     placeholder="What needs to be done?"
                     className="border-[var(--border)] bg-[var(--background)]"
                   />
@@ -281,9 +249,7 @@ export default function CreateTask({
               <CardHeader className="flex items-center justify-between pb-2">
                 <TaskSectionHeader
                   icon={HiPaperClip}
-                  title={`Attachment(s) ${
-                    attachments.length > 0 ? `(${attachments.length})` : ""
-                  }`}
+                  title={`Attachment(s) ${attachments.length > 0 ? `(${attachments.length})` : ""}`}
                 />
                 <div>
                   <Input
@@ -338,9 +304,7 @@ export default function CreateTask({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center pt-5">
-                    No Attachment(s){" "}
-                  </div>
+                  <div className="flex items-center justify-center pt-5">No Attachment(s) </div>
                 )}
               </CardContent>
             </Card>
@@ -352,9 +316,7 @@ export default function CreateTask({
               <CardContent className="space-y-4">
                 <TaskDescription
                   value={formData.description}
-                  onChange={(value) =>
-                    handleFormDataChange("description", value)
-                  }
+                  onChange={(value) => handleFormDataChange("description", value)}
                   editMode={true}
                 />
               </CardContent>
@@ -370,19 +332,16 @@ export default function CreateTask({
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="workspace">
-                  Workspace{" "}
-                  <span className="projects-form-label-required">*</span>
+                  Workspace <span className="projects-form-label-required">*</span>
                 </Label>
                 <Input
                   id="workspace"
                   value={
-                    workspace &&
-                    typeof workspace === "object" &&
-                    workspace !== null
-                      ? workspace.name ?? ""
+                    workspace && typeof workspace === "object" && workspace !== null
+                      ? (workspace.name ?? "")
                       : typeof workspace === "string"
-                      ? workspace
-                      : ""
+                        ? workspace
+                        : ""
                   }
                   readOnly
                   className="w-full border-[var(--border)] bg-[var(--background)] cursor-not-allowed"
@@ -391,8 +350,7 @@ export default function CreateTask({
 
               <div className="space-y-2">
                 <Label htmlFor="project">
-                  Project{" "}
-                  <span className="projects-form-label-required">*</span>
+                  Project <span className="projects-form-label-required">*</span>
                 </Label>
                 {projects.length === 1 && projects[0] ? (
                   <Input
@@ -402,10 +360,7 @@ export default function CreateTask({
                     className="w-full border-[var(--border)] bg-[var(--background)] cursor-not-allowed"
                   />
                 ) : (
-                  <Select
-                    value={selectedProject?.id || ""}
-                    onValueChange={handleProjectChange}
-                  >
+                  <Select value={selectedProject?.id || ""} onValueChange={handleProjectChange}>
                     <SelectTrigger className="w-full border-[var(--border)] bg-[var(--background)]">
                       <SelectValue placeholder="Select a project" />
                     </SelectTrigger>
@@ -437,9 +392,7 @@ export default function CreateTask({
                 </Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value) =>
-                    handleFormDataChange("status", value)
-                  }
+                  onValueChange={(value) => handleFormDataChange("status", value)}
                   disabled={availableStatuses.length === 0}
                 >
                   <SelectTrigger className="w-full border-[var(--border)] bg-[var(--background)]">
@@ -467,14 +420,11 @@ export default function CreateTask({
 
               <div className="space-y-2">
                 <Label htmlFor="priority">
-                  Priority{" "}
-                  <span className="projects-form-label-required">*</span>
+                  Priority <span className="projects-form-label-required">*</span>
                 </Label>
                 <Select
                   value={formData.priority}
-                  onValueChange={(value) =>
-                    handleFormDataChange("priority", value)
-                  }
+                  onValueChange={(value) => handleFormDataChange("priority", value)}
                 >
                   <SelectTrigger className="w-full border-[var(--border)] bg-[var(--background)]">
                     <SelectValue placeholder="Select priority" />
@@ -495,8 +445,7 @@ export default function CreateTask({
 
               <div className="space-y-2">
                 <Label htmlFor="type">
-                  Task Type{" "}
-                  <span className="projects-form-label-required">*</span>
+                  Task Type <span className="projects-form-label-required">*</span>
                 </Label>
                 <Select
                   value={formData.type || "TASK"}
@@ -532,9 +481,7 @@ export default function CreateTask({
                   name="dueDate"
                   type="date"
                   value={formData.dueDate}
-                  onChange={(e) =>
-                    handleFormDataChange("dueDate", e.target.value)
-                  }
+                  onChange={(e) => handleFormDataChange("dueDate", e.target.value)}
                   onClick={(e) => {
                     const target = e.target as HTMLInputElement;
                     target.showPicker?.();
@@ -563,9 +510,7 @@ export default function CreateTask({
                   </p>
                 </div>
               ) : members.length === 0 ? (
-                <p className="text-sm text-red-500 text-center">
-                  No project members found.
-                </p>
+                <p className="text-sm text-red-500 text-center">No project members found.</p>
               ) : (
                 <>
                   <MemberSelect
@@ -576,9 +521,7 @@ export default function CreateTask({
                     projectId={selectedProject?.id}
                     disabled={!selectedProject?.id || members.length === 0}
                     placeholder={
-                      !selectedProject?.id
-                        ? "Select a project first"
-                        : "Select assignees..."
+                      !selectedProject?.id ? "Select a project first" : "Select assignees..."
                     }
                   />
 
@@ -590,19 +533,14 @@ export default function CreateTask({
                     projectId={selectedProject?.id}
                     disabled={!selectedProject?.id || members.length === 0}
                     placeholder={
-                      !selectedProject?.id
-                        ? "Select a project first"
-                        : "Select reporters..."
+                      !selectedProject?.id ? "Select a project first" : "Select reporters..."
                     }
                   />
                 </>
               )}
             </CardContent>
           </Card>
-          <div
-            className="flex items-center justify-end gap-3 "
-            id="submit-form-button"
-          >
+          <div className="flex items-center justify-end gap-3 " id="submit-form-button">
             <ActionButton
               onClick={() => router.back()}
               variant="outline"
@@ -611,11 +549,7 @@ export default function CreateTask({
             >
               Cancel
             </ActionButton>
-            <ActionButton
-              onClick={handleSubmit}
-              disabled={!isFormValid() || isSubmitting}
-              primary
-            >
+            <ActionButton onClick={handleSubmit} disabled={!isFormValid() || isSubmitting} primary>
               {isSubmitting ? (
                 <div className="flex items-center">
                   <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />

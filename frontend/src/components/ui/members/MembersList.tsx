@@ -11,11 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  HiMagnifyingGlass,
-  HiUsers,
-  HiXMark,
-} from "react-icons/hi2";
+import { HiMagnifyingGlass, HiUsers, HiXMark } from "react-icons/hi2";
 import { X } from "lucide-react";
 import Tooltip from "@/components/common/ToolTip";
 import { UserSource } from "@/types/users";
@@ -52,7 +48,7 @@ export interface Role {
 }
 
 interface MembersListProps {
-  entityType: 'organization' | 'workspace' | 'project';
+  entityType: "organization" | "workspace" | "project";
   entityName?: string;
   members: Member[];
   loading: boolean;
@@ -159,13 +155,15 @@ export const MembersList: React.FC<MembersListProps> = ({
     if (searchTerm) {
       return {
         title: emptyStateTitle || "No members found matching your search",
-        description: emptyStateDescription || "Try adjusting your search terms"
+        description: emptyStateDescription || "Try adjusting your search terms",
       };
     }
-    
+
     return {
       title: emptyStateTitle || `No members found in this ${entityType}`,
-      description: emptyStateDescription || `Start by inviting team members to collaborate on this ${entityType}`
+      description:
+        emptyStateDescription ||
+        `Start by inviting team members to collaborate on this ${entityType}`,
     };
   };
 
@@ -189,7 +187,10 @@ export const MembersList: React.FC<MembersListProps> = ({
           </CardTitle>
           <div className="flex items-center gap-2">
             {/* Source Filter */}
-            <Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as UserSource | "")}>
+            <Select
+              value={sourceFilter}
+              onValueChange={(value) => setSourceFilter(value as UserSource | "")}
+            >
               <SelectTrigger className="h-9 w-48 border-input bg-background text-[var(--foreground)]">
                 <SelectValue placeholder="Filter by source" />
               </SelectTrigger>
@@ -334,9 +335,7 @@ export const MembersList: React.FC<MembersListProps> = ({
                       {canEditRole && onRoleUpdate ? (
                         <Select
                           value={member.role}
-                          onValueChange={(value) =>
-                            onRoleUpdate(member.id, value)
-                          }
+                          onValueChange={(value) => onRoleUpdate(member.id, value)}
                           disabled={updatingMember === member.id}
                         >
                           <SelectTrigger className="h-7 text-xs border-none shadow-none bg-background text-[var(--foreground)]">
@@ -349,8 +348,7 @@ export const MembersList: React.FC<MembersListProps> = ({
                                 value={role.name}
                                 className="hover:bg-[var(--hover-bg)]"
                               >
-                                {role.name.charAt(0) +
-                                  role.name.slice(1).toLowerCase()}
+                                {role.name.charAt(0) + role.name.slice(1).toLowerCase()}
                               </SelectItem>
                             ))}
                           </SelectContent>

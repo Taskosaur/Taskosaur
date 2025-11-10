@@ -17,24 +17,24 @@ export interface SetSettingData {
 
 export const settingsApi = {
   getAll: async (category?: string): Promise<Setting[]> => {
-    const response = await api.get<Setting[]>('/settings', {
-      params: { category }
+    const response = await api.get<Setting[]>("/settings", {
+      params: { category },
     });
     return response.data;
   },
 
   getSetting: async (key: string, defaultValue?: string): Promise<string | null> => {
     const response = await api.get<{ key: string; value: string | null }>(`/settings/${key}`, {
-      params: { defaultValue }
+      params: { defaultValue },
     });
     return response.data.value;
   },
 
   setSetting: async (settingData: SetSettingData): Promise<void> => {
-    await api.post('/settings', settingData);
+    await api.post("/settings", settingData);
   },
 
   deleteSetting: async (key: string): Promise<void> => {
     await api.delete(`/settings/${key}`);
-  }
+  },
 };

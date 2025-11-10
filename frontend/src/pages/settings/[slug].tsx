@@ -3,12 +3,7 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import { useOrganization } from "@/contexts/organization-context";
 import { useAuth } from "@/contexts/auth-context";
-import {
-  HiArrowLeft,
-  HiCog,
-  HiUsers,
-  HiExclamationTriangle,
-} from "react-icons/hi2";
+import { HiArrowLeft, HiCog, HiUsers, HiExclamationTriangle } from "react-icons/hi2";
 import { HiViewGrid, HiOfficeBuilding } from "react-icons/hi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,18 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import OrganizationSettingsComponent from "@/components/organizations/OrganizationSettings";
 import OrganizationMembers from "@/components/organizations/OrganizationMembers";
 import WorkflowManager from "@/components/workflows/WorkflowManager";
-import {
-  Organization,
-  OrganizationMember,
-  OrganizationRole,
-} from "@/types/organizations";
+import { Organization, OrganizationMember, OrganizationRole } from "@/types/organizations";
 import { Workflow } from "@/types";
 import { PageHeader } from "@/components/common/PageHeader";
 import ErrorState from "@/components/common/ErrorState";
 import { ChartNoAxesGantt } from "lucide-react";
-import PendingInvitations, {
-  PendingInvitationsRef,
-} from "@/components/common/PendingInvitations";
+import PendingInvitations, { PendingInvitationsRef } from "@/components/common/PendingInvitations";
 import OrganizationManageSkeleton from "@/components/skeletons/OrganizationManageSkeleton";
 import Pagination from "@/components/common/Pagination";
 
@@ -54,12 +43,10 @@ const AccessDenied = ({ onBack }: { onBack: () => void }) => (
               <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-[var(--muted)] flex items-center justify-center">
                 <HiExclamationTriangle className="w-5 h-5 text-[var(--muted-foreground)]" />
               </div>
-              <h3 className="text-md font-semibold text-[var(--foreground)] mb-2">
-                Access Denied
-              </h3>
+              <h3 className="text-md font-semibold text-[var(--foreground)] mb-2">Access Denied</h3>
               <p className="text-sm text-[var(--muted-foreground)] mb-4">
-                You don't have permission to manage this organization. Only
-                users with management access can view these settings.
+                You don't have permission to manage this organization. Only users with management
+                access can view these settings.
               </p>
               <Button
                 onClick={onBack}
@@ -96,15 +83,26 @@ function OrganizationManagePageContent() {
   const [error, setError] = useState<string | null>(null);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
   const [workflowLoading, setWorkflowLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    "settings" | "members" | "workflows"
-  >("settings");
+  const [activeTab, setActiveTab] = useState<"settings" | "members" | "workflows">("settings");
   const pendingInvitationsRef = useRef<PendingInvitationsRef>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalMembers, setTotalMembers] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   // Helper to check if user has access
   const hasManagementAccess = userAccess?.canChange || false;
+  const [searchQuery, setSearchQuery] = useState("");
+  // Add this state to your component
+  const [roleCounts, setRoleCounts] = useState<{
+    OWNER: number;
+    MANAGER: number;
+    MEMBER: number;
+    VIEWER: number;
+  }>({
+    OWNER: 0,
+    MANAGER: 0,
+    MEMBER: 0,
+    VIEWER: 0,
+  });
 
   const loadWorkflows = async () => {
     if (!slug || typeof slug !== "string" || !hasManagementAccess) return;
@@ -132,8 +130,7 @@ function OrganizationManagePageContent() {
       }));
       setWorkflows(validatedWorkflows);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load workflows";
+      const errorMessage = err instanceof Error ? err.message : "Failed to load workflows";
       setWorkflowError(errorMessage);
       setWorkflows([]);
     } finally {
@@ -173,11 +170,7 @@ function OrganizationManagePageContent() {
       }
 
       // Only load members and workflows if user has access
-      const membersData = await getOrganizationMembers(
-        slug,
-        currentPage,
-        pageSize
-      );
+      const membersData = await getOrganizationMembers(slug, currentPage, pageSize, searchQuery);
 
       setOrganization({
         id: orgData.id,
@@ -196,7 +189,7 @@ function OrganizationManagePageContent() {
       setMembers(membersData.data); // Set only current page data
       setTotalMembers(membersData.total); // Set total count
       setCurrentPage(membersData.page); // Set current page
-
+      setRoleCounts(membersData.roleCounts);
       // Load workflows in background
       loadWorkflows();
     } catch (err) {
@@ -206,16 +199,43 @@ function OrganizationManagePageContent() {
       setIsLoading(false);
     }
   };
+  const loadMembers = async (page: number = currentPage, search: string = searchQuery) => {
+    if (!slug || typeof slug !== "string") return;
 
+    try {
+      const membersData = await getOrganizationMembers(
+        slug,
+        page,
+        pageSize,
+        search || undefined // Pass search query
+      );
+
+      setMembers(membersData.data);
+      setTotalMembers(membersData.total);
+      setCurrentPage(membersData.page || page);
+    } catch (err) {
+      console.error("Failed to load members:", err);
+    }
+  };
   useEffect(() => {
+    console.log("useEffect triggered, slug:", slug);
     if (slug && typeof slug === "string") {
+      console.log("test call - loading data");
       loadData();
     }
-  }, [slug]);
+  }, [slug]); // This will trigger when slug becomes available
 
-  const handleOrganizationUpdate = async (
-    updatedOrganization: Organization
-  ) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (slug && typeof slug === "string") {
+        setCurrentPage(1);
+        loadMembers(1, searchQuery);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+  const handleOrganizationUpdate = async (updatedOrganization: Organization) => {
     if (!hasManagementAccess) return;
     setOrganization(updatedOrganization);
     await loadData();
@@ -224,12 +244,7 @@ function OrganizationManagePageContent() {
   const handleTabChange = async (value: string) => {
     if (!hasManagementAccess) return;
     setActiveTab(value as "settings" | "members" | "workflows");
-    if (
-      value === "workflows" &&
-      workflows.length === 0 &&
-      !workflowLoading &&
-      !workflowError
-    ) {
+    if (value === "workflows" && workflows.length === 0 && !workflowLoading && !workflowError) {
       await loadWorkflows();
     }
   };
@@ -241,9 +256,7 @@ function OrganizationManagePageContent() {
     },
     onUpdate: (workflow: Workflow) => {
       if (!hasManagementAccess) return;
-      setWorkflows((prev) =>
-        prev.map((w) => (w.id === workflow.id ? workflow : w))
-      );
+      setWorkflows((prev) => prev.map((w) => (w.id === workflow.id ? workflow : w)));
     },
     onDelete: (workflowId: string) => {
       if (!hasManagementAccess) return;
@@ -274,8 +287,7 @@ function OrganizationManagePageContent() {
 
   const getAccessBadgeColor = () => {
     if (!userAccess) return "bg-[var(--muted)] text-[var(--muted-foreground)]";
-    if (userAccess.isSuperAdmin)
-      return "bg-purple-500/10 text-purple-500 border-purple-500/20";
+    if (userAccess.isSuperAdmin) return "bg-purple-500/10 text-purple-500 border-purple-500/20";
     if (userAccess.isElevated)
       return "bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20";
     return "bg-[var(--muted)] text-[var(--muted-foreground)]";
@@ -341,9 +353,7 @@ function OrganizationManagePageContent() {
 
               {/* Row 2: Role Badge */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[var(--muted-foreground)]">
-                  Your Role:
-                </span>
+                <span className="text-xs text-[var(--muted-foreground)]">Your Role:</span>
                 <Badge
                   className={`${getAccessBadgeColor()} text-xs px-2 py-1 rounded-md border-none`}
                 >
@@ -378,9 +388,7 @@ function OrganizationManagePageContent() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[var(--muted-foreground)]">
-                  Your Role:
-                </span>
+                <span className="text-xs text-[var(--muted-foreground)]">Your Role:</span>
                 <Badge
                   className={`${getAccessBadgeColor()} text-xs px-2 py-1 rounded-md border-none`}
                 >
@@ -400,11 +408,7 @@ function OrganizationManagePageContent() {
                 style={{
                   width: "33.33%",
                   transform: `translateX(${
-                    activeTab === "settings"
-                      ? "0%"
-                      : activeTab === "workflows"
-                      ? "100%"
-                      : "200%"
+                    activeTab === "settings" ? "0%" : activeTab === "workflows" ? "100%" : "200%"
                   })`,
                 }}
               />
@@ -455,9 +459,8 @@ function OrganizationManagePageContent() {
                   </CardTitle>
                 </div>
                 <p className="text-sm text-[var(--muted-foreground)]">
-                  Configure task statuses and workflow transitions for your
-                  organization. These workflows will be used as templates for
-                  new projects.
+                  Configure task statuses and workflow transitions for your organization. These
+                  workflows will be used as templates for new projects.
                 </p>
               </CardHeader>
               <CardContent className="pt-0">
@@ -470,9 +473,7 @@ function OrganizationManagePageContent() {
                           <h4 className="text-sm font-medium text-[var(--destructive)] mb-1">
                             Failed to load workflows
                           </h4>
-                          <p className="text-sm text-[var(--destructive)]/80">
-                            {workflowError}
-                          </p>
+                          <p className="text-sm text-[var(--destructive)]/80">{workflowError}</p>
                         </div>
                       </div>
                       <Button
@@ -517,6 +518,8 @@ function OrganizationManagePageContent() {
                     onMembersChange={loadData}
                     organization={organization}
                     pendingInvitationsRef={pendingInvitationsRef}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
                   />
                   <div className="px-4">
                     <Pagination
@@ -569,15 +572,12 @@ function OrganizationManagePageContent() {
                           {organization?.name || "Unknown Organization"}
                         </p>
                         <p className="text-xs text-[var(--muted-foreground)]">
-                          {organization?.description ||
-                            "No description available"}
+                          {organization?.description || "No description available"}
                         </p>
                       </div>
                       <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
                         <span>Members:</span>
-                        <span className="font-medium text-[var(--foreground)]">
-                          {members.length}
-                        </span>
+                        <span className="font-medium text-[var(--foreground)]">{totalMembers}</span>
                       </div>
 
                       <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
@@ -590,6 +590,7 @@ function OrganizationManagePageContent() {
                   </CardContent>
                 </Card>
 
+                {/* Member Roles Summary */}
                 {/* Member Roles Summary */}
                 <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
                   <CardHeader className="pb-2">
@@ -606,17 +607,13 @@ function OrganizationManagePageContent() {
                         { name: "MEMBER", variant: "info" },
                         { name: "VIEWER", variant: "secondary" },
                       ].map((role) => {
-                        const count = members.filter(
-                          (m) => m.role === role.name
-                        ).length;
+                        const count = roleCounts[role.name as keyof typeof roleCounts]; // Use roleCounts state
                         return (
                           <div
                             key={role.name}
                             className="flex items-center justify-between text-xs"
                           >
-                            <span className="text-[var(--muted-foreground)]">
-                              {role.name}
-                            </span>
+                            <span className="text-[var(--muted-foreground)]">{role.name}</span>
                             <Badge
                               variant={role.variant as any}
                               className="h-5 px-2 text-xs border-none bg-[var(--primary)]/10 text-[var(--primary)]"

@@ -31,17 +31,13 @@ import HeaderView from "../ui/mobile/HeaderView";
 
 const LoginButton = () => {
   const router = useRouter();
-  
+
   const handleLogin = () => {
-    router.push('/login');
+    router.push("/login");
   };
 
   return (
-    <Button
-      onClick={handleLogin}
-      variant="default"
-      className="header-login-button"
-    >
+    <Button onClick={handleLogin} variant="default" className="header-login-button">
       Login
     </Button>
   );
@@ -119,16 +115,10 @@ export default function Header() {
       setIsAIEnabled(event.detail.aiEnabled);
     };
 
-    window.addEventListener(
-      "aiSettingsChanged",
-      handleAISettingsChange as EventListener
-    );
+    window.addEventListener("aiSettingsChanged", handleAISettingsChange as EventListener);
 
     return () => {
-      window.removeEventListener(
-        "aiSettingsChanged",
-        handleAISettingsChange as EventListener
-      );
+      window.removeEventListener("aiSettingsChanged", handleAISettingsChange as EventListener);
     };
   }, []);
 
@@ -140,78 +130,45 @@ export default function Header() {
 
     if (
       pathParts?.length === 1 &&
-      ["dashboard", "workspaces", "activity", "settings", "tasks"].includes(
-        pathParts[0]
-      )
+      ["dashboard", "workspaces", "activity", "settings", "tasks"].includes(pathParts[0])
     ) {
       return "global";
     }
 
     if (
       pathParts?.length > 1 &&
-      ["dashboard", "workspaces", "activity", "settings", "tasks"].includes(
-        pathParts[0]
-      )
+      ["dashboard", "workspaces", "activity", "settings", "tasks"].includes(pathParts[0])
     ) {
       return "global-nested";
     }
 
     if (
       pathParts?.length === 1 &&
-      !["dashboard", "workspaces", "activity", "settings", "tasks"].includes(
-        pathParts[0]
-      )
+      !["dashboard", "workspaces", "activity", "settings", "tasks"].includes(pathParts[0])
     ) {
       return "workspace";
     }
 
     if (
       pathParts?.length === 2 &&
-      !["dashboard", "workspaces", "activity", "settings", "tasks"].includes(
-        pathParts[0]
-      ) &&
-      [
-        "projects",
-        "members",
-        "activity",
-        "tasks",
-        "analytics",
-        "settings",
-      ].includes(pathParts[1])
+      !["dashboard", "workspaces", "activity", "settings", "tasks"].includes(pathParts[0]) &&
+      ["projects", "members", "activity", "tasks", "analytics", "settings"].includes(pathParts[1])
     ) {
       return "workspace";
     }
 
     if (
       pathParts?.length > 2 &&
-      !["dashboard", "workspaces", "activity", "settings", "tasks"].includes(
-        pathParts[0]
-      ) &&
-      [
-        "projects",
-        "members",
-        "activity",
-        "tasks",
-        "analytics",
-        "settings",
-      ].includes(pathParts[1])
+      !["dashboard", "workspaces", "activity", "settings", "tasks"].includes(pathParts[0]) &&
+      ["projects", "members", "activity", "tasks", "analytics", "settings"].includes(pathParts[1])
     ) {
       return "workspace-nested";
     }
 
     if (
       pathParts?.length >= 2 &&
-      !["dashboard", "workspaces", "activity", "settings", "tasks"].includes(
-        pathParts[0]
-      ) &&
-      ![
-        "projects",
-        "members",
-        "activity",
-        "tasks",
-        "analytics",
-        "settings",
-      ].includes(pathParts[1])
+      !["dashboard", "workspaces", "activity", "settings", "tasks"].includes(pathParts[0]) &&
+      !["projects", "members", "activity", "tasks", "analytics", "settings"].includes(pathParts[1])
     ) {
       return "project";
     }
@@ -248,17 +205,11 @@ export default function Header() {
     };
 
     window.addEventListener("storage", handleStorageChange);
-    window.addEventListener(
-      "sidebarStateChange",
-      handleSidebarStateChange as EventListener
-    );
+    window.addEventListener("sidebarStateChange", handleSidebarStateChange as EventListener);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener(
-        "sidebarStateChange",
-        handleSidebarStateChange as EventListener
-      );
+      window.removeEventListener("sidebarStateChange", handleSidebarStateChange as EventListener);
     };
   }, []);
 
@@ -286,8 +237,12 @@ export default function Header() {
     },
     { component: <ModeToggle /> },
     {
-      component: <div className="search-manager-header"><SearchManager /></div>, 
-    }
+      component: (
+        <div className="search-manager-header">
+          <SearchManager />
+        </div>
+      ),
+    },
   ];
 
   // Render unauthenticated header
@@ -295,11 +250,10 @@ export default function Header() {
     return (
       <header className="header-container">
         <div className="header-content">
-
           {/* Right Section - Login button only */}
           <div className="justify-end w-full flex items-center space-x-4">
             <LoginButton />
-            <ModeToggle /> 
+            <ModeToggle />
           </div>
         </div>
       </header>
@@ -314,19 +268,13 @@ export default function Header() {
           <div className="header-left">
             {hasOrganizationAccess && (
               <div className={`transition-all duration-300 ease-in-out `}>
-                <DropdownMenu
-                  open={isDropdownOpen}
-                  onOpenChange={setIsDropdownOpen}
-                >
+                <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
                   {hasAccess &&
                     (contextLevel === "global" ||
                       contextLevel === "workspace" ||
                       contextLevel === "project") && (
                       <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="default"
-                          className="header-create-button"
-                        >
+                        <Button variant="default" className="header-create-button">
                           <HiPlus className="size-4" />
                           <span className="hidden sm:inline">Create</span>
                           <HiChevronDown className="size-4" />
@@ -357,9 +305,7 @@ export default function Header() {
                                   <HiCommandLine className="header-dropdown-icon-inner" />
                                 </div>
                                 <div className="header-dropdown-item-content">
-                                  <div className="header-dropdown-item-title">
-                                    New Workspace
-                                  </div>
+                                  <div className="header-dropdown-item-title">New Workspace</div>
                                   <div className="header-dropdown-item-description">
                                     Create a workspace for your team
                                   </div>
@@ -379,9 +325,7 @@ export default function Header() {
                               <HiRocketLaunch className="header-dropdown-icon-inner" />
                             </div>
                             <div className="header-dropdown-item-content">
-                              <div className="header-dropdown-item-title">
-                                New Project
-                              </div>
+                              <div className="header-dropdown-item-title">New Project</div>
                               <div className="header-dropdown-item-description">
                                 Start a new project
                               </div>
@@ -402,9 +346,7 @@ export default function Header() {
                             <HiRocketLaunch className="header-dropdown-icon-inner" />
                           </div>
                           <div className="header-dropdown-item-content">
-                            <div className="header-dropdown-item-title">
-                              New Project
-                            </div>
+                            <div className="header-dropdown-item-title">New Project</div>
                             <div className="header-dropdown-item-description">
                               Start a new project
                             </div>
@@ -424,9 +366,7 @@ export default function Header() {
                             <HiPlus className="header-dropdown-icon-inner" />
                           </div>
                           <div className="header-dropdown-item-content">
-                            <div className="header-dropdown-item-title">
-                              New Task
-                            </div>
+                            <div className="header-dropdown-item-title">New Task</div>
                             <div className="header-dropdown-item-description">
                               Add a task to this project
                             </div>
@@ -442,8 +382,6 @@ export default function Header() {
 
           {/* Right Section - Actions & User Menu */}
           <div className="header-right">
-           
-
             <div className="hidden min-[531px]:contents">
               <div className="header-center">
                 {hasOrganizationAccess && <OrganizationSelector />}
@@ -470,9 +408,7 @@ export default function Header() {
                       >
                         <HiChatBubbleLeftRight
                           className={`header-mode-toggle-icon transition-colors duration-200 ${
-                            isChatOpen
-                              ? "text-blue-600 dark:text-blue-400 scale-110"
-                              : ""
+                            isChatOpen ? "text-blue-600 dark:text-blue-400 scale-110" : ""
                           }`}
                         />
                       </Button>
@@ -492,7 +428,7 @@ export default function Header() {
               onLogout={handleLogout}
               hasOrganizationAccess={hasOrganizationAccess}
             />
-             <div className="max-[530px]:block hidden">
+            <div className="max-[530px]:block hidden">
               {hasOrganizationAccess && (
                 <HeaderView
                   currentUser={currentUser}

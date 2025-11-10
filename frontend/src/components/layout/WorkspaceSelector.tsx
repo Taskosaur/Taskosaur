@@ -27,17 +27,13 @@ interface WorkspaceSelectorProps {
   currentWorkspaceSlug: string | null;
 }
 
-export default function WorkspaceSelector({
-  currentWorkspaceSlug,
-}: WorkspaceSelectorProps) {
+export default function WorkspaceSelector({ currentWorkspaceSlug }: WorkspaceSelectorProps) {
   const router = useRouter();
-  
+
   const { getWorkspacesByOrganization } = useWorkspace();
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(
-    null
-  );
+  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [isLoading, setIsLoading] = useState(true); // Start with loading true
 
   // Fetch workspaces for current organization
@@ -58,16 +54,13 @@ export default function WorkspaceSelector({
     fetchWorkspaces();
 
     const handleOrganizationChange = () => {
-      setCurrentWorkspace(null); 
+      setCurrentWorkspace(null);
       fetchWorkspaces();
     };
 
     window.addEventListener("organizationChanged", handleOrganizationChange);
     return () => {
-      window.removeEventListener(
-        "organizationChanged",
-        handleOrganizationChange
-      );
+      window.removeEventListener("organizationChanged", handleOrganizationChange);
     };
   }, []);
 
@@ -79,9 +72,7 @@ export default function WorkspaceSelector({
     }
 
     // 1. Try URL slug first
-    let workspace =
-      currentWorkspaceSlug &&
-      workspaces.find((w) => w.slug === currentWorkspaceSlug);
+    let workspace = currentWorkspaceSlug && workspaces.find((w) => w.slug === currentWorkspaceSlug);
 
     // 2. Fallback to localStorage id
     if (!workspace) {
@@ -143,9 +134,7 @@ export default function WorkspaceSelector({
             key={workspace.id}
             onClick={() => handleWorkspaceSelect(workspace)}
             className={`layout-workspace-selector-item ${
-              currentWorkspace?.id === workspace.id
-                ? "layout-workspace-selector-item-selected"
-                : ""
+              currentWorkspace?.id === workspace.id ? "layout-workspace-selector-item-selected" : ""
             }`}
           >
             <Avatar className="layout-workspace-selector-item-avatar">
@@ -154,9 +143,7 @@ export default function WorkspaceSelector({
               </AvatarFallback>
             </Avatar>
             <div className="layout-workspace-selector-item-content">
-              <div className="layout-workspace-selector-item-name">
-                {workspace.name}
-              </div>
+              <div className="layout-workspace-selector-item-name">{workspace.name}</div>
               <div className="layout-workspace-selector-item-description">
                 {workspace.description || "No description"}
               </div>

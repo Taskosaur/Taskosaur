@@ -1,6 +1,11 @@
 // components/charts/project/task-type-chart.tsx
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts"
-import { ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart"
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
+import {
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
 
 const chartConfig = {
@@ -9,25 +14,26 @@ const chartConfig = {
   BUG: { label: "Bug", color: "#EF4444" },
   EPIC: { label: "Epic", color: "#8B5CF6" },
   FEATURE: { label: "Feature", color: "#F59E0B" },
-}
+};
 
 interface TaskTypeChartProps {
-  data: Array<{ type: string; _count: { type: number } }>
+  data: Array<{ type: string; _count: { type: number } }>;
 }
 
 export function TaskTypeChart({ data }: TaskTypeChartProps) {
   const safeData = Array.isArray(data) ? data : [];
-  const chartData = safeData.map(item => ({
+  const chartData = safeData.map((item) => ({
     name: chartConfig[item.type as keyof typeof chartConfig]?.label || item.type,
     value: item._count.type,
-    color: chartConfig[item.type as keyof typeof chartConfig]?.color || "#8B5CF6"
+    color: chartConfig[item.type as keyof typeof chartConfig]?.color || "#8B5CF6",
   }));
 
-  
   const typeOrder = ["STORY", "TASK", "BUG", "FEATURE", "EPIC"];
-  const sortedChartData = chartData && [...chartData].sort((a, b) => {
-    return typeOrder.indexOf(a.name.toUpperCase()) - typeOrder.indexOf(b.name.toUpperCase());
-  });
+  const sortedChartData =
+    chartData &&
+    [...chartData].sort((a, b) => {
+      return typeOrder.indexOf(a.name.toUpperCase()) - typeOrder.indexOf(b.name.toUpperCase());
+    });
 
   return (
     <ChartWrapper
@@ -37,26 +43,18 @@ export function TaskTypeChart({ data }: TaskTypeChartProps) {
       className="border-[var(--border)]"
     >
       <ResponsiveContainer width="100%" height={350}>
-        <BarChart 
-          data={sortedChartData} 
+        <BarChart
+          data={sortedChartData}
           margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
           barSize={40}
         >
-          <XAxis 
-            dataKey="name" 
-            tickLine={true}
-            axisLine={true}
-            tick={{ fontSize: 12 }}
-          />
-          <YAxis 
-            tickLine={true}
-            axisLine={true}
-            tick={{ fontSize: 12 }}
-            allowDecimals={false}
-          />
-          <ChartTooltip 
-            content={<ChartTooltipContent hideLabel={true} className="bg-[var(--accent)] border-0"/>}
-            cursor={{ fill: 'rgba(0, 0, 0, 0.00)' }}
+          <XAxis dataKey="name" tickLine={true} axisLine={true} tick={{ fontSize: 12 }} />
+          <YAxis tickLine={true} axisLine={true} tick={{ fontSize: 12 }} allowDecimals={false} />
+          <ChartTooltip
+            content={
+              <ChartTooltipContent hideLabel={true} className="bg-[var(--accent)] border-0" />
+            }
+            cursor={{ fill: "rgba(0, 0, 0, 0.00)" }}
           />
           <Bar dataKey="value" radius={[4, 4, 0, 0]}>
             {sortedChartData?.map((entry, index) => (
@@ -67,5 +65,5 @@ export function TaskTypeChart({ data }: TaskTypeChartProps) {
         </BarChart>
       </ResponsiveContainer>
     </ChartWrapper>
-  )
+  );
 }

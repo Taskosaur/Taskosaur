@@ -49,7 +49,10 @@ class ApiAuthError extends Error {
 }
 
 class ApiNetworkError extends Error {
-  constructor(message: string, public originalError?: any) {
+  constructor(
+    message: string,
+    public originalError?: any
+  ) {
     super(message);
     this.name = "ApiNetworkError";
   }
@@ -238,7 +241,7 @@ const safeRedirect = (url: string): void => {
       const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password"];
 
       // Don't redirect if already on a public page
-      if (!publicPaths.some(path => currentPath.startsWith(path))) {
+      if (!publicPaths.some((path) => currentPath.startsWith(path))) {
         // Use replace to avoid back button issues
         window.location.replace(url);
       }
@@ -315,7 +318,7 @@ api.interceptors.request.use(
 
       const orgId = TokenManager.getCurrentOrgId();
       if (orgId && config.headers) {
-        config.headers['X-Organization-ID'] = orgId;
+        config.headers["X-Organization-ID"] = orgId;
       }
 
       return config;
@@ -356,14 +359,16 @@ api.interceptors.response.use(
         if (isRefreshing) {
           return new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject });
-          }).then(token => {
-            if (originalRequest.headers && token) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
-            return api(originalRequest);
-          }).catch(err => {
-            return Promise.reject(handleApiError(err));
-          });
+          })
+            .then((token) => {
+              if (originalRequest.headers && token) {
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+              }
+              return api(originalRequest);
+            })
+            .catch((err) => {
+              return Promise.reject(handleApiError(err));
+            });
         }
 
         // Start refresh process
@@ -385,7 +390,9 @@ api.interceptors.response.use(
         } catch (refreshError) {
           processQueue(refreshError, null);
           safeRedirect("/login");
-          return Promise.reject(new ApiAuthError("Authentication failed. Please log in again.", 401));
+          return Promise.reject(
+            new ApiAuthError("Authentication failed. Please log in again.", 401)
+          );
         } finally {
           isRefreshing = false;
           refreshPromise = null;
@@ -393,12 +400,11 @@ api.interceptors.response.use(
       }
 
       // Handle retry logic for network errors
-      const shouldRetry = (
+      const shouldRetry =
         error.code === "NETWORK_ERROR" ||
         error.code === "ERR_NETWORK" ||
         error.code === "ECONNABORTED" ||
-        (error.response?.status && error.response.status >= 500)
-      );
+        (error.response?.status && error.response.status >= 500);
 
       if (shouldRetry && originalRequest) {
         const retryCount = (originalRequest._retryCount || 0) + 1;
@@ -409,7 +415,7 @@ api.interceptors.response.use(
           // Exponential backoff
           const delay = RETRY_DELAY_BASE * Math.pow(2, retryCount - 1);
 
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
 
           return api(originalRequest);
         }
@@ -422,7 +428,7 @@ api.interceptors.response.use(
       console.error("Response interceptor error:", interceptorError);
       return Promise.reject({
         message: "An unexpected error occurred",
-        status: 500
+        status: 500,
       } as ApiError);
     }
   }
@@ -430,10 +436,7 @@ api.interceptors.response.use(
 
 // Safe API utility functions
 export const apiUtils = {
-  login: async (credentials: {
-    email: string;
-    password: string;
-  }): Promise<AuthTokenResponse> => {
+  login: async (credentials: { email: string; password: string }): Promise<AuthTokenResponse> => {
     try {
       const response = await api.post<AuthTokenResponse>("/auth/login", credentials);
       const { access_token, refresh_token } = response.data;
@@ -459,10 +462,14 @@ export const apiUtils = {
   logout: async (): Promise<void> => {
     try {
       // Try to notify server of logout
-      await api.post("/auth/logout", {}, {
-        withCredentials: true,
-        timeout: 5000, // Short timeout for logout
-      });
+      await api.post(
+        "/auth/logout",
+        {},
+        {
+          withCredentials: true,
+          timeout: 5000, // Short timeout for logout
+        }
+      );
     } catch (error) {
       console.warn("Logout API call failed:", error);
       // Don't throw error, still clear tokens locally
@@ -521,16 +528,16 @@ export const apiUtils = {
 };
 
 // Development logging
-if (process.env.NODE_ENV === 'development') {
-  api.interceptors.request.use(request => {
+if (process.env.NODE_ENV === "development") {
+  api.interceptors.request.use((request) => {
     return request;
   });
 
   api.interceptors.response.use(
-    response => {
+    (response) => {
       return response;
     },
-    error => {
+    (error) => {
       return Promise.reject(error);
     }
   );
@@ -543,11 +550,6 @@ export {
   ApiNetworkError,
   ApiTimeoutError,
   handleApiError,
-  safeRedirect
+  safeRedirect,
 };
-export type {
-  AuthTokenResponse,
-  ApiError,
-  ApiErrorResponse,
-  ExtendedAxiosRequestConfig
-};
+export type { AuthTokenResponse, ApiError, ApiErrorResponse, ExtendedAxiosRequestConfig };

@@ -45,68 +45,58 @@ export const organizationApi = {
     }
   },
 
-  createOrganization: async (
-  organizationData: CreateOrganizationData
-): Promise<Organization> => {
-  try {
-    const currentUser = authApi.getCurrentUser();
-
-    if (!currentUser?.id) {
-      throw new Error("User not authenticated or user ID not found");
-    }
-
-    const defaultSettings: OrganizationSettings = {
-      allowInvites: true,
-      requireEmailVerification: false,
-      defaultRole: OrganizationRole.MEMBER,
-      features: {
-        timeTracking: true,
-        customFields: true,
-        automation: true,
-        integrations: true,
-      },
-    };
-
-    const finalOrganizationData = {
-      name: organizationData.name.trim(),
-      description: organizationData.description?.trim() || "",
-      ownerId: currentUser.id,
-      settings: organizationData.settings || defaultSettings,
-      ...(organizationData.website?.trim() && {
-        website: organizationData.website.trim(),
-      }),
-      ...(organizationData.defaultWorkspace && {
-        defaultWorkspace: {
-          name: organizationData.defaultWorkspace.name.trim(),
-        },
-      }),
-      ...(organizationData.defaultProject && {
-        defaultProject: {
-          name: organizationData.defaultProject.name.trim(),
-        },
-      }),
-    };
-
-    const response = await api.post<Organization>(
-      "/organizations",
-      finalOrganizationData
-    );
-
-    return response.data;
-  } catch (error) {
-    console.error("Create organization error:", error);
-    throw error;
-  }
-},
-
-
-  getOrganizationById: async (
-    organizationId: string
-  ): Promise<Organization> => {
+  createOrganization: async (organizationData: CreateOrganizationData): Promise<Organization> => {
     try {
-      const response = await api.get<Organization>(
-        `/organizations/${organizationId}`
-      );
+      const currentUser = authApi.getCurrentUser();
+
+      if (!currentUser?.id) {
+        throw new Error("User not authenticated or user ID not found");
+      }
+
+      const defaultSettings: OrganizationSettings = {
+        allowInvites: true,
+        requireEmailVerification: false,
+        defaultRole: OrganizationRole.MEMBER,
+        features: {
+          timeTracking: true,
+          customFields: true,
+          automation: true,
+          integrations: true,
+        },
+      };
+
+      const finalOrganizationData = {
+        name: organizationData.name.trim(),
+        description: organizationData.description?.trim() || "",
+        ownerId: currentUser.id,
+        settings: organizationData.settings || defaultSettings,
+        ...(organizationData.website?.trim() && {
+          website: organizationData.website.trim(),
+        }),
+        ...(organizationData.defaultWorkspace && {
+          defaultWorkspace: {
+            name: organizationData.defaultWorkspace.name.trim(),
+          },
+        }),
+        ...(organizationData.defaultProject && {
+          defaultProject: {
+            name: organizationData.defaultProject.name.trim(),
+          },
+        }),
+      };
+
+      const response = await api.post<Organization>("/organizations", finalOrganizationData);
+
+      return response.data;
+    } catch (error) {
+      console.error("Create organization error:", error);
+      throw error;
+    }
+  },
+
+  getOrganizationById: async (organizationId: string): Promise<Organization> => {
+    try {
+      const response = await api.get<Organization>(`/organizations/${organizationId}`);
       return response.data;
     } catch (error) {
       console.error("Get organization by ID error:", error);
@@ -115,9 +105,7 @@ export const organizationApi = {
   },
   getOrganizationBySlug: async (slug: string): Promise<Organization> => {
     try {
-      const response = await api.get<Organization>(
-        `/organizations/slug/${slug}`
-      );
+      const response = await api.get<Organization>(`/organizations/slug/${slug}`);
       return response.data;
     } catch (error) {
       console.error("Get organization by slug error:", error);
@@ -127,12 +115,38 @@ export const organizationApi = {
   getOrganizationMembers: async (
     slug: string,
     page?: number,
-    limit?: number
-  ): Promise<{ data: OrganizationMember[]; total: number; page: number }> => {
+    limit?: number,
+    search?: string
+  ): Promise<{
+    data: OrganizationMember[];
+    total: number;
+    page: number;
+    roleCounts: {
+      OWNER: number;
+      MANAGER: number;
+      MEMBER: number;
+      VIEWER: number;
+    };
+  }> => {
     try {
-      const response = await api.get<{ data: OrganizationMember[]; total: number; page: number }>(
-        `/organization-members/slug?slug=${encodeURIComponent(slug)}&page=${page}&limit=${limit}`
-      );
+      const params = new URLSearchParams({ slug });
+
+      if (page !== undefined) params.append("page", page.toString());
+      if (limit !== undefined) params.append("limit", limit.toString());
+      if (search) params.append("search", search.trim());
+
+      const response = await api.get<{
+        data: OrganizationMember[];
+        total: number;
+        page: number;
+        roleCounts: {
+          OWNER: number;
+          MANAGER: number;
+          MEMBER: number;
+          VIEWER: number;
+        };
+      }>(`/organization-members/slug?${params.toString()}`);
+
       return response.data;
     } catch (error) {
       console.error("Get organization members by slug error:", error);
@@ -193,7 +207,7 @@ export const organizationApi = {
       );
       return response.data;
     } catch (error) {
-      console.error('Set default organization error:', error);
+      console.error("Set default organization error:", error);
       throw error;
     }
   },
@@ -202,9 +216,7 @@ export const organizationApi = {
     requestUserId: string
   ): Promise<{ success: boolean; message: string }> => {
     try {
-      await api.delete(
-        `/organization-members/${memberId}?requestUserId=${requestUserId}`
-      );
+      await api.delete(`/organization-members/${memberId}?requestUserId=${requestUserId}`);
 
       return {
         success: true,
@@ -241,22 +253,15 @@ export const organizationApi = {
       return null;
     }
   },
-  getOrganizationStats: async (
-    organizationId: string
-  ): Promise<OrganizationStats> => {
+  getOrganizationStats: async (organizationId: string): Promise<OrganizationStats> => {
     try {
       // Validate organizationId format
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(organizationId)) {
-        throw new Error(
-          `Invalid organizationId format: ${organizationId}. Expected UUID format.`
-        );
+        throw new Error(`Invalid organizationId format: ${organizationId}. Expected UUID format.`);
       }
 
-      const response = await api.get<OrganizationStats>(
-        `/organizations/${organizationId}/stats`
-      );
+      const response = await api.get<OrganizationStats>(`/organizations/${organizationId}/stats`);
       return response.data;
     } catch (error) {
       console.error("Get organization stats error:", error);
@@ -273,10 +278,7 @@ export const organizationApi = {
 
       // Add filters as query parameters
       if (filters.limit !== undefined) {
-        params.append(
-          "limit",
-          Math.min(Math.max(1, filters.limit), 50).toString()
-        );
+        params.append("limit", Math.min(Math.max(1, filters.limit), 50).toString());
       }
 
       if (filters.page !== undefined) {
@@ -315,9 +317,7 @@ export const organizationApi = {
         limit: limit.toString(),
       });
 
-      const response = await api.get(
-        `/organizations/universal-search?${params.toString()}`
-      );
+      const response = await api.get(`/organizations/universal-search?${params.toString()}`);
 
       return response.data;
     } catch (error) {
@@ -344,5 +344,4 @@ export const organizationApi = {
       throw error;
     }
   },
-
 };

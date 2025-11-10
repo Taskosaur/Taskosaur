@@ -1,19 +1,5 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  HttpCode,
-  HttpStatus,
-  UseGuards,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBody,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { Controller, Post, Body, Get, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { EmailService } from './email.service';
 import { SendEmailDto, BulkEmailDto } from './dto/email.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -52,8 +38,7 @@ export class EmailController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     summary: 'Send bulk email notifications',
-    description:
-      'Queue multiple emails for sending using background processing',
+    description: 'Queue multiple emails for sending using background processing',
   })
   @ApiBody({ type: BulkEmailDto })
   @ApiResponse({

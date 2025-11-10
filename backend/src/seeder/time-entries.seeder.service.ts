@@ -30,15 +30,10 @@ export class TimeEntriesSeederService {
       });
 
       const availableUsers =
-        projectMembers.length > 0
-          ? projectMembers.map((pm) => pm.user)
-          : users.slice(0, 4); // fallback to first 4 users
+        projectMembers.length > 0 ? projectMembers.map((pm) => pm.user) : users.slice(0, 4); // fallback to first 4 users
 
       // Generate realistic time entries for this task
-      const timeEntriesData = this.generateTimeEntriesForTask(
-        task,
-        availableUsers,
-      );
+      const timeEntriesData = this.generateTimeEntriesForTask(task, availableUsers);
 
       for (const timeEntryData of timeEntriesData) {
         try {
@@ -53,19 +48,13 @@ export class TimeEntriesSeederService {
 
           createdTimeEntries.push(timeEntry);
 
-          const user = availableUsers.find(
-            (u) => u.id === timeEntryData.userId,
-          );
+          const user = availableUsers.find((u) => u.id === timeEntryData.userId);
           const hours = Math.floor(timeEntryData.timeSpent / 60);
           const minutes = timeEntryData.timeSpent % 60;
 
-          console.log(
-            `   ✓ Logged ${hours}h ${minutes}m by ${user?.firstName} on: ${task.title}`,
-          );
+          console.log(`   ✓ Logged ${hours}h ${minutes}m by ${user?.firstName} on: ${task.title}`);
         } catch (error) {
-          console.log(
-            `   ⚠ Error creating time entry for task ${task.title}: ${error.message}`,
-          );
+          console.log(`   ⚠ Error creating time entry for task ${task.title}: ${error.message}`);
         }
       }
     }
@@ -87,11 +76,8 @@ export class TimeEntriesSeederService {
     }> = [];
 
     // Determine how much total time should be logged based on task estimates
-    const estimatedTime =
-      task.originalEstimate || this.getDefaultEstimate(task);
-    const actualTimeSpent = Math.floor(
-      estimatedTime * (0.7 + Math.random() * 0.6),
-    ); // 70-130% of estimate
+    const estimatedTime = task.originalEstimate || this.getDefaultEstimate(task);
+    const actualTimeSpent = Math.floor(estimatedTime * (0.7 + Math.random() * 0.6)); // 70-130% of estimate
 
     let remainingTime = actualTimeSpent;
     const workDays = this.generateWorkDays(7); // Last 7 days
@@ -111,10 +97,7 @@ export class TimeEntriesSeederService {
         ); // Max 3 entries, or enough to cover remaining time
 
         for (let i = 0; i < entriesCount && remainingTime > 0; i++) {
-          const sessionTime = this.generateSessionTime(
-            remainingTime,
-            task.type,
-          );
+          const sessionTime = this.generateSessionTime(remainingTime, task.type);
           const { startTime, endTime } = this.generateWorkingHours(workDay);
 
           timeEntries.push({
@@ -188,9 +171,7 @@ export class TimeEntriesSeederService {
 
     // Fallback to random user if no assignee
     if (workingUsers.length === 0) {
-      workingUsers.push(
-        availableUsers[Math.floor(Math.random() * availableUsers.length)],
-      );
+      workingUsers.push(availableUsers[Math.floor(Math.random() * availableUsers.length)]);
     }
 
     return workingUsers;
@@ -229,10 +210,7 @@ export class TimeEntriesSeederService {
     return { startTime, endTime };
   }
 
-  private generateTimeEntryDescription(
-    task: Task,
-    sessionIndex: number,
-  ): string {
+  private generateTimeEntryDescription(task: Task, sessionIndex: number): string {
     const taskTitle = task.title.toLowerCase();
     const descriptions = [
       // General development activities

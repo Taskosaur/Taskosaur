@@ -1,14 +1,7 @@
 import { authApi } from "@/utils/api/authApi";
 import { userApi, UpdateEmailData } from "@/utils/api/userApi";
 import { organizationApi } from "@/utils/api/organizationApi";
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-} from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import { notificationApi } from "@/utils/api/notificationApi";
 import {
   ApiResponse,
@@ -86,16 +79,12 @@ interface AuthContextType extends AuthState {
     newPassword: string;
     confirmPassword: string;
   }) => Promise<ApiResponse>;
-  validateResetToken: (
-    token: string
-  ) => Promise<ApiResponse<{ valid: boolean }>>;
+  validateResetToken: (token: string) => Promise<ApiResponse<{ valid: boolean }>>;
   uploadFileToS3: (file: File, key: string) => Promise<UploadFileResponse>;
   getUserAccess: (data: { name: string; id: string }) => Promise<any>;
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(
-  undefined
-);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -173,22 +162,14 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
    * Does NOT trigger checkOrganizationAndRedirect automatically.
    */
   const handleApiOperation = useCallback(
-    async function <T>(
-      operation: () => Promise<T>,
-      updateUserState: boolean = false
-    ): Promise<T> {
+    async function <T>(operation: () => Promise<T>, updateUserState: boolean = false): Promise<T> {
       try {
         setAuthState((prev) => ({ ...prev, error: null }));
 
         const result = await operation();
 
         // Optionally update logged-in user state if result contains user
-        if (
-          updateUserState &&
-          typeof result === "object" &&
-          result &&
-          "user" in result
-        ) {
+        if (updateUserState && typeof result === "object" && result && "user" in result) {
           const authResponse = result as any;
           if (authResponse.user) {
             setAuthState((prev) => ({ ...prev, user: authResponse.user }));
@@ -200,8 +181,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
         return result;
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "An error occurred";
+        const errorMessage = error instanceof Error ? error.message : "An error occurred";
         setAuthState((prev) => ({ ...prev, error: errorMessage }));
         throw error;
       }
@@ -210,39 +190,34 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   // This method is NOT called automatically after updateUser, so no retriggering of organization check
-  const checkOrganizationAndRedirect =
-    useCallback(async (): Promise<string> => {
-      if (typeof window === "undefined") return "/login";
+  const checkOrganizationAndRedirect = useCallback(async (): Promise<string> => {
+    if (typeof window === "undefined") return "/login";
 
-      try {
-        const user = authApi.getCurrentUser();
-        if (!user) return "/login";
-        const organizations = await organizationApi.getUserOrganizations(
-          user.id
-        );
-        if (!organizations || organizations.length === 0) {
-          localStorage.removeItem("currentOrganizationId");
-          return "/organization";
-        }
-        const savedOrgId = localStorage.getItem("currentOrganizationId");
-        let selectedOrg = organizations[0];
-
-        if (savedOrgId) {
-          const matchingOrg = organizations.find(
-            (org) => org.id === savedOrgId
-          );
-          if (matchingOrg) {
-            selectedOrg = matchingOrg;
-          } else {
-            selectedOrg = organizations[0];
-          }
-        }
-        localStorage.setItem("currentOrganizationId", selectedOrg.id);
-        return "/dashboard";
-      } catch (err) {
-        return "/login";
+    try {
+      const user = authApi.getCurrentUser();
+      if (!user) return "/login";
+      const organizations = await organizationApi.getUserOrganizations(user.id);
+      if (!organizations || organizations.length === 0) {
+        localStorage.removeItem("currentOrganizationId");
+        return "/organization";
       }
-    }, []);
+      const savedOrgId = localStorage.getItem("currentOrganizationId");
+      let selectedOrg = organizations[0];
+
+      if (savedOrgId) {
+        const matchingOrg = organizations.find((org) => org.id === savedOrgId);
+        if (matchingOrg) {
+          selectedOrg = matchingOrg;
+        } else {
+          selectedOrg = organizations[0];
+        }
+      }
+      localStorage.setItem("currentOrganizationId", selectedOrg.id);
+      return "/dashboard";
+    } catch (err) {
+      return "/login";
+    }
+  }, []);
 
   // Memoized context value with all methods
   const contextValue = useMemo(
@@ -251,18 +226,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Auth methods
       register: async (userData: UserData) => {
-        const result = await handleApiOperation(
-          () => authApi.register(userData),
-          true
-        );
+        const result = await handleApiOperation(() => authApi.register(userData), true);
         return result;
       },
 
       login: async (loginData: LoginData) => {
-        const result = await handleApiOperation(
-          () => authApi.login(loginData),
-          true
-        );
+        const result = await handleApiOperation(() => authApi.login(loginData), true);
         return result;
       },
 
@@ -275,13 +244,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // User methods
       getAllUsers: () => handleApiOperation(() => userApi.getAllUsers()),
-      getUserById: (userId: string) =>
-        handleApiOperation(() => userApi.getUserById(userId)),
+      getUserById: (userId: string) => handleApiOperation(() => userApi.getUserById(userId)),
 
       updateUser: async (userId: string, userData: UpdateUserData) => {
-        const result = await handleApiOperation(() =>
-          userApi.updateUser(userId, userData)
-        );
+        const result = await handleApiOperation(() => userApi.updateUser(userId, userData));
 
         // Update context state if current user updated
         if (authState.user && authState.user.id === userId) {
@@ -294,9 +260,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       },
 
       updateUserEmail: async (userId: string, emailData: UpdateEmailData) => {
-        const result = await handleApiOperation(() =>
-          userApi.updateUserEmail(userId, emailData)
-        );
+        const result = await handleApiOperation(() => userApi.updateUserEmail(userId, emailData));
 
         if (authState.user && authState.user.id === userId) {
           setAuthState((prev) => ({
@@ -308,13 +272,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         return result;
       },
       getUserAccess: async (data: { name: string; id: string }) => {
-        const result = await handleApiOperation(() =>
-          authApi.getUserAccess(data)
-        );
+        const result = await handleApiOperation(() => authApi.getUserAccess(data));
         return result;
       },
-      deleteUser: (userId: string) =>
-        handleApiOperation(() => userApi.deleteUser(userId)),
+      deleteUser: (userId: string) => handleApiOperation(() => userApi.deleteUser(userId)),
 
       // Utility methods
       getCurrentUser: authApi.getCurrentUser,
@@ -347,16 +308,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         );
       },
       forgotPassword: async (data: ForgotPasswordData) => {
-        const result = await handleApiOperation(() =>
-          authApi.forgotPassword(data)
-        );
+        const result = await handleApiOperation(() => authApi.forgotPassword(data));
         return result;
       },
 
       resetPassword: async (data: ResetPasswordData) => {
-        const result = await handleApiOperation(() =>
-          authApi.resetPassword(data)
-        );
+        const result = await handleApiOperation(() => authApi.resetPassword(data));
         return result;
       },
       changePassword: async (data: {
@@ -364,32 +321,20 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         newPassword: string;
         confirmPassword: string;
       }) => {
-        const result = await handleApiOperation(() =>
-          authApi.changePassword(data)
-        );
+        const result = await handleApiOperation(() => authApi.changePassword(data));
         return result;
       },
       validateResetToken: async (token: string) => {
-        const result = await handleApiOperation(() =>
-          authApi.validateResetToken(token)
-        );
+        const result = await handleApiOperation(() => authApi.validateResetToken(token));
         return result;
       },
-      uploadFileToS3: async (file: File, key: string) =>
-        authApi.uploadFileToS3(file, key),
+      uploadFileToS3: async (file: File, key: string) => authApi.uploadFileToS3(file, key),
     }),
 
-    [
-      authState,
-      handleApiOperation,
-      setupUserOrganization,
-      checkOrganizationAndRedirect,
-    ]
+    [authState, handleApiOperation, setupUserOrganization, checkOrganizationAndRedirect]
   );
 
-  return (
-    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }
 
 export default AuthProvider;

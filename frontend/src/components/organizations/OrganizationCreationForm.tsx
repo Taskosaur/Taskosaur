@@ -1,4 +1,3 @@
-
 import { useOrganization } from "@/contexts/organization-context";
 import { useState } from "react";
 import { Button, Card, CardContent, Input, Label, Textarea } from "../ui";
@@ -6,18 +5,18 @@ import { HiExclamationTriangle } from "react-icons/hi2";
 import { HiPlus } from "react-icons/hi";
 import { Organization } from "@/types";
 
-const OrganizationCreationForm = ({ 
-  onSuccess, 
+const OrganizationCreationForm = ({
+  onSuccess,
   onCancel,
-  isSubmitting: externalSubmitting = false
-}: { 
+  isSubmitting: externalSubmitting = false,
+}: {
   onSuccess: (org: Organization) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
 }) => {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [website, setWebsite] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [website, setWebsite] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { createOrganization } = useOrganization();
@@ -26,7 +25,7 @@ const OrganizationCreationForm = ({
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
-    
+
     try {
       const organizationData = {
         name,
@@ -37,8 +36,8 @@ const OrganizationCreationForm = ({
       const newOrg = await createOrganization(organizationData);
       onSuccess(newOrg);
     } catch (err) {
-      console.error('Error creating organization:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create organization');
+      console.error("Error creating organization:", err);
+      setError(err instanceof Error ? err.message : "Failed to create organization");
     } finally {
       setIsSubmitting(false);
     }
@@ -103,19 +102,10 @@ const OrganizationCreationForm = ({
       </div>
 
       <div className="flex justify-end gap-3 pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={submitting}
-        >
+        <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
-        <Button
-          type="submit"
-          disabled={submitting || !name.trim()}
-          className="min-w-[140px]"
-        >
+        <Button type="submit" disabled={submitting || !name.trim()} className="min-w-[140px]">
           {submitting ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-[var(--primary-foreground)] border-t-transparent mr-2" />

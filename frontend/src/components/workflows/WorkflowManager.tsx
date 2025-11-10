@@ -53,9 +53,7 @@ const validateWorkflow = (workflow: any): workflow is Workflow => {
 
 const normalizeWorkflow = (workflow: any): Workflow => {
   const statuses = Array.isArray(workflow?.statuses) ? workflow.statuses : [];
-  const transitions = Array.isArray(workflow?.transitions)
-    ? workflow.transitions
-    : [];
+  const transitions = Array.isArray(workflow?.transitions) ? workflow.transitions : [];
 
   const _count = {
     statuses: statuses.length,
@@ -90,12 +88,8 @@ export default function WorkflowManager({
   organizationId,
   onRefresh,
 }: WorkflowManagerProps) {
-  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(
-    null
-  );
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "editor" | "statuses"
-  >("overview");
+  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "editor" | "statuses">("overview");
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -185,9 +179,7 @@ export default function WorkflowManager({
         }
 
         if (selectedWorkflow?.id === workflowId) {
-          const defaultWorkflow = workflows.find(
-            (w) => w.isDefault && w.id !== workflowId
-          );
+          const defaultWorkflow = workflows.find((w) => w.isDefault && w.id !== workflowId);
           const fallbackWorkflow = workflows.find((w) => w.id !== workflowId);
           const newSelected = defaultWorkflow || fallbackWorkflow || null;
           setSelectedWorkflow(newSelected);
@@ -210,11 +202,7 @@ export default function WorkflowManager({
       try {
         setIsUpdating(true);
 
-        await workflowsApi.setAsDefaultWorkflow(
-          workflowId,
-          organizationId,
-          currentUser?.id
-        );
+        await workflowsApi.setAsDefaultWorkflow(workflowId, organizationId, currentUser?.id);
 
         if (onSetDefaultWorkflow) {
           onSetDefaultWorkflow(workflowId);
@@ -279,9 +267,7 @@ export default function WorkflowManager({
         return;
       }
 
-      const status = (selectedWorkflow.statuses || []).find(
-        (s) => s.id === statusId
-      );
+      const status = (selectedWorkflow.statuses || []).find((s) => s.id === statusId);
       if (!status) {
         return;
       }
@@ -291,9 +277,7 @@ export default function WorkflowManager({
       }
       const updatedWorkflow = {
         ...selectedWorkflow,
-        statuses: (selectedWorkflow.statuses || []).filter(
-          (s) => s.id !== statusId
-        ),
+        statuses: (selectedWorkflow.statuses || []).filter((s) => s.id !== statusId),
         _count: {
           statuses: (selectedWorkflow._count?.statuses || 0) - 1,
           transitions: selectedWorkflow._count?.transitions ?? 0,
@@ -312,9 +296,7 @@ export default function WorkflowManager({
     }));
 
     if (selectedWorkflow) {
-      const updatedSelected = updatedWorkflows.find(
-        (w) => w.id === selectedWorkflow.id
-      );
+      const updatedSelected = updatedWorkflows.find((w) => w.id === selectedWorkflow.id);
       if (updatedSelected) {
         setSelectedWorkflow(updatedSelected);
       }
@@ -328,9 +310,7 @@ export default function WorkflowManager({
   ];
 
   if (isLoading) {
-    return (
-      <WorkFlowSkeleton />
-    );
+    return <WorkFlowSkeleton />;
   }
 
   if (error) {
@@ -386,9 +366,7 @@ export default function WorkflowManager({
         <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-[var(--muted)] flex items-center justify-center">
           <HiViewGrid className="w-6 h-6 text-[var(--muted-foreground)]" />
         </div>
-        <h3 className="text-md font-semibold text-[var(--foreground)] mb-2">
-          No workflows found
-        </h3>
+        <h3 className="text-md font-semibold text-[var(--foreground)] mb-2">No workflows found</h3>
         <p className="text-sm text-[var(--muted-foreground)] mb-6">
           {isProjectLevel
             ? "Create your first workflow for this project."
@@ -539,24 +517,19 @@ export default function WorkflowManager({
                               {selectedWorkflow.name || "Unnamed Workflow"}
                             </h3>
                             <p className="text-sm text-[var(--muted-foreground)] mb-3">
-                              {selectedWorkflow.description ||
-                                "No description provided"}
+                              {selectedWorkflow.description || "No description provided"}
                             </p>
                             <div className="flex items-center gap-4 text-xs text-[var(--muted-foreground)]">
                               <span>
                                 Created:{" "}
                                 {selectedWorkflow.createdAt
-                                  ? new Date(
-                                      selectedWorkflow.createdAt
-                                    ).toLocaleDateString()
+                                  ? new Date(selectedWorkflow.createdAt).toLocaleDateString()
                                   : "Unknown"}
                               </span>
                               <span>
                                 Updated:{" "}
                                 {selectedWorkflow.updatedAt
-                                  ? new Date(
-                                      selectedWorkflow.updatedAt
-                                    ).toLocaleDateString()
+                                  ? new Date(selectedWorkflow.updatedAt).toLocaleDateString()
                                   : "Unknown"}
                               </span>
                             </div>
@@ -566,9 +539,7 @@ export default function WorkflowManager({
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() =>
-                                  handleSetDefault(selectedWorkflow.id)
-                                }
+                                onClick={() => handleSetDefault(selectedWorkflow.id)}
                                 disabled={isUpdating}
                                 className="h-8 border-none bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)] transition-all duration-200"
                               >
@@ -577,17 +548,11 @@ export default function WorkflowManager({
                               </Button>
                             )}
                             {!selectedWorkflow.isDefault && (
-                              <Tooltip
-                                content="Delete workflow"
-                                position="top"
-                                color="primary"
-                              >
+                              <Tooltip content="Delete workflow" position="top" color="primary">
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() =>
-                                    setWorkflowToDelete(selectedWorkflow.id)
-                                  }
+                                  onClick={() => setWorkflowToDelete(selectedWorkflow.id)}
                                   disabled={isUpdating}
                                   className="h-8 border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)] transition-all duration-200"
                                 >
@@ -607,21 +572,17 @@ export default function WorkflowManager({
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="pt-0">
-                        {selectedWorkflow.statuses &&
-                        selectedWorkflow.statuses.length > 0 ? (
+                        {selectedWorkflow.statuses && selectedWorkflow.statuses.length > 0 ? (
                           <div className="flex flex-wrap items-center gap-3">
                             {(selectedWorkflow.statuses as TaskStatus[])
-                              .sort(
-                                (a, b) => (a.position || 0) - (b.position || 0)
-                              )
+                              .sort((a, b) => (a.position || 0) - (b.position || 0))
                               .map((status, index) => (
                                 <React.Fragment key={status.id}>
                                   <div className="flex items-center gap-2">
                                     <div
                                       className="w-3 h-3 rounded-full border border-[var(--border)]"
                                       style={{
-                                        backgroundColor:
-                                          status.color || "#gray",
+                                        backgroundColor: status.color || "#gray",
                                       }}
                                     />
                                     <div>
@@ -631,8 +592,7 @@ export default function WorkflowManager({
                                     </div>
                                   </div>
                                   {selectedWorkflow.statuses &&
-                                    index <
-                                      selectedWorkflow.statuses.length - 1 && (
+                                    index < selectedWorkflow.statuses.length - 1 && (
                                       <HiChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" />
                                     )}
                                 </React.Fragment>
@@ -662,12 +622,10 @@ export default function WorkflowManager({
                   <StatusConfiguration
                     workflow={{
                       ...selectedWorkflow,
-                      statuses: (selectedWorkflow.statuses || []).map(
-                        (s: any) => ({
-                          ...s,
-                          order: s.position ?? 0,
-                        })
-                      ),
+                      statuses: (selectedWorkflow.statuses || []).map((s: any) => ({
+                        ...s,
+                        order: s.position ?? 0,
+                      })),
                     }}
                     onUpdateStatus={handleUpdateStatus}
                     onCreateStatus={(newStatus) => {

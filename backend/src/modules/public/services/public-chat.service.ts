@@ -91,7 +91,7 @@ export class ProjectChartsService {
             case ProjectChartType.SPRINT_VELOCITY:
                 return this.projectSprintVelocityTrend(projectSlug);
             default:
-                throw new BadRequestException(`Unsupported chart type: ${chartType}`);
+                throw new BadRequestException(`Unsupported chart type: ${String(chartType)}`);
         }
     }
 

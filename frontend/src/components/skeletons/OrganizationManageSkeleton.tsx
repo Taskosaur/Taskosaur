@@ -1,13 +1,12 @@
-import React from 'react'
-import { Skeleton } from '../ui/skeleton'
-import { Card, CardContent } from '../ui'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
+import React from "react";
+import { Skeleton } from "../ui/skeleton";
+import { Card, CardContent } from "../ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
 const OrganizationManageSkeleton = () => {
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <div className="mx-auto p-4 space-y-4 animate-pulse">
-
         {/* Page Header */}
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-md bg-[var(--muted)] flex-shrink-0" />
@@ -86,7 +85,10 @@ const OrganizationManageSkeleton = () => {
                 {/* Workflow list placeholder */}
                 <div className="space-y-3 mt-4">
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-[var(--muted)]/30">
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-3 rounded-lg bg-[var(--muted)]/30"
+                    >
                       <Skeleton className="h-4 w-40 rounded" />
                       <div className="flex items-center gap-2">
                         <Skeleton className="h-5 w-5 rounded-full" />
@@ -122,7 +124,7 @@ const OrganizationManageSkeleton = () => {
         </Tabs>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default OrganizationManageSkeleton
+export default OrganizationManageSkeleton;

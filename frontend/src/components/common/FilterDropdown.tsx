@@ -24,18 +24,18 @@ import {
 // Status color mapping to match StatusBadge component
 const getStatusColor = (statusName: string): string => {
   const normalizedStatus = statusName.toLowerCase().replace(/\s+/g, "-");
-  
+
   const statusColorMap: Record<string, string> = {
-    "todo": "#374151", // gray-700
-    "backlog": "#374151", // gray-700
+    todo: "#374151", // gray-700
+    backlog: "#374151", // gray-700
     "in-progress": "#2563eb", // blue-600
-    "active": "#2563eb", // blue-600
+    active: "#2563eb", // blue-600
     "in-review": "#9333ea", // purple-600
-    "completed": "#16a34a", // green-600
-    "done": "#16a34a", // green-600
-    "cancelled": "#dc2626", // red-600
+    completed: "#16a34a", // green-600
+    done: "#16a34a", // green-600
+    cancelled: "#dc2626", // red-600
     "on-hold": "#374151", // gray-700
-    "planning": "#374151", // gray-700
+    planning: "#374151", // gray-700
   };
 
   return statusColorMap[normalizedStatus] || "#6b7280"; // default gray-500
@@ -97,14 +97,12 @@ export function FilterDropdown({
   showCounts = false,
   onOpen,
 }: FilterDropdownProps) {
-  const [searchQueries, setSearchQueries] = useState<Record<string, string>>(
-    {}
-  );
-  
+  const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
+
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     const initialExpanded: Record<string, boolean> = {};
-    sections.forEach(section => {
-      const hasSelectedItems = section.items.some(item => item.selected);
+    sections.forEach((section) => {
+      const hasSelectedItems = section.items.some((item) => item.selected);
       initialExpanded[section.id] = hasSelectedItems;
     });
     return initialExpanded;
@@ -112,8 +110,8 @@ export function FilterDropdown({
 
   useEffect(() => {
     const newExpanded: Record<string, boolean> = {};
-    sections.forEach(section => {
-      const hasSelectedItems = section.items.some(item => item.selected);
+    sections.forEach((section) => {
+      const hasSelectedItems = section.items.some((item) => item.selected);
       newExpanded[section.id] = hasSelectedItems || expandedSections[section.id];
     });
     setExpandedSections(newExpanded);
@@ -153,7 +151,7 @@ export function FilterDropdown({
   const handleItemToggle = (section: FilterSection, itemId: string) => {
     try {
       if (!section.multiSelect) {
-        section.items.forEach(item => {
+        section.items.forEach((item) => {
           if (item.selected && item.id !== itemId) {
             section.onToggleItem(item.id);
           }
@@ -161,7 +159,7 @@ export function FilterDropdown({
       }
       section.onToggleItem(itemId);
     } catch (error) {
-      console.error('Error toggling filter item:', error);
+      console.error("Error toggling filter item:", error);
     }
   };
 
@@ -205,9 +203,7 @@ export function FilterDropdown({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <Filter className="h-4 w-4 text-[var(--primary)]" />
-              <h3 className="font-medium text-sm text-[var(--card-foreground)]">
-                {title}
-              </h3>
+              <h3 className="font-medium text-sm text-[var(--card-foreground)]">{title}</h3>
             </div>
 
             {onClearAllFilters && activeFiltersCount > 0 && (
@@ -223,9 +219,7 @@ export function FilterDropdown({
           </div>
 
           {description && (
-            <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-              {description}
-            </p>
+            <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{description}</p>
           )}
         </div>
 
@@ -237,12 +231,8 @@ export function FilterDropdown({
             const filteredItems = searchQuery
               ? section.items.filter(
                   (item) =>
-                    item.label
-                      .toLowerCase()
-                      .includes(searchQuery.toLowerCase()) ||
-                    item.description
-                      ?.toLowerCase()
-                      .includes(searchQuery.toLowerCase())
+                    item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    item.description?.toLowerCase().includes(searchQuery.toLowerCase())
                 )
               : section.items;
 
@@ -251,7 +241,7 @@ export function FilterDropdown({
             return (
               <div
                 key={section.id}
-                className={`border-b border-[var(--border)] last:border-b-0 ${section.disabled ? 'opacity-50 pointer-events-none' : ''}`}
+                className={`border-b border-[var(--border)] last:border-b-0 ${section.disabled ? "opacity-50 pointer-events-none" : ""}`}
               >
                 <div
                   className="flex items-center justify-between px-2.5 py-2 cursor-pointer hover:bg-[var(--accent)]/50 transition-colors"
@@ -279,14 +269,11 @@ export function FilterDropdown({
                           const allSelected =
                             section.items.length > 0 &&
                             section.items.every((item) => item.selected);
-                          allSelected
-                            ? section.onClearAll?.()
-                            : section.onSelectAll();
+                          allSelected ? section.onClearAll?.() : section.onSelectAll();
                         }}
                         className="h-6 w-6 p-0 hover:bg-[var(--accent)]"
                         title={
-                          section.items.length > 0 &&
-                          section.items.every((item) => item.selected)
+                          section.items.length > 0 && section.items.every((item) => item.selected)
                             ? "Deselect All"
                             : "Select All"
                         }
@@ -316,9 +303,7 @@ export function FilterDropdown({
                         <Input
                           placeholder={`Search ${section.title.toLowerCase()}...`}
                           value={searchQuery}
-                          onChange={(e) =>
-                            handleSectionSearch(section.id, e.target.value)
-                          }
+                          onChange={(e) => handleSectionSearch(section.id, e.target.value)}
                           className="pl-7 pr-7 h-7 text-xs border-[var(--border)] bg-[var(--background)]"
                         />
                         {searchQuery && (
@@ -338,9 +323,10 @@ export function FilterDropdown({
                       {filteredItems.length > 0 ? (
                         filteredItems.map((item) => {
                           // Use StatusBadge colors for status-related sections
-                          const itemColor = section.id === "status" || section.title.toLowerCase() === "status"
-                            ? getStatusColor(item.label)
-                            : item.color;
+                          const itemColor =
+                            section.id === "status" || section.title.toLowerCase() === "status"
+                              ? getStatusColor(item.label)
+                              : item.color;
 
                           return (
                             <div

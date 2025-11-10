@@ -21,12 +21,7 @@ function WorkspaceSettingsContent() {
   const workspaceSlug = router.query.workspaceSlug;
   const initialWorkspaceSlug =
     typeof workspaceSlug === "string" ? workspaceSlug : workspaceSlug?.[0];
-  const {
-    getWorkspaceBySlug,
-    updateWorkspace,
-    deleteWorkspace,
-    archiveWorkspace,
-  } = useWorkspace();
+  const { getWorkspaceBySlug, updateWorkspace, deleteWorkspace, archiveWorkspace } = useWorkspace();
   const { isAuthenticated } = useAuth();
   const [workspace, setWorkspace] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -68,9 +63,7 @@ function WorkspaceSettingsContent() {
           slug: workspaceData.slug || "",
         });
       } catch (err) {
-        setError(
-          err?.message ? err.message : "Failed to load workspace"
-        );
+        setError(err?.message ? err.message : "Failed to load workspace");
       } finally {
         setLoading(false);
       }
@@ -171,14 +164,10 @@ function WorkspaceSettingsContent() {
       } catch (err) {
         if (!isActive) return;
 
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to load workspace";
+        const errorMessage = err instanceof Error ? err.message : "Failed to load workspace";
         setError(errorMessage);
 
-        if (
-          errorMessage.includes("not found") ||
-          errorMessage.includes("404")
-        ) {
+        if (errorMessage.includes("not found") || errorMessage.includes("404")) {
           router.replace("/workspaces");
         }
       } finally {
@@ -214,9 +203,7 @@ function WorkspaceSettingsContent() {
       }
       toast.success("Workspace settings updated successfully!");
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update workspace"
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to update workspace");
     } finally {
       setSaving(false);
     }
@@ -310,9 +297,7 @@ function WorkspaceSettingsContent() {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) =>
-                  handleInputChange("description", e.target.value)
-                }
+                onChange={(e) => handleInputChange("description", e.target.value)}
                 placeholder="Describe your workspace..."
                 rows={3}
                 disabled={saving || !hasAccess}
@@ -335,9 +320,7 @@ function WorkspaceSettingsContent() {
           <div className="flex items-start gap-3">
             <HiExclamationTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-1" />
             <div className="flex-1">
-              <h4 className="font-medium text-red-800 dark:text-red-400">
-                Danger Zone
-              </h4>
+              <h4 className="font-medium text-red-800 dark:text-red-400">Danger Zone</h4>
               <p className="text-sm text-red-700 dark:text-red-500 mb-4">
                 These actions cannot be undone. Please proceed with caution.
               </p>

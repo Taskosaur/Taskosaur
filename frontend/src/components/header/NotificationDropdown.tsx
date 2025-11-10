@@ -51,16 +51,15 @@ export default function NotificationDropdown({
 
       try {
         setLoading(true);
-        const response =
-          await notificationApi.getNotificationsByUserAndOrganization(
-            userId,
-            organizationId,
-            {
-              isRead: false,
-              page: 1,
-              limit: 5,
-            }
-          );
+        const response = await notificationApi.getNotificationsByUserAndOrganization(
+          userId,
+          organizationId,
+          {
+            isRead: false,
+            page: 1,
+            limit: 5,
+          }
+        );
 
         setNotifications(response.notifications);
         setUnreadCount(response.pagination.totalCount);
@@ -91,13 +90,9 @@ export default function NotificationDropdown({
     return date.toLocaleDateString();
   };
 
-  const getNotificationUserInitials = (
-    user?: Notification["createdByUser"]
-  ) => {
+  const getNotificationUserInitials = (user?: Notification["createdByUser"]) => {
     if (!user?.firstName && !user?.lastName) return "S";
-    return `${user.firstName?.charAt(0) || ""}${
-      user.lastName?.charAt(0) || ""
-    }`.toUpperCase();
+    return `${user.firstName?.charAt(0) || ""}${user.lastName?.charAt(0) || ""}`.toUpperCase();
   };
 
   const getPriorityColor = (priority: Notification["priority"]) => {
@@ -142,12 +137,7 @@ export default function NotificationDropdown({
     <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
       <Tooltip content="Notifications" position="bottom" color="primary">
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`header-button-base ${className}`}
-          >
-            
+          <Button variant="ghost" size="icon" className={`header-button-base ${className}`}>
             <HiBell className="header-button-icon" />
             {unreadCount > 0 && (
               <Badge
@@ -157,24 +147,18 @@ export default function NotificationDropdown({
                 {unreadCount > 99 ? "99+" : unreadCount}
               </Badge>
             )}
-             <span className="hidden max-[530px]:inline-block text-sm font-medium">
+            <span className="hidden max-[530px]:inline-block text-sm font-medium">
               Notifications
             </span>
           </Button>
         </DropdownMenuTrigger>
       </Tooltip>
 
-      <DropdownMenuContent
-        className="header-dropdown-menu-content"
-        align="end"
-        sideOffset={4}
-      >
+      <DropdownMenuContent className="header-dropdown-menu-content" align="end" sideOffset={4}>
         {/* Header */}
         <div className="header-dropdown-menu-header">
           <div className="header-dropdown-menu-title">
-            <span className="header-dropdown-menu-title-text">
-              Notifications
-            </span>
+            <span className="header-dropdown-menu-title-text">Notifications</span>
             <Badge variant="secondary" className="header-dropdown-menu-badge">
               {unreadCount}
             </Badge>
@@ -211,18 +195,14 @@ export default function NotificationDropdown({
                 <div
                   key={notification.id}
                   className={`header-notifications-item ${
-                    markingAsRead === notification.id
-                      ? "header-notifications-item-disabled"
-                      : ""
+                    markingAsRead === notification.id ? "header-notifications-item-disabled" : ""
                   }`}
                   onClick={() => handleMarkAsRead(notification.id)}
                 >
                   <div className="header-notifications-item-layout">
                     <div className="header-notifications-item-avatar">
                       <span className="header-notifications-item-avatar-text">
-                        {getNotificationUserInitials(
-                          notification.createdByUser
-                        )}
+                        {getNotificationUserInitials(notification.createdByUser)}
                       </span>
                     </div>
 
@@ -267,14 +247,14 @@ export default function NotificationDropdown({
         {router.pathname !== "/notifications" && (
           <div className="header-notifications-footer">
             <ActionButton
-            variant="ghost"
+              variant="ghost"
               onClick={handleViewAllNotifications}
               className="header-notifications-view-all"
             >
               {unreadCount > 0 ? "View All" : "View Old Notifications"}
             </ActionButton>
           </div>
-         )}
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

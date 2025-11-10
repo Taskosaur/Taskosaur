@@ -14,12 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  HiEnvelope,
-  HiCog,
-  HiCheckCircle,
-  HiExclamationTriangle,
-} from "react-icons/hi2";
+import { HiEnvelope, HiCog, HiCheckCircle, HiExclamationTriangle } from "react-icons/hi2";
 import { RefreshCw } from "lucide-react";
 import { InboxFormData } from "@/types/emailIntegration";
 import SearchableAssigneeDropdown from "./SearchableAssigneeDropdown";
@@ -81,10 +76,7 @@ export default function CompletedConfigView({
         if (isHTML) {
           const blocksFromHtml = htmlToDraft(formData.emailSignature);
           const { contentBlocks, entityMap } = blocksFromHtml;
-          const contentState = ContentState.createFromBlockArray(
-            contentBlocks,
-            entityMap
-          );
+          const contentState = ContentState.createFromBlockArray(contentBlocks, entityMap);
           return EditorState.createWithContent(contentState);
         } else {
           return EditorState.createWithContent(
@@ -119,9 +111,7 @@ export default function CompletedConfigView({
               <div className="flex items-center gap-2">
                 <HiEnvelope className="w-5 h-5 text-[var(--primary)]" />
 
-                <span className="text-md font-semibold">
-                  Email Integration Configuration
-                </span>
+                <span className="text-md font-semibold">Email Integration Configuration</span>
               </div>
               <p className="text-sm font-normal text-[var(--muted-foreground)]/60 mt-2">
                 Manage email status of your project
@@ -136,20 +126,13 @@ export default function CompletedConfigView({
                     Active
                   </Badge>
                 ) : (
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center px-3 py-1"
-                  >
+                  <Badge variant="secondary" className="flex items-center px-3 py-1">
                     <HiExclamationTriangle className="w-4 h-4 mr-1 text-yellow-600" />
                     Not Configured
                   </Badge>
                 )}
 
-                <Tooltip
-                  content="Sync emails now"
-                  position="top"
-                  color="primary"
-                >
+                <Tooltip content="Sync emails now" position="top" color="primary">
                   <Button
                     size="sm"
                     variant="outline"
@@ -157,9 +140,7 @@ export default function CompletedConfigView({
                     disabled={isSyncing || !currentInbox.emailAccount}
                     className="border-[var(--border)] hover:bg-[var(--muted)]"
                   >
-                    <RefreshCw
-                      className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`}
-                    />
+                    <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
                   </Button>
                 </Tooltip>
               </div>
@@ -167,15 +148,11 @@ export default function CompletedConfigView({
               <p className="text-xs font-normal text-[var(--muted-foreground)]/60">
                 Last Sync:{" "}
                 {currentInbox.emailAccount?.lastSyncAt
-                  ? new Date(
-                      currentInbox.emailAccount.lastSyncAt
-                    ).toLocaleString()
+                  ? new Date(currentInbox.emailAccount.lastSyncAt).toLocaleString()
                   : "Never"}
               </p>
               {hasUnsavedChanges && (
-                <p className="text-xs text-orange-600 mt-1 font-normal">
-                  • Unsaved Changes
-                </p>
+                <p className="text-xs text-orange-600 mt-1 font-normal">• Unsaved Changes</p>
               )}
             </div>
           </CardTitle>
@@ -183,10 +160,7 @@ export default function CompletedConfigView({
 
         <CardContent className="space-y-4">
           {currentInbox.emailAccount?.lastSyncError && (
-            <Alert
-              className="flex items-center justify-center space-x-2"
-              variant="destructive"
-            >
+            <Alert className="flex items-center justify-center space-x-2" variant="destructive">
               <HiExclamationTriangle className="w-5 h-5" />
               <AlertDescription>
                 Last sync error: {currentInbox.emailAccount.lastSyncError}
@@ -204,22 +178,15 @@ export default function CompletedConfigView({
                 value={formData.name}
                 onChange={(e) => onFieldChange("name", e.target.value)}
                 placeholder="Support Inbox"
-                className={`h-10 ${
-                  validationErrors.name ? "border-red-500" : ""
-                }`}
+                className={`h-10 ${validationErrors.name ? "border-red-500" : ""}`}
               />
               {validationErrors.name && (
-                <p className="text-sm text-red-600 mt-1">
-                  {validationErrors.name}
-                </p>
+                <p className="text-sm text-red-600 mt-1">{validationErrors.name}</p>
               )}
             </div>
 
             <div>
-              <Label
-                className="pb-2 text-sm font-medium"
-                htmlFor="emailAddress"
-              >
+              <Label className="pb-2 text-sm font-medium" htmlFor="emailAddress">
                 Email Address
               </Label>
               <Input
@@ -228,14 +195,10 @@ export default function CompletedConfigView({
                 value={formData.emailAddress}
                 onChange={(e) => onFieldChange("emailAddress", e.target.value)}
                 placeholder="support@company.com"
-                className={`h-10 ${
-                  validationErrors.emailAddress ? "border-red-500" : ""
-                }`}
+                className={`h-10 ${validationErrors.emailAddress ? "border-red-500" : ""}`}
               />
               {validationErrors.emailAddress && (
-                <p className="text-sm text-red-600 mt-1">
-                  {validationErrors.emailAddress}
-                </p>
+                <p className="text-sm text-red-600 mt-1">{validationErrors.emailAddress}</p>
               )}
             </div>
           </div>
@@ -255,19 +218,13 @@ export default function CompletedConfigView({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label
-                className="pb-2 text-sm font-medium"
-                htmlFor="defaultTaskType"
-              >
+              <Label className="pb-2 text-sm font-medium" htmlFor="defaultTaskType">
                 Default Task Type
               </Label>
               <Select
                 value={formData.defaultTaskType}
                 onValueChange={(value) =>
-                  onFieldChange(
-                    "defaultTaskType",
-                    value as InboxFormData["defaultTaskType"]
-                  )
+                  onFieldChange("defaultTaskType", value as InboxFormData["defaultTaskType"])
                 }
               >
                 <SelectTrigger className="w-full border-[var(--border)] h-10">
@@ -284,19 +241,13 @@ export default function CompletedConfigView({
             </div>
 
             <div>
-              <Label
-                className="pb-2 text-sm font-medium"
-                htmlFor="defaultPriority"
-              >
+              <Label className="pb-2 text-sm font-medium" htmlFor="defaultPriority">
                 Default Priority
               </Label>
               <Select
                 value={formData.defaultPriority}
                 onValueChange={(value) =>
-                  onFieldChange(
-                    "defaultPriority",
-                    value as InboxFormData["defaultPriority"]
-                  )
+                  onFieldChange("defaultPriority", value as InboxFormData["defaultPriority"])
                 }
               >
                 <SelectTrigger className="w-full border-[var(--border)] h-10">
@@ -312,17 +263,12 @@ export default function CompletedConfigView({
             </div>
 
             <div>
-              <Label
-                className="pb-2 text-sm font-medium"
-                htmlFor="defaultStatus"
-              >
+              <Label className="pb-2 text-sm font-medium" htmlFor="defaultStatus">
                 Default Status <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.defaultStatusId}
-                onValueChange={(value) =>
-                  onFieldChange("defaultStatusId", value)
-                }
+                onValueChange={(value) => onFieldChange("defaultStatusId", value)}
               >
                 <SelectTrigger
                   className={`w-full border-[var(--border)] h-10 ${
@@ -350,19 +296,14 @@ export default function CompletedConfigView({
                 </SelectContent>
               </Select>
               {validationErrors.defaultStatusId && (
-                <p className="text-sm text-red-600 mt-1">
-                  {validationErrors.defaultStatusId}
-                </p>
+                <p className="text-sm text-red-600 mt-1">{validationErrors.defaultStatusId}</p>
               )}
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label
-                className="pb-2 text-sm font-medium"
-                htmlFor="defaultAssignee"
-              >
+              <Label className="pb-2 text-sm font-medium" htmlFor="defaultAssignee">
                 Default Assignee
               </Label>
               <SearchableAssigneeDropdown
@@ -373,19 +314,14 @@ export default function CompletedConfigView({
               />
             </div>
             <div>
-              <Label
-                className="pb-2 text-sm font-medium"
-                htmlFor="syncInterval"
-              >
+              <Label className="pb-2 text-sm font-medium" htmlFor="syncInterval">
                 Sync Interval (minutes)
               </Label>
               <Input
                 id="syncInterval"
                 type="number"
                 value={formData.syncInterval}
-                onChange={(e) =>
-                  onFieldChange("syncInterval", parseInt(e.target.value))
-                }
+                onChange={(e) => onFieldChange("syncInterval", parseInt(e.target.value))}
                 placeholder="5"
                 className="h-10"
               />
@@ -395,10 +331,7 @@ export default function CompletedConfigView({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex items-center justify-between">
               <div>
-                <Label
-                  className="pb-2 cursor-pointer text-sm font-medium"
-                  htmlFor="autoCreateTask"
-                >
+                <Label className="pb-2 cursor-pointer text-sm font-medium" htmlFor="autoCreateTask">
                   Auto-create Tasks
                 </Label>
                 <p className="text-sm text-[var(--muted-foreground)]/60">
@@ -408,18 +341,13 @@ export default function CompletedConfigView({
               <Switch
                 id="autoCreateTask"
                 checked={formData.autoCreateTask}
-                onCheckedChange={(checked) =>
-                  onFieldChange("autoCreateTask", checked)
-                }
+                onCheckedChange={(checked) => onFieldChange("autoCreateTask", checked)}
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <Label
-                  className="pb-2 cursor-pointer text-sm font-medium"
-                  htmlFor="autoReply"
-                >
+                <Label className="pb-2 cursor-pointer text-sm font-medium" htmlFor="autoReply">
                   Auto-reply
                 </Label>
                 <p className="text-sm text-[var(--muted-foreground)]/60">
@@ -429,47 +357,33 @@ export default function CompletedConfigView({
               <Switch
                 id="autoReply"
                 checked={formData.autoReplyEnabled}
-                onCheckedChange={(checked) =>
-                  onFieldChange("autoReplyEnabled", checked)
-                }
+                onCheckedChange={(checked) => onFieldChange("autoReplyEnabled", checked)}
               />
             </div>
           </div>
 
           {formData.autoReplyEnabled && (
             <div>
-              <Label
-                className="pb-2 text-sm font-medium"
-                htmlFor="autoReplyTemplate"
-              >
+              <Label className="pb-2 text-sm font-medium" htmlFor="autoReplyTemplate">
                 Auto-reply Message <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="autoReplyTemplate"
                 value={formData.autoReplyTemplate}
-                onChange={(e) =>
-                  onFieldChange("autoReplyTemplate", e.target.value)
-                }
+                onChange={(e) => onFieldChange("autoReplyTemplate", e.target.value)}
                 placeholder="Thank you for contacting us. We'll respond within 24 hours."
                 rows={3}
-                className={
-                  validationErrors.autoReplyTemplate ? "border-red-500" : ""
-                }
+                className={validationErrors.autoReplyTemplate ? "border-red-500" : ""}
               />
               {validationErrors.autoReplyTemplate && (
-                <p className="text-sm text-red-600 mt-1">
-                  {validationErrors.autoReplyTemplate}
-                </p>
+                <p className="text-sm text-red-600 mt-1">{validationErrors.autoReplyTemplate}</p>
               )}
             </div>
           )}
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <Label
-                className="pb-2 text-sm font-medium"
-                htmlFor="emailSignature"
-              >
+              <Label className="pb-2 text-sm font-medium" htmlFor="emailSignature">
                 Email Signature
               </Label>
               <Button
@@ -518,11 +432,7 @@ export default function CompletedConfigView({
             )}
             <ActionButton
               onClick={onSave}
-              disabled={
-                !hasUnsavedChanges ||
-                Object.keys(validationErrors).length > 0 ||
-                isSaving
-              }
+              disabled={!hasUnsavedChanges || Object.keys(validationErrors).length > 0 || isSaving}
               primary
             >
               {isSaving ? (
@@ -541,9 +451,7 @@ export default function CompletedConfigView({
       {/* Email Account */}
       <Card className="border-none gap-0 bg-[var(--card)]">
         <CardHeader className=" border-none">
-          <CardTitle className="text-md font-semibold border-none">
-            Email Account
-          </CardTitle>
+          <CardTitle className="text-md font-semibold border-none">Email Account</CardTitle>
         </CardHeader>
         <CardContent className="">
           {currentInbox.emailAccount ? (
@@ -557,8 +465,7 @@ export default function CompletedConfigView({
                     {currentInbox.emailAccount.displayName || "No display name"}
                   </div>
                   <div className="text-[13px] text-[var(--muted-foreground)]/60">
-                    IMAP: {currentInbox.emailAccount.imapHost}:
-                    {currentInbox.emailAccount.imapPort}
+                    IMAP: {currentInbox.emailAccount.imapHost}:{currentInbox.emailAccount.imapPort}
                   </div>
                 </div>
                 <ActionButton onClick={onReconfigure} primary>
@@ -569,9 +476,7 @@ export default function CompletedConfigView({
           ) : (
             <div className="text-center py-8 flex flex-col items-center justify-center">
               <HiEnvelope className="w-12 h-12 mx-auto text-[var(--muted-foreground)]/40 mb-3" />
-              <p className="text-[var(--muted-foreground)]/70 mb-4">
-                No email account configured
-              </p>
+              <p className="text-[var(--muted-foreground)]/70 mb-4">No email account configured</p>
               <Button
                 onClick={onReconfigure}
                 className="bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white"

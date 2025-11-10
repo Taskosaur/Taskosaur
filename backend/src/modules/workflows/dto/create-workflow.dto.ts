@@ -25,8 +25,7 @@ export class CreateWorkflowDto {
   description?: string;
 
   @ApiProperty({
-    description:
-      'Whether this workflow should be set as the default workflow for the organization',
+    description: 'Whether this workflow should be set as the default workflow for the organization',
     example: false,
     default: false,
     required: false,
@@ -36,8 +35,7 @@ export class CreateWorkflowDto {
   isDefault?: boolean;
 
   @ApiProperty({
-    description:
-      'The unique identifier of the organization this workflow belongs to',
+    description: 'The unique identifier of the organization this workflow belongs to',
     example: 'c9e4f5d6-3456-7890-1bcd-ef0123456789',
     format: 'uuid',
     required: true,

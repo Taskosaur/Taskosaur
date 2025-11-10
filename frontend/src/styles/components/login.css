@@ -306,7 +306,7 @@
   .login-form-panel {
     @apply p-12;
   }
-  
+
   .login-form-wrapper {
     @apply max-w-lg;
   }
@@ -317,27 +317,27 @@
   .login-form-header {
     @apply space-y-2;
   }
-  
+
   .login-form-title {
     @apply text-xl sm:text-2xl lg:text-2xl;
   }
-  
+
   .login-form-subtitle {
     @apply text-xs sm:text-sm;
   }
-  
+
   .login-form-container {
     @apply space-y-4;
   }
-  
+
   .login-form {
     @apply space-y-3;
   }
-  
+
   .login-divider-container {
     @apply my-4;
   }
-  
+
   .login-footer {
     @apply mt-4;
   }
@@ -348,11 +348,11 @@
   .login-form-title {
     @apply text-xl;
   }
-  
+
   .login-form-subtitle {
     @apply text-sm;
   }
-  
+
   .login-input,
   .login-password-input {
     @apply text-base;

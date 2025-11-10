@@ -16,11 +16,8 @@ import { TaskDependency, DependencyType } from '@prisma/client';
 export class TaskDependenciesService {
   constructor(private prisma: PrismaService) {}
 
-  async create(
-    createTaskDependencyDto: CreateTaskDependencyDto,
-  ): Promise<TaskDependency> {
-    const { dependentTaskId, blockingTaskId, createdBy, type } =
-      createTaskDependencyDto;
+  async create(createTaskDependencyDto: CreateTaskDependencyDto): Promise<TaskDependency> {
+    const { dependentTaskId, blockingTaskId, createdBy, type } = createTaskDependencyDto;
 
     // Prevent self-dependency
     if (dependentTaskId === blockingTaskId) {
@@ -34,15 +31,11 @@ export class TaskDependenciesService {
     ]);
 
     if (!dependentTask) {
-      throw new NotFoundException(
-        `Dependent task with ID ${dependentTaskId} not found`,
-      );
+      throw new NotFoundException(`Dependent task with ID ${dependentTaskId} not found`);
     }
 
     if (!blockingTask) {
-      throw new NotFoundException(
-        `Blocking task with ID ${blockingTaskId} not found`,
-      );
+      throw new NotFoundException(`Blocking task with ID ${blockingTaskId} not found`);
     }
 
     // Check if dependency already exists
@@ -93,9 +86,7 @@ export class TaskDependenciesService {
     });
   }
 
-  async createBulk(
-    bulkCreateDto: BulkCreateDependenciesDto,
-  ): Promise<TaskDependency[]> {
+  async createBulk(bulkCreateDto: BulkCreateDependenciesDto): Promise<TaskDependency[]> {
     const results: TaskDependency[] = [];
 
     for (const dependencyDto of bulkCreateDto.dependencies) {
@@ -238,16 +229,11 @@ export class TaskDependenciesService {
   ): Promise<TaskDependency> {
     const existingDependency = await this.findOne(id);
 
-    if (
-      updateTaskDependencyDto.dependentTaskId ||
-      updateTaskDependencyDto.blockingTaskId
-    ) {
+    if (updateTaskDependencyDto.dependentTaskId || updateTaskDependencyDto.blockingTaskId) {
       const newDependentId =
-        updateTaskDependencyDto.dependentTaskId ||
-        existingDependency.dependentTaskId;
+        updateTaskDependencyDto.dependentTaskId || existingDependency.dependentTaskId;
       const newBlockingId =
-        updateTaskDependencyDto.blockingTaskId ||
-        existingDependency.blockingTaskId;
+        updateTaskDependencyDto.blockingTaskId || existingDependency.blockingTaskId;
 
       // Prevent self-dependency
       if (newDependentId === newBlockingId) {
@@ -293,10 +279,7 @@ export class TaskDependenciesService {
     });
   }
 
-  async removeByTasks(
-    dependentTaskId: string,
-    blockingTaskId: string,
-  ): Promise<void> {
+  async removeByTasks(dependentTaskId: string, blockingTaskId: string): Promise<void> {
     const dependency = await this.prisma.taskDependency.findUnique({
       where: {
         dependentTaskId_blockingTaskId: {
@@ -315,10 +298,7 @@ export class TaskDependenciesService {
     });
   }
 
-  async validateNoCycles(
-    dependentTaskId: string,
-    blockingTaskId: string,
-  ): Promise<void> {
+  async validateNoCycles(dependentTaskId: string, blockingTaskId: string): Promise<void> {
     // Use DFS to detect cycles
     const visited = new Set<string>();
     const recursionStack = new Set<string>();

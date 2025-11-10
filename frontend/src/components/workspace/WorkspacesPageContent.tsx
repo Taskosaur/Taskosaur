@@ -34,9 +34,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export default function WorkspacesPageContent({
-  organizationId,
-}: WorkspacesPageContentProps) {
+export default function WorkspacesPageContent({ organizationId }: WorkspacesPageContentProps) {
   const {
     workspaces,
     isLoading,
@@ -58,9 +56,7 @@ export default function WorkspacesPageContent({
   const fetchData = useCallback(
     async (searchTerm?: string) => {
       if (!currentOrganization) {
-        toast.error(
-          "No organization selected. Please select an organization first."
-        );
+        toast.error("No organization selected. Please select an organization first.");
         return;
       }
 
@@ -68,10 +64,7 @@ export default function WorkspacesPageContent({
         await getWorkspacesByOrganization(currentOrganization, searchTerm);
       } catch (error) {
         if (error instanceof Error) {
-          if (
-            error.message?.includes("401") ||
-            error.message?.includes("Unauthorized")
-          ) {
+          if (error.message?.includes("401") || error.message?.includes("Unauthorized")) {
             toast.error("Authentication required. Please log in again.");
           } else {
             toast.error(`Failed to load workspaces: ${error.message}`);
@@ -114,12 +107,9 @@ export default function WorkspacesPageContent({
   }, [currentOrganization]);
 
   // Search change handler
-  const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchQuery(e.target.value);
-    },
-    []
-  );
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, []);
 
   const handleWorkspaceCreated = useCallback(async () => {
     try {
@@ -127,9 +117,7 @@ export default function WorkspacesPageContent({
       toast.success("Workspace created successfully!");
     } catch (error) {
       console.error("Error refreshing workspaces after creation:", error);
-      toast.error(
-        "Workspace created but failed to refresh list. Please refresh the page."
-      );
+      toast.error("Workspace created but failed to refresh list. Please refresh the page.");
     }
   }, [searchQuery]);
   const clearSearch = useCallback(() => {
@@ -137,9 +125,7 @@ export default function WorkspacesPageContent({
   }, []);
 
   if (isLoading) {
-    return (
-      <CardsSkeleton />
-    );
+    return <CardsSkeleton />;
   }
 
   if (error) {
@@ -188,11 +174,7 @@ export default function WorkspacesPageContent({
                   onWorkspaceCreated={handleWorkspaceCreated}
                   refetchWorkspaces={handleWorkspaceCreated}
                 >
-                  <ActionButton
-                    primary
-                    showPlusIcon
-                    onClick={() => setIsDialogOpen(true)}
-                  >
+                  <ActionButton primary showPlusIcon onClick={() => setIsDialogOpen(true)}>
                     New Workspace
                   </ActionButton>
                 </NewWorkspaceDialog>
@@ -206,9 +188,7 @@ export default function WorkspacesPageContent({
               icon={<HiSearch size={24} />}
               title="No workspaces found"
               description={`No workspaces match "${searchQuery}". Try different search terms.`}
-              action={
-                <ActionButton onClick={clearSearch}>Clear Search</ActionButton>
-              }
+              action={<ActionButton onClick={clearSearch}>Clear Search</ActionButton>}
             />
           ) : (
             <EmptyState
@@ -221,11 +201,7 @@ export default function WorkspacesPageContent({
               }
               action={
                 hasAccess && (
-                  <ActionButton
-                    primary
-                    showPlusIcon
-                    onClick={() => setIsDialogOpen(true)}
-                  >
+                  <ActionButton primary showPlusIcon onClick={() => setIsDialogOpen(true)}>
                     Create Workspace
                   </ActionButton>
                 )

@@ -18,10 +18,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { LabelsService } from './labels.service';
 import { CreateLabelDto } from './dto/create-label.dto';
 import { UpdateLabelDto } from './dto/update-label.dto';
-import {
-  AssignLabelDto,
-  AssignMultipleLabelsDto,
-} from './dto/assign-label.dto';
+import { AssignLabelDto, AssignMultipleLabelsDto } from './dto/assign-label.dto';
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
@@ -77,12 +74,8 @@ export class LabelsController {
 
   @Post('assign-multiple')
   @HttpCode(HttpStatus.CREATED)
-  assignMultipleLabelsToTask(
-    @Body() assignMultipleLabelsDto: AssignMultipleLabelsDto,
-  ) {
-    return this.labelsService.assignMultipleLabelsToTask(
-      assignMultipleLabelsDto,
-    );
+  assignMultipleLabelsToTask(@Body() assignMultipleLabelsDto: AssignMultipleLabelsDto) {
+    return this.labelsService.assignMultipleLabelsToTask(assignMultipleLabelsDto);
   }
 
   @Get('task/:taskId')

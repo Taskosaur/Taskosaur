@@ -28,7 +28,7 @@ export function EntityCard({
   const Inner = () => (
     <Card
       onClick={onClick}
-      className={`bg-[var(--card)] rounded-md shadow-sm group hover:shadow-lg transition-all duration-200 border-none ${onClick || href ? 'cursor-pointer' : ''} p-4 h-44 ${className}`}
+      className={`bg-[var(--card)] rounded-md shadow-sm group hover:shadow-lg transition-all duration-200 border-none ${onClick || href ? "cursor-pointer" : ""} p-4 h-44 ${className}`}
     >
       {/* Top Row */}
       <div className="flex items-start gap-3">
@@ -38,9 +38,7 @@ export function EntityCard({
             {heading}
           </div>
           {subheading && (
-            <div className="text-xs text-[var(--muted-foreground)] line-clamp-1">
-              {subheading}
-            </div>
+            <div className="text-xs text-[var(--muted-foreground)] line-clamp-1">{subheading}</div>
           )}
         </div>
         {role && (

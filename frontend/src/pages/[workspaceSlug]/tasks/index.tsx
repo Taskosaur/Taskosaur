@@ -18,14 +18,8 @@ import ActionButton from "@/components/common/ActionButton";
 import TabView from "@/components/tasks/TabView";
 import Pagination from "@/components/common/Pagination";
 import { ColumnManager } from "@/components/tasks/ColumnManager";
-import SortingManager, {
-  SortField,
-  SortOrder,
-} from "@/components/tasks/SortIngManager";
-import {
-  FilterDropdown,
-  useGenericFilters,
-} from "@/components/common/FilterDropdown";
+import SortingManager, { SortField, SortOrder } from "@/components/tasks/SortIngManager";
+import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
 import { CheckSquare, Flame, Folder, User, Users } from "lucide-react";
 import { TaskPriorities } from "@/utils/data/taskData";
 import Tooltip from "@/components/common/ToolTip";
@@ -73,17 +67,13 @@ function WorkspaceTasksContent() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [localError, setLocalError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
-  const [currentView, setCurrentView] = useState<"list" | "kanban" | "gantt">(
-    () => {
-      const type =
-        typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search).get("type")
-          : null;
-      return type === "list" || type === "gantt" || type === "kanban"
-        ? type
-        : "list";
-    }
-  );
+  const [currentView, setCurrentView] = useState<"list" | "kanban" | "gantt">(() => {
+    const type =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("type")
+        : null;
+    return type === "list" || type === "gantt" || type === "kanban" ? type : "list";
+  });
   const [ganttViewMode, setGanttViewMode] = useState<ViewMode>("days");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -107,9 +97,7 @@ function WorkspaceTasksContent() {
 
   const handleTaskSelect = (taskId: string) => {
     setSelectedTasks((prev) =>
-      prev.includes(taskId)
-        ? prev.filter((id) => id !== taskId)
-        : [...prev, taskId]
+      prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]
     );
   };
 
@@ -254,9 +242,7 @@ function WorkspaceTasksContent() {
       return { ws };
     } catch (error) {
       console.error("LoadInitialData error:", error);
-      setLocalError(
-        error instanceof Error ? error.message : "Failed to load initial data"
-      );
+      setLocalError(error instanceof Error ? error.message : "Failed to load initial data");
     }
   }, [isAuthenticated, workspaceSlug, router]);
 
@@ -316,9 +302,7 @@ function WorkspaceTasksContent() {
       await getAllTasks(workspace.organizationId, params);
     } catch (error) {
       console.error("Failed to load tasks:", error);
-      setLocalError(
-        error instanceof Error ? error.message : "Failed to load tasks"
-      );
+      setLocalError(error instanceof Error ? error.message : "Failed to load tasks");
     } finally {
       setIsInitialLoad(false);
     }
@@ -371,12 +355,7 @@ function WorkspaceTasksContent() {
     if (workspace?.organizationId && workspace?.id) {
       loadTasks();
     }
-  }, [
-    workspace?.organizationId,
-    workspace?.id,
-    selectedAssignees,
-    selectedReporters,
-  ]);
+  }, [workspace?.organizationId, workspace?.id, selectedAssignees, selectedReporters]);
 
   const previousFiltersRef = useRef({
     page: currentPage,
@@ -398,8 +377,7 @@ function WorkspaceTasksContent() {
       priorities: selectedPriorities.join(","),
     };
     const filtersChanged =
-      JSON.stringify(currentFilters) !==
-      JSON.stringify(previousFiltersRef.current);
+      JSON.stringify(currentFilters) !== JSON.stringify(previousFiltersRef.current);
     previousFiltersRef.current = currentFilters;
     if (!firstRenderRef.current && filtersChanged && validateRequiredData()) {
       loadTasks();
@@ -438,8 +416,7 @@ function WorkspaceTasksContent() {
         selected: selectedStatuses.includes(status.id),
         count: tasks.filter((task) => {
           const taskStatusId =
-            task.statusId ||
-            (typeof task.status === "object" ? task.status?.id : task.status);
+            task.statusId || (typeof task.status === "object" ? task.status?.id : task.status);
           return taskStatusId === status.id;
         }).length,
         color: status.color || "#6b7280",
@@ -469,9 +446,7 @@ function WorkspaceTasksContent() {
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
             Array.isArray(task.assignees)
-              ? task.assignees.some(
-                  (assignee) => assignee.id === member.user.id
-                )
+              ? task.assignees.some((assignee) => assignee.id === member.user.id)
               : false
           ).length
         : 0,
@@ -488,9 +463,7 @@ function WorkspaceTasksContent() {
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
             Array.isArray(task.reporters)
-              ? task.reporters.some(
-                  (reporter) => reporter.id === member.user.id
-                )
+              ? task.reporters.some((reporter) => reporter.id === member.user.id)
               : false
           ).length
         : 0,
@@ -500,9 +473,7 @@ function WorkspaceTasksContent() {
 
   const toggleProject = useCallback((id: string) => {
     setSelectedProjects((prev) => {
-      const newSelection = prev.includes(id)
-        ? prev.filter((x) => x !== id)
-        : [...prev, id];
+      const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
       return newSelection;
     });
     setCurrentPage(1);
@@ -510,9 +481,7 @@ function WorkspaceTasksContent() {
 
   const toggleStatus = useCallback((id: string) => {
     setSelectedStatuses((prev) => {
-      const newSelection = prev.includes(id)
-        ? prev.filter((x) => x !== id)
-        : [...prev, id];
+      const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
       return newSelection;
     });
     setCurrentPage(1);
@@ -520,9 +489,7 @@ function WorkspaceTasksContent() {
 
   const togglePriority = useCallback((id: string) => {
     setSelectedPriorities((prev) => {
-      const newSelection = prev.includes(id)
-        ? prev.filter((x) => x !== id)
-        : [...prev, id];
+      const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
       return newSelection;
     });
     setCurrentPage(1);
@@ -551,10 +518,7 @@ function WorkspaceTasksContent() {
           setAvailableStatuses(statuses || []);
           setStatusFilterEnabled(true);
         } catch (error) {
-          console.error(
-            "Failed to fetch statuses for selected project:",
-            error
-          );
+          console.error("Failed to fetch statuses for selected project:", error);
           setAvailableStatuses([]);
           setStatusFilterEnabled(false);
         }
@@ -591,9 +555,7 @@ function WorkspaceTasksContent() {
         onSelectAll: statusFilterEnabled
           ? () => setSelectedStatuses(statusFilters.map((s) => s.id))
           : undefined,
-        onClearAll: statusFilterEnabled
-          ? () => setSelectedStatuses([])
-          : undefined,
+        onClearAll: statusFilterEnabled ? () => setSelectedStatuses([]) : undefined,
         disabled: !statusFilterEnabled,
       }),
       createSection({
@@ -604,8 +566,7 @@ function WorkspaceTasksContent() {
         selectedIds: selectedPriorities,
         searchable: false,
         onToggle: togglePriority,
-        onSelectAll: () =>
-          setSelectedPriorities(priorityFilters.map((p) => p.id)),
+        onSelectAll: () => setSelectedPriorities(priorityFilters.map((p) => p.id)),
         onClearAll: () => setSelectedPriorities([]),
       }),
       createSection({
@@ -616,8 +577,7 @@ function WorkspaceTasksContent() {
         selectedIds: selectedAssignees,
         searchable: true,
         onToggle: toggleAssignee,
-        onSelectAll: () =>
-          setSelectedAssignees(assigneeFilters.map((a) => a.id)),
+        onSelectAll: () => setSelectedAssignees(assigneeFilters.map((a) => a.id)),
         onClearAll: () => setSelectedAssignees([]),
       }),
       createSection({
@@ -628,8 +588,7 @@ function WorkspaceTasksContent() {
         selectedIds: selectedReporters,
         searchable: true,
         onToggle: toggleReporter,
-        onSelectAll: () =>
-          setSelectedReporters(reporterFilters.map((r) => r.id)),
+        onSelectAll: () => setSelectedReporters(reporterFilters.map((r) => r.id)),
         onClearAll: () => setSelectedReporters([]),
       }),
     ],
@@ -670,10 +629,7 @@ function WorkspaceTasksContent() {
   }, []);
 
   const handleAddColumn = (columnId: string) => {
-    const columnConfigs: Record<
-      string,
-      { label: string; type: ColumnConfig["type"] }
-    > = {
+    const columnConfigs: Record<string, { label: string; type: ColumnConfig["type"] }> = {
       description: { label: "Description", type: "text" },
       taskNumber: { label: "Task Number", type: "number" },
       timeline: { label: "Timeline", type: "dateRange" },
@@ -752,18 +708,12 @@ function WorkspaceTasksContent() {
     const sorted = [...tasks].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
-      if (
-        ["createdAt", "updatedAt", "completedAt", "timeline"].includes(
-          sortField
-        )
-      ) {
+      if (["createdAt", "updatedAt", "completedAt", "timeline"].includes(sortField)) {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
       }
       if (typeof aValue === "string" && typeof bValue === "string") {
-        return sortOrder === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
+        return sortOrder === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
       }
       if (typeof aValue === "number" && typeof bValue === "number") {
         return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
@@ -818,17 +768,14 @@ function WorkspaceTasksContent() {
             selectedTasks={selectedTasks}
             onTaskSelect={handleTaskSelect}
             showBulkActionBar={
-              hasAccess ||
-              userAccess?.role === "OWNER" ||
-              userAccess?.role === "MANAGER"
+              hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER"
             }
           />
         );
     }
   };
 
-  const showPagination =
-    currentView === "list" && tasks.length > 0 && pagination.totalPages > 1;
+  const showPagination = currentView === "list" && tasks.length > 0 && pagination.totalPages > 1;
 
   if (error) return <ErrorState error={error} onRetry={handleRetry} />;
 
@@ -894,9 +841,7 @@ function WorkspaceTasksContent() {
                     await handleTaskCreated();
                   } catch (error) {
                     const errorMessage =
-                      error instanceof Error
-                        ? error.message
-                        : "Failed to refresh tasks";
+                      error instanceof Error ? error.message : "Failed to refresh tasks";
                     console.error("Error creating task:", errorMessage);
                     await loadTasks();
                   }
@@ -955,15 +900,9 @@ function WorkspaceTasksContent() {
                 </div>
               )}
               {currentView === "kanban" &&
-                (hasAccess ||
-                  userAccess?.role === "OWNER" ||
-                  userAccess?.role === "MANAGER") && (
+                (hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER") && (
                   <div className="flex items-center gap-2">
-                    <Tooltip
-                      content="Manage Columns"
-                      position="top"
-                      color="primary"
-                    >
+                    <Tooltip content="Manage Columns" position="top" color="primary">
                       <ColumnManager
                         currentView={currentView}
                         availableColumns={columns}
@@ -979,11 +918,7 @@ function WorkspaceTasksContent() {
       </div>
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto rounded-md">
-        {error ? (
-          <ErrorState error={error} onRetry={handleRetry} />
-        ) : (
-          renderContent()
-        )}
+        {error ? <ErrorState error={error} onRetry={handleRetry} /> : renderContent()}
       </div>
       {/* Sticky Pagination */}
       {showPagination && (

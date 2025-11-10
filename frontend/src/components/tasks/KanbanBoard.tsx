@@ -87,15 +87,13 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { isAuthenticated } = useAuth();
   const [localKanbanData, setLocalKanbanData] = useState<TasksByStatus[]>(kanbanData);
-  
-  const [loadingStatuses, setLoadingStatuses] = useState<Set<string>>(new Set());
 
+  const [loadingStatuses, setLoadingStatuses] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setLocalKanbanData(kanbanData);
   }, [kanbanData]);
 
- 
   useEffect(() => {
     if (!currentTask || !isEditModalOpen) return;
 
@@ -127,18 +125,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     });
   }, [currentTask, isEditModalOpen, onKanbanUpdate]);
 
-  const {
-    dragState,
-    handleDragStart,
-    handleDragOver,
-    handleDrop,
-    handleDragEnd,
-  } = useDragAndDrop({
-    onDrop: async (
-      task: KanbanTask,
-      fromStatusId: string,
-      toStatusId: string
-    ) => {
+  const { dragState, handleDragStart, handleDragOver, handleDrop, handleDragEnd } = useDragAndDrop({
+    onDrop: async (task: KanbanTask, fromStatusId: string, toStatusId: string) => {
       try {
         await updateTaskStatus(task.id, toStatusId);
         onTaskMove?.(task.id, toStatusId);
@@ -163,9 +151,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         projectId: projectId,
         statusId,
         reporterIds: data.reporterId ? [data.reporterId] : [],
-        dueDate: data.dueDate
-          ? new Date(data.dueDate + "T17:00:00.000Z").toISOString()
-          : undefined,
+        dueDate: data.dueDate ? new Date(data.dueDate + "T17:00:00.000Z").toISOString() : undefined,
       });
       onRefresh?.();
     } catch (err) {
@@ -187,7 +173,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     // Close the modal first
     setIsEditModalOpen(false);
     setSelectedTask(null);
-    
+
     onRefresh?.();
   }, [onRefresh]);
 
@@ -262,7 +248,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         projectId={projectId}
         onStatusUpdated={handleStatusUpdated}
       />
-      
+
       {isEditModalOpen && (
         <CustomModal
           isOpen={isEditModalOpen}
@@ -277,7 +263,6 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
           width="w-full md:w-[80%] lg:w-[60%]"
           position="items-start justify-end"
           closeOnOverlayClick={true}
-        
         >
           {selectedTask && (
             <TaskDetailClient
@@ -300,4 +285,3 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 };
 
 export { KanbanBoard };
-

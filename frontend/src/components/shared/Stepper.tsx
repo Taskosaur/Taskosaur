@@ -17,7 +17,6 @@ export default function Stepper({ currentStep, hasInbox }: StepperProps) {
     { number: 1, label: "Inbox Setup", showWhen: true },
     { number: 2, label: "Provider", showWhen: true },
     { number: 3, label: "Success", showWhen: true },
-
   ];
 
   const visibleSteps = allSteps.filter((step) => step.showWhen);
@@ -30,7 +29,7 @@ export default function Stepper({ currentStep, hasInbox }: StepperProps) {
           <div
             className="h-full bg-[var(--primary)] transition-all duration-500 ease-in-out"
             style={{
-              width: `${((visibleSteps.findIndex(step => step.number === currentStep)) / (visibleSteps.length - 1)) * 100}%`,
+              width: `${(visibleSteps.findIndex((step) => step.number === currentStep) / (visibleSteps.length - 1)) * 100}%`,
             }}
           />
         </div>
@@ -40,7 +39,7 @@ export default function Stepper({ currentStep, hasInbox }: StepperProps) {
           const displayNumber = stepItem.number;
           const isCompleted = currentStep > stepItem.number;
           const isCurrent = currentStep === stepItem.number;
-          
+
           return (
             <div
               key={stepItem.label}
@@ -52,8 +51,8 @@ export default function Stepper({ currentStep, hasInbox }: StepperProps) {
                   isCompleted
                     ? "bg-[var(--primary)] text-[var(--background)] border-[var(--primary)] shadow-md"
                     : isCurrent
-                    ? "bg-[var(--primary)] text-[var(--background)] border-[var(--primary)] shadow-lg scale-110"
-                    : "bg-[var(--muted)] text-[var(--primary)] border-[var(--border)]"
+                      ? "bg-[var(--primary)] text-[var(--background)] border-[var(--primary)] shadow-lg scale-110"
+                      : "bg-[var(--muted)] text-[var(--primary)] border-[var(--border)]"
                 }`}
               >
                 {isCompleted ? <HiCheck className="w-4 h-4" /> : displayNumber}
@@ -63,8 +62,8 @@ export default function Stepper({ currentStep, hasInbox }: StepperProps) {
                   isCurrent
                     ? "text-[var(--foreground)]"
                     : isCompleted
-                    ? "text-[var(--primary)]"
-                    : "text-[var(--muted-foreground)]"
+                      ? "text-[var(--primary)]"
+                      : "text-[var(--muted-foreground)]"
                 }`}
               >
                 {stepItem.label}

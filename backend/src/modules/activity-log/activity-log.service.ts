@@ -69,9 +69,9 @@ export class ActivityLogService {
       });
 
       return [
-        ...task?.assignees.map((assignee) => assignee.id) || [],
-        ...task?.reporters.map((reporter) => reporter.id) || [],
-      ].filter(Boolean) as string[];
+        ...(task?.assignees.map((assignee) => assignee.id) || []),
+        ...(task?.reporters.map((reporter) => reporter.id) || []),
+      ].filter(Boolean);
     } catch (error) {
       console.error('Error getting task participants:', error);
       return [];
@@ -122,12 +122,7 @@ export class ActivityLogService {
     }
   }
 
-  async logTaskStatusChanged(
-    task: any,
-    oldStatus: string,
-    newStatus: string,
-    userId: string,
-  ) {
+  async logTaskStatusChanged(task: any, oldStatus: string, newStatus: string, userId: string) {
     return this.logActivity({
       type: 'TASK_STATUS_CHANGED',
       description: `Changed task "${task.title}" status from "${oldStatus}" to "${newStatus}"`,
@@ -156,7 +151,7 @@ export class ActivityLogService {
   ): Promise<string | undefined> {
     try {
       switch (entityType.toLowerCase()) {
-        case 'task':
+        case 'task': {
           const task = await this.prisma.task.findUnique({
             where: { id: entityId },
             select: {
@@ -172,8 +167,9 @@ export class ActivityLogService {
             },
           });
           return task?.project?.workspace?.organizationId || undefined;
+        }
 
-        case 'project':
+        case 'project': {
           const project = await this.prisma.project.findUnique({
             where: { id: entityId },
             select: {
@@ -185,13 +181,15 @@ export class ActivityLogService {
             },
           });
           return project?.workspace?.organizationId || undefined;
+        }
 
-        case 'workspace':
+        case 'workspace': {
           const workspace = await this.prisma.workspace.findUnique({
             where: { id: entityId },
             select: { organizationId: true },
           });
           return workspace?.organizationId || undefined;
+        }
 
         case 'organization':
           return entityId;
@@ -206,71 +204,70 @@ export class ActivityLogService {
   }
 
   async getTaskActivities(
-  taskId: string,
-  page: number = 1,
-  limit: number = 50,
-): Promise<{
-  activities: any[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalCount: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
-  };
-}> {
-  // Validate task exists
-  const taskExists = await this.prisma.task.findFirst({
-    where: { id: taskId },
-  });
+    taskId: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<{
+    activities: any[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalCount: number;
+      hasNextPage: boolean;
+      hasPrevPage: boolean;
+    };
+  }> {
+    // Validate task exists
+    const taskExists = await this.prisma.task.findFirst({
+      where: { id: taskId },
+    });
 
-  if (!taskExists) {
-    throw new Error('Task not found');
-  }
+    if (!taskExists) {
+      throw new Error('Task not found');
+    }
 
-  // Simple where clause - just match entityId with taskId
-  const whereClause = {
-    entityId: taskId,
-  };
+    // Simple where clause - just match entityId with taskId
+    const whereClause = {
+      entityId: taskId,
+    };
 
-  // Get total count for pagination
-  const totalCount = await this.prisma.activityLog.count({
-    where: whereClause,
-  });
+    // Get total count for pagination
+    const totalCount = await this.prisma.activityLog.count({
+      where: whereClause,
+    });
 
-  const totalPages = Math.ceil(totalCount / limit);
-  const skip = (page - 1) * limit;
+    const totalPages = Math.ceil(totalCount / limit);
+    const skip = (page - 1) * limit;
 
-  // Fetch activities with user information
-  const activities = await this.prisma.activityLog.findMany({
-    where: whereClause,
-    include: {
-      user: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          avatar: true,
+    // Fetch activities with user information
+    const activities = await this.prisma.activityLog.findMany({
+      where: whereClause,
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            avatar: true,
+          },
         },
       },
-    },
-    orderBy: { createdAt: 'desc' },
-    skip,
-    take: limit,
-  });
-  return {
-    activities,
-    pagination: {
-      currentPage: page,
-      totalPages,
-      totalCount,
-      hasNextPage: page < totalPages,
-      hasPrevPage: page > 1,
-    },
-  };
-}
-
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    });
+    return {
+      activities,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    };
+  }
 
   // Helper method to get related activity data
   private getRelatedActivityData(activity: any, comment?: any) {
@@ -515,12 +512,10 @@ export class ActivityLogService {
       {} as Record<string, number>,
     );
 
-    const activitiesByDate = Object.entries(dateActivityMap).map(
-      ([date, count]) => ({
-        date,
-        count,
-      }),
-    );
+    const activitiesByDate = Object.entries(dateActivityMap).map(([date, count]) => ({
+      date,
+      count,
+    }));
 
     return {
       totalActivities,

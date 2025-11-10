@@ -71,11 +71,7 @@ const Pagination: React.FC<PaginationProps> = ({
         variant="outline"
         size="sm"
         className="border-none bg-[var(--card)]"
-        onClick={() =>
-          onPageChange(
-            Math.min(pagination.totalPages, pagination.currentPage + 1)
-          )
-        }
+        onClick={() => onPageChange(Math.min(pagination.totalPages, pagination.currentPage + 1))}
         disabled={!pagination.hasNextPage}
       >
         <HiChevronRight size={16} />

@@ -8,13 +8,7 @@ interface PageHeaderProps {
   className?: string;
 }
 
-export function PageHeader({
-  icon,
-  title,
-  description,
-  actions,
-  className = "",
-}: PageHeaderProps) {
+export function PageHeader({ icon, title, description, actions, className = "" }: PageHeaderProps) {
   return (
     <header
       className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${className}`}
@@ -25,9 +19,7 @@ export function PageHeader({
           {title}
         </h1>
         {description && (
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">
-            {description}
-          </p>
+          <p className="text-sm text-[var(--muted-foreground)] mt-1">{description}</p>
         )}
       </div>
 

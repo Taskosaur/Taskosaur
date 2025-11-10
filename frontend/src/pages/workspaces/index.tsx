@@ -4,5 +4,5 @@ import { TokenManager } from "@/lib/api";
 export default function WorkspacesPage() {
   const orgId = TokenManager.getCurrentOrgId();
 
-  return <WorkspacesPageContent organizationId={orgId}/>;
+  return <WorkspacesPageContent organizationId={orgId} />;
 }

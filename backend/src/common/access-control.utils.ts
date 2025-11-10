@@ -20,7 +20,7 @@ export interface AccessResult {
 
 @Injectable()
 export class AccessControlService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   /**
    * Check if user is SUPER_ADMIN by looking up in database
@@ -45,11 +45,7 @@ export class AccessControlService {
     // Check if user is SUPER_ADMIN first
     const isSuperAdmin = await this.checkSuperAdmin(userId);
     if (isSuperAdmin) {
-      return this.createSuperAdminAccess(
-        userId,
-        resourceId,
-        scope.toUpperCase() as any,
-      );
+      return this.createSuperAdminAccess(userId, resourceId, scope.toUpperCase() as any);
     }
 
     // Validate scope
@@ -70,7 +66,7 @@ export class AccessControlService {
       case 'task':
         return this.getTaskAccess(resourceId, userId);
       default:
-        throw new BadRequestException(`Unsupported scope: ${scope}`);
+        throw new BadRequestException(`Unsupported scope: ${String(scope)}`);
     }
   }
 
@@ -127,13 +123,10 @@ export class AccessControlService {
       select: { role: true },
     });
 
-    if (!member)
-      throw new ForbiddenException('Not a member of this organization');
+    if (!member) throw new ForbiddenException('Not a member of this organization');
 
-    const isElevated =
-      member.role === Role.MANAGER || member.role === Role.OWNER;
-    const canChange =
-      member.role === Role.MANAGER || member.role === Role.OWNER;
+    const isElevated = member.role === Role.MANAGER || member.role === Role.OWNER;
+    const canChange = member.role === Role.MANAGER || member.role === Role.OWNER;
 
     return {
       isElevated,
@@ -149,10 +142,7 @@ export class AccessControlService {
   /**
    * Get workspace access for a user
    */
-  async getWorkspaceAccess(
-    workspaceId: string,
-    userId: string,
-  ): Promise<AccessResult> {
+  async getWorkspaceAccess(workspaceId: string, userId: string): Promise<AccessResult> {
     // Check if user is SUPER_ADMIN
     const isSuperAdmin = await this.checkSuperAdmin(userId);
     if (isSuperAdmin) {
@@ -168,7 +158,6 @@ export class AccessControlService {
 
     if (!workspace) throw new NotFoundException('Workspace not found');
 
-
     const wsMember = await this.prisma.workspaceMember.findUnique({
       where: { userId_workspaceId: { userId, workspaceId } },
       select: { role: true },
@@ -179,10 +168,8 @@ export class AccessControlService {
     }
 
     const effectiveRole = wsMember?.role || Role.VIEWER;
-    const isElevated =
-      effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
-    const canChange =
-      effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
+    const isElevated = effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
+    const canChange = effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
 
     return {
       isElevated,
@@ -198,10 +185,7 @@ export class AccessControlService {
   /**
    * Get project access for a user
    */
-  async getProjectAccess(
-    projectId: string,
-    userId: string,
-  ): Promise<AccessResult> {
+  async getProjectAccess(projectId: string, userId: string): Promise<AccessResult> {
     // Check if user is SUPER_ADMIN
     const isSuperAdmin = await this.checkSuperAdmin(userId);
     if (isSuperAdmin) {
@@ -232,9 +216,7 @@ export class AccessControlService {
         select: { role: true },
       });
       if (projectMember) {
-        const isElevated =
-          projectMember.role === Role.MANAGER ||
-          projectMember.role === Role.OWNER;
+        const isElevated = projectMember.role === Role.MANAGER || projectMember.role === Role.OWNER;
         return {
           isElevated,
           role: projectMember.role,
@@ -266,12 +248,9 @@ export class AccessControlService {
       throw new ForbiddenException('Not a member of this project');
     }
 
-    const effectiveRole =
-      projectMember?.role || Role.VIEWER;
-    const isElevated =
-      effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
-    const canChange =
-      effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
+    const effectiveRole = projectMember?.role || Role.VIEWER;
+    const isElevated = effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
+    const canChange = effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
 
     return {
       isElevated,
@@ -338,10 +317,7 @@ export class AccessControlService {
       select: { role: true },
     });
 
-    if (
-      orgMember &&
-      (orgMember.role === Role.MANAGER || orgMember.role === Role.OWNER)
-    ) {
+    if (orgMember && (orgMember.role === Role.MANAGER || orgMember.role === Role.OWNER)) {
       return {
         isElevated: true,
         role: orgMember.role,
@@ -359,10 +335,7 @@ export class AccessControlService {
       select: { role: true },
     });
 
-    if (
-      wsMember &&
-      (wsMember.role === Role.MANAGER || wsMember.role === Role.OWNER)
-    ) {
+    if (wsMember && (wsMember.role === Role.MANAGER || wsMember.role === Role.OWNER)) {
       return {
         isElevated: true,
         role: wsMember.role,
@@ -384,8 +357,7 @@ export class AccessControlService {
       throw new ForbiddenException("Not a member of this task's project");
     }
 
-    const effectiveRole =
-      projectMember?.role || wsMember?.role || orgMember?.role || Role.VIEWER;
+    const effectiveRole = projectMember?.role || wsMember?.role || orgMember?.role || Role.VIEWER;
     const isElevated =
       effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER || task.createdBy === userId;
     const canChange =
@@ -405,10 +377,7 @@ export class AccessControlService {
   /**
    * Get project access by slug
    */
-  async getProjectAccessBySlug(
-    slug: string,
-    userId: string,
-  ): Promise<AccessResult> {
+  async getProjectAccessBySlug(slug: string, userId: string): Promise<AccessResult> {
     // Check if user is SUPER_ADMIN
     const isSuperAdmin = await this.checkSuperAdmin(userId);
     if (isSuperAdmin) {
@@ -456,10 +425,7 @@ export class AccessControlService {
       select: { role: true },
     });
 
-    if (
-      orgMember &&
-      (orgMember.role === Role.MANAGER || orgMember.role === Role.OWNER)
-    ) {
+    if (orgMember && (orgMember.role === Role.MANAGER || orgMember.role === Role.OWNER)) {
       return {
         isElevated: true,
         role: orgMember.role,
@@ -479,10 +445,7 @@ export class AccessControlService {
       select: { role: true },
     });
 
-    if (
-      wsMember &&
-      (wsMember.role === Role.MANAGER || wsMember.role === Role.OWNER)
-    ) {
+    if (wsMember && (wsMember.role === Role.MANAGER || wsMember.role === Role.OWNER)) {
       return {
         isElevated: true,
         role: wsMember.role,
@@ -516,9 +479,7 @@ export class AccessControlService {
       });
 
       if (projectMember) {
-        const isElevated =
-          projectMember.role === Role.MANAGER ||
-          projectMember.role === Role.OWNER;
+        const isElevated = projectMember.role === Role.MANAGER || projectMember.role === Role.OWNER;
         return {
           isElevated,
           role: projectMember.role,
@@ -552,12 +513,9 @@ export class AccessControlService {
       throw new ForbiddenException('Not a member of this project');
     }
 
-    const effectiveRole =
-      projectMember?.role || wsMember?.role || orgMember?.role || Role.VIEWER;
-    const isElevated =
-      effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
-    const canChange =
-      effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
+    const effectiveRole = projectMember?.role || wsMember?.role || orgMember?.role || Role.VIEWER;
+    const isElevated = effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
+    const canChange = effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
 
     return {
       isElevated,

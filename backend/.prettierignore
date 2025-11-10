@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist
+build
+.next
+
+# Prisma generated files
+prisma/generated
+
+# Cache
+.cache
+*.log
+.eslintcache
+
+# Environment files
+.env
+.env.local
+.env.production.local
+.env.development.local
+.env.test
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+
+# Test coverage
+coverage
+*.lcov
+
+# Misc
+*.min.js
+*.min.css
+public

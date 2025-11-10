@@ -114,7 +114,10 @@ export class PublicSprintsService {
       orderBy: { createdAt: 'desc' }
     });
 
-    return tasks.map(task => this.dataFilter.filterTaskData(task));
+    return tasks.map(task => this.dataFilter.filterTaskData({
+      ...task,
+      labels: task.labels.map(tl => ({ id: tl.label.id, name: tl.label.name, color: tl.label.color }))
+    }));
   }
 
   private async validatePublicProject(workspaceSlug: string, projectSlug: string) {

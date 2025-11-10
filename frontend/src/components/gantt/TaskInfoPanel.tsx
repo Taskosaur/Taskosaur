@@ -2,7 +2,6 @@ import { Task } from "@/types";
 import Link from "next/link";
 import { HiCalendarDays } from "react-icons/hi2";
 
-
 interface TaskInfoPanelProps {
   task: Task;
   isCompact: boolean;
@@ -35,8 +34,8 @@ export const TaskInfoPanel: React.FC<TaskInfoPanelProps> = ({
               workspaceSlug && projectSlug
                 ? `/${workspaceSlug}/${projectSlug}/tasks/${task.id}`
                 : workspaceSlug
-                ? `/${workspaceSlug}/tasks/${task.id}`
-                : `/tasks/${task.id}`
+                  ? `/${workspaceSlug}/tasks/${task.id}`
+                  : `/tasks/${task.id}`
             }
             className={`font-medium text-[var(--foreground)] hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 flex-1 min-w-0 focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2 rounded-sm ${
               isCompact ? "text-sm" : "text-base"
@@ -58,9 +57,7 @@ export const TaskInfoPanel: React.FC<TaskInfoPanelProps> = ({
           <div
             className="flex items-center gap-1 text-xs text-[var(--muted-foreground)] shrink-0"
             title={`Due: ${
-              task.dueDate
-                ? new Date(task.dueDate).toLocaleDateString()
-                : "No due date"
+              task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No due date"
             }`}
           >
             <HiCalendarDays className="w-3 h-3 shrink-0" />
@@ -72,11 +69,7 @@ export const TaskInfoPanel: React.FC<TaskInfoPanelProps> = ({
                   })
                 : "No date"}
             </span>
-            {isOverdue && (
-              <span className="text-red-600 dark:text-red-400 font-bold ml-1">
-                !
-              </span>
-            )}
+            {isOverdue && <span className="text-red-600 dark:text-red-400 font-bold ml-1">!</span>}
           </div>
         </div>
       </div>

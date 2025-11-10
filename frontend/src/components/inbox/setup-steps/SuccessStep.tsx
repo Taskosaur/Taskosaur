@@ -9,10 +9,7 @@ interface SuccessStepProps {
 export default function SuccessStep({ onFinish }: SuccessStepProps) {
   return (
     <div className="flex flex-col items-center text-center">
-      <HiCheckCircle
-        className="w-12 h-12 text-[var(--status-active-bg)] mb-4"
-        aria-hidden="true"
-      />
+      <HiCheckCircle className="w-12 h-12 text-[var(--status-active-bg)] mb-4" aria-hidden="true" />
 
       <h3 className="text-base font-semibold text-[var(--foreground)] mb-1">
         Email Integration Active

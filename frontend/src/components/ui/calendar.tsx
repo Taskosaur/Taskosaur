@@ -1,5 +1,5 @@
-import React from 'react';
-import { Input } from './input';
+import React from "react";
+import { Input } from "./input";
 
 export interface DateRange {
   from: Date;
@@ -7,7 +7,7 @@ export interface DateRange {
 }
 
 export interface CalendarProps {
-  mode?: 'single' | 'range';
+  mode?: "single" | "range";
   selected?: Date | DateRange;
   onSelect?: (date: Date | DateRange | undefined) => void;
   initialFocus?: boolean;
@@ -17,13 +17,13 @@ export interface CalendarProps {
 }
 
 export function Calendar({
-  mode = 'single',
+  mode = "single",
   selected,
   onSelect,
   className,
   ...props
 }: CalendarProps) {
-  if (mode === 'range') {
+  if (mode === "range") {
     const range = selected as DateRange;
     return (
       <div className={`p-4 space-y-4 ${className}`}>
@@ -31,7 +31,7 @@ export function Calendar({
           <label className="text-sm font-medium">From Date</label>
           <Input
             type="date"
-            value={range?.from ? range.from.toISOString().split('T')[0] : ''}
+            value={range?.from ? range.from.toISOString().split("T")[0] : ""}
             onChange={(e) => {
               const newDate = new Date(e.target.value);
               if (onSelect && range?.to) {
@@ -46,7 +46,7 @@ export function Calendar({
           <label className="text-sm font-medium">To Date</label>
           <Input
             type="date"
-            value={range?.to ? range.to.toISOString().split('T')[0] : ''}
+            value={range?.to ? range.to.toISOString().split("T")[0] : ""}
             onChange={(e) => {
               const newDate = new Date(e.target.value);
               if (onSelect && range?.from) {
@@ -65,7 +65,7 @@ export function Calendar({
     <div className={`p-4 ${className}`}>
       <Input
         type="date"
-        value={selected instanceof Date ? selected.toISOString().split('T')[0] : ''}
+        value={selected instanceof Date ? selected.toISOString().split("T")[0] : ""}
         onChange={(e) => {
           if (onSelect) {
             onSelect(new Date(e.target.value));

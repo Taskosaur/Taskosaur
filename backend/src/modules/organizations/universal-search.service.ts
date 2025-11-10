@@ -1,9 +1,5 @@
 // universal-search.service.ts
-import {
-  Injectable,
-  BadRequestException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { AccessControlService } from 'src/common/access-control.utils';
@@ -56,7 +52,7 @@ export class UniversalSearchService {
   constructor(
     private prisma: PrismaService,
     private accessControl: AccessControlService,
-  ) { }
+  ) {}
 
   async search(
     query: string,
@@ -70,10 +66,7 @@ export class UniversalSearchService {
     const { page = 1, limit = 20 } = options;
 
     // Validate organization access
-    const { isElevated } = await this.validateOrganizationAccess(
-      organizationId,
-      userId,
-    );
+    const { isElevated } = await this.validateOrganizationAccess(organizationId, userId);
 
     // Sanitize query
     const sanitizedQuery = this.sanitizeQuery(query);
@@ -120,10 +113,7 @@ export class UniversalSearchService {
     userId: string,
   ): Promise<{ isElevated: boolean }> {
     try {
-      const access = await this.accessControl.getOrgAccess(
-        organizationId,
-        userId,
-      );
+      const access = await this.accessControl.getOrgAccess(organizationId, userId);
       return { isElevated: access.isElevated };
     } catch (error) {
       throw new ForbiddenException('Access denied to this organization');
@@ -131,11 +121,7 @@ export class UniversalSearchService {
   }
 
   private sanitizeQuery(query: string): string {
-    return query
-      .trim()
-      .replace(/[<>]/g, '')
-      .replace(/['"]/g, '')
-      .substring(0, 100);
+    return query.trim().replace(/[<>]/g, '').replace(/['"]/g, '').substring(0, 100);
   }
 
   private buildSearchPromises(
@@ -147,20 +133,12 @@ export class UniversalSearchService {
   ): Promise<SearchResult[]>[] {
     const promises: Promise<SearchResult[]>[] = [];
 
-    promises.push(
-      this.searchWorkspaces(query, organizationId, userId, isElevated),
-    );
-    promises.push(
-      this.searchProjects(query, organizationId, userId, isElevated),
-    );
-    promises.push(
-      this.searchTasks(query, organizationId, userId, isElevated, limit * 2),
-    );
+    promises.push(this.searchWorkspaces(query, organizationId, userId, isElevated));
+    promises.push(this.searchProjects(query, organizationId, userId, isElevated));
+    promises.push(this.searchTasks(query, organizationId, userId, isElevated, limit * 2));
     promises.push(this.searchUsers(query, organizationId, userId, isElevated));
     // promises.push(this.searchComments(query, organizationId, userId, isElevated));
-    promises.push(
-      this.searchSprints(query, organizationId, userId, isElevated),
-    );
+    promises.push(this.searchSprints(query, organizationId, userId, isElevated));
     // promises.push(this.searchLabels(query, organizationId, userId, isElevated));
 
     return promises;
@@ -215,9 +193,9 @@ export class UniversalSearchService {
         updatedAt: workspace.updatedAt,
         createdBy: workspace.createdByUser
           ? {
-            id: workspace.createdByUser.id,
-            name: `${workspace.createdByUser.firstName} ${workspace.createdByUser.lastName}`,
-          }
+              id: workspace.createdByUser.id,
+              name: `${workspace.createdByUser.firstName} ${workspace.createdByUser.lastName}`,
+            }
           : undefined,
       },
     }));
@@ -246,10 +224,7 @@ export class UniversalSearchService {
       whereClause = baseFilters;
     } else {
       // If not elevated at org level, get accessible project IDs
-      const accessibleProjectIds = await this.getAccessibleProjectIds(
-        organizationId,
-        userId,
-      );
+      const accessibleProjectIds = await this.getAccessibleProjectIds(organizationId, userId);
 
       if (accessibleProjectIds.length === 0) {
         // No accessible projects, return empty result
@@ -300,9 +275,9 @@ export class UniversalSearchService {
         priority: project.priority,
         createdBy: project.createdByUser
           ? {
-            id: project.createdByUser.id,
-            name: `${project.createdByUser.firstName} ${project.createdByUser.lastName}`,
-          }
+              id: project.createdByUser.id,
+              name: `${project.createdByUser.firstName} ${project.createdByUser.lastName}`,
+            }
           : undefined,
       },
     }));
@@ -311,10 +286,7 @@ export class UniversalSearchService {
   /**
    * Helper method to get accessible project IDs based on workspace-level permissions
    */
-  private async getAccessibleProjectIds(
-    organizationId: string,
-    userId: string,
-  ): Promise<string[]> {
+  private async getAccessibleProjectIds(organizationId: string, userId: string): Promise<string[]> {
     // Get all workspaces in the organization
     const workspaces = await this.prisma.workspace.findMany({
       where: {
@@ -330,8 +302,10 @@ export class UniversalSearchService {
     for (const workspace of workspaces) {
       try {
         // Get workspace-level access for this user
-        const { isElevated: wsIsElevated } =
-          await this.accessControl.getWorkspaceAccess(workspace.id, userId);
+        const { isElevated: wsIsElevated } = await this.accessControl.getWorkspaceAccess(
+          workspace.id,
+          userId,
+        );
 
         if (wsIsElevated) {
           // If elevated at workspace level, get all projects in this workspace
@@ -394,10 +368,7 @@ export class UniversalSearchService {
       whereClause = baseFilters;
     } else {
       // If not elevated at org level, get accessible project IDs
-      const accessibleProjectIds = await this.getAccessibleProjectIds(
-        organizationId,
-        userId,
-      );
+      const accessibleProjectIds = await this.getAccessibleProjectIds(organizationId, userId);
 
       if (accessibleProjectIds.length === 0) {
         // No accessible projects, return empty result
@@ -472,16 +443,16 @@ export class UniversalSearchService {
         priority: task.priority,
         assignees: task.assignees
           ? task.assignees.map((assignee) => ({
-            id: assignee.id,
-            firstName: assignee.firstName,
-            lastName: assignee.lastName,
-          }))
+              id: assignee.id,
+              firstName: assignee.firstName,
+              lastName: assignee.lastName,
+            }))
           : undefined,
         createdBy: task.createdByUser
           ? {
-            id: task.createdByUser.id,
-            name: `${task.createdByUser.firstName} ${task.createdByUser.lastName}`,
-          }
+              id: task.createdByUser.id,
+              name: `${task.createdByUser.firstName} ${task.createdByUser.lastName}`,
+            }
           : undefined,
         labels: task.labels.map((tl) => tl.label),
       },
@@ -592,9 +563,7 @@ export class UniversalSearchService {
       id: comment.id,
       type: SearchType.COMMENT,
       title: `Comment on ${comment.task.project.name.toUpperCase()}-${comment.task.taskNumber}`,
-      description:
-        comment.content.substring(0, 150) +
-        (comment.content.length > 150 ? '...' : ''),
+      description: comment.content.substring(0, 150) + (comment.content.length > 150 ? '...' : ''),
       url: `/projects/${comment.task.project.slug}/tasks/${comment.task.slug}#comment-${comment.id}`,
       context: {
         workspace: comment.task.project.workspace,
@@ -692,9 +661,9 @@ export class UniversalSearchService {
         status: sprint.status,
         createdBy: sprint.createdByUser
           ? {
-            id: sprint.createdByUser.id,
-            name: `${sprint.createdByUser.firstName} ${sprint.createdByUser.lastName}`,
-          }
+              id: sprint.createdByUser.id,
+              name: `${sprint.createdByUser.firstName} ${sprint.createdByUser.lastName}`,
+            }
           : undefined,
       },
     }));
@@ -815,8 +784,7 @@ export class UniversalSearchService {
 
       // Recent items get slight boost
       const daysSinceUpdate =
-        (Date.now() - result.metadata.updatedAt.getTime()) /
-        (1000 * 60 * 60 * 24);
+        (Date.now() - result.metadata.updatedAt.getTime()) / (1000 * 60 * 60 * 24);
       if (daysSinceUpdate < 7) {
         score += 5;
       } else if (daysSinceUpdate < 30) {

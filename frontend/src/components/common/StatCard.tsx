@@ -19,7 +19,7 @@ export function StatCard({
   statSuffix,
 }: StatCardProps) {
   return (
-    <div className="dashboard-stat-card"> 
+    <div className="dashboard-stat-card">
       <Card className="dashboard-stat-card-inner">
         <CardContent className="dashboard-stat-content">
           <div className="dashboard-stat-header">
@@ -27,13 +27,9 @@ export function StatCard({
             <h3 className="dashboard-stat-title">{label}</h3>
           </div>
           <div className="dashboard-single-stat-values">
-            <span className="dashboard-stat-number">
-              {isLoading ? loadingPlaceholder : value}
-            </span>
+            <span className="dashboard-stat-number">{isLoading ? loadingPlaceholder : value}</span>
             <div className="dashboard-stat-icon">{icon}</div>
-            {statSuffix && (
-              <span className="dashboard-stat-label-inline">{statSuffix}</span>
-            )}
+            {statSuffix && <span className="dashboard-stat-label-inline">{statSuffix}</span>}
           </div>
         </CardContent>
       </Card>

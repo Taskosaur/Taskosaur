@@ -37,10 +37,7 @@ interface PaginationInfo {
   hasPrevPage: boolean;
 }
 
-export default function NotificationScreen({
-  userId,
-  organizationId,
-}: NotificationScreenProps) {
+export default function NotificationScreen({ userId, organizationId }: NotificationScreenProps) {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,9 +45,7 @@ export default function NotificationScreen({
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [selectedNotifications, setSelectedNotifications] = useState<
-    Set<string>
-  >(new Set());
+  const [selectedNotifications, setSelectedNotifications] = useState<Set<string>>(new Set());
   const [pagination, setPagination] = useState<PaginationInfo>({
     currentPage: 1,
     totalPages: 0,
@@ -125,9 +120,7 @@ export default function NotificationScreen({
       try {
         await notificationApi.markNotificationAsRead(notification.id);
         setNotifications((prev) =>
-          prev.map((n) =>
-            n.id === notification.id ? { ...n, isRead: true } : n
-          )
+          prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
         );
         setStats((prev) => ({
           ...prev,
@@ -200,24 +193,21 @@ export default function NotificationScreen({
       setLoading(true);
       setError(null);
 
-      const response =
-        await notificationApi.getNotificationsByUserAndOrganization(
-          userId,
-          organizationId,
-          {
-            page: currentPage,
-            limit: pageSize,
-          }
-        );
+      const response = await notificationApi.getNotificationsByUserAndOrganization(
+        userId,
+        organizationId,
+        {
+          page: currentPage,
+          limit: pageSize,
+        }
+      );
 
       setNotifications(response.notifications);
       setPagination(response.pagination);
       setStats(response.summary);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
-      setError(
-        error?.message || "Failed to load notifications. Please try again."
-      );
+      setError(error?.message || "Failed to load notifications. Please try again.");
       setNotifications([]);
       setPagination({
         currentPage: 1,
@@ -240,16 +230,10 @@ export default function NotificationScreen({
       if (notificationIds.length === 1) {
         await notificationApi.markNotificationAsRead(notificationIds[0]);
       } else {
-        await Promise.all(
-          notificationIds.map((id) =>
-            notificationApi.markNotificationAsRead(id)
-          )
-        );
+        await Promise.all(notificationIds.map((id) => notificationApi.markNotificationAsRead(id)));
       }
       setNotifications((prev) =>
-        prev.map((n) =>
-          notificationIds.includes(n.id) ? { ...n, isRead: true } : n
-        )
+        prev.map((n) => (notificationIds.includes(n.id) ? { ...n, isRead: true } : n))
       );
       setSelectedNotifications(new Set());
       setStats((prev) => ({
@@ -258,9 +242,7 @@ export default function NotificationScreen({
       }));
       toast.success("Successfully marked as read");
     } catch (error) {
-      toast.error(
-        error?.message || "Failed to mark as read the notification(s)"
-      );
+      toast.error(error?.message || "Failed to mark as read the notification(s)");
       console.error("Failed to mark notification(s) as read:", error);
     }
   };
@@ -273,18 +255,14 @@ export default function NotificationScreen({
         await notificationApi.deleteMultipleNotifications(notificationIds);
       }
 
-      setNotifications((prev) =>
-        prev.filter((n) => !notificationIds.includes(n.id))
-      );
+      setNotifications((prev) => prev.filter((n) => !notificationIds.includes(n.id)));
       setSelectedNotifications(new Set());
       setStats((prev) => ({
         ...prev,
         total: Math.max(0, prev.total - notificationIds.length),
       }));
 
-      const remainingNotifications = notifications.filter(
-        (n) => !notificationIds.includes(n.id)
-      );
+      const remainingNotifications = notifications.filter((n) => !notificationIds.includes(n.id));
 
       if (remainingNotifications.length === 0 && currentPage > 1) {
         setCurrentPage((prev) => prev - 1);
@@ -357,10 +335,7 @@ export default function NotificationScreen({
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-start gap-3 flex-1">
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="mr-5 flex-shrink-0"
-                  >
+                  <div onClick={(e) => e.stopPropagation()} className="mr-5 flex-shrink-0">
                     <input
                       type="checkbox"
                       checked={isSelected}
@@ -378,9 +353,7 @@ export default function NotificationScreen({
                     <div className="flex items-start justify-between">
                       <h4
                         className={`font-bold text-[15px] truncate ${
-                          isUnread
-                            ? "text-[var(--foreground)]"
-                            : "text-[var(--muted-foreground)]"
+                          isUnread ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]"
                         }`}
                       >
                         {notification.title}
@@ -389,9 +362,7 @@ export default function NotificationScreen({
 
                     <p
                       className={`text-sm mt-[2px] line-clamp-2 ${
-                        isUnread
-                          ? "text-[var(--foreground)]"
-                          : "text-[var(--muted-foreground)]"
+                        isUnread ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]"
                       }`}
                     >
                       {notification.message}
@@ -414,7 +385,7 @@ export default function NotificationScreen({
 
                       {notification.createdByUser && (
                         <span>
-                          by {" "}{notification.createdByUser.firstName}{" "}
+                          by {notification.createdByUser.firstName}{" "}
                           {notification.createdByUser.lastName}
                         </span>
                       )}
@@ -424,11 +395,11 @@ export default function NotificationScreen({
 
                 <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                   <div className="flex justify-center items-center gap-2">
-                  <Clock3 className="w-3 h-3 opacity-80"/>
-                  <span className="text-xs text-[var(--muted-foreground)] whitespace-nowrap">
-                    {formatTime(notification.createdAt)}
-                  </span>
-                    </div>
+                    <Clock3 className="w-3 h-3 opacity-80" />
+                    <span className="text-xs text-[var(--muted-foreground)] whitespace-nowrap">
+                      {formatTime(notification.createdAt)}
+                    </span>
+                  </div>
                   {!notification.isRead && (
                     <span className="inline-block w-2 h-2 rounded-full bg-[var(--primary)]"></span>
                   )}
@@ -462,9 +433,7 @@ export default function NotificationScreen({
                 <div className="flex gap-2">
                   <Button
                     variant="default"
-                    onClick={() =>
-                      handleMarkAsRead(Array.from(selectedNotifications))
-                    }
+                    onClick={() => handleMarkAsRead(Array.from(selectedNotifications))}
                     className="bg-[var(--primary)] text-[var(--muted)]"
                   >
                     <HiCheck className="w-4 h-4" />
@@ -472,9 +441,7 @@ export default function NotificationScreen({
                   </Button>
                   <Button
                     variant="destructive"
-                    onClick={() =>
-                      handleBulkDelete(Array.from(selectedNotifications))
-                    }
+                    onClick={() => handleBulkDelete(Array.from(selectedNotifications))}
                     className="bg-[var(--destructive)]"
                   >
                     <HiTrash className="w-4 h-4" />
@@ -488,9 +455,7 @@ export default function NotificationScreen({
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto rounded-md py-4 scrollbar-none">
-        {renderContent()}
-      </div>
+      <div className="flex-1 overflow-y-auto rounded-md py-4 scrollbar-none">{renderContent()}</div>
 
       {/* Sticky Pagination */}
       <div className="sticky bottom-0 z-30 pb-2">

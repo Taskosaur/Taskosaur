@@ -1,6 +1,4 @@
 // pages/invite/index.tsx
-;
-
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import { HiArrowPath } from "react-icons/hi2";
@@ -26,7 +24,7 @@ export default function InviteRedirect() {
 
         if (!res.isValid) {
           router.replace(
-            `/invite/invalid?msg=${encodeURIComponent(res.message ?? "Invalid invitation")}`,
+            `/invite/invalid?msg=${encodeURIComponent(res.message ?? "Invalid invitation")}`
           );
           return;
         }

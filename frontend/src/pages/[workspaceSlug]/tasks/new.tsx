@@ -25,20 +25,19 @@ function NewTaskPageContent() {
 
   useEffect(() => {
     const fetchWorkspaceData = async () => {
-      if (!isAuthenticated() || !workspaceSlug || isInitializedRef.current)
-        return;
+      if (!isAuthenticated() || !workspaceSlug || isInitializedRef.current) return;
       try {
         const ws = await getWorkspaceBySlug(
           typeof workspaceSlug === "string"
             ? workspaceSlug
             : Array.isArray(workspaceSlug)
-            ? workspaceSlug[0]
-            : ""
+              ? workspaceSlug[0]
+              : ""
         );
         setWorkspace(ws);
         const projs = ws?.id ? await getProjectsByWorkspace(ws.id) : [];
         setProjects(projs);
-       
+
         isInitializedRef.current = true;
       } catch (error) {
         console.error("Error initializing workspace data:", error);
@@ -78,8 +77,8 @@ function NewTaskPageContent() {
           typeof workspaceSlug === "string"
             ? workspaceSlug
             : Array.isArray(workspaceSlug)
-            ? workspaceSlug[0]
-            : ""
+              ? workspaceSlug[0]
+              : ""
         }
         workspace={workspace}
         projects={projects}

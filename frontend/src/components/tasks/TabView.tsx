@@ -19,12 +19,8 @@ export default function TabView({
 }: TaskViewTabsProps) {
   const tabs = [
     { id: "list" as const, label: "List", icon: HiListBullet },
-    ...(viewKanban
-      ? [{ id: "kanban" as const, label: "Kanban", icon: HiViewColumns }]
-      : []),
-    ...(viewGantt
-      ? [{ id: "gantt" as const, label: "Gantt", icon: HiCalendarDays }]
-      : []),
+    ...(viewKanban ? [{ id: "kanban" as const, label: "Kanban", icon: HiViewColumns }] : []),
+    ...(viewGantt ? [{ id: "gantt" as const, label: "Gantt", icon: HiCalendarDays }] : []),
   ];
 
   return (
@@ -53,12 +49,8 @@ export default function TabView({
           );
         })}
       </nav>
-      
-      {rightContent && (
-        <div className="flex items-center">
-          {rightContent}
-        </div>
-      )}
+
+      {rightContent && <div className="flex items-center">{rightContent}</div>}
     </div>
   );
 }

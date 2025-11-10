@@ -135,10 +135,7 @@ export class CreateTaskDto {
 
   @ApiProperty({
     description: 'IDs of users assigned to this task',
-    example: [
-      '123e4567-e89b-12d3-a456-426614174002',
-      '223e4567-e89b-12d3-a456-426614174003',
-    ],
+    example: ['123e4567-e89b-12d3-a456-426614174002', '223e4567-e89b-12d3-a456-426614174003'],
     type: [String],
     format: 'uuid',
     required: false,
@@ -162,10 +159,7 @@ export class CreateTaskDto {
 
   @ApiProperty({
     description: 'IDs of users who reported/created this task',
-    example: [
-      '323e4567-e89b-12d3-a456-426614174004',
-      '423e4567-e89b-12d3-a456-426614174005',
-    ],
+    example: ['323e4567-e89b-12d3-a456-426614174004', '423e4567-e89b-12d3-a456-426614174005'],
     type: [String],
     format: 'uuid',
     required: false,

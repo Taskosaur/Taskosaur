@@ -54,14 +54,9 @@ const UserSelector: React.FC<UserSelectorProps> = ({
   return (
     <DropdownMenu>
       {/* trigger */}
-      <DropdownMenuTrigger asChild >
-        <Button
-          variant="outline"
-          className="kanban-user-selector-trigger" 
-        >
-          {selected
-            ? `${selected.firstName} ${selected.lastName}`
-            : placeholder}
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="kanban-user-selector-trigger">
+          {selected ? `${selected.firstName} ${selected.lastName}` : placeholder}
         </Button>
       </DropdownMenuTrigger>
 
@@ -92,19 +87,13 @@ const UserSelector: React.FC<UserSelectorProps> = ({
               <span className="kanban-user-selector-item-name">
                 {user?.firstName} {user?.lastName}
               </span>
-              {user?.email && (
-                <span className="kanban-user-selector-item-email">
-                  {user.email}
-                </span>
-              )}
+              {user?.email && <span className="kanban-user-selector-item-email">{user.email}</span>}
             </DropdownMenuItem>
           ))}
 
           {/* no results */}
           {filtered.length === 0 && (
-            <div className="kanban-user-selector-empty">
-              No users found
-            </div>
+            <div className="kanban-user-selector-empty">No users found</div>
           )}
         </div>
       </DropdownMenuContent>

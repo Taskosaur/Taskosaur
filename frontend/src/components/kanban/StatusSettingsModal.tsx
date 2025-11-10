@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  HiPlus,
-  HiEllipsisVertical,
-  HiCheck,
-  HiPencil,
-  HiTrash,
-} from "react-icons/hi2";
+import { HiPlus, HiEllipsisVertical, HiCheck, HiPencil, HiTrash } from "react-icons/hi2";
 import { GripVertical, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProjectContext } from "@/contexts/project-context";
@@ -118,9 +112,7 @@ const StatusSettingsModal: React.FC<StatusSettingsModalProps> = ({
         name: editName.trim(),
         color: editColor,
       });
-      setStatusList((prev) =>
-        prev.map((s) => (s.id === editingId ? updated : s))
-      );
+      setStatusList((prev) => prev.map((s) => (s.id === editingId ? updated : s)));
       onStatusUpdated();
       toast.success("Status updated");
       cancelEdit();
@@ -140,10 +132,10 @@ const StatusSettingsModal: React.FC<StatusSettingsModalProps> = ({
       await deleteTaskStatus(id);
       setStatusList((prev) => prev.filter((s) => s.id !== id));
       onStatusUpdated();
-      setWorkFlowStatusToDelete(null)
+      setWorkFlowStatusToDelete(null);
       toast.success("Status deleted successfully!");
     } catch (error) {
-      setWorkFlowStatusToDelete(null)
+      setWorkFlowStatusToDelete(null);
       toast.error(error.message || "Failed to delete status");
     }
   };
@@ -169,9 +161,7 @@ const StatusSettingsModal: React.FC<StatusSettingsModalProps> = ({
     setStatusList(reordered);
 
     try {
-      await updateTaskStatusPositions(
-        reordered.map(({ id, position }) => ({ id, position }))
-      );
+      await updateTaskStatusPositions(reordered.map(({ id, position }) => ({ id, position })));
       onStatusUpdated();
       toast.success("Order updated");
     } catch {
@@ -229,9 +219,7 @@ const StatusSettingsModal: React.FC<StatusSettingsModalProps> = ({
         className={cn(
           "group kanban-status-row-view",
           draggedId === s.id && "kanban-status-row-view-dragging",
-          dragOverId === s.id &&
-            draggedId !== s.id &&
-            "kanban-status-row-view-drag-over"
+          dragOverId === s.id && draggedId !== s.id && "kanban-status-row-view-drag-over"
         )}
       >
         <GripVertical size={14} className="kanban-status-row-grip" />
@@ -244,19 +232,11 @@ const StatusSettingsModal: React.FC<StatusSettingsModalProps> = ({
         {/* kebab menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="kanban-status-row-menu-trigger"
-            >
+            <Button variant="ghost" size="sm" className="kanban-status-row-menu-trigger">
               <HiEllipsisVertical size={16} />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            side="bottom"
-            align="end"
-            className="kanban-status-row-menu-content"
-          >
+          <DropdownMenuContent side="bottom" align="end" className="kanban-status-row-menu-content">
             <DropdownMenuItem
               onClick={() => startEdit(s)}
               className="cursor-pointer hover:bg-[var(--muted)]"
@@ -279,9 +259,7 @@ const StatusSettingsModal: React.FC<StatusSettingsModalProps> = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="kanban-status-modal-content">
           <DialogHeader>
-            <DialogTitle className="kanban-status-modal-title">
-              Workflow Settings
-            </DialogTitle>
+            <DialogTitle className="kanban-status-modal-title">Workflow Settings</DialogTitle>
             <DialogDescription className="kanban-status-modal-description">
               Drag rows to reorder. Use the menu to edit or delete.
             </DialogDescription>
@@ -298,10 +276,7 @@ const StatusSettingsModal: React.FC<StatusSettingsModalProps> = ({
                 {/* -------- new status row -------- */}
                 {isAdding ? (
                   <div className="kanban-add-status-row">
-                    <GripVertical
-                      size={14}
-                      className="kanban-add-status-grip"
-                    />
+                    <GripVertical size={14} className="kanban-add-status-grip" />
                     <div className="kanban-add-status-color" />
                     <input
                       className="kanban-add-status-input"
@@ -325,11 +300,7 @@ const StatusSettingsModal: React.FC<StatusSettingsModalProps> = ({
                     >
                       {creating ? "…" : "Add"}
                     </ActionButton>
-                    <ActionButton
-                      type="button"
-                      secondary
-                      onClick={() => setIsAdding(false)}
-                    >
+                    <ActionButton type="button" secondary onClick={() => setIsAdding(false)}>
                       Cancel
                     </ActionButton>
                   </div>
@@ -349,8 +320,7 @@ const StatusSettingsModal: React.FC<StatusSettingsModalProps> = ({
 
           {/* -------- footer -------- */}
           <div className="kanban-status-modal-footer">
-            {statusList.length} status{statusList.length !== 1 && "es"}{" "}
-            configured
+            {statusList.length} status{statusList.length !== 1 && "es"} configured
             <ActionButton type="submit" primary onClick={onClose}>
               Done
             </ActionButton>

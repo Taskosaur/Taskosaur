@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useMemo,
-  useCallback,
-} from "react";
+import React, { createContext, useContext, useState, useMemo, useCallback } from "react";
 import { workspaceApi } from "@/utils/api/workspaceApi";
 import {
   Workspace,
@@ -47,34 +41,25 @@ interface WorkspaceContextType extends WorkspaceState {
   // Workspace methods
   createWorkspace: (workspaceData: WorkspaceData) => Promise<Workspace>;
   getWorkspaces: () => Promise<Workspace[]>;
-  getWorkspacesByOrganization: (
-    organizationId?: string,
-    search?: string
-  ) => Promise<Workspace[]>;
+  getWorkspacesByOrganization: (organizationId?: string, search?: string) => Promise<Workspace[]>;
   getWorkspaceById: (workspaceId: string) => Promise<Workspace>;
-  getWorkspaceBySlug: (
-    slug: string,
-    organizationId?: string
-  ) => Promise<Workspace>;
+  getWorkspaceBySlug: (slug: string, organizationId?: string) => Promise<Workspace>;
   updateWorkspace: (
     workspaceId: string,
     workspaceData: Partial<WorkspaceData>
   ) => Promise<Workspace>;
-  deleteWorkspace: (
-    workspaceId: string
-  ) => Promise<{ success: boolean; message: string }>;
-  archiveWorkspace: (
-    workspaceId: string
-  ) => Promise<{ success: boolean; message: string }>;
+  deleteWorkspace: (workspaceId: string) => Promise<{ success: boolean; message: string }>;
+  archiveWorkspace: (workspaceId: string) => Promise<{ success: boolean; message: string }>;
 
   // Workspace member methods
-  getWorkspaceMembers: (workspaceId: string, search?: string, page?: number, limit?: number) => Promise<{ data: WorkspaceMember[], total: number; page: number }>;
-  addMemberToWorkspace: (
-    memberData: AddMemberToWorkspaceData
-  ) => Promise<WorkspaceMember>;
-  inviteMemberToWorkspace: (
-    inviteData: InviteMemberToWorkspaceData
-  ) => Promise<any>;
+  getWorkspaceMembers: (
+    workspaceId: string,
+    search?: string,
+    page?: number,
+    limit?: number
+  ) => Promise<{ data: WorkspaceMember[]; total: number; page: number }>;
+  addMemberToWorkspace: (memberData: AddMemberToWorkspaceData) => Promise<WorkspaceMember>;
+  inviteMemberToWorkspace: (inviteData: InviteMemberToWorkspaceData) => Promise<any>;
   updateMemberRole: (
     memberId: string,
     updateData: UpdateMemberRoleData,
@@ -95,27 +80,19 @@ interface WorkspaceContextType extends WorkspaceState {
 
   // Helper methods
   isUserWorkspaceMember: (workspaceId: string, userId: string) => boolean;
-  getUserWorkspaceRole: (
-    workspaceId: string,
-    userId: string
-  ) => WorkspaceRole | null;
+  getUserWorkspaceRole: (workspaceId: string, userId: string) => WorkspaceRole | null;
   getCurrentOrganizationId: () => string | null;
   getWorkspaceRecentActivity: (
     workspaceId: string,
     params?: GetWorkspaceActivityParams
   ) => Promise<WorkspaceActivityResponse>;
-  fetchAnalyticsData: (
-    organizationId: string,
-    workspaceSlug: string
-  ) => Promise<void>;
+  fetchAnalyticsData: (organizationId: string, workspaceSlug: string) => Promise<void>;
   workspaceRoleSet: (workspace: Workspace) => Promise<void>;
 
   clearAnalyticsError: () => void;
 }
 
-const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
-  undefined
-);
+const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export const useWorkspace = (): WorkspaceContextType => {
   const context = useContext(WorkspaceContext);
@@ -186,22 +163,18 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       return result;
     } catch (error) {
       clearTimeout(timeoutId);
-      const errorMessage =
-        error instanceof Error ? error.message : "An error occurred";
+      const errorMessage = error instanceof Error ? error.message : "An error occurred";
 
       setWorkspaceState((prev) => ({
         ...prev,
         isLoading: false,
         error: errorMessage,
         // Clear current workspace on critical errors
-        currentWorkspace: errorMessage.includes("not found")
-          ? null
-          : prev.currentWorkspace,
+        currentWorkspace: errorMessage.includes("not found") ? null : prev.currentWorkspace,
       }));
       throw error;
     }
-  },
-  []);
+  }, []);
   const workspaceRoleSet = (workspace: Workspace): Promise<void> => {
     return new Promise((resolve) => {
       setWorkspaceState((prev) => ({
@@ -221,10 +194,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
           refreshingAnalytics: true,
         }));
 
-        const results = await workspaceApi.getAllCharts(
-          organizationId,
-          workspaceSlug
-        );
+        const results = await workspaceApi.getAllCharts(organizationId, workspaceSlug);
 
         // Process each chart with individual error handling
         const processChartData = (data: any, chartName: string) => {
@@ -248,14 +218,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
             results[WorkspaceChartType.TASK_PRIORITY],
             "Task Priority"
           ),
-          kpiMetrics: processChartData(
-            results[WorkspaceChartType.KPI_METRICS],
-            "KPI Metrics"
-          ),
-          taskType: processChartData(
-            results[WorkspaceChartType.TASK_TYPE],
-            "Task Type"
-          ),
+          kpiMetrics: processChartData(results[WorkspaceChartType.KPI_METRICS], "KPI Metrics"),
+          taskType: processChartData(results[WorkspaceChartType.TASK_TYPE], "Task Type"),
           sprintStatus: processChartData(
             results[WorkspaceChartType.SPRINT_STATUS],
             "Sprint Status"
@@ -274,10 +238,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         }));
       } catch (err) {
         console.error("Error fetching analytics data:", err);
-        const errorMessage =
-          err?.message
-            ? err.message
-            : "Failed to load workspace analytics data";
+        const errorMessage = err?.message ? err.message : "Failed to load workspace analytics data";
 
         setWorkspaceState((prev) => ({
           ...prev,
@@ -300,14 +261,10 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       ...workspaceState,
 
       // Workspace methods with state management
-      createWorkspace: async (
-        workspaceData: WorkspaceData
-      ): Promise<Workspace> => {
+      createWorkspace: async (workspaceData: WorkspaceData): Promise<Workspace> => {
         const organizationId = getCurrentOrganizationId();
         if (!organizationId) {
-          throw new Error(
-            "No organization selected. Please select an organization first."
-          );
+          throw new Error("No organization selected. Please select an organization first.");
         }
 
         const createData: CreateWorkspaceData = {
@@ -315,9 +272,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
           organizationId,
         };
 
-        const result = await handleApiOperation(() =>
-          workspaceApi.createWorkspace(createData)
-        );
+        const result = await handleApiOperation(() => workspaceApi.createWorkspace(createData));
 
         // Add new workspace to state and clear cache
         setWorkspaceState((prev) => ({
@@ -331,11 +286,9 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       getWorkspaces: async (): Promise<Workspace[]> => {
         // Use organization context if available for better permission handling
         const orgId = getCurrentOrganizationId();
-        
+
         const result = await handleApiOperation(() =>
-          orgId 
-            ? workspaceApi.getWorkspacesByOrganization(orgId)
-            : workspaceApi.getWorkspaces()
+          orgId ? workspaceApi.getWorkspacesByOrganization(orgId) : workspaceApi.getWorkspaces()
         );
 
         setWorkspaceState((prev) => ({
@@ -349,9 +302,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       archiveWorkspace: async (
         workspaceId: string
       ): Promise<{ success: boolean; message: string }> => {
-        const result = await handleApiOperation(() =>
-          workspaceApi.archiveWorkspace(workspaceId)
-        );
+        const result = await handleApiOperation(() => workspaceApi.archiveWorkspace(workspaceId));
 
         if (result.success) {
           const orgId = getCurrentOrganizationId();
@@ -371,9 +322,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       ): Promise<Workspace[]> => {
         const orgId = organizationId || getCurrentOrganizationId();
         if (!orgId) {
-          console.error(
-            "No organization selected. Please select an organization first."
-          );
+          console.error("No organization selected. Please select an organization first.");
           return;
         }
 
@@ -399,23 +348,16 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         setWorkspaceState((prev) => ({
           ...prev,
           currentWorkspace:
-            prev.currentWorkspace?.id === workspaceId
-              ? result
-              : prev.currentWorkspace,
+            prev.currentWorkspace?.id === workspaceId ? result : prev.currentWorkspace,
         }));
 
         return result;
       },
 
-      getWorkspaceBySlug: async (
-        slug: string,
-        organizationId?: string
-      ): Promise<Workspace> => {
+      getWorkspaceBySlug: async (slug: string, organizationId?: string): Promise<Workspace> => {
         const orgId = organizationId || getCurrentOrganizationId();
         if (!orgId) {
-          throw new Error(
-            "No organization selected. Please select an organization first."
-          );
+          throw new Error("No organization selected. Please select an organization first.");
         }
 
         try {
@@ -460,9 +402,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         setWorkspaceState((prev) => ({
           ...prev,
           workspaces: prev.workspaces.map((workspace) =>
-            workspace.id === workspaceId
-              ? { ...workspace, ...result }
-              : workspace
+            workspace.id === workspaceId ? { ...workspace, ...result } : workspace
           ),
           currentWorkspace:
             prev.currentWorkspace?.id === workspaceId
@@ -484,13 +424,9 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         // Remove workspace from state
         setWorkspaceState((prev) => ({
           ...prev,
-          workspaces: prev.workspaces.filter(
-            (workspace) => workspace.id !== workspaceId
-          ),
+          workspaces: prev.workspaces.filter((workspace) => workspace.id !== workspaceId),
           currentWorkspace:
-            prev.currentWorkspace?.id === workspaceId
-              ? null
-              : prev.currentWorkspace,
+            prev.currentWorkspace?.id === workspaceId ? null : prev.currentWorkspace,
         }));
 
         return result;
@@ -502,7 +438,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         search?: string,
         page?: number,
         limit?: number
-      ): Promise<{ data: WorkspaceMember[], total: number; page: number }> => {
+      ): Promise<{ data: WorkspaceMember[]; total: number; page: number }> => {
         const result = await handleApiOperation(
           () => workspaceApi.getWorkspaceMembers(workspaceId, search, page, limit),
           false
@@ -527,9 +463,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         // Add new member to state if it's for the current workspace's members
         if (
           workspaceState.workspaceMembers.length > 0 &&
-          workspaceState.workspaceMembers.some(
-            (m) => m.workspaceId === memberData.workspaceId
-          )
+          workspaceState.workspaceMembers.some((m) => m.workspaceId === memberData.workspaceId)
         ) {
           setWorkspaceState((prev) => ({
             ...prev,
@@ -540,13 +474,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         return result;
       },
 
-      inviteMemberToWorkspace: (
-        inviteData: InviteMemberToWorkspaceData
-      ): Promise<any> =>
-        handleApiOperation(
-          () => workspaceApi.inviteMemberToWorkspace(inviteData),
-          false
-        ),
+      inviteMemberToWorkspace: (inviteData: InviteMemberToWorkspaceData): Promise<any> =>
+        handleApiOperation(() => workspaceApi.inviteMemberToWorkspace(inviteData), false),
 
       updateMemberRole: async (
         memberId: string,
@@ -554,8 +483,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         requestUserId: string
       ): Promise<WorkspaceMember> => {
         const result = await handleApiOperation(
-          () =>
-            workspaceApi.updateMemberRole(memberId, updateData, requestUserId),
+          () => workspaceApi.updateMemberRole(memberId, updateData, requestUserId),
           false
         );
 
@@ -582,18 +510,14 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         // Remove member from state
         setWorkspaceState((prev) => ({
           ...prev,
-          workspaceMembers: prev.workspaceMembers.filter(
-            (member) => member.id !== memberId
-          ),
+          workspaceMembers: prev.workspaceMembers.filter((member) => member.id !== memberId),
         }));
 
         return result;
       },
 
       // Stats and utility methods
-      getWorkspaceStats: async (
-        workspaceId: string
-      ): Promise<WorkspaceStats> => {
+      getWorkspaceStats: async (workspaceId: string): Promise<WorkspaceStats> => {
         const result = await handleApiOperation(
           () => workspaceApi.getWorkspaceStats(workspaceId),
           false
@@ -629,18 +553,13 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       // Helper methods
       isUserWorkspaceMember: (workspaceId: string, userId: string): boolean => {
         return workspaceState.workspaceMembers.some(
-          (member) =>
-            member.workspaceId === workspaceId && member.userId === userId
+          (member) => member.workspaceId === workspaceId && member.userId === userId
         );
       },
 
-      getUserWorkspaceRole: (
-        workspaceId: string,
-        userId: string
-      ): WorkspaceRole | null => {
+      getUserWorkspaceRole: (workspaceId: string, userId: string): WorkspaceRole | null => {
         const member = workspaceState.workspaceMembers.find(
-          (member) =>
-            member.workspaceId === workspaceId && member.userId === userId
+          (member) => member.workspaceId === workspaceId && member.userId === userId
         );
         return member?.role || null;
       },
@@ -664,11 +583,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     [workspaceState, handleApiOperation, getCurrentOrganizationId]
   );
 
-  return (
-    <WorkspaceContext.Provider value={contextValue}>
-      {children}
-    </WorkspaceContext.Provider>
-  );
+  return <WorkspaceContext.Provider value={contextValue}>{children}</WorkspaceContext.Provider>;
 }
 
 export default WorkspaceProvider;

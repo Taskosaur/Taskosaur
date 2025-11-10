@@ -1,2 +1,2 @@
-export { SectionHeader } from './SectionHeader';
-export { ActivityItem } from './ActivityItem';
+export { SectionHeader } from "./SectionHeader";
+export { ActivityItem } from "./ActivityItem";

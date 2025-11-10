@@ -57,10 +57,7 @@ export const SprintCard = ({
   // Prevent dropdown menu clicks from triggering card click
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    if (
-      target.closest(".dropdown-menu-trigger") ||
-      target.closest(".dropdown-menu-content")
-    ) {
+    if (target.closest(".dropdown-menu-trigger") || target.closest(".dropdown-menu-content")) {
       return;
     }
     router.push(`/${workspaceSlug}/${projectSlug}/sprints/${sprint.id}`);

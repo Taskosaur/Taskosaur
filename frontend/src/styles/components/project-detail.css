@@ -131,25 +131,25 @@
   .project-detail-content {
     padding: 2.5rem 2rem;
   }
-  
+
   .project-detail-header {
     flex-direction: row;
     align-items: flex-start;
   }
-  
+
   .project-detail-title-section {
     align-items: center;
   }
-  
+
   .project-detail-actions {
     margin-top: 0;
     align-self: flex-start;
   }
-  
+
   .project-detail-stats {
     grid-template-columns: repeat(4, 1fr);
   }
-  
+
   .project-detail-kanban {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -160,7 +160,7 @@
   .project-detail-content {
     padding: 3rem 2rem;
   }
-  
+
   .project-detail-kanban {
     grid-template-columns: repeat(4, 1fr);
   }
@@ -171,11 +171,11 @@
   .project-detail-content {
     padding: 1.5rem 1rem;
   }
-  
+
   .project-detail-title {
     font-size: 1.25rem;
   }
-  
+
   .project-detail-description {
     font-size: 0.875rem;
   }

@@ -63,9 +63,7 @@ export class LabelsSeederService {
       }
     }
 
-    console.log(
-      `✅ Labels seeding completed. Created/Found ${createdLabels.length} labels.`,
-    );
+    console.log(`✅ Labels seeding completed. Created/Found ${createdLabels.length} labels.`);
     return createdLabels;
   }
 
@@ -100,10 +98,7 @@ export class LabelsSeederService {
     ];
 
     // Project-specific labels based on project type
-    if (
-      project.name.includes('Web Application') ||
-      project.name.includes('Backend API')
-    ) {
+    if (project.name.includes('Web Application') || project.name.includes('Backend API')) {
       return [
         ...commonLabels,
         {
@@ -215,10 +210,7 @@ export class LabelsSeederService {
           description: 'Paid advertising campaigns',
         },
       ];
-    } else if (
-      project.name.includes('E-commerce') ||
-      project.name.includes('Mobile App')
-    ) {
+    } else if (project.name.includes('E-commerce') || project.name.includes('Mobile App')) {
       return [
         ...commonLabels,
         {
@@ -281,9 +273,7 @@ export class LabelsSeederService {
     try {
       // Delete task label associations first
       const deletedTaskLabels = await this.prisma.taskLabel.deleteMany();
-      console.log(
-        `   ✓ Deleted ${deletedTaskLabels.count} task label associations`,
-      );
+      console.log(`   ✓ Deleted ${deletedTaskLabels.count} task label associations`);
 
       // Delete labels
       const deletedLabels = await this.prisma.label.deleteMany();

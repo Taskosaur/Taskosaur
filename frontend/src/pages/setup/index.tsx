@@ -22,13 +22,13 @@ export default function SetupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  
+
   const router = useRouter();
 
   const handleInputChange = (field: keyof SetupAdminData, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
     // Clear error when user starts typing
     if (error) setError(null);
@@ -38,22 +38,22 @@ export default function SetupPage() {
     if (!formData.email || !formData.password || !formData.firstName || !formData.lastName) {
       return "Please fill in all required fields";
     }
-    
+
     if (formData.password.length < 8) {
       return "Password must be at least 8 characters long";
     }
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       return "Please enter a valid email address";
     }
-    
+
     return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
@@ -65,17 +65,18 @@ export default function SetupPage() {
 
     try {
       const response = await authApi.setupSuperAdmin(formData);
-      
+
       if (response.success) {
         setSuccess(true);
-        
+
         // Redirect to login after a short delay
         setTimeout(() => {
           router.push("/login");
         }, 2000);
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || "Failed to create super admin";
+      const errorMessage =
+        err.response?.data?.message || err.message || "Failed to create super admin";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -93,9 +94,7 @@ export default function SetupPage() {
               <p className="text-gray-600 mb-4">
                 Super admin account has been created successfully.
               </p>
-              <p className="text-sm text-gray-500">
-                Redirecting to login page...
-              </p>
+              <p className="text-sm text-gray-500">Redirecting to login page...</p>
             </div>
           </CardContent>
         </Card>
@@ -115,7 +114,7 @@ export default function SetupPage() {
             Welcome to Taskosaur! Let's create your super admin account to get started.
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
@@ -123,7 +122,7 @@ export default function SetupPage() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="firstName">First Name *</Label>
@@ -150,7 +149,7 @@ export default function SetupPage() {
                 />
               </div>
             </div>
-            
+
             <div>
               <Label htmlFor="email">Email Address *</Label>
               <Input
@@ -163,7 +162,7 @@ export default function SetupPage() {
                 disabled={isLoading}
               />
             </div>
-            
+
             <div>
               <Label htmlFor="username">Username (Optional)</Label>
               <Input
@@ -175,7 +174,7 @@ export default function SetupPage() {
                 disabled={isLoading}
               />
             </div>
-            
+
             <div>
               <Label htmlFor="password">Password *</Label>
               <div className="relative">
@@ -202,12 +201,8 @@ export default function SetupPage() {
                 Password must be at least 8 characters long
               </p>
             </div>
-            
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -218,7 +213,7 @@ export default function SetupPage() {
               )}
             </Button>
           </form>
-          
+
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">
               This will create the first administrative user for your Taskosaur instance.

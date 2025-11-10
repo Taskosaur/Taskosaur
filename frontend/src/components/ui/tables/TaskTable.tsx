@@ -56,11 +56,7 @@ import { useProject } from "@/contexts/project-context";
 import { toast } from "sonner";
 import Tooltip from "@/components/common/ToolTip";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -87,9 +83,7 @@ function extractTaskValue(task: Task, columnId: string): any {
       };
 
     case "completedAt":
-      return task.completedAt
-        ? moment(task.completedAt).format("MMM D, YYYY")
-        : "";
+      return task.completedAt ? moment(task.completedAt).format("MMM D, YYYY") : "";
 
     case "storyPoints":
       return task.storyPoints || 0;
@@ -106,9 +100,7 @@ function extractTaskValue(task: Task, columnId: string): any {
             id: task.reporter.id,
             firstName: task.reporter.firstName,
             lastName: task.reporter.lastName,
-            name:
-              task.reporter.firstName ||
-              `${task.reporter.firstName} ${task.reporter.lastName}`,
+            name: task.reporter.firstName || `${task.reporter.firstName} ${task.reporter.lastName}`,
             email: task.reporter.email,
             avatar: task.reporter.avatar,
           }
@@ -127,9 +119,7 @@ function extractTaskValue(task: Task, columnId: string): any {
       return task.sprint ? task.sprint.name : "";
 
     case "parentTask":
-      return task.parentTask
-        ? task.parentTask.title || task.parentTask.taskNumber
-        : "";
+      return task.parentTask ? task.parentTask.title || task.parentTask.taskNumber : "";
 
     case "childTasksCount":
       return task._count?.childTasks || task.childTasks?.length || 0;
@@ -255,9 +245,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const [localAddTaskStatuses, setLocalAddTaskStatuses] = useState<
     Array<{ id: string; name: string }>
   >([]);
-  const [localAddTaskProjectMembers, setLocalAddTaskProjectMembers] = useState<
-    any[]
-  >([]);
+  const [localAddTaskProjectMembers, setLocalAddTaskProjectMembers] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchProjectMeta = async () => {
@@ -274,10 +262,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
       } else {
         setLocalAddTaskStatuses([]);
       }
-      if (
-        projectId &&
-        (!projectSlug || !projectMembers || projectMembers.length === 0)
-      ) {
+      if (projectId && (!projectSlug || !projectMembers || projectMembers.length === 0)) {
         try {
           const members = await getProjectMembers(projectId);
           setLocalAddTaskProjectMembers(members || []);
@@ -313,9 +298,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName?.charAt(0) || ""}${
-      lastName?.charAt(0) || ""
-    }`.toUpperCase();
+    return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase();
   };
 
   const handleAllDeleteSelect = () => {
@@ -330,9 +313,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
 
     try {
       const loadingToast = toast.loading(
-        `Deleting ${selectedTasks.length} task${
-          selectedTasks.length === 1 ? "" : "s"
-        }...`
+        `Deleting ${selectedTasks.length} task${selectedTasks.length === 1 ? "" : "s"}...`
       );
 
       const result = await bulkDeleteTasks(selectedTasks, currentProject?.id, allDelete);
@@ -341,9 +322,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
 
       if (result.deletedCount > 0) {
         toast.success(
-          `Successfully deleted ${result.deletedCount} task${
-            result.deletedCount === 1 ? "" : "s"
-          }`
+          `Successfully deleted ${result.deletedCount} task${result.deletedCount === 1 ? "" : "s"}`
         );
       }
 
@@ -366,9 +345,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
       }
 
       if (onTaskSelect) {
-        const failedTaskIds = new Set(
-          result.failedTasks?.map((failed) => failed.id) || []
-        );
+        const failedTaskIds = new Set(result.failedTasks?.map((failed) => failed.id) || []);
         const successfullyDeletedTasks = selectedTasks.filter(
           (taskId) => !failedTaskIds.has(taskId)
         );
@@ -435,9 +412,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
           {remainingCount > 0 && (
             <Tooltip content={`+${remainingCount} more`} position="top">
               <div className="w-6 h-6 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center">
-                <span className="text-xs font-medium text-gray-600">
-                  +{remainingCount}
-                </span>
+                <span className="text-xs font-medium text-gray-600">+{remainingCount}</span>
               </div>
             </Tooltip>
           )}
@@ -489,9 +464,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
             {selectedAssignees.length === 0 ? (
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                <span className="text-sm text-gray-500">
-                  Select assignees...
-                </span>
+                <span className="text-sm text-gray-500">Select assignees...</span>
               </div>
             ) : (
               <div className="flex items-center gap-1">
@@ -502,11 +475,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                       className="w-6 h-6 border-2 border-white"
                     >
                       <AvatarImage
-                        src={
-                          assignee.user?.avatar ||
-                          assignee.avatar ||
-                          "/placeholder.svg"
-                        }
+                        src={assignee.user?.avatar || assignee.avatar || "/placeholder.svg"}
                         alt={`${
                           assignee.user?.firstName || assignee.firstName
                         } ${assignee.user?.lastName || assignee.lastName}`}
@@ -529,25 +498,18 @@ const TaskTable: React.FC<TaskTableProps> = ({
                 </div>
                 {selectedAssignees.length === 1 && (
                   <span className="text-sm ml-2">
-                    {selectedAssignees[0].user?.firstName ||
-                      selectedAssignees[0].firstName}{" "}
-                    {selectedAssignees[0].user?.lastName ||
-                      selectedAssignees[0].lastName}
+                    {selectedAssignees[0].user?.firstName || selectedAssignees[0].firstName}{" "}
+                    {selectedAssignees[0].user?.lastName || selectedAssignees[0].lastName}
                   </span>
                 )}
                 {selectedAssignees.length > 1 && (
-                  <span className="text-sm ml-2">
-                    {selectedAssignees.length} assignees
-                  </span>
+                  <span className="text-sm ml-2">{selectedAssignees.length} assignees</span>
                 )}
               </div>
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent
-          className="w-[300px] p-0 bg-[var(--card)] border-none"
-          align="start"
-        >
+        <PopoverContent className="w-[300px] p-0 bg-[var(--card)] border-none" align="start">
           <Command>
             <CommandInput placeholder="Search assignees..." />
             <CommandList>
@@ -566,17 +528,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
                       onSelect={() => handleAssigneeToggle(memberId)}
                       className="flex items-center gap-2 cursor-pointer"
                     >
-                      <Checkbox
-                        checked={isSelected}
-                        className="pointer-events-none"
-                      />
+                      <Checkbox checked={isSelected} className="pointer-events-none" />
                       <Avatar className="w-6 h-6">
                         <AvatarImage
-                          src={
-                            member.user?.avatar ||
-                            member.avatar ||
-                            "/placeholder.svg"
-                          }
+                          src={member.user?.avatar || member.avatar || "/placeholder.svg"}
                           alt={`${member.user?.firstName || member.firstName} ${
                             member.user?.lastName || member.lastName
                           }`}
@@ -683,11 +638,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
             </div>
           );
         }
-        return (
-          <span className="text-sm">
-            {formatColumnValue(value, column.type)}
-          </span>
-        );
+        return <span className="text-sm">{formatColumnValue(value, column.type)}</span>;
 
       case "number":
         const numValue = formatColumnValue(value, column.type);
@@ -699,10 +650,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
             </div>
           );
         }
-        if (
-          column.id === "originalEstimate" ||
-          column.id === "remainingEstimate"
-        ) {
+        if (column.id === "originalEstimate" || column.id === "remainingEstimate") {
           return (
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3 text-orange-500" />
@@ -755,11 +703,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         );
 
       default:
-        return (
-          <span className="text-sm">
-            {formatColumnValue(value, column.type)}
-          </span>
-        );
+        return <span className="text-sm">{formatColumnValue(value, column.type)}</span>;
     }
   };
 
@@ -786,8 +730,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
     if (localAddTaskStatuses && localAddTaskStatuses.length > 0) {
       const defaultStatus =
         localAddTaskStatuses.find(
-          (s) =>
-            s.name.toLowerCase() === "todo" || s.name.toLowerCase() === "to do"
+          (s) => s.name.toLowerCase() === "todo" || s.name.toLowerCase() === "to do"
         ) || localAddTaskStatuses[0];
 
       if (defaultStatus) {
@@ -815,9 +758,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
 
   const handleCreateTask = async () => {
     if (!isTaskValid() || !newTaskData.title.trim()) {
-      toast.error(
-        "Please fill in all required fields (Title, Status, and Project)"
-      );
+      toast.error("Please fill in all required fields (Title, Status, and Project)");
       return;
     }
 
@@ -833,9 +774,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
       }
 
       if (!projectId) {
-        toast.error(
-          "Unable to determine project context. Project ID is required."
-        );
+        toast.error("Unable to determine project context. Project ID is required.");
         setIsSubmitting(false);
         return;
       }
@@ -852,13 +791,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
         priority: newTaskData.priority,
         projectId,
         statusId: newTaskData.statusId,
-        assigneeIds:
-          newTaskData.assigneeIds.length > 0
-            ? newTaskData.assigneeIds
-            : undefined, // Send array of assignee IDs
-        dueDate: newTaskData.dueDate
-          ? moment(newTaskData.dueDate).toISOString()
-          : undefined,
+        assigneeIds: newTaskData.assigneeIds.length > 0 ? newTaskData.assigneeIds : undefined, // Send array of assignee IDs
+        dueDate: newTaskData.dueDate ? moment(newTaskData.dueDate).toISOString() : undefined,
       };
 
       await createTask(taskData);
@@ -906,10 +840,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                     {!isOrgOrWorkspaceLevel && onTaskSelect && showBulkActionBar && (
                       <Checkbox
                         className="border-[var(--ring)]"
-                        checked={
-                          selectedTasks.length === tasks.length &&
-                          tasks.length > 0
-                        }
+                        checked={selectedTasks.length === tasks.length && tasks.length > 0}
                         onCheckedChange={(checked) => {
                           if (checked) {
                             tasks.forEach((task) => {
@@ -932,22 +863,16 @@ const TaskTable: React.FC<TaskTableProps> = ({
                   </div>
                 </TableHead>
                 {showProject && (
-                  <TableHead className="tasktable-header-cell-project">
-                    Project
-                  </TableHead>
+                  <TableHead className="tasktable-header-cell-project">Project</TableHead>
                 )}
-                <TableHead className="tasktable-header-cell-priority">
-                  Priority
-                </TableHead>
+                <TableHead className="tasktable-header-cell-priority">Priority</TableHead>
                 <TableHead className="tasktable-header-cell-status">
                   <p className="ml-3">Status</p>
                 </TableHead>
                 <TableHead className="tasktable-header-cell-assignee w-32 text-center min-w-[120px] max-w-[180px]">
                   <span>Assignees</span>
                 </TableHead>
-                <TableHead className="tasktable-header-cell-date">
-                  Due Date
-                </TableHead>
+                <TableHead className="tasktable-header-cell-date">Due Date</TableHead>
 
                 {/* Dynamic columns */}
                 {visibleColumns.map((column) => (
@@ -993,9 +918,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                               if (isTaskValid()) {
                                 handleCreateTask();
                               } else {
-                                toast.error(
-                                  "Please fill in all required fields"
-                                );
+                                toast.error("Please fill in all required fields");
                               }
                             } else if (e.key === "Escape") {
                               handleCancelCreating();
@@ -1007,11 +930,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           <Tooltip content="Create task" position="top">
                             <button
                               onClick={handleCreateTask}
-                              disabled={
-                                isSubmitting ||
-                                !isTaskValid() ||
-                                !newTaskData.title.trim()
-                              }
+                              disabled={isSubmitting || !isTaskValid() || !newTaskData.title.trim()}
                               className="p-1 text-green-600 hover:bg-green-100 rounded disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Check className="w-4 h-4" />
@@ -1045,9 +964,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           >
                             <SelectTrigger
                               className={`border-none shadow-none -ml-3 ${
-                                !newTaskData.projectId
-                                  ? "ring-1 ring-red-300"
-                                  : ""
+                                !newTaskData.projectId ? "ring-1 ring-red-300" : ""
                               }`}
                             >
                               <SelectValue placeholder="Select project *" />
@@ -1055,16 +972,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
                             <SelectContent className="overflow-y-auto bg-[var(--card)] border-none text-[var(--foreground)]">
                               {Array.isArray(projectsOfCurrentWorkspace) &&
                               projectsOfCurrentWorkspace.length > 0 ? (
-                                projectsOfCurrentWorkspace.map(
-                                  (project: any) => (
-                                    <SelectItem
-                                      key={project.id}
-                                      value={project.id}
-                                    >
-                                      {project.name}
-                                    </SelectItem>
-                                  )
-                                )
+                                projectsOfCurrentWorkspace.map((project: any) => (
+                                  <SelectItem key={project.id} value={project.id}>
+                                    {project.name}
+                                  </SelectItem>
+                                ))
                               ) : (
                                 <SelectItem value="no-projects" disabled>
                                   No projects found
@@ -1074,19 +986,14 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           </Select>
                         ) : workspaceSlug && projectSlug ? (
                           <span className="text-sm text-gray-500">
-                            {projectsOfCurrentWorkspace &&
-                            projectsOfCurrentWorkspace.length > 0
+                            {projectsOfCurrentWorkspace && projectsOfCurrentWorkspace.length > 0
                               ? projectsOfCurrentWorkspace.find(
-                                  (p: any) =>
-                                    p.id === projectSlug ||
-                                    p.slug === projectSlug
+                                  (p: any) => p.id === projectSlug || p.slug === projectSlug
                                 )?.name || "Current Project"
                               : "Current Project"}
                           </span>
                         ) : (
-                          <span className="text-sm text-gray-500">
-                            Current Project
-                          </span>
+                          <span className="text-sm text-gray-500">Current Project</span>
                         )}
                       </TableCell>
                     )}
@@ -1097,11 +1004,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                         onValueChange={(value) =>
                           setNewTaskData((prev) => ({
                             ...prev,
-                            priority: value as
-                              | "LOW"
-                              | "MEDIUM"
-                              | "HIGH"
-                              | "HIGHEST",
+                            priority: value as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
                           }))
                         }
                         disabled={isSubmitting}
@@ -1111,25 +1014,21 @@ const TaskTable: React.FC<TaskTableProps> = ({
                         </SelectTrigger>
 
                         <SelectContent className="bg-[var(--card)] border-none text-[var(--foreground)]">
-                          {(TaskPriorities || TaskPriorities || []).map(
-                            (priority) => {
-                              const value = priority.value ?? "undefined";
-                              const label = priority.name ?? "undefined";
-                              return (
-                                <SelectItem key={value} value={value}>
-                                  {label}
-                                </SelectItem>
-                              );
-                            }
-                          )}
+                          {(TaskPriorities || TaskPriorities || []).map((priority) => {
+                            const value = priority.value ?? "undefined";
+                            const label = priority.name ?? "undefined";
+                            return (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </TableCell>
                     {/* Status - only show if projectId is selected */}
                     <TableCell className="tasktable-cell">
-                      {newTaskData.projectId ||
-                      projectSlug ||
-                      currentProject?.id ? (
+                      {newTaskData.projectId || projectSlug || currentProject?.id ? (
                         <Select
                           value={newTaskData.statusId}
                           onValueChange={(value) =>
@@ -1162,21 +1061,15 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           </SelectContent>
                         </Select>
                       ) : (
-                        <span className="text-sm text-gray-400">
-                          Select project first
-                        </span>
+                        <span className="text-sm text-gray-400">Select project first</span>
                       )}
                     </TableCell>
                     {/* Assignees - Multi-select */}
                     <TableCell className="tasktable-cell-assignee">
-                      {newTaskData.projectId ||
-                      projectSlug ||
-                      currentProject?.id ? (
+                      {newTaskData.projectId || projectSlug || currentProject?.id ? (
                         <MultiSelectAssignee />
                       ) : (
-                        <span className="text-sm text-gray-400">
-                          Select project first
-                        </span>
+                        <span className="text-sm text-gray-400">Select project first</span>
                       )}
                     </TableCell>
                     {/* Due Date - Enhanced with calendar input */}
@@ -1262,9 +1155,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           />
                         </div>
                       )}
-                      <div className="flex-shrink-0 mt-0.5">
-                        {getTaskTypeIcon(task.type)}
-                      </div>
+                      <div className="flex-shrink-0 mt-0.5">{getTaskTypeIcon(task.type)}</div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <h4 className="tasktable-task-title line-clamp-1 max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">
@@ -1274,9 +1165,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                             variant="outline"
                             className="text-xs px-1.5 py-0 h-5 flex-shrink-0"
                           >
-                            <span className="text-muted text-xs">
-                              #{task.taskNumber}
-                            </span>
+                            <span className="text-muted text-xs">#{task.taskNumber}</span>
                           </Badge>
                         </div>
                         <div className="flex items-center gap-3 mt-2">
@@ -1314,11 +1203,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
                       {renderMultipleAssignees(
                         currentTask && currentTask.id === task.id
                           ? currentTask.assignees ||
-                              (currentTask.assignee
-                                ? [currentTask.assignee]
-                                : [])
-                          : task.assignees ||
-                              (task.assignee ? [task.assignee] : [])
+                              (currentTask.assignee ? [currentTask.assignee] : [])
+                          : task.assignees || (task.assignee ? [task.assignee] : [])
                       )}
                     </div>
                   </TableCell>
@@ -1339,9 +1225,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                     ) : (
                       <div className="tasktable-date-container">
                         <CalendarDays className="tasktable-date-icon w-4 h-4" />
-                        <span className="tasktable-date-empty">
-                          No due date
-                        </span>
+                        <span className="tasktable-date-empty">No due date</span>
                       </div>
                     )}
                   </TableCell>
@@ -1363,19 +1247,12 @@ const TaskTable: React.FC<TaskTableProps> = ({
 
         {pagination && pagination.totalPages > 1 && (
           <TableRow className="tasktable-footer-row">
-            <TableCell
-              colSpan={8 + visibleColumns.length}
-              className="tasktable-footer-cell"
-            >
+            <TableCell colSpan={8 + visibleColumns.length} className="tasktable-footer-cell">
               <div className="tasktable-pagination-container">
                 <div className="tasktable-pagination-info">
-                  Showing{" "}
-                  {(pagination.currentPage - 1) * pagination.pageSize + 1} to{" "}
-                  {Math.min(
-                    pagination.currentPage * pagination.pageSize,
-                    pagination.totalCount
-                  )}{" "}
-                  of {pagination.totalCount} tasks
+                  Showing {(pagination.currentPage - 1) * pagination.pageSize + 1} to{" "}
+                  {Math.min(pagination.currentPage * pagination.pageSize, pagination.totalCount)} of{" "}
+                  {pagination.totalCount} tasks
                 </div>
                 <Pagination>
                   <PaginationContent>
@@ -1388,32 +1265,26 @@ const TaskTable: React.FC<TaskTableProps> = ({
                             onPageChange(pagination.currentPage - 1);
                           }
                         }}
-                        className={cn(
-                          !pagination.hasPrevPage &&
-                            "pointer-events-none opacity-50"
-                        )}
+                        className={cn(!pagination.hasPrevPage && "pointer-events-none opacity-50")}
                       />
                     </PaginationItem>
-                    {Array.from(
-                      { length: Math.min(5, pagination.totalPages) },
-                      (_, i) => {
-                        const pageNum = i + 1;
-                        return (
-                          <PaginationItem key={pageNum}>
-                            <PaginationLink
-                              href="#"
-                              isActive={pagination.currentPage === pageNum}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                if (onPageChange) onPageChange(pageNum);
-                              }}
-                            >
-                              {pageNum}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
-                      }
-                    )}
+                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                      const pageNum = i + 1;
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            href="#"
+                            isActive={pagination.currentPage === pageNum}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (onPageChange) onPageChange(pageNum);
+                            }}
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
                     <PaginationItem>
                       <PaginationNext
                         href="#"
@@ -1423,10 +1294,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                             onPageChange(pagination.currentPage + 1);
                           }
                         }}
-                        className={cn(
-                          !pagination.hasNextPage &&
-                            "pointer-events-none opacity-50"
-                        )}
+                        className={cn(!pagination.hasNextPage && "pointer-events-none opacity-50")}
                       />
                     </PaginationItem>
                   </PaginationContent>

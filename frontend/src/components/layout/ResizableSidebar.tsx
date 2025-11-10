@@ -39,16 +39,10 @@ export default function ResizableSidebar({
       setWidth(event.detail.width);
     };
 
-    window.addEventListener(
-      "sidebarWidthChange",
-      handleSidebarWidthChange as EventListener
-    );
+    window.addEventListener("sidebarWidthChange", handleSidebarWidthChange as EventListener);
 
     return () => {
-      window.removeEventListener(
-        "sidebarWidthChange",
-        handleSidebarWidthChange as EventListener
-      );
+      window.removeEventListener("sidebarWidthChange", handleSidebarWidthChange as EventListener);
     };
   }, []);
 
@@ -68,10 +62,7 @@ export default function ResizableSidebar({
         const newWidth = e.clientX - sidebarRect.left;
 
         // Apply min and max constraints
-        const constrainedWidth = Math.min(
-          Math.max(newWidth, minWidth),
-          maxWidth
-        );
+        const constrainedWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
 
         setWidth(constrainedWidth);
       }

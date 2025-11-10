@@ -1,12 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useProjectContext } from "@/contexts/project-context";
-import { 
-  HiPlus, 
-  HiChevronDown, 
-  HiUsers, 
-  HiMagnifyingGlass,
-  HiCheckCircle 
-} from 'react-icons/hi2';
+import { HiPlus, HiChevronDown, HiUsers, HiMagnifyingGlass, HiCheckCircle } from "react-icons/hi2";
 
 interface Member {
   id: string;
@@ -20,31 +14,27 @@ interface Member {
   role: string;
 }
 
-const UserAvatar = ({ 
-  name, 
-  size = "sm" 
-}: { 
-  name: string;
-  size?: "sm" | "md";
-}) => {
+const UserAvatar = ({ name, size = "sm" }: { name: string; size?: "sm" | "md" }) => {
   const sizes = {
     sm: "h-6 w-6 text-xs",
-    md: "h-8 w-8 text-sm"
+    md: "h-8 w-8 text-sm",
   };
-  
+
   const getInitials = (name: string) => {
-    if (!name || name.trim() === '') return 'UN';
-    
+    if (!name || name.trim() === "") return "UN";
+
     return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
       .toUpperCase()
       .substring(0, 2);
   };
-  
+
   return (
-    <div className={`${sizes[size]} rounded-full bg-amber-500 flex items-center justify-center text-white font-medium`}>
+    <div
+      className={`${sizes[size]} rounded-full bg-amber-500 flex items-center justify-center text-white font-medium`}
+    >
       {getInitials(name)}
     </div>
   );
@@ -63,7 +53,7 @@ export default function InviteMemberDropdown() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
   const [inviting, setInviting] = useState(false);
-  
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { getOrganizationMembers } = useProjectContext();
 
@@ -85,9 +75,10 @@ export default function InviteMemberDropdown() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const organizationId = localStorage.getItem("currentOrganizationId") || 
-                            process.env.NEXT_PUBLIC_DEFAULT_ORGANIZATION_ID;
-      
+      const organizationId =
+        localStorage.getItem("currentOrganizationId") ||
+        process.env.NEXT_PUBLIC_DEFAULT_ORGANIZATION_ID;
+
       if (!token || !organizationId) {
         console.error("Missing token or organization ID");
         return;
@@ -98,15 +89,15 @@ export default function InviteMemberDropdown() {
       const mappedMembers = (data || []).map((orgMember: any) => {
         const user = orgMember.user || {};
         return {
-          id: orgMember.id || '',
+          id: orgMember.id || "",
           user: {
-            id: user.id || '',
-            email: user.email || orgMember.email || '',
-            firstName: user.firstName || '',
-            lastName: user.lastName || '',
-            avatar: user.avatar || '',
+            id: user.id || "",
+            email: user.email || orgMember.email || "",
+            firstName: user.firstName || "",
+            lastName: user.lastName || "",
+            avatar: user.avatar || "",
           },
-          role: orgMember.role || '',
+          role: orgMember.role || "",
         };
       });
       setMembers(mappedMembers);
@@ -120,17 +111,14 @@ export default function InviteMemberDropdown() {
 
   const handleInvite = async () => {
     if (selectedMembers.size === 0) return;
-    
+
     setInviting(true);
     try {
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       setSelectedMembers(new Set());
       setShowDropdown(false);
       setSearchTerm("");
-      
-      
     } catch (error) {
       console.error("Failed to invite members:", error);
     } finally {
@@ -148,17 +136,19 @@ export default function InviteMemberDropdown() {
     setSelectedMembers(newSelected);
   };
 
-  const filteredMembers = members.filter(member => {
+  const filteredMembers = members.filter((member) => {
     const searchLower = searchTerm.toLowerCase();
-    const email = member.user.email?.toLowerCase() || '';
-    const firstName = member.user.firstName?.toLowerCase() || '';
-    const lastName = member.user.lastName?.toLowerCase() || '';
+    const email = member.user.email?.toLowerCase() || "";
+    const firstName = member.user.firstName?.toLowerCase() || "";
+    const lastName = member.user.lastName?.toLowerCase() || "";
     const fullName = `${firstName} ${lastName}`.trim();
-    
-    return email.includes(searchLower) || 
-           firstName.includes(searchLower) || 
-           lastName.includes(searchLower) ||
-           fullName.includes(searchLower);
+
+    return (
+      email.includes(searchLower) ||
+      firstName.includes(searchLower) ||
+      lastName.includes(searchLower) ||
+      fullName.includes(searchLower)
+    );
   });
 
   const getDisplayName = (member: Member) => {
@@ -169,13 +159,12 @@ export default function InviteMemberDropdown() {
     return "No Name";
   };
 
- useEffect(() => {
+  useEffect(() => {
     if (showDropdown && members.length === 0) {
       fetchMembers();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showDropdown]);
-  
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -185,7 +174,10 @@ export default function InviteMemberDropdown() {
       >
         <HiPlus size={16} />
         Invite Members
-        <HiChevronDown size={14} className={`transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+        <HiChevronDown
+          size={14}
+          className={`transition-transform ${showDropdown ? "rotate-180" : ""}`}
+        />
       </button>
 
       {showDropdown && (
@@ -198,7 +190,7 @@ export default function InviteMemberDropdown() {
             </h3>
             {selectedMembers.size > 0 && (
               <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                {selectedMembers.size} member{selectedMembers.size > 1 ? 's' : ''} selected
+                {selectedMembers.size} member{selectedMembers.size > 1 ? "s" : ""} selected
               </p>
             )}
           </div>
@@ -228,13 +220,13 @@ export default function InviteMemberDropdown() {
                 {filteredMembers.map((member) => {
                   const isSelected = selectedMembers.has(member.id);
                   const displayName = getDisplayName(member);
-                  
+
                   return (
                     <button
                       key={member.id}
                       onClick={() => toggleMember(member.id)}
                       className={`w-full text-left px-4 py-3 text-sm hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors border-b border-stone-100 dark:border-stone-700 last:border-b-0 ${
-                        isSelected ? 'bg-amber-50 dark:bg-amber-900/20' : ''
+                        isSelected ? "bg-amber-50 dark:bg-amber-900/20" : ""
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -264,10 +256,12 @@ export default function InviteMemberDropdown() {
               <div className="px-4 py-8 text-center">
                 <HiUsers size={32} className="mx-auto text-stone-400 mb-2" />
                 <p className="text-sm text-stone-500 dark:text-stone-400 font-medium">
-                  {searchTerm ? 'No members found' : 'No members available'}
+                  {searchTerm ? "No members found" : "No members available"}
                 </p>
                 <p className="text-xs text-stone-400 mt-1">
-                  {searchTerm ? 'Try adjusting your search terms' : 'Add members to your organization first'}
+                  {searchTerm
+                    ? "Try adjusting your search terms"
+                    : "Add members to your organization first"}
                 </p>
               </div>
             )}
@@ -296,7 +290,7 @@ export default function InviteMemberDropdown() {
                   ) : (
                     <>
                       <HiPlus size={16} />
-                      Invite {selectedMembers.size} member{selectedMembers.size > 1 ? 's' : ''}
+                      Invite {selectedMembers.size} member{selectedMembers.size > 1 ? "s" : ""}
                     </>
                   )}
                 </button>

@@ -57,33 +57,33 @@
 }
 
 .comment-content h1 {
-    @apply text-2xl font-bold my-2;
-  }
+  @apply text-2xl font-bold my-2;
+}
 
-  .comment-content h2 {
-    @apply text-xl font-semibold my-1;
-  }
+.comment-content h2 {
+  @apply text-xl font-semibold my-1;
+}
 
-  .comment-content blockquote {
-    @apply border-l-4 border-gray-400 pl-3 italic text-gray-600 my-2;
-  }
+.comment-content blockquote {
+  @apply border-l-4 border-gray-400 pl-3 italic text-gray-600 my-2;
+}
 
-  .comment-content del {
-    @apply line-through;
-  }
+.comment-content del {
+  @apply line-through;
+}
 
-  .comment-content ul {
-    @apply list-disc ml-6 my-1;
-  }
+.comment-content ul {
+  @apply list-disc ml-6 my-1;
+}
 
-  .comment-content ol {
-    @apply list-decimal ml-6 my-1;
-  }
+.comment-content ol {
+  @apply list-decimal ml-6 my-1;
+}
 
-  .comment-content code {
-    @apply bg-gray-100 rounded px-1 py-0.5 font-mono text-sm;
-  }
+.comment-content code {
+  @apply bg-gray-100 rounded px-1 py-0.5 font-mono text-sm;
+}
 
-  .comment-content pre {
-    @apply bg-gray-100 rounded p-2 font-mono text-sm overflow-x-auto;
-  }
+.comment-content pre {
+  @apply bg-gray-100 rounded p-2 font-mono text-sm overflow-x-auto;
+}

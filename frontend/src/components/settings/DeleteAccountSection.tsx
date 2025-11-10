@@ -1,8 +1,6 @@
 "use client";
 import { useState } from "react";
-import {
-  Card, CardHeader, CardTitle, CardDescription, CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { useAuth } from "@/contexts/auth-context";
@@ -21,10 +19,10 @@ export default function DeleteAccountSection() {
     setLoading(true);
     try {
       await deleteUser(currentUser.id);
-      toast.success("Account deleted successfully!")
+      toast.success("Account deleted successfully!");
       router.push("/login");
     } catch {
-      toast.error("Error deleting account.")
+      toast.error("Error deleting account.");
     } finally {
       setLoading(false);
     }
@@ -41,11 +39,7 @@ export default function DeleteAccountSection() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Button
-          variant="destructive"
-          onClick={handleDelete}
-          disabled={loading}
-        >
+        <Button variant="destructive" onClick={handleDelete} disabled={loading}>
           {loading ? "Deleting..." : "Delete Account"}
         </Button>
       </CardContent>

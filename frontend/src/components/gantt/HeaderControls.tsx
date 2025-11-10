@@ -10,11 +10,7 @@ export const HeaderControls: React.FC<{
   setIsCompact: (compact: boolean) => void;
   scrollToToday: () => void;
   taskCount: number;
-}> = ({
-  viewMode,
-  setViewMode,
-  taskCount,
-}) => (
+}> = ({ viewMode, setViewMode, taskCount }) => (
   <div className="p-4 bg-[var(--card)] border-b border-[var(--border)]">
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>

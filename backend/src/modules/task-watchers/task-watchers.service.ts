@@ -6,19 +6,13 @@ import {
 } from '@nestjs/common';
 import { TaskWatcher } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  CreateTaskWatcherDto,
-  WatchTaskDto,
-  UnwatchTaskDto,
-} from './dto/create-task-watcher.dto';
+import { CreateTaskWatcherDto, WatchTaskDto, UnwatchTaskDto } from './dto/create-task-watcher.dto';
 
 @Injectable()
 export class TaskWatchersService {
   constructor(private prisma: PrismaService) {}
 
-  async create(
-    createTaskWatcherDto: CreateTaskWatcherDto,
-  ): Promise<TaskWatcher> {
+  async create(createTaskWatcherDto: CreateTaskWatcherDto): Promise<TaskWatcher> {
     const { taskId, userId } = createTaskWatcherDto;
 
     // Verify task exists
@@ -409,9 +403,7 @@ export class TaskWatchersService {
     // Only the watcher themselves can remove their watch (or admins can remove any)
     // For now, only allow self-removal
     if (watcher.userId !== requestUserId) {
-      throw new ForbiddenException(
-        'You can only remove your own watch on tasks',
-      );
+      throw new ForbiddenException('You can only remove your own watch on tasks');
     }
 
     await this.prisma.taskWatcher.delete({

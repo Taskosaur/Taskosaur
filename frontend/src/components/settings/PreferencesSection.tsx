@@ -1,12 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import ActionButton from "@/components/common/ActionButton";
 import {
   Select,
@@ -78,8 +72,7 @@ export default function PreferencesSection() {
               Account Preferences
             </CardTitle>
             <CardDescription className="text-sm text-[var(--muted-foreground)] mt-1">
-              Customize your notification settings, timezone, and other account
-              preferences.
+              Customize your notification settings, timezone, and other account preferences.
             </CardDescription>
           </div>
           <Badge
@@ -90,16 +83,14 @@ export default function PreferencesSection() {
           </Badge>
         </div>
       </CardHeader>
-      
+
       <CardContent className="pt-0">
         <div className="space-y-4">
           {/* Timezone */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <HiGlobeAlt className="w-4 h-4 text-[var(--primary)]" />
-              <Label className="text-sm font-medium text-[var(--foreground)]">
-                Timezone
-              </Label>
+              <Label className="text-sm font-medium text-[var(--foreground)]">Timezone</Label>
             </div>
             <div className="max-w-md">
               <Select
@@ -121,18 +112,14 @@ export default function PreferencesSection() {
                   <SelectItem value="(UTC-05:00) Eastern Time (US & Canada)">
                     (UTC-05:00) Eastern Time (US & Canada)
                   </SelectItem>
-                  <SelectItem value="(UTC+00:00) London">
-                    (UTC+00:00) London
-                  </SelectItem>
+                  <SelectItem value="(UTC+00:00) London">(UTC+00:00) London</SelectItem>
                   <SelectItem value="(UTC+01:00) Berlin, Paris, Rome">
                     (UTC+01:00) Berlin, Paris, Rome
                   </SelectItem>
                   <SelectItem value="(UTC+08:00) Singapore, Hong Kong">
                     (UTC+08:00) Singapore, Hong Kong
                   </SelectItem>
-                  <SelectItem value="(UTC+09:00) Tokyo">
-                    (UTC+09:00) Tokyo
-                  </SelectItem>
+                  <SelectItem value="(UTC+09:00) Tokyo">(UTC+09:00) Tokyo</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-[var(--muted-foreground)] mt-1">

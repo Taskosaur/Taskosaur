@@ -14,13 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  HiMagnifyingGlass,
-  HiPlus,
-  HiUsers,
-  HiXMark,
-  HiCog,
-} from "react-icons/hi2";
+import { HiMagnifyingGlass, HiPlus, HiUsers, HiXMark, HiCog } from "react-icons/hi2";
 import ErrorState from "@/components/common/ErrorState";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Badge } from "@/components/ui";
@@ -31,9 +25,7 @@ import Tooltip from "@/components/common/ToolTip";
 import { roles } from "@/utils/data/projectData";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
 import { ProjectMember, Workspace } from "@/types";
-import PendingInvitations, {
-  PendingInvitationsRef,
-} from "@/components/common/PendingInvitations";
+import PendingInvitations, { PendingInvitationsRef } from "@/components/common/PendingInvitations";
 import WorkspaceMembersSkeleton from "@/components/skeletons/WorkspaceMembersSkeleton";
 import Pagination from "@/components/common/Pagination";
 
@@ -91,12 +83,8 @@ function WorkspaceMembersContent() {
   const router = useRouter();
   const { workspaceSlug } = router.query;
 
-  const {
-    getWorkspaceBySlug,
-    getWorkspaceMembers,
-    updateMemberRole,
-    removeMemberFromWorkspace,
-  } = useWorkspace();
+  const { getWorkspaceBySlug, getWorkspaceMembers, updateMemberRole, removeMemberFromWorkspace } =
+    useWorkspace();
   const { isAuthenticated, getCurrentUser, getUserAccess } = useAuth();
   const [hasAccess, setHasAccess] = useState(false);
   const [userAccess, setUserAccess] = useState(null);
@@ -131,9 +119,7 @@ function WorkspaceMembersContent() {
     if (!workspace?.id) return;
     getUserAccess({ name: "workspace", id: workspace?.id })
       .then((data) => {
-        setHasAccess(
-          data?.canChange || data?.role === "OWNER" || data?.role === "MANAGER"
-        );
+        setHasAccess(data?.canChange || data?.role === "OWNER" || data?.role === "MANAGER");
         setUserAccess(data);
       })
       .catch((error) => {
@@ -182,11 +168,7 @@ function WorkspaceMembersContent() {
 
   // Check if current user can manage members
   const canManageMembers = () => {
-    return (
-      userAccess?.role === "OWNER" ||
-      userAccess?.role === "MANAGER" ||
-      hasAccess
-    );
+    return userAccess?.role === "OWNER" || userAccess?.role === "MANAGER" || hasAccess;
   };
 
   // Check if a member's role can be updated
@@ -286,9 +268,7 @@ function WorkspaceMembersContent() {
 
         const workspaceData =
           workspace ||
-          (await contextFunctionsRef.current.getWorkspaceBySlug(
-            workspaceSlug as string
-          ));
+          (await contextFunctionsRef.current.getWorkspaceBySlug(workspaceSlug as string));
 
         if (requestIdRef.current !== requestId || !isMountedRef.current) {
           return;
@@ -323,9 +303,8 @@ function WorkspaceMembersContent() {
           id: member.id,
           userId: member.userId,
           name:
-            `${member.user?.firstName || ""} ${
-              member.user?.lastName || ""
-            }`.trim() || "Unknown User",
+            `${member.user?.firstName || ""} ${member.user?.lastName || ""}`.trim() ||
+            "Unknown User",
           email: member.user?.email || "",
           role: member.role || "Member",
           status: member.user?.status || "Active",
@@ -397,9 +376,7 @@ function WorkspaceMembersContent() {
     };
   }, []);
 
-  const activeMembers = members.filter(
-    (member) => member.status?.toLowerCase() !== "pending"
-  );
+  const activeMembers = members.filter((member) => member.status?.toLowerCase() !== "pending");
 
   const refreshMembers = async () => {
     if (!workspace) return;
@@ -417,9 +394,7 @@ function WorkspaceMembersContent() {
         id: member.id,
         userId: member.userId,
         name:
-          `${member.user?.firstName || ""} ${
-            member.user?.lastName || ""
-          }`.trim() || "Unknown User",
+          `${member.user?.firstName || ""} ${member.user?.lastName || ""}`.trim() || "Unknown User",
         email: member.user?.email || "",
         role: member.role || "Member",
         status: member.user?.status || "Active",
@@ -468,11 +443,7 @@ function WorkspaceMembersContent() {
 
     try {
       setUpdatingMember(memberId);
-      await updateMemberRole(
-        memberId,
-        { role: newRole as any },
-        currentUser.id
-      );
+      await updateMemberRole(memberId, { role: newRole as any }, currentUser.id);
       await refreshMembers();
       updateLocalStorageUser(newRole);
       toast.success("Member role updated successfully");
@@ -506,9 +477,7 @@ function WorkspaceMembersContent() {
 
       toast.success("Member removed successfully");
     } catch (err) {
-      const errorMessage = err.message
-        ? err.message
-        : "Failed to remove member";
+      const errorMessage = err.message ? err.message : "Failed to remove member";
       setError(errorMessage);
       setMemberToRemove(null);
       toast.error(errorMessage);
@@ -548,9 +517,7 @@ function WorkspaceMembersContent() {
       }
     } catch (error: any) {
       const errorMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Failed to send invitation";
+        error?.response?.data?.message || error?.message || "Failed to send invitation";
       toast.error(errorMessage);
       console.error("Invite member error:", error);
       throw error;
@@ -581,10 +548,7 @@ function WorkspaceMembersContent() {
   if (error && !members.length) {
     return (
       <div className="min-h-screen bg-[var(--background)]">
-        <ErrorState
-          error="Error loading workspace members"
-          onRetry={retryFetch}
-        />
+        <ErrorState error="Error loading workspace members" onRetry={retryFetch} />
       </div>
     );
   }
@@ -593,9 +557,7 @@ function WorkspaceMembersContent() {
     return (
       <div className="dashboard-container px-[1rem]">
         <div className="text-center py-12">
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">
-            Workspace not found
-          </h2>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">Workspace not found</h2>
         </div>
       </div>
     );
@@ -711,8 +673,7 @@ function WorkspaceMembersContent() {
                                 <div className="relative">
                                   <UserAvatar
                                     user={{
-                                      firstName:
-                                        member.name.split(" ")[0] || "",
+                                      firstName: member.name.split(" ")[0] || "",
                                       lastName: member.name.split(" ")[1] || "",
                                       avatar: member.avatar,
                                     }}
@@ -739,10 +700,9 @@ function WorkspaceMembersContent() {
                                   content={
                                     isCurrentUser
                                       ? "Leave Workspace"
-                                      : userAccess?.role === "MANAGER" &&
-                                        member.role === "MANAGER"
-                                      ? "Cannot remove other managers"
-                                      : "Remove Member"
+                                      : userAccess?.role === "MANAGER" && member.role === "MANAGER"
+                                        ? "Cannot remove other managers"
+                                        : "Remove Member"
                                   }
                                   position="top"
                                   color="danger"
@@ -765,9 +725,7 @@ function WorkspaceMembersContent() {
                               {canEditRole ? (
                                 <Select
                                   value={member.role}
-                                  onValueChange={(value) =>
-                                    handleRoleUpdate(member.id, value)
-                                  }
+                                  onValueChange={(value) => handleRoleUpdate(member.id, value)}
                                   disabled={updatingMember === member.id}
                                 >
                                   <SelectTrigger className="h-8 text-xs border-[var(--border)] bg-background text-[var(--foreground)] w-auto min-w-[100px]">
@@ -780,8 +738,7 @@ function WorkspaceMembersContent() {
                                         value={role.name}
                                         className="hover:bg-[var(--hover-bg)]"
                                       >
-                                        {role.name.charAt(0) +
-                                          role.name.slice(1).toLowerCase()}
+                                        {role.name.charAt(0) + role.name.slice(1).toLowerCase()}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -840,9 +797,7 @@ function WorkspaceMembersContent() {
                             <div className="col-span-2">
                               <span className="text-sm text-[var(--muted-foreground)]">
                                 {member.joinedAt
-                                  ? formatDate(
-                                      new Date(member.joinedAt).toISOString()
-                                    )
+                                  ? formatDate(new Date(member.joinedAt).toISOString())
                                   : "N/A"}
                               </span>
                             </div>
@@ -852,9 +807,7 @@ function WorkspaceMembersContent() {
                               {canEditRole ? (
                                 <Select
                                   value={member.role}
-                                  onValueChange={(value) =>
-                                    handleRoleUpdate(member.id, value)
-                                  }
+                                  onValueChange={(value) => handleRoleUpdate(member.id, value)}
                                   disabled={updatingMember === member.id}
                                 >
                                   <SelectTrigger className="h-7 text-xs border-none shadow-none bg-background text-[var(--foreground)]">
@@ -867,8 +820,7 @@ function WorkspaceMembersContent() {
                                         value={role.name}
                                         className="hover:bg-[var(--hover-bg)]"
                                       >
-                                        {role.name.charAt(0) +
-                                          role.name.slice(1).toLowerCase()}
+                                        {role.name.charAt(0) + role.name.slice(1).toLowerCase()}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -891,10 +843,9 @@ function WorkspaceMembersContent() {
                                   content={
                                     isCurrentUser
                                       ? "Leave Workspace"
-                                      : userAccess?.role === "MANAGER" &&
-                                        member.role === "MANAGER"
-                                      ? "Cannot remove other managers"
-                                      : "Remove Member"
+                                      : userAccess?.role === "MANAGER" && member.role === "MANAGER"
+                                        ? "Cannot remove other managers"
+                                        : "Remove Member"
                                   }
                                   position="top"
                                   color="danger"
@@ -961,9 +912,7 @@ function WorkspaceMembersContent() {
                 </div>
                 <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
                   <span>Members:</span>
-                  <span className="font-medium text-[var(--foreground)]">
-                    {members.length}
-                  </span>
+                  <span className="font-medium text-[var(--foreground)]">{members.length}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
                   <span>Active Members:</span>
@@ -987,19 +936,12 @@ function WorkspaceMembersContent() {
                 {roles.map((role) => {
                   // Only count active members
                   const count = members.filter(
-                    (m) =>
-                      m.role === role.name &&
-                      m.status?.toLowerCase() !== "pending"
+                    (m) => m.role === role.name && m.status?.toLowerCase() !== "pending"
                   ).length;
 
                   return (
-                    <div
-                      key={role.id}
-                      className="flex items-center justify-between text-xs"
-                    >
-                      <span className="text-[var(--muted-foreground)]">
-                        {role.name}
-                      </span>
+                    <div key={role.id} className="flex items-center justify-between text-xs">
+                      <span className="text-[var(--muted-foreground)]">{role.name}</span>
                       <Badge
                         variant={role.variant}
                         className="h-5 px-2 text-xs border-none bg-[var(--primary)]/10 text-[var(--primary)]"
@@ -1036,19 +978,13 @@ function WorkspaceMembersContent() {
           isOpen={true}
           onClose={() => setMemberToRemove(null)}
           onConfirm={() => handleRemoveMember(memberToRemove)}
-          title={
-            memberToRemove.userId === getCurrentUserId()
-              ? "Leave Workspace"
-              : "Remove Member"
-          }
+          title={memberToRemove.userId === getCurrentUserId() ? "Leave Workspace" : "Remove Member"}
           message={
             memberToRemove.userId === getCurrentUserId()
               ? "Are you sure you want to leave this workspace? You will lose access to all workspace resources."
               : "Are you sure you want to remove this member from the Workspace?"
           }
-          confirmText={
-            memberToRemove.userId === getCurrentUserId() ? "Leave" : "Remove"
-          }
+          confirmText={memberToRemove.userId === getCurrentUserId() ? "Leave" : "Remove"}
           cancelText="Cancel"
         />
       )}

@@ -70,12 +70,7 @@ const SearchManager = () => {
       setError(null);
 
       try {
-        const response = await universalSearch(
-          trimmed,
-          currentOrganizationId,
-          page,
-          PAGE_SIZE
-        );
+        const response = await universalSearch(trimmed, currentOrganizationId, page, PAGE_SIZE);
         setResults(response?.results || []);
         setTotalResults(response?.total || (response?.results?.length ?? 0));
         setSelectedIndex(0);
@@ -188,9 +183,7 @@ const SearchManager = () => {
           break;
         case "ArrowDown":
           e.preventDefault();
-          setSelectedIndex((prev) =>
-            Math.min(prev + 1, paginatedResults.length - 1)
-          );
+          setSelectedIndex((prev) => Math.min(prev + 1, paginatedResults.length - 1));
           break;
         case "ArrowUp":
           e.preventDefault();
@@ -282,9 +275,7 @@ const SearchManager = () => {
     <Tooltip content="Search" position="bottom" color="primary">
       <Button onClick={openSearch} className="header-mode-toggle shadow-none">
         <HiMagnifyingGlass className="header-mode-toggle-icon" />
-        <span className="hidden max-[530px]:inline-block text-sm font-medium">
-          Search
-        </span>
+        <span className="hidden max-[530px]:inline-block text-sm font-medium">Search</span>
       </Button>
     </Tooltip>
   );
@@ -368,10 +359,7 @@ const SearchManager = () => {
           )}
           {/* Results list */}
           {!loading && !error && paginatedResults.length > 0 && (
-            <div
-              ref={resultsRef}
-              className="py-1 w-full flex flex-col justify-start items-stretch"
-            >
+            <div ref={resultsRef} className="py-1 w-full flex flex-col justify-start items-stretch">
               {paginatedResults.map((result, index) => (
                 <div
                   key={result.id || index}
@@ -391,10 +379,8 @@ const SearchManager = () => {
                       {result.title}
                     </div>
                     <div className="text-[13px] opacity-70 truncate">
-                      {result.context?.workspace?.name &&
-                        `${result.context.workspace.name} • `}
-                      {result.context?.project?.name &&
-                        `${result.context.project.name} • `}
+                      {result.context?.workspace?.name && `${result.context.workspace.name} • `}
+                      {result.context?.project?.name && `${result.context.project.name} • `}
                       {result.type}
                     </div>
                   </div>
@@ -412,9 +398,7 @@ const SearchManager = () => {
               <div className="text-base font-medium mb-1 text-[var(--foreground)]">
                 Spotlight Search
               </div>
-              <div className="text-xs mb-2">
-                Start typing to search across your workspace
-              </div>
+              <div className="text-xs mb-2">Start typing to search across your workspace</div>
               <div className="text-xs opacity-50 flex items-center gap-2 mt-2">
                 <span className="inline-flex items-center gap-1 bg-[var(--muted)]/30 px-1 py-0.5 rounded">
                   <span>⌘K to open</span>
@@ -462,9 +446,7 @@ const SearchManager = () => {
           )}
 
           <span className="flex items-center gap-1">
-            <span className="bg-[var(--muted)]/30 px-1 py-0.5 rounded">
-              ESC
-            </span>
+            <span className="bg-[var(--muted)]/30 px-1 py-0.5 rounded">ESC</span>
             close
           </span>
         </div>

@@ -12,7 +12,6 @@ import {
   InviteOrganizationMemberDto,
 } from './dto/create-organization-member.dto';
 import { UpdateOrganizationMemberDto } from './dto/update-organization-member.dto';
-import { WorkspacesService } from '../workspaces/workspaces.service';
 import { WorkspaceMembersService } from '../workspace-members/workspace-members.service';
 
 @Injectable()
@@ -20,16 +19,12 @@ export class OrganizationMembersService {
   constructor(
     private prisma: PrismaService,
     private workspaceMembersService: WorkspaceMembersService,
-  ) { }
+  ) {}
 
   async create(
     createOrganizationMemberDto: CreateOrganizationMemberDto,
   ): Promise<OrganizationMember> {
-    const {
-      userId,
-      organizationId,
-      role = OrganizationRole.MEMBER,
-    } = createOrganizationMemberDto;
+    const { userId, organizationId, role = OrganizationRole.MEMBER } = createOrganizationMemberDto;
 
     // Verify organization exists
     const organization = await this.prisma.organization.findUnique({
@@ -102,9 +97,7 @@ export class OrganizationMembersService {
       return orgMember;
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException(
-          'User is already a member of this organization',
-        );
+        throw new ConflictException('User is already a member of this organization');
       }
       throw error;
     }
@@ -113,11 +106,7 @@ export class OrganizationMembersService {
   async inviteByEmail(
     inviteOrganizationMemberDto: InviteOrganizationMemberDto,
   ): Promise<OrganizationMember> {
-    const {
-      email,
-      organizationId,
-      role = OrganizationRole.MEMBER,
-    } = inviteOrganizationMemberDto;
+    const { email, organizationId, role = OrganizationRole.MEMBER } = inviteOrganizationMemberDto;
 
     // Find user by email
     const user = await this.prisma.user.findUnique({
@@ -136,10 +125,7 @@ export class OrganizationMembersService {
     });
   }
 
-  async findAll(
-    organizationId?: string,
-    search?: string,
-  ): Promise<OrganizationMember[]> {
+  async findAll(organizationId?: string, search?: string): Promise<OrganizationMember[]> {
     const whereClause: any = {};
 
     if (organizationId) {
@@ -189,13 +175,71 @@ export class OrganizationMembersService {
     slug?: string,
     page?: number,
     limit?: number,
-  ): Promise<{ data: OrganizationMember[]; total: number; page?: number; limit?: number }> {
+    search?: string,
+  ): Promise<{
+    data: OrganizationMember[];
+    total: number;
+    page?: number;
+    limit?: number;
+    roleCounts: {
+      OWNER: number;
+      MANAGER: number;
+      MEMBER: number;
+      VIEWER: number;
+    };
+  }> {
     const isPaginated = !!(page && limit);
+
+    // Build search conditions
+    const searchCondition = search
+      ? {
+          OR: [
+            { user: { firstName: { contains: search, mode: 'insensitive' } } },
+            { user: { lastName: { contains: search, mode: 'insensitive' } } },
+            { user: { email: { contains: search, mode: 'insensitive' } } },
+            { user: { username: { contains: search, mode: 'insensitive' } } },
+          ],
+        }
+      : {};
+
+    // Combine base where clause with search
+    const whereClause: any = {
+      organization: { slug },
+      ...searchCondition,
+    };
+
+    // Get role counts - Use a simpler where clause without nested relations
+    const baseWhereClause = {
+      organization: { slug },
+    };
+
+    // Get role counts using groupBy with simple where clause
+    const roleCounts = await this.prisma.organizationMember.groupBy({
+      by: ['role'],
+      where: baseWhereClause, // Use base clause without search
+      _count: {
+        role: true,
+      },
+    });
+
+    // Transform role counts into object with all roles
+    const roleCountsMap = {
+      OWNER: 0,
+      MANAGER: 0,
+      MEMBER: 0,
+      VIEWER: 0,
+    };
+
+    roleCounts.forEach((item) => {
+      if (item.role in roleCountsMap) {
+        roleCountsMap[item.role as keyof typeof roleCountsMap] = item._count.role;
+      }
+    });
 
     if (!isPaginated) {
       // Return all results if pagination not provided
       const data = await this.prisma.organizationMember.findMany({
-        where: { organization: { slug } },
+        where: whereClause,
         include: {
           user: {
             select: {
@@ -206,6 +250,7 @@ export class OrganizationMembersService {
               avatar: true,
               status: true,
               lastLoginAt: true,
+              username: true,
             },
           },
           organization: {
@@ -217,13 +262,10 @@ export class OrganizationMembersService {
             },
           },
         },
-        orderBy: [
-          { role: 'asc' }, // Admins first
-          { joinedAt: 'asc' },
-        ],
+        orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
       });
 
-      return { data, total: data.length };
+      return { data, total: data.length, roleCounts: roleCountsMap };
     }
 
     // Pagination case
@@ -231,7 +273,7 @@ export class OrganizationMembersService {
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.organizationMember.findMany({
-        where: { organization: { slug } },
+        where: whereClause,
         include: {
           user: {
             select: {
@@ -242,6 +284,7 @@ export class OrganizationMembersService {
               avatar: true,
               status: true,
               lastLoginAt: true,
+              username: true,
             },
           },
           organization: {
@@ -253,21 +296,17 @@ export class OrganizationMembersService {
             },
           },
         },
-        orderBy: [
-          { role: 'asc' },
-          { joinedAt: 'asc' },
-        ],
+        orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
         skip,
         take: limit,
       }),
       this.prisma.organizationMember.count({
-        where: { organization: { slug } },
+        where: whereClause,
       }),
     ]);
 
-    return { data, total, page, limit };
+    return { data, total, page, limit, roleCounts: roleCountsMap };
   }
-
 
   async findOne(id: string): Promise<OrganizationMember> {
     const member = await this.prisma.organizationMember.findUnique({
@@ -385,9 +424,7 @@ export class OrganizationMembersService {
       requesterMember.role === OrganizationRole.MANAGER;
 
     if (!isOwner && !isAdmin) {
-      throw new ForbiddenException(
-        'Only organization owners and admins can update member roles',
-      );
+      throw new ForbiddenException('Only organization owners and admins can update member roles');
     }
 
     // Prevent demoting the organization owner
@@ -395,9 +432,7 @@ export class OrganizationMembersService {
       member.organization.ownerId === member.userId &&
       updateOrganizationMemberDto.role !== OrganizationRole.OWNER
     ) {
-      throw new BadRequestException(
-        'Cannot change the role of organization owner',
-      );
+      throw new BadRequestException('Cannot change the role of organization owner');
     }
 
     const updatedMember = await this.prisma.organizationMember.update({
@@ -490,16 +525,12 @@ export class OrganizationMembersService {
       requesterMember.role === OrganizationRole.MANAGER;
 
     if (!isSelfRemoval && !isOwner && !isAdmin) {
-      throw new ForbiddenException(
-        'You can only remove yourself or you must be an admin/owner',
-      );
+      throw new ForbiddenException('You can only remove yourself or you must be an admin/owner');
     }
 
     // Prevent removing the organization owner
     if (member.organization.ownerId === member.userId) {
-      throw new BadRequestException(
-        'Cannot remove organization owner from organization',
-      );
+      throw new BadRequestException('Cannot remove organization owner from organization');
     }
 
     // Use transaction to remove member from organization and all related workspaces/projects
@@ -550,7 +581,20 @@ export class OrganizationMembersService {
       select: { role: true },
     });
 
-    let organizations;
+    type OrgType = {
+      id: string;
+      name: string;
+      slug: string;
+      ownerId: string;
+      description: string | null;
+      avatar: string | null;
+      website: string | null;
+      _count: { members: number; workspaces: number };
+      createdAt: Date;
+      members: Array<{ role: string; joinedAt: Date; isDefault: boolean }>;
+    };
+
+    let organizations: OrgType[];
 
     // 2. If SUPER_ADMIN → fetch all organizations
     if (user?.role === 'SUPER_ADMIN') {
@@ -576,6 +620,7 @@ export class OrganizationMembersService {
               id: true,
               role: true,
               joinedAt: true,
+              isDefault: true,
             },
             take: 1,
           },

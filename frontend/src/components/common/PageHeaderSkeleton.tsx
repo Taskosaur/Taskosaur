@@ -11,11 +11,11 @@ function PageHeaderSkeleton() {
           {/* Description skeleton */}
           <Skeleton className="h-4 w-80" />
         </div>
-        
+
         {/* Actions skeleton */}
         <div className="flex items-center gap-2">
           <Skeleton className="h-9 w-24" /> {/* Refresh button */}
-          <Skeleton className="h-9 w-9" />   {/* Settings dropdown */}
+          <Skeleton className="h-9 w-9" /> {/* Settings dropdown */}
         </div>
       </div>
     </div>

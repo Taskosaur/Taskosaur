@@ -8,12 +8,14 @@ export interface GanttTask {
   end: Date | null;
   progress: number;
   dependencies: string[];
-  assignees?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    avatar?: string;
-  }[] | undefined;
+  assignees?:
+    | {
+        id: string;
+        firstName: string;
+        lastName: string;
+        avatar?: string;
+      }[]
+    | undefined;
   priority: string;
   status: {
     name: string;
@@ -43,7 +45,7 @@ export interface GanttData {
 
 @Injectable()
 export class GanttService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async getProjectGanttData(projectId: string): Promise<GanttData> {
     // Fetch all project data
@@ -111,11 +113,11 @@ export class GanttService {
         dependencies,
         assignees: task.assignees
           ? task.assignees.map((assignee) => ({
-            id: assignee.id,
-            firstName: assignee.firstName,
-            lastName: assignee.lastName,
-            avatar: assignee.avatar || undefined,
-          }))
+              id: assignee.id,
+              firstName: assignee.firstName,
+              lastName: assignee.lastName,
+              avatar: assignee.avatar || undefined,
+            }))
           : undefined,
         priority: task.priority,
         status: task.status,
@@ -204,11 +206,11 @@ export class GanttService {
       dependencies: task.dependsOn.map((dep) => dep.blockingTask.id),
       assignees: task.assignees
         ? task.assignees.map((assignee) => ({
-          id: assignee.id,
-          firstName: assignee.firstName,
-          lastName: assignee.lastName,
-          avatar: assignee.avatar || undefined,
-        }))
+            id: assignee.id,
+            firstName: assignee.firstName,
+            lastName: assignee.lastName,
+            avatar: assignee.avatar || undefined,
+          }))
         : undefined,
       priority: task.priority,
       status: task.status,
@@ -245,7 +247,7 @@ export class GanttService {
       where: {
         projectId,
         assignees: {
-          some: {} // Tasks that have at least one assignee
+          some: {}, // Tasks that have at least one assignee
         },
         startDate: { not: null },
         dueDate: { not: null },
@@ -258,7 +260,18 @@ export class GanttService {
     });
 
     // Group tasks by assignee using Map
-    const resourceMap = new Map();
+    type ResourceType = {
+      assignee: { id: string; name: string; avatar: string | null };
+      tasks: Array<{
+        id: string;
+        title: string;
+        start: Date | null;
+        end: Date | null;
+        storyPoints: number;
+      }>;
+      workload: number;
+    };
+    const resourceMap = new Map<string, ResourceType>();
 
     tasks.forEach((task) => {
       // Since each task can have multiple assignees, iterate through all of them
@@ -278,7 +291,7 @@ export class GanttService {
           });
         }
 
-        const resource = resourceMap.get(assigneeId);
+        const resource = resourceMap.get(assigneeId)!;
 
         // Add task to this assignee's list
         resource.tasks.push({
@@ -297,7 +310,6 @@ export class GanttService {
 
     return Array.from(resourceMap.values());
   }
-
 
   private calculateTaskProgress(statusName: string): number {
     // Map status names to progress percentages
@@ -346,19 +358,14 @@ export class GanttService {
       };
     }
 
-    const start = new Date(Math.min(...allDates.map((d) => d.getTime())));
-    const end = new Date(Math.max(...allDates.map((d) => d.getTime())));
-    const duration = Math.ceil(
-      (end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000),
-    );
+    const start = new Date(Math.min(...allDates.map((d: Date) => d.getTime())));
+    const end = new Date(Math.max(...allDates.map((d: Date) => d.getTime())));
+    const duration = Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
 
     return { start, end, duration };
   }
 
-  private calculateCriticalPath(
-    tasks: GanttTask[],
-    dependencies: any[],
-  ): string[] {
+  private calculateCriticalPath(tasks: GanttTask[], dependencies: any[]): string[] {
     // Simplified critical path calculation
     // In a real implementation, you'd use CPM (Critical Path Method) algorithm
 
@@ -384,7 +391,7 @@ export class GanttService {
   private findLongestPath(
     task: GanttTask,
     taskMap: Map<string, GanttTask>,
-    dependencies: any[],
+    dependencies: Array<{ blockingTaskId: string; dependentTaskId: string }>,
   ): string[] {
     const path = [task.id];
 
@@ -392,7 +399,7 @@ export class GanttService {
     const dependentTasks = dependencies
       .filter((dep) => dep.blockingTaskId === task.id)
       .map((dep) => taskMap.get(dep.dependentTaskId))
-      .filter(Boolean);
+      .filter((task): task is GanttTask => task !== undefined);
 
     if (dependentTasks.length === 0) {
       return path;
@@ -401,7 +408,7 @@ export class GanttService {
     // Recursively find the longest path from dependent tasks
     let longestSubPath: string[] = [];
     dependentTasks.forEach((depTask) => {
-      const subPath = this.findLongestPath(depTask!, taskMap, dependencies);
+      const subPath = this.findLongestPath(depTask, taskMap, dependencies);
       if (subPath.length > longestSubPath.length) {
         longestSubPath = subPath;
       }
@@ -433,6 +440,8 @@ export class GanttService {
       }
     });
 
-    return milestones.sort((a, b) => a.date.getTime() - b.date.getTime());
+    return milestones.sort(
+      (a: { date: Date }, b: { date: Date }) => a.date.getTime() - b.date.getTime(),
+    );
   }
 }

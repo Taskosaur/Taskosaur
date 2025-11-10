@@ -29,13 +29,7 @@ interface NewWorkspaceDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   triggerText?: string;
-  triggerVariant?:
-    | "default"
-    | "destructive"
-    | "outline"
-    | "secondary"
-    | "ghost"
-    | "link";
+  triggerVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   onWorkspaceCreated?: () => Promise<void>;
   refetchWorkspaces?: () => Promise<void>;
 }
@@ -128,7 +122,6 @@ export default function NewWorkspaceDialog({
         }
 
         handleOpenChange(false);
-        
       } catch (error) {
         const errMsg = error instanceof Error ? error.message : "Failed to create workspace";
         setError(errMsg);
@@ -149,15 +142,11 @@ export default function NewWorkspaceDialog({
       <DialogContent className="projects-modal-container border-none">
         <DialogHeader className="projects-modal-header">
           <div className="projects-modal-header-content">
-            <div 
-              className="projects-modal-icon bg-[var(--primary)]"
-            >
+            <div className="projects-modal-icon bg-[var(--primary)]">
               <HiBuildingOffice2 className="projects-modal-icon-content" />
             </div>
             <div className="projects-modal-info">
-              <DialogTitle className="projects-modal-title">
-                Create new workspace
-              </DialogTitle>
+              <DialogTitle className="projects-modal-title">Create new workspace</DialogTitle>
               <DialogDescription className="projects-modal-description">
                 Provide basic information about your new workspace
               </DialogDescription>
@@ -175,9 +164,9 @@ export default function NewWorkspaceDialog({
 
           <div className="projects-form-field">
             <Label htmlFor="workspace-name" className="projects-form-label">
-              <HiSparkles 
-                className="projects-form-label-icon" 
-                style={{ color: 'hsl(var(--primary))' }}
+              <HiSparkles
+                className="projects-form-label-icon"
+                style={{ color: "hsl(var(--primary))" }}
               />
               Workspace name <span className="projects-form-label-required">*</span>
             </Label>
@@ -191,17 +180,17 @@ export default function NewWorkspaceDialog({
               disabled={isSubmitting}
               className="projects-form-input border-none"
               onFocus={(e) => {
-                e.target.style.boxShadow = 'none';
+                e.target.style.boxShadow = "none";
               }}
               onBlur={(e) => {
-                e.target.style.boxShadow = 'none';
+                e.target.style.boxShadow = "none";
               }}
               autoFocus
             />
             <p className="projects-form-hint">
-              <HiSparkles 
-                className="projects-form-hint-icon" 
-                style={{ color: 'hsl(var(--primary))' }}
+              <HiSparkles
+                className="projects-form-hint-icon"
+                style={{ color: "hsl(var(--primary))" }}
               />
               Choose a clear, descriptive name for your workspace.
             </p>
@@ -209,9 +198,9 @@ export default function NewWorkspaceDialog({
 
           <div className="projects-form-field">
             <Label htmlFor="workspace-description" className="projects-form-label">
-              <HiDocumentText 
-                className="projects-form-label-icon" 
-                style={{ color: 'hsl(var(--primary))' }}
+              <HiDocumentText
+                className="projects-form-label-icon"
+                style={{ color: "hsl(var(--primary))" }}
               />
               Description <span className="projects-form-label-required">*</span>
             </Label>
@@ -227,16 +216,16 @@ export default function NewWorkspaceDialog({
               className="projects-form-textarea border-none"
               style={{}}
               onFocus={(e) => {
-                e.target.style.boxShadow = 'none';
+                e.target.style.boxShadow = "none";
               }}
               onBlur={(e) => {
-                e.target.style.boxShadow = 'none';
+                e.target.style.boxShadow = "none";
               }}
             />
             <p className="projects-form-hint">
-              <HiDocumentText 
-                className="projects-form-hint-icon" 
-                style={{ color: 'hsl(var(--primary))' }}
+              <HiDocumentText
+                className="projects-form-hint-icon"
+                style={{ color: "hsl(var(--primary))" }}
               />
               Help team members understand what this workspace is for.
             </p>
@@ -251,18 +240,14 @@ export default function NewWorkspaceDialog({
             >
               Cancel
             </ActionButton>
-            <ActionButton
-              type="submit"
-              primary
-              disabled={isSubmitting || !isFormValid()}
-            >
+            <ActionButton type="submit" primary disabled={isSubmitting || !isFormValid()}>
               {isSubmitting ? (
                 <>
                   <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
                   Creating workspace...
                 </>
               ) : (
-                'Create workspace'
+                "Create workspace"
               )}
             </ActionButton>
           </div>

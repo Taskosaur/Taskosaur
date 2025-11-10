@@ -1,15 +1,5 @@
 // src/modules/invitations/invitations.controller.ts
-import {
-  Controller,
-  Post,
-  Get,
-  Patch,
-  Body,
-  Param,
-  Query,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { InvitationsService } from './invitations.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
@@ -24,26 +14,20 @@ import { LogActivity } from 'src/common/decorator/log-activity.decorator';
 @UseGuards(JwtAuthGuard)
 @Controller('invitations')
 export class InvitationsController {
-  constructor(private readonly invitationsService: InvitationsService) { }
+  constructor(private readonly invitationsService: InvitationsService) {}
 
   @Post()
   @ApiOperation({ summary: 'Send invitation' })
   @LogActivity({
-      type: 'INVITATION_SENT',
-      entityType: 'Invitation',
-      description: 'Sent invitation to join organization/workspace/project',
-      includeNewValue: true,
-      entityIdName:['organizationId', 'workspaceId', 'projectId'],
-    })
-  async createInvitation(
-    @Body() createInvitationDto: CreateInvitationDto,
-    @Req() req: Request,
-  ) {
+    type: 'INVITATION_SENT',
+    entityType: 'Invitation',
+    description: 'Sent invitation to join organization/workspace/project',
+    includeNewValue: true,
+    entityIdName: ['organizationId', 'workspaceId', 'projectId'],
+  })
+  async createInvitation(@Body() createInvitationDto: CreateInvitationDto, @Req() req: Request) {
     const user = getAuthUser(req);
-    return this.invitationsService.createInvitation(
-      createInvitationDto,
-      user.id,
-    );
+    return this.invitationsService.createInvitation(createInvitationDto, user.id);
   }
 
   @Patch(':token/accept')
@@ -77,12 +61,12 @@ export class InvitationsController {
   @Post(':id/resend')
   @ApiOperation({ summary: 'Resend invitation' })
   @LogActivity({
-      type: 'INVITATION_RESENT',
-      entityType: 'Invitation',
-      description: 'Resent invitation',
-      includeNewValue: true,
-      entityIdName:['organizationId', 'workspaceId', 'projectId'],
-    })
+    type: 'INVITATION_RESENT',
+    entityType: 'Invitation',
+    description: 'Resent invitation',
+    includeNewValue: true,
+    entityIdName: ['organizationId', 'workspaceId', 'projectId'],
+  })
   async resendInvitation(@Param('id') id: string, @Req() req: Request) {
     const user = getAuthUser(req);
     return this.invitationsService.resendInvitation(id, user.id);

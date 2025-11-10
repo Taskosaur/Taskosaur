@@ -9,8 +9,8 @@ export interface ProjectInbox {
   autoReplyEnabled: boolean;
   autoReplyTemplate?: string;
   autoCreateTask: boolean;
-  defaultTaskType: 'TASK' | 'BUG' | 'EPIC' | 'STORY' | 'SUBTASK';
-  defaultPriority: 'LOWEST' | 'LOW' | 'MEDIUM' | 'HIGH' | 'HIGHEST';
+  defaultTaskType: "TASK" | "BUG" | "EPIC" | "STORY" | "SUBTASK";
+  defaultPriority: "LOWEST" | "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
   defaultStatusId: string;
   defaultAssigneeId?: string;
   createdAt: string;
@@ -91,7 +91,7 @@ export interface InboxRule {
   updatedAt: string;
 }
 
-export type MessageStatus = 'PENDING' | 'PROCESSING' | 'CONVERTED' | 'IGNORED' | 'FAILED';
+export type MessageStatus = "PENDING" | "PROCESSING" | "CONVERTED" | "IGNORED" | "FAILED";
 
 export interface CreateInboxDto {
   name: string;
@@ -101,8 +101,8 @@ export interface CreateInboxDto {
   autoReplyEnabled?: boolean;
   autoReplyTemplate?: string;
   autoCreateTask?: boolean;
-  defaultTaskType?: 'TASK' | 'BUG' | 'EPIC' | 'STORY' | 'SUBTASK';
-  defaultPriority?: 'LOWEST' | 'LOW' | 'MEDIUM' | 'HIGH' | 'HIGHEST';
+  defaultTaskType?: "TASK" | "BUG" | "EPIC" | "STORY" | "SUBTASK";
+  defaultPriority?: "LOWEST" | "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
   defaultStatusId?: string;
   defaultAssigneeId?: string;
 }

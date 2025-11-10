@@ -39,8 +39,7 @@ export class UsersSeederService {
         bio: 'Senior Frontend Developer specializing in React and TypeScript',
         timezone: 'America/New_York',
         language: 'en',
-        avatar:
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
         mobileNumber: '+10000000002',
       },
       {
@@ -55,8 +54,7 @@ export class UsersSeederService {
         bio: 'Product Manager with 8+ years of experience in agile development',
         timezone: 'America/Los_Angeles',
         language: 'en',
-        avatar:
-          'https://images.unsplash.com/photo-1494790108755-2616b612b606?w=150',
+        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b606?w=150',
         mobileNumber: '+10000000003',
       },
       {
@@ -71,8 +69,7 @@ export class UsersSeederService {
         bio: 'Backend Developer focused on Node.js, NestJS, and PostgreSQL',
         timezone: 'Europe/London',
         language: 'en',
-        avatar:
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
         mobileNumber: '+10000000004',
       },
       {
@@ -87,8 +84,7 @@ export class UsersSeederService {
         bio: 'UI/UX Designer passionate about creating intuitive user experiences',
         timezone: 'Australia/Sydney',
         language: 'en',
-        avatar:
-          'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
+        avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
         mobileNumber: '+10000000005',
       },
       {
@@ -103,8 +99,7 @@ export class UsersSeederService {
         bio: 'DevOps Engineer specializing in cloud infrastructure and automation',
         timezone: 'America/Chicago',
         language: 'en',
-        avatar:
-          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
         mobileNumber: '+10000000006',
       },
       {
@@ -119,8 +114,7 @@ export class UsersSeederService {
         bio: 'QA Analyst ensuring quality across all product features',
         timezone: 'Europe/Berlin',
         language: 'en',
-        avatar:
-          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
         mobileNumber: '+10000000007',
       },
       {
@@ -162,9 +156,7 @@ export class UsersSeederService {
         createdUsers.push(user);
         console.log(`   ✓ Created user: ${user.email}`);
       } catch (error) {
-        console.log(
-          `   ⚠ User ${userData.email} might already exist, skipping...`,
-        );
+        console.log(`   ⚠ User ${userData.email} might already exist, skipping...`);
         // Try to find existing user
         const existingUser = await this.prisma.user.findUnique({
           where: { email: userData.email },
@@ -175,9 +167,7 @@ export class UsersSeederService {
       }
     }
 
-    console.log(
-      `✅ Users seeding completed. Created/Found ${createdUsers.length} users.`,
-    );
+    console.log(`✅ Users seeding completed. Created/Found ${createdUsers.length} users.`);
     return createdUsers;
   }
 

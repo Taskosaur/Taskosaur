@@ -18,10 +18,7 @@ import ActionButton from "../common/ActionButton";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import { inboxApi } from "@/utils/api/inboxApi";
 import { useAuth } from "@/contexts/auth-context";
-import {
-  DangerouslyHTMLComment,
-  decodeHtml,
-} from "../common/DangerouslyHTMLComment";
+import { DangerouslyHTMLComment, decodeHtml } from "../common/DangerouslyHTMLComment";
 import dynamic from "next/dynamic";
 const RichTextEditor = dynamic(() => import("../common/RichTextEditor"), {
   ssr: false,
@@ -152,15 +149,11 @@ const CommentItem = React.memo(
             <div className="flex items-center justify-between gap-2  mt-[3px]">
               <div className="flex items-center gap-2">
                 {/* Username */}
-                <span className="text-sm font-medium text-[var(--foreground)]">
-                  {displayName}
-                </span>
+                <span className="text-sm font-medium text-[var(--foreground)]">{displayName}</span>
 
                 {/* Edit indicator */}
                 {timestamp.isEdited && (
-                  <span className="text-[12px] text-[var(--muted-foreground)]">
-                    (edited)
-                  </span>
+                  <span className="text-[12px] text-[var(--muted-foreground)]">(edited)</span>
                 )}
 
                 {canEdit && (
@@ -226,11 +219,7 @@ const CommentItem = React.memo(
 
             {/* Send as Email button - positioned below content */}
             {allowEmailReplies && !comment.sentAsEmail && onSendAsEmail && (
-              <div
-                className={`mt-2 transition-opacity ${
-                  isHovered ? "opacity-100" : "opacity-0"
-                }`}
-              >
+              <div className={`mt-2 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}>
                 <button
                   onClick={() => onSendAsEmail(comment.id)}
                   className="text-xs px-2 py-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex items-center gap-1"
@@ -267,12 +256,7 @@ export default function TaskComments({
   const [showAll, setShowAll] = useState(false);
   const INITIAL_DISPLAY_COUNT = 3;
 
-  const {
-    getTaskComments,
-    createTaskComment,
-    updateTaskComment,
-    deleteTaskComment,
-  } = useTask();
+  const { getTaskComments, createTaskComment, updateTaskComment, deleteTaskComment } = useTask();
 
   const [comments, setComments] = useState<CommentWithAuthor[]>([]);
   const [editorState, setEditorState] = useState(EditorState.createEmpty());
@@ -280,43 +264,36 @@ export default function TaskComments({
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loadingComments, setLoadingComments] = useState(true);
-  const [sendingEmailCommentId, setSendingEmailCommentId] = useState<
-    string | null
-  >(null);
+  const [sendingEmailCommentId, setSendingEmailCommentId] = useState<string | null>(null);
 
   useEffect(() => {
     const userString = localStorage.getItem("user");
     if (userString) setCurrentUser(JSON.parse(userString));
   }, []);
 
-  const formatTimestamp = useCallback(
-    (createdAt: string, updatedAt: string) => {
-      if (!createdAt)
-        return { text: "Unknown time", isEdited: false, fullDate: "" };
-      const created = new Date(createdAt);
-      const updated = new Date(updatedAt);
-      const isEdited = updated.getTime() - created.getTime() > 1000;
-      const diff =
-        (Date.now() - (isEdited ? updated : created).getTime()) / 1000;
-      const mins = Math.floor(diff / 60);
-      const hours = Math.floor(mins / 60);
-      const days = Math.floor(hours / 24);
-      const timeAgo =
-        mins < 1
-          ? "just now"
-          : mins < 60
+  const formatTimestamp = useCallback((createdAt: string, updatedAt: string) => {
+    if (!createdAt) return { text: "Unknown time", isEdited: false, fullDate: "" };
+    const created = new Date(createdAt);
+    const updated = new Date(updatedAt);
+    const isEdited = updated.getTime() - created.getTime() > 1000;
+    const diff = (Date.now() - (isEdited ? updated : created).getTime()) / 1000;
+    const mins = Math.floor(diff / 60);
+    const hours = Math.floor(mins / 60);
+    const days = Math.floor(hours / 24);
+    const timeAgo =
+      mins < 1
+        ? "just now"
+        : mins < 60
           ? `${mins}m ago`
           : hours < 24
-          ? `${hours}h ago`
-          : `${days}d ago`;
-      return {
-        text: `${isEdited ? "updated" : "commented"} ${timeAgo}`,
-        isEdited,
-        fullDate: (isEdited ? updated : created).toLocaleString(),
-      };
-    },
-    []
-  );
+            ? `${hours}h ago`
+            : `${days}d ago`;
+    return {
+      text: `${isEdited ? "updated" : "commented"} ${timeAgo}`,
+      isEdited,
+      fullDate: (isEdited ? updated : created).toLocaleString(),
+    };
+  }, []);
 
   useEffect(() => {
     if (!taskId) return;
@@ -345,7 +322,7 @@ export default function TaskComments({
       const taskComments = await getTaskComments(taskId, isAuth);
       setComments(taskComments || []);
       if (onTaskRefetch) {
-         onTaskRefetch();
+        onTaskRefetch();
       }
     } catch (error) {
       console.error("Failed to refresh comments:", error);
@@ -355,9 +332,7 @@ export default function TaskComments({
   const handleAddOrEdit = async () => {
     if (!currentUser || isSubmitting) return;
 
-    const htmlContent = draftToHtml(
-      convertToRaw(editorState.getCurrentContent())
-    ).trim();
+    const htmlContent = draftToHtml(convertToRaw(editorState.getCurrentContent())).trim();
     if (!htmlContent || htmlContent === "<p></p>") return;
     const cleanHtml = decodeHtml(htmlContent);
     setIsSubmitting(true);
@@ -390,10 +365,7 @@ export default function TaskComments({
   const handleEditComment = (id: string, content: string) => {
     const blocksFromHtml = htmlToDraft(content || "");
     const { contentBlocks, entityMap } = blocksFromHtml;
-    const contentState = ContentState.createFromBlockArray(
-      contentBlocks,
-      entityMap
-    );
+    const contentState = ContentState.createFromBlockArray(contentBlocks, entityMap);
     setEditorState(EditorState.createWithContent(contentState));
     setEditingCommentId(id);
   };
@@ -445,12 +417,10 @@ export default function TaskComments({
 
   const commentsList = useMemo(() => {
     if (loadingComments) {
-      return null; 
+      return null;
     }
 
-    const displayedComments = showAll
-      ? comments
-      : comments.slice(0, INITIAL_DISPLAY_COUNT);
+    const displayedComments = showAll ? comments : comments.slice(0, INITIAL_DISPLAY_COUNT);
 
     return (
       <div className="space-y-0">
@@ -504,16 +474,11 @@ export default function TaskComments({
         <div className="flex items-center justify-between">
           <div className="flex items-start gap-2">
             <div className="p-1 rounded-md">
-              <HiChatBubbleLeftRight
-                size={20}
-                className="text-[var(--primary)]"
-              />
+              <HiChatBubbleLeftRight size={20} className="text-[var(--primary)]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-[20px] font-semibold text-[var(--foreground)]">
-                  Comments
-                </h3>
+                <h3 className="text-[20px] font-semibold text-[var(--foreground)]">Comments</h3>
                 {allowEmailReplies && (
                   <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">
                     <HiEnvelope className="w-3 h-3" />
@@ -524,9 +489,7 @@ export default function TaskComments({
               <p className="text-xs text-[var(--muted-foreground)]">
                 {comments.length === 0
                   ? "No comments"
-                  : `${comments.length} ${
-                      comments.length === 1 ? "comment" : "comments"
-                    }`}
+                  : `${comments.length} ${comments.length === 1 ? "comment" : "comments"}`}
               </p>
             </div>
           </div>
@@ -541,11 +504,7 @@ export default function TaskComments({
                 className="text-sm text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] cursor-pointer transition"
                 onClick={() => setShowAll((v) => !v)}
               >
-                {showAll
-                  ? "Show less"
-                  : `View (${
-                      comments.length - INITIAL_DISPLAY_COUNT
-                    } more)`}
+                {showAll ? "Show less" : `View (${comments.length - INITIAL_DISPLAY_COUNT} more)`}
               </button>
             </div>
           )}
@@ -558,9 +517,7 @@ export default function TaskComments({
               <RichTextEditor
                 editorState={editorState}
                 onChange={setEditorState}
-                placeholder={
-                  editingCommentId ? "Edit your comment..." : "Add a comment..."
-                }
+                placeholder={editingCommentId ? "Edit your comment..." : "Add a comment..."}
               />
             </div>
             <div className="flex justify-end gap-2 mt-2">
@@ -581,11 +538,7 @@ export default function TaskComments({
                 disabled={isSubmitting || isEditorEmpty}
                 className="min-w-[193.56px]"
               >
-                {isSubmitting
-                  ? "Saving..."
-                  : editingCommentId
-                  ? "Update"
-                  : "Add Comment"}
+                {isSubmitting ? "Saving..." : editingCommentId ? "Update" : "Add Comment"}
               </ActionButton>
             </div>
           </div>

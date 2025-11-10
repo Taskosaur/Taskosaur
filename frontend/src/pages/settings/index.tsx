@@ -25,11 +25,7 @@ function OrganizationSettingsPageContent() {
   const { getCurrentOrganizationId } = useWorkspaceContext();
   const { getUserAccess } = useAuth();
   const [hasAccess, setHasAccess] = useState(false);
-  const {
-    getUserOrganizations,
-    isLoading: orgLoading,
-    setDefaultOrganization,
-  } = useOrganization();
+  const { getUserOrganizations, isLoading: orgLoading, setDefaultOrganization } = useOrganization();
   const { getCurrentUser } = useAuth();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,9 +50,7 @@ function OrganizationSettingsPageContent() {
       setOrganizations(organizationsArray);
     } catch (err) {
       console.error("Error fetching organizations:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch organizations"
-      );
+      setError(err instanceof Error ? err.message : "Failed to fetch organizations");
     } finally {
       setIsLoading(false);
     }
@@ -66,9 +60,7 @@ function OrganizationSettingsPageContent() {
     if (!currentOrganization) return;
     getUserAccess({ name: "organization", id: currentOrganization })
       .then((data) => {
-        setHasAccess(
-          data?.canChange || (data.role !== "MEMBER" && data.role !== "VIEWER")
-        );
+        setHasAccess(data?.canChange || (data.role !== "MEMBER" && data.role !== "VIEWER"));
       })
       .catch((error) => {
         console.error("Error fetching user access:", error);
@@ -79,10 +71,7 @@ function OrganizationSettingsPageContent() {
     fetchOrganizations();
   }, []);
   const canAccess = (organization: Organization) => {
-    if (
-      organization.userRole === "MEMBER" ||
-      organization.userRole === "VIEWER"
-    ) {
+    if (organization.userRole === "MEMBER" || organization.userRole === "VIEWER") {
       return false;
     }
     return true;
@@ -172,117 +161,118 @@ function OrganizationSettingsPageContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {organizations.map((organization) => {
-              const access = canAccess(organization)
-              return(
-              <EntityCard
-                key={organization.id}
-                onClick={() => {
-                  if (access) {
-                    router.push(`/settings/${organization.slug}`);
-                  }
-                }}
-                className={`${
-                  hasAccess
-                    ? "hover:border-[var(--primary)]/30 transition-colors duration-200"
-                    : "cursor-default"
-                }`}
-                leading={
-                  <div className="relative">
-                    <div className="w-9 h-9 rounded-md bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]/80 flex items-center justify-center text-[var(--primary-foreground)] font-semibold text-sm">
-                      {organization.name?.charAt(0)?.toUpperCase() || "?"}
-                    </div>
-                    {/* Default badge on avatar */}
-                    {organization.isDefault && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center border-2 border-[var(--card)]">
-                        <Star className="h-2.5 w-2.5 text-white fill-white" />
+              const access = canAccess(organization);
+              return (
+                <EntityCard
+                  key={organization.id}
+                  onClick={() => {
+                    if (access) {
+                      router.push(`/settings/${organization.slug}`);
+                    }
+                  }}
+                  className={`${
+                    hasAccess
+                      ? "hover:border-[var(--primary)]/30 transition-colors duration-200"
+                      : "cursor-default"
+                  }`}
+                  leading={
+                    <div className="relative">
+                      <div className="w-9 h-9 rounded-md bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]/80 flex items-center justify-center text-[var(--primary-foreground)] font-semibold text-sm">
+                        {organization.name?.charAt(0)?.toUpperCase() || "?"}
                       </div>
-                    )}
-                  </div>
-                }
-                heading={
-                  <div className="flex items-center justify-between w-full gap-2">
-                    <span className="font-semibold text-[var(--foreground)] truncate text-sm capitalize">
-                      {organization.name}
-                    </span>
-                    {/* Set as Default Button - Always Visible */}
-                    <Tooltip
-                      content={
-                        organization.isDefault
-                          ? "Current default organization"
-                          : "Set as default organization"
-                      }
-                      position="top"
-                    >
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!organization.isDefault) {
-                            handleSetDefaultOrganization(organization.id);
-                          }
-                        }}
-                        disabled={organization.isDefault}
-                        aria-label={
+                      {/* Default badge on avatar */}
+                      {organization.isDefault && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center border-2 border-[var(--card)]">
+                          <Star className="h-2.5 w-2.5 text-white fill-white" />
+                        </div>
+                      )}
+                    </div>
+                  }
+                  heading={
+                    <div className="flex items-center justify-between w-full gap-2">
+                      <span className="font-semibold text-[var(--foreground)] truncate text-sm capitalize">
+                        {organization.name}
+                      </span>
+                      {/* Set as Default Button - Always Visible */}
+                      <Tooltip
+                        content={
                           organization.isDefault
                             ? "Current default organization"
                             : "Set as default organization"
                         }
-                        className={cn(
-                          "h-6 w-6 p-0 rounded-full transition-all duration-200 flex-shrink-0",
-                          organization.isDefault
-                            ? "text-green-600 dark:text-green-400 cursor-default bg-transparent hover:bg-transparent"
-                            : "hover:bg-[var(--accent)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                        )}
+                        position="top"
                       >
-                        {!organization.isDefault && (
-                          <div className="h-3.5 w-3.5 rounded-full border-2 border-current" />
-                        )}
-                      </Button>
-                    </Tooltip>
-                  </div>
-                }
-                subheading={
-                  <div className="flex items-center gap-2 flex-wrap ">
-                    <span className="text-xs text-[var(--muted-foreground)]">
-                      {organization.slug}
-                    </span>
-                    {organization?.userRole && (
-                      <Badge
-                        variant="secondary"
-                        className="text-xs px-1.5 py-0 h-4 bg-[var(--accent)] text-[var(--accent-foreground)] border-none font-medium"
-                      >
-                        {organization.userRole}
-                      </Badge>
-                    )}
-                  </div>
-                }
-                description={
-                  <p className="text-xs text-[var(--muted-foreground)] line-clamp-2 h-10 capitalize">
-                    {organization.description || "No description provided"}
-                  </p>
-                }
-                footer={
-                  <div className="flex flex-col gap-2 w-full pt-2 border-t border-[var(--border)]/50">
-                    {/* Stats Row */}
-                    <div className="flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
-                      <span className="flex items-center gap-1 font-medium">
-                        <ChartNoAxesGantt className="h-3.5 w-3.5 text-[var(--primary)]" />
-                        <span className="text-[var(--foreground)]">
-                          {organization._count?.workspaces || 0}
-                        </span>
-                      </span>
-                      <span className="flex items-center gap-1 font-medium">
-                        <Users className="h-3.5 w-3.5 text-[var(--primary)]" />
-                        <span className="text-[var(--foreground)]">
-                          {organization._count?.members || 0}
-                        </span>
-                      </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!organization.isDefault) {
+                              handleSetDefaultOrganization(organization.id);
+                            }
+                          }}
+                          disabled={organization.isDefault}
+                          aria-label={
+                            organization.isDefault
+                              ? "Current default organization"
+                              : "Set as default organization"
+                          }
+                          className={cn(
+                            "h-6 w-6 p-0 rounded-full transition-all duration-200 flex-shrink-0",
+                            organization.isDefault
+                              ? "text-green-600 dark:text-green-400 cursor-default bg-transparent hover:bg-transparent"
+                              : "hover:bg-[var(--accent)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                          )}
+                        >
+                          {!organization.isDefault && (
+                            <div className="h-3.5 w-3.5 rounded-full border-2 border-current" />
+                          )}
+                        </Button>
+                      </Tooltip>
                     </div>
-                  </div>
-                }
-              />
-            )})}
+                  }
+                  subheading={
+                    <div className="flex items-center gap-2 flex-wrap ">
+                      <span className="text-xs text-[var(--muted-foreground)]">
+                        {organization.slug}
+                      </span>
+                      {organization?.userRole && (
+                        <Badge
+                          variant="secondary"
+                          className="text-xs px-1.5 py-0 h-4 bg-[var(--accent)] text-[var(--accent-foreground)] border-none font-medium"
+                        >
+                          {organization.userRole}
+                        </Badge>
+                      )}
+                    </div>
+                  }
+                  description={
+                    <p className="text-xs text-[var(--muted-foreground)] line-clamp-2 h-10 capitalize">
+                      {organization.description || "No description provided"}
+                    </p>
+                  }
+                  footer={
+                    <div className="flex flex-col gap-2 w-full pt-2 border-t border-[var(--border)]/50">
+                      {/* Stats Row */}
+                      <div className="flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
+                        <span className="flex items-center gap-1 font-medium">
+                          <ChartNoAxesGantt className="h-3.5 w-3.5 text-[var(--primary)]" />
+                          <span className="text-[var(--foreground)]">
+                            {organization._count?.workspaces || 0}
+                          </span>
+                        </span>
+                        <span className="flex items-center gap-1 font-medium">
+                          <Users className="h-3.5 w-3.5 text-[var(--primary)]" />
+                          <span className="text-[var(--foreground)]">
+                            {organization._count?.members || 0}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  }
+                />
+              );
+            })}
           </div>
         )}
 
@@ -297,10 +287,9 @@ function OrganizationSettingsPageContent() {
                 About Organizations
               </h3>
               <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">
-                Organizations are your top-level containers for workspaces,
-                projects, and teams. Click the checkbox icon to set an
-                organization as your default. Click on any organization card to
-                manage its settings (requires owner or administrator
+                Organizations are your top-level containers for workspaces, projects, and teams.
+                Click the checkbox icon to set an organization as your default. Click on any
+                organization card to manage its settings (requires owner or administrator
                 permissions).
               </p>
             </div>

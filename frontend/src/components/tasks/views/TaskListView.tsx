@@ -18,7 +18,7 @@ interface TaskListViewProps {
   selectedTasks?: string[];
   onTaskSelect?: (taskId: string) => void;
   showBulkActionBar?: boolean;
-  totalTask ?: number;
+  totalTask?: number;
 }
 
 export default function TaskListView({
@@ -37,18 +37,17 @@ export default function TaskListView({
   selectedTasks: externalSelectedTasks,
   onTaskSelect: externalOnTaskSelect,
   showBulkActionBar,
-  totalTask
+  totalTask,
 }: TaskListViewProps) {
-
   const [internalSelectedTasks, setInternalSelectedTasks] = useState<string[]>([]);
   const selectedTasks = externalSelectedTasks ?? internalSelectedTasks;
-  const handleTaskSelect = externalOnTaskSelect ?? ((taskId: string) => {
-    setInternalSelectedTasks((prev) =>
-      prev.includes(taskId)
-        ? prev.filter((id) => id !== taskId)
-        : [...prev, taskId]
-    );
-  });
+  const handleTaskSelect =
+    externalOnTaskSelect ??
+    ((taskId: string) => {
+      setInternalSelectedTasks((prev) =>
+        prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]
+      );
+    });
 
   return (
     <div className="rounded-md">

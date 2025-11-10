@@ -122,8 +122,7 @@ export default function TaskDetailClient({
   const [editTaskData, setEditTaskData] = useState({
     title: task.title,
     description: task.description,
-    priority:
-      typeof task.priority === "object" ? task.priority?.name : task.priority,
+    priority: typeof task.priority === "object" ? task.priority?.name : task.priority,
     dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
     startDate: task.startDate ? task.startDate.split("T")[0] : "",
     taskType: task.type || task.taskType || "",
@@ -186,9 +185,7 @@ export default function TaskDetailClient({
     status: false,
     taskType: false,
   });
-  const [allowEmailReplies, setAllowEmailReplies] = useState(
-    task.allowEmailReplies || false
-  );
+  const [allowEmailReplies, setAllowEmailReplies] = useState(task.allowEmailReplies || false);
 
   const today = new Date().toISOString().split("T")[0];
   // Exception: Assignee or reporter has access to all actions except Assignment section
@@ -213,16 +210,24 @@ export default function TaskDetailClient({
   };
 
   useEffect(() => {
-    const allLoaded = !loadingMembers && 
-                      !loadingAttachments && 
-                      !loadingLabels &&
-                      !loadingStatuses &&
-                      hasAccessLoaded;
+    const allLoaded =
+      !loadingMembers &&
+      !loadingAttachments &&
+      !loadingLabels &&
+      !loadingStatuses &&
+      hasAccessLoaded;
 
     if (allLoaded && !initialLoadComplete) {
       setInitialLoadComplete(true);
     }
-  }, [loadingMembers, loadingAttachments, loadingLabels, loadingStatuses, hasAccessLoaded, initialLoadComplete]);
+  }, [
+    loadingMembers,
+    loadingAttachments,
+    loadingLabels,
+    loadingStatuses,
+    hasAccessLoaded,
+    initialLoadComplete,
+  ]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -313,17 +318,13 @@ export default function TaskDetailClient({
           return;
         }
 
-        const workspace = await workspaceContext.getWorkspaceBySlug(
-          workspaceSlug
-        );
+        const workspace = await workspaceContext.getWorkspaceBySlug(workspaceSlug);
         if (!workspace) {
           return;
         }
         setWorkspaceData(workspace);
         if (typeof projectSlug === "string") {
-          const projects = await projectContext.getProjectsByWorkspace(
-            workspace.id
-          );
+          const projects = await projectContext.getProjectsByWorkspace(workspace.id);
           const project = findProjectBySlug(projects || [], projectSlug);
           if (project) {
             setProjectData(project);
@@ -350,18 +351,14 @@ export default function TaskDetailClient({
           return;
         }
 
-        const workspace = await workspaceContext.getWorkspaceBySlug(
-          workspaceSlug
-        );
+        const workspace = await workspaceContext.getWorkspaceBySlug(workspaceSlug);
         if (!workspace) {
           return;
         }
         setWorkspaceData(workspace);
 
         if (typeof projectSlug === "string") {
-          const projects = await projectContext.getProjectsByWorkspace(
-            workspace.id
-          );
+          const projects = await projectContext.getProjectsByWorkspace(workspace.id);
           const project = findProjectBySlug(projects || [], projectSlug);
           if (project) {
             setProjectData(project);
@@ -401,7 +398,9 @@ export default function TaskDetailClient({
           name: folderName,
           id: folderId,
         });
-        setHasAccess(accessData?.canChange || isAssigneeOrReporter || task.createdBy === currentUser.id );
+        setHasAccess(
+          accessData?.canChange || isAssigneeOrReporter || task.createdBy === currentUser.id
+        );
         setHasAccessLoaded(true);
       } catch (error) {
         console.error("Error fetching user access:", error);
@@ -490,9 +489,7 @@ export default function TaskDetailClient({
     fetchTaskStatuses();
   }, [task.projectId, task.project?.id]);
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
@@ -527,12 +524,9 @@ export default function TaskDetailClient({
         "video/x-matroska", // .mkv
       ];
 
-
       const validFiles = Array.from(files).filter((file) => {
         if (file.size > maxFileSize) {
-          toast.error(
-            `File "${file.name}" is too large. Maximum size is 10MB.`
-          );
+          toast.error(`File "${file.name}" is too large. Maximum size is 10MB.`);
           return false;
         }
         if (!allowedTypes.includes(file.type)) {
@@ -564,9 +558,7 @@ export default function TaskDetailClient({
       if (successfulUploads.length > 0) {
         const updatedAttachments = await getTaskAttachments(taskId, isAuth);
         setAttachments(updatedAttachments || []);
-        toast.success(
-          `${successfulUploads.length} file(s) uploaded successfully.`
-        );
+        toast.success(`${successfulUploads.length} file(s) uploaded successfully.`);
       }
     } catch (error) {
       toast.error("Failed to upload one or more files. Please try again.");
@@ -583,9 +575,7 @@ export default function TaskDetailClient({
       });
       setAllowEmailReplies(enabled);
       task.allowEmailReplies = enabled;
-      toast.success(
-        `Email replies ${enabled ? "enabled" : "disabled"} successfully.`
-      );
+      toast.success(`Email replies ${enabled ? "enabled" : "disabled"} successfully.`);
     } catch (error) {
       toast.error("Failed to update email replies setting.");
       // Revert the state if the update failed
@@ -593,10 +583,7 @@ export default function TaskDetailClient({
     }
   };
 
-  const handleDownloadAttachment = async (
-    attachmentId: string,
-    fileName: string
-  ) => {
+  const handleDownloadAttachment = async (attachmentId: string, fileName: string) => {
     try {
       const blob = await downloadAttachment(attachmentId);
 
@@ -642,9 +629,7 @@ export default function TaskDetailClient({
       toast.success("Label created and assigned to task successfully.");
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to add label. Please try again."
+        error instanceof Error ? error.message : "Failed to add label. Please try again."
       );
     }
   };
@@ -694,8 +679,7 @@ export default function TaskDetailClient({
       setConfirmModal({
         isOpen: true,
         title: "Delete Attachment",
-        message:
-          "Are you sure you want to delete this attachment? This action cannot be undone.",
+        message: "Are you sure you want to delete this attachment? This action cannot be undone.",
         type: "danger",
         onConfirm: async () => {
           try {
@@ -725,10 +709,7 @@ export default function TaskDetailClient({
     });
   };
 
-  const handleSaveTaskEdit = async (
-    e?: React.FormEvent,
-    updatedDescription?: string
-  ) => {
+  const handleSaveTaskEdit = async (e?: React.FormEvent, updatedDescription?: string) => {
     e?.preventDefault();
 
     const descriptionToSave = updatedDescription || editTaskData.description;
@@ -791,10 +772,7 @@ export default function TaskDetailClient({
           setEditTaskData({
             title: task.title,
             description: task.description,
-            priority:
-              typeof task.priority === "object"
-                ? task.priority?.name
-                : task.priority,
+            priority: typeof task.priority === "object" ? task.priority?.name : task.priority,
             dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
             startDate: task.startDate ? task.startDate.split("T")[0] : "",
             taskType: task.type || task.taskType || "",
@@ -832,8 +810,7 @@ export default function TaskDetailClient({
     setConfirmModal({
       isOpen: true,
       title: "Delete Task",
-      message:
-        "Are you sure you want to delete this task? This action cannot be undone.",
+      message: "Are you sure you want to delete this task? This action cannot be undone.",
       type: "danger",
       onConfirm: async () => {
         try {
@@ -854,22 +831,16 @@ export default function TaskDetailClient({
     });
   };
 
-
-
   useEffect(() => {
     if (projectMembers.length > 0) {
       let updatedAssignee = assignees;
       let updatedReporter = reporters;
       if (task.assigneeId) {
-        const foundAssignee = projectMembers.find(
-          (member) => member.id === task.assigneeId
-        );
+        const foundAssignee = projectMembers.find((member) => member.id === task.assigneeId);
         if (foundAssignee) updatedAssignee = [foundAssignee];
       }
       if (task.reporterId) {
-        const foundReporter = projectMembers.find(
-          (member) => member.id === task.reporterId
-        );
+        const foundReporter = projectMembers.find((member) => member.id === task.reporterId);
         if (foundReporter) updatedReporter = [foundReporter];
       }
       setAssignees(updatedAssignee);
@@ -881,10 +852,8 @@ export default function TaskDetailClient({
     workspaceSlug && projectSlug
       ? `/${workspaceSlug}/${projectSlug}/tasks/${task.id}`
       : workspaceSlug
-      ? `/${workspaceSlug}/tasks/${task.id}`
-      : `/tasks/${task.id}`;
-
-
+        ? `/${workspaceSlug}/tasks/${task.id}`
+        : `/tasks/${task.id}`;
 
   const isInitialLoading = !initialLoadComplete || !minLoadTimeElapsed;
 
@@ -921,8 +890,8 @@ export default function TaskDetailClient({
               {task.createdByUser
                 ? `Created by ${task.createdByUser.firstName} ${task.createdByUser.lastName}`
                 : task.emailThreadId
-                ? "Created from mail"
-                : ""}
+                  ? "Created from mail"
+                  : ""}
             </span>
           </div>
 
@@ -960,17 +929,13 @@ export default function TaskDetailClient({
                 <div className="space-y-4">
                   <Input
                     value={editTaskData.title}
-                    onChange={(e) =>
-                      handleTaskFieldChange("title", e.target.value)
-                    }
+                    onChange={(e) => handleTaskFieldChange("title", e.target.value)}
                     placeholder="Task title"
                     className="text-xs bg-[var(--background)] border-[var(--border)]"
                   />
                   <TaskDescription
                     value={editTaskData.description}
-                    onChange={(value) =>
-                      handleTaskFieldChange("description", value)
-                    }
+                    onChange={(value) => handleTaskFieldChange("description", value)}
                     editMode={true}
                   />
                   <div className="flex items-center justify-end gap-4 mt-4">
@@ -996,9 +961,7 @@ export default function TaskDetailClient({
                 <TaskDescription
                   value={editTaskData.description}
                   editMode={false}
-                  onChange={(value) =>
-                    handleTaskFieldChange("description", value)
-                  }
+                  onChange={(value) => handleTaskFieldChange("description", value)}
                   onSaveRequest={handleCheckboxSave}
                   emailThreadId={task.emailThreadId}
                 />
@@ -1036,9 +999,15 @@ export default function TaskDetailClient({
                 taskId={taskId}
                 projectId={task?.projectId || ""}
                 allowEmailReplies={task?.allowEmailReplies || false}
-                onCommentAdded={() => {onTaskRefetch && onTaskRefetch();}}
-                onCommentUpdated={() => {onTaskRefetch && onTaskRefetch();}}
-                onCommentDeleted={() => {onTaskRefetch && onTaskRefetch();}}
+                onCommentAdded={() => {
+                  onTaskRefetch && onTaskRefetch();
+                }}
+                onCommentUpdated={() => {
+                  onTaskRefetch && onTaskRefetch();
+                }}
+                onCommentDeleted={() => {
+                  onTaskRefetch && onTaskRefetch();
+                }}
                 hasAccess={hasAccess}
                 setLoading={setLoadingComments}
               />
@@ -1131,12 +1100,7 @@ export default function TaskDetailClient({
                         onItemSelect={async (item) => {
                           try {
                             const updateData: UpdateTaskRequest = {
-                              type: item.id as
-                                | "TASK"
-                                | "STORY"
-                                | "BUG"
-                                | "EPIC"
-                                | "SUBTASK",
+                              type: item.id as "TASK" | "STORY" | "BUG" | "EPIC" | "SUBTASK",
                             };
                             await updateTask(taskId, updateData);
                             handleTaskFieldChange("taskType", item.id);
@@ -1164,11 +1128,12 @@ export default function TaskDetailClient({
                     ) : editTaskData.taskType ? (
                       <DynamicBadge
                         label={
-                          TASK_TYPE_OPTIONS.find(
-                            (type) => type.value === editTaskData.taskType
-                          )?.label || "Task"
+                          TASK_TYPE_OPTIONS.find((type) => type.value === editTaskData.taskType)
+                            ?.label || "Task"
                         }
-                        bgColor={getTaskTypeHexColor(editTaskData.taskType as keyof typeof TaskTypeIcon)}
+                        bgColor={getTaskTypeHexColor(
+                          editTaskData.taskType as keyof typeof TaskTypeIcon
+                        )}
                         textColor="#FFFFFF"
                         size="sm"
                         variant="solid"
@@ -1220,8 +1185,7 @@ export default function TaskDetailClient({
                           id: editTaskData.priority || "MEDIUM",
                           name:
                             editTaskData.priority?.charAt(0).toUpperCase() +
-                              editTaskData.priority?.slice(1).toLowerCase() ||
-                            "Medium",
+                              editTaskData.priority?.slice(1).toLowerCase() || "Medium",
                           color: task.priority?.color || "#F59E0B",
                         }}
                         availableItems={TaskPriorities}
@@ -1242,11 +1206,7 @@ export default function TaskDetailClient({
                         onItemSelect={async (item) => {
                           try {
                             const updateData: UpdateTaskRequest = {
-                              priority: item.id as
-                                | "LOW"
-                                | "MEDIUM"
-                                | "HIGH"
-                                | "HIGHEST",
+                              priority: item.id as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
                             };
                             await updateTask(taskId, updateData);
                             handleTaskFieldChange("priority", item.id);
@@ -1262,9 +1222,7 @@ export default function TaskDetailClient({
                               ...prev,
                               priority: false,
                             }));
-                            toast.success(
-                              "Task priority updated successfully."
-                            );
+                            toast.success("Task priority updated successfully.");
                           } catch (error) {
                             toast.error("Failed to update task priority.");
                           }
@@ -1349,12 +1307,10 @@ export default function TaskDetailClient({
                         itemType="status"
                         onDropdownOpen={async () => {
                           if (statuses.length === 0) {
-                            const projectId =
-                              task.projectId || task.project?.id;
+                            const projectId = task.projectId || task.project?.id;
                             if (projectId) {
                               try {
-                                const allStatuses =
-                                  await getTaskStatusByProject(projectId);
+                                const allStatuses = await getTaskStatusByProject(projectId);
                                 setStatuses(allStatuses || []);
                               } catch (error) {
                                 toast.error("Failed to fetch task statuses");
@@ -1364,10 +1320,7 @@ export default function TaskDetailClient({
                         }}
                       />
                     ) : (
-                      <StatusBadge
-                        status={currentStatus}
-                        className="text-[13px]"
-                      />
+                      <StatusBadge status={currentStatus} className="text-[13px]" />
                     )}
                   </div>
                 </div>
@@ -1434,9 +1387,7 @@ export default function TaskDetailClient({
                         className="text-[13px] min-w-[120px] min-h-[29.33px] rounded-2xl  px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
                       >
                         {editTaskData.startDate
-                          ? new Date(
-                              editTaskData.startDate
-                            ).toLocaleDateString()
+                          ? new Date(editTaskData.startDate).toLocaleDateString()
                           : "No start date"}
                       </Badge>
                     )}
@@ -1510,11 +1461,7 @@ export default function TaskDetailClient({
                   }}
                   members={projectMembers}
                   disabled={!hasAccess}
-                  placeholder={
-                    projectMembers.length === 0
-                      ? "No members"
-                      : "Select assignees..."
-                  }
+                  placeholder={projectMembers.length === 0 ? "No members" : "Select assignees..."}
                 />
               </div>
               <div>
@@ -1536,11 +1483,7 @@ export default function TaskDetailClient({
                   }}
                   members={projectMembers}
                   disabled={!hasAccess}
-                  placeholder={
-                    projectMembers.length === 0
-                      ? "No members"
-                      : "Select reporters..."
-                  }
+                  placeholder={projectMembers.length === 0 ? "No members" : "Select reporters..."}
                 />
               </div>
             </div>
@@ -1557,10 +1500,7 @@ export default function TaskDetailClient({
             />
             <Divider label="Activities" />
 
-            <TaskActivities 
-              taskId={taskId} 
-              setLoading={setLoadingActivities}
-            />
+            <TaskActivities taskId={taskId} setLoading={setLoadingActivities} />
           </div>
         </div>
       </div>
@@ -1575,8 +1515,8 @@ export default function TaskDetailClient({
           confirmModal.type === "danger"
             ? "Delete"
             : confirmModal.type === "warning"
-            ? "Continue"
-            : "Confirm"
+              ? "Continue"
+              : "Confirm"
         }
         cancelText="Cancel"
       />

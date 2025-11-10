@@ -27,16 +27,14 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
-  ) { }
+  ) {}
 
   async validateUser(email: string, password: string) {
     const user = await this.usersService.findByEmail(email);
 
     // Prevent system user from authenticating
     if (user && user.id === SYSTEM_USER_ID) {
-      throw new UnauthorizedException(
-        'System user cannot be used for authentication',
-      );
+      throw new UnauthorizedException('System user cannot be used for authentication');
     }
 
     if (
@@ -101,7 +99,7 @@ export class AuthService {
       finalUsername = `${baseUsername}${counter}`;
       counter++;
     }
-    registerDto.username = finalUsername
+    registerDto.username = finalUsername;
     const user = await this.usersService.create(registerDto);
 
     // Generate tokens
@@ -135,7 +133,6 @@ export class AuthService {
     };
   }
 
-
   async refreshToken(refreshToken: string): Promise<AuthResponseDto> {
     try {
       const decoded = this.jwtService.verify(refreshToken);
@@ -160,10 +157,7 @@ export class AuthService {
 
       const newAccessToken = this.jwtService.sign(newPayload);
       const newRefreshToken = this.jwtService.sign(newPayload, {
-        expiresIn: this.configService.get<string>(
-          'JWT_REFRESH_EXPIRES_IN',
-          '7d',
-        ),
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
       });
 
       // Update refresh token in database
@@ -199,19 +193,14 @@ export class AuthService {
       const user = await this.usersService.findByEmail(email);
       if (!user) {
         return {
-          message:
-            'If an account with that email exists, a password reset link has been sent.',
+          message: 'If an account with that email exists, a password reset link has been sent.',
         };
       }
       const resetToken = crypto.randomBytes(32).toString('hex');
       const resetTokenExpiry = new Date();
       resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 24);
       const hashedResetToken = await bcrypt.hash(resetToken, 10);
-      await this.usersService.updateResetToken(
-        user.id,
-        hashedResetToken,
-        resetTokenExpiry,
-      );
+      await this.usersService.updateResetToken(user.id, hashedResetToken, resetTokenExpiry);
       const resetUrl = `${this.configService.get('FRONTEND_URL', 'http://localhost:3000')}/reset-password?token=${resetToken}`;
       await this.emailService.sendPasswordResetEmail(user.email, {
         userName: user.firstName,
@@ -219,14 +208,12 @@ export class AuthService {
         resetUrl: resetUrl,
       });
       return {
-        message:
-          'If an account with that email exists, a password reset link has been sent.',
+        message: 'If an account with that email exists, a password reset link has been sent.',
       };
     } catch (error) {
       console.error('Error in forgotPassword:', error);
       return {
-        message:
-          'If an account with that email exists, a password reset link has been sent.',
+        message: 'If an account with that email exists, a password reset link has been sent.',
       };
     }
   }
@@ -234,9 +221,7 @@ export class AuthService {
   /**
    * Verify if reset token is valid and not expired
    */
-  async verifyResetToken(
-    token: string,
-  ): Promise<{ isValid: boolean; user?: any }> {
+  async verifyResetToken(token: string): Promise<{ isValid: boolean; user?: any }> {
     try {
       if (!token || token.trim() === '') {
         return { isValid: false };
@@ -262,10 +247,7 @@ export class AuthService {
       }
 
       // Check if token is expired
-      if (
-        !validUser.resetTokenExpiry ||
-        new Date() > validUser.resetTokenExpiry
-      ) {
+      if (!validUser.resetTokenExpiry || new Date() > validUser.resetTokenExpiry) {
         // Clean up expired token
         await this.usersService.clearResetToken(validUser.id);
         return { isValid: false };
@@ -288,10 +270,7 @@ export class AuthService {
   /**
    * Reset user password using valid reset token
    */
-  async resetPassword(
-    token: string,
-    newPassword: string,
-  ): Promise<{ message: string }> {
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
     try {
       if (!token || token.trim() === '') {
         throw new BadRequestException('Invalid reset token');
@@ -299,9 +278,7 @@ export class AuthService {
 
       // Validate password strength
       if (!newPassword || newPassword.length < 8) {
-        throw new BadRequestException(
-          'Password must be at least 8 characters long',
-        );
+        throw new BadRequestException('Password must be at least 8 characters long');
       }
 
       // Additional password validation
@@ -331,10 +308,7 @@ export class AuthService {
       }
 
       // Check if token is expired (double check)
-      if (
-        !validUser.resetTokenExpiry ||
-        new Date() > validUser.resetTokenExpiry
-      ) {
+      if (!validUser.resetTokenExpiry || new Date() > validUser.resetTokenExpiry) {
         // Clean up expired token
         await this.usersService.clearResetToken(validUser.id);
         throw new BadRequestException('Reset token has expired');
@@ -374,13 +348,10 @@ export class AuthService {
       });
 
       // Send password reset confirmation email
-      await this.emailService.sendPasswordResetConfirmationEmail(
-        validUser.email,
-        {
-          userName: validUser.firstName,
-          resetTime: new Date().toLocaleString(),
-        },
-      );
+      await this.emailService.sendPasswordResetConfirmationEmail(validUser.email, {
+        userName: validUser.firstName,
+        resetTime: new Date().toLocaleString(),
+      });
 
       return { message: 'Password has been successfully reset' };
     } catch (error) {

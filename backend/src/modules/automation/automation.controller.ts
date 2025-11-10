@@ -67,11 +67,7 @@ export class AutomationController {
     @Query('workspaceId') workspaceId?: string,
     @Query('projectId') projectId?: string,
   ) {
-    return this.automationService.findAll(
-      organizationId,
-      workspaceId,
-      projectId,
-    );
+    return this.automationService.findAll(organizationId, workspaceId, projectId);
   }
 
   @Get('rules/:id')

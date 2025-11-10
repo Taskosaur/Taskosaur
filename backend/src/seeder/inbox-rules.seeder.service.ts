@@ -20,29 +20,29 @@ export class InboxRulesSeederService {
           any: [
             {
               subject: {
-                contains: 'URGENT'
-              }
+                contains: 'URGENT',
+              },
             },
             {
               subject: {
-                contains: 'CRITICAL'
-              }
+                contains: 'CRITICAL',
+              },
             },
             {
               subject: {
-                contains: 'EMERGENCY'
-              }
+                contains: 'EMERGENCY',
+              },
             },
             {
               body: {
-                contains: 'asap'
-              }
-            }
-          ]
+                contains: 'asap',
+              },
+            },
+          ],
         },
         actions: {
           setPriority: 'HIGH',
-          addLabels: ['urgent']
+          addLabels: ['urgent'],
         },
         stopOnMatch: false,
       },
@@ -55,35 +55,35 @@ export class InboxRulesSeederService {
           any: [
             {
               subject: {
-                contains: 'bug'
-              }
+                contains: 'bug',
+              },
             },
             {
               subject: {
-                contains: 'error'
-              }
+                contains: 'error',
+              },
             },
             {
               subject: {
-                contains: 'broken'
-              }
+                contains: 'broken',
+              },
             },
             {
               subject: {
-                contains: 'not working'
-              }
+                contains: 'not working',
+              },
             },
             {
               body: {
-                contains: 'stack trace'
-              }
-            }
-          ]
+                contains: 'stack trace',
+              },
+            },
+          ],
         },
         actions: {
           setPriority: 'HIGH',
           addLabels: ['bug', 'technical'],
-          assignTo: userId || null
+          assignTo: userId || null,
         },
         stopOnMatch: false,
       },
@@ -96,39 +96,39 @@ export class InboxRulesSeederService {
           any: [
             {
               subject: {
-                contains: 'feature'
-              }
+                contains: 'feature',
+              },
             },
             {
               subject: {
-                contains: 'enhancement'
-              }
+                contains: 'enhancement',
+              },
             },
             {
               subject: {
-                contains: 'suggestion'
-              }
+                contains: 'suggestion',
+              },
             },
             {
               subject: {
-                contains: 'improvement'
-              }
+                contains: 'improvement',
+              },
             },
             {
               body: {
-                contains: 'would be nice'
-              }
+                contains: 'would be nice',
+              },
             },
             {
               body: {
-                contains: 'can you add'
-              }
-            }
-          ]
+                contains: 'can you add',
+              },
+            },
+          ],
         },
         actions: {
           setPriority: 'MEDIUM',
-          addLabels: ['feature-request', 'enhancement']
+          addLabels: ['feature-request', 'enhancement'],
         },
         stopOnMatch: false,
       },
@@ -141,20 +141,20 @@ export class InboxRulesSeederService {
           any: [
             {
               from: {
-                matches: '@enterprise-client.com'
-              }
+                matches: '@enterprise-client.com',
+              },
             },
             {
               from: {
-                matches: '@vip-customer.com'
-              }
-            }
-          ]
+                matches: '@vip-customer.com',
+              },
+            },
+          ],
         },
         actions: {
           setPriority: 'HIGHEST',
           addLabels: ['vip', 'enterprise'],
-          assignTo: userId || null
+          assignTo: userId || null,
         },
         stopOnMatch: false,
       },
@@ -167,34 +167,34 @@ export class InboxRulesSeederService {
           any: [
             {
               subject: {
-                contains: 'how to'
-              }
+                contains: 'how to',
+              },
             },
             {
               subject: {
-                contains: 'help'
-              }
+                contains: 'help',
+              },
             },
             {
               subject: {
-                contains: 'question'
-              }
+                contains: 'question',
+              },
             },
             {
               subject: {
-                contains: 'support'
-              }
+                contains: 'support',
+              },
             },
             {
               body: {
-                contains: 'can you help'
-              }
-            }
-          ]
+                contains: 'can you help',
+              },
+            },
+          ],
         },
         actions: {
           setPriority: 'MEDIUM',
-          addLabels: ['support', 'question']
+          addLabels: ['support', 'question'],
         },
         stopOnMatch: false,
       },
@@ -207,13 +207,14 @@ export class InboxRulesSeederService {
           all: [
             {
               subject: {
-                matches: '^(?!Re:).*'
-              }
-            }
-          ]
+                matches: '^(?!Re:).*',
+              },
+            },
+          ],
         },
         actions: {
-          autoReply: 'Thank you for contacting us. We have received your request and will respond within 24 hours during business days. For urgent matters, please call our support line.'
+          autoReply:
+            'Thank you for contacting us. We have received your request and will respond within 24 hours during business days. For urgent matters, please call our support line.',
         },
         stopOnMatch: false,
       },
@@ -226,33 +227,33 @@ export class InboxRulesSeederService {
           any: [
             {
               subject: {
-                contains: 'CONGRATULATIONS'
-              }
+                contains: 'CONGRATULATIONS',
+              },
             },
             {
               subject: {
-                contains: 'You have won'
-              }
+                contains: 'You have won',
+              },
             },
             {
               subject: {
-                contains: 'Click here now'
-              }
+                contains: 'Click here now',
+              },
             },
             {
               subject: {
-                contains: 'Limited time offer'
-              }
+                contains: 'Limited time offer',
+              },
             },
             {
               from: {
-                contains: 'noreply@suspicious'
-              }
-            }
-          ]
+                contains: 'noreply@suspicious',
+              },
+            },
+          ],
         },
         actions: {
-          markAsSpam: true
+          markAsSpam: true,
         },
         stopOnMatch: true,
       },
@@ -265,33 +266,33 @@ export class InboxRulesSeederService {
           any: [
             {
               subject: {
-                contains: 'Out of Office'
-              }
+                contains: 'Out of Office',
+              },
             },
             {
               subject: {
-                contains: 'Auto Reply'
-              }
+                contains: 'Auto Reply',
+              },
             },
             {
               subject: {
-                contains: 'Automatic Reply'
-              }
+                contains: 'Automatic Reply',
+              },
             },
             {
               body: {
-                contains: 'I am currently out of the office'
-              }
-            }
-          ]
+                contains: 'I am currently out of the office',
+              },
+            },
+          ],
         },
         actions: {
           markAsSpam: false,
           setPriority: 'LOWEST',
-          addLabels: ['auto-reply', 'out-of-office']
+          addLabels: ['auto-reply', 'out-of-office'],
         },
         stopOnMatch: true,
-      }
+      },
     ];
 
     let created = 0;
@@ -303,7 +304,7 @@ export class InboxRulesSeederService {
         const existing = await this.prisma.inboxRule.findFirst({
           where: {
             projectInboxId,
-            name: rule.name
+            name: rule.name,
           },
         });
 
@@ -341,12 +342,12 @@ export class InboxRulesSeederService {
             members: {
               take: 1,
               include: {
-                user: true
-              }
-            }
-          }
-        }
-      }
+                user: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     let totalCreated = 0;
@@ -359,7 +360,9 @@ export class InboxRulesSeederService {
       totalSkipped += result.skipped;
     }
 
-    this.logger.log(`Total rules seeded: ${totalCreated} created, ${totalSkipped} skipped across ${inboxes.length} inboxes`);
+    this.logger.log(
+      `Total rules seeded: ${totalCreated} created, ${totalSkipped} skipped across ${inboxes.length} inboxes`,
+    );
     return { totalCreated, totalSkipped, inboxesProcessed: inboxes.length };
   }
 }

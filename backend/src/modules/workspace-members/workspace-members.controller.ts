@@ -25,9 +25,7 @@ import { UpdateWorkspaceMemberDto } from './dto/update-workspace-member.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('workspace-members')
 export class WorkspaceMembersController {
-  constructor(
-    private readonly workspaceMembersService: WorkspaceMembersService,
-  ) { }
+  constructor(private readonly workspaceMembersService: WorkspaceMembersService) {}
 
   @Post()
   create(@Body() createWorkspaceMemberDto: CreateWorkspaceMemberDto) {
@@ -72,10 +70,7 @@ export class WorkspaceMembersController {
     @Param('userId', ParseUUIDPipe) userId: string,
     @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
   ) {
-    return this.workspaceMembersService.findByUserAndWorkspace(
-      userId,
-      workspaceId,
-    );
+    return this.workspaceMembersService.findByUserAndWorkspace(userId, workspaceId);
   }
 
   @Patch(':id')
@@ -85,11 +80,7 @@ export class WorkspaceMembersController {
     // TODO: Get requestUserId from JWT token when authentication is implemented
     @Query('requestUserId') requestUserId: string,
   ) {
-    return this.workspaceMembersService.update(
-      id,
-      updateWorkspaceMemberDto,
-      requestUserId,
-    );
+    return this.workspaceMembersService.update(id, updateWorkspaceMemberDto, requestUserId);
   }
 
   @Delete(':id')

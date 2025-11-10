@@ -1,21 +1,8 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SettingsService } from './settings.service';
-import {
-  SetSettingDto,
-  GetSettingDto,
-  SettingResponseDto,
-} from './dto/settings.dto';
+import { SetSettingDto, GetSettingDto, SettingResponseDto } from './dto/settings.dto';
 
 @ApiTags('Settings')
 @Controller('settings')
@@ -33,10 +20,7 @@ export class SettingsController {
   @Get(':key')
   @ApiOperation({ summary: 'Get setting by key' })
   @ApiResponse({ status: 200, type: SettingResponseDto })
-  async getSetting(
-    @Param('key') key: string,
-    @Query('defaultValue') defaultValue?: string,
-  ) {
+  async getSetting(@Param('key') key: string, @Query('defaultValue') defaultValue?: string) {
     const value = await this.settingsService.get(key, defaultValue);
     return { key, value };
   }

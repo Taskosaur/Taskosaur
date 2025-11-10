@@ -265,17 +265,13 @@ export class TimeEntriesService {
   }
 
   // Time Tracking Methods
-  async startTimer(
-    startTimerDto: StartTimerDto,
-  ): Promise<{ message: string; activeTimer: any }> {
+  async startTimer(startTimerDto: StartTimerDto): Promise<{ message: string; activeTimer: any }> {
     const { taskId, userId, description } = startTimerDto;
 
     // Check if user already has an active timer
     const activeTimer = await this.getActiveTimer(userId);
     if (activeTimer) {
-      throw new ConflictException(
-        'You already have an active timer running. Stop it first.',
-      );
+      throw new ConflictException('You already have an active timer running. Stop it first.');
     }
 
     // Verify task exists
@@ -468,10 +464,7 @@ export class TimeEntriesService {
       },
     });
 
-    const totalTimeSpent = timeEntries.reduce(
-      (sum, entry) => sum + entry.timeSpent,
-      0,
-    );
+    const totalTimeSpent = timeEntries.reduce((sum, entry) => sum + entry.timeSpent, 0);
     const totalEntries = timeEntries.length;
 
     // Group by task

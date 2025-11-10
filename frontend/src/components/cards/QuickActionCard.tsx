@@ -1,8 +1,6 @@
-;
-
-import React from 'react';
-import Link from 'next/link';
-import { Card, CardContent } from '@/components/ui/card';
+import React from "react";
+import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface QuickActionCardProps {
   icon: React.ReactNode;
@@ -22,13 +20,9 @@ export const QuickActionCard: React.FC<QuickActionCardProps> = ({
       <Card className={`group quickactioncard-container ${className}`}>
         <CardContent className="quickactioncard-content">
           <div className="quickactioncard-icon">
-            <div className="text-white">
-              {icon}
-            </div>
+            <div className="text-white">{icon}</div>
           </div>
-          <h3 className="quickactioncard-title">
-            {title}
-          </h3>
+          <h3 className="quickactioncard-title">{title}</h3>
         </CardContent>
       </Card>
     </Link>

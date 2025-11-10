@@ -26,9 +26,9 @@ export class CreateRuleDto {
     example: {
       any: [
         { from: { contains: '@vip-customer.com' } },
-        { subject: { matches: 'urgent|critical' } }
-      ]
-    }
+        { subject: { matches: 'urgent|critical' } },
+      ],
+    },
   })
   @IsObject()
   conditions: any;
@@ -39,8 +39,8 @@ export class CreateRuleDto {
       setPriority: 'HIGH',
       assignTo: 'user-id',
       addLabels: ['vip', 'urgent'],
-      autoReply: 'template-id'
-    }
+      autoReply: 'template-id',
+    },
   })
   @IsObject()
   actions: any;

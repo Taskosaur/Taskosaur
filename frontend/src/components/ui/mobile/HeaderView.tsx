@@ -45,7 +45,11 @@ export default function HeaderView({
             <SlOptionsVertical className="header-mode-toggle-icon" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="center" className="w-[90vw] p-3 bg-[var(--background)] border-none" sideOffset={8}>
+        <DropdownMenuContent
+          align="center"
+          className="w-[90vw] p-3 bg-[var(--background)] border-none"
+          sideOffset={8}
+        >
           <div className="flex flex-col space-y-3">
             {/* Organization Selector */}
             {hasOrganizationAccess && (
@@ -98,12 +102,10 @@ export default function HeaderView({
                     >
                       <HiChatBubbleLeftRight
                         className={`header-mode-toggle-icon transition-colors duration-200 ${
-                          isChatOpen
-                            ? "text-blue-600 dark:text-blue-400 scale-110"
-                            : ""
+                          isChatOpen ? "text-blue-600 dark:text-blue-400 scale-110" : ""
                         }`}
                       />
-                     <span>AI Chat</span>
+                      <span>AI Chat</span>
                     </Button>
                   </div>
                 )}

@@ -20,12 +20,12 @@ export interface Member {
 }
 
 export type UserSource =
-  | "MANUAL"      // Created manually by admin or through invitation
+  | "MANUAL" // Created manually by admin or through invitation
   | "EMAIL_INBOX" // Auto-created from shared inbox email
-  | "SSO"         // Created via Single Sign-On
-  | "API"         // Created via API
-  | "IMPORT"      // Bulk imported
-  | "SIGNUP";     // Self-registered
+  | "SSO" // Created via Single Sign-On
+  | "API" // Created via API
+  | "IMPORT" // Bulk imported
+  | "SIGNUP"; // Self-registered
 
 export interface User {
   id: string;
@@ -45,6 +45,6 @@ export interface User {
   preferences?: any;
   createdAt?: string;
   updatedAt?: string;
-  onboardInfo?: {[key: string]: string}
+  onboardInfo?: { [key: string]: string };
   source?: UserSource;
 }

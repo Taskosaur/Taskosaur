@@ -13,16 +13,12 @@ import { ChevronRight } from "lucide-react";
 
 // Helper: Convert slug-like text into Title Case
 const formatSegment = (segment) => {
-  return segment
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return segment.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
 // Helper: Detect if a segment is a UUID
 const isUUID = (segment) => {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-    segment
-  );
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment);
 };
 
 export default function Breadcrumb() {
@@ -45,9 +41,7 @@ export default function Breadcrumb() {
           // Convert previous segment to singular form for details
           const baseEntity = formatSegment(previousSegment);
           // Remove plural 's' if exists
-          const singularEntity = baseEntity.endsWith("s")
-            ? baseEntity.slice(0, -1)
-            : baseEntity;
+          const singularEntity = baseEntity.endsWith("s") ? baseEntity.slice(0, -1) : baseEntity;
           displayName = `${singularEntity} Details`;
         } else {
           displayName = "Details";
@@ -65,7 +59,6 @@ export default function Breadcrumb() {
     setBreadcrumbs(items);
   }, [pathname]);
 
-  
   if (
     !pathname ||
     pathname.startsWith("/dashboard") ||
@@ -73,7 +66,7 @@ export default function Breadcrumb() {
     pathname.startsWith("/projects") ||
     pathname.startsWith("/activities") ||
     pathname === "/tasks/" ||
-    pathname === '/settings/'||
+    pathname === "/settings/" ||
     breadcrumbs.length === 0
   ) {
     return null;
@@ -82,7 +75,7 @@ export default function Breadcrumb() {
   return (
     <div className="breadcrumb-container">
       <div className="">
-        <ShadcnBreadcrumb> 
+        <ShadcnBreadcrumb>
           <BreadcrumbList className="breadcrumb-nav">
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
@@ -99,19 +92,13 @@ export default function Breadcrumb() {
                 <BreadcrumbItem className="breadcrumb-item">
                   {item.current ? (
                     <BreadcrumbPage className="breadcrumb-current">
-                      <span className="breadcrumb-current-text">
-                        {item.name}
-                      </span>
-                      {item.isUUID && (
-                        <div className="breadcrumb-uuid-indicator" />
-                      )}
+                      <span className="breadcrumb-current-text">{item.name}</span>
+                      {item.isUUID && <div className="breadcrumb-uuid-indicator" />}
                     </BreadcrumbPage>
                   ) : (
                     <BreadcrumbLink asChild>
                       <Link href={item.href} className="breadcrumb-link">
-                        <span className="breadcrumb-link-text">
-                          {item.name}
-                        </span>
+                        <span className="breadcrumb-link-text">{item.name}</span>
                       </Link>
                     </BreadcrumbLink>
                   )}

@@ -99,9 +99,7 @@ export const toggleSidebar = (
 export const getSidebarWidth = (): number => {
   try {
     const storedWidth = localStorage.getItem("sidebarWidth");
-    const width = storedWidth
-      ? parseInt(storedWidth, 10)
-      : DEFAULT_SIDEBAR_WIDTH;
+    const width = storedWidth ? parseInt(storedWidth, 10) : DEFAULT_SIDEBAR_WIDTH;
 
     // Validate width is within reasonable bounds
     if (width < 200 || width > 600) {

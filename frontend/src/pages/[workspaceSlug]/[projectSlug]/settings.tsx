@@ -16,12 +16,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import EmailIntegrationSettings from "@/components/inbox/EmailIntegrationSettings";
 import EmailRulesManager from "@/components/inbox/EmailRulesManager";
 import { Select } from "@/components/ui";
-import {
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Cog } from "lucide-react";
 import { IoWarning } from "react-icons/io5";
 import ActionButton from "@/components/common/ActionButton";
@@ -30,12 +25,7 @@ import ErrorState from "@/components/common/ErrorState";
 function ProjectSettingsContent() {
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
-  const {
-    getProjectsByWorkspace,
-    updateProject,
-    deleteProject,
-    archiveProject,
-  } = useProject();
+  const { getProjectsByWorkspace, updateProject, deleteProject, archiveProject } = useProject();
   const { getWorkspaceBySlug } = useWorkspace();
   const { isAuthenticated, getUserAccess } = useAuth();
   const [hasAccess, setHasAccess] = useState(false);
@@ -71,12 +61,8 @@ function ProjectSettingsContent() {
           return;
         }
 
-        const workspaceProjects = await getProjectsByWorkspace(
-          workspaceData.id
-        );
-        const projectData = workspaceProjects.find(
-          (p) => p.slug === projectSlug
-        );
+        const workspaceProjects = await getProjectsByWorkspace(workspaceData.id);
+        const projectData = workspaceProjects.find((p) => p.slug === projectSlug);
 
         if (!projectData) {
           setError("Project not found");
@@ -176,12 +162,8 @@ function ProjectSettingsContent() {
           return;
         }
 
-        const workspaceProjects = await getProjectsByWorkspace(
-          workspaceData.id
-        );
-        const projectData = workspaceProjects.find(
-          (p) => p.slug === projectSlug
-        );
+        const workspaceProjects = await getProjectsByWorkspace(workspaceData.id);
+        const projectData = workspaceProjects.find((p) => p.slug === projectSlug);
 
         if (!isActive) return;
 
@@ -202,14 +184,10 @@ function ProjectSettingsContent() {
       } catch (err) {
         if (!isActive) return;
 
-        const errorMessage =
-          err?.message ? err.message : "Failed to load project";
+        const errorMessage = err?.message ? err.message : "Failed to load project";
         setError(errorMessage);
 
-        if (
-          errorMessage.includes("not found") ||
-          errorMessage.includes("404")
-        ) {
+        if (errorMessage.includes("not found") || errorMessage.includes("404")) {
           router.replace(`/${workspaceSlug}/projects`);
         }
       } finally {
@@ -276,9 +254,7 @@ function ProjectSettingsContent() {
   }
 
   if (error && !project) {
-    return (
-      <ErrorState error={error} />
-    );
+    return <ErrorState error={error} />;
   }
 
   const tabs = [
@@ -296,9 +272,7 @@ function ProjectSettingsContent() {
 
       {success && (
         <Alert className="bg-green-50 border-green-200">
-          <AlertDescription className="text-green-800">
-            {success}
-          </AlertDescription>
+          <AlertDescription className="text-green-800">{success}</AlertDescription>
         </Alert>
       )}
 
@@ -354,9 +328,7 @@ function ProjectSettingsContent() {
                       <Input
                         id="name"
                         value={formData.name}
-                        onChange={(e) =>
-                          handleInputChange("name", e.target.value)
-                        }
+                        onChange={(e) => handleInputChange("name", e.target.value)}
                         placeholder="Enter project name"
                         disabled={saving || !hasAccess}
                       />
@@ -379,9 +351,7 @@ function ProjectSettingsContent() {
                       <Textarea
                         id="description"
                         value={formData.description}
-                        onChange={(e) =>
-                          handleInputChange("description", e.target.value)
-                        }
+                        onChange={(e) => handleInputChange("description", e.target.value)}
                         placeholder="Describe your project..."
                         rows={3}
                         disabled={saving || !hasAccess}
@@ -394,44 +364,28 @@ function ProjectSettingsContent() {
                         <Label htmlFor="status">Status</Label>
                         <Select
                           value={formData.status}
-                          onValueChange={(value) =>
-                            handleInputChange("status", value)
-                          }
+                          onValueChange={(value) => handleInputChange("status", value)}
                           disabled={saving || !hasAccess}
                         >
                           <SelectTrigger
                             id="status"
                             className={`w-full border border-[var(--border)] ${
-                              !hasAccess || saving
-                                ? "cursor-not-allowed"
-                                : "cursor-pointer"
+                              !hasAccess || saving ? "cursor-not-allowed" : "cursor-pointer"
                             }`}
                           >
                             <SelectValue placeholder="Select status" />
                           </SelectTrigger>
                           <SelectContent className="bg-[var(--card)] border border-[var(--border)] ">
-                            <SelectItem
-                              className="hover:bg-[var(--hover-bg)]"
-                              value="ACTIVE"
-                            >
+                            <SelectItem className="hover:bg-[var(--hover-bg)]" value="ACTIVE">
                               Active
                             </SelectItem>
-                            <SelectItem
-                              className="hover:bg-[var(--hover-bg)]"
-                              value="ON_HOLD"
-                            >
+                            <SelectItem className="hover:bg-[var(--hover-bg)]" value="ON_HOLD">
                               On Hold
                             </SelectItem>
-                            <SelectItem
-                              className="hover:bg-[var(--hover-bg)]"
-                              value="COMPLETED"
-                            >
+                            <SelectItem className="hover:bg-[var(--hover-bg)]" value="COMPLETED">
                               Completed
                             </SelectItem>
-                            <SelectItem
-                              className="hover:bg-[var(--hover-bg)]"
-                              value="ARCHIVED"
-                            >
+                            <SelectItem className="hover:bg-[var(--hover-bg)]" value="ARCHIVED">
                               Archived
                             </SelectItem>
                           </SelectContent>
@@ -443,45 +397,32 @@ function ProjectSettingsContent() {
                         <Label htmlFor="visibility">Visibility</Label>
                         <Select
                           value={formData.visibility}
-                          onValueChange={(value) =>
-                            handleInputChange("visibility", value)
-                          }
+                          onValueChange={(value) => handleInputChange("visibility", value)}
                           disabled={saving || !hasAccess}
                         >
                           <SelectTrigger
                             id="visibility"
                             className={`w-full border border-[var(--border)] ${
-                              !hasAccess || saving
-                                ? "cursor-not-allowed"
-                                : "cursor-pointer"
+                              !hasAccess || saving ? "cursor-not-allowed" : "cursor-pointer"
                             }`}
                           >
                             <SelectValue placeholder="Select visibility" />
                           </SelectTrigger>
                           <SelectContent className="bg-[var(--card)] border border-[var(--border)]">
-                            <SelectItem
-                              className="hover:bg-[var(--hover-bg)]"
-                              value="PRIVATE"
-                            >
+                            <SelectItem className="hover:bg-[var(--hover-bg)]" value="PRIVATE">
                               Private - Only members
                             </SelectItem>
-                            <SelectItem
-                              className="hover:bg-[var(--hover-bg)]"
-                              value="INTERNAL"
-                            >
+                            <SelectItem className="hover:bg-[var(--hover-bg)]" value="INTERNAL">
                               Internal - Workspace members can view
                             </SelectItem>
-                            <SelectItem
-                              className="hover:bg-[var(--hover-bg)]"
-                              value="PUBLIC"
-                            >
+                            <SelectItem className="hover:bg-[var(--hover-bg)]" value="PUBLIC">
                               Public - Anyone can view
                             </SelectItem>
                           </SelectContent>
                         </Select>
                         <p className="text-xs text-[var(--muted-foreground)]">
-                          Control who can access this project. Members always
-                          have full access based on their role.
+                          Control who can access this project. Members always have full access based
+                          on their role.
                         </p>
                       </div>
                     </div>
@@ -490,9 +431,7 @@ function ProjectSettingsContent() {
                       <div className="flex justify-end pt-4">
                         <ActionButton
                           onClick={handleSave}
-                          disabled={
-                            saving || !formData.name.trim() || !hasAccess
-                          }
+                          disabled={saving || !formData.name.trim() || !hasAccess}
                           primary
                         >
                           {saving ? "Saving..." : "Save Changes"}
@@ -506,12 +445,9 @@ function ProjectSettingsContent() {
                   <div className="flex items-start gap-3">
                     <HiExclamationTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-1" />
                     <div className="flex-1">
-                      <h4 className="font-medium text-red-800 dark:text-red-400">
-                        Danger Zone
-                      </h4>
+                      <h4 className="font-medium text-red-800 dark:text-red-400">Danger Zone</h4>
                       <p className="text-sm text-red-700 dark:text-red-500 mb-4">
-                        These actions cannot be undone. Please proceed with
-                        caution.
+                        These actions cannot be undone. Please proceed with caution.
                       </p>
                       <DangerZoneModal
                         entity={{
@@ -523,9 +459,7 @@ function ProjectSettingsContent() {
                         onRetry={retryFetch}
                       >
                         <ActionButton
-                          leftIcon={
-                            <HiExclamationTriangle className="w-4 h-4" />
-                          }
+                          leftIcon={<HiExclamationTriangle className="w-4 h-4" />}
                           className="bg-red-600 hover:bg-red-700 text-white"
                           disabled={!hasAccess}
                         >
@@ -542,9 +476,7 @@ function ProjectSettingsContent() {
               <EmailIntegrationSettings projectId={project.id} />
             )}
 
-            {activeTab === "rules" && project && (
-              <EmailRulesManager projectId={project.id} />
-            )}
+            {activeTab === "rules" && project && <EmailRulesManager projectId={project.id} />}
           </div>
         </div>
       </div>

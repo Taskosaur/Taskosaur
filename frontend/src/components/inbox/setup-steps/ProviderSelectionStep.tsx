@@ -10,12 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  HiArrowRight,
-  HiArrowLeft,
-  HiCog,
-  HiExclamationCircle,
-} from "react-icons/hi2";
+import { HiArrowRight, HiArrowLeft, HiCog, HiExclamationCircle } from "react-icons/hi2";
 import { EMAIL_PROVIDERS } from "@/utils/data/emailProviders";
 import ActionButton from "@/components/common/ActionButton";
 
@@ -62,8 +57,7 @@ export default function ProviderSelectionStep({
   isReconfiguring = false,
 }: ProviderSelectionStepProps) {
   const [step, setStep] = useState(1);
-  const [selectedProvider, setSelectedProvider] =
-    useState<EmailProvider | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<EmailProvider | null>(null);
   const [emailData, setEmailData] = useState<EmailSetupData>({
     emailAddress: "",
     displayName: "",
@@ -129,11 +123,7 @@ export default function ProviderSelectionStep({
   };
 
   const isStep1Valid = () => {
-    if (
-      !emailData.emailAddress ||
-      !emailData.displayName ||
-      !selectedProvider
-    ) {
+    if (!emailData.emailAddress || !emailData.displayName || !selectedProvider) {
       return false;
     }
 
@@ -197,9 +187,7 @@ export default function ProviderSelectionStep({
             id="displayName"
             type="text"
             value={emailData.displayName}
-            onChange={(e) =>
-              setEmailData((prev) => ({ ...prev, displayName: e.target.value }))
-            }
+            onChange={(e) => setEmailData((prev) => ({ ...prev, displayName: e.target.value }))}
             placeholder="Support Team"
             required
             className="h-10"
@@ -212,23 +200,13 @@ export default function ProviderSelectionStep({
         <Label className="pb-2 text-sm font-medium" htmlFor="provider">
           Provider <span className="text-red-500">*</span>
         </Label>
-        <Select
-          value={selectedProvider?.id || ""}
-          onValueChange={handleProviderSelect}
-        >
+        <Select value={selectedProvider?.id || ""} onValueChange={handleProviderSelect}>
           <SelectTrigger className="w-full h-10 bg-[var(--background)] border-[var(--border)]">
-            <SelectValue
-              placeholder="Select provider"
-              className="bg-[var(--background)]"
-            />
+            <SelectValue placeholder="Select provider" className="bg-[var(--background)]" />
           </SelectTrigger>
           <SelectContent className="bg-[var(--background)] border-[var(--border)]">
             {EMAIL_PROVIDERS.map((provider) => (
-              <SelectItem
-                key={provider.id}
-                value={provider.id}
-                className="hover:bg-[var(--muted)]"
-              >
+              <SelectItem key={provider.id} value={provider.id} className="hover:bg-[var(--muted)]">
                 {provider.name}
               </SelectItem>
             ))}
@@ -322,10 +300,7 @@ export default function ProviderSelectionStep({
               </div>
 
               <div>
-                <Label
-                  className="pb-2 text-sm font-medium"
-                  htmlFor="imapUsername"
-                >
+                <Label className="pb-2 text-sm font-medium" htmlFor="imapUsername">
                   Username <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -344,10 +319,7 @@ export default function ProviderSelectionStep({
               </div>
 
               <div>
-                <Label
-                  className="pb-2 text-sm font-medium"
-                  htmlFor="imapPassword"
-                >
+                <Label className="pb-2 text-sm font-medium" htmlFor="imapPassword">
                   Password <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -372,18 +344,12 @@ export default function ProviderSelectionStep({
 
       <div className="flex gap-2 pt-4 justify-end">
         {selectedProvider && (
-          <ActionButton
-            primary
-            onClick={handleContinue}
-            disabled={!isStep1Valid()}
-          >
+          <ActionButton primary onClick={handleContinue} disabled={!isStep1Valid()}>
             Continue
           </ActionButton>
         )}
 
-        <ActionButton 
-        secondary 
-        onClick={handlePrevStep}>
+        <ActionButton secondary onClick={handlePrevStep}>
           Back
         </ActionButton>
       </div>
@@ -407,33 +373,21 @@ export default function ProviderSelectionStep({
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div className="flex items-start space-x-2">
-            <span className="font-medium text-[var(--foreground)] min-w-[80px]">
-              Email:
-            </span>
-            <span className="text-[var(--muted-foreground)]">
-              {emailData.emailAddress}
-            </span>
+            <span className="font-medium text-[var(--foreground)] min-w-[80px]">Email:</span>
+            <span className="text-[var(--muted-foreground)]">{emailData.emailAddress}</span>
           </div>
           <div className="flex items-start space-x-2">
-            <span className="font-medium text-[var(--foreground)] min-w-[80px]">
-              Provider:
-            </span>
-            <span className="text-[var(--muted-foreground)]">
-              {selectedProvider?.name}
-            </span>
+            <span className="font-medium text-[var(--foreground)] min-w-[80px]">Provider:</span>
+            <span className="text-[var(--muted-foreground)]">{selectedProvider?.name}</span>
           </div>
           <div className="flex items-start space-x-2">
-            <span className="font-medium text-[var(--foreground)] min-w-[80px]">
-              IMAP:
-            </span>
+            <span className="font-medium text-[var(--foreground)] min-w-[80px]">IMAP:</span>
             <span className="text-[var(--muted-foreground)]">
               {emailData.imapHost}:{emailData.imapPort}
             </span>
           </div>
           <div className="flex items-start space-x-2">
-            <span className="font-medium text-[var(--foreground)] min-w-[80px]">
-              SMTP:
-            </span>
+            <span className="font-medium text-[var(--foreground)] min-w-[80px]">SMTP:</span>
             <span className="text-[var(--muted-foreground)]">
               {emailData.smtpHost}:{emailData.smtpPort}
             </span>
@@ -442,16 +396,12 @@ export default function ProviderSelectionStep({
       </div>
 
       <p className="text-sm text-blue-800 flex items-center gap-2">
-        <HiExclamationCircle /> We'll test both incoming (IMAP) and outgoing
-        (SMTP) connections to ensure everything works properly.
+        <HiExclamationCircle /> We'll test both incoming (IMAP) and outgoing (SMTP) connections to
+        ensure everything works properly.
       </p>
 
       <div className="flex justify-end gap-2">
-        <ActionButton
-          onClick={handleTestConnection}
-          disabled={setupLoading}
-          primary
-        >
+        <ActionButton onClick={handleTestConnection} disabled={setupLoading} primary>
           {setupLoading ? <>Testing Connection...</> : <>Test Connection</>}
         </ActionButton>
         <ActionButton onClick={handlePrevStep} disabled={setupLoading} secondary>

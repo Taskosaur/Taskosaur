@@ -1,16 +1,14 @@
-;
-
-import React from 'react';
-import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { IconButton } from '@/components/ui/IconButton';
-import { PriorityBadge } from '@/components/badges/PriorityBadge';
-import { HiClock, HiDotsVertical } from 'react-icons/hi';
+import React from "react";
+import Link from "next/link";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { IconButton } from "@/components/ui/IconButton";
+import { PriorityBadge } from "@/components/badges/PriorityBadge";
+import { HiClock, HiDotsVertical } from "react-icons/hi";
 
 interface Task {
   id: string;
   title: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'HIGHEST';
+  priority: "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
   statusId: string;
   dueDate: string;
   projectId: string;
@@ -36,9 +34,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <div className="taskcard-header-content">
             <div className="taskcard-main-content">
               <CardTitle>
-                <span className="taskcard-title">
-                  {task.title}
-                </span>
+                <span className="taskcard-title">{task.title}</span>
               </CardTitle>
               <PriorityBadge priority={task.priority} />
             </div>

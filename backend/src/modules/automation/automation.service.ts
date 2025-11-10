@@ -23,9 +23,7 @@ export class AutomationService {
     @InjectQueue('automation') private automationQueue: Queue,
   ) {}
 
-  async create(
-    createAutomationRuleDto: CreateAutomationRuleDto,
-  ): Promise<AutomationRule> {
+  async create(createAutomationRuleDto: CreateAutomationRuleDto): Promise<AutomationRule> {
     return this.prisma.automationRule.create({
       data: createAutomationRuleDto,
       include: {
@@ -120,10 +118,7 @@ export class AutomationService {
     return rule;
   }
 
-  async update(
-    id: string,
-    updateData: Partial<CreateAutomationRuleDto>,
-  ): Promise<AutomationRule> {
+  async update(id: string, updateData: Partial<CreateAutomationRuleDto>): Promise<AutomationRule> {
     await this.findOne(id); // Ensure it exists
 
     return this.prisma.automationRule.update({
@@ -203,10 +198,7 @@ export class AutomationService {
     return execution;
   }
 
-  private async performAction(
-    rule: AutomationRule,
-    triggerData: any,
-  ): Promise<any> {
+  private async performAction(rule: AutomationRule, triggerData: any): Promise<any> {
     const { actionType, actionConfig } = rule;
 
     if (!actionConfig) {
@@ -226,18 +218,10 @@ export class AutomationService {
         return this.addLabel(triggerData.taskId, config.labelId);
 
       case ActionType.SEND_NOTIFICATION:
-        return this.sendNotification(
-          config.userId,
-          config.message,
-          triggerData,
-        );
+        return this.sendNotification(config.userId, config.message, triggerData);
 
       case ActionType.ADD_COMMENT:
-        return this.addComment(
-          triggerData.taskId,
-          config.content,
-          rule.createdBy || '',
-        );
+        return this.addComment(triggerData.taskId, config.content, rule.createdBy || '');
 
       case ActionType.CHANGE_PRIORITY:
         return this.changePriority(triggerData.taskId, config.priority);
@@ -255,8 +239,8 @@ export class AutomationService {
       where: { id: taskId },
       data: {
         assignees: {
-          set: assigneeIds.map(id => ({ id })) // Replace all assignees with new ones
-        }
+          set: assigneeIds.map((id) => ({ id })), // Replace all assignees with new ones
+        },
       },
       include: {
         project: { select: { id: true } },
@@ -266,14 +250,14 @@ export class AutomationService {
             firstName: true,
             lastName: true,
             email: true,
-            avatar: true
-          }
+            avatar: true,
+          },
         },
       },
     });
 
     // Send real-time notification
-     task.assignees.forEach(assignee => {
+    task.assignees.forEach((assignee) => {
       this.eventsGateway.emitTaskAssigned(task.project.id, taskId, {
         assigneeId: assignee.id,
         assignee: {
@@ -289,10 +273,7 @@ export class AutomationService {
     return { taskId, assigneeIds, success: true };
   }
 
-  private async changeTaskStatus(
-    taskId: string,
-    statusId: string,
-  ): Promise<any> {
+  private async changeTaskStatus(taskId: string, statusId: string): Promise<any> {
     const task = await this.prisma.task.update({
       where: { id: taskId },
       data: { statusId },
@@ -332,11 +313,7 @@ export class AutomationService {
     return { taskId, labelId, label: taskLabel.label, success: true };
   }
 
-  private async sendNotification(
-    userId: string,
-    message: string,
-    triggerData: any,
-  ): Promise<any> {
+  private sendNotification(userId: string, message: string, triggerData: any): any {
     // Send real-time notification via WebSocket
     this.eventsGateway.emitNotification(userId, {
       type: 'automation',
@@ -347,11 +324,7 @@ export class AutomationService {
     return { userId, message, success: true };
   }
 
-  private async addComment(
-    taskId: string,
-    content: string,
-    authorId: string,
-  ): Promise<any> {
+  private async addComment(taskId: string, content: string, authorId: string): Promise<any> {
     const comment = await this.prisma.taskComment.create({
       data: {
         taskId,
@@ -366,19 +339,12 @@ export class AutomationService {
     });
 
     // Send real-time notification
-    this.eventsGateway.emitCommentAdded(
-      comment.task.project.id,
-      taskId,
-      comment,
-    );
+    this.eventsGateway.emitCommentAdded(comment.task.project.id, taskId, comment);
 
     return { taskId, commentId: comment.id, success: true };
   }
 
-  private async changePriority(
-    taskId: string,
-    priority: TaskPriority,
-  ): Promise<any> {
+  private async changePriority(taskId: string, priority: TaskPriority): Promise<any> {
     const task = await this.prisma.task.update({
       where: { id: taskId },
       data: { priority },
@@ -404,10 +370,7 @@ export class AutomationService {
 
   // Event handlers for triggering automation
   async handleTaskCreated(task: any): Promise<void> {
-    const rules = await this.getActiveRules(
-      TriggerType.TASK_CREATED,
-      task.projectId,
-    );
+    const rules = await this.getActiveRules(TriggerType.TASK_CREATED, task.projectId);
 
     for (const rule of rules) {
       if (this.checkTriggerConditions(rule, task)) {
@@ -421,11 +384,7 @@ export class AutomationService {
     }
   }
 
-  async handleTaskUpdated(
-    taskId: string,
-    updates: any,
-    userId: string,
-  ): Promise<void> {
+  async handleTaskUpdated(taskId: string, updates: any, userId: string): Promise<void> {
     const rules = await this.getActiveRules(TriggerType.TASK_UPDATED);
 
     for (const rule of rules) {
@@ -440,11 +399,7 @@ export class AutomationService {
     }
   }
 
-  async handleTaskStatusChanged(
-    taskId: string,
-    statusChange: any,
-    userId: string,
-  ): Promise<void> {
+  async handleTaskStatusChanged(taskId: string, statusChange: any, userId: string): Promise<void> {
     const rules = await this.getActiveRules(TriggerType.TASK_STATUS_CHANGED);
 
     for (const rule of rules) {
@@ -459,11 +414,7 @@ export class AutomationService {
     }
   }
 
-  async handleTaskAssigned(
-    taskId: string,
-    assigneeId: string,
-    userId: string,
-  ): Promise<void> {
+  async handleTaskAssigned(taskId: string, assigneeId: string, userId: string): Promise<void> {
     const rules = await this.getActiveRules(TriggerType.TASK_ASSIGNED);
 
     for (const rule of rules) {
@@ -504,9 +455,7 @@ export class AutomationService {
         },
       );
 
-      this.logger.log(
-        `Queued automation rule ${ruleId} for trigger ${triggerType}`,
-      );
+      this.logger.log(`Queued automation rule ${ruleId} for trigger ${triggerType}`);
     } catch (error) {
       this.logger.error(`Failed to queue automation rule ${ruleId}:`, error);
     }
@@ -576,8 +525,7 @@ export class AutomationService {
     const failureCount = executions.length - successCount;
     const avgExecutionTime =
       executions.length > 0
-        ? executions.reduce((sum, e) => sum + e.executionTime, 0) /
-          executions.length
+        ? executions.reduce((sum, e) => sum + e.executionTime, 0) / executions.length
         : 0;
 
     return {
@@ -586,8 +534,7 @@ export class AutomationService {
       totalExecutions: executions.length,
       successCount,
       failureCount,
-      successRate:
-        executions.length > 0 ? (successCount / executions.length) * 100 : 0,
+      successRate: executions.length > 0 ? (successCount / executions.length) * 100 : 0,
       avgExecutionTime,
       lastExecuted: rule.lastExecuted,
     };

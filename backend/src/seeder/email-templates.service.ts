@@ -1,19 +1,23 @@
 import { Injectable } from '@nestjs/common';
-import { DEFAULT_EMAIL_TEMPLATES, TEMPLATE_CATEGORIES, COMMON_VARIABLES, EmailTemplateData } from './email-templates.constants';
+import {
+  DEFAULT_EMAIL_TEMPLATES,
+  TEMPLATE_CATEGORIES,
+  COMMON_VARIABLES,
+  EmailTemplateData,
+} from './email-templates.constants';
 
 @Injectable()
 export class EmailTemplatesService {
-
   getDefaultTemplates(): EmailTemplateData[] {
     return DEFAULT_EMAIL_TEMPLATES;
   }
 
   getTemplatesByCategory(category: string): EmailTemplateData[] {
-    return DEFAULT_EMAIL_TEMPLATES.filter(template => template.category === category);
+    return DEFAULT_EMAIL_TEMPLATES.filter((template) => template.category === category);
   }
 
   getTemplateById(id: string): EmailTemplateData | undefined {
-    return DEFAULT_EMAIL_TEMPLATES.find(template => template.id === id);
+    return DEFAULT_EMAIL_TEMPLATES.find((template) => template.id === id);
   }
 
   getTemplateCategories() {
@@ -25,17 +29,18 @@ export class EmailTemplatesService {
   }
 
   getDefaultTemplatesForCategory(category: string): EmailTemplateData[] {
-    return DEFAULT_EMAIL_TEMPLATES.filter(template =>
-      template.category === category && template.isDefault
+    return DEFAULT_EMAIL_TEMPLATES.filter(
+      (template) => template.category === category && template.isDefault,
     );
   }
 
   searchTemplates(query: string): EmailTemplateData[] {
     const lowerQuery = query.toLowerCase();
-    return DEFAULT_EMAIL_TEMPLATES.filter(template =>
-      template.name.toLowerCase().includes(lowerQuery) ||
-      template.description?.toLowerCase().includes(lowerQuery) ||
-      template.subject.toLowerCase().includes(lowerQuery)
+    return DEFAULT_EMAIL_TEMPLATES.filter(
+      (template) =>
+        template.name.toLowerCase().includes(lowerQuery) ||
+        template.description?.toLowerCase().includes(lowerQuery) ||
+        template.subject.toLowerCase().includes(lowerQuery),
     );
   }
 
@@ -56,7 +61,7 @@ export class EmailTemplatesService {
 
     if (!template.category) {
       errors.push('Template category is required');
-    } else if (!TEMPLATE_CATEGORIES.some(cat => cat.value === template.category)) {
+    } else if (!TEMPLATE_CATEGORIES.some((cat) => cat.value === template.category)) {
       errors.push('Invalid template category');
     }
 
@@ -81,8 +86,8 @@ export class EmailTemplatesService {
     // Update variables array based on found variables
     if (template.variables) {
       const foundVariables = Array.from(variables);
-      const missingInContent = template.variables.filter(v => !foundVariables.includes(v));
-      const missingInArray = foundVariables.filter(v => !template.variables!.includes(v));
+      const missingInContent = template.variables.filter((v) => !foundVariables.includes(v));
+      const missingInArray = foundVariables.filter((v) => !template.variables!.includes(v));
 
       if (missingInContent.length > 0) {
         errors.push(`Variables listed but not used in template: ${missingInContent.join(', ')}`);
@@ -95,11 +100,14 @@ export class EmailTemplatesService {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
-  processTemplate(template: EmailTemplateData, variables: Record<string, string>): { subject: string; content: string } {
+  processTemplate(
+    template: EmailTemplateData,
+    variables: Record<string, string>,
+  ): { subject: string; content: string } {
     let processedSubject = template.subject;
     let processedContent = template.content;
 
@@ -112,7 +120,7 @@ export class EmailTemplatesService {
 
     return {
       subject: processedSubject,
-      content: processedContent
+      content: processedContent,
     };
   }
 

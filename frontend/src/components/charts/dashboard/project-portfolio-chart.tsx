@@ -1,8 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from "recharts";
-import {
-  ChartTooltip,
-  ChartTooltipContent
-} from "@/components/ui/chart";
+import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
 
 const chartConfig = {
@@ -51,12 +48,7 @@ export function ProjectPortfolioChart({ data }: ProjectPortfolioChartProps) {
             labelLine={false}
           >
             {chartData?.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={entry.fill}
-                stroke="#fff"
-                strokeWidth={2}
-              />
+              <Cell key={`cell-${index}`} fill={entry.fill} stroke="#fff" strokeWidth={2} />
             ))}
           </Pie>
           <Legend
@@ -64,9 +56,7 @@ export function ProjectPortfolioChart({ data }: ProjectPortfolioChartProps) {
             height={36}
             iconType="circle"
             iconSize={10}
-            formatter={(value) => (
-              <span className="text-muted-foreground text-xs">{value}</span>
-            )}
+            formatter={(value) => <span className="text-muted-foreground text-xs">{value}</span>}
           />
         </PieChart>
       </ResponsiveContainer>

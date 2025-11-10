@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useMemo,
-  useCallback,
-} from "react";
+import React, { createContext, useContext, useState, useMemo, useCallback } from "react";
 import { inboxApi } from "@/utils/api/inboxApi";
 import {
   ProjectInbox,
@@ -27,15 +21,9 @@ interface InboxState {
 
 interface InboxContextType extends InboxState {
   // Inbox Management
-  createInbox: (
-    projectId: string,
-    data: CreateInboxDto
-  ) => Promise<ProjectInbox>;
+  createInbox: (projectId: string, data: CreateInboxDto) => Promise<ProjectInbox>;
   getInbox: (projectId: string) => Promise<ProjectInbox>;
-  updateInbox: (
-    projectId: string,
-    data: Partial<CreateInboxDto>
-  ) => Promise<ProjectInbox>;
+  updateInbox: (projectId: string, data: Partial<CreateInboxDto>) => Promise<ProjectInbox>;
 
   // Email Account Setup
   setupEmailAccount: (projectId: string, data: SetupEmailDto) => Promise<any>;
@@ -60,15 +48,8 @@ interface InboxContextType extends InboxState {
 
   // Rules Management
   getRules: (projectId: string) => Promise<InboxRule[]>;
-  createRule: (
-    projectId: string,
-    data: Partial<InboxRule>
-  ) => Promise<InboxRule>;
-  updateRule: (
-    projectId: string,
-    ruleId: string,
-    data: Partial<InboxRule>
-  ) => Promise<InboxRule>;
+  createRule: (projectId: string, data: Partial<InboxRule>) => Promise<InboxRule>;
+  updateRule: (projectId: string, ruleId: string, data: Partial<InboxRule>) => Promise<InboxRule>;
   deleteRule: (projectId: string, ruleId: string) => Promise<void>;
 
   // Task Email Integration
@@ -123,51 +104,45 @@ export function InboxProvider({ children }: InboxProviderProps) {
   });
 
   // Helper to handle API operations with error handling
-  const handleApiOperation = useCallback(
-    async function <T>(
-      operation: () => Promise<T>,
-      loadingState: boolean = true,
-      syncingState: boolean = false
-    ): Promise<T> {
-      try {
-        if (loadingState || syncingState) {
-          setInboxState((prev) => ({
-            ...prev,
-            isLoading: loadingState,
-            isSyncing: syncingState,
-            error: null,
-          }));
-        }
-        const result = await operation();
-        if (loadingState || syncingState) {
-          setInboxState((prev) => ({
-            ...prev,
-            isLoading: false,
-            isSyncing: false,
-          }));
-        }
-        return result;
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "An error occurred";
+  const handleApiOperation = useCallback(async function <T>(
+    operation: () => Promise<T>,
+    loadingState: boolean = true,
+    syncingState: boolean = false
+  ): Promise<T> {
+    try {
+      if (loadingState || syncingState) {
+        setInboxState((prev) => ({
+          ...prev,
+          isLoading: loadingState,
+          isSyncing: syncingState,
+          error: null,
+        }));
+      }
+      const result = await operation();
+      if (loadingState || syncingState) {
         setInboxState((prev) => ({
           ...prev,
           isLoading: false,
           isSyncing: false,
-          error: errorMessage,
         }));
-        throw error;
       }
-    },
-    []
-  );
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "An error occurred";
+      setInboxState((prev) => ({
+        ...prev,
+        isLoading: false,
+        isSyncing: false,
+        error: errorMessage,
+      }));
+      throw error;
+    }
+  }, []);
 
   // Inbox Management functions
   const createInbox = useCallback(
     async (projectId: string, data: CreateInboxDto): Promise<ProjectInbox> => {
-      const result = await handleApiOperation(() =>
-        inboxApi.createInbox(projectId, data)
-      );
+      const result = await handleApiOperation(() => inboxApi.createInbox(projectId, data));
       setInboxState((prev) => ({
         ...prev,
         inboxes: [...prev.inboxes, result],
@@ -179,9 +154,7 @@ export function InboxProvider({ children }: InboxProviderProps) {
 
   const getInbox = useCallback(
     async (projectId: string): Promise<ProjectInbox> => {
-      const result = await handleApiOperation(() =>
-        inboxApi.getInbox(projectId)
-      );
+      const result = await handleApiOperation(() => inboxApi.getInbox(projectId));
       setInboxState((prev) => ({
         ...prev,
         currentInbox: result,
@@ -192,14 +165,8 @@ export function InboxProvider({ children }: InboxProviderProps) {
   );
 
   const updateInbox = useCallback(
-    async (
-      projectId: string,
-      data: Partial<CreateInboxDto>
-    ): Promise<ProjectInbox> => {
-      const result = await handleApiOperation(
-        () => inboxApi.updateInbox(projectId, data),
-        false
-      );
+    async (projectId: string, data: Partial<CreateInboxDto>): Promise<ProjectInbox> => {
+      const result = await handleApiOperation(() => inboxApi.updateInbox(projectId, data), false);
       setInboxState((prev) => ({
         ...prev,
         inboxes: prev.inboxes.map((inbox) =>
@@ -218,10 +185,7 @@ export function InboxProvider({ children }: InboxProviderProps) {
   // Email Account Setup functions
   const setupEmailAccount = useCallback(
     async (projectId: string, data: SetupEmailDto): Promise<any> => {
-      return await handleApiOperation(
-        () => inboxApi.setupEmailAccount(projectId, data),
-        false
-      );
+      return await handleApiOperation(() => inboxApi.setupEmailAccount(projectId, data), false);
     },
     [handleApiOperation]
   );
@@ -242,11 +206,7 @@ export function InboxProvider({ children }: InboxProviderProps) {
   // Email Sync functions
   const triggerSync = useCallback(
     async (projectId: string): Promise<{ message: string }> => {
-      return await handleApiOperation(
-        () => inboxApi.triggerSync(projectId),
-        false,
-        true
-      );
+      return await handleApiOperation(() => inboxApi.triggerSync(projectId), false, true);
     },
     [handleApiOperation]
   );
@@ -261,9 +221,7 @@ export function InboxProvider({ children }: InboxProviderProps) {
         offset?: number;
       }
     ): Promise<InboxMessage[]> => {
-      const result = await handleApiOperation(() =>
-        inboxApi.getMessages(projectId, params)
-      );
+      const result = await handleApiOperation(() => inboxApi.getMessages(projectId, params));
       setInboxState((prev) => ({ ...prev, messages: result }));
       return result;
     },
@@ -298,9 +256,7 @@ export function InboxProvider({ children }: InboxProviderProps) {
   // Rules Management functions
   const getRules = useCallback(
     async (projectId: string): Promise<InboxRule[]> => {
-      const result = await handleApiOperation(() =>
-        inboxApi.getRules(projectId)
-      );
+      const result = await handleApiOperation(() => inboxApi.getRules(projectId));
       setInboxState((prev) => ({ ...prev, rules: result }));
       return result;
     },
@@ -308,19 +264,11 @@ export function InboxProvider({ children }: InboxProviderProps) {
   );
 
   const createRule = useCallback(
-    async (
-      projectId: string,
-      data: Partial<InboxRule>
-    ): Promise<InboxRule> => {
-      const result = await handleApiOperation(
-        () => inboxApi.createRule(projectId, data),
-        false
-      );
+    async (projectId: string, data: Partial<InboxRule>): Promise<InboxRule> => {
+      const result = await handleApiOperation(() => inboxApi.createRule(projectId, data), false);
       setInboxState((prev) => ({
         ...prev,
-        rules: [...prev.rules, result].sort(
-          (a, b) => b.priority - a.priority
-        ),
+        rules: [...prev.rules, result].sort((a, b) => b.priority - a.priority),
       }));
       return result;
     },
@@ -328,11 +276,7 @@ export function InboxProvider({ children }: InboxProviderProps) {
   );
 
   const updateRule = useCallback(
-    async (
-      projectId: string,
-      ruleId: string,
-      data: Partial<InboxRule>
-    ): Promise<InboxRule> => {
+    async (projectId: string, ruleId: string, data: Partial<InboxRule>): Promise<InboxRule> => {
       const result = await handleApiOperation(
         () => inboxApi.updateRule(projectId, ruleId, data),
         false
@@ -350,10 +294,7 @@ export function InboxProvider({ children }: InboxProviderProps) {
 
   const deleteRule = useCallback(
     async (projectId: string, ruleId: string): Promise<void> => {
-      await handleApiOperation(
-        () => inboxApi.deleteRule(projectId, ruleId),
-        false
-      );
+      await handleApiOperation(() => inboxApi.deleteRule(projectId, ruleId), false);
       setInboxState((prev) => ({
         ...prev,
         rules: prev.rules.filter((rule) => rule.id !== ruleId),
@@ -372,10 +313,7 @@ export function InboxProvider({ children }: InboxProviderProps) {
       messageId: string;
       recipients: string[];
     }> => {
-      return await handleApiOperation(
-        () => inboxApi.sendCommentAsEmail(taskId, commentId),
-        false
-      );
+      return await handleApiOperation(() => inboxApi.sendCommentAsEmail(taskId, commentId), false);
     },
     [handleApiOperation]
   );
@@ -390,9 +328,7 @@ export function InboxProvider({ children }: InboxProviderProps) {
 
   const refreshInbox = useCallback(
     async (projectId: string): Promise<void> => {
-      const result = await handleApiOperation(() =>
-        inboxApi.getInbox(projectId)
-      );
+      const result = await handleApiOperation(() => inboxApi.getInbox(projectId));
       setInboxState((prev) => ({ ...prev, currentInbox: result }));
     },
     [handleApiOperation]
@@ -403,9 +339,7 @@ export function InboxProvider({ children }: InboxProviderProps) {
       projectId: string,
       params?: { status?: string; limit?: number; offset?: number }
     ): Promise<void> => {
-      const result = await handleApiOperation(() =>
-        inboxApi.getMessages(projectId, params)
-      );
+      const result = await handleApiOperation(() => inboxApi.getMessages(projectId, params));
       setInboxState((prev) => ({ ...prev, messages: result }));
     },
     [handleApiOperation]
@@ -413,9 +347,7 @@ export function InboxProvider({ children }: InboxProviderProps) {
 
   const refreshRules = useCallback(
     async (projectId: string): Promise<void> => {
-      const result = await handleApiOperation(() =>
-        inboxApi.getRules(projectId)
-      );
+      const result = await handleApiOperation(() => inboxApi.getRules(projectId));
       setInboxState((prev) => ({ ...prev, rules: result }));
     },
     [handleApiOperation]
@@ -494,11 +426,7 @@ export function InboxProvider({ children }: InboxProviderProps) {
     ]
   );
 
-  return (
-    <InboxContext.Provider value={contextValue}>
-      {children}
-    </InboxContext.Provider>
-  );
+  return <InboxContext.Provider value={contextValue}>{children}</InboxContext.Provider>;
 }
 
 export default InboxProvider;

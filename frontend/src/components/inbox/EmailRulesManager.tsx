@@ -20,11 +20,7 @@ import { inboxApi } from "@/utils/api/inboxApi";
 import { InboxRule } from "@/types/inbox";
 import ActionButton from "../common/ActionButton";
 import Tooltip from "../common/ToolTip";
-import {
-  ACTION_TYPES,
-  EMAIL_FIELDS,
-  EMAIL_OPERATORS,
-} from "@/utils/data/projectData";
+import { ACTION_TYPES, EMAIL_FIELDS, EMAIL_OPERATORS } from "@/utils/data/projectData";
 import { PRIORITY_OPTIONS } from "@/utils/data/taskData";
 import { useProject } from "@/contexts/project-context";
 import { useTask } from "@/contexts/task-context";
@@ -75,9 +71,7 @@ const defaultRule: RuleFormData = {
   stopOnMatch: false,
 };
 
-export default function EmailRulesManager({
-  projectId,
-}: EmailRulesManagerProps) {
+export default function EmailRulesManager({ projectId }: EmailRulesManagerProps) {
   const [rules, setRules] = useState<InboxRule[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingRule, setEditingRule] = useState<InboxRule | null>(null);
@@ -263,10 +257,7 @@ export default function EmailRulesManager({
         conditions.length > 0
           ? conditions
           : [{ field: "subject", operator: "contains", value: "" }],
-      actions:
-        actions.length > 0
-          ? actions
-          : [{ type: "setPriority", value: "MEDIUM" }],
+      actions: actions.length > 0 ? actions : [{ type: "setPriority", value: "MEDIUM" }],
       stopOnMatch: rule.stopOnMatch,
     });
     setShowForm(true);
@@ -297,10 +288,7 @@ export default function EmailRulesManager({
   const addCondition = () => {
     setFormData((prev) => ({
       ...prev,
-      conditions: [
-        ...prev.conditions,
-        { field: "subject", operator: "contains", value: "" },
-      ],
+      conditions: [...prev.conditions, { field: "subject", operator: "contains", value: "" }],
     }));
   };
 
@@ -311,11 +299,7 @@ export default function EmailRulesManager({
     }));
   };
 
-  const updateCondition = (
-    index: number,
-    field: keyof RuleCondition,
-    value: string
-  ) => {
+  const updateCondition = (index: number, field: keyof RuleCondition, value: string) => {
     setFormData((prev) => ({
       ...prev,
       conditions: prev.conditions.map((cond, i) =>
@@ -338,11 +322,7 @@ export default function EmailRulesManager({
     }));
   };
 
-  const updateAction = (
-    index: number,
-    field: keyof RuleAction,
-    value: string | string[]
-  ) => {
+  const updateAction = (index: number, field: keyof RuleAction, value: string | string[]) => {
     setFormData((prev) => ({
       ...prev,
       actions: prev.actions.map((action, i) =>
@@ -367,9 +347,7 @@ export default function EmailRulesManager({
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                   <IoWarning className="w-5 h-5 text-[var(--primary)]" />
-                  <span className="text-md font-semibold">
-                    Email Processing Rules
-                  </span>
+                  <span className="text-md font-semibold">Email Processing Rules</span>
                 </div>
                 <p className="text-sm font-normal text-[var(--muted-foreground)]/60 mt-2">
                   Automatically process incoming emails based on conditions
@@ -406,17 +384,12 @@ export default function EmailRulesManager({
                 <div className="space-y-4">
                   {Array.isArray(rules) &&
                     rules.map((rule) => (
-                      <div
-                        key={rule.id}
-                        className="border border-[var(--border)] rounded-lg p-4"
-                      >
+                      <div key={rule.id} className="border border-[var(--border)] rounded-lg p-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center space-x-2">
                               <h4 className="text-sm">{rule.name}</h4>
-                              <Badge
-                                className={getPriorityColor(rule.priority)}
-                              >
+                              <Badge className={getPriorityColor(rule.priority)}>
                                 Priority {rule.priority}
                               </Badge>
                               {rule.enabled ? (
@@ -438,11 +411,7 @@ export default function EmailRulesManager({
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Tooltip
-                              content="Edit"
-                              position="top"
-                              color="primary"
-                            >
+                            <Tooltip content="Edit" position="top" color="primary">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -452,11 +421,7 @@ export default function EmailRulesManager({
                                 <HiPencil className="size-3" />
                               </Button>
                             </Tooltip>
-                            <Tooltip
-                              content="Delete"
-                              position="top"
-                              color="primary"
-                            >
+                            <Tooltip content="Delete" position="top" color="primary">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -477,9 +442,7 @@ export default function EmailRulesManager({
             <>
               <div className="text-center py-8">
                 <IoWarning className="w-7 h-7 mx-auto text-[var(--muted-foreground)]/40 mb-2" />
-                <h3 className="text-sm font-semibold">
-                  No Project Inbox Configured
-                </h3>
+                <h3 className="text-sm font-semibold">No Project Inbox Configured</h3>
                 <p className="text-[var(--muted-foreground)]/60 text-sm">
                   Please set up a project inbox before adding rules.
                 </p>
@@ -492,24 +455,19 @@ export default function EmailRulesManager({
       {showForm && (
         <Card className="border-none bg-[var(--card)] rounded-md">
           <CardHeader>
-            <CardTitle>
-              {editingRule ? "Edit Rule" : "Create New Rule"}
-            </CardTitle>
+            <CardTitle>{editingRule ? "Edit Rule" : "Create New Rule"}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Basic Info */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="pb-2" htmlFor="name">
-                  Rule Name{" "}
-                  <span className="projects-form-label-required">*</span>
+                  Rule Name <span className="projects-form-label-required">*</span>
                 </Label>
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                   placeholder="High Priority Support"
                 />
               </div>
@@ -611,9 +569,7 @@ export default function EmailRulesManager({
                   >
                     <Select
                       value={condition.field}
-                      onValueChange={(value) =>
-                        updateCondition(index, "field", value)
-                      }
+                      onValueChange={(value) => updateCondition(index, "field", value)}
                     >
                       <SelectTrigger className="w-32 border border-[var(--border)]">
                         <SelectValue />
@@ -633,9 +589,7 @@ export default function EmailRulesManager({
 
                     <Select
                       value={condition.operator}
-                      onValueChange={(value) =>
-                        updateCondition(index, "operator", value)
-                      }
+                      onValueChange={(value) => updateCondition(index, "operator", value)}
                     >
                       <SelectTrigger className="w-32 border border-[var(--border)]">
                         <SelectValue />
@@ -655,19 +609,13 @@ export default function EmailRulesManager({
 
                     <Input
                       value={condition.value}
-                      onChange={(e) =>
-                        updateCondition(index, "value", e.target.value)
-                      }
+                      onChange={(e) => updateCondition(index, "value", e.target.value)}
                       placeholder="Enter value..."
                       className="flex-1"
                     />
 
                     {formData.conditions.length > 1 && (
-                      <Tooltip
-                        content="Delete Condition"
-                        position="left"
-                        color="primary"
-                      >
+                      <Tooltip content="Delete Condition" position="left" color="primary">
                         <ActionButton
                           variant="outline"
                           className="justify-center cursor-pointer border-none bg-[var(--destructive)]/5 hover:bg-[var(--destructive)]/10 text-[var(--destructive)]"
@@ -705,9 +653,7 @@ export default function EmailRulesManager({
                     {/* First dropdown: Action type */}
                     <Select
                       value={action.type}
-                      onValueChange={(value) =>
-                        updateAction(index, "type", value)
-                      }
+                      onValueChange={(value) => updateAction(index, "type", value)}
                     >
                       <SelectTrigger className="w-40 border border-[var(--border)]">
                         <SelectValue />
@@ -738,21 +684,21 @@ export default function EmailRulesManager({
                               label: opt.label,
                             }))
                           : action.type === "assignTo"
-                          ? members.map((m) => ({
-                              id: m.id,
-                              value: m.id,
-                              label: m.name,
-                              avatar: m.avatar,
-                              email: m.email,
-                            }))
-                          : action.type === "addLabels"
-                          ? labels.map((l) => ({
-                              id: l.id,
-                              value: l.id,
-                              label: l.name,
-                              color: l.color,
-                            }))
-                          : []
+                            ? members.map((m) => ({
+                                id: m.id,
+                                value: m.id,
+                                label: m.name,
+                                avatar: m.avatar,
+                                email: m.email,
+                              }))
+                            : action.type === "addLabels"
+                              ? labels.map((l) => ({
+                                  id: l.id,
+                                  value: l.id,
+                                  label: l.name,
+                                  color: l.color,
+                                }))
+                              : []
                       }
                       isLoading={
                         (action.type === "assignTo" && membersLoading) ||
@@ -765,33 +711,29 @@ export default function EmailRulesManager({
                         action.type === "setPriority"
                           ? "Select priority"
                           : action.type === "assignTo"
-                          ? "Select member"
-                          : action.type === "addLabels"
-                          ? "Select label"
-                          : undefined
+                            ? "Select member"
+                            : action.type === "addLabels"
+                              ? "Select label"
+                              : undefined
                       }
                       loadingText={
                         action.type === "assignTo"
                           ? "Loading members..."
                           : action.type === "addLabels"
-                          ? "Loading labels..."
-                          : undefined
+                            ? "Loading labels..."
+                            : undefined
                       }
                       emptyText={
                         action.type === "assignTo"
                           ? "No members available"
                           : action.type === "addLabels"
-                          ? "No labels available"
-                          : undefined
+                            ? "No labels available"
+                            : undefined
                       }
                     />
 
                     {formData.actions.length > 1 && (
-                      <Tooltip
-                        content="Delete Action"
-                        position="left"
-                        color="primary"
-                      >
+                      <Tooltip content="Delete Action" position="left" color="primary">
                         <ActionButton
                           variant="outline"
                           className="justify-center cursor-pointer border-none bg-[var(--destructive)]/5 hover:bg-[var(--destructive)]/10 text-[var(--destructive)]"
@@ -819,11 +761,7 @@ export default function EmailRulesManager({
                 Cancel
               </ActionButton>
               <ActionButton onClick={handleSaveRule} disabled={saving} primary>
-                {saving
-                  ? "Saving..."
-                  : editingRule
-                  ? "Update Rule"
-                  : "Create Rule"}
+                {saving ? "Saving..." : editingRule ? "Update Rule" : "Create Rule"}
               </ActionButton>
             </div>
           </CardContent>

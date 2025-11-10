@@ -114,9 +114,7 @@ function WorkspaceActivityContent() {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activityFilter, setActivityFilter] = useState<
-    "all" | ActivityLog["type"]
-  >("all");
+  const [activityFilter, setActivityFilter] = useState<"all" | ActivityLog["type"]>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
@@ -157,16 +155,11 @@ function WorkspaceActivityContent() {
     },
   ];
 
-  const currentFilter =
-    filterOptions.find((f) => f.value === activityFilter) || filterOptions[0];
+  const currentFilter = filterOptions.find((f) => f.value === activityFilter) || filterOptions[0];
 
   const fetchData = useCallback(
     async (page: number = 1) => {
-      if (
-        fetchingRef.current &&
-        currentSlugRef.current === workspaceSlug &&
-        page === currentPage
-      ) {
+      if (fetchingRef.current && currentSlugRef.current === workspaceSlug && page === currentPage) {
         return;
       }
 
@@ -199,8 +192,7 @@ function WorkspaceActivityContent() {
 
         let entityType: string | undefined = undefined;
         if (activityFilter !== "all") {
-          entityType =
-            activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1);
+          entityType = activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1);
         }
 
         const recentActivityResponse = await getWorkspaceRecentActivity(ws.id, {
@@ -209,8 +201,8 @@ function WorkspaceActivityContent() {
           entityType,
         });
 
-        const mappedActivities: ActivityLog[] =
-          recentActivityResponse.activities.map((item: any) => ({
+        const mappedActivities: ActivityLog[] = recentActivityResponse.activities.map(
+          (item: any) => ({
             id: item.id,
             user: item.user
               ? {
@@ -235,7 +227,8 @@ function WorkspaceActivityContent() {
             entityId: item.entityId,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt,
-          }));
+          })
+        );
 
         setActivities(mappedActivities);
         if (recentActivityResponse.pagination) {
@@ -248,9 +241,7 @@ function WorkspaceActivityContent() {
           router.back();
           return;
         }
-        setError(
-          e?.message ? e.message : "Failed to load workspace activity"
-        );
+        setError(e?.message ? e.message : "Failed to load workspace activity");
       } finally {
         setIsLoading(false);
         setIsLoadingActivity(false);
@@ -325,9 +316,7 @@ function WorkspaceActivityContent() {
   }
 
   if (error) {
-    return (
-      <ErrorState error={error} onRetry={() => fetchData()} />
-    );
+    return <ErrorState error={error} onRetry={() => fetchData()} />;
   }
 
   if (!workspace) {
@@ -354,9 +343,7 @@ function WorkspaceActivityContent() {
                   className={`flex items-center gap-2 px-3 py-1.5 ${currentFilter.color} border border-current/20 hover:bg-current/20 transition-all duration-200`}
                 >
                   <currentFilter.icon className="w-3 h-3" />
-                  <span className="text-xs font-medium">
-                    {currentFilter.label}
-                  </span>
+                  <span className="text-xs font-medium">{currentFilter.label}</span>
                   <button
                     onClick={() => handleFilterChange("all")}
                     className="ml-1 hover:bg-current/20 rounded-full p-0.5 transition-colors"
@@ -370,11 +357,7 @@ function WorkspaceActivityContent() {
 
             {/* Filter dropdown trigger */}
             <DropdownMenu>
-              <Tooltip
-                content="Filter activities"
-                position="top"
-                color="primary"
-              >
+              <Tooltip content="Filter activities" position="top" color="primary">
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
@@ -405,9 +388,7 @@ function WorkspaceActivityContent() {
                   return (
                     <DropdownMenuItem
                       key={option.value}
-                      onClick={() =>
-                        handleFilterChange(option.value as ActivityLog["type"])
-                      }
+                      onClick={() => handleFilterChange(option.value as ActivityLog["type"])}
                       className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-all duration-200 ${
                         isActive
                           ? "bg-[var(--accent)] text-[var(--accent-foreground)] font-medium"
@@ -455,11 +436,7 @@ function WorkspaceActivityContent() {
           isLoading={isLoadingActivity}
           error={error}
           onRetry={() => fetchData(currentPage)}
-          onClearFilter={
-            activityFilter !== "all"
-              ? () => handleFilterChange("all")
-              : undefined
-          }
+          onClearFilter={activityFilter !== "all" ? () => handleFilterChange("all") : undefined}
           emptyMessage={
             activityFilter === "all"
               ? "No activity yet"

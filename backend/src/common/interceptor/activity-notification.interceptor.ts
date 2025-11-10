@@ -1,10 +1,5 @@
 // src/common/interceptors/activity-notification.interceptor.ts
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
@@ -18,17 +13,14 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     private activityLogService: ActivityLogService,
     private notificationsService: NotificationsService,
     private reflector: Reflector,
-  ) { }
+  ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const handler = context.getHandler();
 
     const activityConfig = this.reflector.get('activity-log', handler);
-    const notificationConfig = this.reflector.get(
-      'notification-config',
-      handler,
-    );
+    const notificationConfig = this.reflector.get('notification-config', handler);
 
     if (!activityConfig && !notificationConfig) {
       return next.handle();
@@ -36,8 +28,7 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
 
     const userId = request.user?.id;
     const organizationId =
-      request.user?.currentOrganizationId ||
-      request.headers['x-organization-id'];
+      request.user?.currentOrganizationId || request.headers['x-organization-id'];
     const originalData = {
       ...request.body,
       ...request.params,
@@ -45,33 +36,36 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     };
 
     return next.handle().pipe(
-      tap(async (result) => {
-        try {
-          // Handle activity logging
-          if (userId && activityConfig) {
-            await this.logActivity(
-              activityConfig,
-              userId,
-              organizationId,
-              originalData,
-              result,
-              activityConfig.entityIdName,
-            );
-          }
+      tap((result) => {
+        // Fire and forget: don't await, don't block the response
+        void (async () => {
+          try {
+            // Handle activity logging
+            if (userId && activityConfig) {
+              await this.logActivity(
+                activityConfig,
+                userId,
+                organizationId,
+                originalData,
+                result,
+                activityConfig.entityIdName,
+              );
+            }
 
-          // Handle notifications
-          if (notificationConfig) {
-            await this.sendNotification(
-              notificationConfig,
-              request.user,
-              organizationId,
-              originalData,
-              result,
-            );
+            // Handle notifications
+            if (notificationConfig) {
+              await this.sendNotification(
+                notificationConfig,
+                request.user,
+                organizationId,
+                originalData,
+                result,
+              );
+            }
+          } catch (error) {
+            console.error('Error in activity/notification interceptor:', error);
           }
-        } catch (error) {
-          console.error('Error in activity/notification interceptor:', error);
-        }
+        })();
       }),
     );
   }
@@ -113,11 +107,10 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     // Get organization ID if not provided
     if (!finalOrganizationId) {
       if (entityId) {
-        finalOrganizationId =
-          await this.activityLogService.getOrganizationIdFromEntity(
-            config.entityType,
-            entityId,
-          );
+        finalOrganizationId = await this.activityLogService.getOrganizationIdFromEntity(
+          config.entityType,
+          entityId,
+        );
       }
     }
 
@@ -133,7 +126,6 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     });
   }
 
-
   private async sendNotification(
     config: any,
     user: any,
@@ -146,11 +138,10 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     if (!finalOrganizationId) {
       const entityId = responseData?.id || config.entityId;
       if (entityId) {
-        finalOrganizationId =
-          await this.activityLogService.getOrganizationIdFromEntity(
-            config.entityType,
-            entityId,
-          );
+        finalOrganizationId = await this.activityLogService.getOrganizationIdFromEntity(
+          config.entityType,
+          entityId,
+        );
       }
     }
 
@@ -168,25 +159,18 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
       try {
         await this.notificationsService.createNotification({
           title: config.title || this.generateTitle(config.type, responseData),
-          message:
-            config.message ||
-            this.generateMessage(config.type, user, responseData),
+          message: config.message || this.generateMessage(config.type, user, responseData),
           type: config.type,
           userId: notifyUserId,
           organizationId: finalOrganizationId,
           entityType: config.entityType,
           entityId: responseData?.id || config.entityId,
-          actionUrl:
-            config.actionUrl ||
-            this.generateActionUrl(config.entityType, responseData.id),
+          actionUrl: config.actionUrl || this.generateActionUrl(config.entityType, responseData.id),
           createdBy: user.id,
           priority: config.priority || NotificationPriority.MEDIUM,
         });
       } catch (error) {
-        console.error(
-          `❌ Failed to create notification for user ${notifyUserId}:`,
-          error,
-        );
+        console.error(`❌ Failed to create notification for user ${notifyUserId}:`, error);
       }
     }
   }
@@ -201,75 +185,83 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     const recipients: string[] = [];
     switch (config.type) {
       // ✅ Task-related notifications
-      case NotificationType.TASK_ASSIGNED:
+      case NotificationType.TASK_ASSIGNED: {
         // Handle multiple assignees from requestData or responseData
         const assigneeIds =
           requestData.assigneeIds ||
-          (requestData.assignees ? requestData.assignees.map(a => a.id) : undefined) ||
-          (responseData.assignees ? responseData.assignees.map(a => a.id) : undefined)
-        responseData.assigneeIds ||
+          (requestData.assignees
+            ? (requestData.assignees as Array<{ id: string }>).map((a) => a.id)
+            : undefined) ||
+          (responseData.assignees
+            ? (responseData.assignees as Array<{ id: string }>).map((a) => a.id)
+            : undefined) ||
+          responseData.assigneeIds ||
           [];
 
         if (Array.isArray(assigneeIds)) {
           recipients.push(...assigneeIds);
         }
         break;
+      }
 
-      case NotificationType.TASK_STATUS_CHANGED:
+      case NotificationType.TASK_STATUS_CHANGED: {
         const taskId = responseData.id || config.entityId;
         if (taskId) {
           const taskParticipants = await this.getTaskParticipants(taskId);
           recipients.push(...taskParticipants.filter((id) => id !== user.id));
         }
         break;
+      }
 
-      case NotificationType.TASK_COMMENTED:
+      case NotificationType.TASK_COMMENTED: {
         const commentTaskId = responseData.taskId || requestData.taskId;
         if (commentTaskId) {
-          const commentTaskParticipants =
-            await this.getTaskParticipants(commentTaskId);
-          recipients.push(
-            ...commentTaskParticipants.filter((id) => id !== user.id),
-          );
+          const commentTaskParticipants = await this.getTaskParticipants(commentTaskId);
+          recipients.push(...commentTaskParticipants.filter((id) => id !== user.id));
         }
         break;
+      }
 
-      case NotificationType.TASK_DUE_SOON:
+      case NotificationType.TASK_DUE_SOON: {
         const dueTaskId = responseData.id || config.entityId;
         if (dueTaskId) {
           const dueTaskParticipants = await this.getTaskParticipants(dueTaskId);
           recipients.push(...dueTaskParticipants);
         }
         break;
+      }
 
       // ✅ Project-related notifications
-      case NotificationType.PROJECT_CREATED:
+      case NotificationType.PROJECT_CREATED: {
         const workspaceId = requestData.workspaceId || responseData.workspaceId;
         if (workspaceId) {
           const workspaceMembers = await this.getWorkspaceMembers(workspaceId);
           recipients.push(...workspaceMembers.filter((id) => id !== user.id));
         }
         break;
+      }
 
-      case NotificationType.PROJECT_UPDATED:
+      case NotificationType.PROJECT_UPDATED: {
         const projectId = responseData.id || config.entityId;
         if (projectId) {
           const projectMembers = await this.getProjectMembers(projectId);
           recipients.push(...projectMembers.filter((id) => id !== user.id));
         }
         break;
+      }
 
       // ✅ Workspace-related notifications
-      case NotificationType.WORKSPACE_INVITED:
+      case NotificationType.WORKSPACE_INVITED: {
         // Notify the invited user
         const invitedUserId = requestData.userId || requestData.invitedUserId;
         if (invitedUserId) {
           recipients.push(invitedUserId);
         }
         break;
+      }
 
       // ✅ User mention notifications
-      case NotificationType.MENTION:
+      case NotificationType.MENTION: {
         const mentionedUserIds = requestData.mentionedUsers || [];
         if (Array.isArray(mentionedUserIds)) {
           recipients.push(...mentionedUserIds.filter((id) => id !== user.id));
@@ -277,28 +269,25 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
           recipients.push(mentionedUserIds);
         }
         break;
+      }
 
       // ✅ System notifications
-      case NotificationType.SYSTEM:
+      case NotificationType.SYSTEM: {
         // System notifications can be sent to specific users or all organization members
         if (config.notifyUserId) {
           recipients.push(config.notifyUserId);
         } else if (config.notifyAllOrgMembers) {
-          const orgMembers = await this.getOrganizationMembers(
-            config.organizationId,
-          );
+          const orgMembers = await this.getOrganizationMembers(config.organizationId);
           recipients.push(...orgMembers.filter((id) => id !== user.id));
         }
         break;
+      }
 
       // ✅ Default case for custom notifications
       default:
         if (config.notifyUserId) {
           recipients.push(config.notifyUserId);
-        } else if (
-          config.notifyUserIds &&
-          Array.isArray(config.notifyUserIds)
-        ) {
+        } else if (config.notifyUserIds && Array.isArray(config.notifyUserIds)) {
           recipients.push(...config.notifyUserIds);
         }
         break;
@@ -351,12 +340,10 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
   private async getProjectMembers(projectId: string): Promise<string[]> {
     if (!projectId) return [];
     try {
-      const members = await this.activityLogService
-        .getPrisma()
-        .projectMember.findMany({
-          where: { projectId },
-          select: { userId: true },
-        });
+      const members = await this.activityLogService.getPrisma().projectMember.findMany({
+        where: { projectId },
+        select: { userId: true },
+      });
       return members.map((member) => member.userId);
     } catch (error) {
       console.error('Error getting project members:', error);
@@ -364,17 +351,13 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     }
   }
 
-  private async getOrganizationMembers(
-    organizationId: string,
-  ): Promise<string[]> {
+  private async getOrganizationMembers(organizationId: string): Promise<string[]> {
     if (!organizationId) return [];
     try {
-      const members = await this.activityLogService
-        .getPrisma()
-        .organizationMember.findMany({
-          where: { organizationId },
-          select: { userId: true },
-        });
+      const members = await this.activityLogService.getPrisma().organizationMember.findMany({
+        where: { organizationId },
+        select: { userId: true },
+      });
       return members.map((member) => member.userId);
     } catch (error) {
       console.error('Error getting organization members:', error);
@@ -409,11 +392,7 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
   }
 
   // ✅ Updated message generation for all types
-  private generateMessage(
-    type: NotificationType,
-    user: any,
-    data: any,
-  ): string {
+  private generateMessage(type: NotificationType, user: any, data: any): string {
     const userName = `${user.firstName} ${user.lastName}`;
 
     switch (type) {

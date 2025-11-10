@@ -1,27 +1,21 @@
-import api from '@/lib/api';
+import api from "@/lib/api";
 import {
   ProjectInbox,
   CreateInboxDto,
   SetupEmailDto,
   InboxMessage,
-  InboxRule
-} from '@/types/inbox';
+  InboxRule,
+} from "@/types/inbox";
 
 // Inbox API - aligned with your NestJS controller
 export const inboxApi = {
   // Inbox Management
-  createInbox: async (
-    projectId: string,
-    data: CreateInboxDto
-  ): Promise<ProjectInbox> => {
+  createInbox: async (projectId: string, data: CreateInboxDto): Promise<ProjectInbox> => {
     try {
       const payload = Object.fromEntries(
         Object.entries(data).filter(([_, value]) => value !== undefined && value !== "")
       );
-      const response = await api.post<ProjectInbox>(
-        `/projects/${projectId}/inbox`,
-        payload
-      );
+      const response = await api.post<ProjectInbox>(`/projects/${projectId}/inbox`, payload);
       return response.data;
     } catch (error) {
       console.error("Create inbox error:", error);
@@ -31,9 +25,7 @@ export const inboxApi = {
 
   getInbox: async (projectId: string): Promise<ProjectInbox> => {
     try {
-      const response = await api.get<ProjectInbox>(
-        `/projects/${projectId}/inbox`
-      );
+      const response = await api.get<ProjectInbox>(`/projects/${projectId}/inbox`);
       return response.data;
     } catch (error) {
       console.error("Get inbox error:", error);
@@ -41,20 +33,14 @@ export const inboxApi = {
     }
   },
 
-  updateInbox: async (
-    projectId: string,
-    data: Partial<CreateInboxDto>
-  ): Promise<ProjectInbox> => {
+  updateInbox: async (projectId: string, data: Partial<CreateInboxDto>): Promise<ProjectInbox> => {
     try {
       // Remove keys with undefined or empty string values
       const payload = Object.fromEntries(
         Object.entries(data).filter(([_, value]) => value !== undefined && value !== "")
       );
 
-      const response = await api.put<ProjectInbox>(
-        `/projects/${projectId}/inbox`,
-        payload
-      );
+      const response = await api.put<ProjectInbox>(`/projects/${projectId}/inbox`, payload);
       return response.data;
     } catch (error) {
       console.error("Update inbox error:", error);
@@ -63,15 +49,9 @@ export const inboxApi = {
   },
 
   // Email Account Setup
-  setupEmailAccount: async (
-    projectId: string,
-    data: SetupEmailDto
-  ): Promise<any> => {
+  setupEmailAccount: async (projectId: string, data: SetupEmailDto): Promise<any> => {
     try {
-      const response = await api.put<any>(
-        `/projects/${projectId}/inbox/email-account`,
-        data
-      );
+      const response = await api.put<any>(`/projects/${projectId}/inbox/email-account`, data);
       return response.data;
     } catch (error) {
       console.error("Setup email account error:", error);
@@ -97,9 +77,7 @@ export const inboxApi = {
   // Email Sync
   triggerSync: async (projectId: string): Promise<{ message: string }> => {
     try {
-      const response = await api.post<{ message: string }>(
-        `/projects/${projectId}/inbox/sync`
-      );
+      const response = await api.post<{ message: string }>(`/projects/${projectId}/inbox/sync`);
       return response.data;
     } catch (error) {
       console.error("Trigger sync error:", error);
@@ -117,14 +95,19 @@ export const inboxApi = {
     }
   ): Promise<InboxMessage[]> => {
     try {
-      const queryParams = params ? `?${new URLSearchParams(
-        Object.entries(params).reduce((acc, [key, value]) => {
-          if (value !== undefined) {
-            acc[key] = value.toString();
-          }
-          return acc;
-        }, {} as Record<string, string>)
-      ).toString()}` : "";
+      const queryParams = params
+        ? `?${new URLSearchParams(
+            Object.entries(params).reduce(
+              (acc, [key, value]) => {
+                if (value !== undefined) {
+                  acc[key] = value.toString();
+                }
+                return acc;
+              },
+              {} as Record<string, string>
+            )
+          ).toString()}`
+        : "";
 
       const response = await api.get<InboxMessage[]>(
         `/projects/${projectId}/inbox/messages${queryParams}`
@@ -136,10 +119,7 @@ export const inboxApi = {
     }
   },
 
-  convertMessageToTask: async (
-    projectId: string,
-    messageId: string
-  ): Promise<any> => {
+  convertMessageToTask: async (projectId: string, messageId: string): Promise<any> => {
     try {
       const response = await api.post<any>(
         `/projects/${projectId}/inbox/messages/${messageId}/convert`
@@ -154,9 +134,7 @@ export const inboxApi = {
   // Rules Management
   getRules: async (projectId: string): Promise<InboxRule[]> => {
     try {
-      const response = await api.get<InboxRule[]>(
-        `/projects/${projectId}/inbox/rules`
-      );
+      const response = await api.get<InboxRule[]>(`/projects/${projectId}/inbox/rules`);
       return response.data;
     } catch (error) {
       console.error("Get rules error:", error);
@@ -164,15 +142,9 @@ export const inboxApi = {
     }
   },
 
-  createRule: async (
-    projectId: string,
-    data: Partial<InboxRule>
-  ): Promise<InboxRule> => {
+  createRule: async (projectId: string, data: Partial<InboxRule>): Promise<InboxRule> => {
     try {
-      const response = await api.post<InboxRule>(
-        `/projects/${projectId}/inbox/rules`,
-        data
-      );
+      const response = await api.post<InboxRule>(`/projects/${projectId}/inbox/rules`, data);
       return response.data;
     } catch (error) {
       console.error("Create rule error:", error);
@@ -202,9 +174,7 @@ export const inboxApi = {
     ruleId: string
   ): Promise<{ success: boolean; message: string }> => {
     try {
-      const response = await api.delete(
-        `/projects/${projectId}/inbox/rules/${ruleId}`
-      );
+      const response = await api.delete(`/projects/${projectId}/inbox/rules/${ruleId}`);
 
       const status = response.status;
       if (status === 204 || status === 200) {
@@ -320,15 +290,15 @@ export const inboxApi = {
 
   // Email provider detection
   detectEmailProvider: (emailAddress: string): string | null => {
-    const domain = emailAddress.split('@')[1]?.toLowerCase();
+    const domain = emailAddress.split("@")[1]?.toLowerCase();
 
     const providers: Record<string, string> = {
-      'gmail.com': 'Gmail',
-      'outlook.com': 'Outlook',
-      'hotmail.com': 'Outlook',
-      'yahoo.com': 'Yahoo',
-      'icloud.com': 'iCloud',
-      'protonmail.com': 'ProtonMail'
+      "gmail.com": "Gmail",
+      "outlook.com": "Outlook",
+      "hotmail.com": "Outlook",
+      "yahoo.com": "Yahoo",
+      "icloud.com": "iCloud",
+      "protonmail.com": "ProtonMail",
     };
 
     return providers[domain] || null;
@@ -346,5 +316,5 @@ export const inboxApi = {
     if (emails.length === 1) return emails[0];
     if (emails.length <= 3) return emails.join(", ");
     return `${emails.slice(0, 2).join(", ")} and ${emails.length - 2} more`;
-  }
+  },
 };

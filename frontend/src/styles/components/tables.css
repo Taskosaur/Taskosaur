@@ -2,7 +2,7 @@ Tables Components Styles
 
 /* TaskTable Styles */
 .tasktable-container {
-  @apply  border-none bg-[var(--card)] shadow-sm ;
+  @apply border-none bg-[var(--card)] shadow-sm;
 }
 
 .tasktable-wrapper {
@@ -58,7 +58,7 @@ Tables Components Styles
 }
 
 .tasktable-row {
-  @apply border-none transition-colors odd:bg-[var(--accent)] even:bg-[var(--accent)]/50 hover:bg-[var(--muted)] cursor-pointer ;
+  @apply border-none transition-colors odd:bg-[var(--accent)] even:bg-[var(--accent)]/50 hover:bg-[var(--muted)] cursor-pointer;
 }
 
 .tasktable-cell {
@@ -199,4 +199,3 @@ Tables Components Styles
 .duration-300 {
   animation-duration: 300ms;
 }
-

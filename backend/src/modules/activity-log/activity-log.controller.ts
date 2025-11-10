@@ -8,12 +8,7 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ActivityLogService } from './activity-log.service';
 
@@ -27,8 +22,7 @@ export class ActivityLogController {
   @Get('organization/:organizationId/recent')
   @ApiOperation({
     summary: 'Get recent activity for organization',
-    description:
-      'Retrieves paginated recent activities for a specific organization',
+    description: 'Retrieves paginated recent activities for a specific organization',
   })
   @ApiQuery({
     name: 'limit',
@@ -79,13 +73,7 @@ export class ActivityLogController {
     const filters: any = {};
     if (entityType) {
       // Validate entityType if needed
-      const validEntityTypes = [
-        'Task',
-        'Project',
-        'Workspace',
-        'Organization',
-        'User',
-      ];
+      const validEntityTypes = ['Task', 'Project', 'Workspace', 'Organization', 'User'];
       if (!validEntityTypes.includes(entityType)) {
         throw new BadRequestException(
           `Invalid entity type. Must be one of: ${validEntityTypes.join(', ')}`,
@@ -118,10 +106,7 @@ export class ActivityLogController {
     const daysNum = parseInt(days, 10) || 30;
     const validatedDays = Math.min(Math.max(1, daysNum), 365); // Max 1 year
 
-    return this.activityLogService.getOrganizationActivityStats(
-      organizationId,
-      validatedDays,
-    );
+    return this.activityLogService.getOrganizationActivityStats(organizationId, validatedDays);
   }
 
   @Get('task/:taskId/activities')
@@ -140,10 +125,6 @@ export class ActivityLogController {
     const validatedLimit = Math.min(Math.max(1, limitNum), 50);
     const validatedPage = Math.max(1, pageNum);
 
-    return this.activityLogService.getTaskActivities(
-      taskId,
-      validatedPage,
-      validatedLimit,
-    );
+    return this.activityLogService.getTaskActivities(taskId, validatedPage, validatedLimit);
   }
 }

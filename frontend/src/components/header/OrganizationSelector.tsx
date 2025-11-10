@@ -28,8 +28,7 @@ export default function OrganizationSelector({
   const { getCurrentUser } = useAuth();
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [currentOrganization, setCurrentOrganization] =
-    useState<Organization | null>(null);
+  const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isFetchingOnOpen, setIsFetchingOnOpen] = useState(false);
@@ -52,8 +51,7 @@ export default function OrganizationSelector({
     const fetchOrganizations = async () => {
       setIsLoading(true);
       try {
-        const orgs: Organization[] =
-          (await getUserOrganizations(currentUser.id)) ?? [];
+        const orgs: Organization[] = (await getUserOrganizations(currentUser.id)) ?? [];
         setOrganizations(orgs);
 
         if (orgs.length === 0) {
@@ -95,8 +93,7 @@ export default function OrganizationSelector({
 
     setIsFetchingOnOpen(true);
     try {
-      const orgs: Organization[] =
-        (await getUserOrganizations(currentUser.id)) ?? [];
+      const orgs: Organization[] = (await getUserOrganizations(currentUser.id)) ?? [];
       setOrganizations(orgs);
 
       let selectedOrg: Organization | undefined;
@@ -165,7 +162,10 @@ export default function OrganizationSelector({
   return (
     <DropdownMenu open={dropdownOpen} onOpenChange={handleDropdownOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="header-org-selector-trigger max-[530px]:!px-3 max-[530px]:gap-2">
+        <Button
+          variant="ghost"
+          className="header-org-selector-trigger max-[530px]:!px-3 max-[530px]:gap-2"
+        >
           <Avatar className="header-org-selector-avatar">
             <AvatarFallback className="header-org-selector-avatar-fallback">
               {getInitials(currentOrganization.name)}
@@ -174,21 +174,13 @@ export default function OrganizationSelector({
           <span className="header-org-selector-name max-[530px]:text-sm max-[530px]:font-medium">
             {currentOrganization.name}
           </span>
-          
-          <HiChevronDown className="header-org-selector-chevron max-[530px]:hidden" />
-           <span className="hidden max-[530px]:inline-block text-sm font-medium">
-          Organizations
-        </span>
-        </Button>
 
-     
+          <HiChevronDown className="header-org-selector-chevron max-[530px]:hidden" />
+          <span className="hidden max-[530px]:inline-block text-sm font-medium">Organizations</span>
+        </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent
-        className="header-org-selector-dropdown"
-        align="end"
-        sideOffset={6}
-      >
+      <DropdownMenuContent className="header-org-selector-dropdown" align="end" sideOffset={6}>
         {/* Current Organization Header */}
         <div className="header-org-profile-header">
           <Avatar className="header-org-profile-avatar">
@@ -197,9 +189,7 @@ export default function OrganizationSelector({
             </AvatarFallback>
           </Avatar>
           <div className="header-org-profile-info">
-            <div className="header-org-profile-name">
-              {currentOrganization.name}
-            </div>
+            <div className="header-org-profile-name">{currentOrganization.name}</div>
             <div className="header-org-profile-meta">
               {currentOrganization._count?.members ?? 0} members
               <Badge variant="secondary" className="header-org-profile-badge">
@@ -234,9 +224,7 @@ export default function OrganizationSelector({
                 <Building size={20} className="header-org-empty-icon" />
               </div>
               <p className="header-org-empty-title">No organizations found</p>
-              <p className="header-org-empty-description">
-                Contact your admin to get access
-              </p>
+              <p className="header-org-empty-description">Contact your admin to get access</p>
             </div>
           ) : (
             <>
@@ -257,9 +245,7 @@ export default function OrganizationSelector({
                   </Avatar>
                   <div className="header-org-item-info">
                     <p className="header-org-item-name">{org.name}</p>
-                    <p className="header-org-item-members">
-                      {org._count?.members ?? 0} members
-                    </p>
+                    <p className="header-org-item-members">{org._count?.members ?? 0} members</p>
                   </div>
                   {currentOrganization.id === org.id && (
                     <HiCheck size={12} className="header-org-item-check" />
@@ -283,9 +269,7 @@ export default function OrganizationSelector({
                     <HiCog className="header-org-manage-icon" />
                   </div>
                   <div className="header-org-manage-text">
-                    <div className="header-org-manage-title">
-                      Manage Organizations
-                    </div>
+                    <div className="header-org-manage-title">Manage Organizations</div>
                   </div>
                 </DropdownMenuItem>
               </div>

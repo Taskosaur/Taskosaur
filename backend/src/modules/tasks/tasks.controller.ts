@@ -29,17 +29,10 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { getAuthUser } from 'src/common/request.utils';
 import { Request } from 'express';
-import {
-  NotificationPriority,
-  NotificationType,
-  TaskPriority,
-  Role,
-} from '@prisma/client';
+import { NotificationPriority, NotificationType, TaskPriority, Role } from '@prisma/client';
 import { AutoNotify } from 'src/common/decorator/auto-notify.decorator';
 import { LogActivity } from 'src/common/decorator/log-activity.decorator';
-import {
-  TasksByStatusParams,
-} from './dto/task-by-status.dto';
+import { TasksByStatusParams } from './dto/task-by-status.dto';
 import { Roles } from 'src/common/decorator/roles.decorator';
 import { Scope } from 'src/common/decorator/scope.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -50,7 +43,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tasks')
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) { }
+  constructor(private readonly tasksService: TasksService) {}
 
   @Post()
   @Scope('PROJECT', 'projectId')
@@ -112,10 +105,7 @@ export class TasksController {
     status: 500,
     description: 'Internal server error',
   })
-  async bulkDeleteTasks(
-    @Body() bulkDeleteTasksDto: BulkDeleteTasksDto,
-    @Req() req: Request,
-  ) {
+  async bulkDeleteTasks(@Body() bulkDeleteTasksDto: BulkDeleteTasksDto, @Req() req: Request) {
     const user = getAuthUser(req);
 
     return this.tasksService.bulkDeleteTasks({
@@ -123,8 +113,7 @@ export class TasksController {
       projectId: bulkDeleteTasksDto.projectId,
       all: bulkDeleteTasksDto.all,
       userId: user.id,
-    }
-    );
+    });
   }
 
   @Post('create-task-attachment')
@@ -180,12 +169,7 @@ export class TasksController {
         if (allowedMimes.includes(file.mimetype)) {
           callback(null, true);
         } else {
-          callback(
-            new BadRequestException(
-              `File type ${file.mimetype} is not allowed`,
-            ),
-            false,
-          );
+          callback(new BadRequestException(`File type ${file.mimetype} is not allowed`), false);
         }
       },
     }),
@@ -270,10 +254,7 @@ export class TasksController {
             type: 'string',
             format: 'uuid',
           },
-          example: [
-            '123e4567-e89b-12d3-a456-426614174002',
-            '223e4567-e89b-12d3-a456-426614174003',
-          ],
+          example: ['123e4567-e89b-12d3-a456-426614174002', '223e4567-e89b-12d3-a456-426614174003'],
           description: 'IDs of users assigned to this task',
         },
         reporterIds: {
@@ -415,7 +396,7 @@ export class TasksController {
     type: 'TASK_CREATED',
     entityType: 'Task',
     description: 'Created new task',
-    includeNewValue: true
+    includeNewValue: true,
   })
   async creatcreateWithAttachmentse(
     @Body() createTaskDto: CreateTaskDto,
@@ -428,14 +409,9 @@ export class TasksController {
     if (files && files.length > 10) {
       throw new BadRequestException('Maximum 10 files allowed');
     }
-    const createRes = await this.tasksService.createWithAttachments(
-      createTaskDto,
-      user.id,
-      files,
-    );
-    return createRes
+    const createRes = await this.tasksService.createWithAttachments(createTaskDto, user.id, files);
+    return createRes;
   }
-
 
   @Get()
   @ApiOperation({ summary: 'Get all tasks with filters' })
@@ -513,12 +489,8 @@ export class TasksController {
     if (!organizationId) {
       throw new BadRequestException('Organization ID is required');
     }
-    const priorityArray = priorities
-      ? priorities.split(',').filter(Boolean)
-      : undefined;
-    const statusArray = statuses
-      ? statuses.split(',').filter(Boolean)
-      : undefined;
+    const priorityArray = priorities ? priorities.split(',').filter(Boolean) : undefined;
+    const statusArray = statuses ? statuses.split(',').filter(Boolean) : undefined;
 
     let projectIdArray: string[] | undefined = undefined;
     if (projectId) {
@@ -616,18 +588,10 @@ export class TasksController {
       throw new BadRequestException('Organization ID is required');
     }
 
-    const priorityArray = priorities
-      ? priorities.split(',').filter(Boolean)
-      : undefined;
-    const statusArray = statuses
-      ? statuses.split(',').filter(Boolean)
-      : undefined;
-    const projectIdArray = projectId
-      ? projectId.split(',').filter(Boolean)
-      : undefined;
-    const workspaceIdArray = workspaceId
-      ? workspaceId.split(',').filter(Boolean)
-      : undefined;
+    const priorityArray = priorities ? priorities.split(',').filter(Boolean) : undefined;
+    const statusArray = statuses ? statuses.split(',').filter(Boolean) : undefined;
+    const projectIdArray = projectId ? projectId.split(',').filter(Boolean) : undefined;
+    const workspaceIdArray = workspaceId ? workspaceId.split(',').filter(Boolean) : undefined;
 
     return this.tasksService.getTasks(
       organizationId,
@@ -646,15 +610,9 @@ export class TasksController {
   @ApiOperation({ summary: 'Get tasks grouped by status with pagination' })
   @Scope('PROJECT', 'slug')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
-  async getTasksByStatus(
-    @Query() query: TasksByStatusParams,
-    @Req() req: Request,
-  ) {
+  async getTasksByStatus(@Query() query: TasksByStatusParams, @Req() req: Request) {
     const user = getAuthUser(req);
-    const tasks = await this.tasksService.getTasksGroupedByStatus(
-      query,
-      user.id,
-    );
+    const tasks = await this.tasksService.getTasksGroupedByStatus(query, user.id);
 
     // Calculate totals across all statuses
     const totalTasks = tasks.reduce((sum, status) => sum + status.pagination.total, 0);
@@ -670,7 +628,6 @@ export class TasksController {
       },
     };
   }
-
 
   @Get('today')
   @ApiOperation({
@@ -688,8 +645,7 @@ export class TasksController {
       throw new BadRequestException('Organization ID is required');
     }
 
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(organizationId)) {
       throw new BadRequestException(
         `Invalid organization ID format: ${organizationId}. Expected UUID.`,

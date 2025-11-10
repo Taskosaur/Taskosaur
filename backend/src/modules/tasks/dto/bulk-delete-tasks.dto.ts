@@ -4,10 +4,7 @@ import { IsArray, ArrayMinSize, IsUUID, IsOptional, IsBoolean, IsString } from '
 export class BulkDeleteTasksDto {
   @ApiPropertyOptional({
     description: 'Array of task IDs to delete',
-    example: [
-      '550e8400-e29b-41d4-a716-446655440000',
-      '550e8400-e29b-41d4-a716-446655440001',
-    ],
+    example: ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001'],
     type: [String],
   })
   @IsOptional()

@@ -1,11 +1,4 @@
-import {
-  IsEmail,
-  IsString,
-  IsOptional,
-  IsEnum,
-  IsArray,
-  IsObject,
-} from 'class-validator';
+import { IsEmail, IsString, IsOptional, IsEnum, IsArray, IsObject } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum EmailTemplate {
@@ -23,7 +16,7 @@ export enum EmailTemplate {
   INVITATION_ACCEPTED = 'invitation-accepted',
   INVITATION_DECLINED = 'invitation-declined',
   INVITATION_EXPIRED = 'invitation-expired',
-  DIRECT_ADD_NOTIFICATION = 'direct_add_notification'
+  DIRECT_ADD_NOTIFICATION = 'direct_add_notification',
 }
 
 export enum EmailPriority {

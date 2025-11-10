@@ -1,18 +1,6 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useMemo,
-  useCallback,
-} from "react";
+import React, { createContext, useContext, useState, useMemo, useCallback } from "react";
 import { sprintApi } from "@/utils/api/sprintApi";
-import {
-  Sprint,
-  CreateSprintData,
-  UpdateSprintData,
-  SprintStatus,
-  SprintStats,
-} from "@/types";
+import { Sprint, CreateSprintData, UpdateSprintData, SprintStatus, SprintStats } from "@/types";
 
 interface SprintState {
   sprints: Sprint[];
@@ -46,20 +34,12 @@ interface SprintContextType extends SprintState {
     projectSlug?: string
   ) => Promise<Sprint[]>;
   getActiveSprint: (projectId: string) => Promise<Sprint | null>;
-  updateSprint: (
-    sprintId: string,
-    sprintData: UpdateSprintData
-  ) => Promise<Sprint>;
-  deleteSprint: (
-    sprintId: string
-  ) => Promise<{ success: boolean; message: string }>;
+  updateSprint: (sprintId: string, sprintData: UpdateSprintData) => Promise<Sprint>;
+  deleteSprint: (sprintId: string) => Promise<{ success: boolean; message: string }>;
   startSprint: (sprintId: string) => Promise<Sprint>;
   completeSprint: (sprintId: string) => Promise<Sprint>;
   // Bulk
-  bulkUpdateSprints: (
-    sprintIds: string[],
-    updateData: UpdateSprintData
-  ) => Promise<Sprint[]>;
+  bulkUpdateSprints: (sprintIds: string[], updateData: UpdateSprintData) => Promise<Sprint[]>;
   bulkDeleteSprints: (sprintIds: string[]) => Promise<void>;
   // State management
   setCurrentSprint: (sprint: Sprint | null) => void;
@@ -112,8 +92,7 @@ export function SprintProvider({ children }: SprintProviderProps) {
       }
       return result;
     } catch (error) {
-      const errorMessage =
-        error?.message ? error.message : "An error occurred";
+      const errorMessage = error?.message ? error.message : "An error occurred";
       setSprintState((prev) => ({
         ...prev,
         isLoading: false,
@@ -121,8 +100,7 @@ export function SprintProvider({ children }: SprintProviderProps) {
       }));
       throw error;
     }
-  },
-  []);
+  }, []);
 
   const contextValue = useMemo(
     () => ({
@@ -141,9 +119,7 @@ export function SprintProvider({ children }: SprintProviderProps) {
       },
 
       createSprint: async (sprintData: CreateSprintData): Promise<Sprint> => {
-        const result = await handleApiOperation(() =>
-          sprintApi.createSprint(sprintData)
-        );
+        const result = await handleApiOperation(() => sprintApi.createSprint(sprintData));
         setSprintState((prev) => ({
           ...prev,
           sprints: [...prev.sprints, result],
@@ -152,14 +128,10 @@ export function SprintProvider({ children }: SprintProviderProps) {
       },
 
       getSprintById: async (sprintId: string): Promise<Sprint> => {
-        const result = await handleApiOperation(
-          () => sprintApi.getSprintById(sprintId),
-          false
-        );
+        const result = await handleApiOperation(() => sprintApi.getSprintById(sprintId), false);
         setSprintState((prev) => ({
           ...prev,
-          currentSprint:
-            prev.currentSprint?.id === sprintId ? result : prev.currentSprint,
+          currentSprint: prev.currentSprint?.id === sprintId ? result : prev.currentSprint,
         }));
         return result;
       },
@@ -190,16 +162,10 @@ export function SprintProvider({ children }: SprintProviderProps) {
       },
 
       getActiveSprint: async (projectId: string): Promise<Sprint | null> => {
-        return await handleApiOperation(
-          () => sprintApi.getActiveSprint(projectId),
-          false
-        );
+        return await handleApiOperation(() => sprintApi.getActiveSprint(projectId), false);
       },
 
-      updateSprint: async (
-        sprintId: string,
-        sprintData: UpdateSprintData
-      ): Promise<Sprint> => {
+      updateSprint: async (sprintId: string, sprintData: UpdateSprintData): Promise<Sprint> => {
         // Remove projectId from update payload if present (ignore TS error if not present)
         const { projectId, ...updateData } = sprintData as any;
         const result = await handleApiOperation(
@@ -219,27 +185,18 @@ export function SprintProvider({ children }: SprintProviderProps) {
         return result;
       },
 
-      deleteSprint: async (
-        sprintId: string
-      ): Promise<{ success: boolean; message: string }> => {
-        const result = await handleApiOperation(
-          () => sprintApi.deleteSprint(sprintId),
-          false
-        );
+      deleteSprint: async (sprintId: string): Promise<{ success: boolean; message: string }> => {
+        const result = await handleApiOperation(() => sprintApi.deleteSprint(sprintId), false);
         setSprintState((prev) => ({
           ...prev,
           sprints: prev.sprints.filter((sprint) => sprint.id !== sprintId),
-          currentSprint:
-            prev.currentSprint?.id === sprintId ? null : prev.currentSprint,
+          currentSprint: prev.currentSprint?.id === sprintId ? null : prev.currentSprint,
         }));
         return result;
       },
 
       startSprint: async (sprintId: string): Promise<Sprint> => {
-        const result = await handleApiOperation(
-          () => sprintApi.startSprint(sprintId),
-          false
-        );
+        const result = await handleApiOperation(() => sprintApi.startSprint(sprintId), false);
         setSprintState((prev) => ({
           ...prev,
           sprints: prev.sprints.map((sprint) =>
@@ -254,10 +211,7 @@ export function SprintProvider({ children }: SprintProviderProps) {
       },
 
       completeSprint: async (sprintId: string): Promise<Sprint> => {
-        const result = await handleApiOperation(
-          () => sprintApi.completeSprint(sprintId),
-          false
-        );
+        const result = await handleApiOperation(() => sprintApi.completeSprint(sprintId), false);
         setSprintState((prev) => ({
           ...prev,
           sprints: prev.sprints.map((sprint) =>
@@ -291,15 +245,10 @@ export function SprintProvider({ children }: SprintProviderProps) {
       },
 
       bulkDeleteSprints: async (sprintIds: string[]): Promise<void> => {
-        await handleApiOperation(
-          () => sprintApi.bulkDeleteSprints(sprintIds),
-          false
-        );
+        await handleApiOperation(() => sprintApi.bulkDeleteSprints(sprintIds), false);
         setSprintState((prev) => ({
           ...prev,
-          sprints: prev.sprints.filter(
-            (sprint) => !sprintIds.includes(sprint.id)
-          ),
+          sprints: prev.sprints.filter((sprint) => !sprintIds.includes(sprint.id)),
           currentSprint: sprintIds.includes(prev.currentSprint?.id || "")
             ? null
             : prev.currentSprint,
@@ -325,11 +274,7 @@ export function SprintProvider({ children }: SprintProviderProps) {
     [sprintState, handleApiOperation]
   );
 
-  return (
-    <SprintContext.Provider value={contextValue}>
-      {children}
-    </SprintContext.Provider>
-  );
+  return <SprintContext.Provider value={contextValue}>{children}</SprintContext.Provider>;
 }
 
 export default SprintProvider;

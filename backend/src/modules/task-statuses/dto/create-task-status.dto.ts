@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsEnum,
-  IsInt,
-  IsHexColor,
-  IsUUID,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsInt, IsHexColor, IsUUID } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { StatusCategory } from '@prisma/client';
 
@@ -44,8 +37,7 @@ export class CreateTaskStatusDto {
   category: StatusCategory;
 
   @ApiProperty({
-    description:
-      'The position of the status in the workflow (used for ordering)',
+    description: 'The position of the status in the workflow (used for ordering)',
     example: 2,
     minimum: 0,
     type: 'integer',
@@ -56,8 +48,7 @@ export class CreateTaskStatusDto {
   position: number;
 
   @ApiProperty({
-    description:
-      'The unique identifier of the workflow this task status belongs to',
+    description: 'The unique identifier of the workflow this task status belongs to',
     example: 'd0f5e6c7-4567-8901-2cde-f01234567890',
     format: 'uuid',
     required: true,

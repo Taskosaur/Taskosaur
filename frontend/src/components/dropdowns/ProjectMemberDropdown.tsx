@@ -1,7 +1,6 @@
-;
 import { useState, useEffect, useRef } from "react";
 import { useProjectContext } from "@/contexts/project-context";
-import { HiChevronDown, HiXMark } from 'react-icons/hi2';
+import { HiChevronDown, HiXMark } from "react-icons/hi2";
 
 interface User {
   id: string;
@@ -18,31 +17,27 @@ interface Member {
   role: string;
 }
 
-const UserAvatar = ({ 
-  name, 
-  size = "sm" 
-}: { 
-  name: string;
-  size?: "sm" | "md";
-}) => {
+const UserAvatar = ({ name, size = "sm" }: { name: string; size?: "sm" | "md" }) => {
   const sizes = {
     sm: "h-6 w-6 text-xs",
-    md: "h-8 w-8 text-sm"
+    md: "h-8 w-8 text-sm",
   };
-  
+
   const getInitials = (name: string) => {
-    if (!name || name.trim() === '') return 'UN';
-    
+    if (!name || name.trim() === "") return "UN";
+
     return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
       .toUpperCase()
       .substring(0, 2);
   };
-  
+
   return (
-    <div className={`${sizes[size]} rounded-full bg-amber-500 flex items-center justify-center text-white font-medium`}>
+    <div
+      className={`${sizes[size]} rounded-full bg-amber-500 flex items-center justify-center text-white font-medium`}
+    >
       {getInitials(name)}
     </div>
   );
@@ -66,25 +61,25 @@ export default function ProjectMemberDropdown({
   placeholder = "Select member...",
   allowUnassign = true,
   unassignText = "Unassign",
- 
-  disabled = false
+
+  disabled = false,
 }: ProjectMemberDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
-  const lastFetchedProjectRef = useRef<string>('');
+  const lastFetchedProjectRef = useRef<string>("");
   const membersCache = useRef<Map<string, Member[]>>(new Map());
-  
+
   const { getProjectMembers } = useProjectContext();
 
   // Cleanup effect
   useEffect(() => {
     isMountedRef.current = true;
-    
+
     return () => {
       isMountedRef.current = false;
       if (abortControllerRef.current) {
@@ -118,7 +113,7 @@ export default function ProjectMemberDropdown({
       lastFetchedProjectRef.current = projectId;
     } else if (projectId !== lastFetchedProjectRef.current) {
       setMembers([]);
-      lastFetchedProjectRef.current = '';
+      lastFetchedProjectRef.current = "";
     }
   }, [projectId]);
 
@@ -126,35 +121,34 @@ export default function ProjectMemberDropdown({
     if (!projectId || membersCache.current.has(projectId)) {
       return;
     }
-    
+
     if (lastFetchedProjectRef.current === projectId) {
       return;
     }
-    
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     abortControllerRef.current = new AbortController();
     const currentController = abortControllerRef.current;
-    
+
     setLoading(true);
-    
+
     try {
       const data = await getProjectMembers(projectId);
-      
+
       // Check if component is still mounted and request wasn't aborted
       if (!isMountedRef.current || currentController.signal.aborted) {
         return;
       }
-      
+
       const membersList = data || [];
       setMembers(membersList);
-      
+
       // Cache the results
       membersCache.current.set(projectId, membersList);
       lastFetchedProjectRef.current = projectId;
-      
     } catch (error) {
       if (!currentController.signal.aborted && isMountedRef.current) {
         console.error("Failed to fetch project members:", error);
@@ -170,10 +164,10 @@ export default function ProjectMemberDropdown({
   // Handle dropdown opening
   const handleDropdownToggle = () => {
     if (disabled) return;
-    
+
     const newIsOpen = !isOpen;
     setIsOpen(newIsOpen);
-    
+
     // Fetch members when opening dropdown if we don't have cached data
     if (newIsOpen && projectId && !membersCache.current.has(projectId)) {
       fetchMembers();
@@ -186,7 +180,7 @@ export default function ProjectMemberDropdown({
   };
 
   const getUserDisplayName = (user: User) => {
-    return user.username || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
+    return user.username || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
   };
 
   const getUserInitials = (user: User) => {
@@ -256,29 +250,31 @@ export default function ProjectMemberDropdown({
                   {unassignText}
                 </button>
               )}
-              {members.filter(member => member.user).map((member) => {
-                const user = member.user!;
-                return (
-                  <button
-                    key={user.id}
-                    type="button"
-                    onClick={() => handleUserSelect(user)}
-                    className={`w-full px-3 py-2 text-left text-xs hover:bg-stone-50 dark:hover:bg-stone-700 flex items-center gap-2 ${
-                      selectedUser?.id === user.id ? "bg-amber-50 dark:bg-amber-900/20" : ""
-                    }`}
-                  >
-                    <UserAvatar name={getUserInitials(user)} />
-                    <div className="min-w-0">
-                      <div className="font-medium text-stone-900 dark:text-stone-100 truncate">
-                        {getUserDisplayName(user)}
+              {members
+                .filter((member) => member.user)
+                .map((member) => {
+                  const user = member.user!;
+                  return (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => handleUserSelect(user)}
+                      className={`w-full px-3 py-2 text-left text-xs hover:bg-stone-50 dark:hover:bg-stone-700 flex items-center gap-2 ${
+                        selectedUser?.id === user.id ? "bg-amber-50 dark:bg-amber-900/20" : ""
+                      }`}
+                    >
+                      <UserAvatar name={getUserInitials(user)} />
+                      <div className="min-w-0">
+                        <div className="font-medium text-stone-900 dark:text-stone-100 truncate">
+                          {getUserDisplayName(user)}
+                        </div>
+                        <div className="text-xs text-stone-500 dark:text-stone-400">
+                          {member.role || "Member"}
+                        </div>
                       </div>
-                      <div className="text-xs text-stone-500 dark:text-stone-400">
-                        {member.role || "Member"}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })}
             </>
           )}
         </div>

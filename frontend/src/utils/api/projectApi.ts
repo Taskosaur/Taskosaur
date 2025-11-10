@@ -53,9 +53,7 @@ export const projectApi = {
       if (isAuthenticated) {
         response = await api.get<Project>(`/projects/by-slug/${slug}`);
       } else {
-        response = await api.get<Project>(
-          `/public/workspaces/${workspaceSlug}/projects/${slug}`
-        );
+        response = await api.get<Project>(`/public/workspaces/${workspaceSlug}/projects/${slug}`);
       }
       return response.data;
     } catch (error) {
@@ -81,12 +79,9 @@ export const projectApi = {
       if (filters?.status) params.append("status", filters.status);
       if (filters?.priority) params.append("priority", filters.priority);
       if (filters?.page) params.append("page", filters.page.toString());
-      if (filters?.pageSize)
-        params.append("pageSize", filters.pageSize.toString());
+      if (filters?.pageSize) params.append("pageSize", filters.pageSize.toString());
       if (filters?.search) params.append("search", filters.search.trim());
-      const response = await api.get<Project[]>(
-        `/projects?${params.toString()}`
-      );
+      const response = await api.get<Project[]>(`/projects?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error("Get projects by workspace error:", error);
@@ -109,17 +104,13 @@ export const projectApi = {
       const params = new URLSearchParams({
         organizationId,
       });
-      if (filters?.workspaceId)
-        params.append("workspaceId", filters.workspaceId);
+      if (filters?.workspaceId) params.append("workspaceId", filters.workspaceId);
       if (filters?.status) params.append("status", filters.status);
       if (filters?.priority) params.append("priority", filters.priority);
       if (filters?.page) params.append("page", filters.page.toString());
-      if (filters?.pageSize)
-        params.append("pageSize", filters.pageSize.toString());
+      if (filters?.pageSize) params.append("pageSize", filters.pageSize.toString());
       if (filters?.search) params.append("search", filters.search.trim());
-      const response = await api.get<Project[]>(
-        `/projects/by-organization?${params.toString()}`
-      );
+      const response = await api.get<Project[]>(`/projects/by-organization?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error("Get projects by organization error:", error);
@@ -127,15 +118,9 @@ export const projectApi = {
     }
   },
 
-  updateProject: async (
-    projectId: string,
-    projectData: Partial<ProjectData>
-  ): Promise<Project> => {
+  updateProject: async (projectId: string, projectData: Partial<ProjectData>): Promise<Project> => {
     try {
-      const response = await api.patch<Project>(
-        `/projects/${projectId}`,
-        projectData
-      );
+      const response = await api.patch<Project>(`/projects/${projectId}`, projectData);
       return response.data;
     } catch (error) {
       console.error("Update project error:", error);
@@ -143,9 +128,7 @@ export const projectApi = {
     }
   },
 
-  deleteProject: async (
-    projectId: string
-  ): Promise<{ success: boolean; message: string }> => {
+  deleteProject: async (projectId: string): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await api.delete(`/projects/${projectId}`);
 
@@ -170,9 +153,7 @@ export const projectApi = {
 
   getProjectsByUserId: async (userId: string): Promise<Project[]> => {
     try {
-      const response = await api.get<Project[]>(
-        `/project-members/user/${userId}/projects`
-      );
+      const response = await api.get<Project[]>(`/project-members/user/${userId}/projects`);
       return response.data;
     } catch (error) {
       console.error("Get projects by user ID error:", error);
@@ -181,14 +162,9 @@ export const projectApi = {
   },
 
   // Project member operations
-  inviteMemberToProject: async (
-    inviteData: InviteMemberData
-  ): Promise<ProjectMember> => {
+  inviteMemberToProject: async (inviteData: InviteMemberData): Promise<ProjectMember> => {
     try {
-      const response = await api.post<ProjectMember>(
-        "/project-members/invite",
-        inviteData
-      );
+      const response = await api.post<ProjectMember>("/project-members/invite", inviteData);
       return response.data;
     } catch (error) {
       console.error("Invite member to project error:", error);
@@ -196,14 +172,9 @@ export const projectApi = {
     }
   },
 
-  addMemberToProject: async (
-    memberData: AddMemberData
-  ): Promise<ProjectMember> => {
+  addMemberToProject: async (memberData: AddMemberData): Promise<ProjectMember> => {
     try {
-      const response = await api.post<ProjectMember>(
-        "/project-members",
-        memberData
-      );
+      const response = await api.post<ProjectMember>("/project-members", memberData);
       return response.data;
     } catch (error) {
       console.error("Add member to project error:", error);
@@ -211,13 +182,11 @@ export const projectApi = {
     }
   },
 
-  getProjectMembers: async (
-    projectId: string,
-    search?: string
-  ): Promise<ProjectMember[]> => {
+  getProjectMembers: async (projectId: string, search?: string): Promise<ProjectMember[]> => {
     try {
-      const response = await api.get<{data:ProjectMember[], total: number}>(
-        `/project-members?projectId=${projectId}${search ? `&search=${encodeURIComponent(search)}` : ""
+      const response = await api.get<{ data: ProjectMember[]; total: number }>(
+        `/project-members?projectId=${projectId}${
+          search ? `&search=${encodeURIComponent(search)}` : ""
         }`
       );
       return response.data.data;
@@ -231,7 +200,7 @@ export const projectApi = {
     search?: string,
     page?: number,
     limit?: number
-  ): Promise<{ data: ProjectMember[]; total: number, page: number }> => {
+  ): Promise<{ data: ProjectMember[]; total: number; page: number }> => {
     try {
       const params = new URLSearchParams();
       if (projectId) params.append("projectId", projectId);
@@ -239,7 +208,7 @@ export const projectApi = {
       if (page) params.append("page", page.toString());
       if (limit) params.append("limit", limit.toString());
 
-      const response = await api.get<{ data: ProjectMember[]; total: number, page: number }>(
+      const response = await api.get<{ data: ProjectMember[]; total: number; page: number }>(
         `/project-members?${params.toString()}`
       );
 
@@ -255,7 +224,8 @@ export const projectApi = {
   ): Promise<OrganizationMember[]> => {
     try {
       const response = await api.get<OrganizationMember[]>(
-        `/organization-members?organizationId=${organizationId}${search ? `&search=${encodeURIComponent(search)}` : ""
+        `/organization-members?organizationId=${organizationId}${
+          search ? `&search=${encodeURIComponent(search)}` : ""
         }`
       );
       return response.data;
@@ -265,13 +235,9 @@ export const projectApi = {
     }
   },
 
-  getProjectMembersByWorkspace: async (
-    workspaceId: string
-  ): Promise<ProjectMember[]> => {
+  getProjectMembersByWorkspace: async (workspaceId: string): Promise<ProjectMember[]> => {
     try {
-      const response = await api.get<ProjectMember[]>(
-        `/project-members/workspace/${workspaceId}`
-      );
+      const response = await api.get<ProjectMember[]>(`/project-members/workspace/${workspaceId}`);
       return response.data;
     } catch (error) {
       console.error("Get project members by workspace error:", error);
@@ -336,13 +302,9 @@ export const projectApi = {
       chartTypes.forEach((type) => params.append("types", type));
       let response;
       if (isAuthenticated) {
-        response = await api.get(
-          `/projects/${projectSlug}/charts?${params.toString()}`
-        );
+        response = await api.get(`/projects/${projectSlug}/charts?${params.toString()}`);
       } else {
-        response = await api.get(
-          `/public/workspaces/${projectSlug}/charts?${params.toString()}`
-        );
+        response = await api.get(`/public/workspaces/${projectSlug}/charts?${params.toString()}`);
       }
 
       return response.data;
@@ -351,14 +313,9 @@ export const projectApi = {
       throw error;
     }
   },
-  getSingleChart: async (
-    projectSlug: string,
-    chartType: ProjectChartType
-  ): Promise<any> => {
+  getSingleChart: async (projectSlug: string, chartType: ProjectChartType): Promise<any> => {
     try {
-      const response = await api.get(
-        `/projects/${projectSlug}/charts?types=${chartType}`
-      );
+      const response = await api.get(`/projects/${projectSlug}/charts?types=${chartType}`);
       return response.data[chartType];
     } catch (error) {
       console.error(`Get ${chartType} chart error:`, error);
@@ -371,11 +328,7 @@ export const projectApi = {
   ): Promise<ProjectChartDataResponse> => {
     try {
       const allChartTypes = Object.values(ProjectChartType);
-      return await projectApi.getMultipleCharts(
-        projectSlug,
-        allChartTypes,
-        isAuthenticated
-      );
+      return await projectApi.getMultipleCharts(projectSlug, allChartTypes, isAuthenticated);
     } catch (error) {
       console.error("Get all project charts error:", error);
       throw error;
@@ -383,9 +336,7 @@ export const projectApi = {
   },
   getProjectStats: async (projectId: string): Promise<ProjectStats> => {
     try {
-      const response = await api.get<ProjectStats>(
-        `/project-members/project/${projectId}/stats`
-      );
+      const response = await api.get<ProjectStats>(`/project-members/project/${projectId}/stats`);
       return response.data;
     } catch (error) {
       console.error("Get project stats error:", error);
@@ -393,9 +344,7 @@ export const projectApi = {
     }
   },
 
-  archiveProject: async (
-    projectId: string
-  ): Promise<{ success: boolean; message: string }> => {
+  archiveProject: async (projectId: string): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await api.patch(`/projects/archive/${projectId}`);
 

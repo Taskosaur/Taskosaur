@@ -7,7 +7,7 @@ export interface ActionButtonProps {
   rightIcon?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
-  variant?:"default" | "outline" | "ghost" | "secondary" | "link" | "destructive";
+  variant?: "default" | "outline" | "ghost" | "secondary" | "link" | "destructive";
   onClick?: (any) => void;
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
@@ -41,7 +41,7 @@ const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProps>(
     // Define semantic classes based on props
     const getSemanticClasses = () => {
       let classes = "actionbutton-base";
-      
+
       if (secondary) {
         classes += " actionbutton-secondary";
       } else if (primary) {
@@ -58,7 +58,7 @@ const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProps>(
             classes += " actionbutton-default";
         }
       }
-      
+
       return classes;
     };
 

@@ -29,10 +29,7 @@ export class ProjectsService {
     private accessControl: AccessControlService,
   ) {}
 
-  async create(
-    createProjectDto: CreateProjectDto,
-    userId: string,
-  ): Promise<Project> {
+  async create(createProjectDto: CreateProjectDto, userId: string): Promise<Project> {
     // Verify workspace exists and user has access
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: createProjectDto.workspaceId },
@@ -104,9 +101,7 @@ export class ProjectsService {
     });
 
     if (!defaultWorkflow) {
-      throw new NotFoundException(
-        'Default workflow not found for organization',
-      );
+      throw new NotFoundException('Default workflow not found for organization');
     }
     const workspaceOwners = workspace.members.map((member) => ({
       userId: member.userId,
@@ -216,9 +211,7 @@ export class ProjectsService {
       });
     } catch (error: any) {
       if (error.code === 'P2002') {
-        throw new ConflictException(
-          'Project with this key already exists in this workspace',
-        );
+        throw new ConflictException('Project with this key already exists in this workspace');
       }
       throw error;
     }
@@ -325,10 +318,7 @@ export class ProjectsService {
     });
   }
 
-  async findByOrganizationId(
-    filters: ProjectFilters,
-    userId: string,
-  ): Promise<Project[]> {
+  async findByOrganizationId(filters: ProjectFilters, userId: string): Promise<Project[]> {
     const {
       organizationId,
       workspaceId,
@@ -478,10 +468,7 @@ export class ProjectsService {
   }
 
   async findOne(id: string, userId: string): Promise<Project> {
-    const { isElevated } = await this.accessControl.getProjectAccess(
-      id,
-      userId,
-    );
+    const { isElevated } = await this.accessControl.getProjectAccess(id, userId);
 
     const project = await this.prisma.project.findUnique({
       where: { id },
@@ -564,11 +551,7 @@ export class ProjectsService {
     return project;
   }
 
-  async findByKey(
-    workspaceId: string,
-    key: string,
-    userId: string,
-  ): Promise<Project> {
+  async findByKey(workspaceId: string, key: string, userId: string): Promise<Project> {
     const project = await this.prisma.project.findUnique({
       where: { workspaceId_slug: { workspaceId, slug: key } },
       select: { id: true },
@@ -582,20 +565,11 @@ export class ProjectsService {
     return this.findOne(project.id, userId);
   }
 
-  async update(
-    id: string,
-    updateProjectDto: UpdateProjectDto,
-    userId: string,
-  ): Promise<Project> {
-    const { isElevated } = await this.accessControl.getProjectAccess(
-      id,
-      userId,
-    );
+  async update(id: string, updateProjectDto: UpdateProjectDto, userId: string): Promise<Project> {
+    const { isElevated } = await this.accessControl.getProjectAccess(id, userId);
 
     if (!isElevated) {
-      throw new ForbiddenException(
-        'Insufficient permissions to update project',
-      );
+      throw new ForbiddenException('Insufficient permissions to update project');
     }
 
     try {
@@ -624,9 +598,7 @@ export class ProjectsService {
       });
     } catch (error: any) {
       if (error.code === 'P2002') {
-        throw new ConflictException(
-          'Project with this key already exists in this workspace',
-        );
+        throw new ConflictException('Project with this key already exists in this workspace');
       }
       if (error.code === 'P2025') {
         throw new NotFoundException('Project not found');
@@ -651,15 +623,10 @@ export class ProjectsService {
   }
 
   async archiveProject(id: string, userId: string): Promise<void> {
-    const { isElevated } = await this.accessControl.getProjectAccess(
-      id,
-      userId,
-    );
+    const { isElevated } = await this.accessControl.getProjectAccess(id, userId);
 
     if (!isElevated) {
-      throw new ForbiddenException(
-        'Insufficient permissions to archive project',
-      );
+      throw new ForbiddenException('Insufficient permissions to archive project');
     }
 
     try {
@@ -814,10 +781,7 @@ export class ProjectsService {
     };
   }
 
-  async getProjectBySlug(
-    slug: string,
-    userId: string,
-  ): Promise<Project | null> {
+  async getProjectBySlug(slug: string, userId: string): Promise<Project | null> {
     // Find project by slug
     const project = await this.prisma.project.findUnique({
       where: { slug },
@@ -875,9 +839,7 @@ export class ProjectsService {
       return { status: 'exact', slug: exact.slug };
     }
     // 2. Fuzzy match
-    const fuzzy = await this.prisma.$queryRawUnsafe<
-      { slug: string; score: number }[]
-    >(
+    const fuzzy = await this.prisma.$queryRawUnsafe<{ slug: string; score: number }[]>(
       `
       SELECT slug, similarity(slug, $1) AS score
       FROM "projects"

@@ -1,12 +1,5 @@
 // src/modules/files/files.controller.ts
-import {
-  Controller,
-  Get,
-  Param,
-  Res,
-  NotFoundException,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Param, Res, NotFoundException, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { join } from 'path';
 import { createReadStream, existsSync } from 'fs';
@@ -24,7 +17,7 @@ export class FilesController {
   @ApiParam({ name: 'filename', description: 'Filename' })
   @ApiResponse({ status: 200, description: 'File served successfully' })
   @ApiResponse({ status: 404, description: 'File not found' })
-  async serveTaskFile(
+  serveTaskFile(
     @Param('taskId') taskId: string,
     @Param('filename') filename: string,
     @Res() res: Response,
@@ -39,7 +32,7 @@ export class FilesController {
 
     // Stream the file
     const fileStream = createReadStream(filePath);
-    
+
     // Set appropriate headers
     res.set({
       'Content-Type': this.getMimeType(filename),

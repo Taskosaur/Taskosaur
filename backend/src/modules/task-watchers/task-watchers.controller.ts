@@ -21,11 +21,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { TaskWatchersService } from './task-watchers.service';
-import {
-  CreateTaskWatcherDto,
-  WatchTaskDto,
-  UnwatchTaskDto,
-} from './dto/create-task-watcher.dto';
+import { CreateTaskWatcherDto, WatchTaskDto, UnwatchTaskDto } from './dto/create-task-watcher.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Task Watchers')
@@ -129,10 +125,7 @@ export class TaskWatchersController {
     description: 'Filter stats by user ID',
   })
   @ApiResponse({ status: 200, description: 'Task watcher statistics' })
-  getWatcherStats(
-    @Query('taskId') taskId?: string,
-    @Query('userId') userId?: string,
-  ) {
+  getWatcherStats(@Query('taskId') taskId?: string, @Query('userId') userId?: string) {
     return this.taskWatchersService.getWatcherStats(taskId, userId);
   }
 

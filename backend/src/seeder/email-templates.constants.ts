@@ -58,7 +58,7 @@ Best regards,
   {
     id: 'auto-reply-out-of-hours',
     name: 'Auto Reply - Out of Hours',
-    subject: 'Out of Hours - We\'ll respond soon',
+    subject: "Out of Hours - We'll respond soon",
     content: `Thank you for your email.
 
 We have received your message outside of our normal business hours.
@@ -155,7 +155,14 @@ Best regards,
 {{assigneeName}}
 {{projectName}} Support Team`,
     category: 'support',
-    variables: ['subject', 'customerName', 'taskNumber', 'additionalInfoNeeded', 'assigneeName', 'projectName'],
+    variables: [
+      'subject',
+      'customerName',
+      'taskNumber',
+      'additionalInfoNeeded',
+      'assigneeName',
+      'projectName',
+    ],
     isDefault: true,
     description: 'Request additional information from customer',
   },
@@ -179,7 +186,15 @@ You can track progress at: {{taskUrl}}
 Best regards,
 {{projectName}} Management Team`,
     category: 'support',
-    variables: ['taskNumber', 'subject', 'escalatedBy', 'escalationReason', 'escalationSla', 'taskUrl', 'projectName'],
+    variables: [
+      'taskNumber',
+      'subject',
+      'escalatedBy',
+      'escalationReason',
+      'escalationSla',
+      'taskUrl',
+      'projectName',
+    ],
     isDefault: true,
     description: 'Notification for escalated support tickets',
   },
@@ -206,7 +221,15 @@ You can view and update this task in your dashboard: {{taskUrl}}
 Best regards,
 {{projectName}} Team`,
     category: 'notification',
-    variables: ['subject', 'taskNumber', 'priority', 'dueDate', 'projectName', 'description', 'taskUrl'],
+    variables: [
+      'subject',
+      'taskNumber',
+      'priority',
+      'dueDate',
+      'projectName',
+      'description',
+      'taskUrl',
+    ],
     isDefault: true,
     description: 'Notification for task assignments',
   },
@@ -228,7 +251,16 @@ You can track progress at: {{taskUrl}}
 Best regards,
 {{projectName}} Team`,
     category: 'notification',
-    variables: ['subject', 'taskNumber', 'previousStatus', 'currentStatus', 'updatedBy', 'statusComment', 'taskUrl', 'projectName'],
+    variables: [
+      'subject',
+      'taskNumber',
+      'previousStatus',
+      'currentStatus',
+      'updatedBy',
+      'statusComment',
+      'taskUrl',
+      'projectName',
+    ],
     isDefault: true,
     description: 'Notification for status changes',
   },
@@ -252,7 +284,14 @@ Best regards,
 {{assigneeName}}
 {{projectName}} Team`,
     category: 'custom',
-    variables: ['customerName', 'subject', 'taskNumber', 'followUpMessage', 'assigneeName', 'projectName'],
+    variables: [
+      'customerName',
+      'subject',
+      'taskNumber',
+      'followUpMessage',
+      'assigneeName',
+      'projectName',
+    ],
     isDefault: false,
     description: 'Follow-up email template',
   },
@@ -281,7 +320,17 @@ Best regards,
 {{assigneeName}}
 {{projectName}} Team`,
     category: 'custom',
-    variables: ['customerName', 'subject', 'meetingDate', 'meetingTime', 'meetingDuration', 'meetingLink', 'meetingAgenda', 'assigneeName', 'projectName'],
+    variables: [
+      'customerName',
+      'subject',
+      'meetingDate',
+      'meetingTime',
+      'meetingDuration',
+      'meetingLink',
+      'meetingAgenda',
+      'assigneeName',
+      'projectName',
+    ],
     isDefault: false,
     description: 'Meeting scheduling template',
   },
@@ -316,18 +365,30 @@ Best regards,
 {{assigneeName}}
 {{projectName}} Team`,
     category: 'custom',
-    variables: ['customerName', 'subject', 'taskNumber', 'positivePoints', 'improvementAreas', 'assigneeName', 'projectName'],
+    variables: [
+      'customerName',
+      'subject',
+      'taskNumber',
+      'positivePoints',
+      'improvementAreas',
+      'assigneeName',
+      'projectName',
+    ],
     isDefault: false,
     description: 'Customer feedback request template',
-  }
+  },
 ];
 
 export const TEMPLATE_CATEGORIES = [
-  { value: 'auto-reply', label: 'Auto Reply', description: 'Automated responses to incoming emails' },
+  {
+    value: 'auto-reply',
+    label: 'Auto Reply',
+    description: 'Automated responses to incoming emails',
+  },
   { value: 'welcome', label: 'Welcome', description: 'Welcome messages for new customers' },
   { value: 'support', label: 'Support', description: 'Customer support communications' },
   { value: 'notification', label: 'Notification', description: 'Status updates and notifications' },
-  { value: 'custom', label: 'Custom', description: 'Custom templates for specific needs' }
+  { value: 'custom', label: 'Custom', description: 'Custom templates for specific needs' },
 ];
 
 export const COMMON_VARIABLES = [
@@ -360,5 +421,5 @@ export const COMMON_VARIABLES = [
   { name: 'meetingLink', description: 'Meeting link or location' },
   { name: 'meetingAgenda', description: 'Meeting agenda' },
   { name: 'positivePoints', description: 'What went well' },
-  { name: 'improvementAreas', description: 'Areas for improvement' }
+  { name: 'improvementAreas', description: 'Areas for improvement' },
 ];

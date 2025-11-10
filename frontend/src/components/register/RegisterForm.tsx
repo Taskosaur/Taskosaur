@@ -71,10 +71,8 @@ export function RegisterForm() {
   const hasLowerCase = /[a-z]/.test(formData.password);
   const hasNumber = /\d/.test(formData.password);
   const passwordsMatch =
-    formData.password === formData.confirmPassword &&
-    formData.confirmPassword.length > 0;
-  const isPasswordValid =
-    isPasswordLongEnough && hasUpperCase && hasLowerCase && hasNumber;
+    formData.password === formData.confirmPassword && formData.confirmPassword.length > 0;
+  const isPasswordValid = isPasswordLongEnough && hasUpperCase && hasLowerCase && hasNumber;
 
   // All required fields check
   const allFieldsFilled = [
@@ -159,9 +157,7 @@ export function RegisterForm() {
         </div>
 
         <h1 className="signup-form-title">Create Account</h1>
-        <p className="signup-form-subtitle">
-          Join thousands of teams using Taskosaur
-        </p>
+        <p className="signup-form-subtitle">Join thousands of teams using Taskosaur</p>
       </div>
 
       {/* Error Alert */}
@@ -271,9 +267,7 @@ export function RegisterForm() {
               onChange={handleChange}
               placeholder="Create a strong password"
               className={`signup-password-input ${
-                formData.password && !isPasswordValid
-                  ? "border-red-500 ring-1 ring-red-500"
-                  : ""
+                formData.password && !isPasswordValid ? "border-red-500 ring-1 ring-red-500" : ""
               }`}
             />
             <Button
@@ -284,11 +278,7 @@ export function RegisterForm() {
               className="signup-password-toggle"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
 
@@ -306,9 +296,7 @@ export function RegisterForm() {
               <div className="signup-requirements-grid">
                 <div
                   className={`signup-requirement-item ${
-                    isPasswordLongEnough
-                      ? "signup-requirement-valid"
-                      : "signup-requirement-invalid"
+                    isPasswordLongEnough ? "signup-requirement-valid" : "signup-requirement-invalid"
                   }`}
                 >
                   <CheckCircle2
@@ -322,9 +310,7 @@ export function RegisterForm() {
                 </div>
                 <div
                   className={`signup-requirement-item ${
-                    hasUpperCase
-                      ? "signup-requirement-valid"
-                      : "signup-requirement-invalid"
+                    hasUpperCase ? "signup-requirement-valid" : "signup-requirement-invalid"
                   }`}
                 >
                   <CheckCircle2
@@ -338,9 +324,7 @@ export function RegisterForm() {
                 </div>
                 <div
                   className={`signup-requirement-item ${
-                    hasLowerCase
-                      ? "signup-requirement-valid"
-                      : "signup-requirement-invalid"
+                    hasLowerCase ? "signup-requirement-valid" : "signup-requirement-invalid"
                   }`}
                 >
                   <CheckCircle2
@@ -354,9 +338,7 @@ export function RegisterForm() {
                 </div>
                 <div
                   className={`signup-requirement-item ${
-                    hasNumber
-                      ? "signup-requirement-valid"
-                      : "signup-requirement-invalid"
+                    hasNumber ? "signup-requirement-valid" : "signup-requirement-invalid"
                   }`}
                 >
                   <CheckCircle2
@@ -406,15 +388,9 @@ export function RegisterForm() {
               size="sm"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               className="signup-password-toggle"
-              aria-label={
-                showConfirmPassword ? "Hide password" : "Show password"
-              }
+              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
             >
-              {showConfirmPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
+              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
           {formData.confirmPassword && (
@@ -422,9 +398,7 @@ export function RegisterForm() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className={`signup-password-match ${
-                passwordsMatch
-                  ? "signup-password-match-valid"
-                  : "signup-password-match-invalid"
+                passwordsMatch ? "signup-password-match-valid" : "signup-password-match-invalid"
               }`}
             >
               <CheckCircle2
@@ -434,9 +408,7 @@ export function RegisterForm() {
                     : "signup-password-match-icon-invalid"
                 }
               />
-              <span>
-                {passwordsMatch ? "Passwords match" : "Passwords do not match"}
-              </span>
+              <span>{passwordsMatch ? "Passwords match" : "Passwords do not match"}</span>
             </motion.div>
           )}
         </motion.div>
@@ -517,9 +489,7 @@ export function RegisterForm() {
             <div className="signup-divider-border" />
           </div>
           <div className="signup-divider-text-container">
-            <span className="signup-divider-text">
-              Already have an account?
-            </span>
+            <span className="signup-divider-text">Already have an account?</span>
           </div>
         </div>
       </motion.div>

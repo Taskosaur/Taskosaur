@@ -1,10 +1,5 @@
 // src/workspace/workspace-charts.service.ts
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { AccessControlService } from 'src/common/access-control.utils';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
@@ -21,7 +16,7 @@ export class WorkspaceChartsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accessControl: AccessControlService,
-  ) { }
+  ) {}
 
   /**
    * Get multiple workspace chart data types in a single request
@@ -89,39 +84,19 @@ export class WorkspaceChartsService {
   ): Promise<any> {
     switch (chartType) {
       case WorkspaceChartType.PROJECT_STATUS:
-        return this.workspaceProjectStatusDistribution(
-          organizationId,
-          workspaceSlug,
-          userId,
-        );
+        return this.workspaceProjectStatusDistribution(organizationId, workspaceSlug, userId);
       case WorkspaceChartType.TASK_PRIORITY:
-        return this.workspaceTaskPriorityBreakdown(
-          organizationId,
-          workspaceSlug,
-          userId,
-        );
+        return this.workspaceTaskPriorityBreakdown(organizationId, workspaceSlug, userId);
       case WorkspaceChartType.KPI_METRICS:
         return this.workspaceKPIMetrics(organizationId, workspaceSlug, userId);
       case WorkspaceChartType.TASK_TYPE:
-        return this.workspaceTaskTypeDistribution(
-          organizationId,
-          workspaceSlug,
-          userId,
-        );
+        return this.workspaceTaskTypeDistribution(organizationId, workspaceSlug, userId);
       case WorkspaceChartType.SPRINT_STATUS:
-        return this.workspaceSprintStatusOverview(
-          organizationId,
-          workspaceSlug,
-          userId,
-        );
+        return this.workspaceSprintStatusOverview(organizationId, workspaceSlug, userId);
       case WorkspaceChartType.MONTHLY_COMPLETION:
-        return this.workspaceMonthlyTaskCompletion(
-          organizationId,
-          workspaceSlug,
-          userId,
-        );
+        return this.workspaceMonthlyTaskCompletion(organizationId, workspaceSlug, userId);
       default:
-        throw new BadRequestException(`Unsupported chart type: ${chartType}`);
+        throw new BadRequestException(`Unsupported chart type: ${String(chartType)}`);
     }
   }
 
@@ -137,14 +112,11 @@ export class WorkspaceChartsService {
       where: { organizationId_slug: { organizationId, slug: workspaceSlug } },
       select: { id: true, organizationId: true },
     });
-     if (!workspace) {
+    if (!workspace) {
       throw new NotFoundException('Workspace not found');
     }
 
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(
-      workspace.id,
-      userId,
-    );
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(workspace.id, userId);
 
     return { workspace, isElevated };
   }
@@ -165,11 +137,7 @@ export class WorkspaceChartsService {
     workspaceSlug: string,
     userId: string,
   ) {
-    const { isElevated } = await this.getWorkspaceWithAccess(
-      organizationId,
-      workspaceSlug,
-      userId,
-    );
+    const { isElevated } = await this.getWorkspaceWithAccess(organizationId, workspaceSlug, userId);
 
     const projectWhere = {
       workspace: { slug: workspaceSlug, archive: false },
@@ -192,11 +160,7 @@ export class WorkspaceChartsService {
     workspaceSlug: string,
     userId: string,
   ) {
-    const { isElevated } = await this.getWorkspaceWithAccess(
-      organizationId,
-      workspaceSlug,
-      userId,
-    );
+    const { isElevated } = await this.getWorkspaceWithAccess(organizationId, workspaceSlug, userId);
 
     const projects = await this.prisma.project.findMany({
       where: {
@@ -220,11 +184,11 @@ export class WorkspaceChartsService {
         ...(isElevated
           ? {}
           : {
-            OR: [
-              { assignees: { some: { id: userId } } },
-              { reporters: { some: { id: userId } } },
-            ]
-          }),
+              OR: [
+                { assignees: { some: { id: userId } } },
+                { reporters: { some: { id: userId } } },
+              ],
+            }),
       },
       _count: { priority: true },
     });
@@ -238,11 +202,7 @@ export class WorkspaceChartsService {
     workspaceSlug: string,
     userId: string,
   ): Promise<WorkspaceKPIMetrics> {
-    const { isElevated } = await this.getWorkspaceWithAccess(
-      organizationId,
-      workspaceSlug,
-      userId,
-    );
+    const { isElevated } = await this.getWorkspaceWithAccess(organizationId, workspaceSlug, userId);
 
     const projectBase = {
       workspace: { slug: workspaceSlug, archive: false },
@@ -255,32 +215,24 @@ export class WorkspaceChartsService {
       ...(isElevated
         ? {}
         : {
-          OR: [
-            { assignees: { some: { id: userId } } },
-            { reporters: { some: { id: userId } } },
-          ]
-        }),
+            OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
+          }),
     };
 
-    const [
-      totalProjects,
-      activeProjects,
-      completedProjects,
-      totalTasks,
-      overdueTasks,
-    ] = await Promise.all([
-      this.prisma.project.count({ where: projectBase }),
-      this.prisma.project.count({
-        where: { ...projectBase, status: 'ACTIVE' },
-      }),
-      this.prisma.project.count({
-        where: { ...projectBase, status: 'COMPLETED' },
-      }),
-      this.prisma.task.count({ where: taskBase }),
-      this.prisma.task.count({
-        where: { ...taskBase, dueDate: { lt: new Date() }, completedAt: null },
-      }),
-    ]);
+    const [totalProjects, activeProjects, completedProjects, totalTasks, overdueTasks] =
+      await Promise.all([
+        this.prisma.project.count({ where: projectBase }),
+        this.prisma.project.count({
+          where: { ...projectBase, status: 'ACTIVE' },
+        }),
+        this.prisma.project.count({
+          where: { ...projectBase, status: 'COMPLETED' },
+        }),
+        this.prisma.task.count({ where: taskBase }),
+        this.prisma.task.count({
+          where: { ...taskBase, dueDate: { lt: new Date() }, completedAt: null },
+        }),
+      ]);
 
     return {
       totalProjects,
@@ -288,10 +240,7 @@ export class WorkspaceChartsService {
       completedProjects,
       totalTasks,
       overdueTasks,
-      completionRate: this.calculatePercentage(
-        completedProjects,
-        totalProjects,
-      ),
+      completionRate: this.calculatePercentage(completedProjects, totalProjects),
     };
   }
 
@@ -303,11 +252,7 @@ export class WorkspaceChartsService {
     workspaceSlug: string,
     userId: string,
   ) {
-    const { isElevated } = await this.getWorkspaceWithAccess(
-      organizationId,
-      workspaceSlug,
-      userId,
-    );
+    const { isElevated } = await this.getWorkspaceWithAccess(organizationId, workspaceSlug, userId);
 
     const taskWhere = {
       project: {
@@ -318,11 +263,8 @@ export class WorkspaceChartsService {
       ...(isElevated
         ? {}
         : {
-          OR: [
-            { assignees: { some: { id: userId } } },
-            { reporters: { some: { id: userId } } },
-          ]
-        }),
+            OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
+          }),
     };
 
     return this.prisma.task.groupBy({
@@ -340,11 +282,7 @@ export class WorkspaceChartsService {
     workspaceSlug: string,
     userId: string,
   ) {
-    const { isElevated } = await this.getWorkspaceWithAccess(
-      organizationId,
-      workspaceSlug,
-      userId,
-    );
+    const { isElevated } = await this.getWorkspaceWithAccess(organizationId, workspaceSlug, userId);
 
     const projects = await this.prisma.project.findMany({
       where: {
@@ -375,11 +313,7 @@ export class WorkspaceChartsService {
     workspaceSlug: string,
     userId: string,
   ): Promise<MonthlyTaskCompletion[]> {
-    const { isElevated } = await this.getWorkspaceWithAccess(
-      organizationId,
-      workspaceSlug,
-      userId,
-    );
+    const { isElevated } = await this.getWorkspaceWithAccess(organizationId, workspaceSlug, userId);
 
     const taskWhere = {
       project: {
@@ -391,11 +325,8 @@ export class WorkspaceChartsService {
       ...(isElevated
         ? {}
         : {
-          OR: [
-            { assignees: { some: { id: userId } } },
-            { reporters: { some: { id: userId } } },
-          ]
-        }),
+            OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
+          }),
     };
 
     const tasks = await this.prisma.task.findMany({

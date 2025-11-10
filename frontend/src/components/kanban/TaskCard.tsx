@@ -61,7 +61,7 @@ const getPriorityColor = (priority: string) => {
 
 const getCategoryFromDescription = (description?: string) => {
   if (!description) return { name: "Task", color: "#6b7280" };
-  
+
   const desc = description.toLowerCase();
   if (desc.includes("development") || desc.includes("code") || desc.includes("api")) {
     return { name: "Development", color: "#3b82f6" };
@@ -116,9 +116,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
   // Handle click with proper event handling
   const handleClick = (e: React.MouseEvent) => {
     if (isDragging) return;
-    
+
     e.stopPropagation();
-    
+
     // Call onClick if provided
     if (onClick) {
       onClick(task);
@@ -147,22 +147,21 @@ const TaskCard: React.FC<TaskCardProps> = ({
         isDragging && "opacity-50 rotate-1 shadow-lg",
         onClick && "hover:cursor-pointer"
       )}
-      style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+      style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
     >
       <CardContent className="p-4">
         {/* Task Title */}
         <h4
           className="text-sm font-medium mb-2 line-clamp-1"
-          style={{ color: 'var(--foreground)' }}
+          style={{ color: "var(--foreground)" }}
         >
           {task.title}
         </h4>
 
         {/* Category Tag */}
         <div className="mb-3">
-          <span 
+          <span
             className={`inline-block px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)]`}
-            
           >
             {task.priority}
           </span>
@@ -171,8 +170,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
         {/* Bottom Section */}
         <div className="flex items-center justify-between">
           {/* Left side - Meta info */}
-          <div className="flex items-center gap-3 text-xs"
-            style={{ color: 'var(--muted-foreground)' }}
+          <div
+            className="flex items-center gap-3 text-xs"
+            style={{ color: "var(--muted-foreground)" }}
           >
             {task.commentCount && task.commentCount > 0 && (
               <div className="flex items-center gap-1">
@@ -180,19 +180,19 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <span>{task.commentCount}</span>
               </div>
             )}
-            
+
             {task.subtaskCount && task.subtaskCount > 0 && (
               <div className="flex items-center gap-1">
                 <HiPaperClip size={12} />
                 <span>{task.subtaskCount}</span>
               </div>
             )}
-            
+
             {task.dueDate && (
-              <div className={cn(
-                "flex items-center gap-1",
-                isOverdue && "text-red-500"
-              )} style={isOverdue ? { color: 'var(--destructive)' } : {}}>
+              <div
+                className={cn("flex items-center gap-1", isOverdue && "text-red-500")}
+                style={isOverdue ? { color: "var(--destructive)" } : {}}
+              >
                 <HiCalendarDays size={12} />
                 <span>{formatDueDate(task.dueDate)}</span>
               </div>
@@ -203,19 +203,19 @@ const TaskCard: React.FC<TaskCardProps> = ({
           {hasAssignees && (
             <div className="flex items-center -space-x-2">
               {assignees.slice(0, 3).map((assignee, index) => (
-                <div 
+                <div
                   key={assignee.id}
                   className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[var(--card)]"
-                  style={{ 
-                    backgroundColor: priorityColor, 
-                    color: 'var(--primary-foreground)',
-                    zIndex: assignees.length - index
+                  style={{
+                    backgroundColor: priorityColor,
+                    color: "var(--primary-foreground)",
+                    zIndex: assignees.length - index,
                   }}
                   title={`${assignee.firstName} ${assignee.lastName}`}
                 >
                   {assignee.avatar ? (
-                    <Image 
-                      src={assignee.avatar} 
+                    <Image
+                      src={assignee.avatar}
                       alt={`${assignee.firstName} ${assignee.lastName}`}
                       className="w-full h-full rounded-full object-cover"
                       height={24}
@@ -226,15 +226,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   )}
                 </div>
               ))}
-              
+
               {/* Show +N if more than 3 assignees */}
               {assignees.length > 3 && (
-                <div 
+                <div
                   className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium border-2 border-[var(--card)]"
-                  style={{ 
-                    backgroundColor: 'var(--muted)', 
-                    color: 'var(--muted-foreground)',
-                    zIndex: 0
+                  style={{
+                    backgroundColor: "var(--muted)",
+                    color: "var(--muted-foreground)",
+                    zIndex: 0,
                   }}
                   title={`${assignees.length - 3} more assignees`}
                 >

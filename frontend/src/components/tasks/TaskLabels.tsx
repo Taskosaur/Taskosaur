@@ -49,8 +49,7 @@ export default function TaskLabels({
 
   const handleAddLabel = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hasAccess)
-      return toast.error("You don't have access to update the task label");
+    if (!hasAccess) return toast.error("You don't have access to update the task label");
 
     if (!newLabelName.trim()) return;
 
@@ -72,8 +71,7 @@ export default function TaskLabels({
   };
 
   const handleRemoveLabel = async (labelId: string) => {
-    if (!hasAccess)
-      return toast.error("You don't have access to update the task label");
+    if (!hasAccess) return toast.error("You don't have access to update the task label");
 
     try {
       setLoadingLabels(true);
@@ -86,8 +84,7 @@ export default function TaskLabels({
   };
 
   const handleAssignLabel = async (label: TaskLabel) => {
-    if (!hasAccess)
-      return toast.error("You don't have access to update the task label");
+    if (!hasAccess) return toast.error("You don't have access to update the task label");
 
     try {
       setLoadingLabels(true);
@@ -121,9 +118,7 @@ export default function TaskLabels({
       {labels.length > 0 ? (
         <div>
           <div className="flex items-center justify-between mb-1">
-            <div className="text-sm font-medium text-[var(--foreground)]">
-              Current labels:
-            </div>
+            <div className="text-sm font-medium text-[var(--foreground)]">Current labels:</div>
             {hasAccess && (
               <button
                 type="button"
@@ -189,9 +184,7 @@ export default function TaskLabels({
           {/* Available labels */}
           {unassignedLabels.length > 0 && (
             <div className="">
-              <div className="text-sm font-medium text-[var(--foreground)]">
-                Available labels:
-              </div>
+              <div className="text-sm font-medium text-[var(--foreground)]">Available labels:</div>
               <div className="flex flex-wrap gap-2">
                 {unassignedLabels.map((label) => (
                   <ActionButton
@@ -238,9 +231,7 @@ export default function TaskLabels({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-[var(--foreground)]">
-                    Color
-                  </Label>
+                  <Label className="text-sm font-medium text-[var(--foreground)]">Color</Label>
                   <div className="grid grid-cols-6 gap-2">
                     {labelColors.map((color) => (
                       <Button
@@ -261,9 +252,7 @@ export default function TaskLabels({
 
                   {/* Preview */}
                   <div className="flex items-center gap-2 pt-2">
-                    <span className="text-xs text-[var(--muted-foreground)]">
-                      Preview:
-                    </span>
+                    <span className="text-xs text-[var(--muted-foreground)]">Preview:</span>
                     <DynamicBadge
                       label={newLabelName || "Label preview"}
                       bgColor={newLabelColor}

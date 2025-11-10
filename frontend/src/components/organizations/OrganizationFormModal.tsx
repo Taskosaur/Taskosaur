@@ -3,13 +3,7 @@ import { Organization } from "@/types";
 import { useState } from "react";
 import { HiBuildingOffice2, HiExclamationTriangle } from "react-icons/hi2";
 import { Button, Input, Label, Textarea } from "../ui";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
 import { toast } from "sonner";
 
 const OrganizationFormModal = ({
@@ -24,13 +18,7 @@ const OrganizationFormModal = ({
   setShowCreateForm?: any;
   onSuccess: (org: Organization) => void;
   onCancel: () => void;
-  triggerVariant?:
-    | "default"
-    | "destructive"
-    | "outline"
-    | "secondary"
-    | "ghost"
-    | "link";
+  triggerVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   onOpenChange?: (open: boolean) => void;
 }) => {
   const [name, setName] = useState("");
@@ -54,11 +42,9 @@ const OrganizationFormModal = ({
 
       const newOrg = await createOrganization(organizationData);
       onSuccess(newOrg);
-      toast.success("Organization created successfully!")
+      toast.success("Organization created successfully!");
     } catch (err) {
-      setError(
-        err?.message ? err?.message[0] : "Failed to create organization"
-      );
+      setError(err?.message ? err?.message[0] : "Failed to create organization");
     } finally {
       setIsSubmitting(false);
     }
@@ -77,9 +63,7 @@ const OrganizationFormModal = ({
               <HiBuildingOffice2 className="projects-modal-icon-content" />
             </div>
             <div className="projects-modal-info">
-              <DialogTitle className="projects-modal-title">
-                Create New Organization
-              </DialogTitle>
+              <DialogTitle className="projects-modal-title">Create New Organization</DialogTitle>
               <DialogDescription className="projects-modal-description">
                 Provide information about your new organization
               </DialogDescription>
@@ -96,9 +80,7 @@ const OrganizationFormModal = ({
                   <h4 className="text-sm font-medium text-[var(--destructive)] mb-1">
                     Error creating organization
                   </h4>
-                  <p className="text-sm text-[var(--destructive)]/80">
-                    {error}
-                  </p>
+                  <p className="text-sm text-[var(--destructive)]/80">{error}</p>
                 </div>
               </div>
             </div>
@@ -106,10 +88,7 @@ const OrganizationFormModal = ({
 
           <div className="space-y-4">
             <div>
-              <Label
-                htmlFor="org-name"
-                className="text-sm font-medium text-[var(--foreground)]"
-              >
+              <Label htmlFor="org-name" className="text-sm font-medium text-[var(--foreground)]">
                 Organization Name<span className="text-red-400">*</span>
               </Label>
               <Input
@@ -143,10 +122,7 @@ const OrganizationFormModal = ({
             </div>
 
             <div>
-              <Label
-                htmlFor="org-website"
-                className="text-sm font-medium text-[var(--foreground)]"
-              >
+              <Label htmlFor="org-website" className="text-sm font-medium text-[var(--foreground)]">
                 Website
               </Label>
               <Input

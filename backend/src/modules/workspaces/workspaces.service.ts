@@ -15,20 +15,15 @@ export class WorkspacesService {
   constructor(
     private prisma: PrismaService,
     private accessControl: AccessControlService,
-  ) { }
+  ) {}
 
-  async create(
-    createWorkspaceDto: CreateWorkspaceDto,
-    userId: string,
-  ): Promise<Workspace> {
+  async create(createWorkspaceDto: CreateWorkspaceDto, userId: string): Promise<Workspace> {
     const { isElevated } = await this.accessControl.getOrgAccess(
       createWorkspaceDto.organizationId,
       userId,
     );
     if (!isElevated) {
-      throw new ForbiddenException(
-        'Insufficient permissions to create workspace',
-      );
+      throw new ForbiddenException('Insufficient permissions to create workspace');
     }
     const organization = await this.prisma.organization.findUnique({
       where: { id: createWorkspaceDto.organizationId },
@@ -38,8 +33,8 @@ export class WorkspacesService {
         members: {
           where: {
             role: {
-              in: [Role.OWNER, Role.MANAGER]
-            }
+              in: [Role.OWNER, Role.MANAGER],
+            },
           },
           select: { userId: true, role: true },
         },
@@ -93,7 +88,7 @@ export class WorkspacesService {
         if (!membersToAdd.has(member.userId)) {
           membersToAdd.set(member.userId, member.role);
         }
-      });;
+      });
       await Promise.all(
         Array.from(membersToAdd.entries()).map(([memberId, memberRole]) =>
           tx.workspaceMember.create({
@@ -114,10 +109,7 @@ export class WorkspacesService {
     return workspace;
   }
 
-  private async generateUniqueSlug(
-    baseSlug: string,
-    organizationId: string,
-  ): Promise<string> {
+  private async generateUniqueSlug(baseSlug: string, organizationId: string): Promise<string> {
     let slug = baseSlug;
     let counter = 1;
 
@@ -135,12 +127,8 @@ export class WorkspacesService {
       counter++;
     }
   }
-  async findAll(
-    userId: string,
-    organizationId?: string,
-    search?: string,
-  ): Promise<Workspace[]> {
-    const whereClause: any = { archive: false , organizationId};
+  async findAll(userId: string, organizationId?: string, search?: string): Promise<Workspace[]> {
+    const whereClause: any = { archive: false, organizationId };
     if (userId) {
       whereClause.members = { some: { userId } };
     }
@@ -160,9 +148,9 @@ export class WorkspacesService {
         },
         members: userId
           ? {
-            where: { userId },
-            select: { role: true },
-          }
+              where: { userId },
+              select: { role: true },
+            }
           : false,
         _count: { select: { members: true, projects: true } },
       },
@@ -213,9 +201,9 @@ export class WorkspacesService {
         },
         members: userId
           ? {
-            where: { userId },
-            select: { role: true },
-          }
+              where: { userId },
+              select: { role: true },
+            }
           : false,
         _count: { select: { members: true, projects: true } },
       },
@@ -237,10 +225,7 @@ export class WorkspacesService {
   }
 
   async findOne(id: string, userId: string): Promise<Workspace> {
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(
-      id,
-      userId,
-    );
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(id, userId);
 
     const workspace = await this.prisma.workspace.findUnique({
       where: { id },
@@ -289,11 +274,7 @@ export class WorkspacesService {
     return workspace;
   }
 
-  async findBySlug(
-    organizationId: string,
-    slug: string,
-    userId: string,
-  ): Promise<Workspace> {
+  async findBySlug(organizationId: string, slug: string, userId: string): Promise<Workspace> {
     // Check organization access first
     const workspace = await this.prisma.workspace.findUnique({
       where: { organizationId_slug: { organizationId, slug } },
@@ -303,9 +284,9 @@ export class WorkspacesService {
         },
         members: userId
           ? {
-            where: { userId },
-            select: { role: true },
-          }
+              where: { userId },
+              select: { role: true },
+            }
           : false,
         _count: { select: { members: true, projects: true } },
       },
@@ -351,9 +332,7 @@ export class WorkspacesService {
       return workspace;
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException(
-          'Workspace with this slug already exists in this organization',
-        );
+        throw new ConflictException('Workspace with this slug already exists in this organization');
       }
       if (error.code === 'P2025') {
         throw new NotFoundException('Workspace not found');
@@ -400,10 +379,7 @@ export class WorkspacesService {
 
     if (!workspace) throw new NotFoundException('Workspace not found');
 
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(
-      workspace.id,
-      userId,
-    );
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(workspace.id, userId);
 
     const projectWhere = {
       workspace: { slug: workspaceSlug, archive: false },
@@ -430,10 +406,7 @@ export class WorkspacesService {
 
     if (!workspace) throw new NotFoundException('Workspace not found');
 
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(
-      workspace.id,
-      userId,
-    );
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(workspace.id, userId);
 
     const taskWhere = {
       project: {
@@ -444,11 +417,8 @@ export class WorkspacesService {
       ...(isElevated
         ? {}
         : {
-          OR: [
-            { assignees: { some: { id: userId } } },
-            { reporters: { some: { id: userId } } },
-          ]
-        }),
+            OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
+          }),
     };
 
     return this.prisma.task.groupBy({
@@ -458,11 +428,7 @@ export class WorkspacesService {
     });
   }
 
-  async workspaceKPIMetrics(
-    organizationId: string,
-    workspaceSlug: string,
-    userId: string,
-  ) {
+  async workspaceKPIMetrics(organizationId: string, workspaceSlug: string, userId: string) {
     const workspace = await this.prisma.workspace.findUnique({
       where: { organizationId_slug: { organizationId, slug: workspaceSlug } },
       select: { id: true, organizationId: true },
@@ -470,10 +436,7 @@ export class WorkspacesService {
 
     if (!workspace) throw new NotFoundException('Workspace not found');
 
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(
-      workspace.id,
-      userId,
-    );
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(workspace.id, userId);
 
     const projectBase = {
       workspace: { slug: workspaceSlug, archive: false },
@@ -486,32 +449,24 @@ export class WorkspacesService {
       ...(isElevated
         ? {}
         : {
-          OR: [
-            { assignees: { some: { id: userId } } },
-            { reporters: { some: { id: userId } } },
-          ]
-        }),
+            OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
+          }),
     };
 
-    const [
-      totalProjects,
-      activeProjects,
-      completedProjects,
-      totalTasks,
-      overdueTasks,
-    ] = await Promise.all([
-      this.prisma.project.count({ where: projectBase }),
-      this.prisma.project.count({
-        where: { ...projectBase, status: 'ACTIVE' },
-      }),
-      this.prisma.project.count({
-        where: { ...projectBase, status: 'COMPLETED' },
-      }),
-      this.prisma.task.count({ where: taskBase }),
-      this.prisma.task.count({
-        where: { ...taskBase, dueDate: { lt: new Date() }, completedAt: null },
-      }),
-    ]);
+    const [totalProjects, activeProjects, completedProjects, totalTasks, overdueTasks] =
+      await Promise.all([
+        this.prisma.project.count({ where: projectBase }),
+        this.prisma.project.count({
+          where: { ...projectBase, status: 'ACTIVE' },
+        }),
+        this.prisma.project.count({
+          where: { ...projectBase, status: 'COMPLETED' },
+        }),
+        this.prisma.task.count({ where: taskBase }),
+        this.prisma.task.count({
+          where: { ...taskBase, dueDate: { lt: new Date() }, completedAt: null },
+        }),
+      ]);
 
     return {
       totalProjects,
@@ -519,8 +474,7 @@ export class WorkspacesService {
       completedProjects,
       totalTasks,
       overdueTasks,
-      completionRate:
-        totalProjects > 0 ? (completedProjects / totalProjects) * 100 : 0,
+      completionRate: totalProjects > 0 ? (completedProjects / totalProjects) * 100 : 0,
     };
   }
 
@@ -536,10 +490,7 @@ export class WorkspacesService {
 
     if (!workspace) throw new NotFoundException('Workspace not found');
 
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(
-      workspace.id,
-      userId,
-    );
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(workspace.id, userId);
 
     const taskWhere = {
       project: {
@@ -550,11 +501,8 @@ export class WorkspacesService {
       ...(isElevated
         ? {}
         : {
-          OR: [
-            { assignees: { some: { id: userId } } },
-            { reporters: { some: { id: userId } } },
-          ]
-        }),
+            OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
+          }),
     };
 
     return this.prisma.task.groupBy({
@@ -576,10 +524,7 @@ export class WorkspacesService {
 
     if (!workspace) throw new NotFoundException('Workspace not found');
 
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(
-      workspace.id,
-      userId,
-    );
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(workspace.id, userId);
 
     const sprintWhere = {
       project: {
@@ -609,10 +554,7 @@ export class WorkspacesService {
 
     if (!workspace) throw new NotFoundException('Workspace not found');
 
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(
-      workspace.id,
-      userId,
-    );
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(workspace.id, userId);
 
     const taskWhere = {
       project: {
@@ -624,11 +566,8 @@ export class WorkspacesService {
       ...(isElevated
         ? {}
         : {
-          OR: [
-            { assignees: { some: { id: userId } } },
-            { reporters: { some: { id: userId } } },
-          ]
-        }),
+            OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
+          }),
     };
 
     const tasks = await this.prisma.task.findMany({
@@ -655,11 +594,7 @@ export class WorkspacesService {
   }
 
   async findAllSlugs(organization_id: string): Promise<string[]> {
-    if (
-      organization_id === '' ||
-      organization_id === null ||
-      organization_id === undefined
-    )
+    if (organization_id === '' || organization_id === null || organization_id === undefined)
       return [];
     const workspaces = await this.prisma.workspace.findMany({
       where: { archive: false, organizationId: organization_id },

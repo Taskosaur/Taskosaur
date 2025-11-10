@@ -110,15 +110,9 @@ export default function InboxSetupForm({
                   <FormItem>
                     <FormLabel>Inbox Name *</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Support Inbox"
-                        {...field}
-                        disabled={isLoading}
-                      />
+                      <Input placeholder="Support Inbox" {...field} disabled={isLoading} />
                     </FormControl>
-                    <FormDescription>
-                      A descriptive name for your email inbox
-                    </FormDescription>
+                    <FormDescription>A descriptive name for your email inbox</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -138,9 +132,7 @@ export default function InboxSetupForm({
                         disabled={isLoading}
                       />
                     </FormControl>
-                    <FormDescription>
-                      Optional description of this inbox's purpose
-                    </FormDescription>
+                    <FormDescription>Optional description of this inbox's purpose</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -179,9 +171,7 @@ export default function InboxSetupForm({
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-base">
-                        Auto-create Tasks
-                      </FormLabel>
+                      <FormLabel className="text-base">Auto-create Tasks</FormLabel>
                       <FormDescription>
                         Automatically convert incoming emails to tasks
                       </FormDescription>
@@ -307,12 +297,8 @@ export default function InboxSetupForm({
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-base">
-                        Enable Auto-Reply
-                      </FormLabel>
-                      <FormDescription>
-                        Send automatic replies to incoming emails
-                      </FormDescription>
+                      <FormLabel className="text-base">Enable Auto-Reply</FormLabel>
+                      <FormDescription>Send automatic replies to incoming emails</FormDescription>
                     </div>
                     <FormControl>
                       <Switch
@@ -340,9 +326,7 @@ export default function InboxSetupForm({
                           disabled={isLoading}
                         />
                       </FormControl>
-                      <FormDescription>
-                        Message sent automatically to email senders
-                      </FormDescription>
+                      <FormDescription>Message sent automatically to email senders</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -368,9 +352,7 @@ export default function InboxSetupForm({
                         disabled={isLoading}
                       />
                     </FormControl>
-                    <FormDescription>
-                      Signature added to all outgoing email replies
-                    </FormDescription>
+                    <FormDescription>Signature added to all outgoing email replies</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -379,11 +361,7 @@ export default function InboxSetupForm({
 
             {/* Form Actions */}
             <div className="flex space-x-4 pt-6 border-t">
-              <Button
-                type="submit"
-                disabled={isSubmitting || isLoading}
-                className="flex-1"
-              >
+              <Button type="submit" disabled={isSubmitting || isLoading} className="flex-1">
                 {isSubmitting ? (
                   <>
                     <HiCog className="w-4 h-4 mr-2 animate-spin" />

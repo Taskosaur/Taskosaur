@@ -4,7 +4,9 @@ import { HiFolder, HiCube } from "react-icons/hi2";
 import { HiOfficeBuilding } from "react-icons/hi";
 import MembersList, { Member, Role } from "./MembersList";
 import RoleDistribution from "./RoleDistribution";
-import DynamicPendingInvitations, { DynamicPendingInvitationsRef } from "./DynamicPendingInvitations";
+import DynamicPendingInvitations, {
+  DynamicPendingInvitationsRef,
+} from "./DynamicPendingInvitations";
 
 // Entity types
 export interface BaseEntity {
@@ -34,7 +36,7 @@ export interface Project extends BaseEntity {
   createdBy?: string;
 }
 
-type EntityType = 'organization' | 'workspace' | 'project';
+type EntityType = "organization" | "workspace" | "project";
 type Entity = Organization | Workspace | Project;
 
 interface EntityInfoData {
@@ -47,36 +49,36 @@ interface MembersManagementLayoutProps {
   entityType: EntityType;
   entity: Entity | null;
   parentEntity?: Entity | null; // For projects (workspace) or workspaces (organization)
-  
+
   // Members data
   members: Member[];
   loading: boolean;
   error?: string | null;
-  
+
   // Search
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  
+
   // Member actions
   onRoleUpdate?: (memberId: string, newRole: string) => Promise<void>;
   onRemoveMember?: (member: Member) => void;
   canUpdateMemberRole: (member: Member) => boolean;
   canRemoveMember: (member: Member) => boolean;
   getAvailableRolesForMember: (member: Member) => Role[];
-  
+
   // Loading states
   updatingMember: string | null;
   removingMember: string | null;
-  
+
   // User context
   currentUserId: string;
   hasManagementAccess: boolean;
-  
+
   // Invitations
   pendingInvitationsRef?: RefObject<DynamicPendingInvitationsRef>;
   fetchInvitations?: (entityType: EntityType, entityId: string) => Promise<any>;
   onResendInvite?: (inviteId: string) => Promise<any>;
-  
+
   // Optional customization
   roles?: Role[];
   additionalInfoCards?: ReactNode;
@@ -118,11 +120,11 @@ const MembersManagementLayout: React.FC<MembersManagementLayoutProps> = ({
   // Get entity icon
   const getEntityIcon = () => {
     switch (entityType) {
-      case 'organization':
+      case "organization":
         return <HiOfficeBuilding className="w-5 h-5 text-[var(--muted-foreground)]" />;
-      case 'workspace':
+      case "workspace":
         return <HiCube className="w-5 h-5 text-[var(--muted-foreground)]" />;
-      case 'project':
+      case "project":
         return <HiFolder className="w-5 h-5 text-[var(--muted-foreground)]" />;
     }
   };
@@ -141,12 +143,12 @@ const MembersManagementLayout: React.FC<MembersManagementLayoutProps> = ({
 
     items.push({
       label: "Active Members:",
-      value: members.filter(m => m.status === "ACTIVE").length,
+      value: members.filter((m) => m.status === "ACTIVE").length,
     });
 
     // Entity-specific items
     switch (entityType) {
-      case 'organization':
+      case "organization":
         const org = entity as Organization;
         if (org.slug) {
           items.push({
@@ -162,7 +164,7 @@ const MembersManagementLayout: React.FC<MembersManagementLayoutProps> = ({
         }
         break;
 
-      case 'workspace':
+      case "workspace":
         if (parentEntity) {
           items.unshift({
             label: "Organization:",
@@ -171,7 +173,7 @@ const MembersManagementLayout: React.FC<MembersManagementLayoutProps> = ({
         }
         break;
 
-      case 'project':
+      case "project":
         if (parentEntity) {
           items.unshift({
             label: "Workspace:",
@@ -190,11 +192,11 @@ const MembersManagementLayout: React.FC<MembersManagementLayoutProps> = ({
 
   // Format value for display
   const formatInfoValue = (value: string | number): string => {
-    if (typeof value === 'number') {
+    if (typeof value === "number") {
       return value.toString();
     }
     // Check if it's a URL
-    if (value.startsWith('http')) {
+    if (value.startsWith("http")) {
       const url = new URL(value);
       return url.hostname;
     }
@@ -247,14 +249,19 @@ const MembersManagementLayout: React.FC<MembersManagementLayoutProps> = ({
                   </p>
                 )}
               </div>
-              
+
               {/* Info Items */}
               {getEntityInfoItems().map((item, index) => (
-                <div key={index} className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
+                <div
+                  key={index}
+                  className="flex items-center justify-between text-xs text-[var(--muted-foreground)]"
+                >
                   <span>{item.label}</span>
-                  <span className={`font-medium text-[var(--foreground)] ${
-                    item.label === "Slug:" ? "font-mono" : ""
-                  }`}>
+                  <span
+                    className={`font-medium text-[var(--foreground)] ${
+                      item.label === "Slug:" ? "font-mono" : ""
+                    }`}
+                  >
                     {formatInfoValue(item.value)}
                   </span>
                 </div>
@@ -265,11 +272,7 @@ const MembersManagementLayout: React.FC<MembersManagementLayoutProps> = ({
 
         {/* Role Distribution Card */}
         {!hideRoleDistribution && (
-          <RoleDistribution
-            entityType={entityType}
-            members={members}
-            roles={roles}
-          />
+          <RoleDistribution entityType={entityType} members={members} roles={roles} />
         )}
 
         {/* Additional custom info cards */}

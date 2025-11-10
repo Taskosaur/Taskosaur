@@ -1,5 +1,5 @@
-import React from 'react';
-import { Card } from '@/components/ui';
+import React from "react";
+import { Card } from "@/components/ui";
 
 export const WorkspaceCardSkeleton: React.FC = () => (
   <Card className="workspace-item-card animate-pulse">

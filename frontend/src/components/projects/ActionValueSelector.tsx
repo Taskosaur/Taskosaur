@@ -8,12 +8,7 @@ import {
 } from "@/components/ui/select";
 
 interface ActionValueSelectorProps {
-  actionType:
-    | "setPriority"
-    | "assignTo"
-    | "addLabels"
-    | "markAsSpam"
-    | "autoReply";
+  actionType: "setPriority" | "assignTo" | "addLabels" | "markAsSpam" | "autoReply";
   value: string | string[];
   onChange: (value: string | string[]) => void;
 
@@ -63,23 +58,15 @@ export function ActionValueSelector({
             {value ? (
               <span>{value === "yes" ? "Yes" : "No"}</span>
             ) : (
-              <span className="text-[var(--muted-foreground)]">
-                Enable auto-reply?
-              </span>
+              <span className="text-[var(--muted-foreground)]">Enable auto-reply?</span>
             )}
           </SelectValue>
         </SelectTrigger>
         <SelectContent className="bg-[var(--card)] border border-[var(--border)]">
-          <SelectItem
-            value="yes"
-            className="hover:bg-[var(--hover-bg)] cursor-pointer"
-          >
+          <SelectItem value="yes" className="hover:bg-[var(--hover-bg)] cursor-pointer">
             Yes
           </SelectItem>
-          <SelectItem
-            value="no"
-            className="hover:bg-[var(--hover-bg)] cursor-pointer"
-          >
+          <SelectItem value="no" className="hover:bg-[var(--hover-bg)] cursor-pointer">
             No
           </SelectItem>
         </SelectContent>
@@ -97,13 +84,9 @@ export function ActionValueSelector({
       );
     }
 
-    const selected = options.find(
-      (opt) => opt.id === value || opt.value === value
-    );
+    const selected = options.find((opt) => opt.id === value || opt.value === value);
     if (!selected) {
-      return (
-        <span className="text-[var(--muted-foreground)]">{placeholder}</span>
-      );
+      return <span className="text-[var(--muted-foreground)]">{placeholder}</span>;
     }
 
     return (
@@ -164,16 +147,12 @@ export function ActionValueSelector({
         {/* Label and email */}
         <div className="flex flex-col min-w-0 flex-1">
           <span
-            className={`font-medium text-sm truncate ${
-              showColorIndicator ? "capitalize" : ""
-            }`}
+            className={`font-medium text-sm truncate ${showColorIndicator ? "capitalize" : ""}`}
           >
             {option.label}
           </span>
           {showEmail && option.email && (
-            <span className="text-xs text-[var(--muted-foreground)] truncate">
-              {option.email}
-            </span>
+            <span className="text-xs text-[var(--muted-foreground)] truncate">{option.email}</span>
           )}
         </div>
       </div>
@@ -181,24 +160,16 @@ export function ActionValueSelector({
   };
 
   return (
-    <Select
-      value={value as string}
-      onValueChange={onChange}
-      disabled={isLoading}
-    >
+    <Select value={value as string} onValueChange={onChange} disabled={isLoading}>
       <SelectTrigger className="flex-1 border border-[var(--border)]">
         <SelectValue asChild>{renderSelectedValue()}</SelectValue>
       </SelectTrigger>
 
       <SelectContent className="bg-[var(--card)] border border-[var(--border)]">
         {isLoading ? (
-          <div className="px-3 py-2 text-sm text-[var(--muted-foreground)]">
-            {loadingText}
-          </div>
+          <div className="px-3 py-2 text-sm text-[var(--muted-foreground)]">{loadingText}</div>
         ) : options.length === 0 ? (
-          <div className="px-3 py-2 text-sm text-[var(--muted-foreground)]">
-            {emptyText}
-          </div>
+          <div className="px-3 py-2 text-sm text-[var(--muted-foreground)]">{emptyText}</div>
         ) : (
           options.map((option) => (
             <SelectItem

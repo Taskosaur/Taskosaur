@@ -11,9 +11,7 @@ import {
 
 export const workflowsApi = {
   // Workflow CRUD operations
-  createWorkflow: async (
-    workflowData: CreateWorkflowData
-  ): Promise<Workflow> => {
+  createWorkflow: async (workflowData: CreateWorkflowData): Promise<Workflow> => {
     try {
       const response = await api.post<Workflow>("/workflows", workflowData);
       return response.data;
@@ -33,21 +31,14 @@ export const workflowsApi = {
     }
   },
 
-  getWorkflowsByOrganization: async (
-    organizationId: string
-  ): Promise<Workflow[]> => {
+  getWorkflowsByOrganization: async (organizationId: string): Promise<Workflow[]> => {
     try {
       // Validate organizationId format
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(organizationId)) {
-        throw new Error(
-          `Invalid organizationId format: ${organizationId}. Expected UUID format.`
-        );
+        throw new Error(`Invalid organizationId format: ${organizationId}. Expected UUID format.`);
       }
-      const response = await api.get<Workflow[]>(
-        `/workflows?organizationId=${organizationId}`
-      );
+      const response = await api.get<Workflow[]>(`/workflows?organizationId=${organizationId}`);
       return response.data;
     } catch (error) {
       console.error("Get workflows by organization error:", error);
@@ -57,9 +48,7 @@ export const workflowsApi = {
 
   getWorkflowsByOrganizationSlug: async (slug: string): Promise<Workflow[]> => {
     try {
-      const response = await api.get<Workflow[]>(
-        `/workflows/slug?slug=${slug}`
-      );
+      const response = await api.get<Workflow[]>(`/workflows/slug?slug=${slug}`);
       return response.data;
     } catch (error) {
       console.error("Get workflows by organization slug error:", error);
@@ -80,16 +69,11 @@ export const workflowsApi = {
   getDefaultWorkflow: async (organizationId: string): Promise<Workflow> => {
     try {
       // Validate organizationId format
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(organizationId)) {
-        throw new Error(
-          `Invalid organizationId format: ${organizationId}. Expected UUID format.`
-        );
+        throw new Error(`Invalid organizationId format: ${organizationId}. Expected UUID format.`);
       }
-      const response = await api.get<Workflow>(
-        `/workflows/organization/${organizationId}/default`
-      );
+      const response = await api.get<Workflow>(`/workflows/organization/${organizationId}/default`);
       return response.data;
     } catch (error) {
       console.error("Get default workflow error:", error);
@@ -102,10 +86,7 @@ export const workflowsApi = {
     workflowData: UpdateWorkflowData
   ): Promise<Workflow> => {
     try {
-      const response = await api.patch<Workflow>(
-        `/workflows/${workflowId}`,
-        workflowData
-      );
+      const response = await api.patch<Workflow>(`/workflows/${workflowId}`, workflowData);
       return response.data;
     } catch (error) {
       console.error("Update workflow error:", error);
@@ -113,9 +94,7 @@ export const workflowsApi = {
     }
   },
 
-  deleteWorkflow: async (
-    workflowId: string
-  ): Promise<{ success: boolean; message: string }> => {
+  deleteWorkflow: async (workflowId: string): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await api.delete(`/workflows/${workflowId}`);
 
@@ -141,9 +120,7 @@ export const workflowsApi = {
   // Workflow stages operations
   getWorkflowStages: async (workflowId: string): Promise<WorkflowStage[]> => {
     try {
-      const response = await api.get<WorkflowStage[]>(
-        `/workflows/${workflowId}/stages`
-      );
+      const response = await api.get<WorkflowStage[]>(`/workflows/${workflowId}/stages`);
       return response.data || [];
     } catch (error) {
       console.error("Get workflow stages error:", error);
@@ -154,9 +131,7 @@ export const workflowsApi = {
   // Workflow stats
   getWorkflowStats: async (workflowId: string): Promise<WorkflowStats> => {
     try {
-      const response = await api.get<WorkflowStats>(
-        `/workflows/${workflowId}/stats`
-      );
+      const response = await api.get<WorkflowStats>(`/workflows/${workflowId}/stats`);
       return response.data;
     } catch (error) {
       console.error("Get workflow stats error:", error);
@@ -188,12 +163,9 @@ export const workflowsApi = {
   ): Promise<Workflow[]> => {
     try {
       // Validate organizationId format
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(organizationId)) {
-        throw new Error(
-          `Invalid organizationId format: ${organizationId}. Expected UUID format.`
-        );
+        throw new Error(`Invalid organizationId format: ${organizationId}. Expected UUID format.`);
       }
 
       // URL encode the search parameter to handle spaces and special characters
@@ -225,9 +197,7 @@ export const workflowsApi = {
   // Workflow status operations
   activateWorkflow: async (workflowId: string): Promise<Workflow> => {
     try {
-      const response = await api.patch<Workflow>(
-        `/workflows/${workflowId}/activate`
-      );
+      const response = await api.patch<Workflow>(`/workflows/${workflowId}/activate`);
       return response.data;
     } catch (error) {
       console.error("Activate workflow error:", error);
@@ -237,9 +207,7 @@ export const workflowsApi = {
 
   deactivateWorkflow: async (workflowId: string): Promise<Workflow> => {
     try {
-      const response = await api.patch<Workflow>(
-        `/workflows/${workflowId}/deactivate`
-      );
+      const response = await api.patch<Workflow>(`/workflows/${workflowId}/deactivate`);
       return response.data;
     } catch (error) {
       console.error("Deactivate workflow error:", error);
@@ -249,9 +217,7 @@ export const workflowsApi = {
 
   archiveWorkflow: async (workflowId: string): Promise<Workflow> => {
     try {
-      const response = await api.patch<Workflow>(
-        `/workflows/${workflowId}/archive`
-      );
+      const response = await api.patch<Workflow>(`/workflows/${workflowId}/archive`);
       return response.data;
     } catch (error) {
       console.error("Archive workflow error:", error);
@@ -266,13 +232,10 @@ export const workflowsApi = {
     userId: string
   ): Promise<Workflow> => {
     try {
-      const response = await api.patch<Workflow>(
-        `/workflows/${workflowId}/set-default`,
-        {
-          organizationId,
-          userId,
-        }
-      );
+      const response = await api.patch<Workflow>(`/workflows/${workflowId}/set-default`, {
+        organizationId,
+        userId,
+      });
       return response.data;
     } catch (error) {
       console.error("Set default workflow error:", error);

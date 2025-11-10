@@ -119,9 +119,7 @@ const TaskActivities: React.FC<TaskActivitiesProps> = ({ taskId, setLoading }) =
     if (diffInMinutes < 1) {
       return "Just now";
     } else if (diffInMinutes < 60) {
-      return `${diffInMinutes} ${
-        diffInMinutes === 1 ? "minute" : "minutes"
-      } ago`;
+      return `${diffInMinutes} ${diffInMinutes === 1 ? "minute" : "minutes"} ago`;
     } else if (diffInHours < 24) {
       return `${diffInHours} ${diffInHours === 1 ? "hour" : "hours"} ago`;
     } else if (diffInDays < 30) {
@@ -137,9 +135,7 @@ const TaskActivities: React.FC<TaskActivitiesProps> = ({ taskId, setLoading }) =
     }
   };
 
-  const displayedActivities = showAll
-    ? activities
-    : activities.slice(0, INITIAL_DISPLAY_COUNT);
+  const displayedActivities = showAll ? activities : activities.slice(0, INITIAL_DISPLAY_COUNT);
 
   const hasMoreToShow = activities.length > INITIAL_DISPLAY_COUNT;
   const canLoadMorePages = page < totalPages;
@@ -151,9 +147,7 @@ const TaskActivities: React.FC<TaskActivitiesProps> = ({ taskId, setLoading }) =
           <div className="p-1 rounded-md">
             <HiOutlineBolt className="w-4 h-4 text-[var(--primary)]" />
           </div>
-          <h3 className="text-sm font-semibold text-[var(--foreground)]">
-            Activities
-          </h3>
+          <h3 className="text-sm font-semibold text-[var(--foreground)]">Activities</h3>
         </div>
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (

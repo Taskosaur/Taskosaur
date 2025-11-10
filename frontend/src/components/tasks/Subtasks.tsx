@@ -18,12 +18,7 @@ import Tooltip from "../common/ToolTip";
 import { useAuth } from "@/contexts/auth-context";
 import { Task } from "@/types";
 import { Label, Select } from "../ui";
-import {
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { PRIORITY_OPTIONS, TASK_TYPE_OPTIONS } from "@/utils/data/taskData";
 
 interface User {
@@ -99,20 +94,18 @@ const Pagination = ({
         </Button>
 
         <div className="flex items-center gap-1">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-            (pageNum) => (
-              <Button
-                key={pageNum}
-                variant={pageNum === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => onPageChange(pageNum)}
-                disabled={isLoading}
-                className="h-8 w-8 p-0"
-              >
-                {pageNum}
-              </Button>
-            )
-          )}
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+            <Button
+              key={pageNum}
+              variant={pageNum === page ? "default" : "outline"}
+              size="sm"
+              onClick={() => onPageChange(pageNum)}
+              disabled={isLoading}
+              className="h-8 w-8 p-0"
+            >
+              {pageNum}
+            </Button>
+          ))}
         </div>
 
         <Button
@@ -226,16 +219,10 @@ export default function Subtasks({
 
     const fetchSubtasks = async () => {
       try {
-        await getSubtasksByParent(
-          taskId,
-          isAuth,
-          workspaceSlug as string,
-          projectSlug as string,
-          {
-            page: currentPage,
-            limit: pageSize,
-          }
-        );
+        await getSubtasksByParent(taskId, isAuth, workspaceSlug as string, projectSlug as string, {
+          page: currentPage,
+          limit: pageSize,
+        });
       } catch (error) {
         console.error("Failed to fetch subtasks:", error);
       } finally {
@@ -256,8 +243,7 @@ export default function Subtasks({
     if (!newSubtaskTitle.trim() || !currentUser) return;
 
     try {
-      const defaultStatus =
-        taskStatuses.find((s) => s.category === "TODO") || taskStatuses[0];
+      const defaultStatus = taskStatuses.find((s) => s.category === "TODO") || taskStatuses[0];
 
       if (!defaultStatus) {
         console.error("No task statuses available");
@@ -294,10 +280,7 @@ export default function Subtasks({
     }
   };
 
-  const handleToggleSubtaskStatus = async (
-    subtaskId: string,
-    e?: React.MouseEvent
-  ) => {
+  const handleToggleSubtaskStatus = async (subtaskId: string, e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
     }
@@ -316,9 +299,7 @@ export default function Subtasks({
 
       const currentStatus = taskStatuses.find((s) => s.id === subtask.statusId);
       const isCurrentlyCompleted = currentStatus?.category === "DONE";
-      const newStatusId = isCurrentlyCompleted
-        ? todoStatus.id
-        : completedStatus.id;
+      const newStatusId = isCurrentlyCompleted ? todoStatus.id : completedStatus.id;
 
       await updateSubtask(subtaskId, { statusId: newStatusId });
       onSubtaskUpdated?.(subtaskId, { statusId: newStatusId });
@@ -376,10 +357,7 @@ export default function Subtasks({
     setSubtaskType("TASK");
   };
 
-  const handleDeleteSubtask = async (
-    subtaskId: string,
-    e?: React.MouseEvent
-  ) => {
+  const handleDeleteSubtask = async (subtaskId: string, e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
     }
@@ -432,10 +410,7 @@ export default function Subtasks({
       medium: "#F59E0B",
       low: "#10B981",
     };
-    return (
-      priorityColors[priority?.toLowerCase() as keyof typeof priorityColors] ||
-      "#6B7280"
-    );
+    return priorityColors[priority?.toLowerCase() as keyof typeof priorityColors] || "#6B7280";
   };
 
   const getTypeColor = (type: string) => {
@@ -445,9 +420,7 @@ export default function Subtasks({
       epic: "#8B5CF6",
       story: "#10B981",
     };
-    return (
-      typeColors[type?.toLowerCase() as keyof typeof typeColors] || "#6B7280"
-    );
+    return typeColors[type?.toLowerCase() as keyof typeof typeColors] || "#6B7280";
   };
 
   const getStatusColor = (statusId: string) => {
@@ -463,10 +436,7 @@ export default function Subtasks({
       todo: "#6B7280",
       "to do": "#6B7280",
     };
-    return (
-      statusColors[status.name?.toLowerCase() as keyof typeof statusColors] ||
-      "#6B7280"
-    );
+    return statusColors[status.name?.toLowerCase() as keyof typeof statusColors] || "#6B7280";
   };
 
   const completedCount = Array.isArray(subtTask)
@@ -491,9 +461,7 @@ export default function Subtasks({
         <SectionHeader
           icon={HiListBullet}
           title={`Subtasks (${completedCount}/${
-            subtaskPagination?.total || Array.isArray(subtTask)
-              ? subtTask.length
-              : 0
+            subtaskPagination?.total || Array.isArray(subtTask) ? subtTask.length : 0
           })`}
         />
 
@@ -548,10 +516,7 @@ export default function Subtasks({
 
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2">
-                          <Label
-                            htmlFor="edit-priority"
-                            className="text-xs font-medium"
-                          >
+                          <Label htmlFor="edit-priority" className="text-xs font-medium">
                             Priority
                           </Label>
                           <Select
@@ -569,19 +534,14 @@ export default function Subtasks({
                                   value={option.value}
                                   className="hover:bg-[var(--hover-bg)] text-xs"
                                 >
-                                  <div className="flex items-center gap-2">
-                                    {option.label}
-                                  </div>
+                                  <div className="flex items-center gap-2">{option.label}</div>
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label
-                            htmlFor="edit-type"
-                            className="text-xs font-medium"
-                          >
+                          <Label htmlFor="edit-type" className="text-xs font-medium">
                             Type
                           </Label>
                           <Select
@@ -599,9 +559,7 @@ export default function Subtasks({
                                   value={option.value}
                                   className="hover:bg-[var(--hover-bg)] text-xs"
                                 >
-                                  <div className="flex items-center gap-2">
-                                    {option.label}
-                                  </div>
+                                  <div className="flex items-center gap-2">{option.label}</div>
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -633,18 +591,12 @@ export default function Subtasks({
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <div
-                            onClick={(e) =>
-                              handleToggleSubtaskStatus(subtask.id, e)
-                            }
+                            onClick={(e) => handleToggleSubtaskStatus(subtask.id, e)}
                             className="cursor-pointer"
                           >
                             {isSubtaskCompleted(subtask) ? (
                               <div className="w-4 h-4 flex items-center justify-center text-green-500">
-                                <svg
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
-                                  className="w-4 h-4"
-                                >
+                                <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                                   <path
                                     fillRule="evenodd"
                                     d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -657,9 +609,7 @@ export default function Subtasks({
                             )}
                           </div>
                           <div
-                            onClick={(e) =>
-                              handleToggleSubtaskStatus(subtask.id, e)
-                            }
+                            onClick={(e) => handleToggleSubtaskStatus(subtask.id, e)}
                             className={`text-sm font-medium cursor-pointer line-clamp-2 ${
                               isSubtaskCompleted(subtask)
                                 ? "text-[var(--muted-foreground)] line-through"
@@ -672,11 +622,7 @@ export default function Subtasks({
 
                         {isAuth && (
                           <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity flex-shrink-0">
-                            <Tooltip
-                              content="Edit"
-                              position="top"
-                              color="primary"
-                            >
+                            <Tooltip content="Edit" position="top" color="primary">
                               <ActionButton
                                 onClick={(e) =>
                                   handleEditSubtask(
@@ -694,15 +640,9 @@ export default function Subtasks({
                                 <HiPencilSquare className="w-4 h-4" />
                               </ActionButton>
                             </Tooltip>
-                            <Tooltip
-                              content="Delete"
-                              position="top"
-                              color="primary"
-                            >
+                            <Tooltip content="Delete" position="top" color="primary">
                               <ActionButton
-                                onClick={(e) =>
-                                  handleDeleteSubtask(subtask.id, e)
-                                }
+                                onClick={(e) => handleDeleteSubtask(subtask.id, e)}
                                 variant="ghost"
                                 className="text-[var(--muted-foreground)] hover:text-[var(--destructive)] cursor-pointer p-1"
                                 disabled={isLoading}
@@ -717,47 +657,35 @@ export default function Subtasks({
                       <div className="flex flex-wrap items-center gap-2 pl-6">
                         <DynamicBadge
                           label={
-                            subtask.priority.charAt(0) +
-                            subtask.priority.slice(1).toLowerCase()
+                            subtask.priority.charAt(0) + subtask.priority.slice(1).toLowerCase()
                           }
                           bgColor={getPriorityColor(subtask.priority)}
                           size="sm"
                           className="px-1.5 py-0.5 text-[10px] h-5 min-h-0"
                         />
                         <DynamicBadge
-                          label={
-                            subtask.type.charAt(0) +
-                            subtask.type.slice(1).toLowerCase()
-                          }
+                          label={subtask.type.charAt(0) + subtask.type.slice(1).toLowerCase()}
                           bgColor={getTypeColor(subtask.type)}
                           size="sm"
                           className="px-1.5 py-0.5 text-[10px] h-5 min-h-0"
                         />
                         <DynamicBadge
                           label={
-                            taskStatuses.find((s) => s.id === subtask.statusId)
-                              ?.name || "Unknown"
+                            taskStatuses.find((s) => s.id === subtask.statusId)?.name || "Unknown"
                           }
                           bgColor={getStatusColor(subtask.statusId)}
                           size="sm"
                           className="px-1.5 py-0.5 text-[10px] h-5 min-h-0"
                         />
                         {subtask.dueDate && (
-                          <Tooltip
-                            content="Due Date"
-                            position="top"
-                            color="primary"
-                          >
+                          <Tooltip content="Due Date" position="top" color="primary">
                             <span className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
                               <HiCalendar className="w-3 h-3" />
-                              {new Date(subtask.dueDate).toLocaleDateString(
-                                "en-US",
-                                {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                }
-                              )}
+                              {new Date(subtask.dueDate).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
                             </span>
                           </Tooltip>
                         )}
@@ -771,26 +699,21 @@ export default function Subtasks({
         )}
 
         {/* Pagination Component */}
-        {Array.isArray(subtTask) &&
-          subtTask.length > 0 &&
-          subtaskPagination && (
-            <Pagination
-              pagination={subtaskPagination}
-              onPageChange={handlePageChange}
-              isLoading={isLoading}
-            />
-          )}
+        {Array.isArray(subtTask) && subtTask.length > 0 && subtaskPagination && (
+          <Pagination
+            pagination={subtaskPagination}
+            onPageChange={handlePageChange}
+            isLoading={isLoading}
+          />
+        )}
 
         {/* Empty State */}
         {!isLoading && Array.isArray(subtTask) && subtTask.length === 0 && (
           <div className="text-center py-8 bg-[var(--muted)]/30 rounded-lg border border-[var(--border)]">
             <HiListBullet className="w-8 h-8 mx-auto mb-3 text-[var(--muted-foreground)]" />
-            <p className="text-sm font-medium text-[var(--foreground)] mb-2">
-              No subtasks yet
-            </p>
+            <p className="text-sm font-medium text-[var(--foreground)] mb-2">No subtasks yet</p>
             <p className="text-xs text-[var(--muted-foreground)]">
-              Add subtasks to break down this task into smaller, manageable
-              pieces
+              Add subtasks to break down this task into smaller, manageable pieces
             </p>
           </div>
         )}
@@ -815,10 +738,7 @@ export default function Subtasks({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label
-                  htmlFor="subtask-priority"
-                  className="text-xs font-medium"
-                >
+                <Label htmlFor="subtask-priority" className="text-xs font-medium">
                   Priority
                 </Label>
                 <Select
@@ -836,9 +756,7 @@ export default function Subtasks({
                         value={option.value}
                         className="hover:bg-[var(--hover-bg)] text-xs"
                       >
-                        <div className="flex items-center gap-2">
-                          {option.label}
-                        </div>
+                        <div className="flex items-center gap-2">{option.label}</div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -849,11 +767,7 @@ export default function Subtasks({
                 <Label htmlFor="subtask-type" className="text-xs font-medium">
                   Type
                 </Label>
-                <Select
-                  value={subtaskType}
-                  onValueChange={setSubtaskType}
-                  disabled={isLoading}
-                >
+                <Select value={subtaskType} onValueChange={setSubtaskType} disabled={isLoading}>
                   <SelectTrigger className="w-full h-8 text-xs  border-[var(--border)] bg-[var(--background)]">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -864,9 +778,7 @@ export default function Subtasks({
                         value={option.value}
                         className="hover:bg-[var(--hover-bg)] text-xs"
                       >
-                        <div className="flex items-center gap-2">
-                          {option.label}
-                        </div>
+                        <div className="flex items-center gap-2">{option.label}</div>
                       </SelectItem>
                     ))}
                   </SelectContent>

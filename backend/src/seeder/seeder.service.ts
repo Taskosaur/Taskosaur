@@ -79,10 +79,7 @@ export class SeederService {
       console.log('✅ Task comments seeded');
 
       // 10. Seed Task Dependencies (depends on tasks and users)
-      const taskDependencies = await this.taskDependenciesSeeder.seed(
-        tasks,
-        users,
-      );
+      const taskDependencies = await this.taskDependenciesSeeder.seed(tasks, users);
       console.log('✅ Task dependencies seeded');
 
       // 11. Seed Task Watchers (depends on tasks and users)
@@ -135,7 +132,9 @@ export class SeederService {
 
     try {
       const result = await this.inboxRulesSeeder.seedRulesForAllInboxes();
-      console.log(`✅ Inbox rules seeded: ${result.totalCreated} rules created across ${result.inboxesProcessed} inboxes`);
+      console.log(
+        `✅ Inbox rules seeded: ${result.totalCreated} rules created across ${result.inboxesProcessed} inboxes`,
+      );
       return result;
     } catch (error) {
       console.error('❌ Error seeding inbox rules:', error);
