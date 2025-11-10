@@ -12,7 +12,6 @@ import {
   InviteOrganizationMemberDto,
 } from './dto/create-organization-member.dto';
 import { UpdateOrganizationMemberDto } from './dto/update-organization-member.dto';
-import { WorkspacesService } from '../workspaces/workspaces.service';
 import { WorkspaceMembersService } from '../workspace-members/workspace-members.service';
 
 @Injectable()
@@ -176,13 +175,71 @@ export class OrganizationMembersService {
     slug?: string,
     page?: number,
     limit?: number,
-  ): Promise<{ data: OrganizationMember[]; total: number; page?: number; limit?: number }> {
+    search?: string,
+  ): Promise<{
+    data: OrganizationMember[];
+    total: number;
+    page?: number;
+    limit?: number;
+    roleCounts: {
+      OWNER: number;
+      MANAGER: number;
+      MEMBER: number;
+      VIEWER: number;
+    };
+  }> {
     const isPaginated = !!(page && limit);
+
+    // Build search conditions
+    const searchCondition = search
+      ? {
+          OR: [
+            { user: { firstName: { contains: search, mode: 'insensitive' } } },
+            { user: { lastName: { contains: search, mode: 'insensitive' } } },
+            { user: { email: { contains: search, mode: 'insensitive' } } },
+            { user: { username: { contains: search, mode: 'insensitive' } } },
+          ],
+        }
+      : {};
+
+    // Combine base where clause with search
+    const whereClause: any = {
+      organization: { slug },
+      ...searchCondition,
+    };
+
+    // Get role counts - Use a simpler where clause without nested relations
+    const baseWhereClause = {
+      organization: { slug },
+    };
+
+    // Get role counts using groupBy with simple where clause
+    const roleCounts = await this.prisma.organizationMember.groupBy({
+      by: ['role'],
+      where: baseWhereClause, // Use base clause without search
+      _count: {
+        role: true,
+      },
+    });
+
+    // Transform role counts into object with all roles
+    const roleCountsMap = {
+      OWNER: 0,
+      MANAGER: 0,
+      MEMBER: 0,
+      VIEWER: 0,
+    };
+
+    roleCounts.forEach((item) => {
+      if (item.role in roleCountsMap) {
+        roleCountsMap[item.role as keyof typeof roleCountsMap] = item._count.role;
+      }
+    });
 
     if (!isPaginated) {
       // Return all results if pagination not provided
       const data = await this.prisma.organizationMember.findMany({
-        where: { organization: { slug } },
+        where: whereClause,
         include: {
           user: {
             select: {
@@ -193,6 +250,7 @@ export class OrganizationMembersService {
               avatar: true,
               status: true,
               lastLoginAt: true,
+              username: true,
             },
           },
           organization: {
@@ -204,13 +262,10 @@ export class OrganizationMembersService {
             },
           },
         },
-        orderBy: [
-          { role: 'asc' }, // Admins first
-          { joinedAt: 'asc' },
-        ],
+        orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
       });
 
-      return { data, total: data.length };
+      return { data, total: data.length, roleCounts: roleCountsMap };
     }
 
     // Pagination case
@@ -218,7 +273,7 @@ export class OrganizationMembersService {
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.organizationMember.findMany({
-        where: { organization: { slug } },
+        where: whereClause,
         include: {
           user: {
             select: {
@@ -229,6 +284,7 @@ export class OrganizationMembersService {
               avatar: true,
               status: true,
               lastLoginAt: true,
+              username: true,
             },
           },
           organization: {
@@ -245,11 +301,11 @@ export class OrganizationMembersService {
         take: limit,
       }),
       this.prisma.organizationMember.count({
-        where: { organization: { slug } },
+        where: whereClause,
       }),
     ]);
 
-    return { data, total, page, limit };
+    return { data, total, page, limit, roleCounts: roleCountsMap };
   }
 
   async findOne(id: string): Promise<OrganizationMember> {

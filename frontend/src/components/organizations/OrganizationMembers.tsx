@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
 import { toast } from "sonner";
-import { HiPlus, HiUsers } from "react-icons/hi2";
+import { HiMagnifyingGlass, HiPlus, HiUsers, HiXMark } from "react-icons/hi2";
 import { HiMail } from "react-icons/hi";
 import { invitationApi } from "@/utils/api/invitationsApi";
 import { OrganizationMember, OrganizationRole } from "@/types";
@@ -39,6 +39,8 @@ interface OrganizationMembersProps {
   onMembersChange: () => void;
   organization?: any;
   pendingInvitationsRef?: React.RefObject<PendingInvitationsRef>;
+  searchQuery?: string;
+  onSearchChange: (query: string) => void;
 }
 
 export default function OrganizationMembers({
@@ -48,11 +50,15 @@ export default function OrganizationMembers({
   onMembersChange,
   organization,
   pendingInvitationsRef,
+  searchQuery,
+  onSearchChange,
 }: OrganizationMembersProps) {
   const { updatedOrganizationMemberRole, removeOrganizationMember } = useOrganization();
   const { getCurrentUser } = useAuth();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<OrganizationMember | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [inviteData, setInviteData] = useState({
     email: "",
@@ -236,7 +242,8 @@ export default function OrganizationMembers({
         await pendingInvitationsRef.current.refreshInvitations();
       }
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || "Failed to send invitation";
+      console.log(error);
+      const errorMessage = error?.message || "Failed to send invitation";
       toast.error(errorMessage);
       console.error("Invite member error:", error);
     } finally {
@@ -279,14 +286,49 @@ export default function OrganizationMembers({
           </div>
           {/* Invite button beside for desktop */}
           {canManageMembers && (
-            <div className="hidden sm:block">
-              <Button
-                onClick={() => setShowInviteModal(true)}
-                className="organizations-members-invite-button"
-              >
-                <HiPlus className="w-4 h-4" />
-                Invite Member
-              </Button>
+            <div className="flex gap-2">
+              <div className="relative w-full sm:w-64">
+                {/* Search Icon */}
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                  <HiMagnifyingGlass className="w-4 h-4 text-[var(--muted-foreground)]" />
+                </div>
+
+                {/* Input Field */}
+                <Input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  placeholder="Search members..."
+                  className="pl-9 pr-9 h-9 w-full border-input bg-background text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus-visible:ring-[var(--primary)]"
+                />
+
+                {/* Loading Spinner */}
+                {searchLoading && (
+                  <div className="absolute inset-y-0 right-3 flex items-center">
+                    <div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+
+                {/* Clear Button */}
+                {!searchLoading && searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute inset-y-0 right-3 flex items-center text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                  >
+                    <HiXMark size={16} />
+                  </button>
+                )}
+              </div>
+
+              <div className="hidden sm:block">
+                <Button
+                  onClick={() => setShowInviteModal(true)}
+                  className="organizations-members-invite-button"
+                >
+                  <HiPlus className="w-4 h-4" />
+                  Invite Member
+                </Button>
+              </div>
             </div>
           )}
         </div>

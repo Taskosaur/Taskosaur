@@ -90,6 +90,19 @@ function OrganizationManagePageContent() {
   const [pageSize, setPageSize] = useState(10);
   // Helper to check if user has access
   const hasManagementAccess = userAccess?.canChange || false;
+  const [searchQuery, setSearchQuery] = useState("");
+  // Add this state to your component
+  const [roleCounts, setRoleCounts] = useState<{
+    OWNER: number;
+    MANAGER: number;
+    MEMBER: number;
+    VIEWER: number;
+  }>({
+    OWNER: 0,
+    MANAGER: 0,
+    MEMBER: 0,
+    VIEWER: 0,
+  });
 
   const loadWorkflows = async () => {
     if (!slug || typeof slug !== "string" || !hasManagementAccess) return;
@@ -157,7 +170,7 @@ function OrganizationManagePageContent() {
       }
 
       // Only load members and workflows if user has access
-      const membersData = await getOrganizationMembers(slug, currentPage, pageSize);
+      const membersData = await getOrganizationMembers(slug, currentPage, pageSize, searchQuery);
 
       setOrganization({
         id: orgData.id,
@@ -176,7 +189,7 @@ function OrganizationManagePageContent() {
       setMembers(membersData.data); // Set only current page data
       setTotalMembers(membersData.total); // Set total count
       setCurrentPage(membersData.page); // Set current page
-
+      setRoleCounts(membersData.roleCounts);
       // Load workflows in background
       loadWorkflows();
     } catch (err) {
@@ -186,13 +199,42 @@ function OrganizationManagePageContent() {
       setIsLoading(false);
     }
   };
+  const loadMembers = async (page: number = currentPage, search: string = searchQuery) => {
+    if (!slug || typeof slug !== "string") return;
 
+    try {
+      const membersData = await getOrganizationMembers(
+        slug,
+        page,
+        pageSize,
+        search || undefined // Pass search query
+      );
+
+      setMembers(membersData.data);
+      setTotalMembers(membersData.total);
+      setCurrentPage(membersData.page || page);
+    } catch (err) {
+      console.error("Failed to load members:", err);
+    }
+  };
   useEffect(() => {
+    console.log("useEffect triggered, slug:", slug);
     if (slug && typeof slug === "string") {
+      console.log("test call - loading data");
       loadData();
     }
-  }, [slug]);
+  }, [slug]); // This will trigger when slug becomes available
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (slug && typeof slug === "string") {
+        setCurrentPage(1);
+        loadMembers(1, searchQuery);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   const handleOrganizationUpdate = async (updatedOrganization: Organization) => {
     if (!hasManagementAccess) return;
     setOrganization(updatedOrganization);
@@ -476,6 +518,8 @@ function OrganizationManagePageContent() {
                     onMembersChange={loadData}
                     organization={organization}
                     pendingInvitationsRef={pendingInvitationsRef}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
                   />
                   <div className="px-4">
                     <Pagination
@@ -533,9 +577,7 @@ function OrganizationManagePageContent() {
                       </div>
                       <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
                         <span>Members:</span>
-                        <span className="font-medium text-[var(--foreground)]">
-                          {members.length}
-                        </span>
+                        <span className="font-medium text-[var(--foreground)]">{totalMembers}</span>
                       </div>
 
                       <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
@@ -548,6 +590,7 @@ function OrganizationManagePageContent() {
                   </CardContent>
                 </Card>
 
+                {/* Member Roles Summary */}
                 {/* Member Roles Summary */}
                 <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
                   <CardHeader className="pb-2">
@@ -564,7 +607,7 @@ function OrganizationManagePageContent() {
                         { name: "MEMBER", variant: "info" },
                         { name: "VIEWER", variant: "secondary" },
                       ].map((role) => {
-                        const count = members.filter((m) => m.role === role.name).length;
+                        const count = roleCounts[role.name as keyof typeof roleCounts]; // Use roleCounts state
                         return (
                           <div
                             key={role.name}

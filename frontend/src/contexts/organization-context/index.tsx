@@ -72,8 +72,19 @@ interface OrganizationContextType extends OrganizationState {
   getOrganizationMembers: (
     slug: string,
     page?: number,
-    limit?: number
-  ) => Promise<{ data: OrganizationMember[]; total: number; page: number }>;
+    limit?: number,
+    search?: string
+  ) => Promise<{
+    data: OrganizationMember[];
+    total: number;
+    page: number;
+    roleCounts: {
+      OWNER: number;
+      MANAGER: number;
+      MEMBER: number;
+      VIEWER: number;
+    };
+  }>;
   getOrganizationWorkFlows: (slug: string) => Promise<Workflow[]>;
   updateWorkflow: (workflowId: string, workflowData: UpdateWorkflowData) => Promise<Workflow>;
   updatedOrganizationMemberRole: (
@@ -368,14 +379,21 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
       getOrganizationMembers: async (
         slug: string,
         page?: number,
-        limit?: number
+        limit?: number,
+        search?: string
       ): Promise<{
         data: OrganizationMember[];
         total: number;
         page: number;
+        roleCounts: {
+          OWNER: number;
+          MANAGER: number;
+          MEMBER: number;
+          VIEWER: number;
+        };
       }> => {
         return handleApiOperation(
-          () => organizationApi.getOrganizationMembers(slug, page, limit),
+          () => organizationApi.getOrganizationMembers(slug, page, limit, search),
           false
         );
       },

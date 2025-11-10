@@ -115,12 +115,38 @@ export const organizationApi = {
   getOrganizationMembers: async (
     slug: string,
     page?: number,
-    limit?: number
-  ): Promise<{ data: OrganizationMember[]; total: number; page: number }> => {
+    limit?: number,
+    search?: string
+  ): Promise<{
+    data: OrganizationMember[];
+    total: number;
+    page: number;
+    roleCounts: {
+      OWNER: number;
+      MANAGER: number;
+      MEMBER: number;
+      VIEWER: number;
+    };
+  }> => {
     try {
-      const response = await api.get<{ data: OrganizationMember[]; total: number; page: number }>(
-        `/organization-members/slug?slug=${encodeURIComponent(slug)}&page=${page}&limit=${limit}`
-      );
+      const params = new URLSearchParams({ slug });
+
+      if (page !== undefined) params.append("page", page.toString());
+      if (limit !== undefined) params.append("limit", limit.toString());
+      if (search) params.append("search", search.trim());
+
+      const response = await api.get<{
+        data: OrganizationMember[];
+        total: number;
+        page: number;
+        roleCounts: {
+          OWNER: number;
+          MANAGER: number;
+          MEMBER: number;
+          VIEWER: number;
+        };
+      }>(`/organization-members/slug?${params.toString()}`);
+
       return response.data;
     } catch (error) {
       console.error("Get organization members by slug error:", error);

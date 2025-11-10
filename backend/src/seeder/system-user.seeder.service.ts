@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role, UserStatus, User } from '@prisma/client';
+import { Role, UserStatus, UserSource, User } from '@prisma/client';
 
 export const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -11,35 +11,35 @@ export class SystemUserSeederService {
   async seed(): Promise<User> {
     console.log('🤖 Seeding system user...');
 
-    const systemUserData = {
-      id: SYSTEM_USER_ID,
-      email: 'system@taskosaur.internal',
-      username: 'system',
-      firstName: 'System',
-      lastName: 'User',
-      role: Role.SUPER_ADMIN,
-      status: UserStatus.INACTIVE, // Cannot be used for authentication
-      password: null, // No password - cannot authenticate
-      emailVerified: false,
-      bio: 'Internal system user for audit trails and automated operations. Cannot be used for authentication.',
-      timezone: 'UTC',
-      language: 'en',
-      avatar: null,
-      refreshToken: null,
-      resetToken: null,
-      resetTokenExpiry: null,
-      lastLoginAt: null,
-      preferences: {
-        system: true,
-        internal: true,
-        audit_only: true,
-      },
-    };
-
     try {
-      // Try to create the system user
+      // Check if system user already exists
+      const existing = await this.prisma.user.findUnique({
+        where: { id: SYSTEM_USER_ID },
+      });
+
+      if (existing) {
+        console.log('   ✓ System user already exists');
+        return existing;
+      }
+
+      // Create system user
       const systemUser = await this.prisma.user.create({
-        data: systemUserData,
+        data: {
+          id: SYSTEM_USER_ID,
+          email: 'system@taskosaur.internal',
+          username: 'system',
+          firstName: 'System',
+          lastName: 'User',
+          role: Role.SUPER_ADMIN,
+          status: UserStatus.INACTIVE,
+          source: UserSource.MANUAL, // Add this field
+          password: null,
+          emailVerified: false,
+          bio: 'Internal system user for audit trails and automated operations. Cannot be used for authentication.',
+          timezone: 'UTC',
+          language: 'en',
+          // All optional null fields can be omitted, but explicitly setting them is fine too
+        },
       });
 
       console.log(`   ✓ Created system user: ${systemUser.email} (ID: ${systemUser.id})`);
@@ -47,21 +47,6 @@ export class SystemUserSeederService {
 
       return systemUser;
     } catch (error) {
-      // If user already exists, try to find and return it
-      if (error.code === 'P2002') {
-        // Unique constraint violation
-        console.log('   ⚠ System user already exists, fetching existing user...');
-
-        const existingUser = await this.prisma.user.findUnique({
-          where: { id: SYSTEM_USER_ID },
-        });
-
-        if (existingUser) {
-          console.log(`   ✓ Found existing system user: ${existingUser.email}`);
-          return existingUser;
-        }
-      }
-
       console.error('❌ Error creating system user:', error);
       throw error;
     }
@@ -78,8 +63,10 @@ export class SystemUserSeederService {
       console.log(`✅ Deleted system user: ${deletedUser.email}`);
     } catch (error) {
       if (error.code === 'P2025') {
-        // Record not found
         console.log('   ⚠ System user not found, nothing to clear');
+      } else if (error.code === 'P2003') {
+        console.error('❌ Cannot delete: System user is referenced by other records');
+        console.log('💡 You may need to delete dependent records first or use CASCADE');
       } else {
         console.error('❌ Error clearing system user:', error);
         throw error;
@@ -93,9 +80,6 @@ export class SystemUserSeederService {
     });
   }
 
-  /**
-   * Verify that the system user exists and has correct properties
-   */
   async verifySystemUser(): Promise<boolean> {
     const systemUser = await this.findSystemUser();
 
@@ -104,27 +88,27 @@ export class SystemUserSeederService {
       return false;
     }
 
-    const issues: string[] = [];
+    const checks = [
+      { name: 'Status is INACTIVE', pass: systemUser.status === UserStatus.INACTIVE },
+      { name: 'Password is null', pass: systemUser.password === null },
+      { name: 'Email not verified', pass: systemUser.emailVerified === false },
+      { name: 'Role is SUPER_ADMIN', pass: systemUser.role === Role.SUPER_ADMIN },
+      { name: 'Email correct', pass: systemUser.email === 'system@taskosaur.internal' },
+    ];
 
-    if (systemUser.status !== UserStatus.INACTIVE) {
-      issues.push('Status should be INACTIVE');
+    const allPassed = checks.every((c) => c.pass);
+
+    checks.forEach((check) => {
+      const icon = check.pass ? '✅' : '❌';
+      console.log(`   ${icon} ${check.name}`);
+    });
+
+    if (allPassed) {
+      console.log('✅ System user verification passed');
+    } else {
+      console.log('❌ System user verification failed');
     }
 
-    if (systemUser.password !== null) {
-      issues.push('Password should be null');
-    }
-
-    if (systemUser.emailVerified !== false) {
-      issues.push('Email should not be verified');
-    }
-
-    if (issues.length > 0) {
-      console.error('❌ System user verification failed:');
-      issues.forEach((issue) => console.error(`   - ${issue}`));
-      return false;
-    }
-
-    console.log('✅ System user verification passed');
-    return true;
+    return allPassed;
   }
 }

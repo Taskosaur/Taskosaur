@@ -6,7 +6,6 @@ export const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
 
 // Models that should have createdBy/updatedBy fields automatically set
 const AUDITABLE_MODELS = [
-  'User',
   'Organization',
   'OrganizationMember',
   'Workspace',
