@@ -538,7 +538,9 @@ export class NotificationsService {
               description: true,
               priority: true,
               taskNumber: true,
-              status: { select: { id: true, name: true, color: true, category: true } },
+              status: {
+                select: { id: true, name: true, color: true, category: true },
+              },
               project: { select: { id: true, name: true, slug: true } },
             },
           });
@@ -566,7 +568,9 @@ export class NotificationsService {
               id: true,
               content: true,
               createdAt: true,
-              task: { select: { id: true, title: true, slug: true, taskNumber: true } },
+              task: {
+                select: { id: true, title: true, slug: true, taskNumber: true },
+              },
             },
           });
 

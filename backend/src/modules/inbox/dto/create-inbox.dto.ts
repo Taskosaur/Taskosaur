@@ -44,17 +44,25 @@ export class CreateInboxDto {
   @IsString()
   syncInterval?: string;
 
-  @ApiPropertyOptional({ description: 'Automatically create tasks from emails' })
+  @ApiPropertyOptional({
+    description: 'Automatically create tasks from emails',
+  })
   @IsBoolean()
   @IsOptional()
   autoCreateTask?: boolean;
 
-  @ApiPropertyOptional({ description: 'Default task type for created tasks', enum: TaskType })
+  @ApiPropertyOptional({
+    description: 'Default task type for created tasks',
+    enum: TaskType,
+  })
   @IsEnum(TaskType)
   @IsOptional()
   defaultTaskType?: TaskType;
 
-  @ApiPropertyOptional({ description: 'Default priority for created tasks', enum: TaskPriority })
+  @ApiPropertyOptional({
+    description: 'Default priority for created tasks',
+    enum: TaskPriority,
+  })
   @IsEnum(TaskPriority)
   @IsOptional()
   defaultPriority?: TaskPriority;

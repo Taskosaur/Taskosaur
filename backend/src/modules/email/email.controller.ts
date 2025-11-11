@@ -92,6 +92,6 @@ export class EmailController {
     },
   })
   async getQueueStats() {
-    return this.emailService.getQueueStats();
+    return await this.emailService.getQueueStats();
   }
 }

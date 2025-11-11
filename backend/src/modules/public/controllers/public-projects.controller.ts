@@ -1,10 +1,27 @@
-import { Controller, Get, HttpStatus, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  HttpStatus,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { PublicProjectsService } from '../services/public-projects.service';
 import { PublicProjectDto } from '../dto/public-project.dto';
 import { PublicRateLimitGuard } from '../guards/public-rate-limit.guard';
 import { Public } from '../decorators/public.decorator';
-import { GetProjectChartsQueryDto, ProjectChartDataResponse, ProjectChartType } from 'src/modules/projects/dto/get-project-charts-query.dto';
+import {
+  GetProjectChartsQueryDto,
+  ProjectChartDataResponse,
+  ProjectChartType,
+} from 'src/modules/projects/dto/get-project-charts-query.dto';
 import { ProjectChartsService } from '../services/public-chat.service';
 
 @ApiTags('Public Workspaces')
@@ -12,19 +29,20 @@ import { ProjectChartsService } from '../services/public-chat.service';
 @UseGuards(PublicRateLimitGuard)
 @Public()
 export class PublicWorkspacesController {
-  constructor(private readonly publicProjectsService: PublicProjectsService,
-    private readonly projectChartsService: ProjectChartsService
-  ) { }
+  constructor(
+    private readonly publicProjectsService: PublicProjectsService,
+    private readonly projectChartsService: ProjectChartsService,
+  ) {}
 
   @Get(':workspaceSlug/projects')
   @ApiOperation({
     summary: 'Get workspace public projects',
-    description: 'Get all public projects in a specific workspace'
+    description: 'Get all public projects in a specific workspace',
   })
   @ApiParam({ name: 'workspaceSlug', description: 'Workspace slug' })
   @ApiResponse({ type: [PublicProjectDto] })
   async getWorkspaceProjects(
-    @Param('workspaceSlug') workspaceSlug: string
+    @Param('workspaceSlug') workspaceSlug: string,
   ): Promise<PublicProjectDto[]> {
     return this.publicProjectsService.getWorkspacePublicProjects(workspaceSlug);
   }
@@ -32,16 +50,19 @@ export class PublicWorkspacesController {
   @Get(':workspaceSlug/projects/:projectSlug')
   @ApiOperation({
     summary: 'Get public project',
-    description: 'Get detailed information about a specific public project'
+    description: 'Get detailed information about a specific public project',
   })
   @ApiParam({ name: 'workspaceSlug', description: 'Workspace slug' })
   @ApiParam({ name: 'projectSlug', description: 'Project slug' })
   @ApiResponse({ type: PublicProjectDto })
   async getProject(
     @Param('workspaceSlug') workspaceSlug: string,
-    @Param('projectSlug') projectSlug: string
+    @Param('projectSlug') projectSlug: string,
   ): Promise<PublicProjectDto> {
-    return this.publicProjectsService.getPublicProject(workspaceSlug, projectSlug);
+    return this.publicProjectsService.getPublicProject(
+      workspaceSlug,
+      projectSlug,
+    );
   }
 
   @Get(':slug/charts')
@@ -140,8 +161,6 @@ export class PublicWorkspacesController {
   async getPublicProjecTaskStatus(
     @Param('slug') projectSlug: string,
   ): Promise<ProjectChartDataResponse> {
-    return this.publicProjectsService.publicProjectStatus(
-      projectSlug
-    );
+    return this.publicProjectsService.publicProjectStatus(projectSlug);
   }
 }

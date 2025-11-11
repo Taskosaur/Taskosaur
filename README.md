@@ -10,48 +10,287 @@
 
 Taskosaur is an open source project management platform with AI Mode integration. The AI assistant handles project management tasks through natural conversation, from creating tasks to managing workflows.
 
-<!-- Badges will be added here -->
+<!-- Badges -->
 
 ![Node.js](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)
 ![TypeScript](https://img.shields.io/badge/typescript-%5E5.0.0-blue.svg)
 ![NestJS](https://img.shields.io/badge/nestjs-%5E11.0.0-red.svg)
 ![Next.js](https://img.shields.io/badge/nextjs-15.2.2-black.svg)
-![PostgreSQL](https://img.shields.io/badge/postgresql-%3E%3D13-blue.svg)
-![Redis](https://img.shields.io/badge/redis-%3E%3D6-red.svg)
+![PostgreSQL](https://img.shields.io/badge/postgresql-%3E%3D16-blue.svg)
+![Redis](https://img.shields.io/badge/redis-%3E%3D7-red.svg)
 ![AI](https://img.shields.io/badge/AI-Powered-purple.svg)
 
 Taskosaur combines traditional project management features with AI Mode, allowing you to manage projects through natural conversation. Instead of navigating menus and forms, you can create tasks, assign work, and manage workflows by simply describing what you need.
 
 ## Key Features
 
-🤖 **AI Mode** - Manage projects through natural conversation instead of clicking through forms
-💬 **Natural Language Commands** - "Create sprint with high-priority bugs from last week" executes automatically
-🏠 **Self-Hosted** - Your data stays on your infrastructure
-💰 **Bring Your Own LLM** - Use your own API key with OpenAI, Anthropic, OpenRouter, or local models
-🔧 **Browser Automation** - AI navigates the interface and performs actions directly
-📊 **Full Project Management** - Kanban boards, sprints, task dependencies, time tracking
-🌐 **Open Source** - Available under Business Source License (BSL)
+- 🤖 **AI Mode** - Manage projects through natural conversation instead of clicking through forms
+- 💬 **Natural Language Commands** - "Create sprint with high-priority bugs from last week" executes automatically
+- 🏠 **Self-Hosted** - Your data stays on your infrastructure
+- 💰 **Bring Your Own LLM** - Use your own API key with OpenAI, Anthropic, OpenRouter, or local models
+- 🔧 **Browser Automation** - AI navigates the interface and performs actions directly
+- 📊 **Full Project Management** - Kanban boards, sprints, task dependencies, time tracking
+- 🌐 **Open Source** - Available under Business Source License (BSL)
 
 ## Table of Contents
 
 - [Key Features](#key-features)
-- [🚀 AI Mode Setup](#-ai-mode-setup)
-- [Features](#features)
-  - [🤖 AI Mode Capabilities](#-ai-mode-capabilities)
 - [Quick Start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Docker Setup (Recommended)](#docker-setup-recommended)
+  - [Manual Setup](#manual-setup)
 - [Development](#development)
-  - [Code Quality & Git Hooks](#code-quality--git-hooks)
 - [Project Structure](#project-structure)
-- [Development Roadmap](#development-roadmap)
 - [Deployment](#deployment)
 - [API Documentation](#api-documentation)
-- [FAQ](#faq)
 - [Contributing](#contributing)
 - [License](#license)
-- [Acknowledgments](#acknowledgments)
 - [Support](#support)
 
-## 🚀 AI Mode Setup
+## Quick Start
+
+### Prerequisites
+
+- Node.js 22+ and npm 10+
+- PostgreSQL 16+ (or Docker)
+- Redis 7+ (or Docker)
+
+### Docker Setup (Recommended)
+
+The fastest way to get started with Taskosaur is using Docker Compose:
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/Taskosaur/taskosaur.git
+   cd taskosaur
+   ```
+
+2. **Start with Docker Compose**
+
+   ```bash
+   docker compose -f docker-compose.dev.yml up
+   ```
+
+   This automatically:
+   - ✅ Starts PostgreSQL and Redis
+   - ✅ Installs all dependencies
+   - ✅ Generates Prisma client
+   - ✅ Runs database migrations
+   - ✅ Seeds the database with sample data
+   - ✅ Starts both backend and frontend
+
+3. **Access the application**
+   - Frontend: http://localhost:3001
+   - Backend API: http://localhost:3000
+   - API Documentation: http://localhost:3000/api/docs
+
+See [DOCKER_DEV_SETUP.md](DOCKER_DEV_SETUP.md) for detailed Docker documentation.
+
+### Manual Setup
+
+If you prefer to run services locally:
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/Taskosaur/taskosaur.git
+   cd taskosaur
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Environment Setup**
+
+   Create a `.env` file in the root directory:
+
+   ```env
+   # Database Configuration
+   DATABASE_URL="postgresql://taskosaur:taskosaur@localhost:5432/taskosaur"
+
+   # Application
+   NODE_ENV=development
+
+   # Authentication & Security
+   JWT_SECRET="your-jwt-secret-key-change-this"
+   JWT_REFRESH_SECRET="your-refresh-secret-key-change-this-too"
+   JWT_EXPIRES_IN="15m"
+   JWT_REFRESH_EXPIRES_IN="7d"
+
+   # Encryption for sensitive data
+   ENCRYPTION_KEY="your-64-character-hex-encryption-key-change-this-to-random-value"
+
+   # Redis Configuration (for Bull Queue)
+   REDIS_HOST=localhost
+   REDIS_PORT=6379
+   REDIS_PASSWORD=
+
+   # Email Configuration (optional, for notifications)
+   SMTP_HOST=smtp.example.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@taskosaur.com
+   SMTP_PASS=your-app-password
+   SMTP_FROM=noreply@taskosaur.com
+   EMAIL_DOMAIN="taskosaur.com"
+
+   # Frontend URL (for email links and CORS)
+   FRONTEND_URL=http://localhost:3001
+   CORS_ORIGIN="http://localhost:3001"
+
+   # Backend API URL (for frontend to connect to backend)
+   NEXT_PUBLIC_API_BASE_URL=http://localhost:3000/api
+
+   # File Upload
+   UPLOAD_DEST="./uploads"
+   MAX_FILE_SIZE=10485760
+
+   # Queue Configuration
+   MAX_CONCURRENT_JOBS=5
+   JOB_RETRY_ATTEMPTS=3
+   ```
+
+4. **Setup Database**
+
+   ```bash
+   # Run database migrations
+   npm run db:migrate
+
+   # Seed the database (idempotent - safe to run multiple times)
+   npm run db:seed
+
+   # Or seed with admin user only
+   npm run db:seed:admin
+   ```
+
+5. **Start the Application**
+
+   ```bash
+   # Development mode (runs both frontend and backend)
+   npm run dev
+
+   # Or start individually
+   npm run dev:frontend    # Start frontend only (port 3001)
+   npm run dev:backend     # Start backend only (port 3000)
+   ```
+
+6. **Access the Application**
+   - Frontend: http://localhost:3001
+   - Backend API: http://localhost:3000
+   - API Documentation: http://localhost:3000/api/docs
+
+## Development
+
+### Available Commands
+
+All commands are run from the root directory:
+
+#### Development
+
+```bash
+npm run dev              # Start both frontend and backend concurrently
+npm run dev:frontend     # Start frontend only (Next.js on port 3001)
+npm run dev:backend      # Start backend only (NestJS on port 3000)
+```
+
+#### Build
+
+```bash
+npm run build            # Build all workspaces (frontend + backend)
+npm run build:frontend   # Build frontend for production
+npm run build:backend    # Build backend for production
+npm run build:dist       # Build complete distribution package
+```
+
+#### Database Operations
+
+All seed commands are **idempotent** and safe to run multiple times:
+
+```bash
+npm run db:migrate         # Run database migrations
+npm run db:migrate:deploy  # Deploy migrations (production)
+npm run db:reset           # Reset database (deletes all data!)
+npm run db:seed            # Seed database with sample data
+npm run db:seed:admin      # Seed database with admin user only
+npm run db:generate        # Generate Prisma client
+npm run db:studio          # Open Prisma Studio (database GUI)
+npm run prisma             # Run Prisma CLI commands directly
+```
+
+#### Testing
+
+```bash
+npm run test               # Run all tests
+npm run test:frontend      # Run frontend tests
+npm run test:backend       # Run backend unit tests
+npm run test:watch         # Run backend tests in watch mode
+npm run test:cov           # Run backend tests with coverage
+npm run test:e2e           # Run backend end-to-end tests
+```
+
+#### Code Quality
+
+```bash
+npm run lint               # Lint all workspaces
+npm run lint:frontend      # Lint frontend code
+npm run lint:backend       # Lint backend code
+npm run format             # Format backend code with Prettier
+```
+
+#### Cleanup
+
+```bash
+npm run clean              # Clean all build artifacts
+npm run clean:frontend     # Clean frontend build artifacts
+npm run clean:backend      # Clean backend build artifacts
+```
+
+### Git Hooks
+
+Automatic code quality checks with **Husky**:
+
+- **Pre-commit**: Runs linters on all workspaces before each commit
+- Ensures code quality and consistency
+- Bypass with `--no-verify` (emergencies only)
+
+```bash
+git commit -m "feat: add feature"  # Runs checks automatically
+```
+
+## Project Structure
+
+```
+taskosaur/
+├── backend/                # NestJS Backend (Port 3000)
+│   ├── src/
+│   │   ├── modules/       # Feature modules
+│   │   ├── common/        # Shared utilities
+│   │   ├── config/        # Configuration
+│   │   └── gateway/       # WebSocket gateway
+│   ├── prisma/            # Database schema and migrations
+│   ├── public/            # Static files
+│   └── uploads/           # File uploads
+├── frontend/              # Next.js Frontend (Port 3001)
+│   ├── src/
+│   │   ├── app/          # App Router pages
+│   │   ├── components/   # React components
+│   │   ├── contexts/     # React contexts
+│   │   ├── hooks/        # Custom hooks
+│   │   ├── lib/          # Utilities
+│   │   └── types/        # TypeScript types
+│   └── public/           # Static assets
+├── docker/               # Docker configuration
+│   └── entrypoint-dev.sh # Development entrypoint script
+├── scripts/              # Build and utility scripts
+├── .env.example          # Environment variables template
+├── docker-compose.dev.yml # Docker Compose for development
+└── package.json          # Root package configuration
+```
+
+## AI Mode Setup
 
 ### Enable AI Mode in 3 Steps:
 
@@ -198,176 +437,152 @@ _Taskosaur is actively under development. The following features represent our p
    cd taskosaur
    ```
 
-2. **Environment Setup**
-
-   Run the interactive setup command to create your environment configuration:
+2. **Install dependencies**
 
    ```bash
-   npm run setup
+   npm install
    ```
 
-   This will create a single `.env` file with guided configuration for:
+   This will automatically:
+   - Install all workspace dependencies (frontend and backend)
+   - Set up Husky git hooks for code quality
 
-   - **Global Configuration**: App host and port settings
-   - **Backend Configuration**: Database, authentication, Redis, email, and file upload settings
-   - **Frontend Configuration**: API base URL and organization settings
+3. **Environment Setup**
 
-   After setup, you'll need to manually run:
-
-   ```bash
-   # Install dependencies
-   npm run be:install && npm run fe:install
-
-   # Setup database
-   npm run db:migrate
-   npm run db:seed core
-   ```
-
-3. **Manual Setup (Alternative)**
-
-   If you prefer manual configuration, create a single environment file in the root directory:
-
-   **Root Environment** (`.env`):
+   Create a `.env` file in the root directory with the following configuration:
 
    ```env
-   # Global/Proxy Configuration
-   APP_HOST=127.0.0.1
-   APP_PORT=9123
-
-   #### Backend Configuration >>>>>
-   BE_UNIX_SOCKET=1
-   # BE_HOST=127.0.0.1  # Use when BE_UNIX_SOCKET=0
-   # BE_PORT=9102       # Use when BE_UNIX_SOCKET=0
-
-   BE_DATABASE_URL="postgresql://your-db-username:your-db-password@localhost:5432/taskosaur"
+   # Database Configuration
+   DATABASE_URL="postgresql://your-db-username:your-db-password@localhost:5432/taskosaur"
 
    # Authentication
-   BE_JWT_SECRET="your-jwt-secret-key-change-this"
-   BE_JWT_REFRESH_SECRET="your-refresh-secret-key-change-this-too"
-   BE_JWT_EXPIRES_IN="15m"
-   BE_JWT_REFRESH_EXPIRES_IN="7d"
+   JWT_SECRET="your-jwt-secret-key-change-this"
+   JWT_REFRESH_SECRET="your-refresh-secret-key-change-this-too"
+   JWT_EXPIRES_IN="15m"
+   JWT_REFRESH_EXPIRES_IN="7d"
 
    # Redis Configuration (for Bull Queue)
-   BE_REDIS_HOST=localhost
-   BE_REDIS_PORT=6379
-   BE_REDIS_PASSWORD=
+   REDIS_HOST=localhost
+   REDIS_PORT=6379
+   REDIS_PASSWORD=
 
    # Email Configuration (for notifications)
-   BE_SMTP_HOST=smtp.gmail.com
-   BE_SMTP_PORT=587
-   BE_SMTP_USER=your-email@gmail.com
-   BE_SMTP_PASS=your-app-password
-   BE_SMTP_FROM=noreply@taskosaur.com
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASS=your-app-password
+   SMTP_FROM=noreply@taskosaur.com
 
    # Frontend URL (for email links)
-   BE_FRONTEND_URL=http://127.0.0.1:9123
+   FRONTEND_URL=http://localhost:3000
 
    # File Upload
-   BE_UPLOAD_DEST="../uploads"
-   BE_MAX_FILE_SIZE=10485760
+   UPLOAD_DEST="./uploads"
+   MAX_FILE_SIZE=10485760
 
    # Queue Configuration
-   BE_MAX_CONCURRENT_JOBS=5
-   BE_JOB_RETRY_ATTEMPTS=3
-   #### Backend Configuration <<<<<
+   MAX_CONCURRENT_JOBS=5
+   JOB_RETRY_ATTEMPTS=3
 
-   #### Frontend Configuration >>>>>
-   FE_UNIX_SOCKET=1
-   # FE_HOST=127.0.0.1  # Use when FE_UNIX_SOCKET=0
-   # FE_PORT=9101       # Use when FE_UNIX_SOCKET=0
-
-   FE_NEXT_PUBLIC_API_BASE_URL=/api
-   FE_NEXT_PUBLIC_DEFAULT_ORGANIZATION_ID=your-default-organization-id-here
-   #### Frontend Configuration <<<<<
+   # Frontend Configuration
+   NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
+   NEXT_PUBLIC_DEFAULT_ORGANIZATION_ID=your-default-organization-id-here
    ```
 
-   Then install dependencies and setup database:
+4. **Setup Database**
 
    ```bash
-   # Install dependencies (run from root directory)
-   npm install
-   npm run be:install         # Install backend dependencies
-   npm run fe:install         # Install frontend dependencies
+   # Run database migrations
+   npm run db:migrate
 
-   # Setup database
-   npm run db:migrate         # Run database migrations
-   npm run db:seed:admin            # Seed the database with admin data
-   npm run db:seed core            # Seed the database with core data
+   # Seed the database with core data
+   npm run db:seed
    ```
 
-4. **Start the Application**
+5. **Start the Application**
 
    ```bash
-   # Development mode (with hot reload)
-   npm run start:dev
+   # Development mode (with hot reload for both frontend and backend)
+   npm run dev
 
-   # Production mode
-   npm start
+   # Or start individually
+   npm run dev:frontend    # Start frontend only
+   npm run dev:backend     # Start backend only
    ```
 
-5. **Access the Application**
-   - Application: [http://127.0.0.1:9123](http://127.0.0.1:9123) (or your configured host/port)
-   - Backend API: Check your backend configuration
-   - API Documentation: Available at your backend URL + `/api/docs`
+6. **Access the Application**
+   - Frontend: [http://localhost:3000](http://localhost:3000)
+   - Backend API: [http://localhost:3001/api](http://localhost:3001/api)
+   - API Documentation: [http://localhost:3001/api/docs](http://localhost:3001/api/docs)
 
 ## Development
 
-### Root Commands (Unified)
+### Available Commands
+
+All commands are run from the root directory. Environment variables are automatically loaded from the root `.env` file.
+
+#### Development
 
 ```bash
-# Setup & Installation
-npm run setup             # Interactive setup (create .env only)
-npm run be:install        # Install backend dependencies
-npm run fe:install        # Install frontend dependencies
+# Start both frontend and backend
+npm run dev
 
-# Application Management
-npm run start             # Start both backend and frontend in production
-npm run start:dev         # Start both backend and frontend in development
-
-# Database Operations
-npm run db:migrate           # Run database migrations
-npm run db:seed core         # Seed database with core data
-npm run db:reset             # Reset database (deletes all data!)
-npm run db:generate          # Generate Prisma client
+# Start individually
+npm run dev:frontend       # Start frontend dev server
+npm run dev:backend        # Start backend dev server with hot reload
 ```
 
-### Backend Commands
+#### Build
 
 ```bash
-# All commands run from root directory with environment variables loaded
+# Build all workspaces
+npm run build
 
-# Development
-npm run be:start:dev       # Start development server with hot reload
-npm run be:build           # Build for production
-npm run be:start:prod      # Start production server
-
-# Database
-npm run be:prisma:studio      # Open Prisma Studio
-npm run be:prisma:migrate:dev # Create and apply migration
-npm run be:prisma:generate    # Generate Prisma client
-
-# Testing
-npm run be:test            # Run unit tests
-npm run be:test:watch      # Run tests in watch mode
-npm run be:test:e2e        # Run end-to-end tests
-
-# Code Quality
-npm run be:lint            # Run ESLint
-npm run be:format          # Format code with Prettier
+# Build individually
+npm run build:frontend     # Build frontend for production
+npm run build:backend      # Build backend for production
+npm run build:dist         # Build complete distribution package
 ```
 
-### Frontend Commands
+#### Database Operations
 
 ```bash
-# All commands run from root directory with environment variables loaded
+npm run db:migrate         # Run database migrations
+npm run db:migrate:deploy  # Deploy migrations (production)
+npm run db:reset           # Reset database (deletes all data!)
+npm run db:seed            # Seed database with core data
+npm run db:seed:admin      # Seed database with admin user
+npm run db:generate        # Generate Prisma client
+npm run db:studio          # Open Prisma Studio
+npm run prisma             # Run Prisma CLI commands
+```
 
-# Development
-npm run fe:dev            # Start development server
-npm run fe:build          # Build for production
-npm run fe:start          # Start production server
+#### Testing
 
-# Code Quality
-npm run fe:lint           # Run ESLint
+```bash
+npm run test               # Run all tests
+npm run test:frontend      # Run frontend tests
+npm run test:backend       # Run backend unit tests
+npm run test:watch         # Run backend tests in watch mode
+npm run test:cov           # Run backend tests with coverage
+npm run test:e2e           # Run backend end-to-end tests
+```
+
+#### Code Quality
+
+```bash
+npm run lint               # Lint all workspaces
+npm run lint:frontend      # Lint frontend code
+npm run lint:backend       # Lint backend code
+npm run format             # Format backend code with Prettier
+```
+
+#### Cleanup
+
+```bash
+npm run clean              # Clean all workspaces and root
+npm run clean:frontend     # Clean frontend build artifacts
+npm run clean:backend      # Clean backend build artifacts
 ```
 
 ### Code Quality & Git Hooks
@@ -375,19 +590,18 @@ npm run fe:lint           # Run ESLint
 Automatic code formatting and linting with **Prettier**, **ESLint**, and **Husky**.
 
 ```bash
-# Format and lint everything
-npm run format              # Format backend + frontend
-npm run lint                # Lint with auto-fix
-npm run format:all          # Format and lint everything
+# Lint all workspaces
+npm run lint                # Lint all workspaces
 
-# Individual commands
-npm run be:format           # Backend only
-npm run fe:format           # Frontend only
-npm run be:lint             # Backend lint
-npm run fe:lint             # Frontend lint
+# Lint individually
+npm run lint:frontend       # Frontend only
+npm run lint:backend        # Backend only
+
+# Format backend code
+npm run format              # Format backend code with Prettier
 ```
 
-**Pre-commit Hook**: Automatically formats, lints, and validates code on every commit.
+**Pre-commit Hook**: Automatically formats, lints, and validates code on every commit via Husky.
 
 ```bash
 # Commits run checks automatically
@@ -446,45 +660,52 @@ docker-compose -f docker-compose.prod.yml up -d
 - Redis 6+
 - Reverse proxy (Nginx recommended)
 
-**Backend Deployment:**
+**Deployment Steps:**
 
 ```bash
 # From root directory
-npm install --production
-npm run be:build
-npm run be:prisma:migrate:deploy
-npm run be:start:prod
-```
+npm install
 
-**Frontend Deployment:**
+# Run database migrations
+npm run db:migrate:deploy
 
-```bash
-# From root directory
-npm install --production
-npm run fe:build
-npm run fe:start
+# Generate Prisma client
+npm run db:generate
+
+# Build distribution package
+npm run build:dist
+
+# Start the application
+# Backend: dist/main.js
+# Frontend: dist/public/
+# Serve with your preferred Node.js process manager (PM2, systemd, etc.)
 ```
 
 #### Environment Variables for Production
 
-Update your environment variables for production:
-
-**Root (.env):**
+Update your `.env` file for production:
 
 ```env
-# Global/Proxy Configuration
-APP_HOST=0.0.0.0
-APP_PORT=9123
 NODE_ENV=production
 
-# Backend Configuration
-BE_DATABASE_URL="postgresql://username:password@your-db-host:5432/taskosaur"
-BE_JWT_SECRET="your-secure-production-jwt-secret"
-BE_REDIS_HOST="your-redis-host"
-BE_CORS_ORIGIN="https://your-domain.com"
+# Database Configuration
+DATABASE_URL="postgresql://username:password@your-db-host:5432/taskosaur"
+
+# Authentication
+JWT_SECRET="your-secure-production-jwt-secret"
+JWT_REFRESH_SECRET="your-secure-production-refresh-secret"
+
+# Redis Configuration
+REDIS_HOST="your-redis-host"
+REDIS_PORT=6379
+REDIS_PASSWORD="your-redis-password"
+
+# CORS Configuration
+CORS_ORIGIN="https://your-domain.com"
 
 # Frontend Configuration
-FE_NEXT_PUBLIC_API_BASE_URL=https://api.your-domain.com
+NEXT_PUBLIC_API_BASE_URL=https://api.your-domain.com/api
+FRONTEND_URL=https://your-domain.com
 ```
 
 #### Hosting Platforms
@@ -498,79 +719,10 @@ FE_NEXT_PUBLIC_API_BASE_URL=https://api.your-domain.com
 
 ## API Documentation
 
-The API documentation is automatically generated using Swagger and is available at:
+The API documentation is automatically generated using Swagger:
 
-- Development: [http://localhost:9123/api/docs](http://localhost:9123/api/docs)
-- Production: `https://your-domain.com/api/docs`
-
-## FAQ
-
-### AI & Features Questions
-
-**Q: How does Taskosaur's AI Mode work?**
-A: AI Mode uses browser automation to perform actions directly - navigating interfaces, filling forms, creating tasks, updating statuses, and executing workflows. It combines natural language understanding with automation to manage projects conversationally.
-
-**Q: What makes this different from other AI project management tools?**
-A: While many tools offer AI chat for suggestions, Taskosaur's AI executes tasks and manages workflows directly through natural conversation.
-
-**Q: How do I enable AI Mode?**
-A: Go to Organization Settings → AI Assistant Settings, toggle "Enable AI Chat" to ON, and add your LLM API key from any compatible provider (OpenRouter, OpenAI, Anthropic, or local AI). The AI chat panel (sparkles icon) will appear, ready to manage your projects conversationally.
-
-**Q: What can I accomplish with AI Mode?**
-A: Set up project hierarchies, automate task assignments, bulk update items, create workflows, generate reports, analyze team performance, and migrate data between projects - all through natural language commands.
-
-**Q: Does the AI require internet connection?**
-A: Taskosaur supports both cloud AI providers (OpenRouter, OpenAI, Anthropic) and local AI models (Ollama, etc.). For complete privacy, run open-source models locally. The AI Mode automation works entirely within your browser.
-
-**Q: Is my data secure with AI Mode?**
-A: Yes. All AI interactions happen within your self-hosted Taskosaur instance. Your project data, conversations, and API keys remain private. The AI only accesses what you share through the chat interface.
-
-### General Questions
-
-**Q: Is Taskosaur free to use?**
-A: Yes! Taskosaur is available under the Business Source License and free for non-production use and internal production use within organizations.
-
-**Q: Can I use Taskosaur for commercial projects?**
-A: Yes, you can use Taskosaur for production purposes as long as you don't offer it to third parties as a competitive hosting service or embedded product. Internal use within your organization is permitted. After 4 years, it becomes MPL 2.0 licensed.
-
-**Q: How does Taskosaur compare to Jira/Monday.com/Asana?**
-A: Taskosaur provides core project management functionality with the addition of AI Mode for conversational task management. You get self-hosting capability, full source code access, and data ownership without subscription fees. AI Mode handles project setup and coordination through natural language instead of manual navigation.
-
-### Technical Questions
-
-**Q: What databases are supported?**
-A: Currently PostgreSQL 13+. We plan to add MySQL support in future releases.
-
-**Q: Can I deploy Taskosaur on my own servers?**
-A: Yes! Taskosaur is designed for self-hosting with Docker or manual deployment on any server.
-
-**Q: Is there a mobile app?**
-A: A mobile app is planned for Phase 2 (Q3 2025). The web app is mobile-responsive in the meantime.
-
-**Q: How do I backup my data?**
-A: Use `pg_dump` for PostgreSQL backups and backup your uploaded files from the `uploads/` directory.
-
-### Development Questions
-
-**Q: How can I contribute?**
-A: Check our [Contributing Guide](CONTRIBUTING.md) for development setup and contribution guidelines.
-
-**Q: Can I create custom plugins?**
-A: Plugin system is planned for Phase 4 (2026). Currently, you can modify the source code directly.
-
-**Q: How do I add custom fields?**
-A: Custom fields are being implemented and will be available through the admin interface. See the documentation for current implementation status.
-
-### Deployment Questions
-
-**Q: What hosting providers work best?**
-A: We recommend Railway, Render, or DigitalOcean for backend, and Vercel or Netlify for frontend.
-
-**Q: How many users can Taskosaur support?**
-A: This depends on your server resources. The architecture is designed to handle hundreds of concurrent users with proper scaling.
-
-**Q: Is there enterprise support available?**
-A: Community support is available through GitHub. Enterprise support options are being planned.
+- Development: http://localhost:3000/api/docs
+- Production: `https://api.your-domain.com/api/docs`
 
 ## Contributing
 
@@ -578,17 +730,17 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
 ### Development Guidelines
 
-- **Code Style**: Follow the existing code style and use Prettier for formatting
+- **Code Style**: Follow the existing code style, linters run automatically on commit
 - **TypeScript**: Use strict TypeScript with proper type annotations
 - **Testing**: Write tests for new features and bug fixes
 - **Documentation**: Update documentation for any API changes
-- **Commit Messages**: Use conventional commit messages
+- **Commit Messages**: Use conventional commit messages (feat, fix, docs, etc.)
 
 ## License
 

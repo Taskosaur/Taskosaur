@@ -50,12 +50,17 @@ export class InvitationsController {
     return this.invitationsService.getUserInvitations(user.email);
   }
   @Get('entity/:entityType/:entityId')
-  @ApiOperation({ summary: 'Get pending and rejected invitations for an entity' })
+  @ApiOperation({
+    summary: 'Get pending and rejected invitations for an entity',
+  })
   async getEntityInvitations(
     @Param('entityType') entityType: 'organization' | 'workspace' | 'project',
     @Param('entityId') entityId: string,
   ) {
-    return this.invitationsService.getEntityInvitations({ entityType, entityId });
+    return this.invitationsService.getEntityInvitations({
+      entityType,
+      entityId,
+    });
   }
 
   @Post(':id/resend')

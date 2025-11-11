@@ -45,7 +45,9 @@ export class CreateRuleDto {
   @IsObject()
   actions: any;
 
-  @ApiPropertyOptional({ description: 'Stop processing rules after this one matches' })
+  @ApiPropertyOptional({
+    description: 'Stop processing rules after this one matches',
+  })
   @IsBoolean()
   @IsOptional()
   stopOnMatch?: boolean;

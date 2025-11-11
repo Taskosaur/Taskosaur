@@ -855,7 +855,7 @@ export class EmailSyncService {
         });
 
         if (existingComment?.task && existingComment.task.projectId === inbox.projectId) {
-          existingTask = existingComment.task as any;
+          existingTask = existingComment.task;
           if (existingTask) {
             this.logger.log(`✅ Found parent task via comment match: ${existingTask.id}`);
           }
@@ -886,7 +886,7 @@ export class EmailSyncService {
         });
 
         if (existingInboxMessage?.task) {
-          existingTask = existingInboxMessage.task as any;
+          existingTask = existingInboxMessage.task;
           if (existingTask) {
             this.logger.log(`✅ Found parent task via inbox message match: ${existingTask.id}`);
           }

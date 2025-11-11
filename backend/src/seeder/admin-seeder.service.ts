@@ -95,7 +95,21 @@ export class AdminSeederService {
       },
     };
 
-    let organization: Organization | null = null;
+    // Check if organization already exists
+    const organization = await this.prisma.organization.findUnique({
+      where: { slug: orgData.slug },
+      include: {
+        workflows: {
+          where: { isDefault: true },
+          include: { statuses: true },
+        },
+      },
+    });
+
+    if (organization) {
+      console.log(`   ✓ Organization already exists: ${organization.name}`);
+      return organization;
+    }
 
     try {
       const createdOrganization = await this.prisma.organization.create({
@@ -144,14 +158,11 @@ export class AdminSeederService {
       }
 
       console.log(`   ✓ Created organization: ${createdOrganization.name}`);
+      return createdOrganization;
     } catch (error) {
-      console.log(`   ⚠ Organization ${orgData.slug} might already exist, skipping...`);
-      organization = await this.prisma.organization.findUnique({
-        where: { slug: orgData.slug },
-      });
+      console.error(`   ❌ Error creating organization: ${error.message}`);
+      throw error;
     }
-
-    return organization!;
   }
 
   private async createDefaultStatusTransitions(
@@ -174,6 +185,7 @@ export class AdminSeederService {
     if (transitionsToCreate.length > 0) {
       await this.prisma.statusTransition.createMany({
         data: transitionsToCreate,
+        skipDuplicates: true, // Skip if already exists
       });
     }
   }

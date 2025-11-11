@@ -158,7 +158,12 @@ export class WorkspaceMembersService {
     search?: string,
     page?: number,
     limit?: number,
-  ): Promise<{ data: WorkspaceMember[]; total: number; page?: number; limit?: number }> {
+  ): Promise<{
+    data: WorkspaceMember[];
+    total: number;
+    page?: number;
+    limit?: number;
+  }> {
     const whereClause: any = {};
 
     if (workspaceId) {

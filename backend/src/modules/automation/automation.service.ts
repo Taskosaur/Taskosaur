@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
+import { InjectQueue } from '../queue/decorators/inject-queue.decorator';
+import { IQueue } from '../queue/interfaces/queue.interface';
 import { CreateAutomationRuleDto } from './dto/create-automation-rule.dto';
 import {
   AutomationRule,
@@ -20,7 +20,7 @@ export class AutomationService {
   constructor(
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
-    @InjectQueue('automation') private automationQueue: Queue,
+    @InjectQueue('automation') private automationQueue: IQueue,
   ) {}
 
   async create(createAutomationRuleDto: CreateAutomationRuleDto): Promise<AutomationRule> {

@@ -1,23 +1,18 @@
 {
-  "name": "taskosaur-frontend",
+  "name": "@taskosaur/frontend",
   "version": "0.1.0",
-  "description": "",
+  "description": "Taskosaur Frontend - Next.js Application",
   "author": "Taskosaur Team",
   "type": "module",
   "private": true,
   "license": "SEE LICENSE IN https://github.com/Taskosaur/Taskosaur/blob/main/LICENSE.md",
   "scripts": {
-    "start:dev": "next dev --turbopack",
-    "start:prod": "npx serve@latest out",
     "dev": "node server.js",
     "build": "next build",
-    "build:dist": "next build && mkdir -p ../dist && mv out ../dist/public",
-    "start": "NODE_ENV=production node server.js",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
-    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
-    "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
-    "format:all": "npm run format && npm run lint:fix"
+    "build:dist": "next build",
+    "start": "NODE_ENV=production node server.mjs",
+    "lint": "eslint",
+    "clean": "rm -rf node_modules .next out"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",

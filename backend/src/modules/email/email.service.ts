@@ -1,8 +1,8 @@
-import { InjectQueue } from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Queue } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
+import { InjectQueue } from '../queue/decorators/inject-queue.decorator';
+import { IQueue } from '../queue/interfaces/queue.interface';
 import {
   SendEmailDto,
   BulkEmailDto,
@@ -16,7 +16,7 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
   constructor(
-    @InjectQueue('email') private emailQueue: Queue,
+    @InjectQueue('email') private emailQueue: IQueue<EmailJobData>,
     private prisma: PrismaService,
     private configService: ConfigService,
   ) {}
@@ -325,12 +325,6 @@ export class EmailService {
             assignees: {
               // Changed from assigneeId to assignees relation
               some: { id: userId },
-            },
-            status: {
-              category: 'DONE',
-            },
-            updatedAt: {
-              gte: oneWeekAgo,
             },
           },
         }),

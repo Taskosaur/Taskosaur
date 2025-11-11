@@ -6,18 +6,18 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(SeederModule);
   const seederService = app.get(SeederService);
 
-  const command = process.argv[2];
+  const command = process.argv[2] || 'seed'; // Default to 'seed' if no argument
 
   try {
     switch (command) {
       case 'seed':
-        console.log('🚀 Starting core modules seeding...\n');
+        console.log('🚀 Starting core modules seeding (idempotent)...\n');
         await seederService.seedCoreModules();
         console.log('\n🎉 Core modules seeding completed successfully!');
         break;
 
       case 'admin':
-        console.log('🚀 Starting admin modules seeding...\n');
+        console.log('🚀 Starting admin modules seeding (idempotent)...\n');
         await seederService.adminSeedModules();
         console.log('\n🎉 Admin modules seeding completed successfully!');
         break;
@@ -40,11 +40,15 @@ async function bootstrap() {
         console.log(`
 🌱 Core Modules Seeder Commands:
 
-  npm run seed:core seed    - Seed core modules (Users, Organizations, Workspaces, Projects)
+  npm run seed:core         - Seed core modules (default, idempotent)
+  npm run seed:core seed    - Seed core modules (idempotent - safe to run multiple times)
+  npm run seed:core admin   - Seed admin user only (idempotent - safe to run multiple times)
   npm run seed:core clear   - Clear all core modules data
   npm run seed:core reset   - Clear and re-seed core modules
 
-Usage: npm run seed:core <command>
+Usage: npm run seed:core [command]
+
+All seed commands are idempotent and safe to run multiple times.
         `);
         break;
     }

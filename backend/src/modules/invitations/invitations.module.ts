@@ -3,14 +3,15 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { InvitationsController } from './invitations.controller';
 import { InvitationsService } from './invitations.service';
 import { EmailService } from '../email/email.service';
-import { BullModule } from '@nestjs/bull';
+import { QueueModule } from '../queue/queue.module';
 import { WorkspaceMembersService } from '../workspace-members/workspace-members.service';
 import { OrganizationMembersService } from '../organization-members/organization-members.service';
 
 @Module({
   imports: [
     PrismaModule,
-    BullModule.registerQueue({
+    QueueModule,
+    QueueModule.registerQueue({
       name: 'email',
     }),
   ],

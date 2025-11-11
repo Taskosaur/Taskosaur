@@ -44,7 +44,10 @@ export class EmailTemplatesService {
     );
   }
 
-  validateTemplate(template: Partial<EmailTemplateData>): { isValid: boolean; errors: string[] } {
+  validateTemplate(template: Partial<EmailTemplateData>): {
+    isValid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!template.name || template.name.trim().length === 0) {

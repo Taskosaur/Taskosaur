@@ -129,7 +129,6 @@ export default function ProtectedRoute({
 
     performAuthCheck();
     // no router in deps: replace is stable, avoids extra reruns
-    // eslint-disable-next-line
   }, [authLoading, checkAuthStatus, redirectTo]);
 
   if (authLoading || isInitializing || isRedirecting) {

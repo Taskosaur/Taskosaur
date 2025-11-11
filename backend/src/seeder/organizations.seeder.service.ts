@@ -74,9 +74,32 @@ export class OrganizationsSeederService {
     const createdOrganizations: Organization[] = [];
 
     for (const orgData of organizationsData) {
+      // Check if organization already exists
+      let organization = await this.prisma.organization.findUnique({
+        where: { slug: orgData.slug },
+        include: {
+          workflows: {
+            where: { isDefault: true },
+            include: {
+              statuses: {
+                orderBy: { position: 'asc' },
+              },
+            },
+          },
+        },
+      });
+
+      if (organization) {
+        console.log(`   ✓ Organization already exists: ${organization.name}`);
+        createdOrganizations.push(organization);
+        // Still try to add members in case they're missing
+        await this.addMembersToOrganization(organization.id, users);
+        continue;
+      }
+
       try {
         // Create organization with default workflow and task statuses
-        const organization = await this.prisma.organization.create({
+        organization = await this.prisma.organization.create({
           data: {
             ...orgData,
             // Create default workflow with task statuses
@@ -130,14 +153,7 @@ export class OrganizationsSeederService {
         createdOrganizations.push(organization);
         console.log(`   ✓ Created organization: ${organization.name}`);
       } catch (error) {
-        console.log(`   ⚠ Organization ${orgData.slug} might already exist, skipping...`);
-        // Try to find existing organization
-        const existingOrg = await this.prisma.organization.findUnique({
-          where: { slug: orgData.slug },
-        });
-        if (existingOrg) {
-          createdOrganizations.push(existingOrg);
-        }
+        console.error(`   ❌ Error creating organization ${orgData.slug}: ${error.message}`);
       }
     }
 
@@ -170,6 +186,7 @@ export class OrganizationsSeederService {
     if (transitionsToCreate.length > 0) {
       await this.prisma.statusTransition.createMany({
         data: transitionsToCreate,
+        skipDuplicates: true, // Skip if already exists
       });
     }
   }
@@ -188,6 +205,21 @@ export class OrganizationsSeederService {
 
     // Skip the first user (owner) and add the rest as members
     for (let i = 1; i < users.length && i <= memberRoles.length; i++) {
+      // Check if member already exists
+      const existingMember = await this.prisma.organizationMember.findUnique({
+        where: {
+          userId_organizationId: {
+            userId: users[i].id,
+            organizationId,
+          },
+        },
+      });
+
+      if (existingMember) {
+        console.log(`   ✓ User ${users[i].email} is already a member`);
+        continue;
+      }
+
       try {
         await this.prisma.organizationMember.create({
           data: {
@@ -198,7 +230,7 @@ export class OrganizationsSeederService {
         });
         console.log(`   ✓ Added ${users[i].email} to organization as ${memberRoles[i - 1]}`);
       } catch (error) {
-        console.log(`   ⚠ User ${users[i].email} might already be a member, skipping...`);
+        console.log(`   ⚠ Could not add ${users[i].email}: ${error.message}`);
       }
     }
   }

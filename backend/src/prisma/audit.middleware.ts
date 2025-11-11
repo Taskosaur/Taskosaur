@@ -47,7 +47,7 @@ export function createAuditExtension() {
             currentUserId = SYSTEM_USER_ID;
           }
 
-          const modelName = model as string;
+          const modelName = model;
 
           // Only apply to auditable models
           if (!modelName || !AUDITABLE_MODELS.includes(modelName)) {

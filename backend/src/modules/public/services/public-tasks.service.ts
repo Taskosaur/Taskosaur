@@ -1,8 +1,17 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PublicDataFilterService } from './public-data-filter.service';
 import { PublicTaskDto } from '../dto/public-task.dto';
-import { ActivityType, Task, TaskAttachment, TaskComment } from '@prisma/client';
+import {
+  ActivityType,
+  Task,
+  TaskAttachment,
+  TaskComment,
+} from '@prisma/client';
 
 export interface PublicTaskFilters {
   parentTaskId?: string;
@@ -24,14 +33,17 @@ export class PublicTasksService {
   constructor(
     private prisma: PrismaService,
     private dataFilter: PublicDataFilterService,
-  ) { }
+  ) {}
 
   async getPublicTasks(
     workspaceSlug: string,
     projectSlug: string,
-    filters: PublicTaskFilters = {}
+    filters: PublicTaskFilters = {},
   ): Promise<PublicTaskPagination> {
-    const project = await this.validatePublicProject(workspaceSlug, projectSlug);
+    const project = await this.validatePublicProject(
+      workspaceSlug,
+      projectSlug,
+    );
 
     const whereClause: any = {
       projectId: project.id,
@@ -49,37 +61,39 @@ export class PublicTasksService {
       whereClause.type = filters.type;
     }
     if (filters.parentTaskId) {
-      whereClause.parentTaskId = filters.parentTaskId
+      whereClause.parentTaskId = filters.parentTaskId;
     }
     const skip = ((filters.page || 1) - 1) * (filters.limit || 50);
     const tasks = await this.prisma.task.findMany({
       where: whereClause,
       include: {
         status: {
-          select: { id: true, name: true, color: true, category: true }
+          select: { id: true, name: true, color: true, category: true },
         },
         labels: {
           include: {
             label: {
-              select: { id: true, name: true, color: true }
-            }
-          }
+              select: { id: true, name: true, color: true },
+            },
+          },
         },
         childTasks: {
           where: {
-            project: { visibility: 'PUBLIC' } // Only public subtasks
+            project: { visibility: 'PUBLIC' }, // Only public subtasks
           },
           include: {
-            status: { select: { id: true, name: true, color: true, category: true } },
+            status: {
+              select: { id: true, name: true, color: true, category: true },
+            },
             labels: {
               include: {
                 label: {
-                  select: { id: true, name: true, color: true }
-                }
-              }
-            }
-          }
-        }
+                  select: { id: true, name: true, color: true },
+                },
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: filters.limit || 50,
@@ -100,7 +114,7 @@ export class PublicTasksService {
       total,
       page: filters.page || 1,
       limit: filters.limit || 50,
-      totalPages: Math.ceil(total / (filters.limit || 1))
+      totalPages: Math.ceil(total / (filters.limit || 1)),
     };
   }
 
@@ -268,14 +282,17 @@ export class PublicTasksService {
 
   async getPublicTasksKanban(
     workspaceSlug: string,
-    projectSlug: string
+    projectSlug: string,
   ): Promise<any> {
-    const project = await this.validatePublicProject(workspaceSlug, projectSlug);
+    const project = await this.validatePublicProject(
+      workspaceSlug,
+      projectSlug,
+    );
 
     // Get all statuses for the project's workflow
     const workflow = await this.prisma.workflow.findFirst({
       where: {
-        Project: { some: { id: project.id } }
+        Project: { some: { id: project.id } },
       },
       include: {
         statuses: {
@@ -284,28 +301,28 @@ export class PublicTasksService {
             tasks: {
               where: {
                 projectId: project.id,
-                parentTaskId: null
+                parentTaskId: null,
               },
               include: {
                 labels: {
                   include: {
                     label: {
-                      select: { id: true, name: true, color: true }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                      select: { id: true, name: true, color: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!workflow) {
       return { columns: [] };
     }
 
-    const columns = workflow.statuses.map(status => ({
+    const columns = workflow.statuses.map((status) => ({
       id: status.id,
       name: status.name,
       color: status.color,
@@ -319,14 +336,17 @@ export class PublicTasksService {
     return { columns };
   }
 
-  private async validatePublicProject(workspaceSlug: string, projectSlug: string) {
+  private async validatePublicProject(
+    workspaceSlug: string,
+    projectSlug: string,
+  ) {
     const project = await this.prisma.project.findFirst({
       where: {
         slug: projectSlug,
         workspace: { slug: workspaceSlug },
-        visibility: 'PUBLIC'
+        visibility: 'PUBLIC',
       },
-      select: { id: true }
+      select: { id: true },
     });
 
     if (!project) {
@@ -440,7 +460,9 @@ export class PublicTasksService {
         },
       ],
     };
-    const totalCount = await this.prisma.activityLog.count({ where: whereClause });
+    const totalCount = await this.prisma.activityLog.count({
+      where: whereClause,
+    });
     const totalPages = Math.ceil(totalCount / limit);
     const skip = (page - 1) * limit;
     const activities = await this.prisma.activityLog.findMany({
@@ -515,9 +537,9 @@ export class PublicTasksService {
       case 'TaskComment':
         return comment
           ? {
-            comment,
-            type: 'comment',
-          }
+              comment,
+              type: 'comment',
+            }
           : null;
       case 'Task':
         return {
@@ -660,5 +682,4 @@ export class PublicTasksService {
       },
     });
   }
-
 }

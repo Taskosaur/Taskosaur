@@ -9,15 +9,18 @@ export class PublicProjectsService {
   constructor(
     private prisma: PrismaService,
     private dataFilter: PublicDataFilterService,
-  ) { }
+  ) {}
 
-  async getPublicProject(workspaceSlug: string, projectSlug: string): Promise<PublicProjectDto> {
+  async getPublicProject(
+    workspaceSlug: string,
+    projectSlug: string,
+  ): Promise<PublicProjectDto> {
     console.log('Fetching public project:', workspaceSlug, projectSlug);
     const project = await this.prisma.project.findFirst({
       where: {
         slug: projectSlug,
         workspace: { slug: workspaceSlug },
-        visibility: 'PUBLIC'
+        visibility: 'PUBLIC',
       },
       include: {
         workspace: { include: { organization: true } },
@@ -25,9 +28,9 @@ export class PublicProjectsService {
           select: {
             tasks: true,
             sprints: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     if (!project) {
@@ -37,25 +40,29 @@ export class PublicProjectsService {
     return this.dataFilter.filterProjectData(project, true);
   }
 
-  async getWorkspacePublicProjects(workspaceSlug: string): Promise<PublicProjectDto[]> {
+  async getWorkspacePublicProjects(
+    workspaceSlug: string,
+  ): Promise<PublicProjectDto[]> {
     const projects = await this.prisma.project.findMany({
       where: {
         workspace: { slug: workspaceSlug },
-        visibility: 'PUBLIC'
+        visibility: 'PUBLIC',
       },
       include: {
-        workspace: { select: { slug: true, name: true } }
+        workspace: { select: { slug: true, name: true } },
       },
-      orderBy: { updatedAt: 'desc' }
+      orderBy: { updatedAt: 'desc' },
     });
 
-    return projects.map(project => this.dataFilter.filterProjectData(project));
+    return projects.map((project) =>
+      this.dataFilter.filterProjectData(project),
+    );
   }
   async publicProjectStatus(projectSlug: string): Promise<TaskStatus[]> {
     const project = await this.prisma.project.findFirst({
       where: {
         slug: projectSlug,
-        visibility: 'PUBLIC'
+        visibility: 'PUBLIC',
       },
       include: {
         workspace: { include: { organization: true } },
@@ -63,14 +70,14 @@ export class PublicProjectsService {
           select: {
             tasks: true,
             sprints: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
     if (!project) {
       throw new NotFoundException('Public project not found');
     }
-    const whereClause = { workflowId : project.workflowId };
+    const whereClause = { workflowId: project.workflowId };
 
     return this.prisma.taskStatus.findMany({
       where: whereClause,
@@ -100,14 +107,17 @@ export class PublicProjectsService {
       },
     });
   }
-  private async validatePublicProject(workspaceSlug: string, projectSlug: string) {
+  private async validatePublicProject(
+    workspaceSlug: string,
+    projectSlug: string,
+  ) {
     const project = await this.prisma.project.findFirst({
       where: {
         slug: projectSlug,
         workspace: { slug: workspaceSlug },
-        visibility: 'PUBLIC'
+        visibility: 'PUBLIC',
       },
-      select: { id: true }
+      select: { id: true },
     });
 
     if (!project) {

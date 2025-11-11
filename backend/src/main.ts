@@ -2,14 +2,27 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { join } from 'path';
 import * as express from 'express';
 import { Logger, ValidationPipe } from '@nestjs/common';
-import * as fs from 'fs';
 import {
   createStaticRoutingMiddleware,
   findPublicDir,
 } from './middleware/static-routing.middleware';
+
+// Suppress unhandled promise rejections from Redis connection failures
+process.on('unhandledRejection', (reason: any) => {
+  // Ignore Redis connection errors when Redis is unavailable
+  if (
+    reason &&
+    (reason.code === 'ECONNREFUSED' ||
+      reason.syscall === 'connect' ||
+      (reason.message && reason.message.includes('ECONNREFUSED')))
+  ) {
+    return; // Silently ignore - fallback queue is being used
+  }
+  // Log other unhandled rejections
+  console.error('Unhandled Rejection:', reason);
+});
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -26,13 +39,7 @@ async function bootstrap() {
           'http://localhost:3000',
           'http://localhost:3001',
           'http://0.0.0.0:3000',
-          'http://0.0.0.0:4000',
           'http://127.0.0.1:3000',
-          'http://localhost:8080',
-          'http://0.0.0.0:9101',
-          'http://localhost:9101',
-          'http://localhost:9102',
-          'http://0.0.0.0:9102',
         ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
@@ -48,34 +55,9 @@ async function bootstrap() {
     }),
   );
 
-  // Check if Unix socket should be used
-  const useUnixSocket = process.env.UNIX_SOCKET === '1' || !!process.env.UNIX_SOCKET_PATH;
-  const unixSocketPath =
-    process.env.UNIX_SOCKET_PATH || join(__dirname, '..', 'tmp', 'taskosaur-backend.sock');
-
   // Get port and host from config
   const port = appConfig.port;
   const host = appConfig.host || '0.0.0.0';
-
-  // Find and serve static files from the docs directory
-  const findDocsDir = () => {
-    let docsPath = join(__dirname, 'docs');
-    if (fs.existsSync(docsPath)) {
-      return docsPath;
-    }
-
-    docsPath = join(__dirname, '..', 'docs');
-    if (fs.existsSync(docsPath)) {
-      return docsPath;
-    }
-
-    throw new Error(`Could not find 'docs' directory. Searched in:
-- ${join(__dirname, 'docs')}
-- ${join(__dirname, '..', 'docs')}`);
-  };
-
-  const docsDir = findDocsDir();
-  app.use('/docs', express.static(docsDir));
 
   // Serve static files from public directory (JS, CSS, images, etc.)
   const publicDir = findPublicDir();
@@ -106,31 +88,18 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerOptions);
-  SwaggerModule.setup(swaggerConfig.path, app, document, {
+
+  // Setup Swagger UI at /api/docs
+  SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
     },
   });
 
-  if (useUnixSocket) {
-    // Ensure socket directory exists
-    const socketDir = join(unixSocketPath, '..');
-    if (!fs.existsSync(socketDir)) {
-      fs.mkdirSync(socketDir, { recursive: true });
-    }
-
-    // Remove existing socket file if it exists
-    if (fs.existsSync(unixSocketPath)) {
-      fs.unlinkSync(unixSocketPath);
-    }
-
-    await app.listen(unixSocketPath);
-    logger.log(`Application is running on Unix socket: ${unixSocketPath}`);
-    logger.log(`Swagger documentation available via Unix socket at /${swaggerConfig.path}`);
-  } else {
-    await app.listen(port, host);
-    logger.log(`Application is running on: http://${host}:${port}`);
-    logger.log(`Swagger documentation available at: http://${host}:${port}/${swaggerConfig.path}`);
-  }
+  await app.listen(port, host);
+  logger.log(`Application is running on: http://${host}:${port}`);
+  logger.log(`Swagger documentation available at: http://${host}:${port}/${swaggerConfig.path}`);
 }
 bootstrap();

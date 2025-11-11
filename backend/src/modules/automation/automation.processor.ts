@@ -1,9 +1,9 @@
-import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventsGateway } from '../../gateway/events.gateway';
 import { ActionType, TriggerType } from '@prisma/client';
+import { QueueProcessor } from '../queue/decorators/queue-processor.decorator';
+import { IJob } from '../queue/interfaces/job.interface';
 
 interface AutomationJobData {
   ruleId: string;
@@ -12,7 +12,7 @@ interface AutomationJobData {
   triggeredById?: string;
 }
 
-@Processor('automation')
+@QueueProcessor('automation')
 export class AutomationProcessor {
   private readonly logger = new Logger(AutomationProcessor.name);
 
@@ -21,8 +21,11 @@ export class AutomationProcessor {
     private eventsGateway: EventsGateway,
   ) {}
 
-  @Process('execute-rule')
-  async handleRuleExecution(job: Job<AutomationJobData>) {
+  async process(job: IJob<AutomationJobData>) {
+    return this.handleRuleExecution(job);
+  }
+
+  async handleRuleExecution(job: IJob<AutomationJobData>) {
     const { ruleId, triggerType, triggerData, triggeredById } = job.data;
     const startTime = Date.now();
     let rule: any = null;

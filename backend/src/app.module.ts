@@ -29,7 +29,6 @@ import { GatewayModule } from './gateway/gateway.module';
 import { SearchModule } from './modules/search/search.module';
 import { AutomationModule } from './modules/automation/automation.module';
 import { GanttModule } from './modules/gantt/gantt.module';
-import { QueueModule } from './modules/queue/queue.module';
 import { SeederModule } from './seeder/seeder.module';
 import { ActivityLogModule } from './modules/activity-log/activity-log.module';
 import { ActivityNotificationInterceptor } from './common/interceptor/activity-notification.interceptor';
@@ -40,23 +39,11 @@ import { TaskLabelsModule } from './modules/task-label/task-labels.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { InboxModule } from './modules/inbox/inbox.module';
-import { BullModule } from '@nestjs/bullmq';
 
 import { PublicModule } from './modules/public/public.module';
-// import { EmailModule } from './modules/email/email.module';
-// import { SchedulerModule } from './modules/scheduler/scheduler.module';
 
 @Module({
   imports: [
-    BullModule.forRoot({
-      connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        retryDelayOnFailover: 100,
-        enableReadyCheck: false,
-        maxRetriesPerRequest: null,
-      },
-    }),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig],
@@ -122,7 +109,6 @@ import { PublicModule } from './modules/public/public.module';
     SearchModule,
     AutomationModule,
     GanttModule,
-    QueueModule,
     SeederModule,
     ActivityLogModule,
     NotificationsModule,

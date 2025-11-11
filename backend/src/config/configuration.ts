@@ -1,8 +1,8 @@
 import { registerAs } from '@nestjs/config';
 
 export default registerAs('app', () => ({
-  port: parseInt(process.env.PORT || process.env.BE_PORT || '9101', 10),
-  host: process.env.HOST || process.env.BE_HOST || 'localhost',
+  port: parseInt(process.env.PORT || '3000', 10),
+  host: process.env.HOST || '0.0.0.0',
   environment: process.env.NODE_ENV || 'development',
   cors: {
     origin: process.env.CORS_ORIGIN === '*' ? true : process.env.CORS_ORIGIN || true,

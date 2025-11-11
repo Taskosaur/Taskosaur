@@ -126,50 +126,15 @@ try {
     }
   }
 
-  // Process .env file from repo root or backend directory
-  const repoRootEnvPath = path.join(__dirname, '..', '.env');
+  // Copy .env file from backend directory to output
   const backendEnvPath = path.join(__dirname, '.env');
   const envDestPath = path.join(outDirAbsolute, '.env');
-  
-  let envSourcePath = null;
-  if (fs.existsSync(repoRootEnvPath)) {
-    envSourcePath = repoRootEnvPath;
-  } else if (fs.existsSync(backendEnvPath)) {
-    envSourcePath = backendEnvPath;
-    console.log(`Processing .env from backend directory`);
-  }
-  
-  if (envSourcePath) {
-    // Read and process the .env file
-    const envContent = fs.readFileSync(envSourcePath, 'utf8');
-    const lines = envContent.split('\n');
-    const processedLines = [];
-    
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      
-      // Keep comments and empty lines
-      if (trimmedLine.startsWith('#') || trimmedLine === '') {
-        processedLines.push(line);
-        continue;
-      }
-      
-      // Check if line contains a BE_ prefixed variable
-      const match = trimmedLine.match(/^BE_([^=]+)=(.*)$/);
-      if (match) {
-        // Remove BE_ prefix and add to processed lines
-        const varName = match[1];
-        const varValue = match[2];
-        processedLines.push(`${varName}=${varValue}`);
-      }
-      // Skip lines that don't have BE_ prefix
-    }
-    
-    // Write the processed .env file to the destination
-    fs.writeFileSync(envDestPath, processedLines.join('\n'));
-    console.log(`Created filtered .env in ${outDirRelative} (only BE_ prefixed variables, prefix removed)`);
+
+  if (fs.existsSync(backendEnvPath)) {
+    fs.copyFileSync(backendEnvPath, envDestPath);
+    console.log(`Copied .env to ${outDirRelative}`);
   } else {
-    console.log(`Warning: No .env file found in repository root or backend directory`);
+    console.log(`Warning: No .env file found in backend directory`);
   }
 
   console.log(`Build completed successfully! Output: ${outDirAbsolute}`);

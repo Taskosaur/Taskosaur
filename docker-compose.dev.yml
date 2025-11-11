@@ -1,68 +1,75 @@
 services:
+  # PostgreSQL Database
   postgres:
-    image: postgres:latest
+    image: postgres:16
     environment:
-      POSTGRES_DB: ${BE_POSTGRES_DB:-taskosaur}
-      POSTGRES_USER: ${BE_POSTGRES_USER:-taskosaur}
-      POSTGRES_PASSWORD: ${BE_POSTGRES_PASSWORD:-taskosaur}
+      POSTGRES_USER: taskosaur
+      POSTGRES_PASSWORD: taskosaur
+      POSTGRES_DB: taskosaur
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskosaur"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - taskosaur-network
 
+  # Redis for Bull Queue
   redis:
-    image: redis:latest
-    ports:
-      - "${BE_REDIS_PORT:-6379}:6379"
+    image: redis:7
     volumes:
       - redis_data:/data
-    command: redis-server ${BE_REDIS_PASSWORD:+--requirepass $BE_REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - taskosaur-network
 
-  mailtrap:
-    image: mailhog/mailhog:latest
-    ports:
-      - "${BE_MAILTRAP_SMTP_PORT:-1025}:1025"
-      - "${BE_MAILTRAP_WEB_PORT:-8025}:8025"
-
-  taskosaur:
+  # Application (Backend + Frontend)
+  app:
     build:
       context: .
-      dockerfile: taskosaur/Dockerfile.dev
-    ports:
-      - "${APP_PORT:-9100}:${APP_PORT:-9100}"
-    depends_on:
-      - postgres
-      - redis
-      - mailtrap
-    volumes:
-      - ./taskosaur:/app/taskosaur/taskosaur
-      - ./frontend:/app/taskosaur/frontend
-      - ./backend:/app/taskosaur/backend
-      - ts_nm:/app/taskosaur/node_modules
-      - ts_fe_nm:/app/taskosaur/frontend/node_modules
-      - ts_be_nm:/app/taskosaur/backend/node_modules
+      dockerfile: Dockerfile.dev
+    working_dir: /app
+    env_file:
+      - path: .env
+        required: false
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - APP_PORT=${APP_PORT:-9100}
-      - BE_DATABASE_URL=postgresql://${BE_POSTGRES_USER:-taskosaur}:${BE_POSTGRES_PASSWORD:-taskosaur}@postgres:5432/${BE_POSTGRES_DB:-taskosaur}
-      - BE_REDIS_HOST=redis
-      - BE_REDIS_PORT=6379
-      - BE_REDIS_PASSWORD=${BE_REDIS_PASSWORD:-}
-      - BE_SMTP_HOST=mailtrap
-      - BE_SMTP_PORT=1025
-      - BE_JWT_SECRET=${BE_JWT_SECRET:-your-jwt-secret-key-change-this}
-      - BE_JWT_REFRESH_SECRET=${BE_JWT_REFRESH_SECRET:-your-refresh-secret-key-change-this-too}
-      - BE_JWT_EXPIRES_IN=${BE_JWT_EXPIRES_IN:-15m}
-      - BE_JWT_REFRESH_EXPIRES_IN=${BE_JWT_REFRESH_EXPIRES_IN:-7d}
-      - BE_SMTP_USER=${BE_SMTP_USER:-}
-      - BE_SMTP_PASS=${BE_SMTP_PASS:-}
-      - BE_SMTP_FROM=${BE_SMTP_FROM:-noreply@taskosaur.com}
-      - BE_UPLOAD_DEST=${BE_UPLOAD_DEST:-../uploads}
-      - BE_MAX_FILE_SIZE=${BE_MAX_FILE_SIZE:-10485760}
-      - BE_MAX_CONCURRENT_JOBS=${BE_MAX_CONCURRENT_JOBS:-5}
-      - BE_JOB_RETRY_ATTEMPTS=${BE_JOB_RETRY_ATTEMPTS:-3}
+      # Override for Docker (uses service names instead of localhost)
+      DATABASE_URL: postgresql://taskosaur:taskosaur@postgres:5432/taskosaur
+      REDIS_HOST: redis
+      # Frontend environment variable for API connection
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:3000/api
+    ports:
+      - "3000:3000"  # Backend
+      - "3001:3001"  # Frontend
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/backend/node_modules
+      - /app/frontend/node_modules
+      - app_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - taskosaur-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
-  ts_nm:
-  ts_fe_nm:
-  ts_be_nm:
+    driver: local
+  app_uploads:
+    driver: local
+
+networks:
+  taskosaur-network:
+    driver: bridge

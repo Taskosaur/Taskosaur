@@ -178,7 +178,7 @@ export class InvitationsService {
         const workspaceMember = await this.workspaceMemberService.create({
           userId,
           workspaceId: workspace.id,
-          role: dto.role as Role,
+          role: dto.role as any,
           createdBy: inviterId,
         });
         try {
@@ -190,8 +190,11 @@ export class InvitationsService {
             entityUrl: `${process.env.FRONTEND_URL}/workspaces/${workspace.slug}`,
             organizationName: organization?.name,
           });
-        } catch (error) {
-          console.error('Failed to send direct add notification email:', error);
+        } catch (error: unknown) {
+          console.error(
+            'Failed to send direct add notification email:',
+            error instanceof Error ? error.message : String(error),
+          );
         }
 
         return {
@@ -258,8 +261,11 @@ export class InvitationsService {
             entityUrl: `${process.env.FRONTEND_URL}/projects/${project.slug}`,
             organizationName: organization?.name,
           });
-        } catch (error) {
-          console.error('Failed to send direct add notification email:', error);
+        } catch (error: unknown) {
+          console.error(
+            'Failed to send direct add notification email:',
+            error instanceof Error ? error.message : String(error),
+          );
         }
 
         return {
@@ -334,7 +340,7 @@ export class InvitationsService {
         await this.organizationMemberService.create({
           userId,
           organizationId: invitation.organizationId,
-          role: invitation.role as any,
+          role: invitation.role as Role,
           createdBy: invitation.inviterId,
         });
       }
@@ -363,7 +369,7 @@ export class InvitationsService {
         await this.workspaceMemberService.create({
           userId,
           workspaceId: invitation.workspaceId,
-          role: invitation.role as any,
+          role: invitation.role as Role,
           createdBy: invitation.inviterId,
         });
       }
@@ -409,7 +415,7 @@ export class InvitationsService {
           data: {
             userId,
             projectId: invitation.projectId,
-            role: invitation.role as any,
+            role: invitation.role as Role,
             createdBy: invitation.inviterId,
           },
         });

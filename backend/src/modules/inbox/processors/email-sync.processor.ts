@@ -1,9 +1,9 @@
 // processors/email-sync.processor.ts
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { EmailSyncService } from '../services/email-sync.service';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { QueueProcessor } from '../../queue/decorators/queue-processor.decorator';
+import { IJob } from '../../queue/interfaces/job.interface';
 
 export interface EmailSyncJobData {
   projectId: string;
@@ -11,20 +11,16 @@ export interface EmailSyncJobData {
   type: 'manual' | 'scheduled';
 }
 
-@Processor('email-sync', {
-  concurrency: 3, // Process up to 3 jobs concurrently
-})
-export class EmailSyncProcessor extends WorkerHost {
+@QueueProcessor('email-sync')
+export class EmailSyncProcessor {
   private readonly logger = new Logger(EmailSyncProcessor.name);
 
   constructor(
     private emailSync: EmailSyncService,
     private prisma: PrismaService,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job<EmailSyncJobData>): Promise<any> {
+  async process(job: IJob<EmailSyncJobData>): Promise<any> {
     const { projectId, userId, type } = job.data;
 
     this.logger.log(`Processing ${type} email sync for project ${projectId} (Job: ${job.id})`);

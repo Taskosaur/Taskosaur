@@ -14,7 +14,7 @@ import { EmailTemplatesService } from '../../seeder/email-templates.service';
 import { ProjectInboxController } from './controllers/project-inbox.controller';
 import { TaskCommentEmailController } from './controllers/task-comment-email.controller';
 import { EmailTemplatesController } from './controllers/email-templates.controller';
-import { BullModule } from '@nestjs/bullmq';
+import { QueueModule } from '../queue/queue.module';
 import { EmailSyncProcessor } from './processors/email-sync.processor';
 import { EmailSyncQueueService } from './services/email-sync-queue.service';
 import { StorageService } from '../storage/storage.service';
@@ -23,7 +23,8 @@ import { S3Service } from '../storage/s3.service';
 @Module({
   imports: [
     ScheduleModule.forRoot(), // Enable scheduled tasks
-    BullModule.registerQueue({
+    QueueModule,
+    QueueModule.registerQueue({
       name: 'email-sync',
     }),
   ],

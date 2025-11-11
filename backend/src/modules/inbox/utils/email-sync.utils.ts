@@ -174,7 +174,10 @@ export class EmailSyncUtils {
     return { body: text, signature: '' };
   }
 
-  static extractSignatureHtml(html: string): { body: string; signature: string } {
+  static extractSignatureHtml(html: string): {
+    body: string;
+    signature: string;
+  } {
     if (!html) return { body: html, signature: '' };
 
     const signatureStart = html.search(/<div[^>]*class="[^"]*gmail_signature[^"]*"/i);

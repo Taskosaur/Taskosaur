@@ -55,7 +55,10 @@ export class ProjectInboxController {
   @Get()
   @ApiOperation({ summary: 'Get inbox configuration' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Inbox configuration retrieved' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Inbox configuration retrieved',
+  })
   async getInbox(@Param('projectId') projectId: string) {
     return this.inboxService.getInbox(projectId);
   }
@@ -109,7 +112,10 @@ export class ProjectInboxController {
   @ApiOperation({ summary: 'Get specific inbox message' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiParam({ name: 'messageId', description: 'Message ID' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Message retrieved successfully' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Message retrieved successfully',
+  })
   async getMessage(@Param('messageId') messageId: string) {
     return this.inboxService.getInboxMessage(messageId);
   }
@@ -127,7 +133,10 @@ export class ProjectInboxController {
   @ApiOperation({ summary: 'Mark message as ignored' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiParam({ name: 'messageId', description: 'Message ID' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Message marked as ignored' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Message marked as ignored',
+  })
   async ignoreMessage(@Param('messageId') messageId: string) {
     return this.inboxService.updateMessageStatus(messageId, 'IGNORED');
   }
@@ -135,7 +144,10 @@ export class ProjectInboxController {
   @Get('rules')
   @ApiOperation({ summary: 'Get inbox rules' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Rules retrieved successfully' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Rules retrieved successfully',
+  })
   async getRules(@Param('projectId') projectId: string) {
     return this.inboxService.getInboxRules(projectId);
   }
@@ -161,7 +173,10 @@ export class ProjectInboxController {
   @ApiOperation({ summary: 'Delete inbox rule' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiParam({ name: 'ruleId', description: 'Rule ID' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Rule deleted successfully' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Rule deleted successfully',
+  })
   async deleteRule(@Param('ruleId') ruleId: string) {
     await this.inboxService.deleteRule(ruleId);
     return { message: 'Rule deleted successfully' };
@@ -171,7 +186,10 @@ export class ProjectInboxController {
   @ApiOperation({ summary: 'Test email configuration' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiParam({ name: 'accountId', description: 'Email Account ID' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Email configuration test result' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Email configuration test result',
+  })
   async testEmailConfiguration(@Param('accountId') accountId: string) {
     return this.emailReply.testEmailConfiguration(accountId);
   }

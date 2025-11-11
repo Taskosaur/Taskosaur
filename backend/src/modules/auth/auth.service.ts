@@ -63,7 +63,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
+      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
     });
 
     // Update refresh token in database
@@ -111,7 +111,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
+      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
     });
 
     // Update refresh token in database
@@ -157,7 +157,7 @@ export class AuthService {
 
       const newAccessToken = this.jwtService.sign(newPayload);
       const newRefreshToken = this.jwtService.sign(newPayload, {
-        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
       });
 
       // Update refresh token in database
@@ -210,8 +210,11 @@ export class AuthService {
       return {
         message: 'If an account with that email exists, a password reset link has been sent.',
       };
-    } catch (error) {
-      console.error('Error in forgotPassword:', error);
+    } catch (error: unknown) {
+      console.error(
+        'Error in forgotPassword:',
+        error instanceof Error ? error.message : String(error),
+      );
       return {
         message: 'If an account with that email exists, a password reset link has been sent.',
       };
@@ -354,8 +357,11 @@ export class AuthService {
       });
 
       return { message: 'Password has been successfully reset' };
-    } catch (error) {
-      console.error('Error in resetPassword:', error);
+    } catch (error: unknown) {
+      console.error(
+        'Error in resetPassword:',
+        error instanceof Error ? error.message : String(error),
+      );
 
       if (error instanceof BadRequestException) {
         throw error;

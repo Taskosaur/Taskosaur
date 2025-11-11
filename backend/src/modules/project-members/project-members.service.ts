@@ -154,7 +154,12 @@ export class ProjectMembersService {
     search?: string,
     page?: number,
     limit?: number,
-  ): Promise<{ data: ProjectMember[]; total: number; page?: number; limit?: number }> {
+  ): Promise<{
+    data: ProjectMember[];
+    total: number;
+    page?: number;
+    limit?: number;
+  }> {
     const whereClause: any = {};
 
     if (projectId) {

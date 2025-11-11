@@ -238,7 +238,10 @@ export class EmailReplyService {
         this.logger.log(`Email configuration test passed for ${account.emailAddress}`);
         return { success: true, message: 'Email configuration is valid' };
       } else {
-        return { success: false, message: 'Email configuration verification failed' };
+        return {
+          success: false,
+          message: 'Email configuration verification failed',
+        };
       }
     } catch (error) {
       this.logger.error(`Email configuration test failed:`, error.message);

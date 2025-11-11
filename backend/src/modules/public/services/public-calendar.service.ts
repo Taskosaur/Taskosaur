@@ -13,17 +13,20 @@ export class PublicCalendarService {
     workspaceSlug: string,
     projectSlug: string,
     startDate?: string,
-    endDate?: string
+    endDate?: string,
   ): Promise<any[]> {
-    const project = await this.validatePublicProject(workspaceSlug, projectSlug);
+    const project = await this.validatePublicProject(
+      workspaceSlug,
+      projectSlug,
+    );
 
     const whereClause: any = {
       projectId: project.id,
       OR: [
         { dueDate: { not: null } },
         { sprint: { startDate: { not: null } } },
-        { sprint: { endDate: { not: null } } }
-      ]
+        { sprint: { endDate: { not: null } } },
+      ],
     };
 
     // Add date filters if provided
@@ -32,8 +35,8 @@ export class PublicCalendarService {
         {
           dueDate: {
             gte: new Date(startDate),
-            lte: new Date(endDate)
-          }
+            lte: new Date(endDate),
+          },
         },
         {
           sprint: {
@@ -41,18 +44,18 @@ export class PublicCalendarService {
               {
                 startDate: {
                   gte: new Date(startDate),
-                  lte: new Date(endDate)
-                }
+                  lte: new Date(endDate),
+                },
               },
               {
                 endDate: {
                   gte: new Date(startDate),
-                  lte: new Date(endDate)
-                }
-              }
-            ]
-          }
-        }
+                  lte: new Date(endDate),
+                },
+              },
+            ],
+          },
+        },
       ];
     }
 
@@ -60,19 +63,19 @@ export class PublicCalendarService {
       where: whereClause,
       include: {
         status: {
-          select: { id: true, name: true, color: true, category: true }
+          select: { id: true, name: true, color: true, category: true },
         },
         sprint: {
-          select: { id: true, name: true, startDate: true, endDate: true }
-        }
+          select: { id: true, name: true, startDate: true, endDate: true },
+        },
       },
-      orderBy: { dueDate: 'asc' }
+      orderBy: { dueDate: 'asc' },
     });
 
     // Transform tasks into calendar events
     const events: any[] = [];
 
-    tasks.forEach(task => {
+    tasks.forEach((task) => {
       // Add task due date event
       if (task.dueDate) {
         events.push({
@@ -81,7 +84,7 @@ export class PublicCalendarService {
           date: task.dueDate,
           type: 'task-due',
           status: task.status,
-          taskId: task.id
+          taskId: task.id,
         });
       }
 
@@ -93,7 +96,7 @@ export class PublicCalendarService {
             title: `${task.sprint.name} starts`,
             date: task.sprint.startDate,
             type: 'sprint-start',
-            sprintId: task.sprint.id
+            sprintId: task.sprint.id,
           });
         }
 
@@ -103,28 +106,35 @@ export class PublicCalendarService {
             title: `${task.sprint.name} ends`,
             date: task.sprint.endDate,
             type: 'sprint-end',
-            sprintId: task.sprint.id
+            sprintId: task.sprint.id,
           });
         }
       }
     });
 
     // Remove duplicates and sort by date
-    const uniqueEvents = events.filter((event, index, self) =>
-      index === self.findIndex((e: any) => e.id === event.id)
+    const uniqueEvents = events.filter(
+      (event, index, self) =>
+        index === self.findIndex((e: any) => e.id === event.id),
     );
 
-    return uniqueEvents.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return uniqueEvents.sort(
+      (a: any, b: any) =>
+        new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
   }
 
-  private async validatePublicProject(workspaceSlug: string, projectSlug: string) {
+  private async validatePublicProject(
+    workspaceSlug: string,
+    projectSlug: string,
+  ) {
     const project = await this.prisma.project.findFirst({
       where: {
         slug: projectSlug,
         workspace: { slug: workspaceSlug },
-        visibility: 'PUBLIC'
+        visibility: 'PUBLIC',
       },
-      select: { id: true }
+      select: { id: true },
     });
 
     if (!project) {

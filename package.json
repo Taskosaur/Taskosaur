@@ -1,94 +1,54 @@
 {
-  "name": "taskosaur-server",
-  "version": "0.1.0",
-  "description": "",
-  "author": "Taskosaur Team",
-  "private": true,
-  "license": "SEE LICENSE IN https://github.com/Taskosaur/Taskosaur/blob/main/LICENSE.md",
-  "main": "taskosaur.js",
-  "scripts": {
-    "setup": "node taskosaur.js setup && npm run be:install && npm run fe:install",
-    "start": "node taskosaur.js run",
-    "start:dev": "node taskosaur.js run --dev",
-    "build:dist": "rm -rf dist && npm run be:build:dist && npm run fe:build:dist && rm -rf backend/public && cp -rvf dist/public backend/public",
-    "format": "npm run be:format && npm run fe:format",
-    "format:check": "npm run be:format:check && npm run fe:format:check",
-    "format:all": "npm run format && npm run lint",
-    "lint": "npm run be:lint && npm run fe:lint",
-    "lint:check": "npm run be:lint:check && npm run fe:lint:check",
-    "db:migrate": "node taskosaur.js be:npm run prisma:migrate:dev",
-    "db:migrate:deploy": "node taskosaur.js be:npm run prisma:migrate:deploy",
-    "db:reset": "node taskosaur.js be:npm run prisma:reset",
-    "db:seed": "node taskosaur.js be:npm run seed:core seed",
-    "db:generate": "node taskosaur.js be:npm run prisma:generate",
-    "be:build": "node taskosaur.js be:npm run build",
-    "be:build:dist": "node taskosaur.js be:npm run build:dist",
-    "be:format": "node taskosaur.js be:npm run format",
-    "be:format:check": "node taskosaur.js be:npm run format:check",
-    "be:format:all": "node taskosaur.js be:npm run format:all",
-    "be:start": "node taskosaur.js be:npm run start",
-    "be:start:dev": "node taskosaur.js be:npm run start:dev",
-    "be:start:debug": "node taskosaur.js be:npm run start:debug",
-    "be:start:prod": "node taskosaur.js be:npm run start:prod",
-    "be:lint": "node taskosaur.js be:npm run lint",
-    "be:lint:check": "node taskosaur.js be:npm run lint:check",
-    "be:test": "node taskosaur.js be:npm run test",
-    "be:test:watch": "node taskosaur.js be:npm run test:watch",
-    "be:test:cov": "node taskosaur.js be:npm run test:cov",
-    "be:test:debug": "node taskosaur.js be:npm run test:debug",
-    "be:test:e2e": "node taskosaur.js be:npm run test:e2e",
-    "be:prisma:generate": "node taskosaur.js be:npm run prisma:generate",
-    "be:prisma:studio": "node taskosaur.js be:npm run prisma:studio",
-    "be:prisma:migrate:dev": "node taskosaur.js be:npm run prisma:migrate:dev",
-    "be:prisma:migrate:deploy": "node taskosaur.js be:npm run prisma:migrate:deploy",
-    "be:prisma:reset": "node taskosaur.js be:npm run prisma:reset",
-    "be:prisma": "node taskosaur.js be:npm run prisma",
-    "be:seed:core": "node taskosaur.js be:npm run seed:core",
-    "be:seed:admin": "node taskosaur.js be:npm run seed:core admin",
-    "be:install": "cd backend && npm install",
-    "fe:install": "cd frontend && npm install",
-    "fe:format": "node taskosaur.js fe:npm run format",
-    "fe:format:check": "node taskosaur.js fe:npm run format:check",
-    "fe:format:all": "node taskosaur.js fe:npm run format:all",
-    "fe:dev": "node taskosaur.js fe:npm run dev",
-    "fe:build": "node taskosaur.js fe:npm run build",
-    "fe:build:dist": "node taskosaur.js fe:npm run build:dist",
-    "fe:start": "node taskosaur.js fe:npm run start",
-    "fe:lint": "node taskosaur.js fe:npm run lint:fix",
-    "fe:lint:check": "node taskosaur.js fe:npm run lint",
-    "fe:start:dev": "node taskosaur.js fe:npm run start:dev",
-    "prepare": "husky"
-  },
-  "keywords": [
-    "fastify",
-    "reverse-proxy",
-    "proxy",
-    "http-proxy"
-  ],
-  "dependencies": {
-    "@fastify/http-proxy": "^11.3.0",
-    "dotenv": "^17.2.0",
-    "fastify": "^5.4.0",
-    "moment": "^2.30.1",
-    "pm2": "^6.0.8"
-  },
-  "devDependencies": {
-    "dotenv-cli": "^7.4.2",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.2.6",
-    "nodemon": "^3.0.3"
-  },
-  "lint-staged": {
-    "backend/**/*.ts": [
-      "cd backend && prettier --write",
-      "cd backend && eslint --fix"
+    "name": "@taskosaur/platform",
+    "version": "0.1.0",
+    "description": "Taskosaur Platform - Open Source Project Management with AI Mode",
+    "author": "Taskosaur Team",
+    "private": true,
+    "license": "SEE LICENSE IN https://github.com/Taskosaur/Taskosaur/blob/main/LICENSE.md",
+    "workspaces": [
+        "frontend",
+        "backend"
     ],
-    "frontend/**/*.{js,jsx,ts,tsx}": [
-      "cd frontend && prettier --write",
-      "cd frontend && eslint --fix"
-    ],
-    "frontend/**/*.{json,css,scss,md}": [
-      "cd frontend && prettier --write"
-    ]
-  }
+    "engines": {
+        "node": ">=22.0.0",
+        "npm": ">=10.0.0"
+    },
+    "scripts": {
+        "dev": "concurrently -n frontend,backend -c cyan,magenta \"npm run dev:frontend\" \"npm run dev:backend\"",
+        "dev:frontend": "npm run dev --workspace=frontend",
+        "dev:backend": "dotenv -- npm run start:dev --workspace=backend",
+        "build": "npm run build --workspaces --if-present",
+        "build:dist": "rm -rf dist && npm run build:dist --workspaces --if-present && cp -a backend/dist dist && cp -a frontend/out dist/public",
+        "build:frontend": "npm run build --workspace=frontend",
+        "build:backend": "dotenv -- npm run build --workspace=backend",
+        "test": "npm run test --workspaces --if-present",
+        "test:frontend": "npm run test --workspace=frontend",
+        "test:backend": "dotenv -- npm run test --workspace=backend",
+        "test:watch": "dotenv -- npm run test:watch --workspace=backend",
+        "test:cov": "dotenv -- npm run test:cov --workspace=backend",
+        "test:e2e": "dotenv -- npm run test:e2e --workspace=backend",
+        "lint": "npm run lint --workspaces --if-present",
+        "lint:frontend": "npm run lint --workspace=frontend",
+        "lint:backend": "npm run lint --workspace=backend",
+        "format": "npm run format --workspace=backend",
+        "db:migrate": "dotenv -- npm run prisma:migrate:dev --workspace=backend",
+        "db:migrate:deploy": "dotenv -- npm run prisma:migrate:deploy --workspace=backend",
+        "db:reset": "dotenv -- npm run prisma:reset --workspace=backend",
+        "db:seed": "dotenv -- npm run seed:core --workspace=backend",
+        "db:seed:admin": "dotenv -- npm run seed:core admin --workspace=backend",
+        "db:generate": "dotenv -- npm run prisma:generate --workspace=backend",
+        "db:studio": "dotenv -- npm run prisma:studio --workspace=backend",
+        "prisma": "dotenv -- npm run prisma --workspace=backend",
+        "clean": "npm run clean --workspaces --if-present && rm -rf node_modules dist out .next",
+        "clean:frontend": "npm run clean --workspace=frontend",
+        "clean:backend": "npm run clean --workspace=backend",
+        "postinstall": "node scripts/postinstall.js",
+        "prepare": "husky"
+    },
+    "keywords": [],
+    "devDependencies": {
+        "concurrently": "^9.2.1",
+        "dotenv-cli": "^7.4.2",
+        "husky": "^9.1.7"
+    }
 }

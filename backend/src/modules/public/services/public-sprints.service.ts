@@ -12,40 +12,43 @@ export class PublicSprintsService {
 
   async getPublicSprints(
     workspaceSlug: string,
-    projectSlug: string
+    projectSlug: string,
   ): Promise<PublicSprintDto[]> {
-    const project = await this.validatePublicProject(workspaceSlug, projectSlug);
+    const project = await this.validatePublicProject(
+      workspaceSlug,
+      projectSlug,
+    );
 
     const sprints = await this.prisma.sprint.findMany({
       where: {
-        projectId: project.id
+        projectId: project.id,
       },
       include: {
         tasks: {
           include: {
             status: {
-              select: { id: true, name: true, color: true, category: true }
+              select: { id: true, name: true, color: true, category: true },
             },
             labels: {
               include: {
                 label: {
-                  select: { id: true, name: true, color: true }
-                }
-              }
-            }
-          }
-        }
+                  select: { id: true, name: true, color: true },
+                },
+              },
+            },
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
-    return sprints.map(sprint => this.dataFilter.filterSprintData(sprint));
+    return sprints.map((sprint) => this.dataFilter.filterSprintData(sprint));
   }
 
   async getPublicSprint(
     workspaceSlug: string,
     projectSlug: string,
-    sprintId: string
+    sprintId: string,
   ): Promise<PublicSprintDto> {
     await this.validatePublicProject(workspaceSlug, projectSlug);
 
@@ -55,25 +58,25 @@ export class PublicSprintsService {
         project: {
           slug: projectSlug,
           workspace: { slug: workspaceSlug },
-          visibility: 'PUBLIC'
-        }
+          visibility: 'PUBLIC',
+        },
       },
       include: {
         tasks: {
           include: {
             status: {
-              select: { id: true, name: true, color: true, category: true }
+              select: { id: true, name: true, color: true, category: true },
             },
             labels: {
               include: {
                 label: {
-                  select: { id: true, name: true, color: true }
-                }
-              }
-            }
-          }
-        }
-      }
+                  select: { id: true, name: true, color: true },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!sprint) {
@@ -86,7 +89,7 @@ export class PublicSprintsService {
   async getPublicSprintTasks(
     workspaceSlug: string,
     projectSlug: string,
-    sprintId: string
+    sprintId: string,
   ): Promise<any[]> {
     await this.validatePublicProject(workspaceSlug, projectSlug);
 
@@ -96,22 +99,22 @@ export class PublicSprintsService {
         project: {
           slug: projectSlug,
           workspace: { slug: workspaceSlug },
-          visibility: 'PUBLIC'
-        }
+          visibility: 'PUBLIC',
+        },
       },
       include: {
         status: {
-          select: { id: true, name: true, color: true, category: true }
+          select: { id: true, name: true, color: true, category: true },
         },
         labels: {
           include: {
             label: {
-              select: { id: true, name: true, color: true }
-            }
-          }
-        }
+              select: { id: true, name: true, color: true },
+            },
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     return tasks.map(task => this.dataFilter.filterTaskData({
@@ -120,14 +123,17 @@ export class PublicSprintsService {
     }));
   }
 
-  private async validatePublicProject(workspaceSlug: string, projectSlug: string) {
+  private async validatePublicProject(
+    workspaceSlug: string,
+    projectSlug: string,
+  ) {
     const project = await this.prisma.project.findFirst({
       where: {
         slug: projectSlug,
         workspace: { slug: workspaceSlug },
-        visibility: 'PUBLIC'
+        visibility: 'PUBLIC',
       },
-      select: { id: true }
+      select: { id: true },
     });
 
     if (!project) {

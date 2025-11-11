@@ -1,11 +1,11 @@
-import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Job } from 'bull';
 import * as nodemailer from 'nodemailer';
 import { EmailJobData, EmailTemplate } from './dto/email.dto';
+import { QueueProcessor } from '../queue/decorators/queue-processor.decorator';
+import { IJob } from '../queue/interfaces/job.interface';
 
-@Processor('email')
+@QueueProcessor('email')
 export class EmailProcessor {
   private readonly logger = new Logger(EmailProcessor.name);
   private transporter: nodemailer.Transporter;
@@ -38,8 +38,11 @@ export class EmailProcessor {
     // Note: SMTP connection will be verified only when sending emails
   }
 
-  @Process('send-email')
-  async handleSendEmail(job: Job<EmailJobData>) {
+  async process(job: IJob<EmailJobData>) {
+    return this.handleSendEmail(job);
+  }
+
+  async handleSendEmail(job: IJob<EmailJobData>) {
     const { to, subject, template, data } = job.data;
 
     try {

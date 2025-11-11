@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Project, Task, Sprint } from '@prisma/client';
-import { PublicProjectDto, PublicProjectStatsDto } from '../dto/public-project.dto';
+import {
+  PublicProjectDto,
+  PublicProjectStatsDto,
+} from '../dto/public-project.dto';
 import { PublicTaskDto } from '../dto/public-task.dto';
 import { PublicSprintDto } from '../dto/public-sprint.dto';
 
@@ -22,7 +25,7 @@ export class PublicDataFilterService {
       createdAt: project.createdAt,
       workspace: project.workspace,
       organization: project.workspace?.organization,
-      isPublicView: true
+      isPublicView: true,
     };
 
     // Only include stats if explicitly requested and project allows it
@@ -54,12 +57,12 @@ export class PublicDataFilterService {
         color: task.status?.color ?? '',
         category: task.status?.category ?? ''
       },
-      isPublicView: true
+      isPublicView: true,
     };
 
     // Add labels if present
     if (task.labels) {
-      filtered.labels = task.labels.map(label => ({
+      filtered.labels = task.labels.map((label) => ({
         id: label.id,
         name: label.name,
         color: label.color ?? ''
@@ -82,7 +85,8 @@ export class PublicDataFilterService {
       task.status?.category === 'DONE'
     ).length || 0;
 
-    const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const progress =
+      totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     const filtered: PublicSprintDto = {
       id: sprint.id,
@@ -93,7 +97,7 @@ export class PublicDataFilterService {
       endDate: sprint.endDate ?? undefined,
       createdAt: sprint.createdAt,
       progress,
-      isPublicView: true
+      isPublicView: true,
     };
 
     // Add filtered tasks if present

@@ -90,7 +90,9 @@ export class S3UploadService {
         Key: key,
       });
 
-      const signedUrl = await getSignedUrl(this.s3Client, command, { expiresIn });
+      const signedUrl = await getSignedUrl(this.s3Client, command, {
+        expiresIn,
+      });
       return signedUrl;
     } catch (error) {
       this.logger.error(`Failed to generate signed URL:`, error.message);

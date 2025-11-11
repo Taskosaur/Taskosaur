@@ -4,7 +4,10 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
 export class MessageFiltersDto {
-  @ApiPropertyOptional({ description: 'Filter by message status', enum: MessageStatus })
+  @ApiPropertyOptional({
+    description: 'Filter by message status',
+    enum: MessageStatus,
+  })
   @IsEnum(MessageStatus)
   @IsOptional()
   status?: MessageStatus;

@@ -1,26 +1,18 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+echo "🔍 Running linters across all workspaces..."
 
-echo "🎨 Running format and lint checks..."
-echo ""
+# Run lint across all workspaces
+npm run lint
 
-# Format and lint staged files
-echo "📝 Formatting and linting staged files..."
-npx lint-staged
+# Capture the exit code
+LINT_EXIT_CODE=$?
 
-# Run full checks on both backend and frontend
-echo ""
-echo "🔍 Running full validation..."
-echo ""
+# If lint failed, prevent commit
+if [ $LINT_EXIT_CODE -ne 0 ]; then
+  echo ""
+  echo "❌ Lint failed! Please fix the errors before committing."
+  echo "   Run 'npm run lint' to see all errors."
+  exit 1
+fi
 
-echo "📦 Checking backend..."
-npm run be:format:check || exit 1
-npm run be:lint:check || exit 1
-
-echo ""
-echo "📦 Checking frontend..."
-npm run fe:format:check || exit 1
-npm run fe:lint:check || exit 1
-
-echo ""
-echo "✅ All checks passed! Ready to commit..."
+echo "✅ All linters passed!"
+exit 0

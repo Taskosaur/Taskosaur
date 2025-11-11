@@ -1,7 +1,8 @@
 // services/email-sync-queue.service.ts
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { InjectQueue } from '../../queue/decorators/inject-queue.decorator';
+import { IQueue } from '../../queue/interfaces/queue.interface';
+import { JobStatus } from '../../queue/enums/job-status.enum';
 
 export interface EmailSyncJobData {
   projectId: string;
@@ -13,7 +14,7 @@ export interface EmailSyncJobData {
 export class EmailSyncQueueService {
   private readonly logger = new Logger(EmailSyncQueueService.name);
 
-  constructor(@InjectQueue('email-sync') private emailSyncQueue: Queue<EmailSyncJobData>) {}
+  constructor(@InjectQueue('email-sync') private emailSyncQueue: IQueue<EmailSyncJobData>) {}
 
   async addManualSyncJob(projectId: string, userId?: string): Promise<string> {
     const job = await this.emailSyncQueue.add(
@@ -30,7 +31,7 @@ export class EmailSyncQueueService {
     );
 
     this.logger.log(`Manual sync job ${job.id} queued for project ${projectId}`);
-    return job.id!;
+    return job.id;
   }
 
   async addScheduledSyncJob(projectId: string): Promise<string> {
@@ -47,7 +48,7 @@ export class EmailSyncQueueService {
     );
 
     this.logger.log(`Scheduled sync job ${job.id} queued for project ${projectId}`);
-    return job.id!;
+    return job.id;
   }
 
   async getJobStatus(jobId: string) {
@@ -96,8 +97,8 @@ export class EmailSyncQueueService {
   }
 
   async cleanQueue() {
-    await this.emailSyncQueue.clean(0, 100, 'completed');
-    await this.emailSyncQueue.clean(0, 50, 'failed');
+    await this.emailSyncQueue.clean(0, 100, JobStatus.COMPLETED);
+    await this.emailSyncQueue.clean(0, 50, JobStatus.FAILED);
     this.logger.log('Email sync queue cleaned');
   }
 }

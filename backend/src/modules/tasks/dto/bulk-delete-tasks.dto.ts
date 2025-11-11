@@ -18,7 +18,10 @@ export class BulkDeleteTasksDto {
   @IsString()
   projectId?: string;
 
-  @ApiPropertyOptional({ description: 'Delete all tasks under the given filters', example: false })
+  @ApiPropertyOptional({
+    description: 'Delete all tasks under the given filters',
+    example: false,
+  })
   @IsOptional()
   @IsBoolean()
   all?: boolean;
