@@ -17,7 +17,7 @@ import { getQueueToken } from './decorators/inject-queue.decorator';
     ConfigModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => {
+      useFactory: (configService: ConfigService) => {
         const host = configService.get<string>('REDIS_HOST', 'localhost');
         const port = configService.get<number>('REDIS_PORT', 6379);
         const password = configService.get<string>('REDIS_PASSWORD');
@@ -93,6 +93,7 @@ export class QueueModule implements OnModuleInit {
 
       this.startupLogger.logComplete(this.queueService.getBackend());
     } catch (error) {
+      console.error(error);
       this.startupLogger.logError('Failed to initialize queue module', error as Error);
       throw error;
     }

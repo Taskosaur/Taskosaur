@@ -1,4 +1,5 @@
 import { Queue, QueueOptions } from 'bullmq';
+import { EventEmitter } from 'events';
 import { IQueue } from '../../interfaces/queue.interface';
 import { IJob } from '../../interfaces/job.interface';
 import { JobOptions, BulkJobOptions, QueueStats } from '../../interfaces/queue-options.interface';
@@ -25,12 +26,14 @@ export class BullMQQueueAdapter<T = any> implements IQueue<T> {
   // ===========================
 
   async add(name: string, data: T, options?: JobOptions): Promise<IJob<T>> {
-    const job = await this.queue.add(name as any, data as any, options as any);
+    // BullMQ has stricter type constraints, using type assertion for compatibility
+    const job = await this.queue.add(name as never, data as never, options as never);
     return new BullMQJobAdapter(job) as IJob<T>;
   }
 
   async addBulk(jobs: BulkJobOptions<T>[]): Promise<IJob<T>[]> {
-    const bullmqJobs = await this.queue.addBulk(jobs as any);
+    // BullMQ has stricter type constraints, using type assertion for compatibility
+    const bullmqJobs = await this.queue.addBulk(jobs as never);
     return bullmqJobs.map((job) => new BullMQJobAdapter(job)) as IJob<T>[];
   }
 
@@ -45,7 +48,8 @@ export class BullMQQueueAdapter<T = any> implements IQueue<T> {
 
   async getJobs(statuses: JobStatus[]): Promise<IJob<T>[]> {
     const bullmqStatuses = statuses.map((status) => this.mapJobStatusToBullMQState(status));
-    const jobs = await this.queue.getJobs(bullmqStatuses as any);
+    // BullMQ expects specific JobType values, using type assertion for compatibility
+    const jobs = await this.queue.getJobs(bullmqStatuses as never);
     return jobs.map((job) => new BullMQJobAdapter(job));
   }
 
@@ -95,7 +99,8 @@ export class BullMQQueueAdapter<T = any> implements IQueue<T> {
 
   async clean(grace: number, limit: number, status: JobStatus): Promise<void> {
     const bullmqStatus = this.mapJobStatusToBullMQState(status);
-    await this.queue.clean(grace, limit, bullmqStatus as any);
+    // BullMQ expects specific status string literal types, using type assertion for compatibility
+    await this.queue.clean(grace, limit, bullmqStatus as never);
   }
 
   async obliterate(): Promise<void> {
@@ -135,17 +140,20 @@ export class BullMQQueueAdapter<T = any> implements IQueue<T> {
 
   on(event: QueueEvent, handler: (...args: any[]) => void): void {
     const bullmqEvent = this.mapQueueEventToBullMQEvent(event);
-    (this.queue as any).on(bullmqEvent, handler);
+    // BullMQ Queue extends EventEmitter but doesn't expose it in types
+    (this.queue as unknown as EventEmitter).on(bullmqEvent, handler);
   }
 
   off(event: QueueEvent, handler: (...args: any[]) => void): void {
     const bullmqEvent = this.mapQueueEventToBullMQEvent(event);
-    (this.queue as any).off(bullmqEvent, handler);
+    // BullMQ Queue extends EventEmitter but doesn't expose it in types
+    (this.queue as unknown as EventEmitter).off(bullmqEvent, handler);
   }
 
   once(event: QueueEvent, handler: (...args: any[]) => void): void {
     const bullmqEvent = this.mapQueueEventToBullMQEvent(event);
-    (this.queue as any).once(bullmqEvent, handler);
+    // BullMQ Queue extends EventEmitter but doesn't expose it in types
+    (this.queue as unknown as EventEmitter).once(bullmqEvent, handler);
   }
 
   // ===========================

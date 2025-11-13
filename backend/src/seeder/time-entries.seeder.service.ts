@@ -53,8 +53,9 @@ export class TimeEntriesSeederService {
           const minutes = timeEntryData.timeSpent % 60;
 
           console.log(`   ✓ Logged ${hours}h ${minutes}m by ${user?.firstName} on: ${task.title}`);
-        } catch (error) {
-          console.log(`   ⚠ Error creating time entry for task ${task.title}: ${error.message}`);
+        } catch (_error) {
+          console.error(_error);
+          console.log(`   ⚠ Error creating time entry for task ${task.title}: ${_error.message}`);
         }
       }
     }
@@ -260,13 +261,13 @@ export class TimeEntriesSeederService {
     try {
       const deletedEntries = await this.prisma.timeEntry.deleteMany();
       console.log(`✅ Deleted ${deletedEntries.count} time entries`);
-    } catch (error) {
-      console.error('❌ Error clearing time entries:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing time entries:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.timeEntry.findMany({
       select: {
         id: true,

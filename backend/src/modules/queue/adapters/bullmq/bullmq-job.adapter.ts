@@ -25,8 +25,8 @@ export class BullMQJobAdapter<T = any> implements IJob<T> {
     return (this.job.progress as number) || 0;
   }
 
-  get returnvalue(): any {
-    return this.job.returnvalue;
+  get returnvalue(): unknown {
+    return this.job.returnvalue as unknown;
   }
 
   get finishedOn(): number | undefined {
@@ -67,7 +67,7 @@ export class BullMQJobAdapter<T = any> implements IJob<T> {
   }
 
   log(message: string): void {
-    this.job.log(message);
+    void this.job.log(message);
   }
 
   /**

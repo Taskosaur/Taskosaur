@@ -87,7 +87,7 @@ export class QueueMetricsService {
    */
   recordJobFailed(queueName: string, jobId: string, error: Error): void {
     const metrics = this.ensureQueueMetrics(queueName);
-    const tracker = this.activeJobs.get(jobId);
+    // const _tracker = this.activeJobs.get(jobId);
 
     // Update metrics
     metrics.totalJobsProcessed++;

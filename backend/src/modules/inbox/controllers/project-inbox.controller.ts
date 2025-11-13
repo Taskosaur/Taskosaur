@@ -137,7 +137,7 @@ export class ProjectInboxController {
     status: HttpStatus.OK,
     description: 'Message marked as ignored',
   })
-  async ignoreMessage(@Param('messageId') messageId: string) {
+  ignoreMessage(@Param('messageId') messageId: string) {
     return this.inboxService.updateMessageStatus(messageId, 'IGNORED');
   }
 
@@ -165,7 +165,7 @@ export class ProjectInboxController {
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiParam({ name: 'ruleId', description: 'Rule ID' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Rule updated successfully' })
-  async updateRule(@Param('ruleId') ruleId: string, @Body() dto: CreateRuleDto) {
+  updateRule(@Param('ruleId') ruleId: string, @Body() dto: CreateRuleDto) {
     return this.inboxService.updateRule(ruleId, dto);
   }
 

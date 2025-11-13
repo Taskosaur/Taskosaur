@@ -42,6 +42,7 @@ export class WorkflowSeederService {
           createdWorkflows.push(workflow);
           console.log(`   ✓ Created workflow: ${workflow.name} in ${organization.name}`);
         } catch (error) {
+          console.error(error);
           console.log(
             `   ⚠ Workflow ${workflowData.name} might already exist in ${organization.name}, skipping...`,
           );
@@ -129,13 +130,13 @@ export class WorkflowSeederService {
       // Delete workflows
       const deletedWorkflows = await this.prisma.workflow.deleteMany();
       console.log(`✅ Deleted ${deletedWorkflows.count} workflows`);
-    } catch (error) {
-      console.error('❌ Error clearing workflows:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing workflows:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.workflow.findMany({
       select: {
         id: true,

@@ -31,7 +31,7 @@ export class BetterQueueAdapter implements IQueueAdapter {
     };
 
     const queue = new BetterQueueQueueAdapter<T>(name, queueConfig);
-    this.queues.set(name, queue as any);
+    this.queues.set(name, queue as BetterQueueQueueAdapter<any>);
     return queue;
   }
 
@@ -58,10 +58,10 @@ export class BetterQueueAdapter implements IQueueAdapter {
     this.workers.clear();
   }
 
-  async isHealthy(): Promise<boolean> {
+  isHealthy(): Promise<boolean> {
     // Better-queue doesn't require external dependencies
     // Always healthy if instantiated
-    return true;
+    return Promise.resolve(true);
   }
 
   getBackendType(): string {

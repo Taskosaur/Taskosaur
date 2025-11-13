@@ -221,24 +221,26 @@ export class GanttService {
     const timeline = this.calculateTimeline(ganttTasks, sprint);
     const criticalPath = this.calculateCriticalPath(ganttTasks, []);
 
+    const milestones = [
+      {
+        id: String(sprint.id),
+        title: `${sprint.name} Start`,
+        date: sprint.startDate as Date,
+        type: 'sprint_start' as const,
+      },
+      {
+        id: `${String(sprint.id)}_end`,
+        title: `${sprint.name} End`,
+        date: sprint.endDate as Date,
+        type: 'sprint_end' as const,
+      },
+    ];
+
     return {
       tasks: ganttTasks,
       timeline,
       criticalPath,
-      milestones: [
-        {
-          id: sprint.id,
-          title: `${sprint.name} Start`,
-          date: sprint.startDate!,
-          type: 'sprint_start',
-        },
-        {
-          id: `${sprint.id}_end`,
-          title: `${sprint.name} End`,
-          date: sprint.endDate!,
-          type: 'sprint_end',
-        },
-      ],
+      milestones,
     };
   }
 
@@ -294,13 +296,14 @@ export class GanttService {
         const resource = resourceMap.get(assigneeId)!;
 
         // Add task to this assignee's list
-        resource.tasks.push({
-          id: task.id,
+        const taskItem = {
+          id: String(task.id),
           title: task.title,
-          start: task.startDate,
-          end: task.dueDate,
+          start: task.startDate ?? null,
+          end: task.dueDate ?? null,
           storyPoints: task.storyPoints || 1,
-        });
+        };
+        resource.tasks.push(taskItem);
 
         // Calculate workload (story points divided by number of assignees for fair distribution)
         const storyPointsPerAssignee = (task.storyPoints || 1) / task.assignees.length;
@@ -370,7 +373,7 @@ export class GanttService {
     // In a real implementation, you'd use CPM (Critical Path Method) algorithm
 
     const taskMap = new Map(tasks.map((task) => [task.id, task]));
-    const criticalTasks: string[] = [];
+    // const _criticalTasks: string[] = [];
 
     // Find tasks with no dependencies that have the longest duration
     const rootTasks = tasks.filter((task) => task.dependencies.length === 0);
@@ -379,7 +382,11 @@ export class GanttService {
     let longestPath: string[] = [];
 
     rootTasks.forEach((rootTask) => {
-      const path = this.findLongestPath(rootTask, taskMap, dependencies);
+      const path = this.findLongestPath(
+        rootTask,
+        taskMap,
+        dependencies as Array<{ blockingTaskId: string; dependentTaskId: string }>,
+      );
       if (path.length > longestPath.length) {
         longestPath = path;
       }

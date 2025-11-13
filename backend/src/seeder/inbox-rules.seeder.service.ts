@@ -323,8 +323,8 @@ export class InboxRulesSeederService {
 
         this.logger.debug(`Created rule: ${rule.name}`);
         created++;
-      } catch (error) {
-        this.logger.error(`Failed to create rule "${rule.name}":`, error.message);
+      } catch (_error) {
+        this.logger.error(`Failed to create rule "${rule.name}":`, _error.message);
       }
     }
 

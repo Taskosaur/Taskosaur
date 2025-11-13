@@ -2,7 +2,6 @@
 import {
   Controller,
   Get,
-  Post,
   Patch,
   Delete,
   Param,
@@ -89,7 +88,7 @@ export class NotificationsController {
 
     return this.notificationsService.getUserNotifications(
       user.id,
-      filters,
+      filters as { isRead?: boolean; type?: NotificationType; organizationId?: string },
       validatedPage,
       validatedLimit,
     );
@@ -102,7 +101,7 @@ export class NotificationsController {
     required: false,
     description: 'Filter by organization',
   })
-  async getUnreadCount(@Req() req: Request, @Query('organizationId') organizationId?: string) {
+  getUnreadCount(@Req() req: Request, @Query('organizationId') organizationId?: string) {
     const user = getAuthUser(req);
     return this.notificationsService.getUnreadCount(user.id, organizationId);
   }
@@ -146,7 +145,7 @@ export class NotificationsController {
 
     const result = await this.notificationsService.getUserNotifications(
       user.id,
-      filters,
+      filters as { isRead?: boolean; type?: NotificationType; organizationId?: string },
       1,
       validatedLimit,
     );
@@ -178,7 +177,7 @@ export class NotificationsController {
 
     return this.notificationsService.getUserNotifications(
       user.id,
-      filters,
+      filters as { isRead?: boolean; type?: NotificationType; organizationId?: string },
       validatedPage,
       validatedLimit,
     );
@@ -275,7 +274,13 @@ export class NotificationsController {
     return this.notificationsService.getNotificationsByUserAndOrganization(
       userId,
       organizationId,
-      filters,
+      filters as {
+        isRead?: boolean;
+        type?: NotificationType;
+        priority?: NotificationPriority;
+        startDate?: Date;
+        endDate?: Date;
+      },
       validatedPage,
       validatedLimit,
     );
@@ -333,7 +338,7 @@ export class NotificationsController {
     if (!Array.isArray(notificationIds) || notificationIds.length === 0) {
       throw new BadRequestException('notificationIds must be a non-empty array');
     }
-    await this.notificationsService.deleteMultipleNotifications(notificationIds, user.id);
+    await this.notificationsService.deleteMultipleNotifications(notificationIds, user.id as string);
   }
 
   @Delete(':id')

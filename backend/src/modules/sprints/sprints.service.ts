@@ -5,7 +5,6 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Sprint, SprintStatus } from '@prisma/client';
-``;
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateSprintDto } from './dto/create-sprint.dto';
 import { UpdateSprintDto } from './dto/update-sprint.dto';
@@ -93,7 +92,7 @@ export class SprintsService {
     });
   }
 
-  async findAll(projectId?: string, status?: SprintStatus): Promise<Sprint[]> {
+  findAll(projectId?: string, status?: SprintStatus): Promise<Sprint[]> {
     const whereClause: any = {
       archive: false,
     };
@@ -130,7 +129,7 @@ export class SprintsService {
       ],
     });
   }
-  async findAllByProjectSlug(slug?: string, status?: SprintStatus): Promise<Sprint[]> {
+  findAllByProjectSlug(slug?: string, status?: SprintStatus): Promise<Sprint[]> {
     const whereClause: any = {
       archive: false,
     };
@@ -252,7 +251,7 @@ export class SprintsService {
     return sprint;
   }
 
-  async getActiveSprint(projectId: string): Promise<Sprint | null> {
+  getActiveSprint(projectId: string) {
     return this.prisma.sprint.findFirst({
       where: {
         projectId,
@@ -374,6 +373,7 @@ export class SprintsService {
 
       return sprint;
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Sprint not found');
       }
@@ -456,6 +456,7 @@ export class SprintsService {
         where: { id },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Sprint not found');
       }
@@ -469,6 +470,7 @@ export class SprintsService {
         data: { archive: true },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Sprint not found');
       }

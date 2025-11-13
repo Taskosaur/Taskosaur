@@ -5,7 +5,6 @@
 import { IJob } from '../interfaces/job.interface';
 import { IQueue } from '../interfaces/queue.interface';
 import { JobStatus } from '../enums/job-status.enum';
-import { QueueEvent } from '../enums/queue-event.enum';
 
 /**
  * Create a mock job for testing
@@ -23,12 +22,13 @@ export function createMockJob<T = any>(overrides?: Partial<IJob<T>>): IJob<T> {
     attemptsMade: 0,
     timestamp: Date.now(),
 
-    async updateProgress(progress: number): Promise<void> {
+    updateProgress(progress: number): Promise<void> {
       this.progress = progress;
+      return Promise.resolve();
     },
 
-    async getState(): Promise<JobStatus> {
-      return JobStatus.WAITING;
+    getState(): Promise<JobStatus> {
+      return Promise.resolve(JobStatus.WAITING);
     },
 
     async remove(): Promise<void> {
@@ -39,7 +39,7 @@ export function createMockJob<T = any>(overrides?: Partial<IJob<T>>): IJob<T> {
       // Mock implementation
     },
 
-    log(message: string): void {
+    log(): void {
       // Mock implementation
     },
   };
@@ -54,45 +54,47 @@ export function createMockQueue<T = any>(overrides?: Partial<IQueue<T>>): IQueue
   const jobs: Map<string, IJob<T>> = new Map();
   let jobCounter = 1;
 
+  const addJob = (name: string, data: T): Promise<IJob<T>> => {
+    const job = createMockJob<T>({
+      id: `job-${jobCounter++}`,
+      name,
+      data,
+    });
+    jobs.set(job.id, job);
+    return Promise.resolve(job);
+  };
+
   const defaultQueue: IQueue<T> = {
     name: 'test-queue',
 
-    async add(name: string, data: T, options?: any): Promise<IJob<T>> {
-      const job = createMockJob<T>({
-        id: `job-${jobCounter++}`,
-        name,
-        data,
-      });
-      jobs.set(job.id, job);
-      return job;
-    },
+    add: addJob,
 
     async addBulk(bulkJobs: any[]): Promise<IJob<T>[]> {
-      return Promise.all(bulkJobs.map(({ name, data, opts }) => this.add(name, data, opts)));
+      return Promise.all(bulkJobs.map(({ name, data }) => addJob(name as string, data as T)));
     },
 
-    async getJob(jobId: string): Promise<IJob<T> | null> {
-      return jobs.get(jobId) || null;
+    getJob(jobId: string): Promise<IJob<T> | null> {
+      return Promise.resolve(jobs.get(jobId) || null);
     },
 
-    async getJobs(statuses: JobStatus[]): Promise<IJob<T>[]> {
-      return Array.from(jobs.values());
+    getJobs(): Promise<IJob<T>[]> {
+      return Promise.resolve(Array.from(jobs.values()));
     },
 
-    async getWaiting(): Promise<IJob<T>[]> {
-      return Array.from(jobs.values());
+    getWaiting(): Promise<IJob<T>[]> {
+      return Promise.resolve(Array.from(jobs.values()));
     },
 
-    async getActive(): Promise<IJob<T>[]> {
-      return [];
+    getActive(): Promise<IJob<T>[]> {
+      return Promise.resolve([]);
     },
 
-    async getCompleted(): Promise<IJob<T>[]> {
-      return [];
+    getCompleted(): Promise<IJob<T>[]> {
+      return Promise.resolve([]);
     },
 
-    async getFailed(): Promise<IJob<T>[]> {
-      return [];
+    getFailed(): Promise<IJob<T>[]> {
+      return Promise.resolve([]);
     },
 
     async pause(): Promise<void> {
@@ -103,46 +105,49 @@ export function createMockQueue<T = any>(overrides?: Partial<IQueue<T>>): IQueue
       // Mock implementation
     },
 
-    async close(): Promise<void> {
+    close(): Promise<void> {
       jobs.clear();
+      return Promise.resolve();
     },
 
-    async isPaused(): Promise<boolean> {
-      return false;
+    isPaused(): Promise<boolean> {
+      return Promise.resolve(false);
     },
 
-    async clean(grace: number, limit: number, status: JobStatus): Promise<void> {
+    async clean(): Promise<void> {
       // Mock implementation
     },
 
-    async obliterate(): Promise<void> {
+    obliterate(): Promise<void> {
       jobs.clear();
+      return Promise.resolve();
     },
 
-    async drain(): Promise<void> {
+    drain(): Promise<void> {
       jobs.clear();
+      return Promise.resolve();
     },
 
-    async getStats() {
-      return {
+    getStats() {
+      return Promise.resolve({
         waiting: jobs.size,
         active: 0,
         completed: 0,
         failed: 0,
         delayed: 0,
         paused: 0,
-      };
+      });
     },
 
-    on(event: QueueEvent, handler: (...args: any[]) => void): void {
+    on(): void {
       // Mock implementation
     },
 
-    off(event: QueueEvent, handler: (...args: any[]) => void): void {
+    off(): void {
       // Mock implementation
     },
 
-    once(event: QueueEvent, handler: (...args: any[]) => void): void {
+    once(): void {
       // Mock implementation
     },
   };

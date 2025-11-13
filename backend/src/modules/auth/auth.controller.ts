@@ -3,14 +3,12 @@ import {
   Post,
   Body,
   UseGuards,
-  Request,
   HttpCode,
   HttpStatus,
   Get,
   Param,
   Query,
   ParseUUIDPipe,
-  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -21,7 +19,6 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyResetTokenResponseDto } from './dto/verify-reset-token.dto';
 import { SetupAdminDto } from './dto/setup-admin.dto';
-import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -104,7 +101,7 @@ export class AuthController {
     description: 'Logout successful',
   })
   async logout(@CurrentUser() user: any): Promise<{ message: string }> {
-    await this.authService.logout(user.id);
+    await this.authService.logout(user.id as string);
     return { message: 'Logout successful' };
   }
 
@@ -115,7 +112,7 @@ export class AuthController {
     status: 200,
     description: 'User profile retrieved successfully',
   })
-  getProfile(@CurrentUser() user: any) {
+  getProfile(@CurrentUser() user: any): any {
     return user;
   }
   @UseGuards(JwtAuthGuard)
@@ -155,7 +152,7 @@ export class AuthController {
     @Query('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ): Promise<AccessResult> {
-    return this.accessControlService.getResourceAccess(scope, id, user.id);
+    return this.accessControlService.getResourceAccess(scope, id, user.id as string);
   }
 
   @Public()
@@ -300,19 +297,7 @@ export class AuthController {
     status: 400,
     description: 'Invalid setup data',
   })
-  async setupSuperAdmin(@Body() setupAdminDto: SetupAdminDto) {
-    const user = await this.setupService.setupSuperAdmin(setupAdminDto);
-    return {
-      success: true,
-      message: 'Super admin created successfully',
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        username: user.username,
-        role: user.role,
-      },
-    };
+  async setupSuperAdmin(@Body() setupAdminDto: SetupAdminDto): Promise<AuthResponseDto> {
+    return this.setupService.setupSuperAdmin(setupAdminDto);
   }
 }

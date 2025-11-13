@@ -1,10 +1,5 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-  BadRequestException,
-} from '@nestjs/common';
-import { Workflow, StatusCategory } from '@prisma/client';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Workflow } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWorkflowDto } from './dto/create-workflow.dto';
 import { UpdateWorkflowDto } from './dto/update-workflow.dto';
@@ -14,7 +9,7 @@ import { DEFAULT_TASK_STATUSES } from 'src/constants/defaultWorkflow';
 export class WorkflowsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createWorkflowDto: CreateWorkflowDto, userId: string): Promise<Workflow> {
+  create(createWorkflowDto: CreateWorkflowDto, userId: string): Promise<Workflow> {
     return this.prisma.$transaction(async (tx) => {
       if (createWorkflowDto.isDefault) {
         await tx.workflow.updateMany({
@@ -78,7 +73,7 @@ export class WorkflowsService {
     });
   }
 
-  async findAll(organizationId?: string): Promise<Workflow[]> {
+  findAll(organizationId?: string): Promise<Workflow[]> {
     const whereClause = organizationId ? { organizationId } : {};
 
     return this.prisma.workflow.findMany({
@@ -193,11 +188,7 @@ export class WorkflowsService {
     return workflow;
   }
 
-  async update(
-    id: string,
-    updateWorkflowDto: UpdateWorkflowDto,
-    userId: string,
-  ): Promise<Workflow> {
+  update(id: string, updateWorkflowDto: UpdateWorkflowDto, userId: string): Promise<Workflow> {
     return this.prisma.$transaction(async (tx) => {
       // If this is set as default, unset other defaults in the same organization
       if (updateWorkflowDto.isDefault) {
@@ -260,6 +251,7 @@ export class WorkflowsService {
 
         return workflow;
       } catch (error) {
+        console.error(error);
         if (error.code === 'P2025') {
           throw new NotFoundException('Workflow not found');
         }
@@ -274,6 +266,7 @@ export class WorkflowsService {
         where: { id },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Workflow not found');
       }
@@ -281,7 +274,7 @@ export class WorkflowsService {
     }
   }
 
-  async getDefaultWorkflow(organizationId: string): Promise<Workflow | null> {
+  getDefaultWorkflow(organizationId: string) {
     return this.prisma.workflow.findFirst({
       where: {
         organizationId,
@@ -343,6 +336,7 @@ export class WorkflowsService {
 
       return updatedWorkflow;
     } catch (error: any) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Workflow not found');
       }

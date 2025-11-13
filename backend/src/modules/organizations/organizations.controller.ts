@@ -45,7 +45,7 @@ export class OrganizationsController {
   @Post()
   @ApiOperation({ summary: 'Create organization' })
   create(@Body() createOrganizationDto: CreateOrganizationDto, @CurrentUser() user: any) {
-    return this.organizationsService.create(createOrganizationDto, user.id);
+    return this.organizationsService.create(createOrganizationDto, user.id as string);
   }
 
   // List organizations the user can see; rely on service-level filtering.
@@ -108,7 +108,7 @@ export class OrganizationsController {
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
     @CurrentUser() user?: any,
   ) {
-    return this.searchService.search(query, organizationId, user.id, {
+    return this.searchService.search(query, organizationId, user.id as string, {
       page: Math.max(1, page || 1),
       limit: Math.min(100, Math.max(1, limit || 20)),
     });
@@ -130,7 +130,7 @@ export class OrganizationsController {
     @Body() updateOrganizationDto: UpdateOrganizationDto,
     @CurrentUser() user: any,
   ) {
-    return this.organizationsService.update(id, updateOrganizationDto, user.id);
+    return this.organizationsService.update(id, updateOrganizationDto, user.id as string);
   }
 
   @Delete(':id')
@@ -225,11 +225,12 @@ export class OrganizationsController {
     try {
       const chartRes = await this.orgChartsService.getMultipleChartData(
         organizationId,
-        user.id,
+        user.id as string,
         query.types,
       );
       return chartRes;
     } catch (error) {
+      console.error(error);
       if (error instanceof BadRequestException) {
         throw error;
       }

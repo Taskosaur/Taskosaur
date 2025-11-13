@@ -1,10 +1,5 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-  BadRequestException,
-} from '@nestjs/common';
-import { Label, TaskLabel } from '@prisma/client';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { TaskLabel } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AssignTaskLabelDto } from './dto/create-task-labels.dto';
 import { UpdateTaskLabelDto } from './dto/update-task-lables.dto';
@@ -84,7 +79,7 @@ export class TaskLabelsService {
     });
   }
 
-  async findAll(taskId?: string): Promise<TaskLabel[]> {
+  findAll(taskId?: string): Promise<TaskLabel[]> {
     const whereClause: any = {};
     if (taskId) {
       whereClause.taskId = taskId;
@@ -169,7 +164,7 @@ export class TaskLabelsService {
     return updatedTaskLabel;
   }
 
-  async remove(taskId: string, labelId: string, userId: string): Promise<any> {
+  async remove(taskId: string, labelId: string): Promise<TaskLabel> {
     // Verify task label assignment exists
     const taskLabel = await this.prisma.taskLabel.findUnique({
       where: {

@@ -409,8 +409,7 @@ export class TasksController {
     if (files && files.length > 10) {
       throw new BadRequestException('Maximum 10 files allowed');
     }
-    const createRes = await this.tasksService.createWithAttachments(createTaskDto, user.id, files);
-    return createRes;
+    return this.tasksService.createWithAttachments(createTaskDto, user.id, files);
   }
 
   @Get()
@@ -520,7 +519,7 @@ export class TasksController {
       statusArray,
       assigneeIdsArray,
       reporterIdsArray,
-      user.id,
+      user.id as string,
       search,
       Number(page),
       Number(limit),
@@ -601,7 +600,7 @@ export class TasksController {
       parentTaskId,
       priorityArray,
       statusArray,
-      user.id,
+      user.id as string,
       search,
     );
   }

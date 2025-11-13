@@ -38,26 +38,23 @@ async function bootstrap() {
 
       default:
         console.log(`
-🌱 Core Modules Seeder Commands:
+🌱 Seeder Commands:
 
-  npm run seed:core         - Seed core modules (default, idempotent)
-  npm run seed:core seed    - Seed core modules (idempotent - safe to run multiple times)
-  npm run seed:core admin   - Seed admin user only (idempotent - safe to run multiple times)
-  npm run seed:core clear   - Clear all core modules data
-  npm run seed:core reset   - Clear and re-seed core modules
-
-Usage: npm run seed:core [command]
+  npm run seed              - Seed core modules (idempotent - safe to run multiple times)
+  npm run seed:admin        - Seed admin user only (idempotent - safe to run multiple times)
+  npm run seed:clear        - Clear all core modules data
+  npm run seed:reset        - Clear and re-seed core modules
 
 All seed commands are idempotent and safe to run multiple times.
         `);
         break;
     }
-  } catch (error) {
-    console.error('\n❌ Error:', error.message);
+  } catch (_error) {
+    console.error('\n❌ Error:', _error.message);
     process.exit(1);
   } finally {
     await app.close();
   }
 }
 
-bootstrap();
+void bootstrap();

@@ -33,6 +33,14 @@ export class WorkspaceChartsService {
 
     try {
       // Execute all chart requests in parallel
+      const workspaceResult = await this.prisma.workspace.findUnique({
+        where: { organizationId_slug: { organizationId: organizationId, slug: workspaceSlug } },
+      });
+      if (!workspaceResult) {
+        throw new NotFoundException(
+          `Workspace with slug '${workspaceSlug}' not found in organization '${organizationId}'`,
+        );
+      }
       const chartPromises = chartTypes.map(async (type) => {
         try {
           const data = await this.getSingleWorkspaceChartData(

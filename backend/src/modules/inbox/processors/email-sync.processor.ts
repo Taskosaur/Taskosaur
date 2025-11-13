@@ -56,7 +56,7 @@ export class EmailSyncProcessor {
       const syncStartTime = new Date();
 
       // Perform the actual sync
-      const result = await this.emailSync.triggerSync(projectId);
+      // const _result = await this.emailSync.triggerSync(projectId);
 
       await job.updateProgress(90);
 

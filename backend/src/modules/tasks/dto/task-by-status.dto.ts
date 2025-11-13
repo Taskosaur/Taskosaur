@@ -54,7 +54,7 @@ export class GetTasksByStatusQueryDto {
   })
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }) => {
+  @Transform(({ value }): any => {
     if (value === 'true') return true;
     if (value === 'false') return false;
     return value;
@@ -290,7 +290,7 @@ export class TasksByStatusParams {
     type: Boolean,
   })
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @Transform(({ value }): any => value === 'true' || value === true)
   @IsBoolean()
   includeSubtasks?: boolean = false;
 

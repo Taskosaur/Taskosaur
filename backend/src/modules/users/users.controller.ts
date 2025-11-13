@@ -125,7 +125,7 @@ export class UsersController {
     @Body() changePasswordDto: ChangePasswordDto,
     @Req() req: any,
   ): Promise<{ success: boolean; message: string }> {
-    return this.usersService.changePassword(req.user.id, changePasswordDto);
+    return this.usersService.changePassword(req.user.id as string, changePasswordDto);
   }
 
   @Delete(':id')

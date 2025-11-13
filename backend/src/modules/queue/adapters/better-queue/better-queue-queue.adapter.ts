@@ -43,7 +43,7 @@ class MemoryStore {
     available.forEach(([id]) => this.running.add(id));
     cb(
       null,
-      available.map(([id, task]) => ({ taskId: id, lock: id })),
+      available.map(([id]) => ({ taskId: id, lock: id })),
     );
   }
 
@@ -97,21 +97,28 @@ export class BetterQueueQueueAdapter<T = any> implements IQueue<T> {
       concurrent: config?.concurrent || 5,
       maxTimeout: config?.maxTimeout || 60000,
       // Spread additional config but remove store if it exists
-      ...Object.fromEntries(Object.entries(config || {}).filter(([key]) => key !== 'store')),
+      ...(config
+        ? Object.fromEntries(
+            Object.entries(config as Record<string, unknown>).filter(([key]) => key !== 'store'),
+          )
+        : {}),
     };
 
     // Create better-queue instance
-    this.queue = new BetterQueue((task: BetterQueueTask<T>, cb: any) => {
-      void this.processTask(task, cb);
-    }, queueConfig);
+    this.queue = new BetterQueue(
+      (task: BetterQueueTask<T>, cb: (error: Error | null, result?: any) => void) => {
+        void this.processTask(task, cb);
+      },
+      queueConfig,
+    );
 
     // Set up event forwarding
     this.setupEventListeners();
   }
 
   private setupEventListeners(): void {
-    this.queue.on('task_finish', (taskId, result) => {
-      const job = this.jobs.get(taskId);
+    this.queue.on('task_finish', (taskId: string, result: unknown) => {
+      const job = this.jobs.get(taskId) as BetterQueueJobAdapter<T>;
       if (job) {
         job._markCompleted(result);
         this.completedJobs.push(job);
@@ -119,8 +126,8 @@ export class BetterQueueQueueAdapter<T = any> implements IQueue<T> {
       }
     });
 
-    this.queue.on('task_failed', (taskId, errorMessage) => {
-      const job = this.jobs.get(taskId);
+    this.queue.on('task_failed', (taskId: string, errorMessage: string) => {
+      const job = this.jobs.get(taskId) as BetterQueueJobAdapter<T>;
       if (job) {
         const error = new Error(errorMessage);
         job._markFailed(error);
@@ -129,8 +136,8 @@ export class BetterQueueQueueAdapter<T = any> implements IQueue<T> {
       }
     });
 
-    this.queue.on('task_started', (taskId) => {
-      const job = this.jobs.get(taskId);
+    this.queue.on('task_started', (taskId: string) => {
+      const job = this.jobs.get(taskId) as BetterQueueJobAdapter<T>;
       if (job) {
         job._markProcessing();
         this.eventEmitter.emit(QueueEvent.JOB_STARTED, job);
@@ -156,6 +163,7 @@ export class BetterQueueQueueAdapter<T = any> implements IQueue<T> {
         callback(null, { success: true });
       }
     } catch (error) {
+      console.error(error);
       callback(error as Error);
     }
   }
@@ -164,7 +172,7 @@ export class BetterQueueQueueAdapter<T = any> implements IQueue<T> {
   // Job Operations
   // ===========================
 
-  async add(name: string, data: T, options?: JobOptions): Promise<IJob<T>> {
+  add(name: string, data: T, options?: JobOptions): Promise<IJob<T>> {
     const jobId = `job-${this.jobIdCounter++}`;
     const timestamp = Date.now();
 
@@ -183,7 +191,7 @@ export class BetterQueueQueueAdapter<T = any> implements IQueue<T> {
     this.queue.push(task);
 
     this.eventEmitter.emit(QueueEvent.JOB_ADDED, job);
-    return job;
+    return Promise.resolve(job);
   }
 
   async addBulk(jobs: BulkJobOptions<T>[]): Promise<IJob<T>[]> {
@@ -199,8 +207,8 @@ export class BetterQueueQueueAdapter<T = any> implements IQueue<T> {
   // Job Retrieval
   // ===========================
 
-  async getJob(jobId: string): Promise<IJob<T> | null> {
-    return this.jobs.get(jobId) || null;
+  getJob(jobId: string): Promise<IJob<T> | null> {
+    return Promise.resolve(this.jobs.get(jobId) || null);
   }
 
   async getJobs(statuses: JobStatus[]): Promise<IJob<T>[]> {
@@ -225,28 +233,30 @@ export class BetterQueueQueueAdapter<T = any> implements IQueue<T> {
     return this.getJobs([JobStatus.ACTIVE]);
   }
 
-  async getCompleted(): Promise<IJob<T>[]> {
-    return this.completedJobs;
+  getCompleted(): Promise<IJob<T>[]> {
+    return Promise.resolve(this.completedJobs);
   }
 
-  async getFailed(): Promise<IJob<T>[]> {
-    return this.failedJobs;
+  getFailed(): Promise<IJob<T>[]> {
+    return Promise.resolve(this.failedJobs);
   }
 
   // ===========================
   // Queue Control
   // ===========================
 
-  async pause(): Promise<void> {
+  pause(): Promise<void> {
     this.queue.pause();
     this.isPausedFlag = true;
     this.eventEmitter.emit(QueueEvent.QUEUE_PAUSED);
+    return Promise.resolve();
   }
 
-  async resume(): Promise<void> {
+  resume(): Promise<void> {
     this.queue.resume();
     this.isPausedFlag = false;
     this.eventEmitter.emit(QueueEvent.QUEUE_RESUMED);
+    return Promise.resolve();
   }
 
   async close(): Promise<void> {
@@ -258,15 +268,15 @@ export class BetterQueueQueueAdapter<T = any> implements IQueue<T> {
     this.failedJobs.length = 0;
   }
 
-  async isPaused(): Promise<boolean> {
-    return this.isPausedFlag;
+  isPaused(): Promise<boolean> {
+    return Promise.resolve(this.isPausedFlag);
   }
 
   // ===========================
   // Maintenance
   // ===========================
 
-  async clean(grace: number, limit: number, status: JobStatus): Promise<void> {
+  clean(grace: number, limit: number, status: JobStatus): Promise<void> {
     if (status === JobStatus.COMPLETED) {
       const toRemove = this.completedJobs.slice(0, limit);
       toRemove.forEach((job) => this.jobs.delete(job.id));
@@ -276,16 +286,18 @@ export class BetterQueueQueueAdapter<T = any> implements IQueue<T> {
       toRemove.forEach((job) => this.jobs.delete(job.id));
       this.failedJobs.splice(0, limit);
     }
+    return Promise.resolve();
   }
 
   async obliterate(): Promise<void> {
     await this.close();
   }
 
-  async drain(): Promise<void> {
+  drain(): Promise<void> {
     this.jobs.clear();
     this.completedJobs.length = 0;
     this.failedJobs.length = 0;
+    return Promise.resolve();
   }
 
   // ===========================

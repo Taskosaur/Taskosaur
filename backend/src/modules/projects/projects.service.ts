@@ -51,25 +51,24 @@ export class ProjectsService {
 
     // Check if user can create projects in this workspace
     if (workspace.organization.ownerId !== userId) {
-      const orgMember = await this.prisma.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId,
-            organizationId: workspace.organizationId,
-          },
-        },
-        select: { role: true },
-      });
-
-      const wsMember = await this.prisma.workspaceMember.findUnique({
-        where: {
-          userId_workspaceId: {
-            userId,
-            workspaceId: createProjectDto.workspaceId,
-          },
-        },
-        select: { role: true },
-      });
+      // const _orgMember = await this.prisma.organizationMember.findUnique({
+      //   where: {
+      //     userId_organizationId: {
+      //       userId,
+      //       organizationId: workspace.organizationId,
+      //     },
+      //   },
+      //   select: { role: true },
+      // });
+      // const _wsMember = await this.prisma.workspaceMember.findUnique({
+      //   where: {
+      //     userId_workspaceId: {
+      //       userId,
+      //       workspaceId: createProjectDto.workspaceId,
+      //     },
+      //   },
+      //   select: { role: true },
+      // });
     }
 
     // Generate unique slug
@@ -210,6 +209,7 @@ export class ProjectsService {
         return project;
       });
     } catch (error: any) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Project with this key already exists in this workspace');
       }
@@ -217,7 +217,7 @@ export class ProjectsService {
     }
   }
 
-  async findAll(
+  findAll(
     workspaceId?: string,
     userId?: string,
     filters?: {
@@ -227,7 +227,7 @@ export class ProjectsService {
       page?: number;
       pageSize?: number;
     },
-  ): Promise<Project[]> {
+  ) {
     if (!userId) {
       throw new ForbiddenException('User context required');
     }
@@ -446,6 +446,7 @@ export class ProjectsService {
         });
         accessibleProjectIds.push(...memberProjects.map((p) => p.id));
       } catch (error) {
+        console.error('Error accessing workspace:', error);
         // If user doesn't have access to workspace, skip it
         // This handles the ForbiddenException from getWorkspaceAccess
         continue;
@@ -597,6 +598,7 @@ export class ProjectsService {
         },
       });
     } catch (error: any) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Project with this key already exists in this workspace');
       }
@@ -615,6 +617,7 @@ export class ProjectsService {
     try {
       await this.prisma.project.delete({ where: { id } });
     } catch (error: any) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Project not found');
       }
@@ -635,6 +638,7 @@ export class ProjectsService {
         data: { archive: true },
       });
     } catch (error: any) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Project not found');
       }
@@ -643,12 +647,7 @@ export class ProjectsService {
   }
 
   // Additional helper methods for search functionality
-  async findBySearch(
-    workspaceId?: string,
-    organizationId?: string,
-    search?: string,
-    userId?: string,
-  ): Promise<Project[]> {
+  findBySearch(workspaceId?: string, organizationId?: string, search?: string, userId?: string) {
     if (!userId) {
       throw new ForbiddenException('User context required');
     }
@@ -781,7 +780,7 @@ export class ProjectsService {
     };
   }
 
-  async getProjectBySlug(slug: string, userId: string): Promise<Project | null> {
+  async getProjectBySlug(slug: string) {
     // Find project by slug
     const project = await this.prisma.project.findUnique({
       where: { slug },

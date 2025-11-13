@@ -163,7 +163,6 @@ export default function InviteMemberDropdown() {
     if (showDropdown && members.length === 0) {
       fetchMembers();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showDropdown]);
 
   return (

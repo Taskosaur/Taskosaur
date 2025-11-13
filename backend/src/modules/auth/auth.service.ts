@@ -11,12 +11,10 @@ import { EmailService } from '../email/email.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
-import { EmailTemplate, EmailPriority } from '../email/dto/email.dto';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { JwtPayload } from './strategies/jwt.strategy';
 import { SYSTEM_USER_ID } from '../../common/constants';
-import { User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -43,7 +41,8 @@ export class AuthService {
       user.status === 'ACTIVE' && // Only active users can login
       (await bcrypt.compare(password, user.password))
     ) {
-      const { password: _, ...result } = user;
+      const result: Omit<typeof user, 'password'> = Object.assign({}, user);
+      delete (result as any).password;
       return result;
     }
     return null;
@@ -176,7 +175,8 @@ export class AuthService {
           avatar: user.avatar || undefined,
         },
       };
-    } catch {
+    } catch (error) {
+      console.error('Error refreshing token:', error);
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
@@ -232,11 +232,12 @@ export class AuthService {
 
       // Find all users with active reset tokens
       const users = await this.usersService.findAllUsersWithResetTokens();
-      let validUser: User | null = null;
+      let validUser: any = null;
 
       // Check each user's hashed token (since we hash tokens before storing)
       for (const user of users) {
-        if (user.resetToken && (await bcrypt.compare(token, user.resetToken))) {
+        const resetToken = user.resetToken;
+        if (resetToken !== null && (await bcrypt.compare(token, resetToken))) {
           // Check if token is not expired
           if (user.resetTokenExpiry && user.resetTokenExpiry > new Date()) {
             validUser = user;
@@ -252,7 +253,7 @@ export class AuthService {
       // Check if token is expired
       if (!validUser.resetTokenExpiry || new Date() > validUser.resetTokenExpiry) {
         // Clean up expired token
-        await this.usersService.clearResetToken(validUser.id);
+        await this.usersService.clearResetToken(validUser.id as string);
         return { isValid: false };
       }
       return {
@@ -293,11 +294,12 @@ export class AuthService {
 
       // Find all users with active reset tokens
       const users = await this.usersService.findAllUsersWithResetTokens();
-      let validUser: User | null = null;
+      let validUser: any = null;
 
       // Check each user's hashed token
       for (const user of users) {
-        if (user.resetToken && (await bcrypt.compare(token, user.resetToken))) {
+        const resetToken = user.resetToken;
+        if (resetToken !== null && (await bcrypt.compare(token, resetToken))) {
           // Check if token is not expired
           if (user.resetTokenExpiry && user.resetTokenExpiry > new Date()) {
             validUser = user;
@@ -313,7 +315,7 @@ export class AuthService {
       // Check if token is expired (double check)
       if (!validUser.resetTokenExpiry || new Date() > validUser.resetTokenExpiry) {
         // Clean up expired token
-        await this.usersService.clearResetToken(validUser.id);
+        await this.usersService.clearResetToken(validUser.id as string);
         throw new BadRequestException('Reset token has expired');
       }
 
@@ -351,8 +353,8 @@ export class AuthService {
       });
 
       // Send password reset confirmation email
-      await this.emailService.sendPasswordResetConfirmationEmail(validUser.email, {
-        userName: validUser.firstName,
+      await this.emailService.sendPasswordResetConfirmationEmail(validUser.email as string, {
+        userName: validUser.firstName as string,
         resetTime: new Date().toLocaleString(),
       });
 

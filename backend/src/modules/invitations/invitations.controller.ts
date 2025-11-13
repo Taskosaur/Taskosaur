@@ -1,5 +1,5 @@
 // src/modules/invitations/invitations.controller.ts
-import { Controller, Post, Get, Patch, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Param, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { InvitationsService } from './invitations.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
@@ -45,7 +45,7 @@ export class InvitationsController {
 
   @Get('user')
   @ApiOperation({ summary: 'Get user invitations' })
-  async getUserInvitations(@Req() req: Request) {
+  getUserInvitations(@Req() req: Request) {
     const user = getAuthUser(req);
     return this.invitationsService.getUserInvitations(user.email);
   }

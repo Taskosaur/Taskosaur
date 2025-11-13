@@ -46,7 +46,7 @@ export class WorkspacesController {
   @Post()
   @Roles(Role.MANAGER, Role.OWNER)
   create(@Body() createWorkspaceDto: CreateWorkspaceDto, @CurrentUser() user: any) {
-    return this.workspacesService.create(createWorkspaceDto, user.id);
+    return this.workspacesService.create(createWorkspaceDto, user.id as string);
   }
 
   // All members can view, but filtered by their membership
@@ -58,7 +58,7 @@ export class WorkspacesController {
     @Query('organizationId') organizationId?: string,
     @Query('search') search?: string,
   ) {
-    return this.workspacesService.findAll(user.id, organizationId, search);
+    return this.workspacesService.findAll(user.id as string, organizationId, search);
   }
 
   @Get('search')
@@ -69,7 +69,7 @@ export class WorkspacesController {
     @Query('organizationId') organizationId?: string,
     @Query('search') search?: string,
   ) {
-    return this.workspacesService.findAll(user.id, organizationId, search);
+    return this.workspacesService.findAll(user.id as string, organizationId, search);
   }
 
   @Get('search/paginated')
@@ -88,7 +88,7 @@ export class WorkspacesController {
     const validatedLimit = Math.min(Math.max(1, limitNum), 100);
 
     return this.workspacesService.findWithPagination(
-      user.id,
+      user.id as string,
       organizationId,
       search,
       validatedPage,
@@ -100,7 +100,7 @@ export class WorkspacesController {
   @Scope('WORKSPACE', 'id')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    return this.workspacesService.findOne(id, user.id);
+    return this.workspacesService.findOne(id, user.id as string);
   }
 
   @Get('recent/:workspaceId')
@@ -111,7 +111,6 @@ export class WorkspacesController {
     @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
     @Query('limit') limit: string = '10',
     @Query('page') page: string = '1',
-    @CurrentUser() user: any,
   ) {
     const limitNum = parseInt(limit, 10) || 10;
     const pageNum = parseInt(page, 10) || 1;
@@ -133,7 +132,7 @@ export class WorkspacesController {
     @Param('slug') slug: string,
     @CurrentUser() user: any,
   ) {
-    return this.workspacesService.findBySlug(organizationId, slug, user.id);
+    return this.workspacesService.findBySlug(organizationId, slug, user.id as string);
   }
 
   @Patch(':id')
@@ -144,7 +143,7 @@ export class WorkspacesController {
     @Body() updateWorkspaceDto: UpdateWorkspaceDto,
     @CurrentUser() user: any,
   ) {
-    return this.workspacesService.update(id, updateWorkspaceDto, user.id);
+    return this.workspacesService.update(id, updateWorkspaceDto, user.id as string);
   }
 
   @Delete(':id')
@@ -226,7 +225,7 @@ export class WorkspacesController {
     return this.workspaceChartsService.getMultipleWorkspaceChartData(
       organizationId,
       workspaceSlug,
-      user.id,
+      user.id as string,
       query.types,
     );
   }

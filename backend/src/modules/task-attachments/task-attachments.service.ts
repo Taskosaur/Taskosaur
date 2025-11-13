@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { TaskAttachment } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateTaskAttachmentDto, UploadTaskAttachmentDto } from './dto/create-task-attachment.dto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { StorageService } from '../storage/storage.service';
@@ -98,6 +97,7 @@ export class TaskAttachmentsService {
 
       return attachment;
     } catch (error) {
+      console.error(error);
       throw new BadRequestException(`Failed to upload file: ${error.message}`);
     }
   }
@@ -511,7 +511,7 @@ export class TaskAttachmentsService {
   generateFilePath(originalName: string, taskId: string): string {
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
-    const fileExtension = path.extname(originalName);
+    // const _fileExtension = path.extname(originalName);
     const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
     const fileName = `${timestamp}_${randomString}_${sanitizedName}`;
 

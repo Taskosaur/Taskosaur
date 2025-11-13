@@ -122,14 +122,16 @@ export class QueueProviderFactory {
   /**
    * Create in-memory adapter
    */
-  private async createInMemoryAdapter(): Promise<IQueueAdapter> {
+  private createInMemoryAdapter(): Promise<IQueueAdapter> {
     this.actualBackend = QueueBackend.IN_MEMORY;
 
     // For now, we'll create a placeholder adapter
     // This will be implemented in a later step
     this.logger.log(`✓ Queue backend: ${this.actualBackend}`);
 
-    throw new Error('In-memory adapter not yet implemented. Use BullMQ with Redis for now.');
+    return Promise.reject(
+      new Error('In-memory adapter not yet implemented. Use BullMQ with Redis for now.'),
+    );
   }
 
   /**

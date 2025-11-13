@@ -73,6 +73,7 @@ export class LabelsService {
         },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Label with this name already exists in this project');
       }
@@ -80,7 +81,7 @@ export class LabelsService {
     }
   }
 
-  async findAll(projectId?: string): Promise<Label[]> {
+  findAll(projectId?: string): Promise<Label[]> {
     const whereClause = projectId ? { projectId } : {};
 
     return this.prisma.label.findMany({
@@ -230,6 +231,7 @@ export class LabelsService {
 
       return label;
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Label with this name already exists in this project');
       }
@@ -246,6 +248,7 @@ export class LabelsService {
         where: { id },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Label not found');
       }
@@ -288,6 +291,7 @@ export class LabelsService {
         },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Label is already assigned to this task');
       }
@@ -306,6 +310,7 @@ export class LabelsService {
         },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Label assignment not found');
       }

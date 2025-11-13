@@ -43,11 +43,12 @@ export class WorkspacesSeederService {
           });
 
           // Add workspace members
-          await this.addMembersToWorkspace(workspace.id, users, organization.id);
+          await this.addMembersToWorkspace(workspace.id, users, organization.id as string);
 
           createdWorkspaces.push(workspace);
           console.log(`   ✓ Created workspace: ${workspace.name} in ${organization.name}`);
         } catch (error) {
+          console.error(error);
           console.log(
             `   ⚠ Workspace ${workspaceData.slug} might already exist in ${organization.name}, skipping...`,
           );
@@ -204,6 +205,7 @@ export class WorkspacesSeederService {
         });
         console.log(`   ✓ Added ${orgMembers[i].user.email} to workspace as ${memberRoles[i]}`);
       } catch (error) {
+        console.error(error);
         console.log(
           `   ⚠ User ${orgMembers[i].user.email} might already be a workspace member, skipping...`,
         );
@@ -222,13 +224,13 @@ export class WorkspacesSeederService {
       // Delete workspaces
       const deletedWorkspaces = await this.prisma.workspace.deleteMany();
       console.log(`✅ Deleted ${deletedWorkspaces.count} workspaces`);
-    } catch (error) {
-      console.error('❌ Error clearing workspaces:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing workspaces:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.workspace.findMany({
       select: {
         id: true,

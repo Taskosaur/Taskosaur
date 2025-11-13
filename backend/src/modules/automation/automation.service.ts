@@ -8,7 +8,6 @@ import {
   RuleExecution,
   TriggerType,
   ActionType,
-  TaskType,
   TaskPriority,
 } from '@prisma/client';
 import { EventsGateway } from '../../gateway/events.gateway';
@@ -23,7 +22,7 @@ export class AutomationService {
     @InjectQueue('automation') private automationQueue: IQueue,
   ) {}
 
-  async create(createAutomationRuleDto: CreateAutomationRuleDto): Promise<AutomationRule> {
+  create(createAutomationRuleDto: CreateAutomationRuleDto): Promise<AutomationRule> {
     return this.prisma.automationRule.create({
       data: createAutomationRuleDto,
       include: {
@@ -43,7 +42,7 @@ export class AutomationService {
     });
   }
 
-  async findAll(
+  findAll(
     organizationId?: string,
     workspaceId?: string,
     projectId?: string,
@@ -175,6 +174,7 @@ export class AutomationService {
         },
       });
     } catch (error) {
+      console.error(error);
       success = false;
       errorMessage = error.message;
     }
@@ -209,25 +209,33 @@ export class AutomationService {
 
     switch (actionType) {
       case ActionType.ASSIGN_TASK:
-        return this.assignTask(triggerData.taskId, config.assigneeId);
+        return this.assignTask(triggerData.taskId as string, config.assigneeId as string[]);
 
       case ActionType.CHANGE_STATUS:
-        return this.changeTaskStatus(triggerData.taskId, config.statusId);
+        return this.changeTaskStatus(triggerData.taskId as string, config.statusId as string);
 
       case ActionType.ADD_LABEL:
-        return this.addLabel(triggerData.taskId, config.labelId);
+        return this.addLabel(triggerData.taskId as string, config.labelId as string);
 
       case ActionType.SEND_NOTIFICATION:
-        return this.sendNotification(config.userId, config.message, triggerData);
+        return this.sendNotification(
+          config.userId as string,
+          config.message as string,
+          triggerData,
+        );
 
       case ActionType.ADD_COMMENT:
-        return this.addComment(triggerData.taskId, config.content, rule.createdBy || '');
+        return this.addComment(
+          triggerData.taskId as string,
+          config.content as string,
+          rule.createdBy || '',
+        );
 
       case ActionType.CHANGE_PRIORITY:
-        return this.changePriority(triggerData.taskId, config.priority);
+        return this.changePriority(triggerData.taskId as string, config.priority as TaskPriority);
 
       case ActionType.SET_DUE_DATE:
-        return this.setDueDate(triggerData.taskId, config.dueDate);
+        return this.setDueDate(triggerData.taskId as string, config.dueDate as string);
 
       default:
         throw new Error(`Unsupported action type: ${actionType}`);
@@ -370,7 +378,7 @@ export class AutomationService {
 
   // Event handlers for triggering automation
   async handleTaskCreated(task: any): Promise<void> {
-    const rules = await this.getActiveRules(TriggerType.TASK_CREATED, task.projectId);
+    const rules = await this.getActiveRules(TriggerType.TASK_CREATED, task.projectId as string);
 
     for (const rule of rules) {
       if (this.checkTriggerConditions(rule, task)) {
@@ -378,7 +386,7 @@ export class AutomationService {
           rule.id,
           TriggerType.TASK_CREATED,
           { taskId: task.id, task },
-          task.reporterId,
+          task.reporterId as string,
         );
       }
     }
@@ -461,10 +469,7 @@ export class AutomationService {
     }
   }
 
-  private async getActiveRules(
-    triggerType: TriggerType,
-    projectId?: string,
-  ): Promise<AutomationRule[]> {
+  private getActiveRules(triggerType: TriggerType, projectId?: string): Promise<AutomationRule[]> {
     const where: any = {
       status: 'ACTIVE',
       triggerType,

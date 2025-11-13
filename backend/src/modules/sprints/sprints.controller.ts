@@ -28,7 +28,7 @@ export class SprintsController {
 
   @Post()
   create(@Body() createSprintDto: CreateSprintDto, @CurrentUser() user: any) {
-    return this.sprintsService.create(createSprintDto, user.id);
+    return this.sprintsService.create(createSprintDto, user.id as string);
   }
 
   @Get()
@@ -56,7 +56,7 @@ export class SprintsController {
     @Body() updateSprintDto: UpdateSprintDto,
     @CurrentUser() user: any,
   ) {
-    return this.sprintsService.update(id, updateSprintDto, user.id);
+    return this.sprintsService.update(id, updateSprintDto, user.id as string);
   }
 
   @Patch(':id/start')

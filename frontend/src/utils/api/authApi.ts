@@ -144,8 +144,15 @@ export const authApi = {
     return response.data;
   },
 
-  setupSuperAdmin: async (setupData: SetupAdminData): Promise<SetupResponse> => {
-    const response = await api.post<SetupResponse>("/auth/setup", setupData);
+  setupSuperAdmin: async (setupData: SetupAdminData): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>("/auth/setup", setupData);
+
+    const { access_token, refresh_token, user } = response.data;
+
+    if (access_token) TokenManager.setAccessToken(access_token);
+    if (refresh_token) TokenManager.setRefreshToken(refresh_token);
+    if (user) localStorage.setItem("user", JSON.stringify(user));
+
     return response.data;
   },
 

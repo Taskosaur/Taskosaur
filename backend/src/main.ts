@@ -10,13 +10,16 @@ import {
 } from './middleware/static-routing.middleware';
 
 // Suppress unhandled promise rejections from Redis connection failures
-process.on('unhandledRejection', (reason: any) => {
+process.on('unhandledRejection', (reason: unknown) => {
   // Ignore Redis connection errors when Redis is unavailable
   if (
     reason &&
-    (reason.code === 'ECONNREFUSED' ||
-      reason.syscall === 'connect' ||
-      (reason.message && reason.message.includes('ECONNREFUSED')))
+    typeof reason === 'object' &&
+    (('code' in reason && reason.code === 'ECONNREFUSED') ||
+      ('syscall' in reason && reason.syscall === 'connect') ||
+      ('message' in reason &&
+        typeof reason.message === 'string' &&
+        reason.message.includes('ECONNREFUSED')))
   ) {
     return; // Silently ignore - fallback queue is being used
   }
@@ -30,7 +33,6 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   const appConfig = configService.get('app');
-
   // Enable CORS
   app.enableCors({
     origin: process.env.CORS_ORIGINS
@@ -39,6 +41,7 @@ async function bootstrap() {
           'http://localhost:3000',
           'http://localhost:3001',
           'http://0.0.0.0:3000',
+          'http://0.0.0.0:3001',
           'http://127.0.0.1:3000',
         ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
@@ -69,9 +72,9 @@ async function bootstrap() {
   // Configure Swagger documentation
   const swaggerConfig = appConfig.swagger;
   const swaggerOptions = new DocumentBuilder()
-    .setTitle(swaggerConfig.title)
-    .setDescription(swaggerConfig.description)
-    .setVersion(swaggerConfig.version)
+    .setTitle(swaggerConfig.title as string)
+    .setDescription(swaggerConfig.description as string)
+    .setVersion(swaggerConfig.version as string)
     .addBearerAuth(
       {
         type: 'http',
@@ -98,8 +101,10 @@ async function bootstrap() {
     },
   });
 
-  await app.listen(port, host);
+  await app.listen(port as string | number, host as string);
   logger.log(`Application is running on: http://${host}:${port}`);
-  logger.log(`Swagger documentation available at: http://${host}:${port}/${swaggerConfig.path}`);
+  logger.log(
+    `Swagger documentation available at: http://${host}:${port}/${swaggerConfig.path as string}`,
+  );
 }
-bootstrap();
+void bootstrap();

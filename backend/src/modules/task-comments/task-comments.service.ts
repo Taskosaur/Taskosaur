@@ -103,7 +103,7 @@ export class TaskCommentsService {
     return comment;
   }
 
-  async findAll(taskId?: string): Promise<TaskComment[]> {
+  findAll(taskId?: string): Promise<TaskComment[]> {
     const whereClause: any = {};
     if (taskId) {
       whereClause.taskId = taskId;

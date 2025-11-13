@@ -1,6 +1,9 @@
 # Use Node.js 22 on Debian slim for faster development
 FROM node:22-slim
 
+# Update npm to latest version
+RUN npm install -g npm@latest
+
 # Install dependencies for Prisma and other tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
@@ -21,8 +24,8 @@ COPY . .
 RUN npm install
 
 # Copy and set permissions for entrypoint script
-COPY docker/entrypoint-dev.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+COPY docker/entrypoint-dev.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Generate Prisma client
 RUN npm run db:generate || true
@@ -33,4 +36,4 @@ RUN npm run db:generate || true
 EXPOSE 3000 3001
 
 # Set entrypoint
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]

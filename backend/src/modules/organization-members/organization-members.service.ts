@@ -96,6 +96,7 @@ export class OrganizationMembersService {
       }
       return orgMember;
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('User is already a member of this organization');
       }
@@ -125,7 +126,7 @@ export class OrganizationMembersService {
     });
   }
 
-  async findAll(organizationId?: string, search?: string): Promise<OrganizationMember[]> {
+  findAll(organizationId?: string, search?: string): Promise<OrganizationMember[]> {
     const whereClause: any = {};
 
     if (organizationId) {
@@ -354,10 +355,7 @@ export class OrganizationMembersService {
     return member;
   }
 
-  async findByUserAndOrganization(
-    userId: string,
-    organizationId: string,
-  ): Promise<OrganizationMember | null> {
+  findByUserAndOrganization(userId: string, organizationId: string) {
     return this.prisma.organizationMember.findUnique({
       where: {
         userId_organizationId: {

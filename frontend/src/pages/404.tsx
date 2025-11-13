@@ -18,7 +18,7 @@ const NotFound = () => {
         </p>
 
         <ActionButton
-          onClick={() => router.push("/dashboard")}
+          onClick={() => window.location.href = "/dashboard"}
           primary
           className="inline-flex items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] px-5 py-3.5 text-sm font-medium text-[var(--foreground)] shadow-sm hover:bg-[var(--primary)] hover:text-white transition-colors duration-200"
         >

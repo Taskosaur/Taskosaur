@@ -120,7 +120,7 @@ export class PublicCalendarService {
 
     return uniqueEvents.sort(
       (a: any, b: any) =>
-        new Date(a.date).getTime() - new Date(b.date).getTime(),
+        new Date(a.date as string).getTime() - new Date(b.date as string).getTime(),
     );
   }
 

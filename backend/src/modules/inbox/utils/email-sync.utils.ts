@@ -102,11 +102,12 @@ export class EmailSyncUtils {
     return text.length > 200 ? text.substring(0, 197) + '...' : text;
   }
 
-  static formatAddress(address: any): string {
+  static formatAddress(address: any): any {
     if (!address) return '';
     if (typeof address === 'string') return address;
     if (Array.isArray(address)) {
-      return address.map((a) => EmailSyncUtils.formatAddress(a)).join(', ');
+      const formatted: string[] = address.map((a) => EmailSyncUtils.formatAddress(a) as string);
+      return formatted.join(', ');
     }
     if (typeof address === 'object') {
       if (address.address) {
@@ -119,12 +120,12 @@ export class EmailSyncUtils {
   static formatAddressList(addresses: any): string[] {
     if (!addresses) return [];
     if (Array.isArray(addresses)) {
-      return addresses.map((addr) => {
+      return addresses.map((addr): string => {
         if (typeof addr === 'string') return addr;
-        return addr.address || '';
+        return (addr.address as string) || '';
       });
     }
-    if (typeof addresses === 'object') return [addresses.address || ''];
+    if (typeof addresses === 'object') return [(addresses.address as string) || ''];
     if (typeof addresses === 'string') return [addresses];
     return [];
   }

@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
   BadRequestException,
 } from '@nestjs/common';
-import { StatusCategory, Task, TaskPriority, Role } from '@prisma/client';
+import { Task, TaskPriority } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -162,7 +162,7 @@ export class TasksService {
     createTaskDto: CreateTaskDto,
     userId: string,
     files?: Express.Multer.File[],
-  ): Promise<Task> {
+  ) {
     const project = await this.prisma.project.findUnique({
       where: { id: createTaskDto.projectId },
       select: {
@@ -268,12 +268,11 @@ export class TasksService {
     }
 
     // --- Return task with attachments + presigned URLs ---
-    const taskRes = await this.getTaskWithPresignedUrls(task.id);
-    return taskRes;
+    return this.getTaskWithPresignedUrls(task.id);
   }
 
   // Helper method to fetch task and generate presigned URLs for attachments
-  private async getTaskWithPresignedUrls(taskId: string): Promise<any> {
+  private async getTaskWithPresignedUrls(taskId: string) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -347,7 +346,7 @@ export class TasksService {
       const attachmentsWithUrls = await Promise.all(
         task.attachments.map(async (attachment) => {
           // If URL is null (S3 case), generate presigned URL
-          const isCloud = attachment.url;
+          // const _isCloud = attachment.url;
           const viewUrl = attachment.url
             ? attachment.url
             : attachment?.storageKey &&
@@ -393,7 +392,7 @@ export class TasksService {
       throw new ForbiddenException('User context required');
     }
 
-    const { isElevated } = await this.accessControl.getOrgAccess(organizationId, userId);
+    await this.accessControl.getOrgAccess(organizationId, userId);
 
     // Verify organization exists
     const organization = await this.prisma.organization.findUnique({
@@ -746,7 +745,7 @@ export class TasksService {
     }));
   }
 
-  async findOne(id: string, userId: string): Promise<any> {
+  async findOne(id: string, userId: string) {
     const { isElevated } = await this.accessControl.getTaskAccess(id, userId);
 
     const task = await this.prisma.task.findUnique({
@@ -950,7 +949,7 @@ export class TasksService {
     };
   }
 
-  async findByKey(key: string, userId: string): Promise<Task> {
+  async findByKey(key: string, userId: string) {
     const task = await this.prisma.task.findFirst({
       where: { slug: key },
       select: { id: true },
@@ -1052,6 +1051,7 @@ export class TasksService {
 
       return updatedTask;
     } catch (error: any) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Task not found');
       }
@@ -1084,6 +1084,7 @@ export class TasksService {
         where: { id },
       });
     } catch (error: any) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Task not found');
       }
@@ -1880,6 +1881,7 @@ export class TasksService {
         });
         deletedCount = result.count;
       } catch (error) {
+        console.error(error);
         throw new InternalServerErrorException('Failed to delete tasks: ' + error.message);
       }
     }

@@ -16,3 +16,376 @@
 .setup-checker-loading-text {
   @apply text-gray-600;
 }
+/* Setup Page Styles - Matching Login Design System EXACTLY */
+
+/* Layout Classes */
+.setup-container {
+  @apply relative flex flex-col justify-center px-8 lg:px-12 xl:px-16 py-8 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)] to-[var(--primary)]/95 overflow-hidden h-full;
+}
+
+.setup-content-panel {
+  @apply lg:w-1/2 relative;
+}
+
+.setup-form-panel {
+  @apply w-full lg:w-1/2 flex items-center justify-center p-4 lg:p-8 xl:p-10 min-h-screen overflow-y-auto;
+}
+
+.setup-form-wrapper {
+  @apply w-full max-w-md my-auto;
+}
+
+/* Setup Content Styles - EXACT SAME AS LOGIN */
+.setup-hero-container {
+  @apply relative flex flex-col justify-center px-8 lg:px-12 xl:px-16 py-8 bg-gradient-to-br from-[var(--primary)] via-[var(--primary)] to-[var(--primary)]/95 overflow-hidden h-full;
+}
+
+.setup-hero-background {
+  @apply absolute inset-0;
+}
+
+.setup-hero-gradient-overlay {
+  @apply absolute inset-0 bg-gradient-to-b from-transparent via-[var(--primary)]/10 to-[var(--primary)]/20;
+}
+
+.setup-hero-content {
+  @apply relative z-10 max-w-2xl mx-auto lg:mx-0;
+}
+
+/* Brand Header - EXACT SAME AS LOGIN */
+.setup-brand-header {
+  @apply mb-8;
+}
+
+.setup-brand-logo-row {
+  @apply flex items-center space-x-3 mb-6;
+}
+
+.setup-brand-logo-icon {
+  @apply w-12 h-12 lg:w-14 lg:h-14 bg-[var(--primary-foreground)]/15 backdrop-blur-lg rounded-2xl flex items-center justify-center border border-[var(--primary-foreground)]/20 shadow-lg;
+}
+
+.setup-brand-title {
+  @apply text-xl lg:text-4xl font-bold text-[var(--primary-foreground)] tracking-tight;
+}
+
+.setup-brand-subtitle-row {
+  @apply flex items-center space-x-2 mt-1;
+}
+
+.setup-brand-shield-icon {
+  @apply w-3 h-3 text-[var(--primary-foreground)]/70;
+}
+
+.setup-brand-subtitle {
+  @apply text-[var(--primary-foreground)]/70 text-xs lg:text-sm font-medium;
+}
+
+.setup-hero-heading {
+  @apply text-2xl lg:text-3xl xl:text-4xl font-bold text-[var(--primary-foreground)] mb-4 leading-tight;
+}
+
+.setup-hero-heading-gradient {
+  @apply bg-gradient-to-r from-[var(--primary-foreground)] to-[var(--primary-foreground)]/80 bg-clip-text text-transparent;
+}
+
+.setup-hero-description {
+  @apply text-[var(--primary-foreground)]/85 text-sm lg:text-base leading-relaxed mb-6 max-w-xl;
+}
+
+/* Setup Form Styles */
+.setup-form-container {
+  @apply w-full space-y-5;
+}
+
+.setup-form-header {
+  @apply text-center space-y-3;
+}
+
+.setup-form-mode-toggle {
+  @apply fixed top-2 right-2 z-50;
+}
+
+/* Mobile Logo */
+.setup-mobile-logo {
+  @apply md:hidden mb-6;
+}
+
+.setup-mobile-logo-icon {
+  @apply mx-auto w-fit;
+}
+
+/* Shield Icon Container */
+.setup-shield-icon-container {
+  @apply mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-4;
+}
+
+.setup-shield-icon {
+  @apply h-8 w-8 text-blue-600 dark:text-blue-400;
+}
+
+.setup-form-header-content {
+  @apply space-y-1.5;
+}
+
+.setup-form-title {
+  @apply text-2xl sm:text-3xl lg:text-3xl font-bold text-[var(--foreground)] tracking-tight;
+}
+
+.setup-form-subtitle {
+  @apply text-[var(--muted-foreground)] text-sm sm:text-base leading-relaxed max-w-sm mx-auto;
+}
+
+/* Error Alert */
+.setup-error-alert {
+  @apply border-[var(--destructive)]/30 bg-[var(--destructive)]/5 backdrop-blur-sm border-l-4;
+}
+
+.setup-error-title {
+  @apply block font-semibold text-sm mb-1;
+}
+
+.setup-error-message {
+  @apply text-xs opacity-90 block;
+}
+
+/* Form Fields */
+.setup-form {
+  @apply space-y-4;
+}
+
+.setup-field-container {
+  @apply space-y-2;
+}
+
+/* Name Fields Row */
+.setup-name-fields-row {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-4;
+}
+
+.setup-field-label {
+  @apply text-sm font-semibold text-[var(--foreground)] flex items-center space-x-2;
+}
+
+.setup-field-icon {
+  @apply w-4 h-4;
+}
+
+.setup-input {
+  @apply h-10 px-4 bg-[var(--card)] border-[var(--border)] focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200 rounded-lg shadow-sm hover:shadow-md w-full;
+}
+
+.setup-password-container {
+  @apply relative;
+}
+
+.setup-password-input {
+  @apply h-10 pl-4 pr-10 bg-[var(--card)] border-[var(--border)] focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200 rounded-lg shadow-sm hover:shadow-md w-full;
+}
+
+.setup-password-toggle {
+  @apply absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-[var(--muted)]/50 rounded-lg;
+}
+
+.setup-password-hint {
+  @apply text-xs text-[var(--muted-foreground)] mt-1.5;
+}
+
+/* Buttons */
+.setup-submit-button {
+  @apply w-full h-10 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg flex items-center justify-center gap-2;
+}
+
+.setup-loading-spinner {
+  @apply h-5 w-5 animate-spin;
+}
+
+.setup-button-arrow {
+  @apply h-5 w-5 transition-transform duration-200;
+}
+
+.setup-submit-button:hover .setup-button-arrow {
+  @apply translate-x-1;
+}
+
+/* Footer */
+.setup-footer {
+  @apply text-center mt-5 pt-4;
+}
+
+.setup-footer-text {
+  @apply text-xs text-[var(--muted-foreground)] leading-relaxed max-w-xs mx-auto;
+}
+
+/* Success State */
+.setup-success-container {
+  @apply flex items-center justify-center min-h-[500px] px-4;
+}
+
+.setup-success-content {
+  @apply text-center space-y-6;
+}
+
+.setup-success-icon {
+  @apply h-20 w-20 text-green-500 dark:text-green-400 mx-auto;
+}
+
+.setup-success-title {
+  @apply text-3xl font-bold text-[var(--foreground)];
+}
+
+.setup-success-message {
+  @apply text-[var(--muted-foreground)] text-lg;
+}
+
+.setup-success-redirect {
+  @apply flex items-center justify-center gap-2 text-sm text-[var(--muted-foreground)];
+}
+
+.setup-redirect-spinner {
+  @apply h-4 w-4 animate-spin;
+}
+
+/* Scroll Container Utilities */
+.setup-form-scroll-container {
+  @apply max-h-screen overflow-y-auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+
+.setup-form-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.setup-form-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.setup-form-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 3px;
+}
+
+/* Responsive Adjustments for Very Large Screens */
+@media (min-width: 1920px) {
+  .setup-form-panel {
+    @apply p-12;
+  }
+
+  .setup-form-wrapper {
+    @apply max-w-lg;
+  }
+}
+
+/* Compact Mode for Smaller Heights */
+@media (max-height: 800px) {
+  .setup-form-header {
+    @apply space-y-2;
+  }
+
+  .setup-form-title {
+    @apply text-xl sm:text-2xl lg:text-2xl;
+  }
+
+  .setup-form-subtitle {
+    @apply text-xs sm:text-sm;
+  }
+
+  .setup-form-container {
+    @apply space-y-4;
+  }
+
+  .setup-form {
+    @apply space-y-3;
+  }
+
+  .setup-footer {
+    @apply mt-4;
+  }
+
+  .setup-shield-icon-container {
+    @apply w-12 h-12 mb-3;
+  }
+
+  .setup-shield-icon {
+    @apply h-6 w-6;
+  }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .setup-form-title {
+    @apply text-xl;
+  }
+
+  .setup-form-subtitle {
+    @apply text-sm;
+  }
+
+  .setup-input,
+  .setup-password-input {
+    @apply text-base;
+  }
+
+  .setup-name-fields-row {
+    @apply grid-cols-1 gap-3;
+  }
+
+  .setup-success-icon {
+    @apply h-16 w-16;
+  }
+
+  .setup-success-title {
+    @apply text-2xl;
+  }
+
+  .setup-success-message {
+    @apply text-base;
+  }
+}
+
+/* Focus States for Accessibility */
+.setup-input:focus,
+.setup-password-input:focus {
+  @apply outline-none ring-2 ring-[var(--ring)] ring-offset-2 ring-offset-[var(--background)];
+}
+
+.setup-submit-button:focus-visible {
+  @apply outline-none ring-2 ring-[var(--ring)] ring-offset-2 ring-offset-[var(--background)];
+}
+
+/* Disabled States */
+.setup-input:disabled,
+.setup-password-input:disabled {
+  @apply opacity-50 cursor-not-allowed bg-[var(--muted)]/20;
+}
+
+.setup-submit-button:disabled {
+  @apply opacity-60 cursor-not-allowed;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .setup-submit-button,
+  .setup-button-arrow {
+    @apply transition-none;
+  }
+
+  .setup-loading-spinner,
+  .setup-redirect-spinner {
+    animation: none;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .setup-form-mode-toggle,
+  .setup-password-toggle,
+  .setup-hero-container {
+    @apply hidden;
+  }
+
+  .setup-form-panel {
+    @apply w-full;
+  }
+}

@@ -27,7 +27,7 @@ export interface IJob<T = any> {
   /**
    * Return value from job processing
    */
-  readonly returnvalue: any;
+  readonly returnvalue: unknown;
 
   /**
    * Timestamp when job finished

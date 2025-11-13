@@ -32,6 +32,15 @@ import {
   ProjectChartType,
 } from './dto/get-project-charts-query.dto';
 
+interface AuthenticatedUser {
+  id: string;
+  email: string;
+  role: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+}
+
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('projects')
@@ -50,7 +59,7 @@ export class ProjectsController {
     description: 'Created a new project',
     includeNewValue: true,
   })
-  create(@Body() createProjectDto: CreateProjectDto, @CurrentUser() user: any) {
+  create(@Body() createProjectDto: CreateProjectDto, @CurrentUser() user: AuthenticatedUser) {
     return this.projectsService.create(createProjectDto, user.id);
   }
 
@@ -58,7 +67,7 @@ export class ProjectsController {
   @Get()
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findAll(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('workspaceId') workspaceId?: string,
     @Query('status') status?: string,
     @Query('priority') priority?: string,
@@ -79,7 +88,7 @@ export class ProjectsController {
   @Scope('ORGANIZATION', 'organizationId')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findByOrganizationId(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('organizationId') organizationId: string,
     @Query('workspaceId') workspaceId?: string,
     @Query('status') status?: string,
@@ -105,7 +114,7 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Search projects without pagination' })
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   searchProjects(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('workspaceId') workspaceId?: string,
     @Query('organizationId') organizationId?: string,
     @Query('search') search?: string,
@@ -118,7 +127,7 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Search projects with pagination' })
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   searchProjectsWithPagination(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('workspaceId') workspaceId?: string,
     @Query('organizationId') organizationId?: string,
     @Query('search') search?: string,
@@ -144,7 +153,7 @@ export class ProjectsController {
   findByKey(
     @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
     @Param('key') key: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.projectsService.findByKey(workspaceId, key, user.id);
   }
@@ -153,7 +162,7 @@ export class ProjectsController {
   @Get(':id')
   @Scope('PROJECT', 'id')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.projectsService.findOne(id, user.id);
   }
 
@@ -171,7 +180,7 @@ export class ProjectsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateProjectDto: UpdateProjectDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.projectsService.update(id, updateProjectDto, user.id);
   }
@@ -187,7 +196,7 @@ export class ProjectsController {
     includeOldValue: true,
     includeNewValue: false,
   })
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.projectsService.remove(id, user.id);
   }
 
@@ -195,7 +204,7 @@ export class ProjectsController {
   @Patch('archive/:id')
   @Roles(Role.MANAGER, Role.OWNER)
   @HttpCode(HttpStatus.NO_CONTENT)
-  archiveProject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  archiveProject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.projectsService.archiveProject(id, user.id);
   }
 
@@ -252,7 +261,7 @@ export class ProjectsController {
   async getProjectCharts(
     @Param('slug') projectSlug: string,
     @Query() query: GetProjectChartsQueryDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<ProjectChartDataResponse> {
     return this.projectChartsService.getMultipleProjectChartData(projectSlug, user.id, query.types);
   }
@@ -267,7 +276,7 @@ export class ProjectsController {
   getSprintBurndown(
     @Param('slug') slug: string,
     @Param('sprintId', ParseUUIDPipe) sprintId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.projectChartsService.projectSprintBurndown(sprintId, slug, user.id);
   }
@@ -276,7 +285,7 @@ export class ProjectsController {
   @Get('by-slug/:slug')
   @Scope('PROJECT', 'slug')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
-  getProjectBySlug(@Param('slug') slug: string, @CurrentUser() user: any) {
-    return this.projectsService.getProjectBySlug(slug, user.id);
+  getProjectBySlug(@Param('slug') slug: string) {
+    return this.projectsService.getProjectBySlug(slug);
   }
 }

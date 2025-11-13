@@ -479,13 +479,17 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
             try {
               parameters = JSON.parse(repairedJson);
-            } catch (repairError) {
+            } catch (error) {
+              console.error('Failed to parse repaired JSON:', error);
               throw parseError; // Throw original error
             }
           }
 
           // Validate command parameters
-          const validation = this.validateCommandParameters(commandName, parameters);
+          const validation = this.validateCommandParameters(
+            commandName,
+            parameters as Record<string, any>,
+          );
 
           if (!validation.valid) {
             // Override the AI message with parameter collection guidance
@@ -523,7 +527,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
           switch (commandName) {
             case 'navigateToProject': {
               const projectSlug = await this.projectService.validateProjectSlug(
-                parameters.projectSlug,
+                parameters.projectSlug as string,
               );
 
               if (projectSlug.status === 'exact' || projectSlug.status === 'fuzzy') {
@@ -554,7 +558,12 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
             parameters,
           };
           // Update context based on command execution
-          await this.updateContextFromCommand(sessionId, commandName, parameters, sessionContext);
+          await this.updateContextFromCommand(
+            sessionId,
+            commandName,
+            parameters as Record<string, any>,
+            sessionContext,
+          );
         } catch (error) {
           console.error('Failed to parse command parameters:', error);
         }
@@ -566,6 +575,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
         success: true,
       };
     } catch (error: any) {
+      console.error(error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage?.includes('Failed to fetch') || errorMessage?.includes('NetworkError')) {
         return {
@@ -592,7 +602,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     // Update workspace context
     if (commandName === 'navigateToWorkspace') {
       if (parameters.workspaceSlug) {
-        const slug = await this.workspacesService.getIdBySlug(parameters.workspaceSlug);
+        const slug = await this.workspacesService.getIdBySlug(parameters.workspaceSlug as string);
         const currentWorkSpaceAllProjects = await this.projectService.getAllSlugsByWorkspaceId(
           slug ?? '',
         );
@@ -633,11 +643,11 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
       if (commandName === 'createProject') {
         // Priority: name → slug
-        context.projectSlug = name ? slugify(name) : projectSlug;
+        context.projectSlug = name ? slugify(name as string) : projectSlug;
         context.projectName = name || projectSlug;
       } else if (commandName === 'navigateToProject') {
         // Priority: projectSlug → slug from name
-        context.projectSlug = projectSlug || (name ? slugify(name) : undefined);
+        context.projectSlug = projectSlug || (name ? slugify(name as string) : undefined);
         context.projectName = projectSlug || name;
       }
       if (workspaceSlug) {
@@ -657,7 +667,17 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     context.lastUpdated = new Date();
 
     // Save updated context
-    this.conversationContexts.set(sessionId, context);
+    this.conversationContexts.set(
+      sessionId,
+      context as {
+        workspaceSlug?: string;
+        workspaceName?: string;
+        projectSlug?: string;
+        projectName?: string;
+        lastUpdated: Date;
+        currentWorkSpaceProjectSlug?: string[];
+      },
+    );
   }
   private extractContextFromMessage(sessionId: string, message: string, context: any) {
     const lowerMessage = message.toLowerCase();
@@ -776,7 +796,17 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     // Update last activity timestamp and save context
     if (contextUpdated) {
       context.lastUpdated = new Date();
-      this.conversationContexts.set(sessionId, context);
+      this.conversationContexts.set(
+        sessionId,
+        context as {
+          workspaceSlug?: string;
+          workspaceName?: string;
+          projectSlug?: string;
+          projectName?: string;
+          lastUpdated: Date;
+          currentWorkSpaceProjectSlug?: string[];
+        },
+      );
     }
   }
 

@@ -1,9 +1,13 @@
-import { Injectable, ConflictException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { SystemUserSeederService } from '../../../seeder/system-user.seeder.service';
 import { SetupAdminDto } from '../dto/setup-admin.dto';
-import { User, Role, UserStatus } from '@prisma/client';
+import { Role, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { AuthResponseDto } from '../dto/auth-response.dto';
+import { JwtPayload } from '../strategies/jwt.strategy';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class SetupService {
@@ -13,6 +17,8 @@ export class SetupService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly systemUserSeeder: SystemUserSeederService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async isSetupRequired(): Promise<boolean> {
@@ -20,8 +26,7 @@ export class SetupService {
     return userCount === 0;
   }
 
-  async setupSuperAdmin(setupAdminDto: SetupAdminDto): Promise<Omit<User, 'password'>> {
-    // Prevent concurrent setup attempts
+  async setupSuperAdmin(setupAdminDto: SetupAdminDto): Promise<AuthResponseDto> {
     if (SetupService.setupInProgress) {
       throw new ConflictException('Setup is already in progress');
     }
@@ -29,8 +34,8 @@ export class SetupService {
     SetupService.setupInProgress = true;
 
     try {
-      return await this.prisma.$transaction(async (prismaTransaction) => {
-        // Double-check no users exist within transaction
+      return await this.prisma.$transaction(async (prismaTransaction): Promise<AuthResponseDto> => {
+        // Double-check no users exist
         const userCount = await prismaTransaction.user.count();
         if (userCount > 0) {
           throw new ConflictException('System setup has already been completed');
@@ -38,23 +43,14 @@ export class SetupService {
 
         this.logger.log('Starting system setup...');
 
-        // First, run the SystemUserSeederService to create the system user
-        this.logger.log('Creating system user...');
-        await this.systemUserSeeder.seed();
-
-        // Then create the super admin
-        this.logger.log('Creating super admin...');
-
-        // Check if email already exists (should not happen in fresh setup, but safety check)
         const existingUser = await prismaTransaction.user.findUnique({
           where: { email: setupAdminDto.email },
         });
-
         if (existingUser) {
           throw new ConflictException('User with this email already exists');
         }
 
-        // Check username if provided
+        // Unique username generation
         const baseUsername = setupAdminDto.email.split('@')[0].toLowerCase();
         let finalUsername = baseUsername;
         let counter = 1;
@@ -66,11 +62,12 @@ export class SetupService {
           finalUsername = `${baseUsername}${counter}`;
           counter++;
         }
+
         // Hash password
         const hashedPassword = await bcrypt.hash(setupAdminDto.password, 12);
 
-        // Create super admin
-        const superAdmin = await prismaTransaction.user.create({
+        // Create super admin user
+        const user = await prismaTransaction.user.create({
           data: {
             email: setupAdminDto.email,
             username: finalUsername,
@@ -79,7 +76,7 @@ export class SetupService {
             password: hashedPassword,
             role: Role.SUPER_ADMIN,
             status: UserStatus.ACTIVE,
-            emailVerified: true, // Auto-verify super admin
+            emailVerified: true,
             bio: 'System Super Administrator',
             timezone: 'UTC',
             language: 'en',
@@ -91,10 +88,39 @@ export class SetupService {
           },
         });
 
-        this.logger.log(`Super admin created successfully: ${superAdmin.email}`);
+        // Generate JWT tokens
+        const payload: JwtPayload = {
+          sub: user.id,
+          email: user.email,
+          role: user.role,
+        };
 
-        const { password, ...superAdminWithoutPassword } = superAdmin;
-        return superAdminWithoutPassword;
+        const accessToken = this.jwtService.sign(payload);
+        const refreshToken = this.jwtService.sign(payload, {
+          expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
+        });
+
+        // Save refresh token
+        await prismaTransaction.user.update({
+          where: { id: user.id },
+          data: { refreshToken },
+        });
+
+        return {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            username: user.username || undefined,
+            avatar: user.avatar || undefined,
+            bio: user.bio || undefined,
+            mobileNumber: user.mobileNumber || undefined,
+          },
+        };
       });
     } catch (error) {
       this.logger.error('Setup failed:', error);

@@ -28,7 +28,7 @@ export class LabelsController {
 
   @Post()
   create(@Body() createLabelDto: CreateLabelDto, @CurrentUser() user: any) {
-    return this.labelsService.create(createLabelDto, user.id);
+    return this.labelsService.create(createLabelDto, user.id as string);
   }
 
   @Get()
@@ -47,7 +47,7 @@ export class LabelsController {
     @Body() updateLabelDto: UpdateLabelDto,
     @CurrentUser() user: any,
   ) {
-    return this.labelsService.update(id, updateLabelDto, user.id);
+    return this.labelsService.update(id, updateLabelDto, user.id as string);
   }
 
   @Delete(':id')

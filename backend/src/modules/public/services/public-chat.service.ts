@@ -3,7 +3,6 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -129,7 +128,7 @@ export class ProjectChartsService {
    * 1) Task Status Flow - Public projects only
    */
   async projectTaskStatusFlow(projectSlug: string): Promise<TaskStatusFlow[]> {
-    const project = await this.getProjectWithVisibilityCheck(projectSlug);
+    // const _project = await this.getProjectWithVisibilityCheck(projectSlug);
 
     const projectWithWorkflow = await this.prisma.project.findUnique({
       where: { slug: projectSlug },

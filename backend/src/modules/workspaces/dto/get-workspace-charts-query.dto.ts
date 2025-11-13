@@ -42,11 +42,11 @@ export class GetWorkspaceChartsQueryDto {
     each: true,
     message: 'Invalid chart type provided',
   })
-  @Transform(({ value }) => {
+  @Transform(({ value }): any => {
     if (Array.isArray(value)) {
-      return value;
+      return value as any;
     }
-    return typeof value === 'string' ? [value] : [value];
+    return typeof value === 'string' ? [value] : ([value] as any);
   })
   types: WorkspaceChartType[];
 }

@@ -30,10 +30,12 @@ interface ApiError {
   isTimeoutError?: boolean;
 }
 
+// Extended interface with 404 redirect option
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
   _retryCount?: number;
   _skipErrorHandling?: boolean;
+  _handle404Redirect?: boolean; // NEW: Enable 404 redirect for specific requests
 }
 
 // Custom error classes
@@ -131,7 +133,7 @@ const TokenManager = {
           secure: process.env.NODE_ENV === "production",
           sameSite: "strict",
           path: "/",
-          httpOnly: false, // Note: true would be more secure but requires server-side handling
+          httpOnly: false,
         });
       }
     } catch (error) {
@@ -238,9 +240,9 @@ const safeRedirect = (url: string): void => {
   try {
     if (typeof window !== "undefined") {
       const currentPath = window.location.pathname;
-      const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password"];
+      const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password", "/404"];
 
-      // Don't redirect if already on a public page
+      // Don't redirect if already on a public page or 404
       if (!publicPaths.some((path) => currentPath.startsWith(path))) {
         // Use replace to avoid back button issues
         window.location.replace(url);
@@ -266,7 +268,7 @@ const refreshTokens = async (): Promise<string> => {
       {
         headers: { "Content-Type": "application/json" },
         withCredentials: true,
-        timeout: 5000, // Shorter timeout for refresh requests
+        timeout: 5000,
       }
     );
 
@@ -300,7 +302,7 @@ const refreshTokens = async (): Promise<string> => {
 // Create axios instance
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000/api",
-  timeout: 30000, // 30 seconds
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -333,7 +335,7 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor with comprehensive error handling
+// Response interceptor with comprehensive error handling including 404 redirect
 api.interceptors.response.use(
   (response: AxiosResponse) => {
     // Reset retry count on successful response
@@ -348,6 +350,14 @@ api.interceptors.response.use(
     try {
       // Skip error handling for specific requests
       if (originalRequest?._skipErrorHandling) {
+        return Promise.reject(handleApiError(error));
+      }
+      // **Handle 404 errors - redirect to 404 page if configured**
+      if (error.response?.status === 404) {
+        // Only redirect if explicitly enabled for this request
+        console.warn("Resource not found (404), redirecting to 404 page");
+        safeRedirect("/404");
+        // Always return the error for component-level handling
         return Promise.reject(handleApiError(error));
       }
 
@@ -461,18 +471,16 @@ export const apiUtils = {
 
   logout: async (): Promise<void> => {
     try {
-      // Try to notify server of logout
       await api.post(
         "/auth/logout",
         {},
         {
           withCredentials: true,
-          timeout: 5000, // Short timeout for logout
+          timeout: 5000,
         }
       );
     } catch (error) {
       console.warn("Logout API call failed:", error);
-      // Don't throw error, still clear tokens locally
     } finally {
       TokenManager.clearTokens();
       safeRedirect("/login");

@@ -69,6 +69,7 @@ export class AutomationProcessor {
       this.logger.log(`Rule ${ruleId} executed successfully in ${executionTime}ms`);
       return { success: true, executionTime, result: actionResult };
     } catch (error) {
+      console.error(error);
       const executionTime = Date.now() - startTime;
 
       // Record failed execution
@@ -91,14 +92,14 @@ export class AutomationProcessor {
   }
 
   private evaluateConditions(rule: any, triggerData: any): boolean {
-    if (!rule.conditions || Object.keys(rule.conditions).length === 0) {
+    if (!rule.conditions || Object.keys(rule.conditions as object).length === 0) {
       return true; // No conditions means always execute
     }
 
     const conditions = rule.conditions;
 
     // Evaluate each condition
-    for (const [field, condition] of Object.entries(conditions)) {
+    for (const [field, condition] of Object.entries(conditions as object)) {
       const value = this.getNestedValue(triggerData, field);
 
       if (!this.evaluateCondition(value, condition)) {
@@ -122,7 +123,7 @@ export class AutomationProcessor {
         return value !== condition.not;
       }
       if ('contains' in condition) {
-        return typeof value === 'string' && value.includes(condition.contains);
+        return typeof value === 'string' && value.includes(condition.contains as string);
       }
     }
 
@@ -131,7 +132,7 @@ export class AutomationProcessor {
   }
 
   private getNestedValue(obj: any, path: string): any {
-    return path.split('.').reduce((current, key) => current?.[key], obj);
+    return path.split('.').reduce((current, key): any => current?.[key], obj);
   }
 
   private async performAction(rule: any, triggerData: any): Promise<any> {
@@ -145,25 +146,33 @@ export class AutomationProcessor {
 
     switch (actionType) {
       case ActionType.ASSIGN_TASK:
-        return this.assignTask(triggerData.taskId, config.assigneeId);
+        return this.assignTask(triggerData.taskId as string, config.assigneeId as string[]);
 
       case ActionType.CHANGE_STATUS:
-        return this.changeTaskStatus(triggerData.taskId, config.statusId);
+        return this.changeTaskStatus(triggerData.taskId as string, config.statusId as string);
 
       case ActionType.ADD_LABEL:
-        return this.addLabel(triggerData.taskId, config.labelId);
+        return this.addLabel(triggerData.taskId as string, config.labelId as string);
 
       case ActionType.SEND_NOTIFICATION:
-        return this.sendNotification(config.userId, config.message, triggerData);
+        return this.sendNotification(
+          config.userId as string,
+          config.message as string,
+          triggerData,
+        );
 
       case ActionType.ADD_COMMENT:
-        return this.addComment(triggerData.taskId, config.content, rule.createdBy);
+        return this.addComment(
+          triggerData.taskId as string,
+          config.content as string,
+          rule.createdBy as string,
+        );
 
       case ActionType.CHANGE_PRIORITY:
-        return this.changePriority(triggerData.taskId, config.priority);
+        return this.changePriority(triggerData.taskId as string, config.priority as string);
 
       case ActionType.SET_DUE_DATE:
-        return this.setDueDate(triggerData.taskId, config.dueDate);
+        return this.setDueDate(triggerData.taskId as string, config.dueDate as string);
 
       default:
         throw new Error(`Unsupported action type: ${actionType}`);

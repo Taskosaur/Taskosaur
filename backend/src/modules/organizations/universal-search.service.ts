@@ -1,7 +1,6 @@
 // universal-search.service.ts
 import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 import { AccessControlService } from 'src/common/access-control.utils';
 
 export enum SearchType {
@@ -116,6 +115,7 @@ export class UniversalSearchService {
       const access = await this.accessControl.getOrgAccess(organizationId, userId);
       return { isElevated: access.isElevated };
     } catch (error) {
+      console.error('Access denied to organization:', error);
       throw new ForbiddenException('Access denied to this organization');
     }
   }
@@ -136,7 +136,7 @@ export class UniversalSearchService {
     promises.push(this.searchWorkspaces(query, organizationId, userId, isElevated));
     promises.push(this.searchProjects(query, organizationId, userId, isElevated));
     promises.push(this.searchTasks(query, organizationId, userId, isElevated, limit * 2));
-    promises.push(this.searchUsers(query, organizationId, userId, isElevated));
+    promises.push(this.searchUsers(query, organizationId) as Promise<SearchResult[]>);
     // promises.push(this.searchComments(query, organizationId, userId, isElevated));
     promises.push(this.searchSprints(query, organizationId, userId, isElevated));
     // promises.push(this.searchLabels(query, organizationId, userId, isElevated));
@@ -334,6 +334,7 @@ export class UniversalSearchService {
           accessibleProjectIds.push(...memberProjects.map((p) => p.id));
         }
       } catch (error) {
+        console.error('Error accessing workspace:', error);
         // If user doesn't have access to workspace, skip it
         // This handles the ForbiddenException from getWorkspaceAccess
         continue;
@@ -459,12 +460,7 @@ export class UniversalSearchService {
     }));
   }
 
-  private async searchUsers(
-    query: string,
-    organizationId: string,
-    userId: string,
-    isElevated: boolean,
-  ): Promise<SearchResult[]> {
+  private async searchUsers(query: string, organizationId: string): Promise<any[]> {
     const users = await this.prisma.user.findMany({
       where: {
         organizationMembers: {

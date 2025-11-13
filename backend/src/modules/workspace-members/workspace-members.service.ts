@@ -124,6 +124,7 @@ export class WorkspaceMembersService {
       }
       return wsMember;
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('User is already a member of this workspace');
       }
@@ -318,10 +319,7 @@ export class WorkspaceMembersService {
     return member;
   }
 
-  async findByUserAndWorkspace(
-    userId: string,
-    workspaceId: string,
-  ): Promise<WorkspaceMember | null> {
+  findByUserAndWorkspace(userId: string, workspaceId: string) {
     return this.prisma.workspaceMember.findUnique({
       where: {
         userId_workspaceId: {
@@ -558,7 +556,7 @@ export class WorkspaceMembersService {
     });
   }
 
-  async getUserWorkspaces(userId: string): Promise<WorkspaceMember[]> {
+  getUserWorkspaces(userId: string): Promise<WorkspaceMember[]> {
     return this.prisma.workspaceMember.findMany({
       where: { userId },
       include: {

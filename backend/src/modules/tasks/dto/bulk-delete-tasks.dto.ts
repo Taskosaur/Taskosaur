@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsArray, ArrayMinSize, IsUUID, IsOptional, IsBoolean, IsString } from 'class-validator';
 
 export class BulkDeleteTasksDto {

@@ -22,6 +22,7 @@ export default function ProtectedRoute({
     "/reset-password",
     "/terms-of-service",
     "/privacy-policy",
+    "/setup"
   ],
 }: ProtectedRouteProps) {
   const {
@@ -40,7 +41,7 @@ export default function ProtectedRoute({
 
   //For Public
   const isProjectRoute = router.pathname.includes("/[workspaceSlug]/[projectSlug]");
-
+  const is404 = router.pathname === "/404";
   // Check the actual path to exclude settings and members routes
   const actualPath = router.asPath.split("?")[0]; // Remove query params
   const isSettingsOrMembersRoute =
@@ -111,6 +112,10 @@ export default function ProtectedRoute({
 
   useEffect(() => {
     if (authLoading) return;
+    if (is404) {
+      setIsInitializing(false);
+      return;
+    }
 
     const performAuthCheck = async () => {
       const { isAuth, redirectPath, isOrg } = await checkAuthStatus();
@@ -143,6 +148,9 @@ export default function ProtectedRoute({
   }
 
   // For public routes (login, register, etc.)
+  if (is404) {
+    return <>{children}</>; // 404 stays as is
+  }
   if (isPublicRoute) {
     return <>{children}</>;
   }

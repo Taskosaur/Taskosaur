@@ -1,5 +1,5 @@
 // src/organization/dto/get-charts-query.dto.ts
-import { IsArray, IsEnum, ArrayNotEmpty, IsOptional } from 'class-validator';
+import { IsArray, IsEnum, ArrayNotEmpty } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -29,7 +29,7 @@ export class GetChartsQueryDto {
   @IsArray()
   @ArrayNotEmpty({ message: 'At least one chart type must be specified' })
   @IsEnum(ChartType, { each: true, message: 'Invalid chart type provided' })
-  @Transform(({ value }) => {
+  @Transform(({ value }): any => {
     if (Array.isArray(value)) {
       return value;
     }

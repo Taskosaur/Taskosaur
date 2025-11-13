@@ -6,7 +6,7 @@ import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 
 @Injectable()
 export class TaskStatusesService {
-  async findDefaultWorkflowByOrganizationId(organizationId: string) {
+  findDefaultWorkflowByOrganizationId(organizationId: string) {
     return this.prisma.workflow.findFirst({
       where: {
         organizationId: organizationId,
@@ -75,6 +75,7 @@ export class TaskStatusesService {
         },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Status with this name already exists in this workflow');
       }
@@ -82,7 +83,7 @@ export class TaskStatusesService {
     }
   }
 
-  async findAll(workflowId?: string): Promise<TaskStatus[]> {
+  findAll(workflowId?: string): Promise<TaskStatus[]> {
     const whereClause = workflowId ? { workflowId } : {};
 
     return this.prisma.taskStatus.findMany({
@@ -224,6 +225,7 @@ export class TaskStatusesService {
 
       return taskStatus;
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Status with this name already exists in this workflow');
       }
@@ -290,6 +292,7 @@ export class TaskStatusesService {
 
       return updatedStatuses;
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('One or more task statuses not found');
       }
@@ -314,6 +317,7 @@ export class TaskStatusesService {
         where: { id },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Task status not found');
       }
@@ -428,6 +432,7 @@ export class TaskStatusesService {
         },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Status with this name already exists in this workflow');
       }

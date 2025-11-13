@@ -126,7 +126,7 @@ export class EmailSyncService {
     this.logger.log('Completed scheduled email sync for all inboxes');
   }
 
-  async syncInbox(account: EmailAccount & { projectInbox?: any }) {
+  async syncInbox(account: EmailAccount & { projectInbox?: { projectId: string } | null }) {
     const log = await this.prisma.emailSyncLog.create({
       data: {
         projectId: account.projectInbox?.projectId || 'unknown',
@@ -189,6 +189,7 @@ export class EmailSyncService {
 
       this.logger.log(`Sync completed for ${account.emailAddress}.`);
     } catch (error) {
+      console.error(`Error syncing email account ${account.emailAddress}:`, error);
       // ... error handling ...
     }
   }
@@ -199,7 +200,10 @@ export class EmailSyncService {
     let client: ImapFlow | null = null;
 
     try {
-      const password = this.crypto.decrypt(account.imapPassword!);
+      if (!account.imapPassword) {
+        throw new Error('IMAP password is required');
+      }
+      const password = this.crypto.decrypt(account.imapPassword);
 
       client = new ImapFlow({
         host: account.imapHost!,
@@ -319,6 +323,7 @@ export class EmailSyncService {
         this.logger.log('Mailbox lock released');
       }
     } catch (error: any) {
+      console.error(error);
       // Log the specific error type for better debugging
       if (error.code === 'ETIMEOUT') {
         this.logger.error(
@@ -478,6 +483,7 @@ export class EmailSyncService {
     try {
       await this.markMessageAsReadOnServer(inboxMessage.id);
     } catch (error) {
+      console.error('Failed to mark message as read:', error);
       this.logger.error(`Failed to mark as read, but message was processed successfully`);
       // Don't throw - message processing succeeded, mark as read is non-critical
     }
@@ -662,6 +668,7 @@ export class EmailSyncService {
           storageUrl: url,
         });
       } catch (error) {
+        console.error(error);
         const errorMessage = error instanceof Error ? error.message : String(error);
         this.logger.error(
           `Failed to upload attachment ${String(attachment.filename)}:`,
@@ -694,7 +701,9 @@ export class EmailSyncService {
 
         if (matches) {
           this.logger.log(`Rule "${rule.name}" matched for message ${message.messageId}`);
-          await this.executeRuleActions(rule.actions, message);
+          if (rule.actions && typeof rule.actions === 'object' && !Array.isArray(rule.actions)) {
+            await this.executeRuleActions(rule.actions as Record<string, unknown>, message);
+          }
 
           if (rule.stopOnMatch) {
             this.logger.log(`Stopping rule processing due to stopOnMatch`);
@@ -702,6 +711,7 @@ export class EmailSyncService {
           }
         }
       } catch (error) {
+        console.error(error);
         const errorMessage = error instanceof Error ? error.message : String(error);
         this.logger.error(`Error applying rule ${rule.name}:`, errorMessage);
       }
@@ -734,16 +744,22 @@ export class EmailSyncService {
       if (typeof rules === 'object' && rules !== null) {
         for (const [operator, value] of Object.entries(rules as Record<string, unknown>)) {
           switch (operator) {
-            case 'contains':
-              return fieldValue?.toLowerCase().includes((value as string).toLowerCase());
+            case 'contains': {
+              const lower = (fieldValue as string)?.toLowerCase();
+              return lower?.includes((value as string).toLowerCase()) || false;
+            }
             case 'equals':
               return fieldValue === value;
             case 'matches':
-              return new RegExp(value as string, 'i').test(fieldValue);
-            case 'startsWith':
-              return fieldValue?.toLowerCase().startsWith((value as string).toLowerCase());
-            case 'endsWith':
-              return fieldValue?.toLowerCase().endsWith((value as string).toLowerCase());
+              return new RegExp(value as string, 'i').test(fieldValue as string);
+            case 'startsWith': {
+              const lower = (fieldValue as string)?.toLowerCase();
+              return lower?.startsWith((value as string).toLowerCase()) || false;
+            }
+            case 'endsWith': {
+              const lower = (fieldValue as string)?.toLowerCase();
+              return lower?.endsWith((value as string).toLowerCase()) || false;
+            }
           }
         }
       }
@@ -752,7 +768,7 @@ export class EmailSyncService {
     return false;
   }
 
-  private getFieldValue(field: string, message: any): string {
+  private getFieldValue(field: string, message: any): any {
     switch (field) {
       case 'from':
         return message.fromEmail;
@@ -769,9 +785,10 @@ export class EmailSyncService {
     }
   }
 
-  private async executeRuleActions(actions: any, message: any) {
+  private async executeRuleActions(actions: Record<string, unknown>, message: any) {
     // Execute rule actions
-    for (const [action, value] of Object.entries(actions)) {
+    const actionEntries = Object.entries(actions);
+    for (const [action, value] of actionEntries) {
       try {
         switch (action) {
           case 'setPriority':
@@ -1093,7 +1110,10 @@ export class EmailSyncService {
       }
 
       // Create SMTP transporter
-      const password = this.crypto.decrypt(inbox.emailAccount.smtpPassword!);
+      if (!inbox.emailAccount.smtpPassword) {
+        throw new Error('SMTP password is required');
+      }
+      const password = this.crypto.decrypt(inbox.emailAccount.smtpPassword);
       const transporter = nodemailer.createTransport({
         host: inbox.emailAccount.smtpHost!,
         port: inbox.emailAccount.smtpPort!,
@@ -1160,7 +1180,10 @@ export class EmailSyncService {
     let client: ImapFlow | null = null;
 
     try {
-      const password = this.crypto.decrypt(account.imapPassword!);
+      if (!account.imapPassword) {
+        throw new Error('IMAP password is required');
+      }
+      const password = this.crypto.decrypt(account.imapPassword);
 
       client = new ImapFlow({
         host: account.imapHost!,

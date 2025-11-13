@@ -2,7 +2,7 @@ import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards } from '@n
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SettingsService } from './settings.service';
-import { SetSettingDto, GetSettingDto, SettingResponseDto } from './dto/settings.dto';
+import { SetSettingDto, SettingResponseDto } from './dto/settings.dto';
 
 @ApiTags('Settings')
 @Controller('settings')

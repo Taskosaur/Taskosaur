@@ -46,7 +46,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // Verify JWT token
-      const payload = this.jwtService.verify(token);
+      const payload = this.jwtService.verify(token as string);
       client.userId = payload.sub;
 
       // Track user connections
@@ -57,7 +57,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.logger.log(`User ${client.userId} connected with socket ${client.id}`);
 
       // Join user to their personal room
-      client.join(`user:${client.userId}`);
+      void client.join(`user:${client.userId}`);
 
       // Emit connection confirmation
       client.emit('connected', {
@@ -94,7 +94,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
     client.organizationId = data.organizationId;
-    client.join(`org:${data.organizationId}`);
+    void client.join(`org:${data.organizationId}`);
     client.emit('joined:organization', { organizationId: data.organizationId });
     this.logger.log(`User ${client.userId} joined organization ${data.organizationId}`);
   }
@@ -106,7 +106,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
     client.workspaceId = data.workspaceId;
-    client.join(`workspace:${data.workspaceId}`);
+    void client.join(`workspace:${data.workspaceId}`);
     client.emit('joined:workspace', { workspaceId: data.workspaceId });
     this.logger.log(`User ${client.userId} joined workspace ${data.workspaceId}`);
   }
@@ -118,7 +118,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
     client.projectId = data.projectId;
-    client.join(`project:${data.projectId}`);
+    void client.join(`project:${data.projectId}`);
     client.emit('joined:project', { projectId: data.projectId });
     this.logger.log(`User ${client.userId} joined project ${data.projectId}`);
   }
@@ -129,7 +129,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { taskId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
-    client.join(`task:${data.taskId}`);
+    void client.join(`task:${data.taskId}`);
     client.emit('joined:task', { taskId: data.taskId });
     this.logger.log(`User ${client.userId} joined task ${data.taskId}`);
   }
@@ -138,7 +138,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('leave:organization')
   leaveOrganization(@ConnectedSocket() client: AuthenticatedSocket) {
     if (client.organizationId) {
-      client.leave(`org:${client.organizationId}`);
+      void client.leave(`org:${client.organizationId}`);
       client.emit('left:organization', {
         organizationId: client.organizationId,
       });
@@ -149,7 +149,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('leave:workspace')
   leaveWorkspace(@ConnectedSocket() client: AuthenticatedSocket) {
     if (client.workspaceId) {
-      client.leave(`workspace:${client.workspaceId}`);
+      void client.leave(`workspace:${client.workspaceId}`);
       client.emit('left:workspace', { workspaceId: client.workspaceId });
       client.workspaceId = undefined;
     }
@@ -158,7 +158,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('leave:project')
   leaveProject(@ConnectedSocket() client: AuthenticatedSocket) {
     if (client.projectId) {
-      client.leave(`project:${client.projectId}`);
+      void client.leave(`project:${client.projectId}`);
       client.emit('left:project', { projectId: client.projectId });
       client.projectId = undefined;
     }
@@ -169,7 +169,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { taskId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
-    client.leave(`task:${data.taskId}`);
+    void client.leave(`task:${data.taskId}`);
     client.emit('left:task', { taskId: data.taskId });
   }
 

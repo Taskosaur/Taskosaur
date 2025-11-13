@@ -75,14 +75,14 @@ export class EmailTemplatesService {
     if (template.subject) {
       let match;
       while ((match = variableRegex.exec(template.subject)) !== null) {
-        variables.add(match[1]);
+        variables.add(match[1] as string);
       }
     }
 
     if (template.content) {
       let match;
       while ((match = variableRegex.exec(template.content)) !== null) {
-        variables.add(match[1]);
+        variables.add(match[1] as string);
       }
     }
 
@@ -133,11 +133,11 @@ export class EmailTemplatesService {
 
     let match;
     while ((match = variableRegex.exec(subject)) !== null) {
-      variables.add(match[1]);
+      variables.add(match[1] as string);
     }
 
     while ((match = variableRegex.exec(content)) !== null) {
-      variables.add(match[1]);
+      variables.add(match[1] as string);
     }
 
     return Array.from(variables).sort();

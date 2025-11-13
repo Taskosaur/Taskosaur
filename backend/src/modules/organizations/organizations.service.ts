@@ -7,7 +7,6 @@ import {
   DEFAULT_WORKFLOW,
   DEFAULT_TASK_STATUSES,
   DEFAULT_STATUS_TRANSITIONS,
-  DEFAULT_WORKSPACE,
   DEFAULT_PROJECT,
   DEFAULT_SPRINT,
   DEFAULT_TASKS,
@@ -233,6 +232,7 @@ export class OrganizationsService {
 
       return organization;
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Organization with this slug already exists');
       }
@@ -314,7 +314,7 @@ export class OrganizationsService {
     }
   }
   // ... rest of your methods remain the same
-  async findAll(): Promise<Organization[]> {
+  findAll(): Promise<Organization[]> {
     return this.prisma.organization.findMany({
       where: { archive: false },
       include: {
@@ -505,6 +505,7 @@ export class OrganizationsService {
 
       return organization;
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Organization with this slug already exists');
       }
@@ -521,6 +522,7 @@ export class OrganizationsService {
         where: { id },
       });
     } catch (error: any) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Organization not found');
       }
@@ -667,6 +669,7 @@ export class OrganizationsService {
         data: { archive: true },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Organization not found');
       }

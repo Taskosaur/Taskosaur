@@ -141,8 +141,8 @@ export class OrganizationsSeederService {
         if (defaultWorkflow?.statuses && defaultWorkflow.statuses.length > 0) {
           await this.createDefaultStatusTransitions(
             defaultWorkflow.id,
-            defaultWorkflow.statuses,
-            orgData.createdBy,
+            defaultWorkflow.statuses as any[],
+            orgData.createdBy as string,
           );
           console.log(`   ✓ Created default workflow and transitions for: ${organization.name}`);
         }
@@ -152,8 +152,8 @@ export class OrganizationsSeederService {
 
         createdOrganizations.push(organization);
         console.log(`   ✓ Created organization: ${organization.name}`);
-      } catch (error) {
-        console.error(`   ❌ Error creating organization ${orgData.slug}: ${error.message}`);
+      } catch (_error) {
+        console.error(`   ❌ Error creating organization ${orgData.slug}: ${_error.message}`);
       }
     }
 
@@ -229,8 +229,9 @@ export class OrganizationsSeederService {
           },
         });
         console.log(`   ✓ Added ${users[i].email} to organization as ${memberRoles[i - 1]}`);
-      } catch (error) {
-        console.log(`   ⚠ Could not add ${users[i].email}: ${error.message}`);
+      } catch (_error) {
+        console.error(_error);
+        console.log(`   ⚠ Could not add ${users[i].email}: ${_error.message}`);
       }
     }
   }
@@ -256,13 +257,13 @@ export class OrganizationsSeederService {
       console.log('   🧹 Deleting organizations...');
       const deletedOrgs = await this.prisma.organization.deleteMany();
       console.log(`✅ Deleted ${deletedOrgs.count} organizations`);
-    } catch (error) {
-      console.error('❌ Error clearing organizations:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing organizations:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.organization.findMany({
       select: {
         id: true,

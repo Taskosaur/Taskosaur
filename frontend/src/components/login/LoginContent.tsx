@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
 import Image from "next/image";
-import { Award } from "lucide-react";
 
 export function LoginContent() {
   const { resolvedTheme } = useTheme();
@@ -26,11 +25,6 @@ export function LoginContent() {
                 className={`size-6 lg:size-10 ${resolvedTheme === "light" ? " filter invert brightness-200" : ""}`}
               />
               <h1 className="login-brand-title">Taskosaur</h1>
-            </div>
-
-            <div className="login-brand-subtitle-row">
-              <Award className="login-brand-award-icon" />
-              <span className="login-brand-subtitle">Award-winning Project Management</span>
             </div>
           </div>
 

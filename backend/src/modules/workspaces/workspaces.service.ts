@@ -127,7 +127,7 @@ export class WorkspacesService {
       counter++;
     }
   }
-  async findAll(userId: string, organizationId?: string, search?: string): Promise<Workspace[]> {
+  findAll(userId: string, organizationId?: string, search?: string): Promise<Workspace[]> {
     const whereClause: any = { archive: false, organizationId };
     if (userId) {
       whereClause.members = { some: { userId } };
@@ -225,7 +225,7 @@ export class WorkspacesService {
   }
 
   async findOne(id: string, userId: string): Promise<Workspace> {
-    const { isElevated } = await this.accessControl.getWorkspaceAccess(id, userId);
+    await this.accessControl.getWorkspaceAccess(id, userId);
 
     const workspace = await this.prisma.workspace.findUnique({
       where: { id },
@@ -331,6 +331,7 @@ export class WorkspacesService {
 
       return workspace;
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Workspace with this slug already exists in this organization');
       }
@@ -345,6 +346,7 @@ export class WorkspacesService {
     try {
       await this.prisma.workspace.delete({ where: { id } });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Workspace not found');
       }
@@ -359,6 +361,7 @@ export class WorkspacesService {
         data: { archive: true },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Workspace not found');
       }

@@ -64,7 +64,7 @@ export class OrganizationMembersController {
   ) {
     return this.organizationMembersService.setDefaultOrganizationByOrgAndUser(
       organizationId,
-      user.id,
+      user.id as string,
     );
   }
 

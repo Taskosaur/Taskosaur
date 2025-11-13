@@ -209,11 +209,7 @@ export class EmailService {
     }
   }
 
-  async sendTaskStatusChangedEmail(
-    taskId: string,
-    oldStatusId: string,
-    newStatusId: string,
-  ): Promise<void> {
+  async sendTaskStatusChangedEmail(taskId: string, oldStatusId: string): Promise<void> {
     try {
       const task = await this.prisma.task.findUnique({
         where: { id: taskId },
@@ -537,7 +533,7 @@ export class EmailService {
         companyName: 'Taskosaur',
       };
 
-      const entityTypeLabel = data.entityType === 'workspace' ? 'workspace' : 'project';
+      // const _entityTypeLabel = data.entityType === 'workspace' ? 'workspace' : 'project';
 
       await this.sendEmail({
         to: email,

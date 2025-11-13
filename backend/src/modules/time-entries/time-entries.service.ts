@@ -84,7 +84,7 @@ export class TimeEntriesService {
     });
   }
 
-  async findAll(
+  findAll(
     taskId?: string,
     userId?: string,
     startDate?: string,
@@ -385,7 +385,7 @@ export class TimeEntriesService {
     return stoppedTimer;
   }
 
-  async getActiveTimer(userId: string): Promise<TimeEntry | null> {
+  getActiveTimer(userId: string) {
     return this.prisma.timeEntry.findFirst({
       where: {
         userId,
@@ -468,7 +468,8 @@ export class TimeEntriesService {
     const totalEntries = timeEntries.length;
 
     // Group by task
-    const taskSummary = timeEntries.reduce((acc, entry) => {
+    type TaskSummaryAcc = Record<string, { task: any; totalTime: number; entries: number }>;
+    const taskSummary = timeEntries.reduce((acc, entry): TaskSummaryAcc => {
       const taskKey = entry.task.slug;
       if (!acc[taskKey]) {
         acc[taskKey] = {
@@ -480,10 +481,11 @@ export class TimeEntriesService {
       acc[taskKey].totalTime += entry.timeSpent;
       acc[taskKey].entries += 1;
       return acc;
-    }, {} as any);
+    }, {} as TaskSummaryAcc);
 
     // Group by user
-    const userSummary = timeEntries.reduce((acc, entry) => {
+    type UserSummaryAcc = Record<string, { user: any; totalTime: number; entries: number }>;
+    const userSummary = timeEntries.reduce((acc, entry): UserSummaryAcc => {
       const userKey = entry.user.id;
       if (!acc[userKey]) {
         acc[userKey] = {
@@ -495,7 +497,7 @@ export class TimeEntriesService {
       acc[userKey].totalTime += entry.timeSpent;
       acc[userKey].entries += 1;
       return acc;
-    }, {} as any);
+    }, {} as UserSummaryAcc);
 
     return {
       totalTimeSpent, // in minutes

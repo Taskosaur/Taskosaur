@@ -10,7 +10,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 export interface AccessResult {
   isElevated: boolean;
-  role: Role | 'SUPER_ADMIN';
+  role: Role;
   canChange: boolean;
   userId: string;
   scopeId: string;
@@ -45,7 +45,8 @@ export class AccessControlService {
     // Check if user is SUPER_ADMIN first
     const isSuperAdmin = await this.checkSuperAdmin(userId);
     if (isSuperAdmin) {
-      return this.createSuperAdminAccess(userId, resourceId, scope.toUpperCase() as any);
+      const scopeType = scope.toUpperCase() as 'ORGANIZATION' | 'WORKSPACE' | 'PROJECT' | 'TASK';
+      return this.createSuperAdminAccess(userId, resourceId, scopeType);
     }
 
     // Validate scope

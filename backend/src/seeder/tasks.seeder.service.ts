@@ -67,7 +67,6 @@ export class TasksSeederService {
       const tasksWithStatuses = this.distributeTasksAcrossStatuses(
         baseTasksData,
         availableStatuses,
-        project,
       );
 
       let taskNumber = 1;
@@ -90,8 +89,8 @@ export class TasksSeederService {
               completedAt:
                 taskWithStatus.status.category === StatusCategory.DONE
                   ? this.getCompletedDate(
-                      taskWithStatus.taskData.startDate,
-                      taskWithStatus.taskData.dueDate,
+                      taskWithStatus.taskData.startDate as Date,
+                      taskWithStatus.taskData.dueDate as Date,
                     )
                   : null,
 
@@ -114,9 +113,10 @@ export class TasksSeederService {
             `   ✓ Created task #${taskNumber}: ${task.title} [${taskWithStatus.status.name}]`,
           );
           taskNumber++;
-        } catch (error) {
+        } catch (_error) {
+          console.error(_error);
           console.log(
-            `   ⚠ Error creating task ${taskWithStatus.taskData.title}: ${error.message}`,
+            `   ⚠ Error creating task ${taskWithStatus.taskData.title}: ${_error.message}`,
           );
         }
       }
@@ -576,11 +576,7 @@ export class TasksSeederService {
     ];
   }
 
-  private distributeTasksAcrossStatuses(
-    baseTasks: any[],
-    availableStatuses: TaskStatus[],
-    project: Project,
-  ) {
+  private distributeTasksAcrossStatuses(baseTasks: any[], availableStatuses: TaskStatus[]) {
     const tasksWithStatuses: Array<{ taskData: any; status: TaskStatus }> = [];
 
     // Sort statuses by position to maintain workflow order
@@ -702,13 +698,13 @@ export class TasksSeederService {
       // Finally delete tasks
       const deletedTasks = await this.prisma.task.deleteMany();
       console.log(`✅ Deleted ${deletedTasks.count} tasks`);
-    } catch (error) {
-      console.error('❌ Error clearing tasks:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing tasks:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.task.findMany({
       select: {
         id: true,

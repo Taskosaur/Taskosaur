@@ -10,6 +10,7 @@ import {
   Role as ProjectRole,
   Role as WorkspaceRole,
   Role as OrganizationRole,
+  Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProjectMemberDto, InviteProjectMemberDto } from './dto/create-project-member.dto';
@@ -122,6 +123,7 @@ export class ProjectMembersService {
         },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('User is already a member of this project');
       }
@@ -178,7 +180,7 @@ export class ProjectMembersService {
 
     const total = await this.prisma.projectMember.count({ where: whereClause });
 
-    const queryOptions: any = {
+    const queryOptions: Prisma.ProjectMemberFindManyArgs = {
       where: whereClause,
       include: {
         user: {
@@ -361,7 +363,7 @@ export class ProjectMembersService {
     return member;
   }
 
-  async findByUserAndProject(userId: string, projectId: string): Promise<ProjectMember | null> {
+  findByUserAndProject(userId: string, projectId: string) {
     return this.prisma.projectMember.findUnique({
       where: {
         userId_projectId: {
@@ -560,7 +562,7 @@ export class ProjectMembersService {
     });
   }
 
-  async getUserProjects(userId: string): Promise<ProjectMember[]> {
+  getUserProjects(userId: string): Promise<ProjectMember[]> {
     return this.prisma.projectMember.findMany({
       where: { userId },
       include: {

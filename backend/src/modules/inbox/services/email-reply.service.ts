@@ -137,7 +137,10 @@ export class EmailReplyService {
 
   private createBasicTransporter(account: EmailAccount) {
     try {
-      const smtpPassword = this.crypto.decrypt(account.smtpPassword!);
+      if (!account.smtpPassword) {
+        throw new Error('SMTP password is required');
+      }
+      const smtpPassword = this.crypto.decrypt(account.smtpPassword);
 
       return nodemailer.createTransport({
         host: account.smtpHost!,

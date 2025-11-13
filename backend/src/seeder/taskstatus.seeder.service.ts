@@ -50,6 +50,7 @@ export class TaskStatusSeederService {
             `   ✓ Created status: ${status.name} [${status.category}] in ${workflow.name}`,
           );
         } catch (error) {
+          console.error(error);
           console.log(
             `   ⚠ Status ${statusData.name} might already exist in ${workflow.name}, skipping...`,
           );
@@ -244,6 +245,7 @@ export class TaskStatusSeederService {
             },
           });
         } catch (error) {
+          console.error(error);
           // Transition might already exist, skip
         }
       }
@@ -273,6 +275,7 @@ export class TaskStatusSeederService {
               },
             });
           } catch (error) {
+            console.error(error);
             // Transition might already exist, skip
           }
         }
@@ -293,13 +296,13 @@ export class TaskStatusSeederService {
       // Delete task statuses
       const deletedStatuses = await this.prisma.taskStatus.deleteMany();
       console.log(`✅ Deleted ${deletedStatuses.count} task statuses`);
-    } catch (error) {
-      console.error('❌ Error clearing task statuses:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing task statuses:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.taskStatus.findMany({
       select: {
         id: true,

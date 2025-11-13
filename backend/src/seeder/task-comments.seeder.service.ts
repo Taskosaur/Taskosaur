@@ -63,11 +63,14 @@ export class TaskCommentsSeederService {
               createdComments.push(reply);
               console.log(`   ✓ Created reply by ${replyAuthor.firstName} to comment`);
             } catch (error) {
+              console.error(error);
               // Ignore reply creation errors
+              console.error('Reply creation error:', error);
             }
           }
-        } catch (error) {
-          console.log(`   ⚠ Error creating comment on task ${task.title}: ${error.message}`);
+        } catch (_error) {
+          console.error(_error);
+          console.log(`   ⚠ Error creating comment on task ${task.title}: ${_error.message}`);
         }
       }
     }
@@ -193,13 +196,13 @@ export class TaskCommentsSeederService {
     try {
       const deletedComments = await this.prisma.taskComment.deleteMany();
       console.log(`✅ Deleted ${deletedComments.count} task comments`);
-    } catch (error) {
-      console.error('❌ Error clearing task comments:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing task comments:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.taskComment.findMany({
       select: {
         id: true,

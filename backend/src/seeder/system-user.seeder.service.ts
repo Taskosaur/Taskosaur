@@ -46,9 +46,9 @@ export class SystemUserSeederService {
       console.log('   ⚠️  System user is INACTIVE and cannot be used for authentication');
 
       return systemUser;
-    } catch (error) {
-      console.error('❌ Error creating system user:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error creating system user:', _error);
+      throw _error;
     }
   }
 
@@ -61,7 +61,7 @@ export class SystemUserSeederService {
       });
 
       console.log(`✅ Deleted system user: ${deletedUser.email}`);
-    } catch (error) {
+    } catch (error: any) {
       if (error.code === 'P2025') {
         console.log('   ⚠ System user not found, nothing to clear');
       } else if (error.code === 'P2003') {
@@ -74,7 +74,7 @@ export class SystemUserSeederService {
     }
   }
 
-  async findSystemUser(): Promise<User | null> {
+  findSystemUser() {
     return this.prisma.user.findUnique({
       where: { id: SYSTEM_USER_ID },
     });

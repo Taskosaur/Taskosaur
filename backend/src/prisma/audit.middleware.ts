@@ -78,7 +78,7 @@ export function createAuditExtension() {
             if (args.data) {
               const data = args.data as any;
               // Check if this is a meaningful update (not just timestamp updates)
-              const dataKeys = Object.keys(data);
+              const dataKeys = Object.keys(data as object);
               const hasMeaningfulUpdate = dataKeys.some(
                 (key: string) => !EXCLUDED_UPDATE_FIELDS.includes(key),
               );
@@ -106,7 +106,7 @@ export function createAuditExtension() {
             // For update case
             if (args.update) {
               const updateData = args.update as any;
-              const dataKeys = Object.keys(updateData);
+              const dataKeys = Object.keys(updateData as object);
               const hasMeaningfulUpdate = dataKeys.some(
                 (key: string) => !EXCLUDED_UPDATE_FIELDS.includes(key),
               );
@@ -121,7 +121,7 @@ export function createAuditExtension() {
           if (operation === 'createMany' && args.data) {
             const data = args.data as any;
             if (Array.isArray(data)) {
-              args.data = data.map((item: any) => ({
+              args.data = data.map((item: any): any => ({
                 ...item,
                 createdBy: item.createdBy ?? currentUserId,
                 ...(modelName !== 'User' && {

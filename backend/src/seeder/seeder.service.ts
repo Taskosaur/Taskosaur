@@ -106,9 +106,9 @@ export class SeederService {
         taskWatchers,
         timeEntries,
       };
-    } catch (error) {
-      console.error('❌ Error seeding core modules:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error seeding core modules:', _error);
+      throw _error;
     }
   }
   async adminSeedModules() {
@@ -121,9 +121,9 @@ export class SeederService {
       return {
         adminUser,
       };
-    } catch (error) {
-      console.error('❌ Error seeding core modules:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error seeding core modules:', _error);
+      throw _error;
     }
   }
 
@@ -136,9 +136,9 @@ export class SeederService {
         `✅ Inbox rules seeded: ${result.totalCreated} rules created across ${result.inboxesProcessed} inboxes`,
       );
       return result;
-    } catch (error) {
-      console.error('❌ Error seeding inbox rules:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error seeding inbox rules:', _error);
+      throw _error;
     }
   }
 
@@ -196,9 +196,9 @@ export class SeederService {
       console.log('✅ Admin user cleared');
 
       console.log('🎉 Core modules cleared successfully!');
-    } catch (error) {
-      console.error('❌ Error clearing core modules:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing core modules:', _error);
+      throw _error;
     }
   }
 }

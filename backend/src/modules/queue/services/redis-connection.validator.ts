@@ -34,6 +34,11 @@ export class RedisConnectionValidator {
             retryStrategy: () => null, // Disable automatic retries
           });
 
+          // Handle error events to prevent unhandled error event warnings
+          redisClient.on('error', () => {
+            // Suppress error to prevent unhandled error event warnings
+          });
+
           // Attempt to connect
           await redisClient.connect();
 
@@ -55,6 +60,7 @@ export class RedisConnectionValidator {
             try {
               await redisClient.quit();
             } catch {
+              // console.error('Error during Redis cleanup:', error);
               // Ignore cleanup errors
             }
             redisClient = null;

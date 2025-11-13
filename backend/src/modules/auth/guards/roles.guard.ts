@@ -1,5 +1,11 @@
 // roles.guard.ts
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role as PrismaRole } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -36,7 +42,7 @@ export class RolesGuard implements CanActivate {
       ...(req.query ?? {}),
       ...(req.body ?? {}),
     };
-    const { type, idParam } = scopeMeta ?? inferScopeFromParams(params);
+    const { type, idParam } = scopeMeta ?? inferScopeFromParams(params as Record<string, string>);
 
     if (!type) throw new ForbiddenException('Scope not specified');
 
@@ -49,13 +55,13 @@ export class RolesGuard implements CanActivate {
         where: { slug: scopeId },
         select: { id: true, visibility: true },
       });
-      if (!project) throw new ForbiddenException('Project not found');
+      if (!project) throw new NotFoundException('Project not found');
       resolvedScopeId = project.id;
       if (project.visibility === 'PUBLIC') {
         return true;
       }
     }
-    const memberRole = await this.getMemberRole(type, user.id, resolvedScopeId);
+    const memberRole = await this.getMemberRole(type, user.id as string, resolvedScopeId as string);
     if (!memberRole) throw new ForbiddenException('Not a member of this scope');
     const ok = requiredRoles.some((r) => ROLE_RANK[memberRole] >= ROLE_RANK[r]);
     if (!ok) throw new ForbiddenException('Insufficient role');
@@ -96,11 +102,14 @@ export class RolesGuard implements CanActivate {
     }
   }
 }
-function inferScopeFromParams(params: Record<string, string>) {
+function inferScopeFromParams(params: Record<string, string>): {
+  type: ScopeType | undefined;
+  idParam: string;
+} {
   if (params.organizationId) return { type: 'ORGANIZATION' as const, idParam: 'organizationId' };
   if (params.workspaceId) return { type: 'WORKSPACE' as const, idParam: 'workspaceId' };
   if (params.projectId) return { type: 'PROJECT' as const, idParam: 'projectId' };
   if (params.id && params.slug) return { type: 'PROJECT' as const, idParam: 'slug' };
   if (params.id) return { type: 'PROJECT' as const, idParam: 'id' };
-  return { type: undefined, idParam: '' } as any;
+  return { type: undefined, idParam: '' };
 }

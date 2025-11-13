@@ -90,7 +90,7 @@ export class ActivityLogController {
       organizationId,
       validatedLimit,
       validatedPage,
-      filters,
+      filters as { entityType?: string; userId?: string; startDate?: Date; endDate?: Date },
     );
   }
 

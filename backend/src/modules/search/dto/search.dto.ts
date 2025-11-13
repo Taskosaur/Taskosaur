@@ -9,7 +9,7 @@ import {
   Max,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { TaskType, TaskPriority, ProjectStatus, SprintStatus } from '@prisma/client';
+import { TaskType, TaskPriority } from '@prisma/client';
 
 export enum SearchEntityType {
   ALL = 'all',

@@ -7,7 +7,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class ActivityLogService {
   constructor(private prisma: PrismaService) {}
 
-  async logActivity(data: {
+  logActivity(data: {
     type: ActivityType;
     description: string;
     entityType: string;
@@ -34,7 +34,7 @@ export class ActivityLogService {
     return this.prisma;
   }
   // Task-specific logging methods
-  async logTaskCreated(task: any, userId: string) {
+  logTaskCreated(task: any, userId: string) {
     return this.logActivity({
       type: 'TASK_CREATED',
       description: `Created task "${task.title}" [${task.key}]`,
@@ -45,7 +45,7 @@ export class ActivityLogService {
     });
   }
 
-  async logTaskUpdated(oldTask: any, newTask: any, userId: string) {
+  logTaskUpdated(oldTask: any, newTask: any, userId: string) {
     return this.logActivity({
       type: 'TASK_UPDATED',
       description: `Updated task "${newTask.title}"`,
@@ -122,7 +122,7 @@ export class ActivityLogService {
     }
   }
 
-  async logTaskStatusChanged(task: any, oldStatus: string, newStatus: string, userId: string) {
+  logTaskStatusChanged(task: any, oldStatus: string, newStatus: string, userId: string) {
     return this.logActivity({
       type: 'TASK_STATUS_CHANGED',
       description: `Changed task "${task.title}" status from "${oldStatus}" to "${newStatus}"`,
@@ -134,7 +134,7 @@ export class ActivityLogService {
     });
   }
 
-  async logTaskAssigned(task: any, assigneeId: string, userId: string) {
+  logTaskAssigned(task: any, assigneeId: string, userId: string) {
     return this.logActivity({
       type: 'TASK_ASSIGNED',
       description: `Assigned task "${task.title}" to user`,

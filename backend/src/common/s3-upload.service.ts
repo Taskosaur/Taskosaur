@@ -58,19 +58,21 @@ export class S3UploadService {
     try {
       // Generate unique key for the attachment
       const timestamp = Date.now();
-      const sanitizedFilename = this.sanitizeFilename(attachment.filename || 'attachment');
+      const sanitizedFilename = this.sanitizeFilename(
+        (attachment.filename || 'attachment') as string,
+      );
       const key = `inbox-attachments/${messageId}/${timestamp}-${sanitizedFilename}`;
 
       // Get buffer from attachment
-      const buffer = Buffer.isBuffer(attachment.content)
+      const buffer: Buffer = Buffer.isBuffer(attachment.content)
         ? attachment.content
         : Buffer.from(attachment.content);
 
       const result = await this.uploadBuffer(
         buffer,
         key,
-        attachment.filename,
-        attachment.contentType,
+        attachment.filename as string | undefined,
+        attachment.contentType as string | undefined,
       );
 
       return {

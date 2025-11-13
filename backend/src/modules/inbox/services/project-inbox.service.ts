@@ -9,8 +9,6 @@ import {
   CreateRuleDto,
 } from '../dto';
 import { MessageStatus, Prisma } from '@prisma/client';
-import { connect } from 'http2';
-
 @Injectable()
 export class ProjectInboxService {
   constructor(
@@ -400,7 +398,7 @@ export class ProjectInboxService {
     return task;
   }
 
-  async updateMessageStatus(messageId: string, status: MessageStatus) {
+  updateMessageStatus(messageId: string, status: MessageStatus) {
     return this.prisma.inboxMessage.update({
       where: { id: messageId },
       data: { status },
@@ -437,7 +435,7 @@ export class ProjectInboxService {
     });
   }
 
-  async updateRule(ruleId: string, data: CreateRuleDto) {
+  updateRule(ruleId: string, data: CreateRuleDto) {
     return this.prisma.inboxRule.update({
       where: { id: ruleId },
       data: {
@@ -452,14 +450,14 @@ export class ProjectInboxService {
     });
   }
 
-  async deleteRule(ruleId: string) {
+  deleteRule(ruleId: string) {
     return this.prisma.inboxRule.delete({
       where: { id: ruleId },
     });
   }
 
   // Helper methods
-  private async getNextTaskNumber(projectId: string): Promise<number> {
+  private async getNextTaskNumber(projectId: string): Promise<any> {
     const lastTask = await this.prisma.task.findFirst({
       where: { projectId },
       orderBy: { taskNumber: 'desc' },

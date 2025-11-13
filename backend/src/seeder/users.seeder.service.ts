@@ -156,6 +156,7 @@ export class UsersSeederService {
         createdUsers.push(user);
         console.log(`   ✓ Created user: ${user.email}`);
       } catch (error) {
+        console.error(error);
         console.log(`   ⚠ User ${userData.email} might already exist, skipping...`);
         // Try to find existing user
         const existingUser = await this.prisma.user.findUnique({
@@ -177,13 +178,13 @@ export class UsersSeederService {
     try {
       const deletedCount = await this.prisma.user.deleteMany();
       console.log(`✅ Deleted ${deletedCount.count} users`);
-    } catch (error) {
-      console.error('❌ Error clearing users:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing users:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.user.findMany({
       select: {
         id: true,

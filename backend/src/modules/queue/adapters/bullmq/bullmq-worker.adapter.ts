@@ -1,6 +1,7 @@
 import { Worker, WorkerOptions, Job } from 'bullmq';
 import { IWorker, WorkerProcessor } from '../../interfaces/worker.interface';
 import { BullMQJobAdapter } from './bullmq-job.adapter';
+import { IJob } from '../../interfaces/job.interface';
 
 /**
  * BullMQ Worker Adapter - Wraps BullMQ Worker to implement IWorker interface
@@ -15,7 +16,7 @@ export class BullMQWorkerAdapter<T = any> implements IWorker<T> {
     // Wrap the processor to convert BullMQ Job to IJob
     this.worker = new Worker<T>(
       queueName,
-      async (job: Job<T>) => {
+      async (job: Job<T>): Promise<any> => {
         const wrappedJob = new BullMQJobAdapter(job);
         return await this.processor(wrappedJob);
       },
@@ -27,7 +28,7 @@ export class BullMQWorkerAdapter<T = any> implements IWorker<T> {
     return this.worker.name;
   }
 
-  async process(job: any): Promise<any> {
+  async process(job: IJob<T>): Promise<any> {
     // This method is not directly called - BullMQ handles processing internally
     // Included for interface compliance
     return await this.processor(job);
@@ -41,8 +42,9 @@ export class BullMQWorkerAdapter<T = any> implements IWorker<T> {
     await this.worker.pause();
   }
 
-  async resume(): Promise<void> {
+  resume(): Promise<void> {
     this.worker.resume();
+    return Promise.resolve();
   }
 
   /**

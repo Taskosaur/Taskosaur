@@ -140,16 +140,17 @@ export class CreateTaskDto {
     format: 'uuid',
     required: false,
   })
-  @Transform(({ value }) => {
+  @Transform(({ value }): string[] => {
     if (typeof value === 'string') {
       try {
         const parsed = JSON.parse(value);
         return Array.isArray(parsed) ? parsed : [];
-      } catch {
+      } catch (error) {
+        console.error('Error parsing JSON for assigneeIds:', error);
         return [];
       }
     }
-    return value;
+    return value as string[];
   })
   @IsArray()
   @IsUUID('all', { each: true })
@@ -164,16 +165,17 @@ export class CreateTaskDto {
     format: 'uuid',
     required: false,
   })
-  @Transform(({ value }) => {
+  @Transform(({ value }): string[] => {
     if (typeof value === 'string') {
       try {
         const parsed = JSON.parse(value);
         return Array.isArray(parsed) ? parsed : [];
-      } catch {
+      } catch (error) {
+        console.error('Error parsing JSON for reporterIds:', error);
         return [];
       }
     }
-    return value;
+    return value as string[];
   })
   @IsArray()
   @IsUUID('all', { each: true })

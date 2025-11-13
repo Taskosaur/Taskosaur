@@ -1,15 +1,10 @@
 // src/modules/invitations/invitations.service.ts
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import * as crypto from 'crypto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { InvitationStatus, Role, WorkspaceMember } from '@prisma/client';
+import { InvitationStatus, Role } from '@prisma/client';
 import { WorkspaceMembersService } from '../workspace-members/workspace-members.service';
 import { OrganizationMembersService } from '../organization-members/organization-members.service';
 
@@ -464,7 +459,7 @@ export class InvitationsService {
     return { message: 'Invitation declined successfully' };
   }
 
-  async getUserInvitations(email: string) {
+  getUserInvitations(email: string) {
     return this.prisma.invitation.findMany({
       where: {
         inviteeEmail: email,
@@ -808,6 +803,7 @@ export class InvitationsService {
         inviteeExists,
       };
     } catch (error) {
+      console.error(error);
       if (error instanceof NotFoundException) {
         throw error;
       }

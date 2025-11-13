@@ -54,6 +54,7 @@ export class TaskWatchersSeederService {
             `   ✓ Added ${watcher.firstName} ${watcher.lastName} as watcher for: ${task.title}`,
           );
         } catch (error) {
+          console.error(error);
           // Skip if watcher already exists (unique constraint)
           console.log(
             `   ⚠ ${watcher.firstName} might already be watching this task, skipping...`,
@@ -173,13 +174,13 @@ export class TaskWatchersSeederService {
     try {
       const deletedWatchers = await this.prisma.taskWatcher.deleteMany();
       console.log(`✅ Deleted ${deletedWatchers.count} task watchers`);
-    } catch (error) {
-      console.error('❌ Error clearing task watchers:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing task watchers:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.taskWatcher.findMany({
       select: {
         id: true,

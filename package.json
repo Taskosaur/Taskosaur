@@ -18,9 +18,10 @@
         "dev:frontend": "npm run dev --workspace=frontend",
         "dev:backend": "dotenv -- npm run start:dev --workspace=backend",
         "build": "npm run build --workspaces --if-present",
-        "build:dist": "rm -rf dist && npm run build:dist --workspaces --if-present && cp -a backend/dist dist && cp -a frontend/out dist/public",
+        "build:dist": "node scripts/build-dist.js",
         "build:frontend": "npm run build --workspace=frontend",
         "build:backend": "dotenv -- npm run build --workspace=backend",
+        "start:dist": "npm run build:dist && shx cp .env dist/.env && cd dist && npm run prisma:generate && npm run start:prod",
         "test": "npm run test --workspaces --if-present",
         "test:frontend": "npm run test --workspace=frontend",
         "test:backend": "dotenv -- npm run test --workspace=backend",
@@ -34,14 +35,19 @@
         "db:migrate": "dotenv -- npm run prisma:migrate:dev --workspace=backend",
         "db:migrate:deploy": "dotenv -- npm run prisma:migrate:deploy --workspace=backend",
         "db:reset": "dotenv -- npm run prisma:reset --workspace=backend",
-        "db:seed": "dotenv -- npm run seed:core --workspace=backend",
-        "db:seed:admin": "dotenv -- npm run seed:core admin --workspace=backend",
+        "db:seed": "dotenv -- npm run seed --workspace=backend",
+        "db:seed:admin": "dotenv -- npm run seed:admin --workspace=backend",
+        "db:seed:clear": "dotenv -- npm run seed:clear --workspace=backend",
+        "db:seed:reset": "dotenv -- npm run seed:reset --workspace=backend",
         "db:generate": "dotenv -- npm run prisma:generate --workspace=backend",
         "db:studio": "dotenv -- npm run prisma:studio --workspace=backend",
         "prisma": "dotenv -- npm run prisma --workspace=backend",
-        "clean": "npm run clean --workspaces --if-present && rm -rf node_modules dist out .next",
+        "clean": "npm run clean --workspaces --if-present && shx rm -rf node_modules dist out .next",
         "clean:frontend": "npm run clean --workspace=frontend",
         "clean:backend": "npm run clean --workspace=backend",
+        "docker:build:dev": "docker build -f Dockerfile.dev --build-arg BUILD_NUMBER=$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S) -t taskosaur:dev .",
+        "docker:build:prod": "docker build -f Dockerfile.prod --build-arg BUILD_NUMBER=$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S) -t taskosaur:latest .",
+        "docker:push:prod": "npm run docker:build:prod && docker tag taskosaur:latest taskosaur/taskosaur:$(node -p \"require('./package.json').version\")-$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S) && docker push taskosaur/taskosaur:$(node -p \"require('./package.json').version\")-$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S)",
         "postinstall": "node scripts/postinstall.js",
         "prepare": "husky"
     },
@@ -49,6 +55,7 @@
     "devDependencies": {
         "concurrently": "^9.2.1",
         "dotenv-cli": "^7.4.2",
-        "husky": "^9.1.7"
+        "husky": "^9.1.7",
+        "shx": "^0.3.4"
     }
 }

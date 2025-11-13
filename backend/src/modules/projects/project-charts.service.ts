@@ -33,6 +33,10 @@ export class ProjectChartsService {
 
     try {
       // Execute all chart requests in parallel
+      const projectResult = await this.prisma.project.findUnique({ where: { slug: projectSlug } });
+      if (!projectResult) {
+        throw new NotFoundException(`Workspace with slug '${projectSlug}' not found'`);
+      }
       const chartPromises = chartTypes.map(async (type) => {
         try {
           const data = await this.getSingleProjectChartData(projectSlug, userId, type);

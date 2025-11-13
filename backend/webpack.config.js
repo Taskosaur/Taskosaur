@@ -237,6 +237,22 @@ class PackageAndDependenciesPlugin {
           console.warn('[PackageAndDependenciesPlugin] Warning: @prisma/client not found, skipping...');
         }
 
+        // Step 7.5: Copy bcrypt native bindings
+        console.log('[PackageAndDependenciesPlugin] Copying bcrypt native bindings...');
+
+        // Try backend node_modules first, then root node_modules (for monorepo)
+        const bcryptSourceDirBackend = path.resolve(backendDir, 'node_modules/bcrypt/lib/binding');
+        const bcryptSourceDirRoot = path.resolve(backendDir, '../node_modules/bcrypt/lib/binding');
+        const bcryptSourceDir = fs.existsSync(bcryptSourceDirBackend) ? bcryptSourceDirBackend : bcryptSourceDirRoot;
+        const bcryptDestDir = path.resolve(distDir, 'node_modules/bcrypt/lib/binding');
+
+        if (fs.existsSync(bcryptSourceDir)) {
+          copyDir(bcryptSourceDir, bcryptDestDir);
+          console.log('[PackageAndDependenciesPlugin] Copied bcrypt native bindings');
+        } else {
+          console.warn('[PackageAndDependenciesPlugin] Warning: bcrypt native bindings not found, skipping...');
+        }
+
         // Step 8: Copy .env file if it exists
         const backendEnvPath = path.resolve(backendDir, '.env');
         const envDestPath = path.resolve(distDir, '.env');

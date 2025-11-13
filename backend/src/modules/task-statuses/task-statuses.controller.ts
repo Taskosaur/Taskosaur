@@ -15,12 +15,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TaskStatusesService } from './task-statuses.service';
 import { CreateTaskStatusDto, CreateTaskStatusFromProjectDto } from './dto/create-task-status.dto';
-import {
-  UpdatePositionItemDto,
-  UpdatePositionsDto,
-  UpdateTaskStatusDto,
-} from './dto/update-task-status.dto';
-import { Task, TaskStatus } from '@prisma/client';
+import { UpdatePositionsDto, UpdateTaskStatusDto } from './dto/update-task-status.dto';
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
@@ -30,14 +25,14 @@ export class TaskStatusesController {
 
   @Post()
   create(@Body() createTaskStatusDto: CreateTaskStatusDto, @CurrentUser() user: any) {
-    return this.taskStatusesService.create(createTaskStatusDto, user.id);
+    return this.taskStatusesService.create(createTaskStatusDto, user.id as string);
   }
   @Post('from-project')
   createFromProject(
     @Body() createTaskStatusDto: CreateTaskStatusFromProjectDto,
     @CurrentUser() user: any,
   ) {
-    return this.taskStatusesService.createFromProject(createTaskStatusDto, user.id);
+    return this.taskStatusesService.createFromProject(createTaskStatusDto, user.id as string);
   }
 
   @ApiQuery({ name: 'workflowId', required: false, type: String })
@@ -68,7 +63,10 @@ export class TaskStatusesController {
   }
   @Patch('positions')
   updatePositions(@Body() updatePositionsDto: UpdatePositionsDto, @CurrentUser() user: any) {
-    return this.taskStatusesService.updatePositions(updatePositionsDto.statusUpdates, user.id);
+    return this.taskStatusesService.updatePositions(
+      updatePositionsDto.statusUpdates,
+      user.id as string,
+    );
   }
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
@@ -81,7 +79,7 @@ export class TaskStatusesController {
     @Body() updateTaskStatusDto: UpdateTaskStatusDto,
     @CurrentUser() user: any,
   ) {
-    return this.taskStatusesService.update(id, updateTaskStatusDto, user.id);
+    return this.taskStatusesService.update(id, updateTaskStatusDto, user.id as string);
   }
 
   @Delete(':id')

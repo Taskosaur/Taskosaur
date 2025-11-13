@@ -9,8 +9,6 @@ import {
   Query,
   ParseUUIDPipe,
   UseGuards,
-  HttpCode,
-  HttpStatus,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -27,7 +25,7 @@ export class WorkflowsController {
 
   @Post()
   create(@Body() createWorkflowDto: CreateWorkflowDto, @CurrentUser() user: any) {
-    return this.workflowsService.create(createWorkflowDto, user.id);
+    return this.workflowsService.create(createWorkflowDto, user.id as string);
   }
 
   @Get()
@@ -55,7 +53,7 @@ export class WorkflowsController {
     @Body() updateWorkflowDto: UpdateWorkflowDto,
     @CurrentUser() user: any,
   ) {
-    return this.workflowsService.update(id, updateWorkflowDto, user.id);
+    return this.workflowsService.update(id, updateWorkflowDto, user.id as string);
   }
 
   @Patch(':id/set-default')

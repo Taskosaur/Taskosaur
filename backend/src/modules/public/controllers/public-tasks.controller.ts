@@ -13,10 +13,8 @@ import {
 import { PublicTaskDto, PublicTaskPaginationDto } from '../dto/public-task.dto';
 import {
   PublicRateLimitGuard,
-  TaskRateLimit,
 } from '../guards/public-rate-limit.guard';
 import { Public } from '../decorators/public.decorator';
-import { Task } from '@prisma/client';
 
 @ApiTags('Public Tasks')
 @Controller('public/project-tasks')
@@ -116,7 +114,7 @@ export class PublicTasksController {
   @ApiParam({ name: 'projectSlug', description: 'Project slug' })
   @ApiParam({ name: 'taskId', description: 'Task ID' })
   @ApiResponse({ type: PublicTaskDto })
-  async getTask(@Param('taskId') taskId: string): Promise<PublicTaskDto> {
+  async getTask(@Param('taskId') taskId: string): Promise<any> {
     return this.publicTasksService.getPublicTask(taskId);
   }
   @Get('activities/:taskId')

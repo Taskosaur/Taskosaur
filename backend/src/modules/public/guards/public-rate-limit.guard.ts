@@ -17,7 +17,7 @@ export const RateLimit = (limit: number, windowMs: number = 60000) => {
       Reflect.defineMetadata(
         RATE_LIMIT_KEY,
         { limit, windowMs },
-        descriptor.value,
+        descriptor.value as object,
       );
     } else {
       Reflect.defineMetadata(RATE_LIMIT_KEY, { limit, windowMs }, target);
@@ -31,8 +31,8 @@ export class PublicRateLimitGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const ip = this.getClientIp(request);
-    const endpoint = this.getEndpointType(request.url);
+    const ip = this.getClientIp(request as { ip?: string; connection?: { remoteAddress?: string }; socket?: { remoteAddress?: string }; headers?: Record<string, string | string[]> });
+    const endpoint = this.getEndpointType(request.url as string);
 
     // Get rate limit from decorator or use default
     const rateLimitConfig =
@@ -112,7 +112,7 @@ export class PublicRateLimitGuard implements CanActivate {
     limit: number;
     windowMs: number;
   } {
-    const limits = {
+    const limits: Record<string, { limit: number; windowMs: number }> = {
       search: { limit: 10, windowMs: 60000 }, // 10 per minute for search
       projects: { limit: 50, windowMs: 60000 }, // 50 per minute for project lists
       tasks: { limit: 30, windowMs: 60000 }, // 30 per minute for tasks

@@ -32,7 +32,7 @@ export class TaskDependenciesSeederService {
     );
 
     // Create dependencies within each project
-    for (const [projectId, projectTasks] of Object.entries(tasksByProject)) {
+    for (const projectTasks of Object.values(tasksByProject)) {
       if (projectTasks.length < 2) continue; // Need at least 2 tasks for dependencies
 
       const dependenciesData = this.createLogicalDependencies(projectTasks);
@@ -60,6 +60,7 @@ export class TaskDependenciesSeederService {
             `   ✓ Created dependency: "${dependentTask?.title}" ${dependencyData.type} "${blockingTask?.title}"`,
           );
         } catch (error) {
+          console.error(error);
           // Skip if dependency already exists or there's a constraint violation
           console.log(`   ⚠ Dependency creation skipped (might already exist)`);
         }
@@ -235,13 +236,13 @@ export class TaskDependenciesSeederService {
     try {
       const deletedDependencies = await this.prisma.taskDependency.deleteMany();
       console.log(`✅ Deleted ${deletedDependencies.count} task dependencies`);
-    } catch (error) {
-      console.error('❌ Error clearing task dependencies:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing task dependencies:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.taskDependency.findMany({
       select: {
         id: true,

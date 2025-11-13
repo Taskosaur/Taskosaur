@@ -54,6 +54,7 @@ export class SprintsSeederService {
           createdSprints.push(sprint);
           console.log(`   ✓ Created sprint: ${sprint.name} [${sprint.status}] in ${project.name}`);
         } catch (error) {
+          console.error(error);
           console.log(
             `   ⚠ Sprint ${sprintData.name} might already exist in ${project.name}, skipping...`,
           );
@@ -218,13 +219,13 @@ export class SprintsSeederService {
       // Delete sprints
       const deletedSprints = await this.prisma.sprint.deleteMany();
       console.log(`✅ Deleted ${deletedSprints.count} sprints`);
-    } catch (error) {
-      console.error('❌ Error clearing sprints:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing sprints:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.sprint.findMany({
       select: {
         id: true,

@@ -12,7 +12,7 @@ import {
 export class AdminSeederService {
   constructor(private prisma: PrismaService) {}
 
-  async seed() {
+  async seed(): Promise<User | null> {
     console.log('🌱 Seeding admin user...');
 
     const hashedPassword = await bcrypt.hash('password123', 10);
@@ -53,6 +53,7 @@ export class AdminSeederService {
       });
       console.log(`   ✓ Created admin user: ${adminUser.email}`);
     } catch (error) {
+      console.error(error);
       console.log(`   ⚠ Admin user ${adminUserData.email} might already exist, skipping...`);
       adminUser = await this.prisma.user.findUnique({
         where: { email: adminUserData.email },
@@ -159,9 +160,9 @@ export class AdminSeederService {
 
       console.log(`   ✓ Created organization: ${createdOrganization.name}`);
       return createdOrganization;
-    } catch (error) {
-      console.error(`   ❌ Error creating organization: ${error.message}`);
-      throw error;
+    } catch (_error) {
+      console.error(`   ❌ Error creating organization: ${_error.message}`);
+      throw _error;
     }
   }
 
@@ -204,13 +205,13 @@ export class AdminSeederService {
         where: { role: Role.SUPER_ADMIN },
       });
       console.log(`✅ Deleted ${deletedCount.count} admin user(s)`);
-    } catch (error) {
-      console.error('❌ Error clearing admin + organization:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing admin + organization:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.user.findMany({
       where: { role: Role.SUPER_ADMIN },
       include: {

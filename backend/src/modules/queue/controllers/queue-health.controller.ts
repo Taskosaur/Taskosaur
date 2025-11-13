@@ -62,7 +62,7 @@ export class QueueHealthController {
    * Get queue health status
    */
   @Get()
-  async getHealth(): Promise<QueueHealthResponse> {
+  getHealth(): QueueHealthResponse {
     // Get backend information
     const backend = this.queueService.getBackend();
     const requestedBackend = this.queueService.getRequestedBackend();

@@ -110,6 +110,7 @@ export class TaskWatchersService {
         },
       });
     } catch (error) {
+      console.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('User is already watching this task');
       }
@@ -148,7 +149,7 @@ export class TaskWatchersService {
     });
   }
 
-  async findAll(taskId?: string, userId?: string): Promise<TaskWatcher[]> {
+  findAll(taskId?: string, userId?: string): Promise<TaskWatcher[]> {
     const whereClause: any = {};
     if (taskId) whereClause.taskId = taskId;
     if (userId) whereClause.userId = userId;

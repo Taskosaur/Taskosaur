@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { Sparkles, Award } from "lucide-react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 export function RegisterContent() {
@@ -26,11 +25,6 @@ export function RegisterContent() {
                 className={`size-6 lg:size-10 ${resolvedTheme === "light" ? " filter invert brightness-200" : ""}`}
               />
               <h1 className="login-brand-title">Taskosaur</h1>
-            </div>
-
-            <div className="login-brand-subtitle-row">
-              <Award className="login-brand-award-icon" />
-              <p className="login-brand-subtitle">Award-winning Project Management</p>
             </div>
           </div>
 

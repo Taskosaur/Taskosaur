@@ -7,7 +7,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class NotificationsService {
   constructor(private prisma: PrismaService) {}
 
-  async createNotification(data: {
+  createNotification(data: {
     title: string;
     message: string;
     type: NotificationType;
@@ -91,7 +91,7 @@ export class NotificationsService {
     };
   }
 
-  async markAsRead(notificationId: string, userId: string) {
+  markAsRead(notificationId: string, userId: string) {
     return this.prisma.notification.updateMany({
       where: { id: notificationId, userId },
       data: {
@@ -101,7 +101,7 @@ export class NotificationsService {
     });
   }
 
-  async markAllAsRead(userId: string, organizationId?: string) {
+  markAllAsRead(userId: string, organizationId?: string) {
     const whereClause: any = { userId, isRead: false };
 
     if (organizationId) {
@@ -117,7 +117,7 @@ export class NotificationsService {
     });
   }
 
-  async getUnreadCount(userId: string, organizationId?: string) {
+  getUnreadCount(userId: string, organizationId?: string) {
     const whereClause: any = { userId, isRead: false };
 
     if (organizationId) {
@@ -129,7 +129,7 @@ export class NotificationsService {
     });
   }
 
-  async deleteNotification(notificationId: string, userId: string) {
+  deleteNotification(notificationId: string, userId: string) {
     return this.prisma.notification.deleteMany({
       where: { id: notificationId, userId },
     });
@@ -203,16 +203,16 @@ export class NotificationsService {
     const usersToNotify = new Set<string>();
 
     // Add all assignees
-    task.assignees?.forEach((assignee) => {
+    task.assignees?.forEach((assignee: any) => {
       if (assignee.id !== changedBy) {
-        usersToNotify.add(assignee.id);
+        usersToNotify.add(assignee.id as string);
       }
     });
 
     // Add all reporters
-    task.reporters?.forEach((reporter) => {
+    task.reporters?.forEach((reporter: any) => {
       if (reporter.id !== changedBy) {
-        usersToNotify.add(reporter.id);
+        usersToNotify.add(reporter.id as string);
       }
     });
 
@@ -298,7 +298,7 @@ export class NotificationsService {
     return notification;
   }
 
-  async deleteMultipleNotifications(notificationIds: string[], userId: string) {
+  deleteMultipleNotifications(notificationIds: string[], userId: string) {
     return this.prisma.notification.deleteMany({
       where: {
         id: { in: notificationIds },

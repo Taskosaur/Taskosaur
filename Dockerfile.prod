@@ -1,0 +1,83 @@
+# =============================================================================
+# Stage 1: Builder - Build the application
+# =============================================================================
+FROM node:22-slim AS builder
+
+WORKDIR /app/taskosaur
+
+# Update npm to latest version
+RUN npm install -g npm@latest
+
+# Install build dependencies in a single layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    git \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Accept build number as build argument
+ARG BUILD_NUMBER
+ENV BUILD_NUMBER=${BUILD_NUMBER}
+
+# Invalidate cache when BUILD_NUMBER changes
+RUN echo "Build number: ${BUILD_NUMBER}" > /tmp/build_number.txt
+
+# Copy package files first for better layer caching
+COPY package.json ./
+
+# Copy workspace directories
+COPY backend ./backend
+COPY frontend ./frontend
+COPY scripts ./scripts
+
+# Install dependencies
+RUN npm install
+
+# Set dummy DATABASE_URL for Prisma generate (required by Prisma during build)
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
+
+# Build the distribution
+RUN npm run build:dist
+
+# =============================================================================
+# Stage 2: Production - Minimal runtime image
+# =============================================================================
+FROM node:22-slim AS production
+
+WORKDIR /app/taskosaur
+
+# Install only runtime dependencies and netcat for health checks
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    netcat-openbsd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Copy entrypoint script (before switching to www-data)
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Change ownership of /app to www-data
+RUN chown -R www-data:www-data /app
+
+# Switch to www-data user
+USER www-data
+
+# Configure npm to use a writable cache directory for www-data user
+ENV NPM_CONFIG_CACHE=/tmp/.npm
+ENV NPM_CONFIG_PREFIX=/tmp/.npm-global
+
+# Copy only the dist directory from builder stage
+COPY --chown=www-data:www-data --from=builder /app/taskosaur/dist .
+
+# Validate that required files exist in the dist folder
+RUN if [ ! -f "package.json" ]; then \
+        echo "ERROR: dist directory is missing required files (package.json not found)"; \
+        exit 1; \
+    fi
+
+# Expose the application port
+EXPOSE 3000
+
+# Set the entrypoint
+ENTRYPOINT ["/entrypoint.sh"]

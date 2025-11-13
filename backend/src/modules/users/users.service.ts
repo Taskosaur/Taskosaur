@@ -50,7 +50,8 @@ export class UsersService {
       },
     });
 
-    const { password, ...userWithoutPassword } = user;
+    const userWithoutPassword: Omit<typeof user, 'password'> = Object.assign({}, user);
+    delete (userWithoutPassword as any).password;
     return userWithoutPassword;
   }
 
@@ -87,10 +88,10 @@ export class UsersService {
           const avatarUrl = await this.s3Service.getGetPresignedUrl(user.avatar);
           return { ...user, avatarUrl };
         }
-        return usersWithAvatarUrls;
+        return user;
       }),
     );
-    return users;
+    return usersWithAvatarUrls;
   }
 
   async findOne(id: string): Promise<Omit<User, 'password'>> {
@@ -130,7 +131,8 @@ export class UsersService {
     if (user.avatar) {
       avatarUrl = await this.s3Service.getGetPresignedUrl(user.avatar);
     }
-    const { password, ...userWithoutPassword } = user;
+    const userWithoutPassword: Omit<typeof user, 'password'> = Object.assign({}, user);
+    delete (userWithoutPassword as any).password;
     return { ...userWithoutPassword, avatar: avatarUrl || null };
   }
 
@@ -147,13 +149,13 @@ export class UsersService {
     return user.password;
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  findByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
     });
   }
 
-  async findByUsername(username: string): Promise<User | null> {
+  findByUsername(username: string) {
     return this.prisma.user.findUnique({
       where: { username },
     });
@@ -202,7 +204,8 @@ export class UsersService {
       avatarUrl = await this.s3Service.getGetPresignedUrl(user.avatar);
     }
 
-    const { password, ...userWithoutPassword } = user;
+    const userWithoutPassword: Omit<typeof user, 'password'> = Object.assign({}, user);
+    delete (userWithoutPassword as any).password;
     return { ...userWithoutPassword, avatar: avatarUrl };
   }
 
@@ -221,7 +224,7 @@ export class UsersService {
   }
 
   // Password reset related methods
-  async findByResetToken(resetToken: string): Promise<User | null> {
+  findByResetToken(resetToken: string) {
     return this.prisma.user.findUnique({
       where: { resetToken },
     });
@@ -241,7 +244,7 @@ export class UsersService {
     });
   }
 
-  async findAllUsersWithResetTokens(): Promise<User[] | any[]> {
+  findAllUsersWithResetTokens() {
     return this.prisma.user.findMany({
       where: {
         resetToken: { not: null },

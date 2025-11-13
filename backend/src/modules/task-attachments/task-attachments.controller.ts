@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Body,
   Param,
   Delete,
   Query,
@@ -23,17 +22,12 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
-  ApiQuery,
   ApiBody,
   ApiConsumes,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Response } from 'express';
 import { TaskAttachmentsService } from './task-attachments.service';
-import { CreateTaskAttachmentDto } from './dto/create-task-attachment.dto';
-import * as multer from 'multer';
-import * as path from 'path';
-import * as fs from 'fs';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { LogActivity } from 'src/common/decorator/log-activity.decorator';
@@ -58,7 +52,7 @@ export class TaskAttachmentsController {
   //   @Body() createTaskAttachmentDto: CreateTaskAttachmentDto,
   //   @CurrentUser() user: any,
   // ) {
-  //   return this.taskAttachmentsService.create(createTaskAttachmentDto, user.id);
+  //   return this.taskAttachmentsService.create(createTaskAttachmentDto, user.id as string);
   // }
 
   @Post('upload/:taskId')
@@ -172,7 +166,7 @@ export class TaskAttachmentsController {
       throw new BadRequestException('No file provided');
     }
 
-    return this.taskAttachmentsService.create(file, taskId, user.id);
+    return this.taskAttachmentsService.create(file, taskId, user.id as string);
   }
 
   @Get()
@@ -204,6 +198,7 @@ export class TaskAttachmentsController {
     try {
       await this.taskAttachmentsService.streamFile(id, res, true);
     } catch (error) {
+      console.error(error);
       if (error instanceof NotFoundException) {
         throw error;
       }
@@ -221,6 +216,7 @@ export class TaskAttachmentsController {
     try {
       await this.taskAttachmentsService.streamFile(id, res, false);
     } catch (error) {
+      console.error(error);
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }

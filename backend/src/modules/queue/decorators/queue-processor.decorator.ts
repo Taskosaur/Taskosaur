@@ -8,7 +8,7 @@ export const QUEUE_PROCESS_METADATA = 'queue:process';
  * Works with both Bull and in-memory fallback
  */
 export function QueueProcessor(queueName: string): ClassDecorator {
-  return (target: any) => {
+  return (target: any): any => {
     SetMetadata(QUEUE_PROCESSOR_METADATA, queueName)(target);
     return target;
   };
@@ -19,7 +19,7 @@ export function QueueProcessor(queueName: string): ClassDecorator {
  * Works with both Bull and in-memory fallback
  */
 export function QueueProcess(jobName: string): MethodDecorator {
-  return (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
+  return (target: object, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
     SetMetadata(QUEUE_PROCESS_METADATA, jobName)(target, propertyKey, descriptor);
     return descriptor;
   };

@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { EmailReplyService } from '../services/email-reply.service';
 
 @ApiTags('Task Comments - Email Integration')
@@ -45,11 +44,7 @@ export class TaskCommentEmailController {
     status: HttpStatus.NOT_FOUND,
     description: 'Comment or task not found',
   })
-  async sendCommentAsEmail(
-    @Param('taskId') taskId: string,
-    @Param('commentId') commentId: string,
-    @CurrentUser() user: any,
-  ) {
+  async sendCommentAsEmail(@Param('taskId') taskId: string, @Param('commentId') commentId: string) {
     try {
       const result = await this.emailReply.sendCommentAsEmail(commentId);
       return {
@@ -57,6 +52,7 @@ export class TaskCommentEmailController {
         ...result,
       };
     } catch (error) {
+      console.error(error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage.includes('not found')) {
         throw new BadRequestException(errorMessage);

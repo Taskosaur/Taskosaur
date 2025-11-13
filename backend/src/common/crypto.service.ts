@@ -33,6 +33,7 @@ export class CryptoService {
 
       return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
     } catch (error) {
+      console.error(error);
       throw new Error(`Encryption failed: ${error.message}`);
     }
   }
@@ -58,6 +59,7 @@ export class CryptoService {
 
       return decrypted;
     } catch (error) {
+      console.error(error);
       throw new Error(`Decryption failed: ${error.message}`);
     }
   }

@@ -37,7 +37,7 @@ describe('BetterQueueAdapter', () => {
       const queue = adapter.createQueue('test-queue');
       let processed = false;
 
-      adapter.createWorker('test-queue', async (job) => {
+      adapter.createWorker('test-queue', () => {
         processed = true;
         return { success: true };
       });
@@ -53,7 +53,7 @@ describe('BetterQueueAdapter', () => {
     it('should handle job failures', async () => {
       const queue = adapter.createQueue('test-queue');
 
-      adapter.createWorker('test-queue', async (job) => {
+      adapter.createWorker('test-queue', () => {
         throw new Error('Job failed');
       });
 
@@ -103,9 +103,10 @@ describe('BetterQueueAdapter', () => {
 
   describe('Worker Operations', () => {
     it('should create a worker', () => {
-      const worker = adapter.createWorker('test-queue', async (job) => {
-        return { success: true };
-      });
+      const worker = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        adapter.createWorker('test-queue', (_) => {
+          return { success: true };
+        });
 
       expect(worker).toBeDefined();
       expect(worker.name).toBe('test-queue');
@@ -113,9 +114,10 @@ describe('BetterQueueAdapter', () => {
 
     it('should pause and resume worker', async () => {
       const queue = adapter.createQueue('test-queue');
-      const worker = adapter.createWorker('test-queue', async (job) => {
-        return { success: true };
-      });
+      const worker = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        adapter.createWorker('test-queue', (_) => {
+          return { success: true };
+        });
 
       await worker.pause();
       expect(await queue.isPaused()).toBe(true);
@@ -128,7 +130,7 @@ describe('BetterQueueAdapter', () => {
       const queue = adapter.createQueue('test-queue');
       const results: any[] = [];
 
-      adapter.createWorker('test-queue', async (job) => {
+      adapter.createWorker('test-queue', (job) => {
         results.push(job.data);
         return { processed: true };
       });
@@ -190,10 +192,12 @@ describe('BetterQueueAdapter', () => {
 
   describe('Adapter Lifecycle', () => {
     it('should close all queues and workers', async () => {
-      const queue1 = adapter.createQueue('queue-1');
-      const queue2 = adapter.createQueue('queue-2');
-      adapter.createWorker('queue-1', async (job) => ({ done: true }));
-      adapter.createWorker('queue-2', async (job) => ({ done: true }));
+      // const _queue1 = adapter.createQueue('queue-1');
+      // const _queue2 = adapter.createQueue('queue-2');
+
+      adapter.createWorker('queue-1', () => ({ done: true }));
+
+      adapter.createWorker('queue-2', () => ({ done: true }));
 
       await adapter.close();
       // All queues and workers should be closed without errors

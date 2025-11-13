@@ -4,7 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import { S3Service } from './s3.service';
 import * as fs from 'fs';
 import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
 import { Response } from 'express';
 
 @Injectable()
@@ -22,7 +21,7 @@ export class StorageService {
     this.uploadDir = this.configService.get('UPLOAD_DEST', './uploads');
     this.useS3 = false;
     if (awsAccessKey && awsSecretKey && awsBucket) {
-      this.checkS3Connection(awsBucket)
+      this.checkS3Connection(awsBucket as string)
         .then((connected) => {
           this.useS3 = connected;
           if (!connected && !fs.existsSync(this.uploadDir)) {
@@ -51,7 +50,7 @@ export class StorageService {
       // Try a simple operation to test credentials
       await this.s3Service.headBucket(bucketName);
       return true;
-    } catch (err) {
+    } catch {
       console.warn('S3 connection failed, falling back to local storage.');
       return false;
     }
@@ -60,7 +59,7 @@ export class StorageService {
     file: Express.Multer.File,
     folder: string,
   ): Promise<{ url: string | null; key: string; size: number }> {
-    const fileExtension = path.extname(file.originalname);
+    // const _fileExtension = path.extname(file.originalname);
     const fileName = file.originalname;
     const key = `${folder}/${fileName}`;
     if (this.useS3) {

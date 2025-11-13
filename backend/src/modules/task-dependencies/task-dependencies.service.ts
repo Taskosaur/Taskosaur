@@ -94,6 +94,7 @@ export class TaskDependenciesService {
         const dependency = await this.create(dependencyDto);
         results.push(dependency);
       } catch (error) {
+        console.error(error);
         // Continue with other dependencies if one fails
         console.error(`Failed to create dependency: ${error.message}`);
       }
@@ -102,7 +103,7 @@ export class TaskDependenciesService {
     return results;
   }
 
-  async findAll(projectId?: string): Promise<TaskDependency[]> {
+  findAll(projectId?: string): Promise<TaskDependency[]> {
     const where = projectId
       ? {
           dependentTask: { projectId },
@@ -207,7 +208,7 @@ export class TaskDependenciesService {
     return { dependsOn, blocks };
   }
 
-  async getBlockedTasks(taskId: string): Promise<TaskDependency[]> {
+  getBlockedTasks(taskId: string): Promise<TaskDependency[]> {
     return this.prisma.taskDependency.findMany({
       where: { blockingTaskId: taskId },
       include: {

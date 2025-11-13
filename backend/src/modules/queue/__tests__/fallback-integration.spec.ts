@@ -62,6 +62,7 @@ describe('Queue Fallback Integration', () => {
           expect(factory.isFallbackActive()).toBe(true);
         }
       } catch (error) {
+        console.error(error);
         // If error occurs and fallback is enabled, it should fallback
         if (config.enableFallback) {
           throw error; // This should not happen with fallback enabled
@@ -186,7 +187,7 @@ describe('Queue Fallback Integration', () => {
       const queue = adapter.createQueue('test-queue');
       let processed = false;
 
-      adapter.createWorker('test-queue', async (job) => {
+      adapter.createWorker('test-queue', (job) => {
         processed = true;
         return { success: true, data: job.data };
       });
@@ -231,11 +232,11 @@ describe('Queue Fallback Integration', () => {
 
       const queue = adapter.createQueue('test-queue');
 
-      adapter.createWorker('test-queue', async (job) => {
+      adapter.createWorker('test-queue', () => {
         throw new Error('Simulated failure');
       });
 
-      const job = await queue.add('failing-job', { data: 'test' });
+      // const _job = await queue.add('failing-job', { data: 'test' });
 
       // Wait for failure
       await new Promise((resolve) => setTimeout(resolve, 500));

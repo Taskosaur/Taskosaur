@@ -3,7 +3,6 @@
  */
 
 import { createMockQueue, createMockJob } from '../utils/queue-testing.helper';
-import { JobStatus } from '../enums/job-status.enum';
 
 describe('Queue Testing Utilities', () => {
   describe('createMockJob', () => {

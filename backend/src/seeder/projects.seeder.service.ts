@@ -26,7 +26,7 @@ export class ProjectsSeederService {
       const projectsData = this.getProjectsDataForWorkspace(workspace);
 
       // Get the organization's default workflow for this workspace
-      const defaultWorkflow = await this.getDefaultWorkflowForWorkspace(workspace.id);
+      const defaultWorkflow = await this.getDefaultWorkflowForWorkspace(workspace.id as string);
 
       if (!defaultWorkflow) {
         console.log(
@@ -76,13 +76,14 @@ export class ProjectsSeederService {
           });
 
           // Add project members
-          await this.addMembersToProject(project.id, users, workspace.id);
+          await this.addMembersToProject(project.id, users, workspace.id as string);
 
           createdProjects.push(project);
           console.log(
             `   ✓ Created project: ${project.name} in ${workspace.name} with workflow: ${defaultWorkflow.name}`,
           );
         } catch (error) {
+          console.error(error);
           console.log(
             `   ⚠ Project ${projectData.name} might already exist in ${workspace.name}, skipping...`,
           );
@@ -380,6 +381,7 @@ export class ProjectsSeederService {
         });
         console.log(`   ✓ Added ${workspaceMembers[i].user.email} to project as ${memberRoles[i]}`);
       } catch (error) {
+        console.error(error);
         console.log(
           `   ⚠ User ${workspaceMembers[i].user.email} might already be a project member, skipping...`,
         );
@@ -398,13 +400,13 @@ export class ProjectsSeederService {
       // Delete projects
       const deletedProjects = await this.prisma.project.deleteMany();
       console.log(`✅ Deleted ${deletedProjects.count} projects`);
-    } catch (error) {
-      console.error('❌ Error clearing projects:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing projects:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.project.findMany({
       select: {
         id: true,

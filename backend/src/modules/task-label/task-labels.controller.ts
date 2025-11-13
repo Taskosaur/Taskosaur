@@ -7,7 +7,6 @@ import {
   Delete,
   ParseUUIDPipe,
   UseGuards,
-  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,8 +19,6 @@ import {
 import { TaskLabelsService } from './task-labels.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AssignTaskLabelDto } from './dto/create-task-labels.dto';
-import { Request } from 'express';
-import { getAuthUser } from 'src/common/request.utils';
 import { LogActivity } from 'src/common/decorator/log-activity.decorator';
 
 @ApiTags('Task Labels')
@@ -78,9 +75,7 @@ export class TaskLabelsController {
   async remove(
     @Param('taskId', ParseUUIDPipe) taskId: string,
     @Param('labelId', ParseUUIDPipe) labelId: string,
-    @Req() req: Request,
   ) {
-    const user = getAuthUser(req);
-    return await this.taskLabelsService.remove(taskId, labelId, user.id);
+    return this.taskLabelsService.remove(taskId, labelId);
   }
 }

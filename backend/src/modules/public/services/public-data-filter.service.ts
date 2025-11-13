@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Project, Task, Sprint } from '@prisma/client';
 import {
   PublicProjectDto,
-  PublicProjectStatsDto,
 } from '../dto/public-project.dto';
 import { PublicTaskDto } from '../dto/public-task.dto';
 import { PublicSprintDto } from '../dto/public-sprint.dto';
@@ -42,7 +40,7 @@ export class PublicDataFilterService {
     return filtered;
   }
 
-  filterTaskData(task: Task & { status?: { id: string; name: string; color?: string; category?: string }; labels?: Array<{ id: string; name: string; color?: string }>; subtasks?: Array<Task & { project?: { visibility?: string } }> }): PublicTaskDto {
+  filterTaskData(task: any): PublicTaskDto {
     const filtered: PublicTaskDto = {
       id: task.id,
       title: task.title,
@@ -62,7 +60,7 @@ export class PublicDataFilterService {
 
     // Add labels if present
     if (task.labels) {
-      filtered.labels = task.labels.map((label) => ({
+      filtered.labels = (task.labels as any[]).map((label) => ({
         id: label.id,
         name: label.name,
         color: label.color ?? ''
@@ -71,17 +69,17 @@ export class PublicDataFilterService {
 
     // Only show public subtasks
     if (task.subtasks) {
-      filtered.subtasks = task.subtasks
-        .filter(subtask => subtask.project?.visibility === 'PUBLIC')
-        .map(subtask => this.filterTaskData(subtask as Task & { status?: { id: string; name: string; color?: string; category?: string }; labels?: Array<{ id: string; name: string; color?: string }>; subtasks?: Array<Task & { project?: { visibility?: string } }> }));
+      filtered.subtasks = (task.subtasks as any[])
+        .filter((subtask: any) => subtask.project?.visibility === 'PUBLIC')
+        .map((subtask: any) => this.filterTaskData(subtask));
     }
 
     return filtered;
   }
 
-  filterSprintData(sprint: Sprint & { tasks?: Array<Task & { status?: { category?: string } }> }): PublicSprintDto {
+  filterSprintData(sprint: any): PublicSprintDto {
     const totalTasks = sprint.tasks?.length || 0;
-    const completedTasks = sprint.tasks?.filter((task: Task & { status?: { category?: string } }) =>
+    const completedTasks = (sprint.tasks as any[] | undefined)?.filter((task: any) =>
       task.status?.category === 'DONE'
     ).length || 0;
 
@@ -102,7 +100,7 @@ export class PublicDataFilterService {
 
     // Add filtered tasks if present
     if (sprint.tasks) {
-      filtered.tasks = sprint.tasks.map(task => this.filterTaskData(task as Task & { status?: { id: string; name: string; color?: string; category?: string }; labels?: Array<{ id: string; name: string; color?: string }>; subtasks?: Array<Task & { project?: { visibility?: string } }> }));
+      filtered.tasks = (sprint.tasks as any[]).map((task: any) => this.filterTaskData(task));
     }
 
     return filtered;

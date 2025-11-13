@@ -10,7 +10,7 @@ import { JobStatus } from '../../enums/job-status.enum';
  */
 export class BetterQueueJobAdapter<T = any> implements IJob<T> {
   private _progress = 0;
-  private _returnvalue: any;
+  private _returnvalue: unknown;
   private _finishedOn?: number;
   private _processedOn?: number;
   private _failedReason?: string;
@@ -40,7 +40,7 @@ export class BetterQueueJobAdapter<T = any> implements IJob<T> {
     return this._progress;
   }
 
-  get returnvalue(): any {
+  get returnvalue(): unknown {
     return this._returnvalue;
   }
 
@@ -64,24 +64,27 @@ export class BetterQueueJobAdapter<T = any> implements IJob<T> {
     return this.jobTimestamp;
   }
 
-  async updateProgress(progress: number): Promise<void> {
+  updateProgress(progress: number): Promise<void> {
     this._progress = Math.min(100, Math.max(0, progress));
     // Emit progress event if needed
+    return Promise.resolve();
   }
 
-  async getState(): Promise<JobState> {
-    return this._status;
+  getState(): Promise<JobState> {
+    return Promise.resolve(this._status);
   }
 
-  async remove(): Promise<void> {
+  remove(): Promise<void> {
     // Mark for removal
     this._status = JobStatus.FAILED;
+    return Promise.resolve();
   }
 
-  async retry(): Promise<void> {
+  retry(): Promise<void> {
     this._attemptsMade++;
     this._status = JobStatus.WAITING;
     this._failedReason = undefined;
+    return Promise.resolve();
   }
 
   log(message: string): void {

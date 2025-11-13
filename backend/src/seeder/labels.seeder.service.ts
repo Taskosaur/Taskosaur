@@ -46,8 +46,10 @@ export class LabelsSeederService {
           createdLabels.push(label);
           console.log(`   ✓ Created label: ${label.name} in ${project.name}`);
         } catch (error) {
+          console.error(error);
           console.log(
             `   ⚠ Label ${labelData.name} might already exist in ${project.name}, skipping...`,
+            error instanceof Error ? error.message : String(error),
           );
           // Try to find existing label
           const existingLabel = await this.prisma.label.findFirst({
@@ -278,13 +280,13 @@ export class LabelsSeederService {
       // Delete labels
       const deletedLabels = await this.prisma.label.deleteMany();
       console.log(`✅ Deleted ${deletedLabels.count} labels`);
-    } catch (error) {
-      console.error('❌ Error clearing labels:', error);
-      throw error;
+    } catch (_error) {
+      console.error('❌ Error clearing labels:', _error);
+      throw _error;
     }
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.label.findMany({
       select: {
         id: true,

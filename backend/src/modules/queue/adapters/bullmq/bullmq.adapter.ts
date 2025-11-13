@@ -78,6 +78,7 @@ export class BullMQAdapter implements IQueueAdapter {
       await this.redisClient.ping();
       return true;
     } catch (error) {
+      console.error('Redis health check failed:', error);
       return false;
     }
   }

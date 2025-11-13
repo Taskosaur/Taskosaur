@@ -8,7 +8,6 @@ import { PublicDataFilterService } from './public-data-filter.service';
 import { PublicTaskDto } from '../dto/public-task.dto';
 import {
   ActivityType,
-  Task,
   TaskAttachment,
   TaskComment,
 } from '@prisma/client';
@@ -644,7 +643,7 @@ export class PublicTasksService {
 
     return comments;
   }
-  async getPublicTaskAttachment(taskId?: string): Promise<TaskAttachment[]> {
+  getPublicTaskAttachment(taskId?: string): Promise<TaskAttachment[]> {
     const whereClause: any = {};
 
     if (taskId) {

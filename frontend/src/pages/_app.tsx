@@ -13,16 +13,16 @@ import { Toaster } from "@/components/ui/sonner";
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <SetupChecker>
-        <AuthProvider>
+      <AuthProvider>
+        <SetupChecker>
           <ChatProvider>
             <ProtectedRoute>
               <Component {...pageProps} />
             </ProtectedRoute>
             <ChatPanel />
           </ChatProvider>
-        </AuthProvider>
-      </SetupChecker>
+        </SetupChecker>
+      </AuthProvider>
       <AutomationLoader
         enabled={
           process.env.NODE_ENV === "development" ||
