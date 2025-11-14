@@ -62,7 +62,7 @@ The fastest way to get started with Taskosaur is using Docker Compose:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/Taskosaur/taskosaur.git
+   git clone https://github.com/Taskosaur/Taskosaur.git
    cd taskosaur
    ```
 
@@ -94,7 +94,7 @@ If you prefer to run services locally:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/Taskosaur/taskosaur.git
+   git clone https://github.com/Taskosaur/Taskosaur.git
    cd taskosaur
    ```
 
@@ -433,7 +433,7 @@ _Taskosaur is actively under development. The following features represent our p
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/Taskosaur/taskosaur.git
+   git clone https://github.com/Taskosaur/Taskosaur.git
    cd taskosaur
    ```
 
@@ -644,7 +644,7 @@ taskosaur/
 
 ```bash
 # Clone the repository
-git clone https://github.com/Taskosaur/taskosaur.git
+git clone https://github.com/Taskosaur/Taskosaur.git
 cd taskosaur
 
 # Build and run with Docker Compose
@@ -756,9 +756,9 @@ This project is licensed under the Business Source License - see the [LICENSE](L
 ## Support
 
 - Email: support@taskosaur.com
-- Discord: [Join our community](https://discord.gg/zNFHCcux)
-- Issues: [GitHub Issues](https://github.com/Taskosaur/taskosaur/issues)
-- Discussions: [GitHub Discussions](https://github.com/Taskosaur/taskosaur/discussions)
+- Discord: [Join our community](https://discord.gg/5cpHUSxePp)
+- Issues: [GitHub Issues](https://github.com/Taskosaur/Taskosaur/issues)
+- Discussions: [GitHub Discussions](https://github.com/Taskosaur/Taskosaur/discussions)
 
 ---
 

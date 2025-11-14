@@ -47,7 +47,8 @@
         "clean:backend": "npm run clean --workspace=backend",
         "docker:build:dev": "docker build -f Dockerfile.dev --build-arg BUILD_NUMBER=$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S) -t taskosaur:dev .",
         "docker:build:prod": "docker build -f Dockerfile.prod --build-arg BUILD_NUMBER=$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S) -t taskosaur:latest .",
-        "docker:push:prod": "npm run docker:build:prod && docker tag taskosaur:latest taskosaur/taskosaur:$(node -p \"require('./package.json').version\")-$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S) && docker push taskosaur/taskosaur:$(node -p \"require('./package.json').version\")-$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S)",
+        "docker:push:dev": "docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile.prod --build-arg BUILD_NUMBER=$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S) -t taskosaur/taskosaur:dev -t taskosaur/taskosaur:$(node -p \"require('./package.json').version\")-dev -t taskosaur/taskosaur:$(node -p \"require('./package.json').version\")-$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S) --push .",
+        "docker:push:stable": "docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile.prod --build-arg BUILD_NUMBER=$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S) -t taskosaur/taskosaur:latest -t taskosaur/taskosaur:$(node -p \"require('./package.json').version\") -t taskosaur/taskosaur:$(node -p \"require('./package.json').version\")-$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S) --push .",
         "postinstall": "node scripts/postinstall.js",
         "prepare": "husky"
     },
