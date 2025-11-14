@@ -3,8 +3,8 @@ name: Docker Build and Push
 on:
   push:
     branches:
-      - development
-      - latest
+      - docker/build/development
+      - docker/build/latest
 
 env:
   DOCKER_IMAGE: taskosaur/taskosaur
@@ -40,9 +40,9 @@ jobs:
         id: meta
         run: |
           # Determine the tag based on branch
-          if [ "${{ github.ref_name }}" = "latest" ]; then
+          if [ "${{ github.ref_name }}" = "docker/build/latest" ]; then
             DOCKER_TAG="latest"
-          elif [ "${{ github.ref_name }}" = "development" ]; then
+          elif [ "${{ github.ref_name }}" = "docker/build/development" ]; then
             DOCKER_TAG="development"
           fi
 
@@ -69,11 +69,11 @@ jobs:
           tags: |
             ${{ env.DOCKER_IMAGE }}:${{ steps.meta.outputs.docker_tag }}
             ${{ env.DOCKER_IMAGE }}:${{ steps.meta.outputs.version }}-${{ steps.meta.outputs.short_sha }}
-          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache-${{ github.ref_name }}
-          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache-${{ github.ref_name }},mode=max
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache-${{ steps.meta.outputs.docker_tag }}
+          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache-${{ steps.meta.outputs.docker_tag }},mode=max
 
       - name: Create Docker Hub README update script
-        if: github.ref_name == 'latest'
+        if: github.ref_name == 'docker/build/latest'
         run: |
           echo "Docker Hub README update would happen here for latest releases"
           echo "Image pushed: ${{ env.DOCKER_IMAGE }}:${{ steps.meta.outputs.docker_tag }}"
