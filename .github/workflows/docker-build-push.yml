@@ -72,12 +72,15 @@ jobs:
           cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache-${{ steps.meta.outputs.docker_tag }}
           cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache-${{ steps.meta.outputs.docker_tag }},mode=max
 
-      - name: Create Docker Hub README update script
+      - name: Update Docker Hub README
         if: github.ref_name == 'docker/build/latest'
-        run: |
-          echo "Docker Hub README update would happen here for latest releases"
-          echo "Image pushed: ${{ env.DOCKER_IMAGE }}:${{ steps.meta.outputs.docker_tag }}"
-          echo "Version: ${{ steps.meta.outputs.version }}-${{ steps.meta.outputs.short_sha }}"
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: ${{ env.DOCKER_IMAGE }}
+          readme-filepath: ./README.md
+          short-description: "Open Source Project Management with AI Mode"
 
       - name: Summary
         run: |
