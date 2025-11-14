@@ -18,7 +18,7 @@ export function RegisterContent() {
           <div className="">
             <div className="flex items-center">
               <Image
-                src="/favicon.svg"
+                src="/taskosaur-logo.svg"
                 alt="Taskosaur Logo"
                 width={50}
                 height={50}

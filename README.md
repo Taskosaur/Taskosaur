@@ -1,5 +1,7 @@
 # Taskosaur
 
+<img src="frontend/public/taskosaur-logo.svg" alt="Taskosaur Logo" width="180">
+
 ### Open Source Project Management with AI Mode
 
 ### 📹 Watch Taskosaur in Action

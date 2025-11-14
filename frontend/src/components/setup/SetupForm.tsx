@@ -149,7 +149,7 @@ export function SetupForm() {
         <div className="setup-mobile-logo">
           <div className="setup-mobile-logo-icon">
             <Image
-              src="/favicon.svg"
+              src="/taskosaur-logo.svg"
               alt="Taskosaur Logo"
               width={50}
               height={50}

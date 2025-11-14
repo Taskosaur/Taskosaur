@@ -73,7 +73,7 @@ export function LoginForm() {
         <div className="signup-mobile-logo">
           <div className="signup-mobile-logo-icon">
             <Image
-              src="/favicon.svg"
+              src="/taskosaur-logo.svg"
               alt="Taskosaur Logo"
               width={50}
               height={50}
