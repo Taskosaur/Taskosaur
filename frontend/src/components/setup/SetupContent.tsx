@@ -30,11 +30,6 @@ export function SetupContent() {
               />
               <h1 className="setup-brand-title">Taskosaur</h1>
             </div>
-
-            <div className="setup-brand-subtitle-row">
-              <Shield className="setup-brand-shield-icon" />
-              <span className="setup-brand-subtitle">Secure Initial Setup</span>
-            </div>
           </div>
 
           <h2 className="setup-hero-heading">

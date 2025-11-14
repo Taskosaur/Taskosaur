@@ -12,6 +12,7 @@ import { LoginContent } from "@/components/login/LoginContent";
 import { questions, QuestionType } from "@/utils/data/newUserQuestions";
 import { invitationApi } from "@/utils/api/invitationsApi";
 import { InvitationModal } from "@/components/notifications/InvitationModal";
+import { ModeToggle } from "@/components/header/ModeToggle";
 
 const extendedQuestions: QuestionType[] = [
   ...questions,
@@ -142,16 +143,14 @@ function IntroQuestions({ onComplete }: { onComplete: () => void }) {
     answers[currentQuestionData.id] !== undefined && answers[currentQuestionData.id] !== "";
 
   return (
-    <div className="h-screen bg-[var(--background)] flex flex-col">
-      <div className="flex-1 flex">
-        <div className="hidden lg:block w-1/2 bg-[var(--primary)] p-8">
-          <div className="h-full flex items-center justify-center">
-            <div className="l">
-              <LoginContent />
-            </div>
-          </div>
+    <div className="min-h-screen bg-[var(--background)]">
+      <div className="login-container">
+        <div className="login-content-panel hidden md:block">
+          <LoginContent />
         </div>
-
+        <div className="login-form-mode-toggle">
+          <ModeToggle />
+        </div>
         {/* Question and Options */}
         <div className="w-full lg:w-1/2 px-6 py-12 overflow-y-auto">
           <div className="w-full bg-[var(--background)] pb-4 flex justify-end items-end">

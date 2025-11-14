@@ -895,7 +895,7 @@ export default function TaskDetailClient({
             </span>
           </div>
 
-          {task.createdBy === currentUser?.id && (
+          {(hasAccess || task.createdBy === currentUser?.id) && (
             <div className=" flex gap-2">
               {!task.emailThreadId && (
                 <Tooltip content="Edit task" position="left">

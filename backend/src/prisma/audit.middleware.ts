@@ -41,8 +41,6 @@ export function createAuditExtension() {
       $allModels: {
         async $allOperations({ operation, model, args, query }) {
           let currentUserId = RequestContextService.getCurrentUserId();
-
-          // Use system user as fallback for operations without user context
           if (!currentUserId) {
             currentUserId = SYSTEM_USER_ID;
           }

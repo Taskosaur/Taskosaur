@@ -8,6 +8,7 @@ import {
   createStaticRoutingMiddleware,
   findPublicDir,
 } from './middleware/static-routing.middleware';
+import { RequestContextInterceptor } from './common/request-context.interceptor';
 
 // Suppress unhandled promise rejections from Redis connection failures
 process.on('unhandledRejection', (reason: unknown) => {
@@ -65,7 +66,7 @@ async function bootstrap() {
   // Serve static files from public directory (JS, CSS, images, etc.)
   const publicDir = findPublicDir();
   app.use(express.static(publicDir));
-
+  app.useGlobalInterceptors(new RequestContextInterceptor());
   // Serve Next.js static HTML files and handle dynamic routing
   app.use(createStaticRoutingMiddleware(publicDir));
 
