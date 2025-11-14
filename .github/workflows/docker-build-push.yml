@@ -79,7 +79,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: ${{ env.DOCKER_IMAGE }}
-          readme-filepath: ./README.md
+          readme-filepath: ./docker/README.md
           short-description: "Open Source Project Management with AI Mode"
 
       - name: Summary

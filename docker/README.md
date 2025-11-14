@@ -1,5 +1,7 @@
 # Taskosaur - Open Source Project Management with AI Mode
 
+![Logo](https://raw.githubusercontent.com/Taskosaur/Taskosaur/main/frontend/public/taskosaur-logo.png)
+
 [![Docker Pulls](https://img.shields.io/docker/pulls/taskosaur/taskosaur)](https://hub.docker.com/r/taskosaur/taskosaur)
 [![Docker Image Size](https://img.shields.io/docker/image-size/taskosaur/taskosaur/latest)](https://hub.docker.com/r/taskosaur/taskosaur)
 [![License](https://img.shields.io/badge/license-BSL-blue.svg)](https://github.com/Taskosaur/Taskosaur/blob/main/LICENSE.md)
