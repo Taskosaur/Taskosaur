@@ -488,7 +488,6 @@ _Taskosaur is actively under development. The following features represent our p
 
    # Frontend Configuration
    NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
-   NEXT_PUBLIC_DEFAULT_ORGANIZATION_ID=your-default-organization-id-here
    ```
 
 4. **Setup Database**

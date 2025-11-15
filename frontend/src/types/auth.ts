@@ -23,7 +23,10 @@ export interface ForgotPasswordData {
 }
 
 export interface UploadFileResponse {
-  url: string;
+  url: string | null;
+  key: string;
+  size: number;
+  inCloud: boolean;
 }
 
 export type ApiResponse<T = unknown> = {

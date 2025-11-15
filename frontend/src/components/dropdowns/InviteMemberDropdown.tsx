@@ -75,9 +75,7 @@ export default function InviteMemberDropdown() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const organizationId =
-        localStorage.getItem("currentOrganizationId") ||
-        process.env.NEXT_PUBLIC_DEFAULT_ORGANIZATION_ID;
+      const organizationId = localStorage.getItem("currentOrganizationId");
 
       if (!token || !organizationId) {
         console.error("Missing token or organization ID");

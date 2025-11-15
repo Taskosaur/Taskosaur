@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import AppProviders from "./AppProviders";
 import OrgProviders from "./OrgProvider";
 import PublicProviders from "./PublicProviders";
+import { LayoutProvider } from "@/contexts/layout-context";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -149,15 +150,27 @@ export default function ProtectedRoute({
 
   // For public routes (login, register, etc.)
   if (is404) {
-    return <>{children}</>; // 404 stays as is
+    return (
+      <LayoutProvider>
+        {children}
+      </LayoutProvider>
+    );
   }
   if (isPublicRoute) {
-    return <>{children}</>;
+    return (
+      <LayoutProvider>
+        {children}
+      </LayoutProvider>
+    );
   }
 
   // For public project routes (allow unauthenticated access with limited providers)
   if (isPublicProjectRoute && !isAuthenticated) {
-    return <PublicProviders>{children}</PublicProviders>;
+    return (
+      <LayoutProvider>
+        <PublicProviders>{children}</PublicProviders>
+      </LayoutProvider>
+    );
   }
 
   if (isAuthenticated && hasOrganization) {
@@ -165,7 +178,11 @@ export default function ProtectedRoute({
   }
 
   if (isAuthenticated && !hasOrganization) {
-    return <OrgProviders>{children}</OrgProviders>;
+    return (
+      <LayoutProvider>
+        <OrgProviders>{children}</OrgProviders>
+      </LayoutProvider>
+    );
   }
 
   return null;

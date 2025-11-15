@@ -11,6 +11,7 @@ import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { S3Service } from '../storage/s3.service';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class UsersService {
@@ -18,6 +19,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private s3Service: S3Service,
+    private storageService: StorageService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
@@ -82,16 +84,7 @@ export class UsersService {
         updatedAt: true,
       },
     });
-    const usersWithAvatarUrls = await Promise.all(
-      users.map(async (user) => {
-        if (user.avatar) {
-          const avatarUrl = await this.s3Service.getGetPresignedUrl(user.avatar);
-          return { ...user, avatarUrl };
-        }
-        return user;
-      }),
-    );
-    return usersWithAvatarUrls;
+    return users;
   }
 
   async findOne(id: string): Promise<Omit<User, 'password'>> {
@@ -127,13 +120,9 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    let avatarUrl: string | null = null;
-    if (user.avatar) {
-      avatarUrl = await this.s3Service.getGetPresignedUrl(user.avatar);
-    }
     const userWithoutPassword: Omit<typeof user, 'password'> = Object.assign({}, user);
     delete (userWithoutPassword as any).password;
-    return { ...userWithoutPassword, avatar: avatarUrl || null };
+    return { ...userWithoutPassword };
   }
 
   async getUserPassword(id: string): Promise<string | null> {
@@ -201,7 +190,13 @@ export class UsersService {
     });
     let avatarUrl: string | null = null;
     if (user.avatar) {
-      avatarUrl = await this.s3Service.getGetPresignedUrl(user.avatar);
+      // Check if using S3 or local storage
+      if (this.storageService.isUsingS3()) {
+        avatarUrl = await this.storageService.getFileUrl(user.avatar);
+      } else {
+        // For local storage, user.avatar already contains the relative path
+        avatarUrl = user.avatar;
+      }
     }
 
     const userWithoutPassword: Omit<typeof user, 'password'> = Object.assign({}, user);

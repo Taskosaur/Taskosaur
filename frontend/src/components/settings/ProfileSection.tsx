@@ -8,15 +8,15 @@ import { HiPencil, HiCamera } from "react-icons/hi2";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 import { Button } from "../ui";
-
 import React from "react";
 import Tooltip from "../common/ToolTip";
 
 export default function ProfileSection() {
   const [isEditing, setIsEditing] = useState(false);
-  const { getCurrentUser, updateUser, uploadFileToS3 } = useAuth();
-  const currentUser = getCurrentUser();
+  const { getCurrentUser, updateUser, uploadFileToS3, getUserById } = useAuth();
 
+  // Store the current user and profile data
+  const [currentUser, setCurrentUser] = useState(null);
   const fetchingRef = useRef(false);
   const currentUserRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,21 +34,32 @@ export default function ProfileSection() {
   const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Initialize form data
+  // Load and synchronize current user
   useEffect(() => {
-    if (currentUser) {
+    const user = getCurrentUser();
+    setCurrentUser(user);
+  }, [getCurrentUser]);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!currentUser) return;
       if (currentUserRef.current?.id === currentUser.id) return;
       currentUserRef.current = currentUser;
+      // Fetch latest profile data for this user
+      const profileResult = await getUserById(currentUser.id);
       setProfileData({
-        firstName: currentUser.firstName || "",
-        lastName: currentUser.lastName || "",
-        email: currentUser.email || "",
-        username: currentUser.username || "",
-        mobileNumber: currentUser.mobileNumber || "",
-        bio: currentUser.bio || "",
+        firstName: profileResult?.firstName ?? "",
+        lastName: profileResult?.lastName ?? "",
+        email: profileResult?.email ?? "",
+        username: profileResult?.username ?? "",
+        mobileNumber: profileResult?.mobileNumber ?? "",
+        bio: profileResult?.bio ?? "",
       });
-    }
-  }, [currentUser]);
+      // Optionally refresh currentUser reference since avatar may be changed
+      setCurrentUser(profileResult);
+    };
+    loadProfile();
+  }, [currentUser, getUserById]);
 
   useEffect(() => {
     return () => {
@@ -74,14 +85,14 @@ export default function ProfileSection() {
     if (!selectedFile || !currentUser) return;
     setUploadingProfilePic(true);
     try {
-      const extension = selectedFile.name.split(".").pop();
-      const s3Key = `avatars/${currentUser.id}.${extension}`;
-      await uploadFileToS3(selectedFile, s3Key);
-      await updateUser(currentUser.id, { avatar: s3Key });
+      const uploadResult = await uploadFileToS3(selectedFile, "avatar");
+      const updatedUser = await updateUser(currentUser.id, { avatar: uploadResult.key });
       toast.success("Profile picture updated successfully!");
       setSelectedFile(null);
       setPreviewUrl(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
+      // Refresh user's avatar for immediate UI update
+      setCurrentUser(updatedUser);
     } catch {
       toast.error("Failed to upload profile picture. Please try again.");
     } finally {
@@ -94,7 +105,8 @@ export default function ProfileSection() {
     fetchingRef.current = true;
     setLoading(true);
     try {
-      await updateUser(currentUser.id, {
+      // Update main profile fields
+      const updatedUser = await updateUser(currentUser.id, {
         firstName: profileData.firstName,
         lastName: profileData.lastName,
         email: profileData.email,
@@ -103,6 +115,8 @@ export default function ProfileSection() {
       });
       toast.success("Profile updated successfully!");
       setIsEditing(false);
+      // Refresh UI with updated user profile
+      setCurrentUser(updatedUser);
     } catch {
       toast.error("Failed to update profile. Please try again.");
     } finally {
@@ -126,6 +140,17 @@ export default function ProfileSection() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // Resolve avatar src depending on preview, S3, or local
+  let avatarSrc = "";
+  if (previewUrl) {
+    avatarSrc = previewUrl;
+  } else if (currentUser?.avatar) {
+    if (/^https?:\/\//.test(currentUser.avatar)) {
+      avatarSrc = currentUser.avatar; // S3 or external
+    } else {
+      avatarSrc = `${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/${currentUser.avatar}`; // Local
+    }
+  }
   return (
     <div className="pt-5">
       {/* Header */}
@@ -148,9 +173,9 @@ export default function ProfileSection() {
           {/* Avatar */}
           <div className="relative group">
             <Avatar className="h-24 w-24 border-2 border-[var(--border)]">
-              {(previewUrl || currentUser?.avatar) && (
+              {avatarSrc && (
                 <AvatarImage
-                  src={previewUrl || currentUser?.avatar || ""}
+                  src={avatarSrc}
                   alt={
                     `${profileData.firstName} ${profileData.lastName}`.trim() || "Profile Picture"
                   }
@@ -158,9 +183,7 @@ export default function ProfileSection() {
                 />
               )}
               <AvatarFallback className="bg-[var(--primary)] text-[var(--primary-foreground)] font-medium text-lg">
-                {`${profileData.firstName?.charAt(0) || ""}${
-                  profileData.lastName?.charAt(0) || ""
-                }`.toUpperCase()}
+                {`${profileData.firstName?.charAt(0) || ""}${profileData.lastName?.charAt(0) || ""}`.toUpperCase()}
               </AvatarFallback>
             </Avatar>
 

@@ -353,7 +353,7 @@ api.interceptors.response.use(
         return Promise.reject(handleApiError(error));
       }
       // **Handle 404 errors - redirect to 404 page if configured**
-      if (error.response?.status === 404) {
+      if (error.response?.status === 404 && originalRequest?._handle404Redirect) {
         // Only redirect if explicitly enabled for this request
         console.warn("Resource not found (404), redirecting to 404 page");
         safeRedirect("/404");

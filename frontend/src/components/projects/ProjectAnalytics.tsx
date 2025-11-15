@@ -3,6 +3,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useLayout } from "@/contexts/layout-context";
+import NotFound from "@/pages/404";
 
 // Chart Components
 import { TaskStatusChart } from "@/components/charts/project/task-status-chart";
@@ -44,6 +46,7 @@ interface Widget {
 }
 
 export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
+  const { setShow404, show404 } = useLayout();
   const { createWidgetsSection } = useDashboardSettings();
   const {
     analyticsData: data,
@@ -154,11 +157,35 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
     }
   }, [projectSlug]);
 
+  // Check for 404 errors and show full-page 404 - MUST be before any returns
+  useEffect(() => {
+    if (error && !show404) {
+      const is404Error = error.toLowerCase().includes('not found') ||
+                         error.toLowerCase().includes('404') ||
+                         error.toLowerCase().includes('project not found') ||
+                         error.toLowerCase().includes('workspace not found');
+
+      if (is404Error) {
+        setShow404(true);
+      }
+    }
+  }, [error, setShow404, show404]);
+
   if (loading) {
     return <AnalyticsSkeleton />;
   }
 
   if (error) {
+    // Check if it's a 404/not found error
+    const is404Error = error.toLowerCase().includes('not found') ||
+                       error.toLowerCase().includes('404') ||
+                       error.toLowerCase().includes('project not found') ||
+                       error.toLowerCase().includes('workspace not found');
+
+    if (is404Error) {
+      return <NotFound />;
+    }
+
     return <ErrorState error={error} onRetry={handleFetchData} />;
   }
 

@@ -312,22 +312,6 @@ export const invitationApi = {
     };
   },
 
-  // Helper functions for invitation URLs
-  getInvitationUrl: (token: string): string => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    return `${baseUrl}/invitations/${token}`;
-  },
-
-  getAcceptUrl: (token: string): string => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    return `${baseUrl}/invitations/${token}/accept`;
-  },
-
-  getDeclineUrl: (token: string): string => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    return `${baseUrl}/invitations/${token}/decline`;
-  },
-
   // Statistics and counts
   getInvitationStats: (
     invitations: Invitation[]

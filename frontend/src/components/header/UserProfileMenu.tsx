@@ -39,10 +39,15 @@ export default function UserProfileMenu({
   const [isClient, setIsClient] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
-
+  const [avatarSrc, setAvatar] = useState("");
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (/^https?:\/\//.test(user?.avatar)) {
+      setAvatar(user?.avatar);
+    } else {
+      setAvatar(`${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/${user?.avatar}`);
+    }
+  }, [user]);
 
   const getInitials = () => {
     if (!isClient || !user) return "U";
@@ -88,7 +93,7 @@ export default function UserProfileMenu({
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className={`header-user-trigger ${className}`}>
             <Avatar className="header-user-avatar">
-              <AvatarImage src={user?.avatar} alt={getInitials()} />
+              <AvatarImage src={avatarSrc} alt={getInitials()} />
               <AvatarFallback className="header-user-avatar-fallback">
                 {getInitials()}
               </AvatarFallback>
@@ -104,7 +109,7 @@ export default function UserProfileMenu({
           {/* User Info Header */}
           <div className="header-user-info-header">
             <Avatar className="header-user-info-avatar">
-              <AvatarImage src={user?.avatar} alt={getInitials()} />
+              <AvatarImage src={avatarSrc} alt={getInitials()} />
               <AvatarFallback className="header-user-info-avatar-fallback">
                 {getInitials()}
               </AvatarFallback>

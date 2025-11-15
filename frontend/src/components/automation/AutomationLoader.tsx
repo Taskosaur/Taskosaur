@@ -20,8 +20,7 @@ declare global {
 }
 
 export default function AutomationLoader({
-  enabled = process.env.NODE_ENV === "development" ||
-    process.env.NEXT_PUBLIC_ENABLE_AUTOMATION === "true",
+  enabled = true,
   showDevPanel = process.env.NODE_ENV === "development",
   enableConsoleAccess = true,
 }: AutomationLoaderProps) {

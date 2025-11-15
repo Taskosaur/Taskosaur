@@ -4,10 +4,13 @@ import { useTask } from "@/contexts/task-context";
 import { useAuth } from "@/contexts/auth-context";
 import TaskDetailClient from "@/components/tasks/TaskDetailClient";
 import ErrorState from "@/components/common/ErrorState";
+import { useLayout } from "@/contexts/layout-context";
+import NotFound from "@/pages/404";
 
 function TaskDetailContent() {
   const router = useRouter();
   const { workspaceSlug, projectSlug, taskId } = router.query;
+  const { setShow404 } = useLayout();
   const { getTaskById } = useTask();
   const { isAuthenticated } = useAuth();
 
@@ -55,17 +58,22 @@ function TaskDetailContent() {
   }
 
   if (error) {
+    // Check if it's a 404/not found error
+    const is404Error = error.toLowerCase().includes('not found') ||
+                       error.toLowerCase().includes('404') ||
+                       error.toLowerCase().includes('task not found');
+
+    if (is404Error) {
+      setShow404(true);
+      return <NotFound />;
+    }
+
     return <ErrorState error={error} />;
   }
 
   if (!task) {
-    return (
-      <div className="p-4">
-        <div className="text-center py-12">
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">Task not found</h2>
-        </div>
-      </div>
-    );
+    setShow404(true);
+    return <NotFound />;
   }
 
   return (

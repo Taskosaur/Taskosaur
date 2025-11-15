@@ -117,21 +117,26 @@ export const authApi = {
     const hasTokens = TokenManager.getAccessToken();
     return !!(hasTokens && user);
   },
-  uploadFileToS3: async (file: File, key: string): Promise<UploadFileResponse> => {
-    const presignResponse = await api.get<{ url: string }>("/s3/presigned-put-url", {
-      params: { key },
-    });
-    const uploadUrl = presignResponse.data.url;
-    const uploadResponse = await fetch(uploadUrl, {
-      method: "PUT",
+  uploadFileToS3: async (file: File, folder: string): Promise<UploadFileResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const uploadResponse = await api.post(`/uploads/upload/${folder}`, formData, {
       headers: {
-        "Content-Type": file.type,
+        'Content-Type': 'multipart/form-data',
       },
-      body: file,
     });
-    if (!uploadResponse.ok) throw new Error("Upload to S3 failed");
-    return { url: uploadUrl.split("?")[0] };
+
+    if (!uploadResponse.data) throw new Error("Upload failed");
+
+    return {
+      url: uploadResponse.data.url,
+      key: uploadResponse.data.key,
+      size: uploadResponse.data.size,
+      inCloud: uploadResponse.data.inCloud,
+    };
   },
+
 
   // Setup-related methods
   checkUsersExist: async (): Promise<{ exists: boolean }> => {
