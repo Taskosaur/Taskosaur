@@ -536,6 +536,7 @@ export class TasksService {
                   organizationId: true,
                 },
               },
+              inbox: true,
             },
           },
           assignees: {
@@ -577,6 +578,7 @@ export class TasksService {
     // Transform the response
     const transformedTasks = tasks.map((task) => ({
       ...task,
+      showEmailReply: task.project?.inbox?.enabled === true,
       labels: task.labels.map((taskLabel) => ({
         taskId: taskLabel.taskId,
         labelId: taskLabel.labelId,
@@ -936,9 +938,12 @@ export class TasksService {
     if (!task) {
       throw new NotFoundException('Task not found');
     }
-
+    const projectInbox = await this.prisma.projectInbox.findUnique({
+      where: { projectId: task.projectId },
+    });
     return {
       ...task,
+      showEmailReply: projectInbox,
       labels: task.labels.map((taskLabel) => ({
         taskId: taskLabel.taskId,
         labelId: taskLabel.labelId,

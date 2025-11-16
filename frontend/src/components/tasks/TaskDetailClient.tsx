@@ -733,9 +733,7 @@ export default function TaskDetailClient({
         description: descriptionToSave?.trim(),
         priority: editTaskData.priority || "MEDIUM",
         startDate: task.startDate || new Date().toISOString(),
-        dueDate: editTaskData.dueDate
-          ? formatDateForApi(editTaskData.dueDate)
-          : undefined,
+        dueDate: editTaskData.dueDate ? formatDateForApi(editTaskData.dueDate) : undefined,
         remainingEstimate: task.remainingEstimate || 0,
         assigneeIds: assignees.map((a) => a.id),
         reporterIds: reporters.map((r) => r.id),
@@ -1026,18 +1024,20 @@ export default function TaskDetailClient({
             {/* Task Settings Section */}
             <div className="">
               <div className="space-y-2">
-                {task.showEmailReply && <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <Label className="text-sm">Email Replies</Label>
-                    <ToggleSwitch
-                      checked={allowEmailReplies}
-                      onChange={handleEmailRepliesToggle}
-                      disabled={!hasAccess}  
-                      label="Allow email replies"
-                      size="sm"
-                    />
+                {task.showEmailReply && (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <Label className="text-sm">Email Replies</Label>
+                      <ToggleSwitch
+                        checked={allowEmailReplies}
+                        onChange={handleEmailRepliesToggle}
+                        disabled={!hasAccess}
+                        label="Allow email replies"
+                        size="sm"
+                      />
+                    </div>
                   </div>
-                </div>}
+                )}
 
                 {/* Task Type */}
                 <div>
@@ -1372,7 +1372,10 @@ export default function TaskDetailClient({
                             handleStartDateChange(e.target.value);
                           }}
                           onBlur={(e) => {
-                            if (e.target.value !== (task.startDate ? task.startDate.split("T")[0] : "")) {
+                            if (
+                              e.target.value !==
+                              (task.startDate ? task.startDate.split("T")[0] : "")
+                            ) {
                               saveStartDate(e.target.value);
                             }
                           }}
@@ -1421,7 +1424,9 @@ export default function TaskDetailClient({
                             handleDueDateChange(e.target.value);
                           }}
                           onBlur={(e) => {
-                            if (e.target.value !== (task.dueDate ? task.dueDate.split("T")[0] : "")) {
+                            if (
+                              e.target.value !== (task.dueDate ? task.dueDate.split("T")[0] : "")
+                            ) {
                               saveDueDate(e.target.value);
                             }
                           }}

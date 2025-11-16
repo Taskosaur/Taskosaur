@@ -262,46 +262,53 @@ export default function ProviderSelectionStep({
           {/* For Custom Provider - Show Host, Port, Username, Password */}
           {selectedProvider.id === "custom" && (
             <div className="space-y-4">
-              <div>
-                <Label className="pb-2 text-sm font-medium" htmlFor="imapHost">
-                  Host <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="imapHost"
-                  value={emailData.imapHost}
-                  onChange={(e) =>
-                    setEmailData((prev) => ({
-                      ...prev,
-                      imapHost: e.target.value,
-                    }))
-                  }
-                  placeholder="imap.example.com"
-                  className="h-10"
-                />
-              </div>
+              {/* IMAP Configuration */}
+              <h4 className="text-sm font-semibold text-[var(--foreground)] mt-4">
+                IMAP Configuration (Incoming)
+              </h4>
 
-              <div>
-                <Label className="pb-2 text-sm font-medium" htmlFor="imapPort">
-                  Port <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="imapPort"
-                  type="number"
-                  value={emailData.imapPort}
-                  onChange={(e) =>
-                    setEmailData((prev) => ({
-                      ...prev,
-                      imapPort: parseInt(e.target.value) || 993,
-                    }))
-                  }
-                  placeholder="993"
-                  className="h-10"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="pb-2 text-sm font-medium" htmlFor="imapHost">
+                    IMAP Host <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="imapHost"
+                    value={emailData.imapHost}
+                    onChange={(e) =>
+                      setEmailData((prev) => ({
+                        ...prev,
+                        imapHost: e.target.value,
+                      }))
+                    }
+                    placeholder="imap.example.com"
+                    className="h-10"
+                  />
+                </div>
+
+                <div>
+                  <Label className="pb-2 text-sm font-medium" htmlFor="imapPort">
+                    IMAP Port <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="imapPort"
+                    type="number"
+                    value={emailData.imapPort}
+                    onChange={(e) =>
+                      setEmailData((prev) => ({
+                        ...prev,
+                        imapPort: parseInt(e.target.value) || 993,
+                      }))
+                    }
+                    placeholder="993"
+                    className="h-10"
+                  />
+                </div>
               </div>
 
               <div>
                 <Label className="pb-2 text-sm font-medium" htmlFor="imapUsername">
-                  Username <span className="text-red-500">*</span>
+                  IMAP Username <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="imapUsername"
@@ -310,7 +317,6 @@ export default function ProviderSelectionStep({
                     setEmailData((prev) => ({
                       ...prev,
                       imapUsername: e.target.value,
-                      smtpUsername: e.target.value,
                     }))
                   }
                   placeholder="username@example.com"
@@ -320,7 +326,7 @@ export default function ProviderSelectionStep({
 
               <div>
                 <Label className="pb-2 text-sm font-medium" htmlFor="imapPassword">
-                  Password <span className="text-red-500">*</span>
+                  IMAP Password <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="imapPassword"
@@ -330,10 +336,90 @@ export default function ProviderSelectionStep({
                     setEmailData((prev) => ({
                       ...prev,
                       imapPassword: e.target.value,
+                    }))
+                  }
+                  placeholder="Your IMAP password"
+                  className="h-10"
+                />
+              </div>
+
+              {/* SMTP Configuration */}
+              <h4 className="text-sm font-semibold text-[var(--foreground)] mt-6">
+                SMTP Configuration (Outgoing)
+              </h4>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="pb-2 text-sm font-medium" htmlFor="smtpHost">
+                    SMTP Host <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="smtpHost"
+                    value={emailData.smtpHost}
+                    onChange={(e) =>
+                      setEmailData((prev) => ({
+                        ...prev,
+                        smtpHost: e.target.value,
+                      }))
+                    }
+                    placeholder="smtp.example.com"
+                    className="h-10"
+                  />
+                </div>
+
+                <div>
+                  <Label className="pb-2 text-sm font-medium" htmlFor="smtpPort">
+                    SMTP Port <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="smtpPort"
+                    type="number"
+                    value={emailData.smtpPort}
+                    onChange={(e) =>
+                      setEmailData((prev) => ({
+                        ...prev,
+                        smtpPort: parseInt(e.target.value) || 587,
+                      }))
+                    }
+                    placeholder="587"
+                    className="h-10"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="pb-2 text-sm font-medium" htmlFor="smtpUsername">
+                  SMTP Username <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="smtpUsername"
+                  value={emailData.smtpUsername}
+                  onChange={(e) =>
+                    setEmailData((prev) => ({
+                      ...prev,
+                      smtpUsername: e.target.value,
+                    }))
+                  }
+                  placeholder="username@example.com"
+                  className="h-10"
+                />
+              </div>
+
+              <div>
+                <Label className="pb-2 text-sm font-medium" htmlFor="smtpPassword">
+                  SMTP Password <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="smtpPassword"
+                  type="password"
+                  value={emailData.smtpPassword}
+                  onChange={(e) =>
+                    setEmailData((prev) => ({
+                      ...prev,
                       smtpPassword: e.target.value,
                     }))
                   }
-                  placeholder="Your password"
+                  placeholder="Your SMTP password"
                   className="h-10"
                 />
               </div>
