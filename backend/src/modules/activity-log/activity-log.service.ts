@@ -1,13 +1,13 @@
 // src/activity-log/activity-log.service.ts
 import { Injectable } from '@nestjs/common';
 import { ActivityLog, ActivityType } from '@prisma/client';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class ActivityLogService {
   constructor(private prisma: PrismaService) {}
 
-  logActivity(data: {
+  async logActivity(data: {
     type: ActivityType;
     description: string;
     entityType: string;
@@ -17,7 +17,7 @@ export class ActivityLogService {
     oldValue?: any;
     newValue?: any;
   }) {
-    return this.prisma.activityLog.create({
+    return await this.prisma.activityLog.create({
       data: {
         type: data.type,
         description: data.description,
@@ -27,15 +27,18 @@ export class ActivityLogService {
         organizationId: data.organizationId,
         oldValue: data.oldValue || null,
         newValue: data.newValue || null,
+        createdBy: data.userId,
+        updatedBy: data.userId,
       },
     });
   }
+
   public getPrisma(): PrismaService {
     return this.prisma;
   }
   // Task-specific logging methods
-  logTaskCreated(task: any, userId: string) {
-    return this.logActivity({
+  async logTaskCreated(task: any, userId: string) {
+    return await this.logActivity({
       type: 'TASK_CREATED',
       description: `Created task "${task.title}" [${task.key}]`,
       entityType: 'Task',
@@ -45,8 +48,8 @@ export class ActivityLogService {
     });
   }
 
-  logTaskUpdated(oldTask: any, newTask: any, userId: string) {
-    return this.logActivity({
+  async logTaskUpdated(oldTask: any, newTask: any, userId: string) {
+    return await this.logActivity({
       type: 'TASK_UPDATED',
       description: `Updated task "${newTask.title}"`,
       entityType: 'Task',
@@ -56,6 +59,30 @@ export class ActivityLogService {
       newValue: newTask,
     });
   }
+
+  async logTaskStatusChanged(task: any, oldStatus: string, newStatus: string, userId: string) {
+    return await this.logActivity({
+      type: 'TASK_STATUS_CHANGED',
+      description: `Changed task "${task.title}" status from "${oldStatus}" to "${newStatus}"`,
+      entityType: 'Task',
+      entityId: task.id,
+      userId,
+      oldValue: { status: oldStatus },
+      newValue: { status: newStatus },
+    });
+  }
+
+  async logTaskAssigned(task: any, assigneeId: string, userId: string) {
+    return await this.logActivity({
+      type: 'TASK_ASSIGNED',
+      description: `Assigned task "${task.title}" to user`,
+      entityType: 'Task',
+      entityId: task.id,
+      userId,
+      newValue: { assigneeId },
+    });
+  }
+
   async getTaskParticipants(taskId: string): Promise<string[]> {
     if (!taskId) return [];
 
@@ -120,29 +147,6 @@ export class ActivityLogService {
       console.error('Error getting organization members:', error);
       return [];
     }
-  }
-
-  logTaskStatusChanged(task: any, oldStatus: string, newStatus: string, userId: string) {
-    return this.logActivity({
-      type: 'TASK_STATUS_CHANGED',
-      description: `Changed task "${task.title}" status from "${oldStatus}" to "${newStatus}"`,
-      entityType: 'Task',
-      entityId: task.id,
-      userId,
-      oldValue: { status: oldStatus },
-      newValue: { status: newStatus },
-    });
-  }
-
-  logTaskAssigned(task: any, assigneeId: string, userId: string) {
-    return this.logActivity({
-      type: 'TASK_ASSIGNED',
-      description: `Assigned task "${task.title}" to user`,
-      entityType: 'Task',
-      entityId: task.id,
-      userId,
-      newValue: { assigneeId },
-    });
   }
 
   async getOrganizationIdFromEntity(
