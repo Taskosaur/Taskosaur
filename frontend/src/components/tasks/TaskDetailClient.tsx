@@ -134,27 +134,32 @@ export default function TaskDetailClient({
     editTaskData.description !== task.description ||
     editTaskData.dueDate !== (task.dueDate ? task.dueDate.split("T")[0] : "");
 
-  const handleStartDateChange = async (newStartDate: string) => {
-    try {
-      // Validate that start date is not after due date
-      if (newStartDate && editTaskData.dueDate) {
-        const startDate = new Date(newStartDate);
-        const dueDate = new Date(editTaskData.dueDate);
-        if (startDate > dueDate) {
-          toast.error("Start date cannot be after due date.");
-          return;
-        }
+  const handleStartDateChange = (newStartDate: string) => {
+    // Validate that start date is not after due date
+    if (newStartDate && editTaskData.dueDate) {
+      const startDate = new Date(newStartDate + "T00:00:00");
+      const dueDate = new Date(editTaskData.dueDate + "T00:00:00");
+      if (startDate > dueDate) {
+        toast.error("Start date cannot be after due date.");
+        return;
       }
+    }
 
+    // Only update local state
+    handleTaskFieldChange("startDate", newStartDate);
+  };
+
+  const saveStartDate = async (newStartDate: string) => {
+    try {
       const updateData: UpdateTaskRequest = {
         startDate: formatDateForApi(newStartDate) || undefined,
       };
       await updateTask(taskId, updateData);
-      handleTaskFieldChange("startDate", newStartDate);
-      task.startDate = formatDateForApi(newStartDate);
       toast.success("Task start date updated successfully.");
     } catch (error) {
       toast.error("Failed to update task start date.");
+      // Revert on error
+      handleTaskFieldChange("startDate", task.startDate ? task.startDate.split("T")[0] : "");
     }
   };
 
@@ -276,30 +281,33 @@ export default function TaskDetailClient({
     fetchProjectMembers();
   }, [task.projectId, task.project?.id]);
 
-  const handleDueDateChange = async (newDueDate: string) => {
-    try {
-      // Validate that due date is not before start date
-      if (newDueDate && editTaskData.startDate) {
-        const dueDate = new Date(newDueDate);
-        const startDate = new Date(editTaskData.startDate);
-        if (dueDate < startDate) {
-          toast.error("Due date cannot be before start date.");
-          return;
-        }
+  const handleDueDateChange = (newDueDate: string) => {
+    // Validate that due date is not before start date
+    if (newDueDate && editTaskData.startDate) {
+      const dueDate = new Date(newDueDate + "T00:00:00");
+      const startDate = new Date(editTaskData.startDate + "T00:00:00");
+      if (dueDate < startDate) {
+        toast.error("Due date cannot be before start date.");
+        return;
       }
+    }
 
+    // Only update local state
+    handleTaskFieldChange("dueDate", newDueDate);
+  };
+
+  const saveDueDate = async (newDueDate: string) => {
+    try {
       const updateData: UpdateTaskRequest = {
         dueDate: formatDateForApi(newDueDate) || undefined,
       };
 
       await updateTask(taskId, updateData);
-      handleTaskFieldChange("dueDate", newDueDate);
-
-      task.dueDate = formatDateForApi(newDueDate);
-
       toast.success("Task due date updated successfully.");
     } catch (error) {
       toast.error("Failed to update task due date.");
+      // Revert on error
+      handleTaskFieldChange("dueDate", task.dueDate ? task.dueDate.split("T")[0] : "");
     }
   };
 
@@ -726,7 +734,7 @@ export default function TaskDetailClient({
         priority: editTaskData.priority || "MEDIUM",
         startDate: task.startDate || new Date().toISOString(),
         dueDate: editTaskData.dueDate
-          ? new Date(editTaskData.dueDate + "T00:00:00.000Z").toISOString()
+          ? formatDateForApi(editTaskData.dueDate)
           : undefined,
         remainingEstimate: task.remainingEstimate || 0,
         assigneeIds: assignees.map((a) => a.id),
@@ -1018,18 +1026,18 @@ export default function TaskDetailClient({
             {/* Task Settings Section */}
             <div className="">
               <div className="space-y-2">
-                <div>
+                {task.showEmailReply && <div>
                   <div className="flex items-center justify-between mb-3">
                     <Label className="text-sm">Email Replies</Label>
                     <ToggleSwitch
                       checked={allowEmailReplies}
                       onChange={handleEmailRepliesToggle}
-                      disabled={!hasAccess}
+                      disabled={!hasAccess}  
                       label="Allow email replies"
                       size="sm"
                     />
                   </div>
-                </div>
+                </div>}
 
                 {/* Task Type */}
                 <div>
@@ -1359,10 +1367,14 @@ export default function TaskDetailClient({
                         <Input
                           type="date"
                           value={editTaskData.startDate}
-                          min={today}
                           max={editTaskData.dueDate || undefined}
                           onChange={(e) => {
                             handleStartDateChange(e.target.value);
+                          }}
+                          onBlur={(e) => {
+                            if (e.target.value !== (task.startDate ? task.startDate.split("T")[0] : "")) {
+                              saveStartDate(e.target.value);
+                            }
                           }}
                           className="text-xs bg-[var(--background)] border-[var(--border)] w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                           placeholder="Select start date..."
@@ -1373,6 +1385,7 @@ export default function TaskDetailClient({
                             onClick={(e) => {
                               e.stopPropagation();
                               handleStartDateChange("");
+                              saveStartDate("");
                             }}
                             className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs z-10"
                             title="Clear start date"
@@ -1403,9 +1416,14 @@ export default function TaskDetailClient({
                         <Input
                           type="date"
                           value={editTaskData.dueDate}
-                          min={editTaskData.startDate || today}
+                          min={editTaskData.startDate || undefined}
                           onChange={(e) => {
                             handleDueDateChange(e.target.value);
+                          }}
+                          onBlur={(e) => {
+                            if (e.target.value !== (task.dueDate ? task.dueDate.split("T")[0] : "")) {
+                              saveDueDate(e.target.value);
+                            }
                           }}
                           className="text-xs bg-[var(--background)] border-[var(--border)] w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                           placeholder="Select due date..."
@@ -1416,6 +1434,7 @@ export default function TaskDetailClient({
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDueDateChange("");
+                              saveDueDate("");
                             }}
                             className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs z-10"
                             title="Clear due date"

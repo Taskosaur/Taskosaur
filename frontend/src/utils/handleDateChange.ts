@@ -1,7 +1,11 @@
 export function formatDateForApi(dateValue: string): string | null {
   if (!dateValue) return null;
 
-  return new Date(dateValue + "T00:00:00.000Z").toISOString();
+  // Create date at UTC midnight to prevent timezone shifts
+  // This ensures the date stays consistent regardless of user's timezone
+  const [year, month, day] = dateValue.split('-');
+  const date = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day)));
+  return date.toISOString();
 }
 
 export function getTodayDate(): string {
