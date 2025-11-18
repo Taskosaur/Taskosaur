@@ -32,6 +32,19 @@ export class ProjectInboxService {
     if (existingInbox) {
       return existingInbox;
     }
+
+    // Check if email address is already in use by another project
+    if (data.emailAddress) {
+      const existingEmailInbox = await this.prisma.projectInbox.findUnique({
+        where: { emailAddress: data.emailAddress },
+      });
+      if (existingEmailInbox) {
+        throw new BadRequestException(
+          `Email address ${data.emailAddress} is already in use by another project inbox`,
+        );
+      }
+    }
+
     const synncInterval = data.syncInterval ? parseInt(data.syncInterval, 10) : 5;
     return this.prisma.projectInbox.create({
       data: {
@@ -119,13 +132,26 @@ export class ProjectInboxService {
     if (!inbox) {
       throw new NotFoundException('Inbox not found for this project');
     }
+
+    // Check if email address is already in use by another project (if changing email)
+    if (data.emailAddress && data.emailAddress !== inbox.emailAddress) {
+      const existingEmailInbox = await this.prisma.projectInbox.findUnique({
+        where: { emailAddress: data.emailAddress },
+      });
+      if (existingEmailInbox && existingEmailInbox.id !== inbox.id) {
+        throw new BadRequestException(
+          `Email address ${data.emailAddress} is already in use by another project inbox`,
+        );
+      }
+    }
+
     return this.prisma.projectInbox.update({
       where: { id: inbox.id },
       data: {
         name: data.name,
         description: data.description,
         emailAddress: data.emailAddress,
-        emailSignature: `${data.emailSignature}`,
+        emailSignature: data.emailSignature,
         autoReplyEnabled: data.autoReplyEnabled,
         autoReplyTemplate: data.autoReplyTemplate,
         autoCreateTask: data.autoCreateTask,
@@ -148,6 +174,19 @@ export class ProjectInboxService {
     if (!inbox) {
       throw new NotFoundException('Inbox not found for this project');
     }
+
+    // Check if email address is already in use by another project (if changing email)
+    if (data.emailAddress && data.emailAddress !== inbox.emailAddress) {
+      const existingEmailInbox = await this.prisma.projectInbox.findUnique({
+        where: { emailAddress: data.emailAddress },
+      });
+      if (existingEmailInbox && existingEmailInbox.id !== inbox.id) {
+        throw new BadRequestException(
+          `Email address ${data.emailAddress} is already in use by another project inbox`,
+        );
+      }
+    }
+
     // Encrypt sensitive data
     const encryptedData: any = {
       emailAddress: data.emailAddress,
