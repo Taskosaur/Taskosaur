@@ -1,5 +1,5 @@
 // src/modules/invitations/invitations.controller.ts
-import { Controller, Post, Get, Patch, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Param, Req, UseGuards, Delete } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { InvitationsService } from './invitations.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
@@ -75,6 +75,19 @@ export class InvitationsController {
   async resendInvitation(@Param('id') id: string, @Req() req: Request) {
     const user = getAuthUser(req);
     return this.invitationsService.resendInvitation(id, user.id);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete invitation' })
+  @LogActivity({
+    type: 'INVITATION_DELETED',
+    entityType: 'Invitation',
+    description: 'Deleted invitation',
+    includeNewValue: true,
+    entityIdName: ['organizationId', 'workspaceId', 'projectId'],
+  })
+  async deleteInvitation(@Param('id') id: string) {
+    return this.invitationsService.deleteInvitation(id);
   }
 
   @Public()

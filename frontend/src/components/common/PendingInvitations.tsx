@@ -57,6 +57,8 @@ const getStatusBadgeClass = (status: string) => {
       return "organizations-status-badge-pending";
     case "DECLINED":
       return "organizations-status-badge-declined";
+    case "EXPIRED":
+      return "organizations-status-badge-suspended"; // ADD THIS
     case "INACTIVE":
       return "organizations-status-badge-inactive";
     case "SUSPENDED":
@@ -127,17 +129,28 @@ const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsP
       }
     };
 
-    const pendingInvites = invitations.filter((i) => i.status === "PENDING");
-    const declinedInvites = invitations.filter((i) => i.status === "DECLINED");
+    const handleDeleteInvite = async (inviteId: string) => {
+      try {
+        await invitationApi.deleteInvitation(inviteId);
+        toast.success("Invitation deleted successfully");
+        await fetchInvites();
+      } catch (error: any) {
+        toast.error(error?.message || "Failed to delete invitation");
+      }
+    };
 
-    const totalInvites = pendingInvites.length + declinedInvites.length;
+    const pendingInvites = invitations.filter((i) => i.status === "PENDING");
+    const expiredInvites = invitations.filter((i) => i.status === "EXPIRED"); // ADD THIS
+    const declinedInvites = invitations.filter((i) => i.status === "DECLINED");
+    const allInvites = [...pendingInvites, ...expiredInvites, ...declinedInvites];
+    const totalInvites = allInvites.length;
 
     return (
       <Card className="bg-[var(--card)]  border-none shadow-sm  gap-0 space-y-0 h-[270px] flex flex-col">
         <CardHeader className="px-4 py-0 flex-shrink-0">
           <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
             <HiEnvelope className="w-5 h-5 text-[var(--muted-foreground)]" />
-            Invitations ({totalInvites})
+            Invitations
           </CardTitle>
         </CardHeader>
 
@@ -162,8 +175,8 @@ const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsP
           ) : (
             <>
               <div className="">
-                {[...pendingInvites, ...declinedInvites].map((invite) => (
-                  <div key={invite.id} className="px-4 py-3  transition-colors">
+                {allInvites.map((invite) => (
+                  <div key={invite.id} className="px-4 py-3 transition-colors">
                     <div className="grid grid-cols-7 gap-3 items-center">
                       {/* Invitee Info */}
                       <div className="col-span-5">
@@ -172,22 +185,26 @@ const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsP
                             user={{
                               firstName: invite.inviteeEmail?.[0]?.toUpperCase() || "",
                               lastName: "",
-                              avatar: undefined,
                             }}
                             size="sm"
                           />
+
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-medium text-[var(--foreground)] truncate">
                               {invite.inviteeEmail}
                             </div>
+
                             <div className="text-[14px] text-[var(--muted-foreground)] truncate">
                               Invited by{" "}
                               {invite.inviter?.firstName
                                 ? `${invite.inviter.firstName} ${invite.inviter.lastName || ""}`
                                 : "Unknown"}
                             </div>
+
+                            {/* Date + Status */}
                             <div className="text-[12px] text-[var(--muted-foreground)] flex items-center gap-2">
                               {formatDate(invite.createdAt)}
+
                               <Badge
                                 variant="outline"
                                 className={`text-[11px] bg-transparent px-1.5 py-0.5 rounded-md border-none ${getStatusBadgeClass(
@@ -202,9 +219,9 @@ const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsP
                       </div>
 
                       {/* Actions */}
-
+                      {/* Actions */}
                       <div className="col-span-2 flex justify-end">
-                        {invite.status === "PENDING" && (
+                        {invite.status !== "DECLINED" && (
                           <DropdownMenu>
                             <Tooltip content="All Actions">
                               <DropdownMenuTrigger asChild className="bg-[var(--card)]">
@@ -235,13 +252,14 @@ const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsP
                                 Resend Invitation
                               </DropdownMenuItem>
 
-                              {/* <DropdownMenuItem
-                              // onClick={() => handleResetInvite(invite.id)}
-                              className="flex text-xs text-red-600 items-center gap-2 cursor-pointer hover:bg-[var(--accent)]"
-                            >
-                              <RxReset className="w-3 h-3" />
-                              Decline Invitation
-                            </DropdownMenuItem> */}
+                              {/* DELETE for PENDING + EXPIRED */}
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteInvite(invite.id)}
+                                className="flex text-xs items-center gap-2 cursor-pointer text-red-600 hover:bg-[var(--accent)]"
+                              >
+                                <RxReset className="w-3 h-3" />
+                                Delete Invitation
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )}

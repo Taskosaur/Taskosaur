@@ -266,7 +266,7 @@ export default function OrganizationMembers({
           <div className="organizations-members-header-info">
             <CardTitle className="flex gap-2 text-md">
               <HiUsers className="organizations-members-title-icon" />
-              Members ({members.length})
+              Members
             </CardTitle>
             <p className="organizations-members-subtitle">
               Manage organization members and their roles

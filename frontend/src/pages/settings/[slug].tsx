@@ -433,9 +433,6 @@ function OrganizationManagePageContent() {
               >
                 <HiUsers className="w-4 h-4" />
                 <span className="hidden sm:inline">Members</span>
-                <Badge className="bg-[var(--muted)] text-[var(--muted-foreground)] border-none text-xs ml-1">
-                  {members.length}
-                </Badge>
               </TabsTrigger>
             </TabsList>
           </div>

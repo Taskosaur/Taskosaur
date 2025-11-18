@@ -379,4 +379,28 @@ export const invitationApi = {
       throw error;
     }
   },
+  deleteInvitation: async (
+    invitationId: string
+  ): Promise<{ message: string }> => {
+    try {
+      const response = await api.delete<{ message: string }>(
+        `/invitations/${invitationId}`
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Delete invitation error:", error);
+
+      if (error?.response?.status === 404) {
+        throw new Error("Invitation not found");
+      }
+
+      if (error?.response?.status === 400) {
+        throw new Error(error.response.data?.message || "Cannot delete this invitation");
+      }
+
+      throw error;
+    }
+  },
+
 };

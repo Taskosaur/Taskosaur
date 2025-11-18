@@ -122,6 +122,22 @@ export class InvitationsService {
 
     return invitation;
   }
+  async deleteInvitation(invitationId: string) {
+    const invitation = await this.prisma.invitation.findUnique({
+      where: { id: invitationId },
+    });
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    // Delete from DB
+    await this.prisma.invitation.delete({
+      where: { id: invitationId },
+    });
+
+    return { message: 'Invitation deleted successfully' };
+  }
 
   /**
    * Add existing organization member directly to workspace or project
@@ -509,11 +525,12 @@ export class InvitationsService {
     entityId: string;
   }) {
     const whereClause: any = {
-      status: { in: [InvitationStatus.PENDING, InvitationStatus.DECLINED] },
-      expiresAt: { gt: new Date() },
+      status: {
+        in: [InvitationStatus.PENDING, InvitationStatus.DECLINED, InvitationStatus.EXPIRED],
+      },
     };
 
-    // Dynamically set the entity filter
+    // Dynamic entity filter
     if (entityType === 'organization') {
       whereClause.organizationId = entityId;
     } else if (entityType === 'workspace') {
@@ -524,7 +541,22 @@ export class InvitationsService {
       throw new Error('Invalid entity type');
     }
 
-    return await this.prisma.invitation.findMany({
+    /**
+     * 1. Auto-update PENDING invitations that are expired
+     */
+    await this.prisma.invitation.updateMany({
+      where: {
+        ...whereClause,
+        status: InvitationStatus.PENDING,
+        expiresAt: { lt: new Date() },
+      },
+      data: { status: InvitationStatus.EXPIRED },
+    });
+
+    /**
+     * 2. Return invitations (INCLUDING expired)
+     */
+    return this.prisma.invitation.findMany({
       where: whereClause,
       include: {
         inviter: {
@@ -535,27 +567,9 @@ export class InvitationsService {
             email: true,
           },
         },
-        organization: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-        workspace: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-        project: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
+        organization: { select: { id: true, name: true, slug: true } },
+        workspace: { select: { id: true, name: true, slug: true } },
+        project: { select: { id: true, name: true, slug: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -655,9 +669,7 @@ export class InvitationsService {
     if (!invitation) {
       throw new NotFoundException('Invitation not found');
     }
-
-    // Only allow resending PENDING invitations
-    if (invitation.status !== 'PENDING') {
+    if (invitation.status === 'DECLINED') {
       throw new BadRequestException(`Cannot resend ${invitation.status.toLowerCase()} invitation`);
     }
 
@@ -671,6 +683,7 @@ export class InvitationsService {
       where: { id: invitationId },
       data: {
         token: newToken,
+        status: InvitationStatus.PENDING,
         expiresAt: newExpiresAt,
         inviterId: userId, // Update to current user who is resending
       },
