@@ -3,8 +3,27 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CryptoService } from '../../../common/crypto.service';
 import { EmailAccount } from '@prisma/client';
 import * as nodemailer from 'nodemailer';
+import { Transporter } from 'nodemailer';
+import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { decode } from 'html-entities';
-
+import { ImapFlow, ImapFlowOptions } from 'imapflow';
+export class TestEmailConfigDto {
+  emailAddress: string;
+  displayName: string;
+  imapHost: string;
+  imapPort: number;
+  imapUsername: string;
+  imapPassword: string;
+  imapUseSsl: boolean;
+  imapServername?: string;
+  imapFolder: string;
+  smtpHost: string;
+  smtpPort: number;
+  smtpUsername: string;
+  smtpPassword: string;
+  smtpServername?: string;
+  smtpRequireTls?: boolean;
+}
 @Injectable()
 export class EmailReplyService {
   private readonly logger = new Logger(EmailReplyService.name);
@@ -135,22 +154,34 @@ export class EmailReplyService {
     return this.createBasicTransporter(account);
   }
 
-  private createBasicTransporter(account: EmailAccount) {
+  private createBasicTransporter(
+    account: EmailAccount,
+  ): Transporter<SMTPTransport.SentMessageInfo> {
     try {
       if (!account.smtpPassword) {
         throw new Error('SMTP password is required');
       }
       const smtpPassword = this.crypto.decrypt(account.smtpPassword);
 
-      return nodemailer.createTransport({
+      type SecureVersion = 'TLSv1' | 'TLSv1.1' | 'TLSv1.2' | 'TLSv1.3';
+
+      const transportOptions: SMTPTransport.Options = {
         host: account.smtpHost!,
         port: account.smtpPort!,
         secure: account.smtpPort === 465,
+        requireTLS: account.smtpRequireTls === true, // Force STARTTLS upgrade
         auth: {
           user: account.smtpUsername!,
           pass: smtpPassword,
         },
-      });
+        tls: {
+          rejectUnauthorized: account.smtpTlsRejectUnauth !== false,
+          minVersion: (account.smtpTlsMinVersion || 'TLSv1.2') as SecureVersion,
+          ...(account.smtpServername && { servername: account.smtpServername }),
+        },
+      };
+
+      return nodemailer.createTransport(transportOptions);
     } catch (error) {
       this.logger.error(`Failed to create basic transporter:`, error.message);
       throw new Error(`SMTP authentication failed: ${error.message}`);
@@ -232,23 +263,82 @@ export class EmailReplyService {
       throw new NotFoundException('Email account not found');
     }
 
+    const results = {
+      smtp: { success: false, message: '' },
+      imap: { success: false, message: '' },
+    };
+
     try {
       const transporter = this.getTransporter(account);
+      await transporter.verify();
 
-      const isValid = await transporter.verify();
-
-      if (isValid) {
-        this.logger.log(`Email configuration test passed for ${account.emailAddress}`);
-        return { success: true, message: 'Email configuration is valid' };
-      } else {
-        return {
-          success: false,
-          message: 'Email configuration verification failed',
-        };
-      }
+      results.smtp = { success: true, message: 'SMTP connection successful' };
+      this.logger.log(`SMTP test passed for ${account.emailAddress}`);
     } catch (error) {
-      this.logger.error(`Email configuration test failed:`, error.message);
-      return { success: false, message: error.message };
+      this.logger.error(`SMTP test failed for ${account.emailAddress}:`, error.message);
+      results.smtp = { success: false, message: `SMTP: ${error.message}` };
+    }
+
+    try {
+      if (!account.imapPassword) {
+        throw new Error('IMAP password is required');
+      }
+
+      const imapPassword = this.crypto.decrypt(account.imapPassword);
+
+      type TLSMinVersion = 'TLSv1' | 'TLSv1.1' | 'TLSv1.2' | 'TLSv1.3';
+
+      const imapOptions: ImapFlowOptions = {
+        host: account.imapHost!,
+        port: account.imapPort || 993,
+        secure: account.imapUseSsl !== false,
+        auth: {
+          user: account.imapUsername!,
+          pass: imapPassword,
+        },
+        logger: false,
+        tls: {
+          rejectUnauthorized: account.imapTlsRejectUnauth !== false,
+          minVersion: (account.imapTlsMinVersion || 'TLSv1.2') as TLSMinVersion,
+        },
+      };
+
+      const client = new ImapFlow(imapOptions);
+
+      await Promise.race([
+        client.connect(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('IMAP connection timeout after 30 seconds')), 30000),
+        ),
+      ]);
+
+      await client.logout();
+
+      results.imap = { success: true, message: 'IMAP connection successful' };
+      this.logger.log(`IMAP test passed for ${account.emailAddress}`);
+    } catch (error) {
+      this.logger.error(`IMAP test failed for ${account.emailAddress}:`, error.message);
+      results.imap = { success: false, message: `IMAP: ${error.message}` };
+    }
+
+    const allSuccess = results.smtp.success && results.imap.success;
+
+    if (allSuccess) {
+      return {
+        success: true,
+        message: 'Both IMAP and SMTP connections successful',
+        details: results,
+      };
+    } else {
+      const errors: string[] = [];
+      if (!results.smtp.success) errors.push(results.smtp.message);
+      if (!results.imap.success) errors.push(results.imap.message);
+
+      return {
+        success: false,
+        message: errors.join('; '),
+        details: results,
+      };
     }
   }
 }

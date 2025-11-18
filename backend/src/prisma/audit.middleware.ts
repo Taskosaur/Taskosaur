@@ -54,7 +54,6 @@ export function createAuditExtension() {
 
           // Handle CREATE operations
           if (operation === 'create') {
-            console.log(currentUserId);
             if (args.data) {
               const data = args.data as any;
               // Set createdBy if not already set and field exists
@@ -65,7 +64,7 @@ export function createAuditExtension() {
               // Set updatedBy if not already set and field exists (for consistency)
               if (data.updatedBy === undefined) {
                 // Don't set updatedBy for User model on creation to avoid self-reference issues
-                if (modelName !== 'User') {
+                if (modelName !== 'User' && model !== 'Notification') {
                   data.updatedBy = currentUserId;
                 }
               }

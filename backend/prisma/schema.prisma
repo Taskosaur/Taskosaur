@@ -884,6 +884,7 @@ enum ActivityType {
   INVITATION_RESENT
   INVITATION_ACCEPTED
   INVITATION_DECLINED
+  INVITATION_DELETED
 
   // Comment Activities
   COMMENT_CREATED
@@ -970,18 +971,24 @@ model EmailAccount {
   displayName  String? @map("display_name")
 
   // Basic Auth (IMAP/SMTP)
-  imapHost     String? @map("imap_host")
-  imapPort     Int?    @default(993) @map("imap_port")
-  imapUsername String? @map("imap_username")
-  imapPassword String? @map("imap_password") // Encrypted
-  imapUseSsl   Boolean @default(true) @map("imap_use_ssl")
-  imapFolder   String  @default("INBOX") @map("imap_folder")
+  imapHost              String?  @map("imap_host")
+  imapPort              Int?     @default(993) @map("imap_port")
+  imapUsername          String?  @map("imap_username")
+  imapPassword          String?  @map("imap_password") // Encrypted
+  imapUseSsl            Boolean  @default(true) @map("imap_use_ssl")
+  imapTlsRejectUnauth   Boolean  @default(true) @map("imap_tls_reject_unauthorized")
+  imapTlsMinVersion     String?  @default("TLSv1.2") @map("imap_tls_min_version")
+  imapServername        String?  @map("imap_servername") // SNI hostname for TLS validation
+  imapFolder            String   @default("INBOX") @map("imap_folder")
 
-  smtpHost     String? @map("smtp_host")
-  smtpPort     Int?    @default(587) @map("smtp_port")
-  smtpUsername String? @map("smtp_username")
-  smtpPassword String? @map("smtp_password") // Encrypted
-  smtpUseTls   Boolean @default(true) @map("smtp_use_tls")
+  smtpHost              String?  @map("smtp_host")
+  smtpPort              Int?     @default(587) @map("smtp_port")
+  smtpUsername          String?  @map("smtp_username")
+  smtpPassword          String?  @map("smtp_password") // Encrypted
+  smtpTlsRejectUnauth   Boolean  @default(true) @map("smtp_tls_reject_unauthorized")
+  smtpTlsMinVersion     String?  @default("TLSv1.2") @map("smtp_tls_min_version")
+  smtpServername        String?  @map("smtp_servername") // SNI hostname for TLS validation
+  smtpRequireTls        Boolean  @default(false) @map("smtp_require_tls") // Force STARTTLS
 
   // Sync State
   syncEnabled   Boolean   @default(true) @map("sync_enabled")
@@ -1055,6 +1062,7 @@ model InboxMessage {
   task            Task?
   convertedByUser User?               @relation(fields: [convertedBy], references: [id])
   attachments     MessageAttachment[]
+  ruleResults     MessageRuleResult[]
 
   @@unique([projectInboxId, imapUid])
   @@index([threadId])
@@ -1100,10 +1108,34 @@ model InboxRule {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  projectInbox ProjectInbox @relation(fields: [projectInboxId], references: [id], onDelete: Cascade)
+  projectInbox ProjectInbox        @relation(fields: [projectInboxId], references: [id], onDelete: Cascade)
+  ruleResults  MessageRuleResult[]
 
   @@index([projectInboxId, enabled, priority])
   @@map("inbox_rules")
+}
+
+model MessageRuleResult {
+  id        String @id @default(uuid()) @db.Uuid
+  messageId String @map("message_id") @db.Uuid
+  ruleId    String @map("rule_id") @db.Uuid
+
+  priority   TaskPriority? // Priority to apply when creating task
+  assigneeId String?       @map("assignee_id") @db.Uuid // Assignee to assign task to
+  labelIds   String[]      @map("label_ids") // Labels to add to task
+  taskType   String?       @map("task_type") // Task type to use
+
+  matched Boolean @default(true) // Whether rule matched (for audit)
+  stopped Boolean @default(false) // Whether this rule stopped further processing
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  message InboxMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  rule    InboxRule    @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([ruleId])
+  @@map("message_rule_results")
 }
 
 model EmailSyncLog {

@@ -56,7 +56,7 @@ export default function EmailIntegrationSettings({ projectId }: EmailIntegration
     defaultAssigneeId: "",
     syncInterval: 5,
   });
-
+  const [existingEmailData, setExistingEmailData] = useState<EmailSetupData | null>(null);
   useEffect(() => {
     const loadData = async () => {
       await Promise.all([loadInboxData(), loadProjectData("")]);
@@ -243,12 +243,29 @@ export default function EmailIntegrationSettings({ projectId }: EmailIntegration
         smtpUsername: emailSetupData.smtpUsername || emailSetupData.emailAddress,
       };
 
-      await inboxApi.setupEmailAccount(projectId, completeEmailData);
+      // Step 1: Save email account to database
+      const accountResponse = await inboxApi.setupEmailAccount(projectId, completeEmailData);
 
-      toast.success("Email account configured successfully!");
-      setCurrentStep(3);
+      if (!accountResponse?.id) {
+        throw new Error("Failed to create email account");
+      }
+
+      // Step 2: Test the email connection
+      toast.loading("Testing email connection...", { id: "test-connection" });
+
+      const testResult = await inboxApi.testEmailConnection(projectId, accountResponse.id);
+
+      toast.dismiss("test-connection");
+
+      if (testResult.success) {
+        toast.success("Email connection test passed! ✓");
+        setCurrentStep(3);
+      } else {
+        toast.error(`Connection test failed: ${testResult.message}`);
+      }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to setup email account");
+      const errorMessage = error.response?.data?.message || error.message || "Failed to setup email account";
+      toast.error(errorMessage);
       throw error;
     } finally {
       setSetupLoading(false);
@@ -296,6 +313,31 @@ export default function EmailIntegrationSettings({ projectId }: EmailIntegration
   };
 
   const handleReconfigure = () => {
+    if (currentInbox?.emailAccount) {
+      // Preserve existing email account data
+      const emailData: EmailSetupData = {
+        emailAddress: currentInbox.emailAccount.emailAddress || "",
+        displayName: currentInbox.emailAccount.displayName || "",
+        imapHost: currentInbox.emailAccount.imapHost || "",
+        imapPort: currentInbox.emailAccount.imapPort || 993,
+        imapUsername: currentInbox.emailAccount.imapUsername || "",
+        imapPassword: "", // Don't populate password for security reasons
+        imapUseSsl: currentInbox.emailAccount.imapUseSsl ?? true,
+        imapTlsRejectUnauth: currentInbox.emailAccount.imapTlsRejectUnauth ?? true,
+        imapTlsMinVersion: currentInbox.emailAccount.imapTlsMinVersion || "TLSv1.2",
+        imapServername: currentInbox.emailAccount.imapServername || "",
+        imapFolder: currentInbox.emailAccount.imapFolder || "INBOX",
+        smtpHost: currentInbox.emailAccount.smtpHost || "",
+        smtpPort: currentInbox.emailAccount.smtpPort || 587,
+        smtpUsername: currentInbox.emailAccount.smtpUsername || "",
+        smtpPassword: "", // Don't populate password for security reasons
+        smtpTlsRejectUnauth: currentInbox.emailAccount.smtpTlsRejectUnauth ?? true,
+        smtpTlsMinVersion: currentInbox.emailAccount.smtpTlsMinVersion || "TLSv1.2",
+        smtpServername: currentInbox.emailAccount.smtpServername || "",
+        smtpRequireTls: currentInbox.emailAccount.smtpRequireTls ?? false,
+      };
+      setExistingEmailData(emailData);
+    }
     setIsReconfiguring(true);
     setCurrentStep(2);
   };
@@ -364,6 +406,7 @@ export default function EmailIntegrationSettings({ projectId }: EmailIntegration
               if (isReconfiguring) {
                 setCurrentStep(4);
                 setIsReconfiguring(false);
+                setExistingEmailData(null);
               } else {
                 setCurrentStep(1);
               }
@@ -371,6 +414,7 @@ export default function EmailIntegrationSettings({ projectId }: EmailIntegration
             hasInbox={!!currentInbox}
             setupLoading={setupLoading}
             isReconfiguring={isReconfiguring}
+            existingEmailData={existingEmailData}
           />
         )}
 

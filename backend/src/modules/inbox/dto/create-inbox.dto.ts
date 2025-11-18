@@ -67,6 +67,41 @@ export class CreateInboxDto {
   @IsUUID()
   @IsOptional()
   defaultAssigneeId?: string;
+
+  @ApiPropertyOptional({ description: 'Reject unauthorized certificates for IMAP' })
+  @IsBoolean()
+  @IsOptional()
+  imapTlsRejectUnauth?: boolean;
+
+  @ApiPropertyOptional({ description: 'Minimum TLS version for IMAP' })
+  @IsString()
+  @IsOptional()
+  imapTlsMinVersion?: string;
+
+  @ApiPropertyOptional({ description: 'SNI hostname for IMAP TLS validation' })
+  @IsString()
+  @IsOptional()
+  imapServername?: string;
+
+  @ApiPropertyOptional({ description: 'Reject unauthorized certificates for SMTP' })
+  @IsBoolean()
+  @IsOptional()
+  smtpTlsRejectUnauth?: boolean;
+
+  @ApiPropertyOptional({ description: 'Minimum TLS version for SMTP' })
+  @IsString()
+  @IsOptional()
+  smtpTlsMinVersion?: string;
+
+  @ApiPropertyOptional({ description: 'SNI hostname for SMTP TLS validation' })
+  @IsString()
+  @IsOptional()
+  smtpServername?: string;
+
+  @ApiPropertyOptional({ description: 'Force STARTTLS upgrade' })
+  @IsBoolean()
+  @IsOptional()
+  smtpRequireTls?: boolean;
 }
 
 export class UpdateInboxDto extends CreateInboxDto {}

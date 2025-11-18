@@ -23,12 +23,18 @@ export interface EmailSetupData {
   imapUsername: string;
   imapPassword: string;
   imapUseSsl: boolean;
+  imapTlsRejectUnauth?: boolean;
+  imapTlsMinVersion?: string;
+  imapServername?: string;
   imapFolder: string;
   smtpHost: string;
   smtpPort: number;
   smtpUsername: string;
   smtpPassword: string;
-  smtpUseTls: boolean;
+  smtpTlsRejectUnauth?: boolean;
+  smtpTlsMinVersion?: string;
+  smtpServername?: string;
+  smtpRequireTls?: boolean;
 }
 
 export interface EmailProvider {

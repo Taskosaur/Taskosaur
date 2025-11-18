@@ -6,11 +6,14 @@ import {
   MessageAttachment,
   MessageStatus,
   SyncStatus,
+  TaskPriority,
   User,
   UserSource,
 } from '@prisma/client';
 import { simpleParser, ParsedMail } from 'mailparser';
 import * as nodemailer from 'nodemailer';
+import { Transporter } from 'nodemailer';
+import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { ImapFlow } from 'imapflow';
 import { EmailSyncUtils } from '../utils/email-sync.utils';
 import * as bcrypt from 'bcrypt';
@@ -214,6 +217,16 @@ export class EmailSyncService {
           pass: password,
         },
         logger: false,
+
+        /** ✅ SNI hostname for TLS validation (required for IP-based connections) */
+        ...(account.imapServername && { servername: account.imapServername }),
+
+        /** ✅ TLS/SSL Configuration */
+        tls: {
+          rejectUnauthorized: account.imapTlsRejectUnauth !== false,
+          minVersion: (account.imapTlsMinVersion as any) || 'TLSv1.2',
+          ...(account.imapServername && { servername: account.imapServername }),
+        },
 
         /** ✅ Timeout safety */
         socketTimeout: 120000,
@@ -702,7 +715,11 @@ export class EmailSyncService {
         if (matches) {
           this.logger.log(`Rule "${rule.name}" matched for message ${message.messageId}`);
           if (rule.actions && typeof rule.actions === 'object' && !Array.isArray(rule.actions)) {
-            await this.executeRuleActions(rule.actions as Record<string, unknown>, message);
+            await this.executeRuleActions(
+              rule.actions as Record<string, unknown>,
+              message,
+              rule.id,
+            );
           }
 
           if (rule.stopOnMatch) {
@@ -750,8 +767,21 @@ export class EmailSyncService {
             }
             case 'equals':
               return fieldValue === value;
-            case 'matches':
-              return new RegExp(value as string, 'i').test(fieldValue as string);
+            case 'matches': {
+              try {
+                const pattern = value as string;
+                // Validate regex pattern by attempting to compile it
+                const regex = new RegExp(pattern, 'i');
+                return regex.test(fieldValue as string);
+              } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                const patternString = String(value);
+                this.logger.error(
+                  `Invalid regex pattern: "${patternString}". Error: ${errorMessage}`,
+                );
+                return false;
+              }
+            }
             case 'startsWith': {
               const lower = (fieldValue as string)?.toLowerCase();
               return lower?.startsWith((value as string).toLowerCase()) || false;
@@ -785,23 +815,37 @@ export class EmailSyncService {
     }
   }
 
-  private async executeRuleActions(actions: Record<string, unknown>, message: any) {
+  private async executeRuleActions(actions: Record<string, unknown>, message: any, ruleId: string) {
+    // Collect rule outcomes to persist to database
+    const ruleResult: {
+      priority?: TaskPriority;
+      assigneeId?: string;
+      labelIds: string[];
+      taskType?: string;
+    } = {
+      labelIds: [],
+    };
+
     // Execute rule actions
     const actionEntries = Object.entries(actions);
     for (const [action, value] of actionEntries) {
       try {
         switch (action) {
           case 'setPriority':
-            // Set priority when converting to task
-            message._rulePriority = value;
+            // Store priority to persist to database
+            ruleResult.priority = value as TaskPriority;
             break;
           case 'assignTo':
-            // Set assignee when converting to task
-            message._ruleAssignee = value;
+            // Store assignee to persist to database
+            ruleResult.assigneeId = value as string;
             break;
           case 'addLabels':
-            // Store labels to add when converting to task
-            message._ruleLabels = Array.isArray(value) ? value : [value];
+            // Store labels to persist to database
+            ruleResult.labelIds = Array.isArray(value) ? (value as string[]) : [value as string];
+            break;
+          case 'setTaskType':
+            // Store task type to persist to database
+            ruleResult.taskType = value as string;
             break;
           case 'markAsSpam':
             await this.prisma.inboxMessage.update({
@@ -814,9 +858,28 @@ export class EmailSyncService {
             break;
         }
       } catch (error) {
-        this.logger.error(`Error executing action ${action}:`, error.message);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Error executing action ${action}: ${errorMessage}`);
       }
     }
+
+    // Persist rule result to database
+    await this.prisma.messageRuleResult.create({
+      data: {
+        messageId: message.id,
+        ruleId: ruleId,
+        priority: ruleResult.priority,
+        assigneeId: ruleResult.assigneeId,
+        labelIds: ruleResult.labelIds,
+        taskType: ruleResult.taskType,
+        matched: true,
+        stopped: false, // This will be updated if stopOnMatch is true
+      },
+    });
+
+    this.logger.log(
+      `Rule result persisted for message ${message.messageId}: priority=${ruleResult.priority}, assignee=${ruleResult.assigneeId}, labels=${ruleResult.labelIds.join(',')}`,
+    );
   }
 
   private async autoCreateTask(message: any, inbox: any, repoterId: string) {
@@ -1010,13 +1073,32 @@ export class EmailSyncService {
       const now = new Date();
       const dueDate = new Date(now);
       dueDate.setDate(now.getDate() + 7);
+
+      // Load rule results from database
+      const ruleResults = await this.prisma.messageRuleResult.findMany({
+        where: { messageId: message.id },
+        orderBy: { createdAt: 'asc' }, // First matching rule takes precedence
+      });
+
+      // Aggregate rule results
+      const rulePriority = ruleResults[0]?.priority || inbox.defaultPriority;
+      const ruleAssignee = ruleResults[0]?.assigneeId || inbox.defaultAssigneeId;
+      const ruleTaskType = ruleResults[0]?.taskType || inbox.defaultTaskType;
+      const ruleLabels = ruleResults
+        .flatMap((r) => r.labelIds)
+        .filter((id): id is string => Boolean(id)); // Combine all labels from all rules
+
+      this.logger.log(
+        `Creating task with rule data: priority=${String(rulePriority)}, assignee=${String(ruleAssignee)}, taskType=${String(ruleTaskType)}, labels=[${ruleLabels.join(', ')}]`,
+      );
+
       const taskData: any = {
         projectId: inbox.projectId,
         title: message.subject,
         sprintId,
         description: message.bodyHtml || message.bodyText,
-        type: message._ruleTaskType || inbox.defaultTaskType,
-        priority: message._rulePriority || inbox.defaultPriority,
+        type: ruleTaskType,
+        priority: rulePriority,
         statusId: inbox.defaultStatusId,
         emailThreadId: message.threadId,
         allowEmailReplies: true,
@@ -1029,16 +1111,16 @@ export class EmailSyncService {
           connect: [{ id: repoterId || inbox.defaultAuthorId }],
         },
       };
-      if (message._ruleAssignee || inbox.defaultAssigneeId) {
+      if (ruleAssignee) {
         taskData.assignees = {
-          connect: { id: message._ruleAssignee || inbox.defaultAssigneeId },
+          connect: { id: ruleAssignee },
         };
       }
 
-      // Only add labels if they exist
-      if (message._ruleLabels && message._ruleLabels.length > 0) {
+      // Add all labels from all matching rules
+      if (ruleLabels.length > 0) {
         taskData.labels = {
-          connect: (message._ruleLabels as string[]).map((labelId) => ({ id: labelId })),
+          connect: ruleLabels.map((labelId) => ({ id: labelId })),
         };
       }
 
@@ -1114,15 +1196,29 @@ export class EmailSyncService {
         throw new Error('SMTP password is required');
       }
       const password = this.crypto.decrypt(inbox.emailAccount.smtpPassword);
-      const transporter = nodemailer.createTransport({
+
+      type SecureVersion = 'TLSv1' | 'TLSv1.1' | 'TLSv1.2' | 'TLSv1.3';
+
+      const transportOptions: SMTPTransport.Options = {
         host: inbox.emailAccount.smtpHost!,
         port: inbox.emailAccount.smtpPort!,
         secure: inbox.emailAccount.smtpPort === 465,
+        requireTLS: inbox.emailAccount.smtpRequireTls === true, // Force STARTTLS upgrade
         auth: {
           user: inbox.emailAccount.smtpUsername!,
           pass: password,
         },
-      });
+        tls: {
+          rejectUnauthorized: inbox.emailAccount.smtpTlsRejectUnauth !== false,
+          minVersion: (inbox.emailAccount.smtpTlsMinVersion || 'TLSv1.2') as SecureVersion,
+          ...(inbox.emailAccount.smtpServername && {
+            servername: inbox.emailAccount.smtpServername,
+          }),
+        },
+      };
+
+      const transporter: Transporter<SMTPTransport.SentMessageInfo> =
+        nodemailer.createTransport(transportOptions);
 
       // Generate reply email
       const mailOptions = {

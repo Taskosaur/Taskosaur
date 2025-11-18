@@ -37,6 +37,23 @@ export class SetupEmailDto {
   @IsOptional()
   imapUseSsl?: boolean;
 
+  @ApiPropertyOptional({ description: 'Reject unauthorized certificates for IMAP' })
+  @IsBoolean()
+  @IsOptional()
+  imapTlsRejectUnauth?: boolean;
+
+  @ApiPropertyOptional({ description: 'Minimum TLS version for IMAP (e.g., TLSv1.2)' })
+  @IsString()
+  @IsOptional()
+  imapTlsMinVersion?: string;
+
+  @ApiPropertyOptional({
+    description: 'SNI hostname for IMAP TLS validation (optional, for IP-based connections)',
+  })
+  @IsString()
+  @IsOptional()
+  imapServername?: string;
+
   @ApiPropertyOptional({ description: 'IMAP folder to monitor' })
   @IsString()
   @IsOptional()
@@ -62,8 +79,25 @@ export class SetupEmailDto {
   @IsNotEmpty()
   smtpPassword: string;
 
-  @ApiPropertyOptional({ description: 'Use TLS for SMTP' })
+  @ApiPropertyOptional({ description: 'Reject unauthorized certificates for SMTP' })
   @IsBoolean()
   @IsOptional()
-  smtpUseTls?: boolean;
+  smtpTlsRejectUnauth?: boolean;
+
+  @ApiPropertyOptional({ description: 'Minimum TLS version for SMTP (e.g., TLSv1.2)' })
+  @IsString()
+  @IsOptional()
+  smtpTlsMinVersion?: string;
+
+  @ApiPropertyOptional({
+    description: 'SNI hostname for SMTP TLS validation (optional, for IP-based connections)',
+  })
+  @IsString()
+  @IsOptional()
+  smtpServername?: string;
+
+  @ApiPropertyOptional({ description: 'Force STARTTLS upgrade (prevents plaintext fallback)' })
+  @IsBoolean()
+  @IsOptional()
+  smtpRequireTls?: boolean;
 }

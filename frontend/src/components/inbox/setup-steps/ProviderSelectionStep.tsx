@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -10,9 +10,18 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { HiArrowRight, HiArrowLeft, HiCog, HiExclamationCircle } from "react-icons/hi2";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  HiArrowRight,
+  HiArrowLeft,
+  HiCog,
+  HiExclamationCircle,
+  HiChevronDown,
+  HiChevronUp,
+} from "react-icons/hi2";
 import { EMAIL_PROVIDERS } from "@/utils/data/emailProviders";
 import ActionButton from "@/components/common/ActionButton";
+import { EmailSetupData, EmailProvider } from "@/types/emailIntegration";
 
 interface ProviderSelectionStepProps {
   onSubmit: (data: EmailSetupData) => void;
@@ -20,33 +29,7 @@ interface ProviderSelectionStepProps {
   hasInbox: boolean;
   setupLoading?: boolean;
   isReconfiguring?: boolean;
-}
-
-interface EmailSetupData {
-  emailAddress: string;
-  displayName: string;
-  imapHost: string;
-  imapPort: number;
-  imapUsername: string;
-  imapPassword: string;
-  imapUseSsl: boolean;
-  imapFolder: string;
-  smtpHost: string;
-  smtpPort: number;
-  smtpUsername: string;
-  smtpPassword: string;
-  smtpUseTls: boolean;
-}
-
-interface EmailProvider {
-  id: string;
-  name: string;
-  imapHost: string;
-  imapPort: number;
-  smtpHost: string;
-  smtpPort: number;
-  requiresAppPassword: boolean;
-  setupInstructions: string;
+  existingEmailData?: EmailSetupData | null;
 }
 
 export default function ProviderSelectionStep({
@@ -55,9 +38,11 @@ export default function ProviderSelectionStep({
   hasInbox,
   setupLoading = false,
   isReconfiguring = false,
+  existingEmailData = null,
 }: ProviderSelectionStepProps) {
   const [step, setStep] = useState(1);
   const [selectedProvider, setSelectedProvider] = useState<EmailProvider | null>(null);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [emailData, setEmailData] = useState<EmailSetupData>({
     emailAddress: "",
     displayName: "",
@@ -66,14 +51,38 @@ export default function ProviderSelectionStep({
     imapUsername: "",
     imapPassword: "",
     imapUseSsl: true,
+    imapTlsRejectUnauth: true,
+    imapTlsMinVersion: "TLSv1.2",
+    imapServername: "",
     imapFolder: "INBOX",
     smtpHost: "",
     smtpPort: 587,
     smtpUsername: "",
     smtpPassword: "",
-    smtpUseTls: true,
+    smtpTlsRejectUnauth: true,
+    smtpTlsMinVersion: "TLSv1.2",
+    smtpServername: "",
+    smtpRequireTls: false,
   });
+  useEffect(() => {
+    if (existingEmailData && isReconfiguring) {
+      setEmailData(existingEmailData);
 
+      const matchingProvider = EMAIL_PROVIDERS.find(
+        (p) =>
+          p.imapHost === existingEmailData.imapHost && p.smtpHost === existingEmailData.smtpHost
+      );
+
+      if (matchingProvider) {
+        setSelectedProvider(matchingProvider);
+      } else {
+        const customProvider = EMAIL_PROVIDERS.find((p) => p.id === "custom");
+        if (customProvider) {
+          setSelectedProvider(customProvider);
+        }
+      }
+    }
+  }, [existingEmailData, isReconfiguring]);
   const handleProviderSelect = (providerId: string) => {
     const provider = EMAIL_PROVIDERS.find((p) => p.id === providerId);
     if (!provider) return;
@@ -261,167 +270,358 @@ export default function ProviderSelectionStep({
 
           {/* For Custom Provider - Show Host, Port, Username, Password */}
           {selectedProvider.id === "custom" && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {/* IMAP Configuration */}
-              <h4 className="text-sm font-semibold text-[var(--foreground)] mt-4">
-                IMAP Configuration (Incoming)
-              </h4>
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-[var(--foreground)] pb-2 border-b border-[var(--border)]">
+                  IMAP Configuration (Incoming)
+                </h4>
 
-              <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="pb-2 text-sm font-medium" htmlFor="imapHost">
+                      IMAP Host <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="imapHost"
+                      value={emailData.imapHost}
+                      onChange={(e) =>
+                        setEmailData((prev) => ({
+                          ...prev,
+                          imapHost: e.target.value,
+                        }))
+                      }
+                      placeholder="imap.example.com"
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="pb-2 text-sm font-medium" htmlFor="imapPort">
+                      IMAP Port <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="imapPort"
+                      type="number"
+                      value={emailData.imapPort}
+                      onChange={(e) =>
+                        setEmailData((prev) => ({
+                          ...prev,
+                          imapPort: parseInt(e.target.value) || 993,
+                        }))
+                      }
+                      placeholder="993"
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="pb-2 text-sm font-medium" htmlFor="imapTlsMinVersion">
+                      Minimum TLS Version
+                    </Label>
+                    <Select
+                      value={emailData.imapTlsMinVersion || "TLSv1.2"}
+                      onValueChange={(value) =>
+                        setEmailData((prev) => ({
+                          ...prev,
+                          imapTlsMinVersion: value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="w-full h-10 bg-[var(--background)] border-[var(--border)] transition-colors">
+                        <SelectValue placeholder="Select TLS version" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[var(--background)] border-[var(--border)]">
+                        <SelectItem value="TLSv1" className="hover:bg-[var(--muted)]">
+                          TLS v1.0
+                        </SelectItem>
+                        <SelectItem value="TLSv1.1" className="hover:bg-[var(--muted)]">
+                          TLS v1.1
+                        </SelectItem>
+                        <SelectItem value="TLSv1.2" className="hover:bg-[var(--muted)]">
+                          TLS v1.2
+                        </SelectItem>
+                        <SelectItem value="TLSv1.3" className="hover:bg-[var(--muted)]">
+                          TLS v1.3
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div>
-                  <Label className="pb-2 text-sm font-medium" htmlFor="imapHost">
-                    IMAP Host <span className="text-red-500">*</span>
+                  <Label className="pb-2 text-sm font-medium" htmlFor="imapUsername">
+                    IMAP Username <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="imapHost"
-                    value={emailData.imapHost}
+                    id="imapUsername"
+                    value={emailData.imapUsername}
                     onChange={(e) =>
                       setEmailData((prev) => ({
                         ...prev,
-                        imapHost: e.target.value,
+                        imapUsername: e.target.value,
                       }))
                     }
-                    placeholder="imap.example.com"
+                    placeholder="username@example.com"
                     className="h-10"
                   />
                 </div>
 
                 <div>
-                  <Label className="pb-2 text-sm font-medium" htmlFor="imapPort">
-                    IMAP Port <span className="text-red-500">*</span>
+                  <Label className="pb-2 text-sm font-medium" htmlFor="imapPassword">
+                    IMAP Password <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="imapPort"
-                    type="number"
-                    value={emailData.imapPort}
+                    id="imapPassword"
+                    type="password"
+                    value={emailData.imapPassword}
                     onChange={(e) =>
                       setEmailData((prev) => ({
                         ...prev,
-                        imapPort: parseInt(e.target.value) || 993,
+                        imapPassword: e.target.value,
                       }))
                     }
-                    placeholder="993"
+                    placeholder="Your IMAP password"
                     className="h-10"
                   />
                 </div>
-              </div>
 
-              <div>
-                <Label className="pb-2 text-sm font-medium" htmlFor="imapUsername">
-                  IMAP Username <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="imapUsername"
-                  value={emailData.imapUsername}
-                  onChange={(e) =>
-                    setEmailData((prev) => ({
-                      ...prev,
-                      imapUsername: e.target.value,
-                    }))
-                  }
-                  placeholder="username@example.com"
-                  className="h-10"
-                />
-              </div>
+                {/* IMAP Security Options */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="imapUseSsl"
+                      checked={emailData.imapUseSsl}
+                      onCheckedChange={(checked) =>
+                        setEmailData((prev) => ({
+                          ...prev,
+                          imapUseSsl: checked as boolean,
+                        }))
+                      }
+                    />
+                    <Label htmlFor="imapUseSsl" className="text-sm font-normal cursor-pointer">
+                      Use SSL/TLS
+                    </Label>
+                  </div>
 
-              <div>
-                <Label className="pb-2 text-sm font-medium" htmlFor="imapPassword">
-                  IMAP Password <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="imapPassword"
-                  type="password"
-                  value={emailData.imapPassword}
-                  onChange={(e) =>
-                    setEmailData((prev) => ({
-                      ...prev,
-                      imapPassword: e.target.value,
-                    }))
-                  }
-                  placeholder="Your IMAP password"
-                  className="h-10"
-                />
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="imapTlsRejectUnauth"
+                      checked={emailData.imapTlsRejectUnauth}
+                      onCheckedChange={(checked) =>
+                        setEmailData((prev) => ({
+                          ...prev,
+                          imapTlsRejectUnauth: checked as boolean,
+                        }))
+                      }
+                    />
+                    <Label
+                      htmlFor="imapTlsRejectUnauth"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Reject unauthorized certificates
+                    </Label>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="pb-2 text-sm font-medium" htmlFor="imapServername">
+                    SNI Hostname (Optional)
+                  </Label>
+                  <Input
+                    id="imapServername"
+                    value={emailData.imapServername}
+                    onChange={(e) =>
+                      setEmailData((prev) => ({
+                        ...prev,
+                        imapServername: e.target.value,
+                      }))
+                    }
+                    placeholder="Leave empty to use IMAP host"
+                    className="h-10"
+                  />
+                  <p className="text-xs text-[var(--muted-foreground)] mt-1">
+                    Required for TLS validation when connecting via IP address (Gmail, Office 365)
+                  </p>
+                </div>
               </div>
 
               {/* SMTP Configuration */}
-              <h4 className="text-sm font-semibold text-[var(--foreground)] mt-6">
-                SMTP Configuration (Outgoing)
-              </h4>
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-[var(--foreground)] pb-2 border-b border-[var(--border)]">
+                  SMTP Configuration (Outgoing)
+                </h4>
 
-              <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="pb-2 text-sm font-medium" htmlFor="smtpHost">
+                      SMTP Host <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="smtpHost"
+                      value={emailData.smtpHost}
+                      onChange={(e) =>
+                        setEmailData((prev) => ({
+                          ...prev,
+                          smtpHost: e.target.value,
+                        }))
+                      }
+                      placeholder="smtp.example.com"
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="pb-2 text-sm font-medium" htmlFor="smtpPort">
+                      SMTP Port <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="smtpPort"
+                      type="number"
+                      value={emailData.smtpPort}
+                      onChange={(e) =>
+                        setEmailData((prev) => ({
+                          ...prev,
+                          smtpPort: parseInt(e.target.value) || 587,
+                        }))
+                      }
+                      placeholder="587"
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="pb-2 text-sm font-medium" htmlFor="smtpTlsMinVersion">
+                      Minimum TLS Version
+                    </Label>
+                    <Select
+                      value={emailData.smtpTlsMinVersion || "TLSv1.2"}
+                      onValueChange={(value) =>
+                        setEmailData((prev) => ({
+                          ...prev,
+                          smtpTlsMinVersion: value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="w-full h-10 bg-[var(--background)] border-[var(--border)] transition-colors">
+                        <SelectValue placeholder="Select TLS version" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[var(--background)] border-[var(--border)]">
+                        <SelectItem value="TLSv1" className="hover:bg-[var(--muted)]">
+                          TLS v1.0
+                        </SelectItem>
+                        <SelectItem value="TLSv1.1" className="hover:bg-[var(--muted)]">
+                          TLS v1.1
+                        </SelectItem>
+                        <SelectItem value="TLSv1.2" className="hover:bg-[var(--muted)]">
+                          TLS v1.2
+                        </SelectItem>
+                        <SelectItem value="TLSv1.3" className="hover:bg-[var(--muted)]">
+                          TLS v1.3
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div>
-                  <Label className="pb-2 text-sm font-medium" htmlFor="smtpHost">
-                    SMTP Host <span className="text-red-500">*</span>
+                  <Label className="pb-2 text-sm font-medium" htmlFor="smtpUsername">
+                    SMTP Username <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="smtpHost"
-                    value={emailData.smtpHost}
+                    id="smtpUsername"
+                    value={emailData.smtpUsername}
                     onChange={(e) =>
                       setEmailData((prev) => ({
                         ...prev,
-                        smtpHost: e.target.value,
+                        smtpUsername: e.target.value,
                       }))
                     }
-                    placeholder="smtp.example.com"
+                    placeholder="username@example.com"
                     className="h-10"
                   />
                 </div>
 
                 <div>
-                  <Label className="pb-2 text-sm font-medium" htmlFor="smtpPort">
-                    SMTP Port <span className="text-red-500">*</span>
+                  <Label className="pb-2 text-sm font-medium" htmlFor="smtpPassword">
+                    SMTP Password <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="smtpPort"
-                    type="number"
-                    value={emailData.smtpPort}
+                    id="smtpPassword"
+                    type="password"
+                    value={emailData.smtpPassword}
                     onChange={(e) =>
                       setEmailData((prev) => ({
                         ...prev,
-                        smtpPort: parseInt(e.target.value) || 587,
+                        smtpPassword: e.target.value,
                       }))
                     }
-                    placeholder="587"
+                    placeholder="Your SMTP password"
                     className="h-10"
                   />
                 </div>
-              </div>
 
-              <div>
-                <Label className="pb-2 text-sm font-medium" htmlFor="smtpUsername">
-                  SMTP Username <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="smtpUsername"
-                  value={emailData.smtpUsername}
-                  onChange={(e) =>
-                    setEmailData((prev) => ({
-                      ...prev,
-                      smtpUsername: e.target.value,
-                    }))
-                  }
-                  placeholder="username@example.com"
-                  className="h-10"
-                />
-              </div>
+                {/* SMTP Security Options */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="smtpTlsRejectUnauth"
+                      checked={emailData.smtpTlsRejectUnauth}
+                      onCheckedChange={(checked) =>
+                        setEmailData((prev) => ({
+                          ...prev,
+                          smtpTlsRejectUnauth: checked as boolean,
+                        }))
+                      }
+                    />
+                    <Label
+                      htmlFor="smtpTlsRejectUnauth"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Reject unauthorized certificates
+                    </Label>
+                  </div>
 
-              <div>
-                <Label className="pb-2 text-sm font-medium" htmlFor="smtpPassword">
-                  SMTP Password <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="smtpPassword"
-                  type="password"
-                  value={emailData.smtpPassword}
-                  onChange={(e) =>
-                    setEmailData((prev) => ({
-                      ...prev,
-                      smtpPassword: e.target.value,
-                    }))
-                  }
-                  placeholder="Your SMTP password"
-                  className="h-10"
-                />
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="smtpRequireTls"
+                      checked={emailData.smtpRequireTls}
+                      onCheckedChange={(checked) =>
+                        setEmailData((prev) => ({
+                          ...prev,
+                          smtpRequireTls: checked as boolean,
+                        }))
+                      }
+                    />
+                    <Label
+                      htmlFor="smtpRequireTls"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Force STARTTLS (recommended)
+                    </Label>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="pb-2 text-sm font-medium" htmlFor="smtpServername">
+                    SNI Hostname (Optional)
+                  </Label>
+                  <Input
+                    id="smtpServername"
+                    value={emailData.smtpServername}
+                    onChange={(e) =>
+                      setEmailData((prev) => ({
+                        ...prev,
+                        smtpServername: e.target.value,
+                      }))
+                    }
+                    placeholder="Leave empty to use SMTP host"
+                    className="h-10"
+                  />
+                  <p className="text-xs text-[var(--muted-foreground)] mt-1">
+                    Required for TLS validation when connecting via IP address (Gmail, Office 365)
+                  </p>
+                </div>
               </div>
             </div>
           )}

@@ -42,6 +42,50 @@ export function ActionValueSelector({
   loadingText = "Loading...",
   emptyText = "No options available",
 }: ActionValueSelectorProps) {
+  // Avatar component with fallback handling
+  const Avatar = ({ src, label }: { src: string | null | undefined; label: string }) => {
+    const [imgError, setImgError] = React.useState(false);
+
+    if (!src || imgError) {
+      return (
+        <div className="w-5 h-5 rounded-full bg-[var(--primary)] text-white text-[10px] flex items-center justify-center font-medium">
+          {label.charAt(0).toUpperCase()}
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={src}
+        alt={label}
+        className="w-5 h-5 rounded-full object-cover"
+        onError={() => setImgError(true)}
+      />
+    );
+  };
+
+  // Larger avatar for dropdown items
+  const AvatarLarge = ({ src, label }: { src: string | null | undefined; label: string }) => {
+    const [imgError, setImgError] = React.useState(false);
+
+    if (!src || imgError) {
+      return (
+        <div className="w-6 h-6 rounded-full bg-[var(--primary)] text-white text-xs flex items-center justify-center font-medium flex-shrink-0">
+          {label.charAt(0).toUpperCase()}
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={src}
+        alt={label}
+        className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+        onError={() => setImgError(true)}
+      />
+    );
+  };
+
   if (actionType === "markAsSpam") {
     return (
       <div className="flex-1 text-sm text-[var(--muted-foreground)]/60">
@@ -92,18 +136,7 @@ export function ActionValueSelector({
     return (
       <div className="flex items-center gap-2">
         {/* Avatar */}
-        {showAvatar &&
-          (selected.avatar ? (
-            <img
-              src={selected.avatar}
-              alt={selected.label}
-              className="w-5 h-5 rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-5 h-5 rounded-full bg-[var(--primary)] text-white text-[10px] flex items-center justify-center font-medium">
-              {selected.label.charAt(0).toUpperCase()}
-            </div>
-          ))}
+        {showAvatar && <Avatar src={selected.avatar} label={selected.label} />}
 
         {/* Color indicator */}
         {showColorIndicator && (
@@ -123,18 +156,7 @@ export function ActionValueSelector({
     return (
       <div className="flex items-center gap-2 py-1">
         {/* Avatar */}
-        {showAvatar &&
-          (option.avatar ? (
-            <img
-              src={option.avatar}
-              alt={option.label}
-              className="w-6 h-6 rounded-full object-cover flex-shrink-0"
-            />
-          ) : (
-            <div className="w-6 h-6 rounded-full bg-[var(--primary)] text-white text-xs flex items-center justify-center font-medium flex-shrink-0">
-              {option.label.charAt(0).toUpperCase()}
-            </div>
-          ))}
+        {showAvatar && <AvatarLarge src={option.avatar} label={option.label} />}
 
         {/* Color indicator */}
         {showColorIndicator && (

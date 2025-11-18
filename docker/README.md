@@ -6,7 +6,7 @@
 [![Docker Image Size](https://img.shields.io/docker/image-size/taskosaur/taskosaur/latest)](https://hub.docker.com/r/taskosaur/taskosaur)
 [![License](https://img.shields.io/badge/license-BSL-blue.svg)](https://github.com/Taskosaur/Taskosaur/blob/main/LICENSE.md)
 
-**Official Docker image for Taskosaur** - An open source project management platform with conversational AI for task execution in-app that lets you manage projects through natural conversation directly within the application.
+**Official Docker image for Taskosaur** - An open source project management platform with AI Mode that lets you manage projects through natural conversation.
 
 ## Quick Start
 
@@ -19,11 +19,11 @@ docker compose up -d
 
 ## What is Taskosaur?
 
-Taskosaur is a self-hosted project management platform that combines traditional PM features with conversational AI for task execution in-app. The AI assistant performs actions directly in your browser through natural conversation. Instead of clicking through forms and menus, simply describe what you need in natural language.
+Taskosaur is a self-hosted project management platform that combines traditional PM features with AI Mode - an AI assistant that performs actions directly in your browser. Instead of clicking through forms and menus, simply describe what you need in natural language.
 
 **Key Features:**
-- 🤖 Conversational AI for task execution in-app
-- 💬 Natural language project management through in-app chat
+- 🤖 AI Mode with browser automation
+- 💬 Natural language project management
 - 🏠 Self-hosted - your data stays with you
 - 💰 Bring your own LLM API key
 - 📊 Full PM suite: Kanban, sprints, dependencies, time tracking
@@ -227,9 +227,9 @@ The image includes a health check endpoint:
 curl http://localhost:3000/api/health
 ```
 
-## AI Mode Setup - Conversational Task Execution
+## AI Mode Setup
 
-After starting Taskosaur, enable conversational AI for in-app task execution:
+After starting Taskosaur:
 
 1. **Navigate to Settings** → Organization Settings → AI Assistant Settings
 2. **Add your LLM API key** from any provider:
@@ -237,7 +237,7 @@ After starting Taskosaur, enable conversational AI for in-app task execution:
    - OpenAI: `https://api.openai.com/v1`
    - Anthropic: `https://api.anthropic.com/v1`
    - Local AI (Ollama): Your local endpoint
-3. **Start using conversational AI in-app** - Open the AI chat panel and have natural conversations to execute tasks:
+3. **Start using AI Mode** - Open the AI chat panel and type commands like:
    - "Create sprint with high-priority bugs from last week"
    - "Set up Q1 marketing workspace with 3 projects"
    - "Move all overdue tasks to next sprint"
