@@ -619,15 +619,15 @@ export const taskApi = {
   },
 
   getTaskAttachments: async (taskId: string, isAuth: boolean): Promise<TaskAttachment[]> => {
+    // Validate that taskId is a UUID before using in any endpoint
+    if (!isValidUUID(taskId)) {
+      throw new Error("Invalid taskId format");
+    }
     try {
       let response;
       if (isAuth) {
         response = await api.get<TaskAttachment[]>(`/task-attachments/task/${taskId}`);
       } else {
-        // Validate that taskId is a UUID before using in a public endpoint
-        if (!isValidUUID(taskId)) {
-          throw new Error("Invalid taskId format");
-        }
         response = await api.get<TaskAttachment[]>(`/public/project-tasks/attachments/${taskId}`);
       }
       return response.data;
