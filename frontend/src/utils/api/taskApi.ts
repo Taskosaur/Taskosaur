@@ -22,6 +22,10 @@ import {
 } from "@/types";
 
 // Task interfaces
+function isValidUUID(id: string) {
+  return typeof id === "string" && /^[0-9a-fA-F-]{36}$/.test(id);
+}
+
 function formatUUID(id: string) {
   if (!id) return id;
   if (id.includes("-")) return id; // already valid
@@ -768,6 +772,9 @@ export const taskApi = {
 
   removeLabelFromTask: async (taskId: string, labelId: string): Promise<void> => {
     try {
+      if (!isValidUUID(taskId) || !isValidUUID(labelId)) {
+        throw new Error("Invalid taskId or labelId");
+      }
       await api.delete(`/task-labels/${taskId}/${labelId}`);
     } catch (error) {
       console.error("Remove label from task error:", error);
