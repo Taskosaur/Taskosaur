@@ -66,7 +66,11 @@ class MCPServer {
     if (typeof window !== "undefined") {
       let sessionId = sessionStorage.getItem("mcp-session-id");
       if (!sessionId) {
-        sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+        // Use cryptographically secure random value for suffix
+        const array = new Uint32Array(1);
+        window.crypto.getRandomValues(array);
+        const randomSuffix = array[0].toString(36).substring(0, 9);
+        sessionId = `session_${Date.now()}_${randomSuffix}`;
         sessionStorage.setItem("mcp-session-id", sessionId);
       } else {
       }
@@ -74,7 +78,16 @@ class MCPServer {
     }
 
     // Fallback for server-side rendering
-    return `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    // Fallback for server-side rendering: use insecure randomness, but ideally would use node crypto. Here, using insecure randomness as last resort.
+    let randomSuffix = '';
+    try {
+      // Try Node.js crypto if available
+      const crypto = require('crypto');
+      randomSuffix = crypto.randomBytes(4).toString('hex').substring(0, 9);
+    } catch (e) {
+      randomSuffix = Math.random().toString(36).substring(2, 11);
+    }
+    return `session_${Date.now()}_${randomSuffix}`;
   }
 
   // Update context (e.g., when user navigates to different workspace/project)
