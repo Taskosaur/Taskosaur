@@ -10,7 +10,7 @@
 
 *Click to watch: See how AI Mode works in Taskosaur*
 
-Taskosaur is an open source project management platform with AI Mode integration. The AI assistant handles project management tasks through natural conversation, from creating tasks to managing workflows.
+Taskosaur is an open source project management platform with conversational AI for task execution in-app. The AI assistant handles project management tasks through natural conversation, from creating tasks to managing workflows directly within the application.
 
 <!-- Badges -->
 
@@ -26,11 +26,11 @@ Taskosaur combines traditional project management features with AI Mode, allowin
 
 ## Key Features
 
-- 🤖 **AI Mode** - Manage projects through natural conversation instead of clicking through forms
+- 🤖 **Conversational AI for Task Execution** - Execute project tasks through natural conversation directly in-app
 - 💬 **Natural Language Commands** - "Create sprint with high-priority bugs from last week" executes automatically
 - 🏠 **Self-Hosted** - Your data stays on your infrastructure
 - 💰 **Bring Your Own LLM** - Use your own API key with OpenAI, Anthropic, OpenRouter, or local models
-- 🔧 **Browser Automation** - AI navigates the interface and performs actions directly
+- 🔧 **In-App Browser Automation** - AI navigates the interface and performs actions directly within the application
 - 📊 **Full Project Management** - Kanban boards, sprints, task dependencies, time tracking
 - 🌐 **Open Source** - Available under Business Source License (BSL)
 
@@ -318,10 +318,11 @@ taskosaur/
 
 ### How AI Mode Works
 
-Taskosaur's AI Mode performs actions directly instead of just providing suggestions:
+Taskosaur's AI Mode features conversational AI for task execution in-app, performing actions directly instead of just providing suggestions:
 
-- **Direct Browser Automation** - AI navigates your interface and clicks buttons
-- **Complex Workflow Execution** - Multi-step operations handled seamlessly
+- **In-App Conversational Execution** - Chat naturally with AI to execute tasks directly within the application
+- **Direct Browser Automation** - AI navigates your interface and clicks buttons in real-time
+- **Complex Workflow Execution** - Multi-step operations handled seamlessly through conversation
 - **Context-Aware Actions** - Understands your current project/workspace context
 - **Natural Language Interface** - No commands to memorize, just speak naturally
 
@@ -341,12 +342,13 @@ _Taskosaur is actively under development. The following features represent our p
 
 ### 🤖 AI Mode Capabilities
 
-🎯 **Workflow Automation**
+🎯 **Conversational Task Execution In-App**
 
-- **Browser-Based Task Execution**: AI navigates the interface, fills forms, and completes tasks
-- **Multi-Step Workflow Processing**: Execute complex workflows with a single command
+- **In-App Chat Interface**: Converse with AI directly within Taskosaur to execute tasks
+- **Browser-Based Task Execution**: AI navigates the interface, fills forms, and completes tasks in real-time
+- **Multi-Step Workflow Processing**: Execute complex workflows with a single conversational command
 - **Context Understanding**: AI recognizes your current workspace, project, and team context
-- **Proactive Suggestions**: AI identifies bottlenecks and suggests improvements
+- **Proactive Suggestions**: AI identifies bottlenecks and suggests improvements through conversation
 
 🧠 **Natural Language Processing**
 
