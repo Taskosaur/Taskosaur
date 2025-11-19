@@ -2,13 +2,13 @@
 
 <img src="https://raw.githubusercontent.com/Taskosaur/Taskosaur/main/frontend/public/taskosaur-logo.svg" alt="Taskosaur Logo" width="128">
 
-### Open Source Project Management with AI Mode
+### Open Source Project Management with Conversational AI Task Execution
 
 ### 📹 Watch Taskosaur in Action
 
 [![Taskosaur Demo - AI Turns Simple Requests Into Complete Projects](https://img.youtube.com/vi/sv2lsteRKac/maxresdefault.jpg)](https://youtu.be/sv2lsteRKac)
 
-*Click to watch: See how AI Mode works in Taskosaur*
+*Click to watch: See how Conversational AI Task Execution works in Taskosaur*
 
 Taskosaur is an open source project management platform with conversational AI for task execution in-app. The AI assistant handles project management tasks through natural conversation, from creating tasks to managing workflows directly within the application.
 
@@ -22,7 +22,7 @@ Taskosaur is an open source project management platform with conversational AI f
 ![Redis](https://img.shields.io/badge/redis-%3E%3D7-red.svg)
 ![AI](https://img.shields.io/badge/AI-Powered-purple.svg)
 
-Taskosaur combines traditional project management features with AI Mode, allowing you to manage projects through natural conversation. Instead of navigating menus and forms, you can create tasks, assign work, and manage workflows by simply describing what you need.
+Taskosaur combines traditional project management features with Conversational AI Task Execution, allowing you to manage projects through natural conversation. Instead of navigating menus and forms, you can create tasks, assign work, and manage workflows by simply describing what you need.
 
 ## Key Features
 
@@ -292,9 +292,9 @@ taskosaur/
 └── package.json          # Root package configuration
 ```
 
-## AI Mode Setup
+## Conversational AI Task Execution Setup
 
-### Enable AI Mode in 3 Steps:
+### Enable Conversational AI Task Execution in 3 Steps:
 
 1. **Navigate to Organization Settings**
 
@@ -316,9 +316,9 @@ taskosaur/
    - Type: _"Create a new project called Website Redesign with 5 tasks"_
    - The AI executes the workflow automatically
 
-### How AI Mode Works
+### How Conversational AI Task Execution Works
 
-Taskosaur's AI Mode features conversational AI for task execution in-app, performing actions directly instead of just providing suggestions:
+Taskosaur's Conversational AI Task Execution features conversational AI for task execution in-app, performing actions directly instead of just providing suggestions:
 
 - **In-App Conversational Execution** - Chat naturally with AI to execute tasks directly within the application
 - **Direct Browser Automation** - AI navigates your interface and clicks buttons in real-time
@@ -326,7 +326,7 @@ Taskosaur's AI Mode features conversational AI for task execution in-app, perfor
 - **Context-Aware Actions** - Understands your current project/workspace context
 - **Natural Language Interface** - No commands to memorize, just speak naturally
 
-**Example AI Mode Commands:**
+**Example Conversational AI Task Execution Commands:**
 
 ```
 "Set up a new marketing workspace with Q1 campaign project"
@@ -340,7 +340,7 @@ Taskosaur's AI Mode features conversational AI for task execution in-app, perfor
 
 _Taskosaur is actively under development. The following features represent our planned capabilities, with many already implemented and others in progress._
 
-### 🤖 AI Mode Capabilities
+### 🤖 Conversational AI Task Execution Capabilities
 
 🎯 **Conversational Task Execution In-App**
 
@@ -368,7 +368,7 @@ _Taskosaur is actively under development. The following features represent our p
 - Task assignment based on team capacity
 - Project timeline forecasting
 
-**AI Mode Examples:**
+**Conversational AI Task Execution Examples:**
 
 - "Set up Q1 marketing campaign: create workspace, add team, set up 3 projects with standard templates"
 - "Analyze all overdue tasks and reschedule based on team capacity and priorities"

@@ -1,7 +1,7 @@
 {
     "name": "@taskosaur/platform",
     "version": "0.1.0",
-    "description": "Taskosaur Platform - Open Source Project Management with AI Mode",
+    "description": "Taskosaur Platform - Open Source Project Management with Conversational AI Task Execution",
     "author": "Taskosaur Team",
     "private": true,
     "license": "SEE LICENSE IN https://github.com/Taskosaur/Taskosaur/blob/main/LICENSE.md",

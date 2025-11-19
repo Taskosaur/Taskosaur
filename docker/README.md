@@ -1,4 +1,4 @@
-# Taskosaur - Open Source Project Management with AI Mode
+# Taskosaur - Open Source Project Management with Conversational AI Task Execution
 
 ![Logo](https://raw.githubusercontent.com/Taskosaur/Taskosaur/main/frontend/public/taskosaur-logo.png)
 
@@ -227,7 +227,7 @@ The image includes a health check endpoint:
 curl http://localhost:3000/api/health
 ```
 
-## AI Mode Setup - Conversational Task Execution
+## Conversational AI Task Execution Setup
 
 After starting Taskosaur, enable conversational AI for in-app task execution:
 
