@@ -6,6 +6,8 @@ on:
       - docker/build/development
       - docker/build/latest
 
+permissions:
+  contents: read
 env:
   DOCKER_IMAGE: taskosaur/taskosaur
   PLATFORMS: linux/amd64,linux/arm64
