@@ -31,6 +31,14 @@ function formatUUID(id: string) {
   if (id.includes("-")) return id; // already valid
   return id.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
 }
+
+// UUID validation (accepts v4 UUIDs with/without hyphens)
+function isValidUUID(id: string) {
+  // Allows UUIDs with or without hyphens, 32 hex or 8-4-4-4-12 form
+  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id)
+      || /^[0-9a-fA-F]{32}$/.test(id);
+}
+
 export const taskApi = {
   getTaskStatusByProject: async ({
     projectId,
@@ -951,6 +959,9 @@ export const taskApi = {
   },
 
   assignTaskAssignees: async (taskId: string, assigneeIds: string[]) => {
+    if (!isValidUUID(taskId)) {
+      throw new Error("Invalid taskId provided.");
+    }
     try {
       const response = await api.patch(`/tasks/${taskId}/assignees`, {
         assigneeIds,
