@@ -21,27 +21,17 @@ import {
   UpdateTaskRequest,
 } from "@/types";
 
-// Task interfaces
+// UUID validation (accepts v4 UUIDs with/without hyphens)
 function isValidUUID(id: string) {
-  return typeof id === "string" && /^[0-9a-fA-F-]{36}$/.test(id);
-}
-
-// Helper to validate slugs (alphanumeric, dash, underscore)
-function isValidSlug(slug: string) {
-  return typeof slug === "string" && /^[a-zA-Z0-9-_]+$/.test(slug);
+  // Allows UUIDs with or without hyphens, 32 hex or 8-4-4-4-12 form
+  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id)
+      || /^[0-9a-fA-F]{32}$/.test(id);
 }
 
 function formatUUID(id: string) {
   if (!id) return id;
   if (id.includes("-")) return id; // already valid
   return id.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
-}
-
-// UUID validation (accepts v4 UUIDs with/without hyphens)
-function isValidUUID(id: string) {
-  // Allows UUIDs with or without hyphens, 32 hex or 8-4-4-4-12 form
-  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id)
-      || /^[0-9a-fA-F]{32}$/.test(id);
 }
 
 export const taskApi = {
@@ -310,12 +300,6 @@ export const taskApi = {
     try {
       if (!workspaceSlug || !projectSlug) {
         throw new Error("workspaceSlug and projectSlug are required");
-      }
-      if (!isValidSlug(workspaceSlug)) {
-        throw new Error("Invalid workspaceSlug");
-      }
-      if (!isValidSlug(projectSlug)) {
-        throw new Error("Invalid projectSlug");
       }
 
       const params = new URLSearchParams();

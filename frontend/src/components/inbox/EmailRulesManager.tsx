@@ -182,6 +182,13 @@ export default function EmailRulesManager({ projectId }: EmailRulesManagerProps)
       return;
     }
 
+    // Validate auto-reply actions have a template
+    const autoReplyAction = formData.actions.find((a) => a.type === "autoReply");
+    if (autoReplyAction && (!autoReplyAction.value || !(autoReplyAction.value as string).trim())) {
+      toast.error("Auto-reply message template is required");
+      return;
+    }
+
     try {
       setSaving(true);
       const ruleData = {
@@ -325,9 +332,35 @@ export default function EmailRulesManager({ projectId }: EmailRulesManagerProps)
   const updateAction = (index: number, field: keyof RuleAction, value: string | string[]) => {
     setFormData((prev) => ({
       ...prev,
-      actions: prev.actions.map((action, i) =>
-        i === index ? { ...action, [field]: value } : action
-      ),
+      actions: prev.actions.map((action, i) => {
+        if (i !== index) return action;
+
+        // When changing action type, reset the value to appropriate default
+        if (field === "type") {
+          const newType = value as RuleAction["type"];
+          let defaultValue: string | string[] = "";
+
+          switch (newType) {
+            case "setPriority":
+              defaultValue = "MEDIUM";
+              break;
+            case "autoReply":
+              defaultValue = ""; // Empty template that user will fill in
+              break;
+            case "assignTo":
+            case "addLabels":
+              defaultValue = "";
+              break;
+            case "markAsSpam":
+              defaultValue = "true";
+              break;
+          }
+
+          return { ...action, [field]: value, value: defaultValue };
+        }
+
+        return { ...action, [field]: value };
+      }),
     }));
   };
 

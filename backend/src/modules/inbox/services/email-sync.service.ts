@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CryptoService } from '../../../common/crypto.service';
 import {
@@ -21,6 +21,7 @@ import { randomBytes } from 'crypto';
 import { Readable } from 'stream';
 import { StorageService } from 'src/modules/storage/storage.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { EmailReplyService } from './email-reply.service';
 
 interface EmailMessage {
   messageId: string;
@@ -57,6 +58,8 @@ export class EmailSyncService {
     private prisma: PrismaService,
     private crypto: CryptoService,
     private storageService: StorageService,
+    @Inject(forwardRef(() => EmailReplyService))
+    private emailReplyService: EmailReplyService,
   ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
@@ -482,7 +485,7 @@ export class EmailSyncService {
     }
 
     // Apply rules
-    await this.applyRules(inboxMessageWithAttachments);
+    const ruleResult = await this.applyRules(inboxMessageWithAttachments);
 
     // ✅ IMMEDIATE PROCESSING: Auto-create task/comment right away
     if (
@@ -490,6 +493,28 @@ export class EmailSyncService {
       inboxMessageWithAttachments.status === MessageStatus.PENDING
     ) {
       await this.autoCreateTask(inboxMessageWithAttachments, projectInbox, emailUser.id);
+    }
+
+    // ✅ Send global auto-reply if enabled (only if no rule-based auto-reply was sent)
+    if (
+      projectInbox.autoReplyEnabled &&
+      projectInbox.autoReplyTemplate &&
+      !ruleResult.autoReplySent
+    ) {
+      try {
+        await this.emailReplyService.sendAutoReply(inboxMessage.id);
+        this.logger.log(`Global auto-reply sent for message ${message.messageId}`);
+      } catch (error) {
+        this.logger.error(
+          `Failed to send global auto-reply for message ${message.messageId}:`,
+          error.message,
+        );
+        // Don't throw - message processing succeeded, auto-reply is non-critical
+      }
+    } else if (ruleResult.autoReplySent) {
+      this.logger.log(
+        `Skipping global auto-reply for message ${message.messageId} - rule-based auto-reply already sent`,
+      );
     }
 
     // ⭐ Mark as read on IMAP server after successful processing
@@ -698,7 +723,7 @@ export class EmailSyncService {
     }
   }
 
-  private async applyRules(message: any) {
+  private async applyRules(message: any): Promise<{ autoReplySent: boolean }> {
     // Get rules for this inbox, ordered by priority
     const rules = await this.prisma.inboxRule.findMany({
       where: {
@@ -708,6 +733,8 @@ export class EmailSyncService {
       orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
     });
 
+    let autoReplySent = false;
+
     for (const rule of rules) {
       try {
         const matches = this.evaluateRuleConditions(rule.conditions, message);
@@ -715,11 +742,14 @@ export class EmailSyncService {
         if (matches) {
           this.logger.log(`Rule "${rule.name}" matched for message ${message.messageId}`);
           if (rule.actions && typeof rule.actions === 'object' && !Array.isArray(rule.actions)) {
-            await this.executeRuleActions(
+            const result = await this.executeRuleActions(
               rule.actions as Record<string, unknown>,
               message,
               rule.id,
             );
+            if (result.autoReplySent) {
+              autoReplySent = true;
+            }
           }
 
           if (rule.stopOnMatch) {
@@ -733,6 +763,8 @@ export class EmailSyncService {
         this.logger.error(`Error applying rule ${rule.name}:`, errorMessage);
       }
     }
+
+    return { autoReplySent };
   }
 
   private evaluateRuleConditions(conditions: any, message: any): boolean {
@@ -815,7 +847,11 @@ export class EmailSyncService {
     }
   }
 
-  private async executeRuleActions(actions: Record<string, unknown>, message: any, ruleId: string) {
+  private async executeRuleActions(
+    actions: Record<string, unknown>,
+    message: any,
+    ruleId: string,
+  ): Promise<{ autoReplySent: boolean }> {
     // Collect rule outcomes to persist to database
     const ruleResult: {
       priority?: TaskPriority;
@@ -825,6 +861,8 @@ export class EmailSyncService {
     } = {
       labelIds: [],
     };
+
+    let autoReplySent = false;
 
     // Execute rule actions
     const actionEntries = Object.entries(actions);
@@ -855,6 +893,7 @@ export class EmailSyncService {
             break;
           case 'autoReply':
             await this.sendAutoReplyFromRule(message, value as string);
+            autoReplySent = true;
             break;
         }
       } catch (error) {
@@ -880,6 +919,8 @@ export class EmailSyncService {
     this.logger.log(
       `Rule result persisted for message ${message.messageId}: priority=${ruleResult.priority}, assignee=${ruleResult.assigneeId}, labels=${ruleResult.labelIds.join(',')}`,
     );
+
+    return { autoReplySent };
   }
 
   private async autoCreateTask(message: any, inbox: any, repoterId: string) {
@@ -987,6 +1028,8 @@ export class EmailSyncService {
             content: message.bodyHtml || message.bodyText || message.subject,
             emailMessageId: message.messageId,
             emailRecipientNames: message.fromName,
+            createdBy: defaultAuthorId,
+            updatedBy: defaultAuthorId,
           },
         });
         if (inboxMessage.attachments && inboxMessage.attachments.length > 0) {
@@ -1125,7 +1168,11 @@ export class EmailSyncService {
       }
 
       const task = await this.prisma.task.create({
-        data: taskData,
+        data: {
+          ...taskData,
+          createdBy: repoterId || inbox.defaultAuthorId,
+          updatedBy: repoterId || inbox.defaultAuthorId,
+        },
       });
       if (inboxMessage.attachments && inboxMessage.attachments.length > 0) {
         await this.copyAttachmentsToTask(
@@ -1260,9 +1307,7 @@ export class EmailSyncService {
       where: { id: inboxMessageId },
       include: {
         projectInbox: {
-          include: {
-            emailAccount: true,
-          },
+          include: { emailAccount: true },
         },
       },
     });
@@ -1276,9 +1321,8 @@ export class EmailSyncService {
     let client: ImapFlow | null = null;
 
     try {
-      if (!account.imapPassword) {
-        throw new Error('IMAP password is required');
-      }
+      if (!account.imapPassword) throw new Error('IMAP password is required');
+
       const password = this.crypto.decrypt(account.imapPassword);
 
       client = new ImapFlow({
@@ -1290,46 +1334,43 @@ export class EmailSyncService {
           pass: password,
         },
         logger: false,
-        socketTimeout: 30000,
-        greetingTimeout: 30000,
-        connectionTimeout: 30000,
+        socketTimeout: 15000, // Reduced from 30s to 15s
+        greetingTimeout: 15000,
+        connectionTimeout: 15000,
         disableAutoIdle: true,
       });
-
-      // Handle errors gracefully
-      client.on('error', (err) => {
+      const errorHandler = (err: Error) => {
         this.logger.error(`IMAP client error during mark as read: ${err.message}`);
-      });
-
-      // Connect with timeout
+      };
+      client.on('error', errorHandler);
       await Promise.race([
         client.connect(),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('IMAP connect timeout')), 30000),
+          setTimeout(() => reject(new Error('IMAP connect timeout')), 15000),
         ),
       ]);
 
       const mailbox = await client.getMailboxLock(account.imapFolder || 'INBOX');
 
       try {
-        // Mark as read using UID - fast and reliable
         await client.messageFlagsAdd(String(message.imapUid), ['\\Seen'], { uid: true });
-
-        this.logger.log(`✅ Marked message as read on server (UID: ${message.imapUid})`);
+        this.logger.log(`Marked message as read on server (UID: ${message.imapUid})`);
       } finally {
         mailbox.release();
       }
     } catch (error: any) {
-      this.logger.error(`Failed to mark message as read on IMAP server: ${error.message}`);
-      // Don't throw - this is a non-critical operation
-      // The message was already processed successfully in our system
+      if (error.code === 'ETIMEOUT') {
+        this.logger.warn(`IMAP timeout while marking message as read: ${error.message}`);
+      } else {
+        this.logger.error(`Failed to mark message as read on IMAP server: ${error.message}`);
+      }
     } finally {
       if (client) {
         try {
           await Promise.race([
             client.logout(),
             new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('IMAP logout timeout')), 5000),
+              setTimeout(() => reject(new Error('IMAP logout timeout')), 3000),
             ),
           ]);
         } catch (logoutError: any) {

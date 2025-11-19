@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { SeederService } from './seeder.service';
 import { PrismaModule } from '../prisma/prisma.module';
-import { SystemUserSeederService } from './system-user.seeder.service';
 import { UsersSeederService } from './users.seeder.service';
 import { OrganizationsSeederService } from './organizations.seeder.service';
 import { WorkspacesSeederService } from './workspaces.seeder.service';
@@ -23,7 +22,6 @@ import { EmailTemplatesService } from './email-templates.service';
   imports: [PrismaModule],
   providers: [
     SeederService,
-    SystemUserSeederService,
     UsersSeederService,
     OrganizationsSeederService,
     WorkspacesSeederService,

@@ -1,9 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { RequestContextService } from '../common/request-context.service';
 
-// System user ID for fallback operations
-export const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
-
 // Models that should have createdBy/updatedBy fields automatically set
 const AUDITABLE_MODELS = [
   'Organization',
@@ -34,77 +31,71 @@ const AUDITABLE_MODELS = [
 // Fields that should be excluded from automatic updatedBy setting
 const EXCLUDED_UPDATE_FIELDS = ['createdAt', 'updatedAt', 'createdBy'];
 
+// Type guard to check if value is a record
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 export function createAuditExtension() {
   return Prisma.defineExtension({
     name: 'audit',
     query: {
       $allModels: {
         async $allOperations({ operation, model, args, query }) {
-          let currentUserId = RequestContextService.getCurrentUserId();
-          if (!currentUserId) {
-            currentUserId = SYSTEM_USER_ID;
-          }
-
+          const currentUserId = RequestContextService.getCurrentUserId();
+          const hasUser = Boolean(currentUserId);
           const modelName = model;
 
-          // Only apply to auditable models
           if (!modelName || !AUDITABLE_MODELS.includes(modelName)) {
             return query(args);
           }
 
-          // Handle CREATE operations
-          if (operation === 'create') {
-            if (args.data) {
-              const data = args.data as any;
-              // Set createdBy if not already set and field exists
+          if (operation === 'create' && hasUser) {
+            if (args.data && isRecord(args.data)) {
+              const data = args.data as Record<string, unknown>;
+
               if (data.createdBy === undefined) {
                 data.createdBy = currentUserId;
               }
 
-              // Set updatedBy if not already set and field exists (for consistency)
-              if (data.updatedBy === undefined) {
-                // Don't set updatedBy for User model on creation to avoid self-reference issues
-                if (modelName !== 'User' && model !== 'Notification') {
-                  data.updatedBy = currentUserId;
-                }
+              if (data.updatedBy === undefined && modelName !== 'User') {
+                data.updatedBy = currentUserId;
               }
             }
           }
 
-          // Handle UPDATE operations
-          if (operation === 'update' || operation === 'updateMany') {
-            if (args.data) {
-              const data = args.data as any;
-              // Check if this is a meaningful update (not just timestamp updates)
-              const dataKeys = Object.keys(data as object);
+          if ((operation === 'update' || operation === 'updateMany') && hasUser) {
+            if (args.data && isRecord(args.data)) {
+              const data = args.data as Record<string, unknown>;
+
+              const dataKeys = Object.keys(data);
               const hasMeaningfulUpdate = dataKeys.some(
                 (key: string) => !EXCLUDED_UPDATE_FIELDS.includes(key),
               );
 
-              // Set updatedBy if this is a meaningful update and field is not already set
               if (hasMeaningfulUpdate && data.updatedBy === undefined) {
                 data.updatedBy = currentUserId;
               }
             }
           }
 
-          // Handle UPSERT operations
-          if (operation === 'upsert') {
-            // For create case
-            if (args.create) {
-              const createData = args.create as any;
+          if (operation === 'upsert' && hasUser) {
+            if (args.create && isRecord(args.create)) {
+              const createData = args.create as Record<string, unknown>;
+
               if (createData.createdBy === undefined) {
                 createData.createdBy = currentUserId;
               }
+
               if (createData.updatedBy === undefined && modelName !== 'User') {
                 createData.updatedBy = currentUserId;
               }
             }
 
-            // For update case
-            if (args.update) {
-              const updateData = args.update as any;
-              const dataKeys = Object.keys(updateData as object);
+            if (args.update && isRecord(args.update)) {
+              const updateData = args.update as Record<string, unknown>;
+
+              const dataKeys = Object.keys(updateData);
               const hasMeaningfulUpdate = dataKeys.some(
                 (key: string) => !EXCLUDED_UPDATE_FIELDS.includes(key),
               );
@@ -115,17 +106,20 @@ export function createAuditExtension() {
             }
           }
 
-          // Handle createMany operations
-          if (operation === 'createMany' && args.data) {
-            const data = args.data as any;
-            if (Array.isArray(data)) {
-              args.data = data.map((item: any): any => ({
-                ...item,
-                createdBy: item.createdBy ?? currentUserId,
-                ...(modelName !== 'User' && {
-                  updatedBy: item.updatedBy ?? currentUserId,
-                }),
-              })) as any;
+          if (operation === 'createMany' && hasUser && args.data) {
+            if (Array.isArray(args.data)) {
+              const originalData = args.data;
+              args.data = originalData.map((item: unknown) => {
+                if (!isRecord(item)) return item;
+
+                return {
+                  ...item,
+                  createdBy: item.createdBy ?? currentUserId,
+                  ...(modelName !== 'User' && {
+                    updatedBy: item.updatedBy ?? currentUserId,
+                  }),
+                };
+              }) as typeof originalData;
             }
           }
 

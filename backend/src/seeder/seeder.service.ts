@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { SystemUserSeederService } from './system-user.seeder.service';
 import { UsersSeederService } from './users.seeder.service';
 import { OrganizationsSeederService } from './organizations.seeder.service';
 import { WorkspacesSeederService } from './workspaces.seeder.service';
@@ -21,7 +20,6 @@ import { InboxRulesSeederService } from './inbox-rules.seeder.service';
 export class SeederService {
   constructor(
     private prisma: PrismaService,
-    private systemUserSeeder: SystemUserSeederService,
     private adminSeeder: AdminSeederService,
     private usersSeeder: UsersSeederService,
     private organizationsSeeder: OrganizationsSeederService,
@@ -43,10 +41,6 @@ export class SeederService {
     console.log('🌱 Starting core modules seeding...');
 
     try {
-      // 0. Seed System User (must be first)
-      const systemUser = await this.systemUserSeeder.seed();
-      console.log('✅ System user seeded');
-
       // 1. Seed Users (foundation)
       const users = await this.usersSeeder.seed();
       console.log('✅ Users seeded');
@@ -93,7 +87,6 @@ export class SeederService {
       console.log('🎉 Core modules seeding completed successfully!');
 
       return {
-        systemUser,
         users,
         organizations,
         workspaces,
@@ -189,8 +182,6 @@ export class SeederService {
       await this.usersSeeder.clear();
       console.log('✅ Users cleared');
 
-      // Clear system user last (in case other operations depend on it)
-      await this.systemUserSeeder.clear();
       await this.adminSeeder.clear();
 
       console.log('✅ Admin user cleared');

@@ -10,7 +10,6 @@ import { SetupService } from './services/setup.service';
 import { UsersModule } from '../users/users.module';
 import { EmailModule } from '../email/email.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
-import { SystemUserSeederService } from '../../seeder/system-user.seeder.service';
 import { AccessControlService } from 'src/common/access-control.utils';
 
 @Module({
@@ -31,14 +30,7 @@ import { AccessControlService } from 'src/common/access-control.utils';
     }),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    JwtStrategy,
-    LocalStrategy,
-    SetupService,
-    SystemUserSeederService,
-    AccessControlService,
-  ],
+  providers: [AuthService, JwtStrategy, LocalStrategy, SetupService, AccessControlService],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

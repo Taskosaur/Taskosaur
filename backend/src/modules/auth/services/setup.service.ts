@@ -1,6 +1,5 @@
 import { Injectable, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { SystemUserSeederService } from '../../../seeder/system-user.seeder.service';
 import { SetupAdminDto } from '../dto/setup-admin.dto';
 import { Role, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
@@ -16,7 +15,6 @@ export class SetupService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly systemUserSeeder: SystemUserSeederService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}

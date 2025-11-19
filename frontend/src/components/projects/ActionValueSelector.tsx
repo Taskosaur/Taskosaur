@@ -96,25 +96,13 @@ export function ActionValueSelector({
 
   if (actionType === "autoReply") {
     return (
-      <Select value={value as string} onValueChange={onChange}>
-        <SelectTrigger className="flex-1 border border-[var(--border)]">
-          <SelectValue asChild>
-            {value ? (
-              <span>{value === "yes" ? "Yes" : "No"}</span>
-            ) : (
-              <span className="text-[var(--muted-foreground)]">Enable auto-reply?</span>
-            )}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent className="bg-[var(--card)] border border-[var(--border)]">
-          <SelectItem value="yes" className="hover:bg-[var(--hover-bg)] cursor-pointer">
-            Yes
-          </SelectItem>
-          <SelectItem value="no" className="hover:bg-[var(--hover-bg)] cursor-pointer">
-            No
-          </SelectItem>
-        </SelectContent>
-      </Select>
+      <textarea
+        value={value as string}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Enter auto-reply message template..."
+        className="flex-1 min-h-[80px] px-3 py-2 text-sm border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2 resize-y"
+        rows={3}
+      />
     );
   }
 
