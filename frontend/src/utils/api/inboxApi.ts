@@ -7,6 +7,11 @@ import {
   InboxRule,
 } from "@/types/inbox";
 
+// Simple ID validator: allows UUIDs, alphanumeric, dash and underscore. Adjust if stricter pattern is needed.
+function isValidId(id: string): boolean {
+  return /^[\w-]+$/.test(id);
+}
+
 // Inbox API - aligned with your NestJS controller
 export const inboxApi = {
   // Inbox Management
@@ -202,6 +207,9 @@ export const inboxApi = {
     messageId: string;
     recipients: string[];
   }> => {
+    if (!isValidId(taskId) || !isValidId(commentId)) {
+      throw new Error("Invalid taskId or commentId");
+    }
     try {
       const response = await api.post<{
         success: boolean;
