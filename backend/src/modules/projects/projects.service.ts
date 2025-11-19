@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Project, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -233,6 +234,13 @@ export class ProjectsService {
     }
 
     const { status, priority, search, page = 1, pageSize = 10 } = filters || {};
+    // Ensure status and priority are strings if defined (prevent type confusion)
+    if (status !== undefined && typeof status !== 'string') {
+      throw new BadRequestException('Invalid type for parameter "status". Must be a string.');
+    }
+    if (priority !== undefined && typeof priority !== 'string') {
+      throw new BadRequestException('Invalid type for parameter "priority". Must be a string.');
+    }
     const whereClause: any = {
       archive: false,
       OR: [{ members: { some: { userId } } }, { visibility: 'PUBLIC' }],
