@@ -588,6 +588,9 @@ export const taskApi = {
 
   // Task Attachment operations
   uploadAttachment: async (taskId: string, file: File): Promise<TaskAttachment> => {
+    if (!isValidUUID(taskId)) {
+      throw new Error("Invalid taskId format. Expected a UUID.");
+    }
     try {
       const formData = new FormData();
       formData.append("file", file);
