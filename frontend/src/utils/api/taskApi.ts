@@ -26,6 +26,11 @@ function isValidUUID(id: string) {
   return typeof id === "string" && /^[0-9a-fA-F-]{36}$/.test(id);
 }
 
+// Helper to validate slugs (alphanumeric, dash, underscore)
+function isValidSlug(slug: string) {
+  return typeof slug === "string" && /^[a-zA-Z0-9-_]+$/.test(slug);
+}
+
 function formatUUID(id: string) {
   if (!id) return id;
   if (id.includes("-")) return id; // already valid
@@ -305,6 +310,12 @@ export const taskApi = {
     try {
       if (!workspaceSlug || !projectSlug) {
         throw new Error("workspaceSlug and projectSlug are required");
+      }
+      if (!isValidSlug(workspaceSlug)) {
+        throw new Error("Invalid workspaceSlug");
+      }
+      if (!isValidSlug(projectSlug)) {
+        throw new Error("Invalid projectSlug");
       }
 
       const params = new URLSearchParams();
