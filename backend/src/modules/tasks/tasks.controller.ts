@@ -405,8 +405,11 @@ export class TasksController {
   ) {
     const user = getAuthUser(req);
 
-    // Validate file count
-    if (files && files.length > 10) {
+    // Validate file type and count
+    if (!Array.isArray(files)) {
+      throw new BadRequestException('Files must be an array of uploaded file objects');
+    }
+    if (files.length > 10) {
       throw new BadRequestException('Maximum 10 files allowed');
     }
     return this.tasksService.createWithAttachments(createTaskDto, user.id, files);
