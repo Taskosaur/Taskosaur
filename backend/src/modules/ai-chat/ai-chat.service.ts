@@ -51,11 +51,17 @@ export class AiChatService {
   }
 
   private detectProvider(apiUrl: string): string {
-    if (apiUrl.includes('openrouter.ai')) return 'openrouter';
-    if (apiUrl.includes('api.openai.com')) return 'openai';
-    if (apiUrl.includes('api.anthropic.com')) return 'anthropic';
-    if (apiUrl.includes('generativelanguage.googleapis.com')) return 'google';
-    return 'custom'; // fallback for unknown providers
+    try {
+      const { hostname } = new URL(apiUrl);
+      if (hostname === 'openrouter.ai') return 'openrouter';
+      if (hostname === 'api.openai.com') return 'openai';
+      if (hostname === 'api.anthropic.com') return 'anthropic';
+      if (hostname === 'generativelanguage.googleapis.com') return 'google';
+      return 'custom'; // fallback for unknown providers
+    } catch (e) {
+      // If the URL is invalid, fall back to custom
+      return 'custom';
+    }
   }
 
   private generateSystemPrompt(
