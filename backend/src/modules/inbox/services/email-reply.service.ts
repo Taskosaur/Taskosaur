@@ -51,6 +51,7 @@ export class EmailReplyService {
               },
             },
             project: true,
+            createdByUser: true,
           },
         },
         author: {
@@ -74,7 +75,7 @@ export class EmailReplyService {
 
     const inboxMessage = comment.task.inboxMessage;
     if (!inboxMessage) {
-      throw new Error('Task is not linked to an email thread');
+      return this.sendNewThreadEmailAndCreateInboxMessage(comment.id, comment.task.id);
     }
 
     if (comment.sentAsEmail) {
@@ -148,6 +149,132 @@ export class EmailReplyService {
       this.logger.error(`Failed to send email for comment ${commentId}:`, error.message);
       throw new Error(`Failed to send email: ${error.message}`);
     }
+  }
+  private async sendNewThreadEmailAndCreateInboxMessage(commentId: string, taskId: string) {
+    const comment = await this.prisma.taskComment.findUnique({
+      where: { id: commentId },
+      include: {
+        task: true,
+        author: true,
+      },
+    });
+    if (!comment) {
+      throw new Error('Comment not found');
+    }
+
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        project: {
+          select: {
+            name: true,
+            inbox: {
+              select: {
+                id: true,
+                emailAccount: true,
+                autoReplyEnabled: true,
+                autoReplyTemplate: true,
+              },
+            },
+          },
+        },
+        createdByUser: true,
+        reporters: {
+          select: { email: true },
+        },
+      },
+    });
+
+    if (!task) {
+      throw new Error('Task is not found');
+    }
+
+    const account = task.project.inbox?.emailAccount;
+    if (!account) {
+      throw new Error('No email account configured for this project inbox');
+    }
+
+    const transporter = this.getTransporter(account);
+    const emailMessageId = this.generateMessageId();
+
+    const hasEscapedHtml: boolean = /&lt;|&gt;|&amp;|&quot;|&#39;/.test(comment.content);
+    const htmlContent: string = String(
+      hasEscapedHtml ? this.decodeHtml(comment.content) : comment.content,
+    );
+
+    const mailOptions: {
+      from: string;
+      to: string;
+      subject: string;
+      html: string;
+      messageId: string;
+    } = {
+      from: this.formatSenderAddress(comment.author, account),
+      to: task.createdByUser?.email || comment.author.email,
+      subject: `New Task Comment on ${task.project.name}`,
+      html: htmlContent,
+      messageId: emailMessageId,
+    };
+
+    // Append signature logic here or reuse existing
+
+    const info = await transporter.sendMail(mailOptions);
+    if (!task.project.inbox) {
+      throw new Error('No email account configured for this project inbox');
+    }
+    const newInboxMessage = await this.prisma.inboxMessage.create({
+      data: {
+        projectInboxId: task.project.inbox.id,
+        messageId: emailMessageId,
+        threadId: emailMessageId, // Using messageId as threadId, adjust if needed
+        inReplyTo: null,
+        references: [], // Empty for new thread
+        subject: mailOptions.subject,
+        fromEmail: mailOptions.from, // formatted sender address
+        fromName: `${comment.author.firstName} ${comment.author.lastName}`.trim(),
+        toEmails: [mailOptions.to],
+        ccEmails: task.reporters?.map((r) => r.email) ?? [],
+        headers: {},
+        bccEmails: [],
+        replyTo: null,
+        bodyText: null,
+        bodyHtml: htmlContent,
+        textSignature: null,
+        htmlSignature: null,
+        rawSize: Buffer.byteLength(htmlContent, 'utf-8'),
+        hasAttachments: false,
+        importance: null,
+        converted: false,
+        status: 'PENDING',
+        isSpam: false,
+        spamScore: null,
+        emailDate: new Date(),
+        receivedAt: new Date(),
+        processedAt: null,
+      },
+    });
+
+    // Update task to link new inbox message
+    await this.prisma.task.update({
+      where: { id: task.id },
+      data: { inboxMessageId: newInboxMessage.id, emailThreadId: emailMessageId },
+    });
+
+    await this.prisma.taskComment.update({
+      where: { id: comment.id },
+      data: {
+        emailMessageId,
+        sentAsEmail: true,
+        emailRecipients: [mailOptions.to],
+        emailSentAt: new Date(),
+      },
+    });
+
+    return {
+      success: true,
+      messageId: info.messageId,
+      recipients: [mailOptions.to],
+    };
   }
 
   private getTransporter(account: EmailAccount) {

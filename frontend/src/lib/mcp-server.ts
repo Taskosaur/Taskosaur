@@ -1,5 +1,6 @@
 import { automationExecutor } from "./automation-executor";
 import api from "@/lib/api";
+import * as crypto from 'crypto';
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -82,7 +83,6 @@ class MCPServer {
     let randomSuffix = '';
     try {
       // Try Node.js crypto if available
-      const crypto = require('crypto');
       randomSuffix = crypto.randomBytes(4).toString('hex').substring(0, 9);
     } catch (e) {
       randomSuffix = Math.random().toString(36).substring(2, 11);

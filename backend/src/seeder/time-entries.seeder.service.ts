@@ -80,8 +80,7 @@ export class TimeEntriesSeederService {
     // Determine how much total time should be logged based on task estimates
     const estimatedTime = task.originalEstimate || this.getDefaultEstimate(task);
     const actualTimeSpent = Math.floor(
-      estimatedTime *
-        (0.7 + (crypto.randomInt(0, 100000) / 100000) * 0.6)
+      estimatedTime * (0.7 + (crypto.randomInt(0, 100000) / 100000) * 0.6),
     ); // 70-130% of estimate
 
     let remainingTime = actualTimeSpent;
@@ -193,10 +192,7 @@ export class TimeEntriesSeederService {
       maxSession = 480; // Epics can have longer sessions
     }
 
-    const sessionTime = Math.min(
-      remainingTime,
-      crypto.randomInt(minSession, maxSession),
-    );
+    const sessionTime = Math.min(remainingTime, crypto.randomInt(minSession, maxSession));
 
     return sessionTime;
   }

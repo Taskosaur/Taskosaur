@@ -56,9 +56,15 @@ export class AiChatService {
       const hostname = parsedUrl.hostname;
       if (hostname === 'openrouter.ai' || hostname.endsWith('.openrouter.ai')) return 'openrouter';
       if (hostname === 'api.openai.com' || hostname.endsWith('.api.openai.com')) return 'openai';
-      if (hostname === 'api.anthropic.com' || hostname.endsWith('.api.anthropic.com')) return 'anthropic';
-      if (hostname === 'generativelanguage.googleapis.com' || hostname.endsWith('.generativelanguage.googleapis.com')) return 'google';
+      if (hostname === 'api.anthropic.com' || hostname.endsWith('.api.anthropic.com'))
+        return 'anthropic';
+      if (
+        hostname === 'generativelanguage.googleapis.com' ||
+        hostname.endsWith('.generativelanguage.googleapis.com')
+      )
+        return 'google';
     } catch (e) {
+      console.log(e);
       // Invalid URL, fall back to previous logic or return custom (could alternatively throw error)
     }
     return 'custom'; // fallback for unknown providers
