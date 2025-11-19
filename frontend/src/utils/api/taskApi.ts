@@ -965,6 +965,8 @@ export const taskApi = {
   assignTaskAssignees: async (taskId: string, assigneeIds: string[]) => {
     if (!isValidUUID(taskId)) {
       throw new Error("Invalid taskId provided. Must be a valid v4 UUID.");
+    }
+
     // Always use canonical hyphenated UUID form for safety
     const safeTaskId = taskId.includes("-") ? taskId : [
       taskId.slice(0, 8),
@@ -973,7 +975,7 @@ export const taskApi = {
       taskId.slice(16, 20),
       taskId.slice(20, 32),
     ].join("-");
-    }
+
     try {
       const response = await api.patch(`/tasks/${safeTaskId}/assignees`, {
         assigneeIds,

@@ -356,10 +356,10 @@ export default function EmailRulesManager({ projectId }: EmailRulesManagerProps)
               break;
           }
 
-          return { ...action, [field]: value, value: defaultValue };
+          return { ...action, type: newType, value: defaultValue } as RuleAction;
         }
 
-        return { ...action, [field]: value };
+        return { ...action, [field]: value } as RuleAction;
       }),
     }));
   };
