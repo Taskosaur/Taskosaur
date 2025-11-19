@@ -11,10 +11,10 @@ interface TaskInfoPanelProps {
   onFocus: (taskId: string) => void;
 }
 
-13a: // Utility to validate slug strings: alphanumeric and dash only
-13b: function sanitizeSlug(slug: string | undefined): string | undefined {
-13c:   return slug && /^[a-zA-Z0-9\-]+$/.test(slug) ? slug : undefined;
-13d: }
+// Utility to validate slug strings: alphanumeric and dash only
+function sanitizeSlug(slug: string | undefined): string | undefined {
+  return slug && /^[a-zA-Z0-9\-]+$/.test(slug) ? slug : undefined;
+}
 
 // Task Info Panel Component
 export const TaskInfoPanel: React.FC<TaskInfoPanelProps> = ({
@@ -25,6 +25,11 @@ export const TaskInfoPanel: React.FC<TaskInfoPanelProps> = ({
   projectSlug,
   onFocus,
 }) => {
+  const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
+  const safeProjectSlug = sanitizeSlug(projectSlug);
+
+  return (
+    <div
       className={`${
         isCompact ? "w-48" : "w-80"
       } px-4 border-r border-[var(--border)] shrink-0 sticky left-0 z-[999999] py-2 bg-[var(--card)] `}

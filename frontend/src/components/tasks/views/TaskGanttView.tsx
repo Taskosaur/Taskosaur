@@ -11,10 +11,10 @@ import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 
 const MINIMUM_ROWS = 9;
 
-13a: // Utility to validate slug strings: alphanumeric and dash only
-13b: function sanitizeSlug(slug: string | undefined): string | undefined {
-13c:   return slug && /^[a-zA-Z0-9\-]+$/.test(slug) ? slug : undefined;
-13d: }
+// Utility to validate slug strings: alphanumeric and dash only
+function sanitizeSlug(slug: string | undefined): string | undefined {
+  return slug && /^[a-zA-Z0-9\-]+$/.test(slug) ? slug : undefined;
+}
 
 export default function TaskGanttView({
   tasks,
@@ -40,6 +40,12 @@ export default function TaskGanttView({
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [internalViewMode, setInternalViewMode] = useState<ViewMode>("days");
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
+
+  // Sanitize slugs for security
+  const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
+  const safeProjectSlug = sanitizeSlug(projectSlug);
+  const safeTasks = tasks || [];
+
   // Process tasks and generate time range
   const processedTasksData = useMemo(() => {
     try {
@@ -172,7 +178,7 @@ export default function TaskGanttView({
         router.push(href);
       }
     },
-    [workspaceSlug, projectSlug, router]
+    [safeWorkspaceSlug, safeProjectSlug, router]
   );
 
   // Scroll to today
