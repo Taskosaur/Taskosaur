@@ -22,10 +22,11 @@ import {
 } from "@/types";
 
 // UUID validation (accepts v4 UUIDs with/without hyphens)
+import validator from "validator";
+
 function isValidUUID(id: string) {
-  // Allows UUIDs with or without hyphens, 32 hex or 8-4-4-4-12 form
-  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id)
-      || /^[0-9a-fA-F]{32}$/.test(id);
+  // Use strict v4 UUID validation from validator library
+  return validator.isUUID(id, 4);
 }
 
 function formatUUID(id: string) {
@@ -960,12 +961,21 @@ export const taskApi = {
     }
   },
 
+    // Validate and format UUID using strict v4 check
   assignTaskAssignees: async (taskId: string, assigneeIds: string[]) => {
     if (!isValidUUID(taskId)) {
-      throw new Error("Invalid taskId provided.");
+      throw new Error("Invalid taskId provided. Must be a valid v4 UUID.");
+    // Always use canonical hyphenated UUID form for safety
+    const safeTaskId = taskId.includes("-") ? taskId : [
+      taskId.slice(0, 8),
+      taskId.slice(8, 12),
+      taskId.slice(12, 16),
+      taskId.slice(16, 20),
+      taskId.slice(20, 32),
+    ].join("-");
     }
     try {
-      const response = await api.patch(`/tasks/${taskId}/assignees`, {
+      const response = await api.patch(`/tasks/${safeTaskId}/assignees`, {
         assigneeIds,
       });
       return response.data;
