@@ -11,6 +11,11 @@ import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 
 const MINIMUM_ROWS = 9;
 
+13a: // Utility to validate slug strings: alphanumeric and dash only
+13b: function sanitizeSlug(slug: string | undefined): string | undefined {
+13c:   return slug && /^[a-zA-Z0-9\-]+$/.test(slug) ? slug : undefined;
+13d: }
+
 export default function TaskGanttView({
   tasks,
   workspaceSlug,
@@ -19,7 +24,6 @@ export default function TaskGanttView({
   onViewModeChange,
 }: TaskGanttViewProps) {
   const router = useRouter();
-  const safeTasks = useMemo(() => (Array.isArray(tasks) ? tasks : []), [tasks]);
 
   const [ganttTasks, setGanttTasks] = useState<Task[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>({
@@ -160,10 +164,10 @@ export default function TaskGanttView({
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         const href =
-          workspaceSlug && projectSlug
-            ? `/${workspaceSlug}/${projectSlug}/tasks/${task.id}`
-            : workspaceSlug
-              ? `/${workspaceSlug}/tasks/${task.id}`
+          safeWorkspaceSlug && safeProjectSlug
+            ? `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks/${task.id}`
+            : safeWorkspaceSlug
+              ? `/${safeWorkspaceSlug}/tasks/${task.id}`
               : `/tasks/${task.id}`;
         router.push(href);
       }
@@ -345,8 +349,8 @@ export default function TaskGanttView({
                       task={task}
                       isCompact={isCompact}
                       isOverdue={isOverdue}
-                      workspaceSlug={workspaceSlug}
-                      projectSlug={projectSlug}
+                      workspaceSlug={safeWorkspaceSlug}
+                      projectSlug={safeProjectSlug}
                       onFocus={setFocusedTask}
                     />
 
@@ -358,8 +362,8 @@ export default function TaskGanttView({
                       isCompact={isCompact}
                       isHovered={isHovered}
                       isFocused={isFocused}
-                      workspaceSlug={workspaceSlug}
-                      projectSlug={projectSlug}
+                      workspaceSlug={safeWorkspaceSlug}
+                      projectSlug={safeProjectSlug}
                       onHover={setHoveredTask}
                       onFocus={setFocusedTask}
                       onKeyDown={handleKeyDown}
