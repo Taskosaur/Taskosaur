@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TimeEntry, Task, User } from '@prisma/client';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class TimeEntriesSeederService {
@@ -78,7 +79,10 @@ export class TimeEntriesSeederService {
 
     // Determine how much total time should be logged based on task estimates
     const estimatedTime = task.originalEstimate || this.getDefaultEstimate(task);
-    const actualTimeSpent = Math.floor(estimatedTime * (0.7 + Math.random() * 0.6)); // 70-130% of estimate
+    const actualTimeSpent = Math.floor(
+      estimatedTime *
+        (0.7 + (crypto.randomInt(0, 100000) / 100000) * 0.6)
+    ); // 70-130% of estimate
 
     let remainingTime = actualTimeSpent;
     const workDays = this.generateWorkDays(7); // Last 7 days
@@ -93,7 +97,7 @@ export class TimeEntriesSeederService {
 
         // Generate 1-3 time entries per user per day
         const entriesCount = Math.min(
-          Math.floor(Math.random() * 3) + 1,
+          crypto.randomInt(1, 4), // randomInt is [min, max), so 1-3 inclusive
           Math.ceil(remainingTime / 120),
         ); // Max 3 entries, or enough to cover remaining time
 
@@ -172,7 +176,7 @@ export class TimeEntriesSeederService {
 
     // Fallback to random user if no assignee
     if (workingUsers.length === 0) {
-      workingUsers.push(availableUsers[Math.floor(Math.random() * availableUsers.length)]);
+      workingUsers.push(availableUsers[crypto.randomInt(availableUsers.length)]);
     }
 
     return workingUsers;
@@ -191,7 +195,7 @@ export class TimeEntriesSeederService {
 
     const sessionTime = Math.min(
       remainingTime,
-      Math.floor(Math.random() * (maxSession - minSession) + minSession),
+      crypto.randomInt(minSession, maxSession),
     );
 
     return sessionTime;
