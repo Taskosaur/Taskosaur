@@ -28,6 +28,11 @@ export const SprintCard = ({
   const { projectSlug, workspaceSlug } = router.query;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  // Only allow slugs consisting of alphanumerics, hyphens, and underscores, 1-64 chars
+  const isValidSlug = (slug: unknown): slug is string => {
+    return typeof slug === "string" && /^[a-zA-Z0-9_-]{1,64}$/.test(slug);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -58,6 +63,10 @@ export const SprintCard = ({
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest(".dropdown-menu-trigger") || target.closest(".dropdown-menu-content")) {
+      return;
+    }
+    if (!isValidSlug(workspaceSlug) || !isValidSlug(projectSlug)) {
+      // Optionally display an error or just abort navigation
       return;
     }
     router.push(`/${workspaceSlug}/${projectSlug}/sprints/${sprint.id}`);
