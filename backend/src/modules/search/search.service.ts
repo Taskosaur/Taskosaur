@@ -690,7 +690,7 @@ export class SearchService {
   }
 
   async getSuggestions(query: string, limit: number = 10): Promise<string[]> {
-    if (query.length < 2) return [];
+    if (typeof query !== 'string' || query.length < 2) return [];
 
     // Get suggestions from task titles
     const taskTitles = await this.prisma.task.findMany({
