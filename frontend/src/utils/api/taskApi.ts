@@ -650,7 +650,7 @@ export const taskApi = {
 
       // Use the specialized upload endpoint with form data
       const response = await api.post<TaskAttachment>(
-        `/task-attachments/upload/${taskId}`,
+        `/task-attachments/upload/${encodeURIComponent(taskId)}`,
         formData,
         {
           headers: {
@@ -684,9 +684,9 @@ export const taskApi = {
     try {
       let response;
       if (isAuth) {
-        response = await api.get<TaskAttachment[]>(`/task-attachments/task/${taskId}`);
+        response = await api.get<TaskAttachment[]>(`/task-attachments/task/${encodeURIComponent(taskId)}`);
       } else {
-        response = await api.get<TaskAttachment[]>(`/public/project-tasks/attachments/${taskId}`);
+        response = await api.get<TaskAttachment[]>(`/public/project-tasks/attachments/${encodeURIComponent(taskId)}`);
       }
       return response.data;
     } catch (error) {
@@ -873,7 +873,7 @@ export const taskApi = {
       if (!isValidUUID(taskId) || !isValidUUID(labelId)) {
         throw new Error("Invalid taskId or labelId");
       }
-      await api.delete(`/task-labels/${taskId}/${labelId}`);
+      await api.delete(`/task-labels/${encodeURIComponent(taskId)}/${encodeURIComponent(labelId)}`);
     } catch (error) {
       console.error("Remove label from task error:", error);
       throw error;

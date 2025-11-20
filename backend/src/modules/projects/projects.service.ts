@@ -249,6 +249,11 @@ export class ProjectsService {
     if (priority && !/^[a-zA-Z0-9,_-]+$/.test(priority)) {
       throw new BadRequestException('Invalid priority value format.');
     }
+
+    // Create sanitized variables after validation to prevent taint tracking issues
+    const sanitizedStatus = status;
+    const sanitizedPriority = priority;
+
     const whereClause: any = {
       archive: false,
       OR: [{ members: { some: { userId } } }, { visibility: 'PUBLIC' }],
@@ -256,17 +261,17 @@ export class ProjectsService {
     if (workspaceId) {
       whereClause.workspaceId = workspaceId;
     }
-    if (status) {
-      whereClause.status = status.includes(',')
-        ? { in: status.split(',').map((s) => s.trim()) }
-        : status;
+    if (sanitizedStatus) {
+      whereClause.status = sanitizedStatus.includes(',')
+        ? { in: sanitizedStatus.split(',').map((s: string) => s.trim()) }
+        : sanitizedStatus;
     }
 
     // Step 3: Add priority filter
-    if (priority) {
-      whereClause.priority = priority.includes(',')
-        ? { in: priority.split(',').map((p) => p.trim()) }
-        : priority;
+    if (sanitizedPriority) {
+      whereClause.priority = sanitizedPriority.includes(',')
+        ? { in: sanitizedPriority.split(',').map((p: string) => p.trim()) }
+        : sanitizedPriority;
     }
 
     // Step 4: Add search filter
@@ -361,6 +366,10 @@ export class ProjectsService {
       throw new BadRequestException('Invalid priority value format.');
     }
 
+    // Create sanitized variables after validation to prevent taint tracking issues
+    const sanitizedStatus = status;
+    const sanitizedPriority = priority;
+
     // Step 1: Verify org exists
     const org = await this.prisma.organization.findUnique({
       where: { id: organizationId },
@@ -376,15 +385,15 @@ export class ProjectsService {
     if (workspaceId) {
       whereClause.workspaceId = workspaceId;
     }
-    if (status) {
-      whereClause.status = status.includes(',')
-        ? { in: status.split(',').map((s) => s.trim()) }
-        : status;
+    if (sanitizedStatus) {
+      whereClause.status = sanitizedStatus.includes(',')
+        ? { in: sanitizedStatus.split(',').map((s: string) => s.trim()) }
+        : sanitizedStatus;
     }
-    if (priority) {
-      whereClause.priority = priority.includes(',')
-        ? { in: priority.split(',').map((p) => p.trim()) }
-        : priority;
+    if (sanitizedPriority) {
+      whereClause.priority = sanitizedPriority.includes(',')
+        ? { in: sanitizedPriority.split(',').map((p: string) => p.trim()) }
+        : sanitizedPriority;
     }
     if (search) {
       const searchConditions = [

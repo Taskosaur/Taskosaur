@@ -74,6 +74,15 @@ export default function TaskCalendarView({
     return new Date(dateString);
   };
 
+  // Helper function to validate internal paths and prevent open redirect vulnerabilities
+  const isValidInternalPath = (path: string): boolean => {
+    if (!path || typeof path !== 'string') return false;
+    // Ensure the path starts with / and doesn't contain protocol or domain
+    if (!path.startsWith('/')) return false;
+    if (path.includes('://') || path.startsWith('//')) return false;
+    return true;
+  };
+
   const getTaskUrl = (taskId: string) => {
     if (workspaceSlug && projectSlug) {
       return `/${workspaceSlug}/${projectSlug}/tasks/${taskId}`;
@@ -289,7 +298,12 @@ export default function TaskCalendarView({
                       }`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        router.push(getTaskUrl(task.id));
+                        const taskUrl = getTaskUrl(task.id);
+                        if (isValidInternalPath(taskUrl)) {
+                          router.push(taskUrl);
+                        } else {
+                          router.push('/');
+                        }
                       }}
                     >
                       <div className="flex items-center justify-between gap-1">
@@ -405,7 +419,12 @@ export default function TaskCalendarView({
                           className="absolute inset-x-1 top-1 bottom-1 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-sm px-2 py-1 text-xs font-medium hover:bg-[var(--primary)]/90 hover:shadow-sm transition-all duration-200 truncate z-10 flex items-center group cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
-                            router.push(getTaskUrl(task.id));
+                            const taskUrl = getTaskUrl(task.id);
+                            if (isValidInternalPath(taskUrl)) {
+                              router.push(taskUrl);
+                            } else {
+                              router.push('/');
+                            }
                           }}
                         >
                           <div className="flex items-center gap-1 w-full">
@@ -576,7 +595,14 @@ export default function TaskCalendarView({
                           ? " text-red-800  dark:text-red-300"
                           : " text-foreground  dark:text-foreground"
                       }`}
-                      onClick={() => router.push(getTaskUrl(task.id))}
+                      onClick={() => {
+                        const taskUrl = getTaskUrl(task.id);
+                        if (isValidInternalPath(taskUrl)) {
+                          router.push(taskUrl);
+                        } else {
+                          router.push('/');
+                        }
+                      }}
                     >
                       <div className="flex items-start justify-between gap-3 ">
                         <div className="flex-1">

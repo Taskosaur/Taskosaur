@@ -33,6 +33,15 @@ import { TASK_TYPE_OPTIONS, TaskTypeIcon, getTaskTypeHexColor } from "@/utils/da
 import { DynamicBadge } from "@/components/common/DynamicBadge";
 import TaskDetailSkeleton from "../skeletons/TaskDetailSkeleton";
 
+// Helper function to validate internal paths and prevent open redirect vulnerabilities
+function isValidInternalPath(path: string): boolean {
+  if (!path || typeof path !== 'string') return false;
+  // Ensure the path starts with / and doesn't contain protocol or domain
+  if (!path.startsWith('/')) return false;
+  if (path.includes('://') || path.startsWith('//')) return false;
+  return true;
+}
+
 interface TaskDetailClientProps {
   task: any;
   taskId: string;
@@ -881,7 +890,13 @@ export default function TaskDetailClient({
                   <div className="absolute -top-[25px] right-11 z-50">
                     {isAuth && (
                       <Tooltip content="Expand to full screen" position="left">
-                        <div onClick={() => router.push(detailUrl)}>
+                        <div onClick={() => {
+                          if (isValidInternalPath(detailUrl)) {
+                            router.push(detailUrl);
+                          } else {
+                            router.push('/');
+                          }
+                        }}>
                           <CgArrowsExpandRight className="size-[17px] stroke-[0.5px] cursor-pointer" />
                         </div>
                       </Tooltip>
