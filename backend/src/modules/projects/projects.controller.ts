@@ -75,6 +75,10 @@ export class ProjectsController {
     @Query('page') page = '1',
     @Query('pageSize') pageSize = '10',
   ) {
+    if ((status !== undefined && typeof status !== 'string') ||
+        (priority !== undefined && typeof priority !== 'string')) {
+      throw new BadRequestException('Invalid parameter: status and priority must be strings if provided.');
+    }
     return this.projectsService.findAll(workspaceId, user.id, {
       status,
       priority,
@@ -97,6 +101,10 @@ export class ProjectsController {
     @Query('pageSize') pageSize?: string,
     @Query('search') search?: string,
   ) {
+    if ((status !== undefined && typeof status !== 'string') ||
+        (priority !== undefined && typeof priority !== 'string')) {
+      throw new BadRequestException('Invalid parameter: status and priority must be strings if provided.');
+    }
     const filters = {
       organizationId,
       workspaceId,
