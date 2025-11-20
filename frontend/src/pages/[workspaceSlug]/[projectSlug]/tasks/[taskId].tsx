@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
 import { useTask } from "@/contexts/task-context";
+import { isValidUUID } from "@/utils/api/taskApi";
 import { useAuth } from "@/contexts/auth-context";
 import TaskDetailClient from "@/components/tasks/TaskDetailClient";
 import ErrorState from "@/components/common/ErrorState";
@@ -22,6 +23,12 @@ function TaskDetailContent() {
     const fetchTask = async () => {
       if (!taskId || !isAuthenticated()) {
         setError("Task ID required");
+        setLoading(false);
+        return;
+      }
+      // Validate taskId as a UUID before making any API calls
+      if (!isValidUUID(taskId as string)) {
+        setError("Invalid Task ID format");
         setLoading(false);
         return;
       }
