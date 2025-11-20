@@ -234,11 +234,17 @@ export class ProjectsService {
     }
 
     const { status, priority, search, page = 1, pageSize = 10 } = filters || {};
-    // Ensure status and priority are strings if defined (prevent type confusion)
-    if (status !== undefined && typeof status !== 'string') {
+    // Ensure status and priority are primitive strings if defined (prevent type confusion)
+    if (
+      status !== undefined &&
+      (typeof status !== 'string' || Array.isArray(status))
+    ) {
       throw new BadRequestException('Invalid type for parameter "status". Must be a string.');
     }
-    if (priority !== undefined && typeof priority !== 'string') {
+    if (
+      priority !== undefined &&
+      (typeof priority !== 'string' || Array.isArray(priority))
+    ) {
       throw new BadRequestException('Invalid type for parameter "priority". Must be a string.');
     }
     const whereClause: any = {
