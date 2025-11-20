@@ -145,3 +145,4 @@ temp/
 
 # Misc
 .turbo
+.codeql
