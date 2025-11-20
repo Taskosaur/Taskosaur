@@ -352,12 +352,12 @@ export class ProjectsService {
     if (workspaceId) {
       whereClause.workspaceId = workspaceId;
     }
-    if (status) {
+    if (status && typeof status === 'string') {
       whereClause.status = status.includes(',')
         ? { in: status.split(',').map((s) => s.trim()) }
         : status;
     }
-    if (priority) {
+    if (priority && typeof priority === 'string') {
       whereClause.priority = priority.includes(',')
         ? { in: priority.split(',').map((p) => p.trim()) }
         : priority;
