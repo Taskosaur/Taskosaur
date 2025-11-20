@@ -31,6 +31,14 @@ function isValidInternalPath(path: string): boolean {
   return true;
 }
 
+// Helper function to sanitize slug inputs before URL construction
+function sanitizeSlug(slug: string | string[] | undefined): string {
+  if (!slug || typeof slug !== 'string') return '';
+  // Allow alphanumeric, dash, underscore, and dot
+  if (!/^[a-zA-Z0-9._-]+$/.test(slug)) return '';
+  return slug;
+}
+
 function ProjectSettingsContent() {
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
@@ -116,7 +124,18 @@ function ProjectSettingsContent() {
         try {
           const result = await archiveProject(project.id);
           if (result.success) {
-            await router.replace(`/${workspaceSlug}/projects`);
+            const safeSlug = sanitizeSlug(workspaceSlug);
+            if (!safeSlug) {
+              console.error('Invalid workspace slug');
+              await router.replace('/');
+              return;
+            }
+            const path = `/${safeSlug}/projects`;
+            if (isValidInternalPath(path)) {
+              await router.replace(path);
+            } else {
+              await router.replace('/');
+            }
           } else {
             toast.error("Failed to archive project");
           }
@@ -137,7 +156,18 @@ function ProjectSettingsContent() {
         try {
           await deleteProject(project.id);
 
-          await router.replace(`/${workspaceSlug}/projects`);
+          const safeSlug = sanitizeSlug(workspaceSlug);
+          if (!safeSlug) {
+            console.error('Invalid workspace slug');
+            await router.replace('/');
+            return;
+          }
+          const path = `/${safeSlug}/projects`;
+          if (isValidInternalPath(path)) {
+            await router.replace(path);
+          } else {
+            await router.replace('/');
+          }
         } catch (error) {
           console.error("Delete error:", error);
           toast.error("Failed to delete project");
@@ -179,7 +209,13 @@ function ProjectSettingsContent() {
         if (!projectData) {
           setError("Project not found");
           setLoading(false);
-          const path = `/${workspaceSlug}/projects`;
+          const safeSlug = sanitizeSlug(workspaceSlug);
+          if (!safeSlug) {
+            console.error('Invalid workspace slug');
+            router.replace('/');
+            return;
+          }
+          const path = `/${safeSlug}/projects`;
           if (isValidInternalPath(path)) {
             router.replace(path);
           } else {
@@ -202,7 +238,13 @@ function ProjectSettingsContent() {
         setError(errorMessage);
 
         if (errorMessage.includes("not found") || errorMessage.includes("404")) {
-          const path = `/${workspaceSlug}/projects`;
+          const safeSlug = sanitizeSlug(workspaceSlug);
+          if (!safeSlug) {
+            console.error('Invalid workspace slug');
+            router.replace('/');
+            return;
+          }
+          const path = `/${safeSlug}/projects`;
           if (isValidInternalPath(path)) {
             router.replace(path);
           } else {

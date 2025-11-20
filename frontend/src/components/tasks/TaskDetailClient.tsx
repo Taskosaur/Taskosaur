@@ -32,6 +32,7 @@ import { ToggleSwitch } from "../common/ToggleButton";
 import { TASK_TYPE_OPTIONS, TaskTypeIcon, getTaskTypeHexColor } from "@/utils/data/taskData";
 import { DynamicBadge } from "@/components/common/DynamicBadge";
 import TaskDetailSkeleton from "../skeletons/TaskDetailSkeleton";
+import validator from "validator";
 
 // Helper function to validate internal paths and prevent open redirect vulnerabilities
 function isValidInternalPath(path: string): boolean {
@@ -40,6 +41,14 @@ function isValidInternalPath(path: string): boolean {
   if (!path.startsWith('/')) return false;
   if (path.includes('://') || path.startsWith('//')) return false;
   return true;
+}
+
+// Helper function to sanitize slug inputs before URL construction
+function sanitizeSlug(slug: string | string[] | undefined): string {
+  if (!slug || typeof slug !== 'string') return '';
+  // Allow alphanumeric, dash, underscore, and dot
+  if (!/^[a-zA-Z0-9._-]+$/.test(slug)) return '';
+  return slug;
 }
 
 interface TaskDetailClientProps {
@@ -863,12 +872,24 @@ export default function TaskDetailClient({
     }
   }, [projectMembers, task.assigneeId, task.reporterId]);
 
-  const detailUrl =
-    workspaceSlug && projectSlug
-      ? `/${workspaceSlug}/${projectSlug}/tasks/${task.id}`
-      : workspaceSlug
-        ? `/${workspaceSlug}/tasks/${task.id}`
-        : `/tasks/${task.id}`;
+  // Validate task.id before URL construction
+  const detailUrl = (() => {
+    if (!validator.isUUID(task.id, 4)) {
+      console.error('Invalid task ID format:', task.id);
+      return '';
+    }
+
+    const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
+    const safeProjectSlug = sanitizeSlug(projectSlug);
+
+    if (safeWorkspaceSlug && safeProjectSlug) {
+      return `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks/${task.id}`;
+    } else if (safeWorkspaceSlug) {
+      return `/${safeWorkspaceSlug}/tasks/${task.id}`;
+    } else {
+      return `/tasks/${task.id}`;
+    }
+  })();
 
   const isInitialLoading = !initialLoadComplete || !minLoadTimeElapsed;
 

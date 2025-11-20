@@ -20,6 +20,7 @@ import { Task } from "@/types";
 import { Label, Select } from "../ui";
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { PRIORITY_OPTIONS, TASK_TYPE_OPTIONS } from "@/utils/data/taskData";
+import validator from "validator";
 
 interface User {
   id: string;
@@ -483,9 +484,26 @@ export default function Subtasks({
                     return;
                   }
                   setSelectedSubtask(subtask);
+
+                  // Validate subtask.id as UUID before URL construction
+                  if (!validator.isUUID(subtask.id, 4)) {
+                    console.error('Invalid subtask ID format:', subtask.id);
+                    return;
+                  }
+
+                  // Sanitize slugs before URL construction
+                  const sanitizeSlug = (slug: string | string[] | undefined): string => {
+                    if (!slug || typeof slug !== 'string') return '';
+                    if (!/^[a-zA-Z0-9._-]+$/.test(slug)) return '';
+                    return slug;
+                  };
+
+                  const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
+                  const safeProjectSlug = sanitizeSlug(projectSlug);
+
                   const subtaskUrl =
-                    workspaceSlug && projectSlug
-                      ? `/${workspaceSlug}/${projectSlug}/tasks/${subtask.id}`
+                    safeWorkspaceSlug && safeProjectSlug
+                      ? `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks/${subtask.id}`
                       : `/tasks/${subtask.id}`;
 
                   if (editingSubtaskId !== subtask.id) {

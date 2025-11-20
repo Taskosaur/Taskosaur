@@ -234,25 +234,35 @@ export class ProjectsService {
     }
 
     const { status, priority, search, page = 1, pageSize = 10 } = filters || {};
-    // Ensure status and priority are strings if defined (prevent type confusion)
-    if (status !== undefined && typeof status !== 'string') {
+
+    // Normalize status and priority to strings (handle potential arrays from query params)
+    const normalizedStatus: string | undefined = status
+      ? Array.isArray(status)
+        ? status[0]
+        : status
+      : undefined;
+    const normalizedPriority: string | undefined = priority
+      ? Array.isArray(priority)
+        ? priority[0]
+        : priority
+      : undefined;
+
+    // Validate types after normalization
+    if (normalizedStatus !== undefined && typeof normalizedStatus !== 'string') {
       throw new BadRequestException('Invalid type for parameter "status". Must be a string.');
     }
-    if (priority !== undefined && typeof priority !== 'string') {
+    if (normalizedPriority !== undefined && typeof normalizedPriority !== 'string') {
       throw new BadRequestException('Invalid type for parameter "priority". Must be a string.');
     }
+
     // Additional sanitization for status values
-    if (status && !/^[a-zA-Z0-9,_-]+$/.test(status)) {
+    if (normalizedStatus && !/^[a-zA-Z0-9,_-]+$/.test(normalizedStatus)) {
       throw new BadRequestException('Invalid status value format.');
     }
     // Additional sanitization for priority values
-    if (priority && !/^[a-zA-Z0-9,_-]+$/.test(priority)) {
+    if (normalizedPriority && !/^[a-zA-Z0-9,_-]+$/.test(normalizedPriority)) {
       throw new BadRequestException('Invalid priority value format.');
     }
-
-    // Create sanitized variables after validation to prevent taint tracking issues
-    const sanitizedStatus = status;
-    const sanitizedPriority = priority;
 
     const whereClause: any = {
       archive: false,
@@ -261,17 +271,17 @@ export class ProjectsService {
     if (workspaceId) {
       whereClause.workspaceId = workspaceId;
     }
-    if (sanitizedStatus) {
-      whereClause.status = sanitizedStatus.includes(',')
-        ? { in: sanitizedStatus.split(',').map((s: string) => s.trim()) }
-        : sanitizedStatus;
+    if (normalizedStatus) {
+      whereClause.status = normalizedStatus.includes(',')
+        ? { in: normalizedStatus.split(',').map((s: string) => s.trim()) }
+        : normalizedStatus;
     }
 
     // Step 3: Add priority filter
-    if (sanitizedPriority) {
-      whereClause.priority = sanitizedPriority.includes(',')
-        ? { in: sanitizedPriority.split(',').map((p: string) => p.trim()) }
-        : sanitizedPriority;
+    if (normalizedPriority) {
+      whereClause.priority = normalizedPriority.includes(',')
+        ? { in: normalizedPriority.split(',').map((p: string) => p.trim()) }
+        : normalizedPriority;
     }
 
     // Step 4: Add search filter
@@ -350,25 +360,34 @@ export class ProjectsService {
       search,
     } = filters;
 
-    // Ensure status and priority are strings if defined (prevent type confusion)
-    if (status !== undefined && typeof status !== 'string') {
+    // Normalize status and priority to strings (handle potential arrays from query params)
+    const normalizedStatus: string | undefined = status
+      ? Array.isArray(status)
+        ? status[0]
+        : status
+      : undefined;
+    const normalizedPriority: string | undefined = priority
+      ? Array.isArray(priority)
+        ? priority[0]
+        : priority
+      : undefined;
+
+    // Validate types after normalization
+    if (normalizedStatus !== undefined && typeof normalizedStatus !== 'string') {
       throw new BadRequestException('Invalid type for parameter "status". Must be a string.');
     }
-    if (priority !== undefined && typeof priority !== 'string') {
+    if (normalizedPriority !== undefined && typeof normalizedPriority !== 'string') {
       throw new BadRequestException('Invalid type for parameter "priority". Must be a string.');
     }
+
     // Additional sanitization for status values
-    if (status && !/^[a-zA-Z0-9,_-]+$/.test(status)) {
+    if (normalizedStatus && !/^[a-zA-Z0-9,_-]+$/.test(normalizedStatus)) {
       throw new BadRequestException('Invalid status value format.');
     }
     // Additional sanitization for priority values
-    if (priority && !/^[a-zA-Z0-9,_-]+$/.test(priority)) {
+    if (normalizedPriority && !/^[a-zA-Z0-9,_-]+$/.test(normalizedPriority)) {
       throw new BadRequestException('Invalid priority value format.');
     }
-
-    // Create sanitized variables after validation to prevent taint tracking issues
-    const sanitizedStatus = status;
-    const sanitizedPriority = priority;
 
     // Step 1: Verify org exists
     const org = await this.prisma.organization.findUnique({
@@ -385,15 +404,15 @@ export class ProjectsService {
     if (workspaceId) {
       whereClause.workspaceId = workspaceId;
     }
-    if (sanitizedStatus) {
-      whereClause.status = sanitizedStatus.includes(',')
-        ? { in: sanitizedStatus.split(',').map((s: string) => s.trim()) }
-        : sanitizedStatus;
+    if (normalizedStatus) {
+      whereClause.status = normalizedStatus.includes(',')
+        ? { in: normalizedStatus.split(',').map((s: string) => s.trim()) }
+        : normalizedStatus;
     }
-    if (sanitizedPriority) {
-      whereClause.priority = sanitizedPriority.includes(',')
-        ? { in: sanitizedPriority.split(',').map((p: string) => p.trim()) }
-        : sanitizedPriority;
+    if (normalizedPriority) {
+      whereClause.priority = normalizedPriority.includes(',')
+        ? { in: normalizedPriority.split(',').map((p: string) => p.trim()) }
+        : normalizedPriority;
     }
     if (search) {
       const searchConditions = [

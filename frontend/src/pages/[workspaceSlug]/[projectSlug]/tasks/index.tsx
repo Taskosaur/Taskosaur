@@ -48,6 +48,14 @@ function isValidInternalPath(path: string): boolean {
   return true;
 }
 
+// Helper function to sanitize slug inputs before URL construction
+function sanitizeSlug(slug: string | string[] | undefined): string {
+  if (!slug || typeof slug !== 'string') return '';
+  // Allow alphanumeric, dash, underscore, and dot
+  if (!/^[a-zA-Z0-9._-]+$/.test(slug)) return '';
+  return slug;
+}
+
 function ProjectTasksContent() {
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
@@ -1048,7 +1056,14 @@ function ProjectTasksContent() {
                   showPlusIcon
                   onClick={() => {
                     checkAuthForAction(() => {
-                      const path = `/${workspaceSlug}/${projectSlug}/tasks/new`;
+                      const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
+                      const safeProjectSlug = sanitizeSlug(projectSlug);
+                      if (!safeWorkspaceSlug || !safeProjectSlug) {
+                        console.error('Invalid workspace or project slug');
+                        router.push('/');
+                        return;
+                      }
+                      const path = `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks/new`;
                       if (isValidInternalPath(path)) {
                         router.push(path);
                       } else {
@@ -1096,7 +1111,14 @@ function ProjectTasksContent() {
               return;
             }
             setCurrentView(v);
-            const path = `/${workspaceSlug}/${projectSlug}/tasks?type=${v}`;
+            const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
+            const safeProjectSlug = sanitizeSlug(projectSlug);
+            if (!safeWorkspaceSlug || !safeProjectSlug) {
+              console.error('Invalid workspace or project slug');
+              router.push('/');
+              return;
+            }
+            const path = `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks?type=${v}`;
             if (isValidInternalPath(path.split('?')[0])) {
               router.push(path, undefined, {
                 shallow: true,

@@ -43,6 +43,14 @@ function isValidInternalPath(path: string): boolean {
   return true;
 }
 
+// Helper function to sanitize slug inputs before URL construction
+function sanitizeSlug(slug: string | string[] | undefined): string {
+  if (!slug || typeof slug !== 'string') return '';
+  // Allow alphanumeric, dash, underscore, and dot
+  if (!/^[a-zA-Z0-9._-]+$/.test(slug)) return '';
+  return slug;
+}
+
 interface Workspace {
   id: string;
   name: string;
@@ -834,7 +842,13 @@ function WorkspaceTasksContent() {
                   primary
                   showPlusIcon
                   onClick={() => {
-                    const path = `/${workspaceSlug}/tasks/new`;
+                    const safeSlug = sanitizeSlug(workspaceSlug);
+                    if (!safeSlug) {
+                      console.error('Invalid workspace slug');
+                      router.push('/');
+                      return;
+                    }
+                    const path = `/${safeSlug}/tasks/new`;
                     if (isValidInternalPath(path)) {
                       router.push(path);
                     } else {
@@ -874,7 +888,13 @@ function WorkspaceTasksContent() {
           currentView={currentView}
           onViewChange={(v) => {
             setCurrentView(v);
-            const path = `/${workspaceSlug}/tasks?type=${v}`;
+            const safeSlug = sanitizeSlug(workspaceSlug);
+            if (!safeSlug) {
+              console.error('Invalid workspace slug');
+              router.push('/');
+              return;
+            }
+            const path = `/${safeSlug}/tasks?type=${v}`;
             if (isValidInternalPath(path.split('?')[0])) {
               router.push(path, undefined, {
                 shallow: true,

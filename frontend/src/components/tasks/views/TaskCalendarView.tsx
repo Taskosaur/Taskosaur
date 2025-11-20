@@ -7,6 +7,7 @@ import UserAvatar from "@/components/ui/avatars/UserAvatar";
 import { StatusBadge } from "@/components/ui";
 import { PriorityBadge } from "@/components/ui";
 import MDEditor from "@uiw/react-md-editor";
+import validator from "validator";
 
 interface Task {
   id: string;
@@ -83,11 +84,28 @@ export default function TaskCalendarView({
     return true;
   };
 
+  // Helper function to sanitize slug inputs before URL construction
+  const sanitizeSlug = (slug: string | string[] | undefined): string => {
+    if (!slug || typeof slug !== 'string') return '';
+    // Allow alphanumeric, dash, underscore, and dot
+    if (!/^[a-zA-Z0-9._-]+$/.test(slug)) return '';
+    return slug;
+  };
+
   const getTaskUrl = (taskId: string) => {
-    if (workspaceSlug && projectSlug) {
-      return `/${workspaceSlug}/${projectSlug}/tasks/${taskId}`;
-    } else if (workspaceSlug) {
-      return `/${workspaceSlug}/tasks/${taskId}`;
+    // Validate taskId as UUID before URL construction
+    if (!validator.isUUID(taskId, 4)) {
+      console.error('Invalid task ID format:', taskId);
+      return '';
+    }
+
+    const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
+    const safeProjectSlug = sanitizeSlug(projectSlug);
+
+    if (safeWorkspaceSlug && safeProjectSlug) {
+      return `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks/${taskId}`;
+    } else if (safeWorkspaceSlug) {
+      return `/${safeWorkspaceSlug}/tasks/${taskId}`;
     } else {
       return `/tasks/${taskId}`;
     }
