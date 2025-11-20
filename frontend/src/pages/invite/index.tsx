@@ -6,13 +6,21 @@ import { HiArrowPath } from "react-icons/hi2";
 import { invitationApi } from "@/utils/api/invitationsApi";
 import { useAuth } from "@/contexts/auth-context";
 
+// Validate token format: only accept hex/uuid/alphanum, adjust RegExp as needed.
+function isValidToken(token: unknown): boolean {
+  // Example: UUID v4 or 32-64 hex/alphanumeric chars (customize for your use case)
+  if (typeof token !== "string") return false;
+  // UUID v4: /^[0-9a-fA-F-]{36}$/ or simple hex/alphanum: /^[A-Za-z0-9_-]{20,64}$/
+  return /^[A-Za-z0-9_-]{20,64}$/.test(token);
+}
+
 export default function InviteRedirect() {
   const router = useRouter();
   const { token } = router.query;
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    if (!token) {
+    if (!token || !isValidToken(token)) {
       router.replace("/");
       return;
     }
