@@ -13,6 +13,25 @@ import {
   WorkspaceMember,
   WorkspaceStats,
 } from "@/types";
+import validator from "validator";
+
+// Utility functions for validation
+function isValidUUID(id: string) {
+  return validator.isUUID(id, 4);
+}
+
+function sanitizeSlug(slug: string): string {
+  if (!slug || typeof slug !== 'string') {
+    throw new Error('Invalid slug: must be a non-empty string');
+  }
+  if (!/^[a-zA-Z0-9._-]+$/.test(slug)) {
+    throw new Error('Invalid slug format: contains invalid characters');
+  }
+  if (slug.includes('..') || slug.includes('//')) {
+    throw new Error('Invalid slug: path traversal detected');
+  }
+  return encodeURIComponent(slug);
+}
 
 export const workspaceApi = {
   // Workspace CRUD operations
@@ -82,8 +101,12 @@ export const workspaceApi = {
 
   getWorkspaceBySlug: async (slug: string, organizationId: string): Promise<Workspace> => {
     try {
+      const sanitizedSlug = sanitizeSlug(slug);
+      if (!isValidUUID(organizationId)) {
+        throw new Error('Invalid organizationId: must be a valid UUID');
+      }
       const response = await api.get<Workspace>(
-        `/workspaces/organization/${organizationId}/slug/${slug}`
+        `/workspaces/organization/${organizationId}/slug/${sanitizedSlug}`
       );
       return response.data;
     } catch (error) {

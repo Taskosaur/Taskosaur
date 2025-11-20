@@ -9,6 +9,23 @@ import {
   InvitationStatus,
   VerifyInvitationResponse,
 } from "@/types";
+import validator from "validator";
+
+// Utility functions for validation
+function isValidUUID(id: string) {
+  return validator.isUUID(id, 4);
+}
+
+function sanitizeToken(token: string): string {
+  if (!token || typeof token !== 'string') {
+    throw new Error('Invalid token: must be a non-empty string');
+  }
+  // Tokens should be alphanumeric and may include hyphens, underscores
+  if (!/^[a-zA-Z0-9_-]+$/.test(token)) {
+    throw new Error('Invalid token format');
+  }
+  return encodeURIComponent(token);
+}
 
 export const invitationApi = {
   // Updated invitation creation to match backend DTO
@@ -69,7 +86,8 @@ export const invitationApi = {
 
   acceptInvitation: async (token: string): Promise<AcceptInvitationResponse> => {
     try {
-      const response = await api.patch<AcceptInvitationResponse>(`/invitations/${token}/accept`);
+      const sanitizedToken = sanitizeToken(token);
+      const response = await api.patch<AcceptInvitationResponse>(`/invitations/${sanitizedToken}/accept`);
       return response.data;
     } catch (error) {
       console.error("Accept invitation error:", error);
@@ -79,7 +97,8 @@ export const invitationApi = {
 
   declineInvitation: async (token: string): Promise<DeclineInvitationResponse> => {
     try {
-      const response = await api.patch<DeclineInvitationResponse>(`/invitations/${token}/decline`);
+      const sanitizedToken = sanitizeToken(token);
+      const response = await api.patch<DeclineInvitationResponse>(`/invitations/${sanitizedToken}/decline`);
       return response.data;
     } catch (error) {
       console.error("Decline invitation error:", error);
@@ -332,7 +351,8 @@ export const invitationApi = {
   },
   verifyInvitation: async (token: string): Promise<VerifyInvitationResponse> => {
     try {
-      const response = await api.get<VerifyInvitationResponse>(`/invitations/verify/${token}`);
+      const sanitizedToken = sanitizeToken(token);
+      const response = await api.get<VerifyInvitationResponse>(`/invitations/verify/${sanitizedToken}`);
       return response.data;
     } catch (error: any) {
       console.error("Verify invitation error:", error);

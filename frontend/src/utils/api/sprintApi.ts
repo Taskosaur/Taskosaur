@@ -7,6 +7,25 @@ import {
   SprintStatus,
   UpdateSprintData,
 } from "@/types";
+import validator from "validator";
+
+// Utility functions for validation
+function isValidUUID(id: string) {
+  return validator.isUUID(id, 4);
+}
+
+function sanitizeSlug(slug: string): string {
+  if (!slug || typeof slug !== 'string') {
+    throw new Error('Invalid slug: must be a non-empty string');
+  }
+  if (!/^[a-zA-Z0-9._-]+$/.test(slug)) {
+    throw new Error('Invalid slug format: contains invalid characters');
+  }
+  if (slug.includes('..') || slug.includes('//')) {
+    throw new Error('Invalid slug: path traversal detected');
+  }
+  return encodeURIComponent(slug);
+}
 
 export const sprintApi = {
   // Sprint CRUD operations
@@ -40,8 +59,10 @@ export const sprintApi = {
             "workspaceSlug and projectSlug (filters.slug) are required for public access"
           );
         }
+        const sanitizedWorkspaceSlug = sanitizeSlug(workspaceSlug);
+        const sanitizedProjectSlug = sanitizeSlug(filters.slug);
         response = await api.get<Sprint[]>(
-          `/public/workspaces/${workspaceSlug}/projects/${filters.slug}/sprints`
+          `/public/workspaces/${sanitizedWorkspaceSlug}/projects/${sanitizedProjectSlug}/sprints`
         );
       }
 

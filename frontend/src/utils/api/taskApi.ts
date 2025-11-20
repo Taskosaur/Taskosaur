@@ -35,6 +35,23 @@ function formatUUID(id: string) {
   return id.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
 }
 
+// Validate and sanitize slug values to prevent SSRF
+function sanitizeSlug(slug: string): string {
+  if (!slug || typeof slug !== 'string') {
+    throw new Error('Invalid slug: must be a non-empty string');
+  }
+  // Slugs should only contain alphanumeric, hyphens, underscores, and dots
+  // This prevents path traversal and other injection attacks
+  if (!/^[a-zA-Z0-9._-]+$/.test(slug)) {
+    throw new Error('Invalid slug format: contains invalid characters');
+  }
+  // Prevent path traversal
+  if (slug.includes('..') || slug.includes('//')) {
+    throw new Error('Invalid slug: path traversal detected');
+  }
+  return encodeURIComponent(slug);
+}
+
 export const taskApi = {
   getTaskStatusByProject: async ({
     projectId,
@@ -311,8 +328,12 @@ export const taskApi = {
       if (filters?.priority) params.append("priority", filters.priority);
       if (filters?.type) params.append("type", filters.type);
 
+      // Sanitize slugs to prevent SSRF
+      const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
+      const safeProjectSlug = sanitizeSlug(projectSlug);
+
       const response = await api.get<PaginatedTaskResponse>(
-        `/public/project-tasks/${workspaceSlug}/projects/${projectSlug}/tasks?${params.toString()}`
+        `/public/project-tasks/${safeWorkspaceSlug}/projects/${safeProjectSlug}/tasks?${params.toString()}`
       );
 
       return response.data;
@@ -421,6 +442,9 @@ export const taskApi = {
 
   getTasksOnly: async (projectId?: string): Promise<Task[]> => {
     try {
+      if (projectId && !isValidUUID(projectId)) {
+        throw new Error('Invalid project ID format');
+      }
       const query = projectId ? `?projectId=${projectId}&parentTaskId=null` : "?parentTaskId=null";
       const response = await api.get<Task[]>(`/tasks${query}`);
       return response.data;
@@ -432,6 +456,9 @@ export const taskApi = {
 
   getSubtasksOnly: async (projectId?: string): Promise<Task[]> => {
     try {
+      if (projectId && !isValidUUID(projectId)) {
+        throw new Error('Invalid project ID format');
+      }
       const baseQuery = projectId ? `?projectId=${projectId}` : "";
       const response = await api.get<Task[]>(`/tasks${baseQuery}`);
       return response.data.filter((task: any) => task.parentTaskId);
@@ -443,6 +470,9 @@ export const taskApi = {
 
   getTaskById: async (taskId: string, isAuth: boolean): Promise<Task> => {
     try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
       let response;
       if (isAuth) {
         response = await api.get<Task>(`/tasks/${taskId}`);
@@ -458,6 +488,9 @@ export const taskApi = {
 
   updateTask: async (taskId: string, taskData: UpdateTaskRequest): Promise<Task> => {
     try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
       const response = await api.patch<Task>(`/tasks/${taskId}`, taskData);
       return response.data;
     } catch (error) {
@@ -468,6 +501,9 @@ export const taskApi = {
 
   deleteTask: async (taskId: string): Promise<void> => {
     try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
       await api.delete(`/tasks/${taskId}`);
     } catch (error) {
       console.error("Delete task error:", error);
@@ -503,6 +539,9 @@ export const taskApi = {
     limit: number = 10
   ): Promise<any> => {
     try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
       let response;
       if (isAuth) {
         response = await api.get<Task[]>(
@@ -522,6 +561,9 @@ export const taskApi = {
 
   getTasksByWorkspace: async (workspaceId: string): Promise<Task[]> => {
     try {
+      if (!isValidUUID(workspaceId)) {
+        throw new Error('Invalid workspace ID format');
+      }
       const response = await api.get<Task[]>(`/tasks?workspaceId=${workspaceId}`);
       return response.data;
     } catch (error) {
@@ -543,6 +585,9 @@ export const taskApi = {
 
   getTaskComments: async (taskId: string, isAuth: boolean): Promise<TaskComment[]> => {
     try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
       let response;
       if (isAuth) {
         response = await api.get<TaskComment[]>(`/task-comments?taskId=${taskId}`);
@@ -562,6 +607,12 @@ export const taskApi = {
     commentData: UpdateTaskCommentRequest
   ): Promise<TaskComment> => {
     try {
+      if (!isValidUUID(commentId)) {
+        throw new Error('Invalid comment ID format');
+      }
+      if (!isValidUUID(userId)) {
+        throw new Error('Invalid user ID format');
+      }
       const response = await api.patch<TaskComment>(
         `/task-comments/${commentId}?userId=${userId}`,
         commentData
@@ -575,6 +626,12 @@ export const taskApi = {
 
   deleteTaskComment: async (commentId: string, userId: string): Promise<void> => {
     try {
+      if (!isValidUUID(commentId)) {
+        throw new Error('Invalid comment ID format');
+      }
+      if (!isValidUUID(userId)) {
+        throw new Error('Invalid user ID format');
+      }
       await api.delete(`/task-comments/${commentId}?userId=${userId}`);
     } catch (error) {
       console.error("Delete task comment error:", error);
@@ -640,6 +697,9 @@ export const taskApi = {
 
   getAttachmentById: async (attachmentId: string): Promise<TaskAttachment> => {
     try {
+      if (!isValidUUID(attachmentId)) {
+        throw new Error('Invalid attachment ID format');
+      }
       const response = await api.get<TaskAttachment>(`/task-attachments/${attachmentId}`);
       return response.data;
     } catch (error) {
@@ -650,6 +710,9 @@ export const taskApi = {
 
   downloadAttachment: async (attachmentId: string): Promise<Blob> => {
     try {
+      if (!isValidUUID(attachmentId)) {
+        throw new Error('Invalid attachment ID format');
+      }
       const response = await api.get(`/task-attachments/${attachmentId}/download`, {
         responseType: "blob",
       });
@@ -662,6 +725,9 @@ export const taskApi = {
 
   previewFile: async (attachmentId: string): Promise<Blob> => {
     try {
+      if (!isValidUUID(attachmentId)) {
+        throw new Error('Invalid attachment ID format');
+      }
       const response = await api.get(`/task-attachments/${attachmentId}/preview`, {
         responseType: "blob",
       });
@@ -695,6 +761,9 @@ export const taskApi = {
 
   getAttachmentStats: async (taskId?: string): Promise<AttachmentStats> => {
     try {
+      if (taskId && !isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
       const query = taskId ? `?taskId=${taskId}` : "";
       const response = await api.get<AttachmentStats>(`/task-attachments/stats${query}`);
       return response.data;
@@ -706,6 +775,12 @@ export const taskApi = {
 
   deleteAttachment: async (attachmentId: string, requestUserId: string): Promise<void> => {
     try {
+      if (!isValidUUID(attachmentId)) {
+        throw new Error('Invalid attachment ID format');
+      }
+      if (!isValidUUID(requestUserId)) {
+        throw new Error('Invalid user ID format');
+      }
       await api.delete(`/task-attachments/${attachmentId}?requestUserId=${requestUserId}`);
     } catch (error) {
       console.error("Delete attachment error:", error);
@@ -726,6 +801,9 @@ export const taskApi = {
 
   getProjectLabels: async (projectId: string): Promise<TaskLabel[]> => {
     try {
+      if (!isValidUUID(projectId)) {
+        throw new Error('Invalid project ID format');
+      }
       const response = await api.get<TaskLabel[]>(`/labels?projectId=${projectId}`);
       return response.data;
     } catch (error) {
@@ -736,6 +814,9 @@ export const taskApi = {
 
   getLabelById: async (labelId: string): Promise<TaskLabel> => {
     try {
+      if (!isValidUUID(labelId)) {
+        throw new Error('Invalid label ID format');
+      }
       const response = await api.get<TaskLabel>(`/labels/${labelId}`);
       return response.data;
     } catch (error) {
@@ -746,6 +827,9 @@ export const taskApi = {
 
   updateLabel: async (labelId: string, labelData: UpdateLabelRequest): Promise<TaskLabel> => {
     try {
+      if (!isValidUUID(labelId)) {
+        throw new Error('Invalid label ID format');
+      }
       const response = await api.patch<TaskLabel>(`/labels/${labelId}`, labelData);
       return response.data;
     } catch (error) {
@@ -756,6 +840,9 @@ export const taskApi = {
 
   deleteLabel: async (labelId: string): Promise<void> => {
     try {
+      if (!isValidUUID(labelId)) {
+        throw new Error('Invalid label ID format');
+      }
       await api.delete(`/labels/${labelId}`);
     } catch (error) {
       console.error("Delete label error:", error);
@@ -795,6 +882,9 @@ export const taskApi = {
 
   getTaskLabels: async (taskId: string): Promise<TaskLabel[]> => {
     try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
       const response = await api.get<TaskLabel[]>(`/task-labels?taskId=${taskId}`);
       return response.data;
     } catch (error) {
@@ -805,6 +895,9 @@ export const taskApi = {
 
   searchLabels: async (projectId: string, query: string): Promise<TaskLabel[]> => {
     try {
+      if (!isValidUUID(projectId)) {
+        throw new Error('Invalid project ID format');
+      }
       const response = await api.get<TaskLabel[]>(
         `/labels/search?projectId=${projectId}&q=${encodeURIComponent(query)}`
       );
@@ -890,6 +983,12 @@ export const taskApi = {
 
   updateTaskStatus: async (taskId: string, statusId: string): Promise<Task> => {
     try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
+      if (!isValidUUID(statusId)) {
+        throw new Error('Invalid status ID format');
+      }
       const response = await api.patch<Task>(`/tasks/${taskId}/status`, {
         statusId,
       });

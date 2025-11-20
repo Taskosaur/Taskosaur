@@ -98,7 +98,15 @@ export class EmailSyncUtils {
 
   static createSnippet(content: string): string {
     if (!content) return '';
-    const text = content.replace(/<[^>]*>/g, '').trim();
+    // Remove HTML tags more safely by replacing them multiple times to handle nested/malformed tags
+    let text = content;
+    let previousText = '';
+    // Keep removing tags until no more changes occur (handles malformed/nested HTML)
+    while (text !== previousText) {
+      previousText = text;
+      text = text.replace(/<[^>]*>/g, '');
+    }
+    text = text.trim();
     return text.length > 200 ? text.substring(0, 197) + '...' : text;
   }
 

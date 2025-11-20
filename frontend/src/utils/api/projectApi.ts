@@ -10,6 +10,25 @@ import {
   ProjectMember,
   ProjectStats,
 } from "@/types";
+import validator from "validator";
+
+// Utility functions for validation
+function isValidUUID(id: string) {
+  return validator.isUUID(id, 4);
+}
+
+function sanitizeSlug(slug: string): string {
+  if (!slug || typeof slug !== 'string') {
+    throw new Error('Invalid slug: must be a non-empty string');
+  }
+  if (!/^[a-zA-Z0-9._-]+$/.test(slug)) {
+    throw new Error('Invalid slug format: contains invalid characters');
+  }
+  if (slug.includes('..') || slug.includes('//')) {
+    throw new Error('Invalid slug: path traversal detected');
+  }
+  return encodeURIComponent(slug);
+}
 
 export const projectApi = {
   // Project CRUD operations
@@ -49,11 +68,13 @@ export const projectApi = {
     workspaceSlug?: string
   ): Promise<Project> => {
     try {
+      const sanitizedSlug = sanitizeSlug(slug);
       let response;
       if (isAuthenticated) {
-        response = await api.get<Project>(`/projects/by-slug/${slug}`);
+        response = await api.get<Project>(`/projects/by-slug/${sanitizedSlug}`);
       } else {
-        response = await api.get<Project>(`/public/workspaces/${workspaceSlug}/projects/${slug}`);
+        const sanitizedWorkspaceSlug = workspaceSlug ? sanitizeSlug(workspaceSlug) : '';
+        response = await api.get<Project>(`/public/workspaces/${sanitizedWorkspaceSlug}/projects/${sanitizedSlug}`);
       }
       return response.data;
     } catch (error) {

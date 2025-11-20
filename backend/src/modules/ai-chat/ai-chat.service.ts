@@ -692,7 +692,12 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     );
   }
   private extractContextFromMessage(sessionId: string, message: string, context: any) {
-    const lowerMessage = message.toLowerCase();
+    // Prevent ReDoS attacks by limiting message length for regex processing
+    const MAX_MESSAGE_LENGTH = 10000;
+    const safeMessage =
+      message.length > MAX_MESSAGE_LENGTH ? message.substring(0, MAX_MESSAGE_LENGTH) : message;
+
+    const lowerMessage = safeMessage.toLowerCase();
     let contextUpdated = false;
 
     // Extract workspace mentions - improved patterns
@@ -708,7 +713,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     ];
 
     for (const pattern of workspacePatterns) {
-      const matches = [...message.matchAll(pattern)];
+      const matches = [...safeMessage.matchAll(pattern)];
       for (const match of matches) {
         if (match[1]) {
           const workspaceName = match[1].trim();
@@ -744,7 +749,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     ];
 
     for (const pattern of projectPatterns) {
-      const matches = [...message.matchAll(pattern)];
+      const matches = [...safeMessage.matchAll(pattern)];
       for (const match of matches) {
         if (match[1]) {
           const projectName = match[1].trim();

@@ -12,6 +12,19 @@ import {
   User,
   UserData,
 } from "@/types";
+import validator from "validator";
+
+// Utility functions for validation
+function sanitizeToken(token: string): string {
+  if (!token || typeof token !== 'string') {
+    throw new Error('Invalid token: must be a non-empty string');
+  }
+  // Tokens should be alphanumeric and may include hyphens, underscores
+  if (!/^[a-zA-Z0-9_-]+$/.test(token)) {
+    throw new Error('Invalid token format');
+  }
+  return encodeURIComponent(token);
+}
 
 export const authApi = {
   login: async (loginData: LoginData): Promise<AuthResponse> => {
@@ -57,8 +70,9 @@ export const authApi = {
   },
   validateResetToken: async (token: string): Promise<ApiResponse<{ valid: boolean }>> => {
     try {
+      const sanitizedToken = sanitizeToken(token);
       const response = await api.get<ApiResponse<{ valid: boolean }>>(
-        `/auth/verify-reset-token/${token}`
+        `/auth/verify-reset-token/${sanitizedToken}`
       );
       return response.data;
     } catch (error: any) {

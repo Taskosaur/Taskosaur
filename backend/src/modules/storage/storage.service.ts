@@ -124,7 +124,14 @@ export class StorageService {
     // Check if file exists
     const relativePath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
     const normalizedPath = path.normalize(relativePath);
-    const localPath = path.join(this.uploadDir, normalizedPath);
+    const localPath = path.resolve(this.uploadDir, normalizedPath);
+
+    // Prevent path traversal attacks by ensuring the resolved path is within uploadDir
+    const uploadDirResolved = path.resolve(this.uploadDir);
+    if (!localPath.startsWith(uploadDirResolved + path.sep) && localPath !== uploadDirResolved) {
+      throw new NotFoundException('Invalid file path');
+    }
+
     if (!fs.existsSync(localPath)) {
       throw new NotFoundException('File not found on server');
     }

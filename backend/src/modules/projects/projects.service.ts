@@ -337,6 +337,14 @@ export class ProjectsService {
       search,
     } = filters;
 
+    // Ensure status and priority are strings if defined (prevent type confusion)
+    if (status !== undefined && typeof status !== 'string') {
+      throw new BadRequestException('Invalid type for parameter "status". Must be a string.');
+    }
+    if (priority !== undefined && typeof priority !== 'string') {
+      throw new BadRequestException('Invalid type for parameter "priority". Must be a string.');
+    }
+
     // Step 1: Verify org exists
     const org = await this.prisma.organization.findUnique({
       where: { id: organizationId },
