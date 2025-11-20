@@ -475,9 +475,9 @@ export const taskApi = {
       }
       let response;
       if (isAuth) {
-        response = await api.get<Task>(`/tasks/${taskId}`);
+        response = await api.get<Task>(`/tasks/${encodeURIComponent(taskId)}`);
       } else {
-        response = await api.get<Task>(`/public/project-tasks/${taskId}`);
+        response = await api.get<Task>(`/public/project-tasks/${encodeURIComponent(taskId)}`);
       }
       return response.data;
     } catch (error) {
@@ -491,7 +491,7 @@ export const taskApi = {
       if (!isValidUUID(taskId)) {
         throw new Error('Invalid task ID format');
       }
-      const response = await api.patch<Task>(`/tasks/${taskId}`, taskData);
+      const response = await api.patch<Task>(`/tasks/${encodeURIComponent(taskId)}`, taskData);
       return response.data;
     } catch (error) {
       console.error("Update task error:", error);
@@ -504,7 +504,7 @@ export const taskApi = {
       if (!isValidUUID(taskId)) {
         throw new Error('Invalid task ID format');
       }
-      await api.delete(`/tasks/${taskId}`);
+      await api.delete(`/tasks/${encodeURIComponent(taskId)}`);
     } catch (error) {
       console.error("Delete task error:", error);
       throw error;
@@ -545,11 +545,11 @@ export const taskApi = {
       let response;
       if (isAuth) {
         response = await api.get<Task[]>(
-          `/activity-logs/task/${taskId}/activities?limit=${limit}&page=${page}`
+          `/activity-logs/task/${encodeURIComponent(taskId)}/activities?limit=${limit}&page=${page}`
         );
       } else {
         response = await api.get<Task[]>(
-          `/public/project-tasks/activities/${taskId}?limit=${limit}&page=${page}`
+          `/public/project-tasks/activities/${encodeURIComponent(taskId)}?limit=${limit}&page=${page}`
         );
       }
       return response.data;
@@ -564,7 +564,7 @@ export const taskApi = {
       if (!isValidUUID(workspaceId)) {
         throw new Error('Invalid workspace ID format');
       }
-      const response = await api.get<Task[]>(`/tasks?workspaceId=${workspaceId}`);
+      const response = await api.get<Task[]>(`/tasks?workspaceId=${encodeURIComponent(workspaceId)}`);
       return response.data;
     } catch (error) {
       console.error("Get tasks by workspace error:", error);
@@ -590,9 +590,9 @@ export const taskApi = {
       }
       let response;
       if (isAuth) {
-        response = await api.get<TaskComment[]>(`/task-comments?taskId=${taskId}`);
+        response = await api.get<TaskComment[]>(`/task-comments?taskId=${encodeURIComponent(taskId)}`);
       } else {
-        response = await api.get<TaskComment[]>(`/public/project-tasks/comments/${taskId}`);
+        response = await api.get<TaskComment[]>(`/public/project-tasks/comments/${encodeURIComponent(taskId)}`);
       }
       return response.data;
     } catch (error) {
@@ -614,7 +614,7 @@ export const taskApi = {
         throw new Error('Invalid user ID format');
       }
       const response = await api.patch<TaskComment>(
-        `/task-comments/${commentId}?userId=${userId}`,
+        `/task-comments/${encodeURIComponent(commentId)}?userId=${encodeURIComponent(userId)}`,
         commentData
       );
       return response.data;
@@ -632,7 +632,7 @@ export const taskApi = {
       if (!isValidUUID(userId)) {
         throw new Error('Invalid user ID format');
       }
-      await api.delete(`/task-comments/${commentId}?userId=${userId}`);
+      await api.delete(`/task-comments/${encodeURIComponent(commentId)}?userId=${encodeURIComponent(userId)}`);
     } catch (error) {
       console.error("Delete task comment error:", error);
       throw error;
@@ -989,7 +989,7 @@ export const taskApi = {
       if (!isValidUUID(statusId)) {
         throw new Error('Invalid status ID format');
       }
-      const response = await api.patch<Task>(`/tasks/${taskId}/status`, {
+      const response = await api.patch<Task>(`/tasks/${encodeURIComponent(taskId)}/status`, {
         statusId,
       });
       return response.data;
@@ -1076,7 +1076,7 @@ export const taskApi = {
     ].join("-");
 
     try {
-      const response = await api.patch(`/tasks/${safeTaskId}/assignees`, {
+      const response = await api.patch(`/tasks/${encodeURIComponent(safeTaskId)}/assignees`, {
         assigneeIds,
       });
       return response.data;

@@ -22,6 +22,15 @@ import { IoWarning } from "react-icons/io5";
 import ActionButton from "@/components/common/ActionButton";
 import ErrorState from "@/components/common/ErrorState";
 
+// Helper function to validate internal paths and prevent open redirect vulnerabilities
+function isValidInternalPath(path: string): boolean {
+  if (!path || typeof path !== 'string') return false;
+  // Ensure the path starts with / and doesn't contain protocol or domain
+  if (!path.startsWith('/')) return false;
+  if (path.includes('://') || path.startsWith('//')) return false;
+  return true;
+}
+
 function ProjectSettingsContent() {
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
@@ -170,7 +179,12 @@ function ProjectSettingsContent() {
         if (!projectData) {
           setError("Project not found");
           setLoading(false);
-          router.replace(`/${workspaceSlug}/projects`);
+          const path = `/${workspaceSlug}/projects`;
+          if (isValidInternalPath(path)) {
+            router.replace(path);
+          } else {
+            router.replace('/');
+          }
           return;
         }
 
@@ -188,7 +202,12 @@ function ProjectSettingsContent() {
         setError(errorMessage);
 
         if (errorMessage.includes("not found") || errorMessage.includes("404")) {
-          router.replace(`/${workspaceSlug}/projects`);
+          const path = `/${workspaceSlug}/projects`;
+          if (isValidInternalPath(path)) {
+            router.replace(path);
+          } else {
+            router.replace('/');
+          }
         }
       } finally {
         if (isActive) {

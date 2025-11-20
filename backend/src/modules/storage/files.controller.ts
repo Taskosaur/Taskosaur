@@ -9,9 +9,10 @@ import {
   Post,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { createReadStream, existsSync } from 'fs';
 import {
   ApiTags,
@@ -33,6 +34,21 @@ import { Public } from '../auth/decorators/public.decorator';
 export class FilesController {
   constructor(private readonly storageService: StorageService) {}
 
+  /**
+   * Sanitize path component to prevent path traversal attacks
+   */
+  private sanitizePathComponent(component: string): string {
+    if (!component || typeof component !== 'string') {
+      throw new BadRequestException('Invalid path component');
+    }
+    // Remove any path traversal attempts and directory separators
+    const sanitized = component.replace(/\.\./g, '').replace(/\//g, '').replace(/\\/g, '');
+    if (sanitized !== component) {
+      throw new BadRequestException('Invalid characters in path');
+    }
+    return sanitized;
+  }
+
   @Get('tasks/:taskId/:filename')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Serve task attachment file' })
@@ -45,8 +61,19 @@ export class FilesController {
     @Param('filename') filename: string,
     @Res() res: Response,
   ) {
+    // Sanitize path components to prevent path injection
+    const safeTaskId = this.sanitizePathComponent(taskId);
+    const safeFilename = this.sanitizePathComponent(filename);
+
     const uploadDir = process.env.UPLOAD_DIR || './uploads';
-    const filePath = join(uploadDir, 'tasks', taskId, filename);
+    const filePath = join(uploadDir, 'tasks', safeTaskId, safeFilename);
+
+    // Prevent path traversal by ensuring the resolved path is within uploadDir
+    const uploadDirResolved = resolve(uploadDir);
+    const filePathResolved = resolve(filePath);
+    if (!filePathResolved.startsWith(uploadDirResolved)) {
+      throw new BadRequestException('Invalid file path');
+    }
 
     // Check if file exists
     if (!existsSync(filePath)) {
@@ -58,8 +85,8 @@ export class FilesController {
 
     // Set appropriate headers
     res.set({
-      'Content-Type': this.getMimeType(filename),
-      'Content-Disposition': `inline; filename="${filename}"`,
+      'Content-Type': this.getMimeType(safeFilename),
+      'Content-Disposition': `inline; filename="${safeFilename}"`,
     });
 
     fileStream.pipe(res);
@@ -84,7 +111,10 @@ export class FilesController {
       throw new Error('No file uploaded');
     }
 
-    const savedFile = await this.storageService.saveFile(file, folder);
+    // Sanitize folder parameter to prevent path injection
+    const safeFolder = this.sanitizePathComponent(folder);
+
+    const savedFile = await this.storageService.saveFile(file, safeFolder);
 
     return {
       message: 'File uploaded successfully',
@@ -104,7 +134,11 @@ export class FilesController {
     @Param('filename') filename: string,
     @Res() res: Response,
   ) {
-    const key = `${folder}/${filename}`;
+    // Sanitize path components to prevent path injection
+    const safeFolder = this.sanitizePathComponent(folder);
+    const safeFilename = this.sanitizePathComponent(filename);
+
+    const key = `${safeFolder}/${safeFilename}`;
     // Check if using S3 or local storage
     if (this.storageService.isUsingS3()) {
       // For S3, stream the file directly

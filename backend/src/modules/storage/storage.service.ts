@@ -1,5 +1,5 @@
 // src/modules/storage/storage.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3Service } from './s3.service';
 import * as fs from 'fs';
@@ -55,13 +55,32 @@ export class StorageService {
       return false;
     }
   }
+
+  /**
+   * Sanitize path component to prevent path traversal attacks
+   */
+  private sanitizePathComponent(component: string): string {
+    if (!component || typeof component !== 'string') {
+      throw new BadRequestException('Invalid path component');
+    }
+    // Remove any path traversal attempts and directory separators
+    const sanitized = component.replace(/\.\./g, '').replace(/\//g, '').replace(/\\/g, '');
+    if (sanitized !== component) {
+      throw new BadRequestException('Invalid characters in path');
+    }
+    return sanitized;
+  }
+
   async saveFile(
     file: Express.Multer.File,
     folder: string,
   ): Promise<{ url: string | null; key: string; size: number }> {
-    // const _fileExtension = path.extname(file.originalname);
+    // Sanitize folder and fileName to prevent path injection
+    const safeFolder = this.sanitizePathComponent(folder);
     const fileName = file.originalname;
-    const key = `${folder}/${fileName}`;
+    const safeFileName = this.sanitizePathComponent(fileName);
+
+    const key = `${safeFolder}/${safeFileName}`;
     if (this.useS3) {
       await this.s3Service.uploadFile(file, key);
       return {
@@ -70,18 +89,18 @@ export class StorageService {
         size: file.size,
       };
     } else {
-      const localPath = path.join(this.uploadDir, folder);
+      const localPath = path.join(this.uploadDir, safeFolder);
 
       if (!fs.existsSync(localPath)) {
         fs.mkdirSync(localPath, { recursive: true });
       }
 
-      const filePath = path.join(localPath, fileName);
+      const filePath = path.join(localPath, safeFileName);
       fs.writeFileSync(filePath, file.buffer);
 
       return {
-        url: `/${folder}/${fileName}`,
-        key: `${folder}/${fileName}`,
+        url: `/${safeFolder}/${safeFileName}`,
+        key: `${safeFolder}/${safeFileName}`,
         size: file.size,
       };
     }

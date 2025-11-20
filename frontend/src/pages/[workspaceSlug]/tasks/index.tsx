@@ -34,6 +34,15 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
+// Helper function to validate internal paths and prevent open redirect vulnerabilities
+function isValidInternalPath(path: string): boolean {
+  if (!path || typeof path !== 'string') return false;
+  // Ensure the path starts with / and doesn't contain protocol or domain
+  if (!path.startsWith('/')) return false;
+  if (path.includes('://') || path.startsWith('//')) return false;
+  return true;
+}
+
 interface Workspace {
   id: string;
   name: string;
@@ -824,7 +833,14 @@ function WorkspaceTasksContent() {
                 <ActionButton
                   primary
                   showPlusIcon
-                  onClick={() => router.push(`/${workspaceSlug}/tasks/new`)}
+                  onClick={() => {
+                    const path = `/${workspaceSlug}/tasks/new`;
+                    if (isValidInternalPath(path)) {
+                      router.push(path);
+                    } else {
+                      router.push('/');
+                    }
+                  }}
                   disabled={!workspace?.id}
                 >
                   Create Task
@@ -858,9 +874,14 @@ function WorkspaceTasksContent() {
           currentView={currentView}
           onViewChange={(v) => {
             setCurrentView(v);
-            router.push(`/${workspaceSlug}/tasks?type=${v}`, undefined, {
-              shallow: true,
-            });
+            const path = `/${workspaceSlug}/tasks?type=${v}`;
+            if (isValidInternalPath(path.split('?')[0])) {
+              router.push(path, undefined, {
+                shallow: true,
+              });
+            } else {
+              router.push('/');
+            }
           }}
           viewKanban={false}
           rightContent={

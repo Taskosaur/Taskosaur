@@ -241,6 +241,14 @@ export class ProjectsService {
     if (priority !== undefined && typeof priority !== 'string') {
       throw new BadRequestException('Invalid type for parameter "priority". Must be a string.');
     }
+    // Additional sanitization for status values
+    if (status && !/^[a-zA-Z0-9,_-]+$/.test(status)) {
+      throw new BadRequestException('Invalid status value format.');
+    }
+    // Additional sanitization for priority values
+    if (priority && !/^[a-zA-Z0-9,_-]+$/.test(priority)) {
+      throw new BadRequestException('Invalid priority value format.');
+    }
     const whereClause: any = {
       archive: false,
       OR: [{ members: { some: { userId } } }, { visibility: 'PUBLIC' }],
@@ -343,6 +351,14 @@ export class ProjectsService {
     }
     if (priority !== undefined && typeof priority !== 'string') {
       throw new BadRequestException('Invalid type for parameter "priority". Must be a string.');
+    }
+    // Additional sanitization for status values
+    if (status && !/^[a-zA-Z0-9,_-]+$/.test(status)) {
+      throw new BadRequestException('Invalid status value format.');
+    }
+    // Additional sanitization for priority values
+    if (priority && !/^[a-zA-Z0-9,_-]+$/.test(priority)) {
+      throw new BadRequestException('Invalid priority value format.');
     }
 
     // Step 1: Verify org exists

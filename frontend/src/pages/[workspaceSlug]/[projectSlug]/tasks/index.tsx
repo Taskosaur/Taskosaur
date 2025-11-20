@@ -39,6 +39,15 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
+// Helper function to validate internal paths and prevent open redirect vulnerabilities
+function isValidInternalPath(path: string): boolean {
+  if (!path || typeof path !== 'string') return false;
+  // Ensure the path starts with / and doesn't contain protocol or domain
+  if (!path.startsWith('/')) return false;
+  if (path.includes('://') || path.startsWith('//')) return false;
+  return true;
+}
+
 function ProjectTasksContent() {
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
@@ -1038,9 +1047,14 @@ function ProjectTasksContent() {
                   primary
                   showPlusIcon
                   onClick={() => {
-                    checkAuthForAction(() =>
-                      router.push(`/${workspaceSlug}/${projectSlug}/tasks/new`)
-                    );
+                    checkAuthForAction(() => {
+                      const path = `/${workspaceSlug}/${projectSlug}/tasks/new`;
+                      if (isValidInternalPath(path)) {
+                        router.push(path);
+                      } else {
+                        router.push('/');
+                      }
+                    });
                   }}
                   disabled={!workspace?.id || !project?.id}
                 >
@@ -1082,9 +1096,14 @@ function ProjectTasksContent() {
               return;
             }
             setCurrentView(v);
-            router.push(`/${workspaceSlug}/${projectSlug}/tasks?type=${v}`, undefined, {
-              shallow: true,
-            });
+            const path = `/${workspaceSlug}/${projectSlug}/tasks?type=${v}`;
+            if (isValidInternalPath(path.split('?')[0])) {
+              router.push(path, undefined, {
+                shallow: true,
+              });
+            } else {
+              router.push('/');
+            }
           }}
           viewKanban={isAuth}
           viewGantt={isAuth}
