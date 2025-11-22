@@ -41,6 +41,7 @@ import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { InboxModule } from './modules/inbox/inbox.module';
 
 import { PublicModule } from './modules/public/public.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { PublicModule } from './modules/public/public.module';
           AiChatModule,
           InboxModule,
           PublicModule,
+          HealthModule,
         ],
       },
     ]),
@@ -119,6 +121,7 @@ import { PublicModule } from './modules/public/public.module';
     AiChatModule,
     InboxModule,
     PublicModule,
+    HealthModule,
     // EmailModule,
     // SchedulerModule,
   ],
