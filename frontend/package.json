@@ -12,7 +12,11 @@
     "build:dist": "cross-env BUILD_DIST=true next build",
     "start": "cross-env NODE_ENV=production node server.mjs",
     "lint": "eslint",
-    "clean": "shx rm -rf node_modules .next out"
+    "clean": "shx rm -rf node_modules .next out",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -59,6 +63,7 @@
     "zod": "^4.0.14"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^20",

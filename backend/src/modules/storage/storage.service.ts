@@ -51,7 +51,10 @@ export class StorageService {
       await this.s3Service.headBucket(bucketName);
       return true;
     } catch {
-      console.warn('S3 connection failed, falling back to local storage.');
+      // Only log warning in non-test environments to prevent Jest errors
+      if (process.env.NODE_ENV !== 'test') {
+        console.warn('S3 connection failed, falling back to local storage.');
+      }
       return false;
     }
   }
