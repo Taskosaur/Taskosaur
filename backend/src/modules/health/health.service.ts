@@ -76,16 +76,18 @@ export class HealthService {
     let redisClient: Redis | null = null;
 
     try {
-      const redisHost = this.configService.get<string>('redis.host', 'localhost');
-      const redisPort = this.configService.get<number>('redis.port', 6379);
-      const redisPassword = this.configService.get<string>('redis.password');
+      const redisHost = this.configService.get<string>('REDIS_HOST', 'localhost');
+      const redisPort = this.configService.get<number>('REDIS_PORT', 6379);
+      const redisPassword = this.configService.get<string>('REDIS_PASSWORD');
+      const redisDb = this.configService.get<number>('REDIS_DB', 0);
 
       redisClient = new Redis({
         host: redisHost,
         port: redisPort,
-        password: redisPassword,
+        password: redisPassword || undefined,
+        db: redisDb,
         lazyConnect: true,
-        connectTimeout: 1000,
+        connectTimeout: 2000,
         maxRetriesPerRequest: 1,
         retryStrategy: () => null,
       });
