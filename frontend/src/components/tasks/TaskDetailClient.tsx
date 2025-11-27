@@ -33,6 +33,7 @@ import { TASK_TYPE_OPTIONS, TaskTypeIcon, getTaskTypeHexColor } from "@/utils/da
 import { DynamicBadge } from "@/components/common/DynamicBadge";
 import TaskDetailSkeleton from "../skeletons/TaskDetailSkeleton";
 import validator from "validator";
+import { sanitizeEditorContent } from "@/utils/sanitize-content";
 
 // Helper function to validate internal paths and prevent open redirect vulnerabilities
 function isValidInternalPath(path: string): boolean {
@@ -745,10 +746,15 @@ export default function TaskDetailClient({
       return;
     }
 
+    // Sanitize description to prevent XSS
+    const sanitizedDescription = descriptionToSave 
+      ? sanitizeEditorContent(descriptionToSave.trim()) 
+      : undefined;
+
     try {
       const updatedTask = await updateTask(taskId, {
         title: editTaskData?.title?.trim(),
-        description: descriptionToSave?.trim(),
+        description: sanitizedDescription,
         priority: editTaskData.priority || "MEDIUM",
         startDate: task.startDate || new Date().toISOString(),
         dueDate: editTaskData.dueDate ? formatDateForApi(editTaskData.dueDate) : undefined,

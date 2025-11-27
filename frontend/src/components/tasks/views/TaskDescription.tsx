@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import MDEditor from "@uiw/react-md-editor";
 import { DangerouslyHTMLComment } from "@/components/common/DangerouslyHTMLComment";
+import { SafeMarkdownRenderer } from "@/components/common/SafeMarkdownRenderer";
 import { useTheme } from "next-themes";
 
 interface TaskDescriptionProps {
@@ -142,9 +143,9 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
             );
           } else if (part.trim()) {
             return (
-              <MDEditor.Markdown
+              <SafeMarkdownRenderer
                 key={`content-${idx}`}
-                source={part}
+                content={part}
                 className="prose max-w-none"
               />
             );
