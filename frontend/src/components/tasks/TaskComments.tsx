@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { EditorState, convertToRaw, ContentState } from "draft-js";
-import draftToHtml from "draftjs-to-html";
-import "draft-js/dist/Draft.css";
+import MDEditor from "@uiw/react-md-editor";
 import { toast } from "sonner";
 import { useTask } from "../../contexts/task-context";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
@@ -16,19 +14,44 @@ import {
 import { TaskComment, User } from "@/types";
 import ActionButton from "../common/ActionButton";
 import ConfirmationModal from "../modals/ConfirmationModal";
+import { DangerouslyHTMLComment } from "@/components/common/DangerouslyHTMLComment";
+import { SafeMarkdownRenderer } from "@/components/common/SafeMarkdownRenderer";
+import { sanitizeEditorContent } from "@/utils/sanitize-content";
 import { inboxApi } from "@/utils/api/inboxApi";
 import { useAuth } from "@/contexts/auth-context";
-import { DangerouslyHTMLComment, decodeHtml } from "../common/DangerouslyHTMLComment";
-import dynamic from "next/dynamic";
-const RichTextEditor = dynamic(() => import("../common/RichTextEditor"), {
-  ssr: false,
-});
+import { useTheme } from "next-themes";
 
-let htmlToDraft: any;
-if (typeof window !== "undefined") {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  htmlToDraft = require("html-to-draftjs").default;
-}
+/**
+ * Detects if content is rich text HTML (from Draft.js or similar editors)
+ * vs markdown content that might contain some inline HTML
+ */
+const isRichTextHtml = (content: string): boolean => {
+  if (!content || typeof content !== "string") return false;
+  
+  // Trim whitespace
+  const trimmed = content.trim();
+  
+  // Check if content is wrapped in HTML tags (starts with < and ends with >)
+  // This catches Draft.js output like <p>text</p>
+  const isWrappedInTags = /^<[a-z][^>]*>[\s\S]*<\/[a-z][^>]*>$/i.test(trimmed);
+  
+  // Check for Draft.js specific patterns:
+  // 1. Starts with common block tags
+  const startsWithBlockTag = /^<(p|div|h[1-6]|ul|ol|blockquote)[^>]*>/i.test(trimmed);
+  
+  // 2. Has multiple block-level elements
+  const blockElements = trimmed.match(/<(p|div|ul|ol|blockquote|h[1-6])[^>]*>/gi);
+  const hasMultipleBlocks = blockElements && blockElements.length > 1;
+  
+  // 3. Has <br> tags (common in rich text)
+  const hasBrTags = /<br\s*\/?>/i.test(trimmed);
+  
+  // It's HTML if:
+  // - Wrapped in HTML tags AND starts with block tag, OR
+  // - Has multiple blocks, OR  
+  // - Has br tags with block elements
+  return (isWrappedInTags && startsWithBlockTag) || hasMultipleBlocks || (hasBrTags && startsWithBlockTag);
+};
 interface TaskCommentsProps {
   taskId: string;
   projectId: string;
@@ -215,7 +238,11 @@ const CommentItem = React.memo(
             </div>
 
             {/* Comment content */}
-            <DangerouslyHTMLComment comment={comment.content} />
+            {comment.emailMessageId || isRichTextHtml(comment.content) ? (
+              <DangerouslyHTMLComment comment={comment.content} />
+            ) : (
+              <SafeMarkdownRenderer content={comment.content} />
+            )}
 
             {/* Send as Email button - positioned below content */}
             {allowEmailReplies && !comment.sentAsEmail && onSendAsEmail && (
@@ -257,9 +284,10 @@ export default function TaskComments({
   const INITIAL_DISPLAY_COUNT = 3;
 
   const { getTaskComments, createTaskComment, updateTaskComment, deleteTaskComment } = useTask();
+  const { resolvedTheme } = useTheme();
 
   const [comments, setComments] = useState<CommentWithAuthor[]>([]);
-  const [editorState, setEditorState] = useState(EditorState.createEmpty());
+  const [commentContent, setCommentContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -332,28 +360,35 @@ export default function TaskComments({
   const handleAddOrEdit = async () => {
     if (!currentUser || isSubmitting) return;
 
-    const htmlContent = draftToHtml(convertToRaw(editorState.getCurrentContent())).trim();
-    if (!htmlContent || htmlContent === "<p></p>") return;
-    const cleanHtml = decodeHtml(htmlContent);
+    const trimmedContent = commentContent.trim();
+    if (!trimmedContent) return;
+    
+    // Sanitize content before sending to backend
+    const sanitizedContent = sanitizeEditorContent(trimmedContent);
+    if (!sanitizedContent) {
+      toast.error('Comment content is invalid or contains unsafe markup');
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       if (editingCommentId) {
         await updateTaskComment(editingCommentId, currentUser.id, {
-          content: htmlContent,
+          content: sanitizedContent,
         });
         toast.success("Comment updated successfully");
-        onCommentUpdated?.(editingCommentId, cleanHtml);
+        onCommentUpdated?.(editingCommentId, sanitizedContent);
       } else {
         const createdComment = await createTaskComment({
           taskId,
           authorId: currentUser.id,
-          content: cleanHtml,
+          content: sanitizedContent,
         });
         toast.success("Comment added successfully");
         onCommentAdded?.(createdComment);
       }
       await refreshComments();
-      setEditorState(EditorState.createEmpty());
+      setCommentContent("");
       setEditingCommentId(null);
     } catch {
       toast.error("Failed to save comment");
@@ -363,16 +398,13 @@ export default function TaskComments({
   };
 
   const handleEditComment = (id: string, content: string) => {
-    const blocksFromHtml = htmlToDraft(content || "");
-    const { contentBlocks, entityMap } = blocksFromHtml;
-    const contentState = ContentState.createFromBlockArray(contentBlocks, entityMap);
-    setEditorState(EditorState.createWithContent(contentState));
+    setCommentContent(content || "");
     setEditingCommentId(id);
   };
 
   const handleCancelEdit = () => {
     setEditingCommentId(null);
-    setEditorState(EditorState.createEmpty());
+    setCommentContent("");
   };
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -458,15 +490,14 @@ export default function TaskComments({
   ]);
 
   const isEditorEmpty = useMemo(() => {
-    const contentState = editorState.getCurrentContent();
-    const plainText = contentState.getPlainText().trim();
-    const hasText = plainText.length > 0;
-    const hasContentBlocks = contentState
-      .getBlockMap()
-      .some((block) => block.getText().trim() !== "");
+    return !commentContent.trim();
+  }, [commentContent]);
 
-    return !(hasText || hasContentBlocks);
-  }, [editorState]);
+  useEffect(() => {
+    if (resolvedTheme) {
+      setColorMode(resolvedTheme as "light" | "dark");
+    }
+  }, [resolvedTheme]);
 
   return (
     <>
@@ -510,14 +541,20 @@ export default function TaskComments({
           )}
         </div>
 
-        {/* Draft.js Rich Text Editor */}
+        {/* Markdown Editor */}
         {hasAccess && (
           <div>
-            <div className="border border-[var(--border)] rounded-md p-2 bg-[var(--background)]">
-              <RichTextEditor
-                editorState={editorState}
-                onChange={setEditorState}
-                placeholder={editingCommentId ? "Edit your comment..." : "Add a comment..."}
+            <div className="border border-[var(--border)] rounded-md p-2 bg-[var(--background)]" data-color-mode={colorMode}>
+              <MDEditor
+                value={commentContent}
+                onChange={(val) => setCommentContent(val || "")}
+                preview="edit"
+                hideToolbar={false}
+                height={200}
+                textareaProps={{
+                  placeholder: editingCommentId ? "Edit your comment..." : "Add a comment...",
+                }}
+                visibleDragbar={false}
               />
             </div>
             <div className="flex justify-end gap-2 mt-2">
