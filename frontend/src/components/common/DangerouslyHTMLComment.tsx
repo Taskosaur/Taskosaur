@@ -1,21 +1,13 @@
 import DOMPurify from 'dompurify';
-
-export function decodeHtml(html: string) {
-  const txt = document.createElement("textarea");
-  txt.innerHTML = html;
-  return txt.value;
-}
+import { SANITIZE_CONFIG, decodeHtml } from '@/utils/sanitize-content';
 
 export function DangerouslyHTMLComment({ comment }) {
   const hasEscapedHtml = /&lt;|&gt;/.test(comment);
 
   const htmlToRender = hasEscapedHtml ? decodeHtml(comment) : comment;
 
-  // Sanitize HTML to prevent XSS
-  const sanitizedHtml = DOMPurify.sanitize(htmlToRender, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'a'],
-    ALLOWED_ATTR: ['href', 'title', 'target'],
-  });
+  // Sanitize HTML to prevent XSS using shared configuration
+  const sanitizedHtml = DOMPurify.sanitize(htmlToRender, SANITIZE_CONFIG);
 
   return (
     <div
