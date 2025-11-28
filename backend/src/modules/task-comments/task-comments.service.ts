@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskCommentDto } from './dto/create-task-comment.dto';
 import { UpdateTaskCommentDto } from './dto/update-task-comment.dto';
 import { EmailReplyService } from '../inbox/services/email-reply.service';
+import { sanitizeHtml } from 'src/common/utils/sanitizer.util';
 
 @Injectable()
 export class TaskCommentsService {
@@ -57,7 +58,10 @@ export class TaskCommentsService {
     }
 
     const comment = await this.prisma.taskComment.create({
-      data: createTaskCommentDto,
+      data: {
+        ...createTaskCommentDto,
+        content: sanitizeHtml(createTaskCommentDto.content),
+      },
       include: {
         author: {
           select: {
@@ -309,7 +313,10 @@ export class TaskCommentsService {
 
     const updatedComment = await this.prisma.taskComment.update({
       where: { id },
-      data: updateTaskCommentDto,
+      data: {
+        ...updateTaskCommentDto,
+        content: sanitizeHtml(updateTaskCommentDto.content),
+      },
       include: {
         author: {
           select: {

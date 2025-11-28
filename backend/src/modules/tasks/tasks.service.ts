@@ -12,6 +12,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { TasksByStatus, TasksByStatusParams } from './dto/task-by-status.dto';
 import { AccessControlService } from 'src/common/access-control.utils';
 import { StorageService } from '../storage/storage.service';
+import { sanitizeHtml } from 'src/common/utils/sanitizer.util';
 
 @Injectable()
 export class TasksService {
@@ -82,10 +83,11 @@ export class TasksService {
 
     const taskNumber = lastTask ? lastTask.taskNumber + 1 : 1;
     const key = `${project.slug}-${taskNumber}`;
-    const { assigneeIds, reporterIds, ...taskData } = createTaskDto;
+    const { assigneeIds, reporterIds, description, ...taskData } = createTaskDto;
     return this.prisma.task.create({
       data: {
         ...taskData,
+        description: sanitizeHtml(description as string),
         createdBy: userId,
         taskNumber,
         slug: key,
@@ -223,12 +225,13 @@ export class TasksService {
 
     const taskNumber = lastTask ? lastTask.taskNumber + 1 : 1;
     const key = `${project.slug}-${taskNumber}`;
-    const { assigneeIds, reporterIds, ...taskData } = createTaskDto;
+    const { assigneeIds, reporterIds, description, ...taskData } = createTaskDto;
 
     // --- Create Task ---
     const task = await this.prisma.task.create({
       data: {
         ...taskData,
+        description: sanitizeHtml(description as string),
         createdBy: userId,
         taskNumber,
         slug: key,
@@ -1013,8 +1016,13 @@ export class TasksService {
       } else if (taskStatus) {
         updateTaskDto.completedAt = null;
       }
-      const { assigneeIds, reporterIds, ...taskData } = updateTaskDto;
+      const { assigneeIds, reporterIds, description, ...taskData } = updateTaskDto;
       const updateData: any = { ...taskData };
+
+      // Sanitize description if provided
+      if (description !== undefined) {
+        updateData.description = sanitizeHtml(description);
+      }
 
       // Handle assignees update
       if (assigneeIds !== undefined) {
