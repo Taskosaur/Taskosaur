@@ -1096,9 +1096,7 @@ export class EmailSyncService {
           this.logger.warn(`   No existing tasks with email threads found in this project`);
         }
       } else {
-        this.logger.log(
-          `📧 Creating new task from original email (not a reply): ${message.subject}`,
-        );
+        this.logger.log(`📧 Creating new task from original email (not a reply)`);
       }
       const taskNumber = await EmailSyncUtils.getNextTaskNumber(
         String(inbox.projectId),

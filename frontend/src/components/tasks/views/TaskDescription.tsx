@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import MDEditor from "@uiw/react-md-editor";
 import { DangerouslyHTMLComment } from "@/components/common/DangerouslyHTMLComment";
 import { SafeMarkdownRenderer } from "@/components/common/SafeMarkdownRenderer";
+import DualModeEditor, { EditorMode } from "@/components/common/DualModeEditor";
 import { useTheme } from "next-themes";
+import { HiExclamationTriangle } from "react-icons/hi2";
 
 interface TaskDescriptionProps {
   value: string;
@@ -21,12 +22,18 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
 }) => {
   const { resolvedTheme } = useTheme();
   const [colorMode, setColorMode] = useState<"light" | "dark">("light");
+  const [editorMode, setEditorMode] = useState<EditorMode>("markdown");
 
   useEffect(() => {
     if (resolvedTheme) {
       setColorMode(resolvedTheme as "light" | "dark");
     }
   }, [resolvedTheme]);
+
+  // Handle mode change from DualModeEditor
+  const handleModeChange = useCallback((mode: EditorMode) => {
+    setEditorMode(mode);
+  }, []);
 
   const checkboxLineMapping = useMemo(() => {
     if (!value) return [];
@@ -88,6 +95,15 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
     });
 
     return states;
+  }, [value]);
+
+  // Detect if content is HTML (from Rich Text editor) - must be before any early returns
+  const isHtmlContent = useMemo(() => {
+    if (!value) return false;
+    const trimmed = value.trim();
+    const startsWithBlockTag = /^<(p|div|h[1-6]|ul|ol|blockquote|pre)[^>]*>/i.test(trimmed);
+    const endsWithBlockTag = /<\/(p|div|h[1-6]|ul|ol|blockquote|pre)>\s*$/i.test(trimmed);
+    return startsWithBlockTag && endsWithBlockTag;
   }, [value]);
 
   // Custom markdown renderer that handles checkboxes properly
@@ -158,21 +174,21 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
 
   if (editMode) {
     return (
-      <div className="space-y-4 border-none" data-color-mode={colorMode}>
-        <MDEditor
+      <div className="space-y-2">
+        {/* Warning for Rich Text mode */}
+        {editorMode === "richtext" && (
+          <div className="flex items-center gap-2 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md">
+            <HiExclamationTriangle className="size-4 flex-shrink-0" />
+            <span>Interactive checkboxes only work in Markdown mode. Use <code className="px-1 py-0.5 bg-amber-100 dark:bg-amber-900/50 rounded">- [ ]</code> syntax for task lists.</span>
+          </div>
+        )}
+        <DualModeEditor
           value={value || ""}
-          onChange={(val) => onChange(val || "")}
-          hideToolbar={false}
-          className="task-md-editor"
-          textareaProps={{
-            placeholder: "Describe the task in detail...",
-            className:
-              "bg-[var(--background)] text-[var(--foreground)] border-none focus:outline-none",
-          }}
+          onChange={onChange}
+          placeholder="Describe the task in detail..."
           height={420}
-          preview="edit"
-          visibleDragbar={false}
-          commandsFilter={(command) => (command && command.name === "live" ? false : command)}
+          colorMode={colorMode}
+          onModeChange={handleModeChange}
         />
       </div>
     );
@@ -183,7 +199,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
       className="task-description-view prose max-w-none bg-[var(--background)] text-sm text-[var(--foreground)] p-2 rounded-md border border-[var(--border)]"
       data-color-mode={colorMode}
     >
-      {emailThreadId ? (
+      {emailThreadId || isHtmlContent ? (
         <DangerouslyHTMLComment comment={value} />
       ) : value ? (
         <MarkdownWithInteractiveTasks md={value} />

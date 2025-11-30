@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import MDEditor from "@uiw/react-md-editor";
 import { toast } from "sonner";
 import { useTask } from "../../contexts/task-context";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
@@ -20,6 +19,7 @@ import { sanitizeEditorContent } from "@/utils/sanitize-content";
 import { inboxApi } from "@/utils/api/inboxApi";
 import { useAuth } from "@/contexts/auth-context";
 import { useTheme } from "next-themes";
+import DualModeEditor from "@/components/common/DualModeEditor";
 
 /**
  * Detects if content is rich text HTML (from Draft.js or similar editors)
@@ -27,30 +27,30 @@ import { useTheme } from "next-themes";
  */
 const isRichTextHtml = (content: string): boolean => {
   if (!content || typeof content !== "string") return false;
-  
+
   // Trim whitespace
   const trimmed = content.trim();
-  
-  // Check if content is wrapped in HTML tags (starts with < and ends with >)
-  // This catches Draft.js output like <p>text</p>
-  const isWrappedInTags = /^<[a-z][^>]*>[\s\S]*<\/[a-z][^>]*>$/i.test(trimmed);
-  
-  // Check for Draft.js specific patterns:
-  // 1. Starts with common block tags
-  const startsWithBlockTag = /^<(p|div|h[1-6]|ul|ol|blockquote)[^>]*>/i.test(trimmed);
-  
-  // 2. Has multiple block-level elements
-  const blockElements = trimmed.match(/<(p|div|ul|ol|blockquote|h[1-6])[^>]*>/gi);
-  const hasMultipleBlocks = blockElements && blockElements.length > 1;
-  
-  // 3. Has <br> tags (common in rich text)
+
+  // Check if content starts with an HTML block tag (Draft.js always wraps content in block tags)
+  // This catches Draft.js output like <p>text</p>, <h1>heading</h1>, etc.
+  const startsWithBlockTag = /^<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table)[^>]*>/i.test(trimmed);
+
+  // Check if content ends with a closing HTML block tag
+  const endsWithBlockTag = /<\/(p|div|h[1-6]|ul|ol|li|blockquote|pre|table)>\s*$/i.test(trimmed);
+
+  // Check for inline HTML formatting tags (strong, em, etc.) which indicate rich text
+  const hasInlineFormatting = /<(strong|em|b|i|u|s|del|strike|span|a|code)[^>]*>/i.test(trimmed);
+
+  // Check for <br> tags (common in rich text)
   const hasBrTags = /<br\s*\/?>/i.test(trimmed);
-  
+
   // It's HTML if:
-  // - Wrapped in HTML tags AND starts with block tag, OR
-  // - Has multiple blocks, OR  
-  // - Has br tags with block elements
-  return (isWrappedInTags && startsWithBlockTag) || hasMultipleBlocks || (hasBrTags && startsWithBlockTag);
+  // - Starts AND ends with block tags (typical Draft.js output), OR
+  // - Starts with block tag AND has inline formatting, OR
+  // - Starts with block tag AND has <br> tags
+  return (startsWithBlockTag && endsWithBlockTag) ||
+         (startsWithBlockTag && hasInlineFormatting) ||
+         (startsWithBlockTag && hasBrTags);
 };
 interface TaskCommentsProps {
   taskId: string;
@@ -541,22 +541,17 @@ export default function TaskComments({
           )}
         </div>
 
-        {/* Markdown Editor */}
+        {/* Dual Mode Editor (Markdown / Rich Text) */}
         {hasAccess && (
           <div>
-            <div className="border border-[var(--border)] rounded-md p-2 bg-[var(--background)]" data-color-mode={colorMode}>
-              <MDEditor
-                value={commentContent}
-                onChange={(val) => setCommentContent(val || "")}
-                preview="edit"
-                hideToolbar={false}
-                height={200}
-                textareaProps={{
-                  placeholder: editingCommentId ? "Edit your comment..." : "Add a comment...",
-                }}
-                visibleDragbar={false}
-              />
-            </div>
+            <DualModeEditor
+              value={commentContent}
+              onChange={(val) => setCommentContent(val || "")}
+              placeholder={editingCommentId ? "Edit your comment..." : "Add a comment..."}
+              height={200}
+              colorMode={colorMode}
+              disabled={isSubmitting}
+            />
             <div className="flex justify-end gap-2 mt-2">
               {editingCommentId && (
                 <ActionButton

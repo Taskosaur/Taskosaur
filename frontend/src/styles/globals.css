@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
 /* ================================
+   Third-Party Editor Styles
+   ================================ */
+@import "draft-js/dist/Draft.css";
+
+/* ================================
    Core Theme & Base Styles
    ================================ */
 @import "../styles/common/theme.css";
@@ -86,4 +91,17 @@
 
 .comment-content pre {
   @apply bg-gray-100 rounded p-2 font-mono text-sm overflow-x-auto;
+}
+
+/* ================================
+   Dual Mode Editor Styles
+   ================================ */
+
+/* Draft.js Editor */
+.DraftEditor-root {
+  @apply text-sm;
+}
+
+.public-DraftEditorPlaceholder-root {
+  @apply text-[var(--muted-foreground)];
 }

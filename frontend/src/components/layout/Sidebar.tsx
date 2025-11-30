@@ -35,6 +35,11 @@ const usePathnameParsing = (pathname: string, isMounted: boolean) => {
 
     const parts = pathname.split("/").filter(Boolean);
 
+    // Check for unparsed route parameters (e.g., [workspaceSlug]) - router not ready yet
+    if (parts.some(part => part.startsWith('[') && part.endsWith(']'))) {
+      return { currentWorkspaceSlug: null, currentProjectSlug: null };
+    }
+
     // Define global routes that should not be treated as workspace slugs
     const globalRoutes = [
       "dashboard",

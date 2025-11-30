@@ -33,7 +33,8 @@ export default function ProjectSelector({
 
   /* ---------------- fetch workspace ---------------- */
   useEffect(() => {
-    if (!currentWorkspaceSlug) return;
+    // Skip if no slug or if it's an unparsed route parameter (e.g., "[workspaceSlug]")
+    if (!currentWorkspaceSlug || currentWorkspaceSlug.startsWith('[')) return;
 
     getWorkspaceBySlug(currentWorkspaceSlug)
       .then(setCurrentWorkspace)

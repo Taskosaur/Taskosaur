@@ -112,7 +112,7 @@ export function NewTaskModal({
   const [taskStatuses, setTaskStatuses] = useState<any[]>([]);
 
   const getUrlContext = () => {
-    const pathParts = pathname?.split("/").filter(Boolean);
+    const pathParts = pathname?.split("/").filter(Boolean) || [];
 
     const globalRoutes = ["dashboard", "workspaces", "activity", "settings", "tasks"];
     if (pathParts.length === 0 || globalRoutes.includes(pathParts[0])) {
