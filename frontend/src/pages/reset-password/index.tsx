@@ -37,14 +37,14 @@ function ResetPasswordForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isValidToken, setIsValidToken] = useState(true);
 
-  // Password validation helpers
-  const isPasswordLongEnough = formData.password.length >= 8;
-  const hasUpperCase = /[A-Z]/.test(formData.password);
-  const hasLowerCase = /[a-z]/.test(formData.password);
-  const hasNumber = /\d/.test(formData.password);
+  // Password validation helpers - disabled to match backend
+  const isPasswordLongEnough = true; // formData.password.length >= 8;
+  const hasUpperCase = true; // /[A-Z]/.test(formData.password);
+  const hasLowerCase = true; // /[a-z]/.test(formData.password);
+  const hasNumber = true; // /\d/.test(formData.password);
   const passwordsMatch =
     formData.password === formData.confirmPassword && formData.confirmPassword.length > 0;
-  const isPasswordValid = isPasswordLongEnough && hasUpperCase && hasLowerCase && hasNumber;
+  const isPasswordValid = true; // isPasswordLongEnough && hasUpperCase && hasLowerCase && hasNumber;
 
   useEffect(() => {
     // Validate token on component mount
@@ -91,11 +91,12 @@ function ResetPasswordForm() {
     setIsLoading(true);
     setError("");
 
-    if (!isPasswordValid) {
-      setError("Password must meet all requirements");
-      setIsLoading(false);
-      return;
-    }
+    // Validation disabled
+    // if (!isPasswordValid) {
+    //   setError("Password must meet all requirements");
+    //   setIsLoading(false);
+    //   return;
+    // }
 
     if (!passwordsMatch) {
       setError("Passwords do not match");
@@ -326,8 +327,8 @@ function ResetPasswordForm() {
             </Button>
           </div>
 
-          {/* Password Requirements */}
-          {formData.password && (
+          {/* Password Requirements - Disabled */}
+          {/* {formData.password && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -396,7 +397,7 @@ function ResetPasswordForm() {
                 </div>
               </div>
             </motion.div>
-          )}
+          )} */}
         </motion.div>
 
         {/* Confirm Password Field */}

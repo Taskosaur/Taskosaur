@@ -8,9 +8,10 @@ import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 
 function isValidPassword(password: string) {
-  return (
-    password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password)
-  );
+  return true;
+  // return (
+  //   password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password)
+  // );
 }
 
 const extractErrorMessage = (response: any) => {

@@ -281,7 +281,7 @@ export class AuthService {
       }
 
       // Validate password strength
-      if (!newPassword || newPassword.length < 8) {
+      /*if (!newPassword || newPassword.length < 8) {
         throw new BadRequestException('Password must be at least 8 characters long');
       }
 
@@ -290,7 +290,7 @@ export class AuthService {
         throw new BadRequestException(
           'Password must contain at least one uppercase letter, one lowercase letter, and one number',
         );
-      }
+      }*/
 
       // Find all users with active reset tokens
       const users = await this.usersService.findAllUsersWithResetTokens();
