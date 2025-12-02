@@ -7,6 +7,8 @@ import { Transporter } from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { decode } from 'html-entities';
 import { ImapFlow, ImapFlowOptions } from 'imapflow';
+import { convertMarkdownToHtml } from '../../../common/utils/markdown.util';
+import { sanitizeHtml } from '../../../common/utils/sanitizer.util';
 export class TestEmailConfigDto {
   emailAddress: string;
   displayName: string;
@@ -92,9 +94,7 @@ export class EmailReplyService {
 
       const transporter = this.getTransporter(account);
       const emailMessageId = this.generateMessageId();
-      const hasEscapedHtml = /&lt;|&gt;|&amp;|&quot;|&#39;/.test(comment.content);
-
-      const htmlContent = hasEscapedHtml ? this.decodeHtml(comment.content) : comment.content;
+      const htmlContent = sanitizeHtml(convertMarkdownToHtml(comment.content));
 
       const mailOptions = {
         from: this.formatSenderAddress(comment.author, account),
@@ -197,10 +197,7 @@ export class EmailReplyService {
     const transporter = this.getTransporter(account);
     const emailMessageId = this.generateMessageId();
 
-    const hasEscapedHtml: boolean = /&lt;|&gt;|&amp;|&quot;|&#39;/.test(comment.content);
-    const htmlContent: string = String(
-      hasEscapedHtml ? this.decodeHtml(comment.content) : comment.content,
-    );
+    const htmlContent: string = sanitizeHtml(convertMarkdownToHtml(comment.content));
 
     const mailOptions: {
       from: string;

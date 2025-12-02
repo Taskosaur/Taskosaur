@@ -432,22 +432,42 @@ export default function DualModeEditor({
     onModeChange?.(storedMode);
   }, []);
 
-  // Initialize editor with the provided value
+  // Initialize editor with the provided value and handle external updates
   useEffect(() => {
-    if (!isInitialized && isMounted) {
-      if (value) {
-        // Detect if value is HTML or markdown
-        const isHtml = /<[a-z][\s\S]*>/i.test(value);
+    if (isMounted) {
+      // Only update if the value has actually changed from what we have stored
+      // This prevents loops when the update comes from the editor itself
+      const currentStoredValue = mode === "markdown" ? markdownValue : richTextValue;
+      
+      // If the incoming value is different from what we have, update our state
+      // We also update if we haven't initialized yet
+      if (!isInitialized || value !== currentStoredValue) {
+        if (value) {
+          // Detect if value is HTML or markdown
+          const isHtml = /<[a-z][\s\S]*>/i.test(value);
 
-        if (mode === "markdown") {
-          setMarkdownValue(isHtml ? htmlToMarkdown(value) : value);
-          setRichTextValue(isHtml ? value : markdownToHtml(value));
-        } else {
-          setRichTextValue(isHtml ? value : markdownToHtml(value));
-          setMarkdownValue(isHtml ? htmlToMarkdown(value) : value);
+          if (mode === "markdown") {
+            setMarkdownValue(isHtml ? htmlToMarkdown(value) : value);
+            setRichTextValue(isHtml ? value : markdownToHtml(value));
+          } else {
+            setRichTextValue(isHtml ? value : markdownToHtml(value));
+            setMarkdownValue(isHtml ? htmlToMarkdown(value) : value);
+          }
+        } else if (!isInitialized) {
+          // Only reset to empty on init, otherwise we might wipe user input
+          // if the parent passes empty string temporarily
+          setMarkdownValue("");
+          setRichTextValue("");
+        } else if (value === "") {
+           // Explicit clear from parent
+           setMarkdownValue("");
+           setRichTextValue("");
+        }
+        
+        if (!isInitialized) {
+          setIsInitialized(true);
         }
       }
-      setIsInitialized(true);
     }
   }, [value, mode, isInitialized, isMounted]);
 

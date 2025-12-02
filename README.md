@@ -68,7 +68,13 @@ The fastest way to get started with Taskosaur is using Docker Compose:
    cd taskosaur
    ```
 
-2. **Start with Docker Compose**
+2. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+   This creates the .env file used for the app, you may customize the values, if you need.
+   
+3. **Start with Docker Compose**
 
    ```bash
    docker compose -f docker-compose.dev.yml up
@@ -82,7 +88,7 @@ The fastest way to get started with Taskosaur is using Docker Compose:
    - ✅ Seeds the database with sample data
    - ✅ Starts both backend and frontend
 
-3. **Access the application**
+4. **Access the application**
    - Frontend: http://localhost:3001
    - Backend API: http://localhost:3000
    - API Documentation: http://localhost:3000/api/docs

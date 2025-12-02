@@ -373,6 +373,16 @@ export default function TaskComments({
     setIsSubmitting(true);
     try {
       if (editingCommentId) {
+        // Find original comment to compare content
+        const originalComment = comments.find(c => c.id === editingCommentId);
+        if (originalComment && originalComment.content === sanitizedContent) {
+          toast.info("No changes made");
+          setCommentContent("");
+          setEditingCommentId(null);
+          setIsSubmitting(false);
+          return;
+        }
+
         await updateTaskComment(editingCommentId, currentUser.id, {
           content: sanitizedContent,
         });

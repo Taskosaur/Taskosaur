@@ -16,7 +16,15 @@ Quick guide to run Taskosaur in development mode using Docker Compose.
 
 ## Quick Start
 
-### 1. Start all services
+### 1. Setup environment variables
+
+```bash
+cp .env.example .env
+```
+
+Review and update `.env` with your custom values if needed (JWT secrets, SMTP settings, etc.).
+
+### 2. Start all services
 
 ```bash
 docker-compose -f docker-compose.dev.yml up
@@ -35,7 +43,7 @@ docker-compose -f docker-compose.dev.yml up -d
 - ✅ Seeding the database (idempotent - safe on restarts)
 - ✅ Starting the application
 
-### 2. Access the application
+### 3. Access the application
 
 - **Frontend**: http://localhost:3001
 - **Backend API**: http://localhost:3000
@@ -138,7 +146,7 @@ docker-compose -f docker-compose.dev.yml ps postgres
 ### Reset database
 
 ```bash
-docker-compose -f docker-compose.dev.yml exec backend npm run db:reset
+docker-compose -f docker-compose.dev.yml exec app npm run db:reset
 ```
 
 ### Clean start (remove all data)
