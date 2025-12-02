@@ -189,7 +189,6 @@ function htmlToMarkdown(html: string): string {
     .trim();
   return markdown;
 }
-}
 
 // Rich text editor inner component (loaded only on client)
 interface RichTextEditorInnerProps {
