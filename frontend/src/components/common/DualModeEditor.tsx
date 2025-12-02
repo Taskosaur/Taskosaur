@@ -132,7 +132,7 @@ function markdownToHtml(markdown: string): string {
 function htmlToMarkdown(html: string): string {
   if (!html) return "";
 
-  return html
+  let markdown = html
     // Headers
     .replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n")
     .replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n")
@@ -162,12 +162,33 @@ function htmlToMarkdown(html: string): string {
     .replace(/<\/p>\s*<p[^>]*>/gi, "\n\n")
     .replace(/<p[^>]*>/gi, "")
     .replace(/<\/p>/gi, "\n")
-    .replace(/<br\s*\/?>/gi, "\n")
-    // Remove remaining HTML tags
+    .replace(/<br\s*\/?>/gi, "\n");
+
+  // Remove remaining HTML tags (potential incomplete multi-character sanitization) repeatedly
+  let previous;
+  do {
+    previous = markdown;
+    markdown = markdown.replace(/<[^>]+>/g, "");
+  } while (markdown !== previous);
+
+  // Clean up extra whitespace
+  markdown = markdown
+    (function removeAllHtmlTags(input) {
+      let prev;
+      do {
+        prev = input;
+        input = input.replace(/<[^>]+>/g, "");
+      } while (prev !== input);
+      return input;
+    })(/* value from previous chain */)
+    // Apply repeated removal to cover incomplete multi-character sanitization
+    .replace(/<[^>]+>/g, "")
     .replace(/<[^>]+>/g, "")
     // Clean up extra whitespace
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+  return markdown;
+}
 }
 
 // Rich text editor inner component (loaded only on client)
