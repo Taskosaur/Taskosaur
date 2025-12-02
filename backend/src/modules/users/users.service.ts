@@ -310,11 +310,11 @@ export class UsersService {
       throw new BadRequestException('New password and confirm password do not match');
     }
 
-    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(changePasswordDto.newPassword)) {
+    /*if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(changePasswordDto.newPassword)) {
       throw new BadRequestException(
         'Password must contain at least one uppercase letter, one lowercase letter, and one number',
       );
-    }
+    }*/
 
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, saltRounds);

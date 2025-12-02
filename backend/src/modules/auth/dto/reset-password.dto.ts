@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MinLength, Matches } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class ResetPasswordDto {
   @ApiProperty({
@@ -18,11 +18,11 @@ export class ResetPasswordDto {
   })
   @IsString()
   @IsNotEmpty()
-  @MinLength(8)
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+  // @MinLength(8)
+  /*@Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
     message:
       'Password must contain at least one uppercase letter, one lowercase letter, and one number',
-  })
+  })*/
   password: string;
 
   @ApiProperty({

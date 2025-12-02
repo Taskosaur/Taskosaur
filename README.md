@@ -64,7 +64,7 @@ The fastest way to get started with Taskosaur is using Docker Compose:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/Taskosaur/Taskosaur.git
+   git clone https://github.com/Taskosaur/Taskosaur.git taskosaur
    cd taskosaur
    ```
 
@@ -102,7 +102,7 @@ If you prefer to run services locally:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/Taskosaur/Taskosaur.git
+   git clone https://github.com/Taskosaur/Taskosaur.git taskosaur
    cd taskosaur
    ```
 
@@ -443,7 +443,7 @@ _Taskosaur is actively under development. The following features represent our p
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/Taskosaur/Taskosaur.git
+   git clone https://github.com/Taskosaur/Taskosaur.git taskosaur
    cd taskosaur
    ```
 
@@ -653,9 +653,21 @@ taskosaur/
 
 ```bash
 # Clone the repository
-git clone https://github.com/Taskosaur/Taskosaur.git
+git clone https://github.com/Taskosaur/Taskosaur.git taskosaur
 cd taskosaur
 
+# Setup environment variables
+cp .env.example .env
+```
+
+**⚠️ IMPORTANT:** Edit `.env` and update with secure production values:
+- Generate strong unique secrets for `JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`
+- Set secure database credentials
+- Configure your domain URLs (`FRONTEND_URL`, `CORS_ORIGIN`, `NEXT_PUBLIC_API_BASE_URL`)
+- Configure SMTP settings for email notifications
+- **Never use the example/default values in production**
+
+```bash
 # Build and run with Docker Compose
 docker-compose -f docker-compose.prod.yml up -d
 ```

@@ -66,13 +66,14 @@ export function RegisterForm() {
   );
 
   // Password validation helpers
-  const isPasswordLongEnough = formData.password.length >= 8;
-  const hasUpperCase = /[A-Z]/.test(formData.password);
-  const hasLowerCase = /[a-z]/.test(formData.password);
-  const hasNumber = /\d/.test(formData.password);
+  const isPasswordLongEnough = true;                    // formData.password.length >= 8;
+  const hasUpperCase = true;                            // /[A-Z]/.test(formData.password);
+  const hasLowerCase = true;                            // /[a-z]/.test(formData.password);
+  const hasNumber = true;                                   // /\d/.test(formData.password);
   const passwordsMatch =
     formData.password === formData.confirmPassword && formData.confirmPassword.length > 0;
-  const isPasswordValid = isPasswordLongEnough && hasUpperCase && hasLowerCase && hasNumber;
+  const isPasswordValid = true;
+  // isPasswordLongEnough && hasUpperCase && hasLowerCase && hasNumber;
 
   // All required fields check
   const allFieldsFilled = [
@@ -282,7 +283,7 @@ export function RegisterForm() {
             </Button>
           </div>
 
-          {/* Password Requirements */}
+          {/* Password Requirements
           {formData.password && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -352,7 +353,7 @@ export function RegisterForm() {
                 </div>
               </div>
             </motion.div>
-          )}
+          )} */}
         </motion.div>
 
         {/* Confirm Password Field */}
