@@ -173,18 +173,6 @@ function htmlToMarkdown(html: string): string {
 
   // Clean up extra whitespace
   markdown = markdown
-    (function removeAllHtmlTags(input) {
-      let prev;
-      do {
-        prev = input;
-        input = input.replace(/<[^>]+>/g, "");
-      } while (prev !== input);
-      return input;
-    })(/* value from previous chain */)
-    // Apply repeated removal to cover incomplete multi-character sanitization
-    .replace(/<[^>]+>/g, "")
-    .replace(/<[^>]+>/g, "")
-    // Clean up extra whitespace
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   return markdown;
