@@ -162,7 +162,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
               <SafeMarkdownRenderer
                 key={`content-${idx}`}
                 content={part}
-                className="prose max-w-none"
+                className="prose prose-sm max-w-none"
               />
             );
           }
@@ -196,7 +196,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
 
   return (
     <div
-      className="task-description-view prose max-w-none bg-[var(--background)] text-sm text-[var(--foreground)] p-2 rounded-md border border-[var(--border)]"
+      className="task-description-view prose prose-sm max-w-none bg-[var(--background)] text-[var(--foreground)] p-2 rounded-md border border-[var(--border)]"
       data-color-mode={colorMode}
     >
       {emailThreadId || isHtmlContent ? (

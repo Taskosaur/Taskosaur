@@ -1,26 +1,65 @@
-import DOMPurify from 'dompurify';
-import { SANITIZE_CONFIG, decodeHtml } from '@/utils/sanitize-content';
+import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
+import rehypeRaw from 'rehype-raw';
+import remarkGfm from 'remark-gfm';
+import { decodeHtml } from '@/utils/sanitize-content';
 
-export function DangerouslyHTMLComment({ comment }) {
-  const hasEscapedHtml = /&lt;|&gt;/.test(comment);
+interface DangerouslyHTMLCommentProps {
+  comment: string;
+}
 
-  const htmlToRender = hasEscapedHtml ? decodeHtml(comment) : comment;
+/**
+ * Renders HTML or markdown content safely using react-markdown
+ * Supports both HTML tags and markdown syntax (including blockquotes with >, >>, >>>)
+ * Uses rehype-raw to parse HTML and rehype-sanitize to prevent XSS
+ * Decodes HTML entities (like &gt;) before parsing to ensure markdown syntax is recognized
+ */
+export function DangerouslyHTMLComment({ comment }: DangerouslyHTMLCommentProps) {
+  // Decode HTML entities (like &gt; to >) so markdown parser can recognize syntax
+  const hasHtmlEntities = /&[a-z]+;|&#\d+;/i.test(comment);
+  const contentToRender = hasHtmlEntities ? decodeHtml(comment) : comment;
 
-  // Sanitize HTML to prevent XSS using shared configuration
-  const sanitizedHtml = DOMPurify.sanitize(htmlToRender, SANITIZE_CONFIG);
+  // Custom sanitize schema to allow common HTML tags
+  const sanitizeSchema = {
+    tagNames: [
+      // Block elements
+      'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'blockquote', 'pre', 'code',
+      'ul', 'ol', 'li',
+      'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+      'hr', 'br',
+      // Inline elements
+      'a', 'b', 'strong', 'i', 'em', 'u', 's', 'del', 'ins',
+      'span', 'sub', 'sup', 'mark', 'kbd',
+      // Input for checkboxes
+      'input'
+    ],
+    attributes: {
+      a: ['href', 'title', 'target', 'rel'],
+      input: ['type', 'checked', 'disabled'],
+      code: ['className'], // for syntax highlighting
+      '*': ['className'] // Allow className on all elements for styling
+    }
+  };
 
   return (
-    <div
-      className="
-        text-[var(--foreground)] leading-relaxed
-        [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-5
-        [&_h1]:text-3xl [&_h2]:text-2xl [&_h3]:text-xl
-        [&_h4]:text-lg [&_h5]:text-base [&_h6]:text-sm
-        [&_blockquote]:border-l-4 [&_blockquote]:border-gray-400
-        [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600
-        [&_p]:my-1
-      "
-      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-    />
+    <div className="prose prose-sm max-w-none">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]} // GitHub Flavored Markdown (tables, checkboxes, etc.)
+        rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]} // Parse HTML then sanitize
+        components={{
+          // Custom component for task checkboxes to make them disabled
+          input: ({ node, ...props }) => {
+            if (props.type === 'checkbox') {
+              return <input {...props} disabled className="cursor-not-allowed" />;
+            }
+            return <input {...props} />;
+          },
+        }}
+      >
+        {contentToRender}
+      </ReactMarkdown>
+    </div>
   );
 }

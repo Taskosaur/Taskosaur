@@ -105,27 +105,125 @@
     @apply text-base leading-relaxed text-[var(--foreground)];
   }
 
+  .prose-sm {
+    @apply text-sm leading-relaxed;
+  }
+
   .prose h1 {
-    @apply text-4xl font-bold leading-tight tracking-tight mb-4;
+    @apply text-2xl font-bold leading-tight tracking-tight mb-3 mt-4;
   }
 
   .prose h2 {
-    @apply text-3xl font-bold leading-tight mb-3;
+    @apply text-xl font-bold leading-tight mb-2 mt-3;
   }
 
   .prose h3 {
-    @apply text-2xl font-bold leading-tight mb-2;
+    @apply text-lg font-bold leading-tight mb-2 mt-3;
   }
 
-  .prose h4 {
-    @apply text-lg font-semibold leading-snug mb-2;
+  .prose h4,
+  .prose h5,
+  .prose h6 {
+    @apply text-base font-semibold leading-snug mb-2 mt-2;
   }
 
   .prose p {
-    @apply text-base font-normal leading-relaxed mb-4;
+    @apply text-base font-normal leading-relaxed mb-3;
+  }
+
+  .prose-sm p {
+    @apply text-sm mb-2;
   }
 
   .prose small {
     @apply text-xs font-medium leading-normal text-[var(--muted-foreground)];
+  }
+
+  /* Lists */
+  .prose ul {
+    @apply list-disc pl-6 mb-3 space-y-1;
+  }
+
+  .prose ol {
+    @apply list-decimal pl-6 mb-3 space-y-1;
+  }
+
+  .prose li {
+    @apply leading-relaxed;
+  }
+
+  .prose li > ul,
+  .prose li > ol {
+    @apply mt-1 mb-0;
+  }
+
+  /* Links */
+  .prose a {
+    @apply text-[var(--primary)] underline underline-offset-2 hover:text-[var(--primary)]/80 transition-colors;
+  }
+
+  /* Inline code */
+  .prose code {
+    @apply px-1.5 py-0.5 rounded text-sm font-mono bg-[var(--muted)] text-[var(--foreground)];
+  }
+
+  /* Code blocks */
+  .prose pre {
+    @apply p-4 rounded-lg mb-3 overflow-x-auto bg-[var(--muted)] border border-[var(--border)];
+  }
+
+  .prose pre code {
+    @apply p-0 bg-transparent text-sm;
+  }
+
+  /* Blockquotes */
+  .prose blockquote {
+    @apply pl-4 border-l-4 border-[var(--primary)] italic text-[var(--muted-foreground)] mb-3;
+  }
+
+  .prose blockquote p {
+    @apply mb-0;
+  }
+
+  /* Tables */
+  .prose table {
+    @apply w-full border-collapse mb-3;
+  }
+
+  .prose th {
+    @apply border border-[var(--border)] px-3 py-2 text-left font-semibold bg-[var(--muted)];
+  }
+
+  .prose td {
+    @apply border border-[var(--border)] px-3 py-2;
+  }
+
+  /* Horizontal rule */
+  .prose hr {
+    @apply my-4 border-t border-[var(--border)];
+  }
+
+  /* Strong and emphasis */
+  .prose strong {
+    @apply font-semibold;
+  }
+
+  .prose em {
+    @apply italic;
+  }
+
+  /* Task list checkboxes */
+  .prose input[type="checkbox"] {
+    @apply mr-2 align-middle accent-[var(--primary)];
+  }
+
+  /* Images */
+  .prose img {
+    @apply max-w-full h-auto rounded-lg mb-3;
+  }
+
+  /* Max width utility */
+  .max-w-none {
+    max-width: none;
   }
 }

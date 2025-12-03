@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
+import { decodeHtml } from '@/utils/sanitize-content';
 
 interface SafeMarkdownRendererProps {
   content: string;
@@ -12,19 +13,16 @@ interface SafeMarkdownRendererProps {
 /**
  * Safely renders markdown content with XSS protection
  * Uses react-markdown with rehype-sanitize to prevent script injection
+ * Decodes HTML entities (like &gt;) before parsing to ensure markdown syntax is recognized
  */
-export const SafeMarkdownRenderer: React.FC<SafeMarkdownRendererProps> = ({ 
-  content, 
-  className = `
-    text-[var(--foreground)] leading-relaxed
-    [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-5
-    [&_h1]:text-3xl [&_h2]:text-2xl [&_h3]:text-xl
-    [&_h4]:text-lg [&_h5]:text-base [&_h6]:text-sm
-    [&_blockquote]:border-l-4 [&_blockquote]:border-gray-400
-    [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600
-    [&_p]:my-1
-  `.trim().replace(/\s+/g, ' ')
+export const SafeMarkdownRenderer: React.FC<SafeMarkdownRendererProps> = ({
+  content,
+  className = "prose prose-sm max-w-none"
 }) => {
+  // Decode HTML entities (like &gt; to >) so markdown parser can recognize syntax
+  const hasHtmlEntities = /&[a-z]+;|&#\d+;/i.test(content);
+  const decodedContent = hasHtmlEntities ? decodeHtml(content) : content;
+
   // Custom sanitize schema to allow common HTML tags in markdown
   const sanitizeSchema = {
     tagNames: [
@@ -63,7 +61,7 @@ export const SafeMarkdownRenderer: React.FC<SafeMarkdownRendererProps> = ({
           },
         }}
       >
-        {content}
+        {decodedContent}
       </ReactMarkdown>
     </div>
   );
