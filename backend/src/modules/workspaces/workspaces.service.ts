@@ -312,6 +312,35 @@ export class WorkspacesService {
     await this.accessControl.getWorkspaceAccess(id, userId);
 
     try {
+      // Fetch current workspace to get organizationId
+      const currentWorkspace = await this.prisma.workspace.findUnique({
+        where: { id },
+        select: { id: true, slug: true, organizationId: true },
+      });
+
+      if (!currentWorkspace) {
+        throw new NotFoundException('Workspace not found');
+      }
+
+      // If slug is being updated, validate uniqueness in the organization
+      if (updateWorkspaceDto.slug && updateWorkspaceDto.slug !== currentWorkspace.slug) {
+        const existingWorkspace = await this.prisma.workspace.findUnique({
+          where: {
+            organizationId_slug: {
+              organizationId: currentWorkspace.organizationId,
+              slug: updateWorkspaceDto.slug,
+            },
+          },
+          select: { id: true },
+        });
+
+        if (existingWorkspace) {
+          throw new ConflictException(
+            `A workspace with the slug "${updateWorkspaceDto.slug}" already exists in this organization. Please choose a different slug.`,
+          );
+        }
+      }
+
       const workspace = await this.prisma.workspace.update({
         where: { id },
         data: { ...updateWorkspaceDto, updatedBy: userId },

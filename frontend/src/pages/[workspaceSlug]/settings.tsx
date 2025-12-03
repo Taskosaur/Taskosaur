@@ -186,6 +186,12 @@ function WorkspaceSettingsContent() {
   const handleSave = async () => {
     if (!workspace) return;
 
+    // Validate slug format
+    if (formData.slug && !/^[a-z0-9-]+$/.test(formData.slug)) {
+      toast.error("Workspace slug can only contain lowercase letters, numbers, and hyphens");
+      return;
+    }
+
     try {
       setSaving(true);
       setError(null);
@@ -193,6 +199,7 @@ function WorkspaceSettingsContent() {
 
       const updatedWorkspace = await updateWorkspace(workspace.id, {
         name: formData?.name?.trim(),
+        slug: formData?.slug?.trim(),
         description: formData?.description?.trim(),
       });
 
@@ -203,14 +210,37 @@ function WorkspaceSettingsContent() {
       }
       toast.success("Workspace settings updated successfully!");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update workspace");
+      // Handle Conflict and Error instances
+      const errorMessage = 
+        (err as any)?.message || 
+        (err instanceof Error ? err.message : "Failed to update workspace");
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
   };
 
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  };
+
   const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "name") {
+      // Auto-update slug when name changes
+      setFormData((prev) => ({
+        ...prev,
+        name: value,
+        slug: generateSlug(value),
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    }
     setError(null);
     setSuccess(null);
   };
@@ -288,7 +318,7 @@ function WorkspaceSettingsContent() {
                 disabled={saving || !hasAccess}
               />
               <p className="text-xs text-[var(--muted-foreground)]">
-                This is used in URLs and should be unique
+                Used in URLs. Must be unique within this organization. Only lowercase letters, numbers, and hyphens are allowed.
               </p>
             </div>
 

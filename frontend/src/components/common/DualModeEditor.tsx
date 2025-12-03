@@ -208,6 +208,7 @@ function RichTextEditorInner({
 
   const [editorState, setEditorState] = useState<import("draft-js").EditorState | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
+  const lastEmittedValue = useRef<string>(value);
 
   // Load draft-js modules on mount
   useEffect(() => {
@@ -243,6 +244,7 @@ function RichTextEditorInner({
               contentBlock.contentBlocks
             );
             setEditorState(draftModules.EditorState.createWithContent(contentState));
+            lastEmittedValue.current = value;
           } else {
             setEditorState(draftModules.EditorState.createEmpty());
           }
@@ -254,6 +256,24 @@ function RichTextEditorInner({
       }
     }
   }, [draftModules, value, editorState]);
+  // Handle external value updates (e.g. switching to edit mode, or clearing after submit)
+  useEffect(() => {
+    if (draftModules && editorState && value !== lastEmittedValue.current) {
+      try {
+        const contentBlock = draftModules.htmlToDraft(value);
+        if (contentBlock) {
+          const contentState = draftModules.ContentState.createFromBlockArray(
+            contentBlock.contentBlocks
+          );
+          setEditorState(draftModules.EditorState.createWithContent(contentState));
+          lastEmittedValue.current = value;
+        }
+      } catch (e) {
+        // Fallback for invalid HTML
+        console.error("Failed to parse HTML for editor update", e);
+      }
+    }
+  }, [value, draftModules, editorState]);
 
   const handleEditorChange = useCallback(
     (newState: import("draft-js").EditorState) => {
@@ -262,11 +282,14 @@ function RichTextEditorInner({
       const rawContent = draftModules.convertToRaw(newState.getCurrentContent());
       const html = draftModules.draftToHtml(rawContent);
       const plainText = newState.getCurrentContent().getPlainText();
+      
+      let newValue = "";
       if (plainText.trim() || html !== "<p></p>\n") {
-        onChange(html);
-      } else {
-        onChange("");
+        newValue = html;
       }
+      
+      lastEmittedValue.current = newValue;
+      onChange(newValue);
     },
     [draftModules, onChange]
   );

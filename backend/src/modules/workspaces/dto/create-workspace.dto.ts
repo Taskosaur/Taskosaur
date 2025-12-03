@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNotEmpty, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, IsObject, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateWorkspaceDto {
@@ -23,6 +23,9 @@ export class CreateWorkspaceDto {
   })
   @IsString()
   @IsNotEmpty()
+  @Matches(/^[a-z0-9-]+$/, {
+    message: 'Slug can only contain lowercase letters, numbers, and hyphens',
+  })
   slug: string;
 
   @ApiProperty({

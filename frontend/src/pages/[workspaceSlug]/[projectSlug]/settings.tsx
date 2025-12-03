@@ -56,6 +56,7 @@ function ProjectSettingsContent() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    slug: "",
     status: "ACTIVE",
     visibility: "PRIVATE",
   });
@@ -91,6 +92,7 @@ function ProjectSettingsContent() {
         setFormData({
           name: projectData.name || "",
           description: projectData.description || "",
+          slug: projectData.slug || "",
           status: projectData.status || "ACTIVE",
           visibility: projectData.visibility || "PRIVATE",
         });
@@ -228,6 +230,7 @@ function ProjectSettingsContent() {
         setFormData({
           name: projectData.name || "",
           description: projectData.description || "",
+          slug: projectData.slug || "",
           status: projectData.status || "ACTIVE",
           visibility: projectData.visibility || "PRIVATE",
         });
@@ -268,17 +271,37 @@ function ProjectSettingsContent() {
   const handleSave = async () => {
     if (!project) return;
 
+    // Validate slug format
+    if (formData.slug && !/^[a-z0-9-]+$/.test(formData.slug)) {
+      toast.error("Project slug can only contain lowercase letters, numbers, and hyphens");
+      return;
+    }
+
     try {
       setSaving(true);
       setError(null);
       setSuccess(null);
 
-      await updateProject(project.id, {
+      const updatedProject = await updateProject(project.id, {
         name: formData.name.trim(),
+        slug: formData.slug.trim(),
         description: formData.description.trim(),
         status: formData.status,
         visibility: formData.visibility,
       });
+
+      setProject(updatedProject);
+
+      // Redirect if slug changed
+      if (updatedProject.slug !== projectSlug) {
+        const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
+        if (safeWorkspaceSlug) {
+          const path = `/${safeWorkspaceSlug}/${updatedProject.slug}/settings`;
+          if (isValidInternalPath(path)) {
+            await router.replace(path);
+          }
+        }
+      }
 
       toast.success("Project settings updated successfully!");
     } catch (err) {
@@ -288,8 +311,26 @@ function ProjectSettingsContent() {
     }
   };
 
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  };
+
   const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "name") {
+      // Auto-update slug when name changes
+      setFormData((prev) => ({
+        ...prev,
+        name: value,
+        slug: generateSlug(value),
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    }
     setError(null);
     setSuccess(null);
   };
@@ -399,12 +440,14 @@ function ProjectSettingsContent() {
                       <Label htmlFor="slug">Project Slug</Label>
                       <Input
                         id="slug"
-                        value={project?.slug || ""}
+                        value={formData.slug}
+                        onChange={(e) => handleInputChange("slug", e.target.value)}
                         placeholder="project-slug"
-                        disabled={true}
-                        readOnly
-                        className="cursor-not-allowed"
+                        disabled={saving || !hasAccess}
                       />
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        Used in URLs. Only lowercase letters, numbers, and hyphens are allowed.
+                      </p>
                     </div>
 
                     <div className="space-y-2">

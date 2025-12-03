@@ -6,6 +6,7 @@ import {
   IsDateString,
   IsObject,
   IsUUID,
+  Matches,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { ProjectStatus, ProjectPriority, ProjectVisibility } from '@prisma/client';
@@ -22,13 +23,17 @@ export class CreateProjectDto {
   name: string;
 
   @ApiProperty({
-    description: 'project-slug',
+    description: 'The unique slug identifier for the project (used in URLs)',
     example: 'e-commerce-platform-redesign',
+    pattern: '^[a-z0-9-]+$',
     minLength: 1,
     maxLength: 100,
   })
   @IsString()
   @IsNotEmpty()
+  @Matches(/^[a-z0-9-]+$/, {
+    message: 'Slug can only contain lowercase letters, numbers, and hyphens',
+  })
   slug: string;
 
   @ApiProperty({
