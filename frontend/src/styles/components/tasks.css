@@ -1309,6 +1309,66 @@
   color: var(--foreground) !important;
 }
 
+/* ====================================
+   Global Markdown Content Styles (for Task Comments)
+   ==================================== */
+
+.markdown-content h1 {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  margin: 1.5em 0 0.5em 0 !important;
+  color: var(--foreground) !important;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.3em;
+}
+
+.markdown-content h2 {
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  margin: 1.25em 0 0.5em 0 !important;
+  color: var(--foreground) !important;
+}
+
+.markdown-content h3 {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  margin: 1em 0 0.5em 0 !important;
+  color: var(--foreground) !important;
+}
+
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  margin: 1em 0 0.5em 0 !important;
+  color: var(--foreground) !important;
+}
+
+.markdown-content code {
+  font-size: 13px !important;
+  background-color: var(--muted) !important;
+  color: var(--foreground) !important;
+  padding: 0.2em 0.4em !important;
+  border-radius: 3px !important;
+  font-family: "Monaco", "Courier New", monospace !important;
+}
+
+.markdown-content pre {
+  background-color: var(--muted) !important;
+  padding: 1em !important;
+  border-radius: 6px !important;
+  overflow-x: auto !important;
+  margin: 1em 0 !important;
+  border: 1px solid var(--border);
+}
+
+.markdown-content pre code {
+  background-color: transparent !important;
+  padding: 0 !important;
+  font-size: 13px !important;
+}
+
 /* Empty state styling */
 .task-description-view > div:first-child:last-child {
   color: var(--muted-foreground) !important;

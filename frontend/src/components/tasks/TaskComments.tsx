@@ -238,11 +238,16 @@ const CommentItem = React.memo(
             </div>
 
             {/* Comment content */}
-            {comment.emailMessageId || isRichTextHtml(comment.content) ? (
-              <DangerouslyHTMLComment comment={comment.content} />
-            ) : (
-              <SafeMarkdownRenderer content={comment.content} />
-            )}
+            <div className="prose prose-sm max-w-none bg-[var(--background)] text-sm text-[var(--foreground)] p-2 rounded-md border border-[var(--border)] mt-1">
+              <div className="markdown-content">
+
+              {comment.emailMessageId || isRichTextHtml(comment.content) ? (
+                <DangerouslyHTMLComment comment={comment.content} />
+              ) : (
+                <SafeMarkdownRenderer content={comment.content} />
+              )}
+              </div>
+            </div>
 
             {/* Send as Email button - positioned below content */}
             {allowEmailReplies && !comment.sentAsEmail && onSendAsEmail && (

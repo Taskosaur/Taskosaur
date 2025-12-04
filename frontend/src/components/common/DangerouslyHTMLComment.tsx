@@ -44,7 +44,7 @@ export function DangerouslyHTMLComment({ comment }: DangerouslyHTMLCommentProps)
   };
 
   return (
-    <div className="prose prose-sm max-w-none">
+    <div className="prose prose-sm max-w-none [&_blockquote]:not-italic">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]} // GitHub Flavored Markdown (tables, checkboxes, etc.)
         rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]} // Parse HTML then sanitize
