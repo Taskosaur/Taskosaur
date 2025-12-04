@@ -17,7 +17,7 @@ import slugify from 'slugify';
 export class OrganizationsService {
   constructor(private prisma: PrismaService) {}
 
-  private async generateUniqueSlug(name: string): Promise<string> {
+  private async generateUniqueSlug(name: string, excludeId?: string): Promise<string> {
     const baseSlug = slugify(name, {
       lower: true,
       strict: true, // remove special chars
@@ -27,8 +27,11 @@ export class OrganizationsService {
     let counter = 1;
 
     while (true) {
-      const exists = await this.prisma.organization.findUnique({
-        where: { slug },
+      const exists = await this.prisma.organization.findFirst({
+        where: {
+          slug,
+          ...(excludeId && { id: { not: excludeId } }), // Exclude current org when updating
+        },
         select: { id: true },
       });
 
@@ -462,10 +465,55 @@ export class OrganizationsService {
     userId: string,
   ): Promise<Organization> {
     try {
+      // Get current organization to check what's changing
+      const currentOrg = await this.prisma.organization.findUnique({
+        where: { id },
+        select: { name: true, slug: true },
+      });
+
+      if (!currentOrg) {
+        throw new NotFoundException('Organization not found');
+      }
+
+      let finalSlug: string | undefined;
+
+      // Case 1: Slug is explicitly provided (user manually edited it)
+      if (updateOrganizationDto.slug && updateOrganizationDto.slug !== currentOrg.slug) {
+        // Check if the provided slug is unique (excluding current org)
+        const slugExists = await this.prisma.organization.findFirst({
+          where: {
+            slug: updateOrganizationDto.slug,
+            id: { not: id },
+          },
+          select: { id: true },
+        });
+
+        if (slugExists) {
+          throw new ConflictException(
+            `Slug "${updateOrganizationDto.slug}" is already taken. Please choose a different slug.`,
+          );
+        }
+
+        finalSlug = updateOrganizationDto.slug;
+      }
+      // Case 2: Name is changed but slug is not provided (auto-generate slug)
+      else if (
+        updateOrganizationDto.name &&
+        updateOrganizationDto.name !== currentOrg.name &&
+        !updateOrganizationDto.slug
+      ) {
+        finalSlug = await this.generateUniqueSlug(updateOrganizationDto.name, id);
+      }
+
+      // Remove slug from DTO to avoid conflict with finalSlug
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { slug: _slug, ...dtoWithoutSlug } = updateOrganizationDto;
+
       const organization = await this.prisma.organization.update({
         where: { id },
         data: {
-          ...updateOrganizationDto,
+          ...dtoWithoutSlug,
+          ...(finalSlug && { slug: finalSlug }), // Only update slug if changed
           updatedBy: userId,
         },
         include: {
