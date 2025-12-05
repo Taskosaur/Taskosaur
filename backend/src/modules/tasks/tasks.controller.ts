@@ -38,6 +38,7 @@ import { Scope } from 'src/common/decorator/scope.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { BulkDeleteTasksDto } from './dto/bulk-delete-tasks.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { RecurrenceConfigDto } from './dto/recurrence-config.dto';
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -917,7 +918,7 @@ export class TasksController {
   @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER)
   updateRecurrence(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() config: any,
+    @Body() config: RecurrenceConfigDto,
     @Req() req: Request,
   ) {
     const user = getAuthUser(req);

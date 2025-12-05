@@ -4,7 +4,6 @@ import {
   IsInt,
   IsArray,
   IsDateString,
-  IsBoolean,
   Min,
   Max,
   ValidateIf,

@@ -14,6 +14,7 @@ import { AccessControlService } from 'src/common/access-control.utils';
 import { StorageService } from '../storage/storage.service';
 import { sanitizeHtml } from 'src/common/utils/sanitizer.util';
 import { RecurrenceService } from './recurrence.service';
+import { RecurrenceConfigDto } from './dto/recurrence-config.dto';
 
 @Injectable()
 export class TasksService {
@@ -88,28 +89,52 @@ export class TasksService {
     const { assigneeIds, reporterIds, description, isRecurring, recurrenceConfig, ...taskData } =
       createTaskDto;
 
+    // Build task create data - filter out undefined values
+    const taskCreateData: any = {
+      description: sanitizeHtml(description as string),
+      createdBy: userId,
+      taskNumber,
+      slug: key,
+      sprintId: sprintId,
+      isRecurring: isRecurring || false,
+    };
+
+    // Add optional fields only if they have values
+    if (taskData.title) taskCreateData.title = taskData.title;
+    if (taskData.type) taskCreateData.type = taskData.type;
+    if (taskData.priority) taskCreateData.priority = taskData.priority;
+    if (taskData.projectId) taskCreateData.projectId = taskData.projectId;
+    if (taskData.statusId) taskCreateData.statusId = taskData.statusId;
+    if (taskData.startDate) taskCreateData.startDate = taskData.startDate;
+    if (taskData.dueDate) taskCreateData.dueDate = taskData.dueDate;
+    if (taskData.storyPoints !== undefined) taskCreateData.storyPoints = taskData.storyPoints;
+    if (taskData.originalEstimate !== undefined)
+      taskCreateData.originalEstimate = taskData.originalEstimate;
+    if (taskData.remainingEstimate !== undefined)
+      taskCreateData.remainingEstimate = taskData.remainingEstimate;
+    if (taskData.customFields) taskCreateData.customFields = taskData.customFields;
+    if (taskData.parentTaskId) taskCreateData.parentTaskId = taskData.parentTaskId;
+    if (taskData.completedAt !== undefined) taskCreateData.completedAt = taskData.completedAt;
+    if (taskData.allowEmailReplies !== undefined)
+      taskCreateData.allowEmailReplies = taskData.allowEmailReplies;
+
+    // Only add assignees if there are any
+    if (assigneeIds?.length) {
+      taskCreateData.assignees = {
+        connect: assigneeIds.map((id) => ({ id })),
+      };
+    }
+
+    // Only add reporters if there are any
+    if (reporterIds?.length) {
+      taskCreateData.reporters = {
+        connect: reporterIds.map((id) => ({ id })),
+      };
+    }
+
     // Create the task
     const task = await this.prisma.task.create({
-      data: {
-        ...taskData,
-        description: sanitizeHtml(description as string),
-        createdBy: userId,
-        taskNumber,
-        slug: key,
-        sprintId: sprintId,
-        isRecurring: isRecurring || false,
-        assignees: assigneeIds?.length
-          ? {
-              connect: assigneeIds.map((id) => ({ id })),
-            }
-          : undefined,
-        // Connect multiple reporters
-        reporters: reporterIds?.length
-          ? {
-              connect: reporterIds.map((id) => ({ id })),
-            }
-          : undefined,
-      },
+      data: taskCreateData,
       include: {
         project: {
           select: {
@@ -260,27 +285,52 @@ export class TasksService {
     const { assigneeIds, reporterIds, description, isRecurring, recurrenceConfig, ...taskData } =
       createTaskDto;
 
+    // Build task create data - filter out undefined values
+    const taskCreateData: any = {
+      description: sanitizeHtml(description as string),
+      createdBy: userId,
+      taskNumber,
+      slug: key,
+      sprintId: sprintId,
+      isRecurring: isRecurring || false,
+    };
+
+    // Add optional fields only if they have values
+    if (taskData.title) taskCreateData.title = taskData.title;
+    if (taskData.type) taskCreateData.type = taskData.type;
+    if (taskData.priority) taskCreateData.priority = taskData.priority;
+    if (taskData.projectId) taskCreateData.projectId = taskData.projectId;
+    if (taskData.statusId) taskCreateData.statusId = taskData.statusId;
+    if (taskData.startDate) taskCreateData.startDate = taskData.startDate;
+    if (taskData.dueDate) taskCreateData.dueDate = taskData.dueDate;
+    if (taskData.storyPoints !== undefined) taskCreateData.storyPoints = taskData.storyPoints;
+    if (taskData.originalEstimate !== undefined)
+      taskCreateData.originalEstimate = taskData.originalEstimate;
+    if (taskData.remainingEstimate !== undefined)
+      taskCreateData.remainingEstimate = taskData.remainingEstimate;
+    if (taskData.customFields) taskCreateData.customFields = taskData.customFields;
+    if (taskData.parentTaskId) taskCreateData.parentTaskId = taskData.parentTaskId;
+    if (taskData.completedAt !== undefined) taskCreateData.completedAt = taskData.completedAt;
+    if (taskData.allowEmailReplies !== undefined)
+      taskCreateData.allowEmailReplies = taskData.allowEmailReplies;
+
+    // Only add assignees if there are any
+    if (assigneeIds?.length) {
+      taskCreateData.assignees = {
+        connect: assigneeIds.map((id) => ({ id })),
+      };
+    }
+
+    // Only add reporters if there are any
+    if (reporterIds?.length) {
+      taskCreateData.reporters = {
+        connect: reporterIds.map((id) => ({ id })),
+      };
+    }
+
     // --- Create Task ---
     const task = await this.prisma.task.create({
-      data: {
-        ...taskData,
-        description: sanitizeHtml(description as string),
-        createdBy: userId,
-        taskNumber,
-        slug: key,
-        sprintId: sprintId,
-        isRecurring: isRecurring || false,
-        assignees: assigneeIds?.length
-          ? {
-              connect: assigneeIds.map((id) => ({ id })),
-            }
-          : undefined,
-        reporters: reporterIds?.length
-          ? {
-              connect: reporterIds.map((id) => ({ id })),
-            }
-          : undefined,
-      },
+      data: taskCreateData,
     });
 
     // If this is a recurring task, create the recurrence configuration
@@ -2037,7 +2087,11 @@ export class TasksService {
   /**
    * Update recurrence configuration for a task
    */
-  async updateRecurrenceConfig(taskId: string, recurrenceConfig: any, userId: string) {
+  async updateRecurrenceConfig(
+    taskId: string,
+    recurrenceConfig: RecurrenceConfigDto,
+    userId: string,
+  ) {
     await this.accessControl.getTaskAccess(taskId, userId);
 
     const task = await this.prisma.task.findUnique({

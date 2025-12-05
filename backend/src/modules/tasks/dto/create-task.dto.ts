@@ -125,16 +125,16 @@ export class CreateTaskDto {
   @Transform(({ value }) => {
     if (typeof value === 'string') {
       try {
-        return JSON.parse(value);
+        return JSON.parse(value) as Record<string, unknown>;
       } catch {
-        return value;
+        return {} as Record<string, unknown>;
       }
     }
-    return value;
+    return (value ?? {}) as Record<string, unknown>;
   })
   @IsObject()
   @IsOptional()
-  customFields?: Record<string, any>;
+  customFields?: Record<string, unknown>;
 
   @ApiProperty({
     description: 'ID of the project this task belongs to',
@@ -156,13 +156,12 @@ export class CreateTaskDto {
     if (typeof value === 'string') {
       try {
         const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        console.error('Error parsing JSON for assigneeIds:', error);
+        return Array.isArray(parsed) ? parsed.map(String) : [];
+      } catch {
         return [];
       }
     }
-    return value as string[];
+    return Array.isArray(value) ? value.map(String) : [];
   })
   @IsArray()
   @IsUUID('all', { each: true })
@@ -181,13 +180,12 @@ export class CreateTaskDto {
     if (typeof value === 'string') {
       try {
         const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        console.error('Error parsing JSON for reporterIds:', error);
+        return Array.isArray(parsed) ? parsed.map(String) : [];
+      } catch {
         return [];
       }
     }
-    return value as string[];
+    return Array.isArray(value) ? value.map(String) : [];
   })
   @IsArray()
   @IsUUID('all', { each: true })
@@ -263,25 +261,26 @@ export class CreateTaskDto {
     if (typeof value === 'string') {
       try {
         const parsed = JSON.parse(value);
-        // Transform the plain object to RecurrenceConfigDto instance
         return plainToInstance(RecurrenceConfigDto, parsed, {
           enableImplicitConversion: true,
           exposeDefaultValues: true,
         });
       } catch {
-        return value;
+        return undefined;
       }
     }
-    // If it's already an object, transform it
+
     if (value && typeof value === 'object') {
       return plainToInstance(RecurrenceConfigDto, value, {
         enableImplicitConversion: true,
         exposeDefaultValues: true,
       });
     }
-    return value;
+
+    return undefined;
   })
   @Type(() => RecurrenceConfigDto)
   @ValidateNested()
+  @IsOptional()
   recurrenceConfig?: RecurrenceConfigDto;
 }
