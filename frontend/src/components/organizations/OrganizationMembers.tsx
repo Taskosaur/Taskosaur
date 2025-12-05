@@ -115,6 +115,11 @@ export default function OrganizationMembers({
   const canRemoveMember = (member: OrganizationMember) => {
     const currentUserId = getCurrentUserId();
 
+    // Owner cannot remove themselves
+    if (member.userId === currentUserId && isCurrentUserOwner) {
+      return false;
+    }
+
     // User can always remove themselves (leave organization)
     if (member.userId === currentUserId && !isCurrentUserOwner) {
       return true;

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { OrganizationSettings } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Organization } from "@/types/organizations";
 import DangerZoneModal from "../common/DangerZoneModal";
 import { toast } from "sonner";
-import { HiCog, HiExclamationTriangle } from "react-icons/hi2";
+import { HiCog, HiExclamationTriangle, HiArrowPath } from "react-icons/hi2";
 import { useOrganization } from "@/contexts/organization-context";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -21,6 +22,7 @@ export default function OrganizationSettingsComponent({
   organization,
   onUpdate,
 }: OrganizationSettingsProps) {
+  const router = useRouter();
   const { user } = useAuth();
   const { updateOrganization, deleteOrganization } = useOrganization();
 
@@ -59,18 +61,40 @@ export default function OrganizationSettingsComponent({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const { getUserAccess } = useAuth();
 
+  // Generate slug from name (mirrors backend slugify logic)
+  const generateSlugFromName = (name: string): string => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "") // remove special chars
+      .replace(/\s+/g, "-") // replace spaces with hyphens
+      .replace(/-+/g, "-") // replace multiple hyphens with single
+      .trim();
+  };
+
+  // Slug state - separate from settings for better control
+  const [slug, setSlug] = useState(organization.slug);
+  // Track if user has manually edited the slug field in this session
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
+  // Track the original name to detect name changes
+  const [previousName, setPreviousName] = useState(organization.name);
+
   // Use getUserAccess to check permissions
-  const [hasAccess, setHasAccess] = useState(false);
+  const [hasEditAccess, setHasEditAccess] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [hasAccessLoaded, setHasAccessLoaded] = useState(false);
 
   useEffect(() => {
     const checkAccess = async () => {
       try {
         const accessData = await getUserAccess({ name: "organization", id: organization.id });
-        // Only allow access if role is Owner
-        setHasAccess(accessData?.role === "OWNER");
+        const role = accessData?.role;
+        // Allow edit access if role is SUPER_ADMIN, Owner or Manager (matching backend permissions)
+        setHasEditAccess(role === "SUPER_ADMIN" || role === "OWNER" || role === "MANAGER");
+        // Only Owner or SUPER_ADMIN can delete organization
+        setIsOwner(role === "SUPER_ADMIN" || role === "OWNER");
       } catch (error) {
-        setHasAccess(false);
+        setHasEditAccess(false);
+        setIsOwner(false);
       } finally {
         setHasAccessLoaded(true);
       }
@@ -85,10 +109,25 @@ export default function OrganizationSettingsComponent({
     const hasChanges =
       settings.general.name !== organization.name ||
       settings.general.description !== (organization.description || "") ||
-      settings.general.website !== (organization.website || "");
+      settings.general.website !== (organization.website || "") ||
+      slug !== organization.slug;
 
     setHasUnsavedChanges(hasChanges);
-  }, [settings, organization]);
+  }, [settings, organization, slug]);
+
+  // Auto-update slug when name changes (only if not manually edited in this session)
+  useEffect(() => {
+    // Only auto-update if name actually changed (not on initial mount)
+    if (settings.general.name !== previousName) {
+      setPreviousName(settings.general.name);
+
+      // Only auto-generate slug if user hasn't manually edited it
+      if (!isSlugManuallyEdited) {
+        const newSlug = generateSlugFromName(settings.general.name);
+        setSlug(newSlug);
+      }
+    }
+  }, [settings.general.name, previousName, isSlugManuallyEdited]);
 
   // Validate URL format
   const isValidUrl = (url: string): boolean => {
@@ -101,9 +140,36 @@ export default function OrganizationSettingsComponent({
     }
   };
 
+  // Validate slug format
+  const isValidSlug = (slugValue: string): boolean => {
+    if (!slugValue || slugValue.trim().length === 0) return false;
+    // Only lowercase letters, numbers, and hyphens allowed
+    return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slugValue);
+  };
+
+  // Handle slug input change
+  const handleSlugChange = (value: string) => {
+    // Sanitize input: only allow lowercase, numbers, and hyphens
+    const sanitized = value
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "");
+    setSlug(sanitized);
+    setIsSlugManuallyEdited(true);
+  };
+
+  // Reset slug to auto-generated value
+  const resetSlugToAuto = () => {
+    setSlug(generateSlugFromName(settings.general.name));
+    setIsSlugManuallyEdited(false);
+  };
+
   // Check if form is valid
   const isFormValid = (): boolean => {
-    return settings.general.name.trim().length > 0 && isValidUrl(settings.general.website);
+    return (
+      settings.general.name.trim().length > 0 &&
+      isValidUrl(settings.general.website) &&
+      isValidSlug(slug)
+    );
   };
 
   const dangerZoneActions = [
@@ -156,8 +222,13 @@ export default function OrganizationSettingsComponent({
 
     try {
       setIsLoading(true);
+
+      // Track if slug is changing for redirect
+      const slugChanged = slug !== organization.slug;
+
       const updatedOrg = await updateOrganization(organization.id, {
         ...settings.general,
+        ...(slugChanged && { slug }), // Include slug only if changed
         settings: {
           ...settings.preferences,
           ...settings.features,
@@ -181,7 +252,13 @@ export default function OrganizationSettingsComponent({
       };
       onUpdate(mappedOrg);
       setHasUnsavedChanges(false);
+      setIsSlugManuallyEdited(false); // Reset manual edit flag after save
       toast.success("Organization settings updated successfully!");
+
+      // Redirect to new URL if slug changed
+      if (slugChanged && updatedOrg.slug !== organization.slug) {
+        router.replace(`/settings/${updatedOrg.slug}`);
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update organization");
     } finally {
@@ -224,10 +301,60 @@ export default function OrganizationSettingsComponent({
                 className="border-[var(--border)] bg-[var(--background)] text-[var(--foreground)]"
                 placeholder="Enter organization name"
                 required
-                disabled={!hasAccess}
+                disabled={!hasEditAccess}
               />
               {settings.general.name.trim().length === 0 && (
                 <p className="text-xs text-red-500">Organization name is required</p>
+              )}
+            </div>
+
+            {/* Organization Slug (Editable) */}
+            <div className="space-y-2">
+              <Label htmlFor="org-slug" className="text-sm font-medium text-[var(--foreground)]">
+                Organization Slug
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="org-slug"
+                  type="text"
+                  value={slug}
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  className="border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] font-mono flex-1"
+                  placeholder="organization-slug"
+                  disabled={!hasEditAccess}
+                />
+                {isSlugManuallyEdited && hasEditAccess && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={resetSlugToAuto}
+                    className="h-9 w-9 flex-shrink-0"
+                    title="Reset to auto-generated slug"
+                  >
+                    <HiArrowPath className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              {!isValidSlug(slug) && slug.length > 0 && (
+                <p className="text-xs text-red-500">
+                  Slug must contain only lowercase letters, numbers, and hyphens
+                </p>
+              )}
+              {slug.length === 0 && (
+                <p className="text-xs text-red-500">Slug is required</p>
+              )}
+              {slug !== organization.slug && isValidSlug(slug) && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Slug will be updated from "{organization.slug}" to "{slug}"
+                </p>
+              )}
+              {slug === organization.slug && (
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  {isSlugManuallyEdited
+                    ? "You can edit the slug or click the reset icon to auto-generate from name"
+                    : "Slug is auto-generated from the organization name"}
+                </p>
               )}
             </div>
 
@@ -251,7 +378,7 @@ export default function OrganizationSettingsComponent({
                 rows={4}
                 className="border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] resize-none"
                 placeholder="Describe your organization..."
-                disabled={!hasAccess}
+                disabled={!hasEditAccess}
               />
               <p className="text-xs text-[var(--muted-foreground)]">
                 {settings.general.description.length}/500 characters
@@ -275,7 +402,7 @@ export default function OrganizationSettingsComponent({
                 }
                 className="border-[var(--border)] bg-[var(--background)] text-[var(--foreground)]"
                 placeholder="https://example.com"
-                disabled={!hasAccess}
+                disabled={!hasEditAccess}
               />
               {settings.general.website && !isValidUrl(settings.general.website) && (
                 <p className="text-xs text-red-500">
@@ -290,7 +417,7 @@ export default function OrganizationSettingsComponent({
         <div className="px-6 py-4 border-t border-[var(--border)] flex justify-end">
           <Button
             onClick={handleSave}
-            disabled={isLoading || !hasUnsavedChanges || !isFormValid() || !hasAccess}
+            disabled={isLoading || !hasUnsavedChanges || !isFormValid() || !hasEditAccess}
             className="h-9 bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
           >
             {isLoading ? (
@@ -305,8 +432,8 @@ export default function OrganizationSettingsComponent({
         </div>
       </div>
 
-      {/* Danger Zone - Only show if user has access */}
-      {hasAccess && (
+      {/* Danger Zone - Only show if user is Owner (delete is Owner-only) */}
+      {isOwner && (
         <div className="rounded-md border-none bg-red-50 dark:bg-red-950/20">
           <div className="p-6">
             <div className="flex items-start gap-3">

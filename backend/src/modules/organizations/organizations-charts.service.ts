@@ -567,8 +567,8 @@ export class OrganizationChartsService {
           id: userId,
           organizationMembers: {
             some: { organizationId: orgId },
-            source: { not: UserSource.EMAIL_INBOX },
           },
+          source: { not: UserSource.EMAIL_INBOX },
         };
     const members = await this.prisma.user.findMany({
       where: userWhere,
