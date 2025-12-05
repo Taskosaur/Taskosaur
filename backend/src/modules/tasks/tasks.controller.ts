@@ -823,6 +823,142 @@ export class TasksController {
     return this.tasksService.remove(id, user.id);
   }
 
+  // Recurring Tasks Endpoints
+
+  @Post(':id/complete-occurrence')
+  @ApiOperation({
+    summary: 'Complete current occurrence and generate next',
+    description: 'Marks the current recurring task as complete and creates the next occurrence',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Occurrence completed and next task generated',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Task is not a recurring task',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Task not found',
+  })
+  @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER)
+  @LogActivity({
+    type: 'TASK_UPDATED',
+    entityType: 'Task',
+    description: 'Completed recurring task occurrence',
+    includeNewValue: true,
+  })
+  async completeOccurrence(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
+    const user = getAuthUser(req);
+    return this.tasksService.completeOccurrenceAndGenerateNext(id, user.id);
+  }
+
+  @Patch(':id/recurrence')
+  @ApiOperation({
+    summary: 'Update recurrence configuration',
+    description: 'Updates the recurrence pattern for a recurring task',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        recurrenceType: {
+          type: 'string',
+          enum: ['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY', 'CUSTOM'],
+          example: 'WEEKLY',
+        },
+        interval: {
+          type: 'number',
+          example: 2,
+          description: 'Interval between occurrences',
+        },
+        daysOfWeek: {
+          type: 'array',
+          items: { type: 'number' },
+          example: [1, 3, 5],
+          description: 'Days of week for WEEKLY pattern (0=Sunday)',
+        },
+        dayOfMonth: {
+          type: 'number',
+          example: 15,
+          description: 'Day of month for MONTHLY/QUARTERLY/YEARLY',
+        },
+        monthOfYear: {
+          type: 'number',
+          example: 3,
+          description: 'Month for YEARLY pattern (1-12)',
+        },
+        endType: {
+          type: 'string',
+          enum: ['NEVER', 'ON_DATE', 'AFTER_OCCURRENCES'],
+          example: 'AFTER_OCCURRENCES',
+        },
+        endDate: {
+          type: 'string',
+          format: 'date-time',
+          example: '2025-12-31T00:00:00Z',
+        },
+        occurrenceCount: {
+          type: 'number',
+          example: 10,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Recurrence configuration updated',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Task is not a recurring task',
+  })
+  @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER)
+  updateRecurrence(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() config: any,
+    @Req() req: Request,
+  ) {
+    const user = getAuthUser(req);
+    return this.tasksService.updateRecurrenceConfig(id, config, user.id);
+  }
+
+  @Delete(':id/recurrence')
+  @ApiOperation({
+    summary: 'Stop task recurrence',
+    description: 'Deactivates the recurrence pattern for a task',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Recurrence stopped successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Task is not a recurring task',
+  })
+  @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER)
+  stopRecurrence(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
+    const user = getAuthUser(req);
+    return this.tasksService.stopRecurrence(id, user.id);
+  }
+
+  @Get('recurring/project/:projectId')
+  @ApiOperation({
+    summary: 'Get all recurring tasks for a project',
+    description: 'Retrieves all tasks with active recurrence in a project',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of recurring tasks',
+  })
+  @Scope('PROJECT', 'projectId')
+  @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
+  getRecurringTasks(@Param('projectId', ParseUUIDPipe) projectId: string, @Req() req: Request) {
+    const user = getAuthUser(req);
+    return this.tasksService.getRecurringTasks(projectId, user.id);
+  }
+
   @Post(':id/comments')
   @LogActivity({
     type: 'TASK_COMMENTED',

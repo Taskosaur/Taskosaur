@@ -282,29 +282,64 @@ model Task {
   emailThreadId     String? @map("email_thread_id")
   allowEmailReplies Boolean @default(false) @map("allow_email_replies")
 
+  // Recurrence fields
+  isRecurring     Boolean @default(false) @map("is_recurring")
+  recurringTaskId String? @map("recurring_task_id") @db.Uuid
+
   // Relations
-  attachments   TaskAttachment[]
-  comments      TaskComment[]
-  inboxMessage  InboxMessage?    @relation(fields: [inboxMessageId], references: [id])
-  blocks        TaskDependency[] @relation("BlockingTask")
-  dependsOn     TaskDependency[] @relation("DependentTask")
-  labels        TaskLabel[]
-  watchers      TaskWatcher[]
-  parentTask    Task?            @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
-  childTasks    Task[]           @relation("TaskHierarchy")
-  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdByUser User?            @relation("TaskCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser User?            @relation("TaskUpdatedBy", fields: [updatedBy], references: [id])
-  archiveByUser User?            @relation("TaskArchivedBy", fields: [archivedBy], references: [id])
-  sprint        Sprint?          @relation(fields: [sprintId], references: [id])
-  status        TaskStatus       @relation(fields: [statusId], references: [id], onDelete: Cascade)
-  timeEntries   TimeEntry[]
-  assignees     User[]           @relation("TaskAssignees")
-  reporters     User[]           @relation("TaskReporters")
+  attachments     TaskAttachment[]
+  comments        TaskComment[]
+  inboxMessage    InboxMessage?    @relation(fields: [inboxMessageId], references: [id])
+  recurringConfig RecurringTask?
+  blocks          TaskDependency[] @relation("BlockingTask")
+  dependsOn       TaskDependency[] @relation("DependentTask")
+  labels          TaskLabel[]
+  watchers        TaskWatcher[]
+  parentTask      Task?            @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
+  childTasks      Task[]           @relation("TaskHierarchy")
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdByUser   User?            @relation("TaskCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser   User?            @relation("TaskUpdatedBy", fields: [updatedBy], references: [id])
+  archiveByUser   User?            @relation("TaskArchivedBy", fields: [archivedBy], references: [id])
+  sprint          Sprint?          @relation(fields: [sprintId], references: [id])
+  status          TaskStatus       @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  timeEntries     TimeEntry[]
+  assignees       User[]           @relation("TaskAssignees")
+  reporters       User[]           @relation("TaskReporters")
 
   @@unique([projectId, taskNumber])
   @@index([emailThreadId])
   @@map("tasks")
+}
+
+model RecurringTask {
+  id     String @id @default(uuid()) @db.Uuid
+  taskId String @unique @map("task_id") @db.Uuid
+
+  // Recurrence pattern
+  recurrenceType RecurrenceType @map("recurrence_type")
+  interval       Int            @default(1) // Every X units
+  daysOfWeek     Int[]          @map("days_of_week") // 0=Sunday, 1=Monday, etc.
+  dayOfMonth     Int?           @map("day_of_month")
+  monthOfYear    Int?           @map("month_of_year")
+
+  // End conditions
+  endType           RecurrenceEndType @map("end_type")
+  endDate           DateTime?         @map("end_date")
+  occurrenceCount   Int?              @map("occurrence_count")
+  currentOccurrence Int               @default(1) @map("current_occurrence")
+
+  // Status
+  isActive       Boolean  @default(true) @map("is_active")
+  nextOccurrence DateTime @map("next_occurrence")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("recurring_tasks")
 }
 
 model TaskDependency {
@@ -971,24 +1006,24 @@ model EmailAccount {
   displayName  String? @map("display_name")
 
   // Basic Auth (IMAP/SMTP)
-  imapHost              String?  @map("imap_host")
-  imapPort              Int?     @default(993) @map("imap_port")
-  imapUsername          String?  @map("imap_username")
-  imapPassword          String?  @map("imap_password") // Encrypted
-  imapUseSsl            Boolean  @default(true) @map("imap_use_ssl")
-  imapTlsRejectUnauth   Boolean  @default(true) @map("imap_tls_reject_unauthorized")
-  imapTlsMinVersion     String?  @default("TLSv1.2") @map("imap_tls_min_version")
-  imapServername        String?  @map("imap_servername") // SNI hostname for TLS validation
-  imapFolder            String   @default("INBOX") @map("imap_folder")
+  imapHost            String? @map("imap_host")
+  imapPort            Int?    @default(993) @map("imap_port")
+  imapUsername        String? @map("imap_username")
+  imapPassword        String? @map("imap_password") // Encrypted
+  imapUseSsl          Boolean @default(true) @map("imap_use_ssl")
+  imapTlsRejectUnauth Boolean @default(true) @map("imap_tls_reject_unauthorized")
+  imapTlsMinVersion   String? @default("TLSv1.2") @map("imap_tls_min_version")
+  imapServername      String? @map("imap_servername") // SNI hostname for TLS validation
+  imapFolder          String  @default("INBOX") @map("imap_folder")
 
-  smtpHost              String?  @map("smtp_host")
-  smtpPort              Int?     @default(587) @map("smtp_port")
-  smtpUsername          String?  @map("smtp_username")
-  smtpPassword          String?  @map("smtp_password") // Encrypted
-  smtpTlsRejectUnauth   Boolean  @default(true) @map("smtp_tls_reject_unauthorized")
-  smtpTlsMinVersion     String?  @default("TLSv1.2") @map("smtp_tls_min_version")
-  smtpServername        String?  @map("smtp_servername") // SNI hostname for TLS validation
-  smtpRequireTls        Boolean  @default(false) @map("smtp_require_tls") // Force STARTTLS
+  smtpHost            String? @map("smtp_host")
+  smtpPort            Int?    @default(587) @map("smtp_port")
+  smtpUsername        String? @map("smtp_username")
+  smtpPassword        String? @map("smtp_password") // Encrypted
+  smtpTlsRejectUnauth Boolean @default(true) @map("smtp_tls_reject_unauthorized")
+  smtpTlsMinVersion   String? @default("TLSv1.2") @map("smtp_tls_min_version")
+  smtpServername      String? @map("smtp_servername") // SNI hostname for TLS validation
+  smtpRequireTls      Boolean @default(false) @map("smtp_require_tls") // Force STARTTLS
 
   // Sync State
   syncEnabled   Boolean   @default(true) @map("sync_enabled")
@@ -1179,4 +1214,19 @@ enum MessageStatus {
 enum SyncStatus {
   SUCCESS
   FAILED
+}
+
+enum RecurrenceType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}
+
+enum RecurrenceEndType {
+  NEVER
+  ON_DATE
+  AFTER_OCCURRENCES
 }

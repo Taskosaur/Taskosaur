@@ -140,6 +140,14 @@ export const taskApi = {
         formData.append("customFields", JSON.stringify(taskData.customFields));
       }
 
+      // Append recurrence fields
+      if (taskData.isRecurring !== undefined) {
+        formData.append("isRecurring", String(taskData.isRecurring));
+      }
+      if (taskData.recurrenceConfig) {
+        formData.append("recurrenceConfig", JSON.stringify(taskData.recurrenceConfig));
+      }
+
       // Append files
       if (taskData.attachments && taskData.attachments.length > 0) {
         taskData.attachments.forEach((file) => {
@@ -277,9 +285,8 @@ export const taskApi = {
       if (endDate) queryParams.append("endDate", endDate);
 
       const query = queryParams.toString();
-      const url = `/public/workspaces/${workspaceSlug}/projects/${projectSlug}/calendar${
-        query ? `?${query}` : ""
-      }`;
+      const url = `/public/workspaces/${workspaceSlug}/projects/${projectSlug}/calendar${query ? `?${query}` : ""
+        }`;
 
       const response = await api.get<Task[]>(url);
       return response.data;
@@ -507,6 +514,37 @@ export const taskApi = {
       await api.delete(`/tasks/${encodeURIComponent(taskId)}`);
     } catch (error) {
       console.error("Delete task error:", error);
+      throw error;
+    }
+  },
+
+  // Recurring Task operations
+  completeOccurrence: async (taskId: string): Promise<{ completedTask: Task; nextTask: Task }> => {
+    try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
+      const response = await api.post<{ completedTask: Task; nextTask: Task }>(
+        `/tasks/${encodeURIComponent(taskId)}/complete-occurrence`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Complete occurrence error:", error);
+      throw error;
+    }
+  },
+
+  stopRecurrence: async (taskId: string): Promise<Task> => {
+    try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
+      const response = await api.delete<Task>(
+        `/tasks/${encodeURIComponent(taskId)}/recurrence`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Stop recurrence error:", error);
       throw error;
     }
   },
@@ -1060,7 +1098,7 @@ export const taskApi = {
     }
   },
 
-    // Validate and format UUID using strict v4 check
+  // Validate and format UUID using strict v4 check
   assignTaskAssignees: async (taskId: string, assigneeIds: string[]) => {
     if (!isValidUUID(taskId)) {
       throw new Error("Invalid taskId provided. Must be a valid v4 UUID.");

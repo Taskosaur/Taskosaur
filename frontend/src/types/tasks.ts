@@ -6,6 +6,28 @@ import { TaskStatus } from "./task-status";
 export type TaskPriority = "LOWEST" | "LOW" | "MEDIUM" | "HIGH" | "HIGHEST" | "URGENT";
 export type TaskCategory = "TODO" | "IN_PROGRESS" | "DONE";
 
+// Recurring Task Types
+export type RecurrenceType = "DAILY" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY" | "CUSTOM";
+export type RecurrenceEndType = "NEVER" | "ON_DATE" | "AFTER_OCCURRENCES";
+
+export interface RecurringTaskConfig {
+  id: string;
+  taskId: string;
+  recurrenceType: RecurrenceType;
+  interval: number;
+  daysOfWeek?: number[];
+  dayOfMonth?: number | null;
+  monthOfYear?: number | null;
+  endType: RecurrenceEndType;
+  endDate?: string | null;
+  occurrenceCount?: number | null;
+  currentOccurrence: number;
+  nextOccurrence: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -31,6 +53,10 @@ export interface Task {
   updatedBy?: string;
   createdAt?: string;
   updatedAt?: string;
+  // Recurring task fields
+  isRecurring?: boolean;
+  recurringTaskId?: string | null;
+  recurringConfig?: RecurringTaskConfig | null;
   // Email integration fields
   inboxMessageId?: string;
   emailThreadId?: string;
@@ -129,25 +155,25 @@ export interface DynamicColumn {
   id: string;
   label: string;
   type:
-    | "task-type"
-    | "task-id"
-    | "description"
-    | "timeline"
-    | "completed-date"
-    | "story-points"
-    | "original-estimate"
-    | "remaining-estimate"
-    | "reporter"
-    | "created-by"
-    | "updated-by"
-    | "created-date"
-    | "updated-date"
-    | "sprint"
-    | "parent-task"
-    | "child-tasks"
-    | "comments-count"
-    | "attachments-count"
-    | "time-entries";
+  | "task-type"
+  | "task-id"
+  | "description"
+  | "timeline"
+  | "completed-date"
+  | "story-points"
+  | "original-estimate"
+  | "remaining-estimate"
+  | "reporter"
+  | "created-by"
+  | "updated-by"
+  | "created-date"
+  | "updated-date"
+  | "sprint"
+  | "parent-task"
+  | "child-tasks"
+  | "comments-count"
+  | "attachments-count"
+  | "time-entries";
   icon: React.ReactNode;
 }
 export interface CreateTaskCommentRequest {
@@ -314,7 +340,7 @@ export interface CreateTaskDto {
   labels?: string[];
 }
 
-export interface UpdateTaskDto extends Partial<CreateTaskDto> {}
+export interface UpdateTaskDto extends Partial<CreateTaskDto> { }
 
 export interface TaskFilter {
   search?: string;

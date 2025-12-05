@@ -10,10 +10,12 @@ import {
   IsArray,
   ArrayUnique,
   IsBoolean,
+  ValidateNested,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { TaskType, TaskPriority } from '@prisma/client';
-import { Transform } from 'class-transformer';
+import { Transform, Type, plainToInstance } from 'class-transformer';
+import { RecurrenceConfigDto } from './recurrence-config.dto';
 
 export class CreateTaskDto {
   @ApiProperty({
@@ -119,6 +121,16 @@ export class CreateTaskDto {
       component: 'authentication',
     },
     required: false,
+  })
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    }
+    return value;
   })
   @IsObject()
   @IsOptional()
@@ -230,4 +242,46 @@ export class CreateTaskDto {
   @IsBoolean()
   @IsOptional()
   allowEmailReplies?: boolean;
+
+  @ApiProperty({
+    description: 'Whether this task is recurring',
+    example: false,
+    required: false,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isRecurring?: boolean;
+
+  @ApiProperty({
+    description: 'Recurrence configuration for recurring tasks',
+    type: RecurrenceConfigDto,
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        // Transform the plain object to RecurrenceConfigDto instance
+        return plainToInstance(RecurrenceConfigDto, parsed, {
+          enableImplicitConversion: true,
+          exposeDefaultValues: true,
+        });
+      } catch {
+        return value;
+      }
+    }
+    // If it's already an object, transform it
+    if (value && typeof value === 'object') {
+      return plainToInstance(RecurrenceConfigDto, value, {
+        enableImplicitConversion: true,
+        exposeDefaultValues: true,
+      });
+    }
+    return value;
+  })
+  @Type(() => RecurrenceConfigDto)
+  @ValidateNested()
+  recurrenceConfig?: RecurrenceConfigDto;
 }
