@@ -37,8 +37,30 @@ export class TaskCommentsController {
   }
 
   @Get()
-  findAll(@Query('taskId') taskId?: string) {
-    return this.taskCommentsService.findAll(taskId);
+  findAll(
+    @Query('taskId') taskId?: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+    @Query('sort') sort: 'asc' | 'desc' = 'desc',
+  ) {
+    return this.taskCommentsService.findAll(taskId, Number(page), Number(limit), sort);
+  }
+
+  @Get('middle-pagination')
+  findWithMiddlePagination(
+    @Query('taskId') taskId: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '5',
+    @Query('oldestCount') oldestCount = '2',
+    @Query('newestCount') newestCount = '2',
+  ) {
+    return this.taskCommentsService.findWithMiddlePagination(
+      taskId,
+      Number(page),
+      Number(limit),
+      Number(oldestCount),
+      Number(newestCount),
+    );
   }
 
   @Get(':id')
