@@ -583,16 +583,71 @@ export const taskApi = {
     }
   },
 
-  getTaskComments: async (taskId: string, isAuth: boolean): Promise<TaskComment[]> => {
+  getTaskComments: async (
+    taskId: string,
+    isAuth: boolean,
+    options?: { 
+      page?: number; 
+      limit?: number; 
+      sort?: 'asc' | 'desc';
+      paginationType?: 'standard' | 'middle';
+      oldestCount?: number;
+      newestCount?: number;
+    }
+  ): Promise<{
+    data: TaskComment[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasMore: boolean;
+    loadedCount?: number;
+  }> => {
     try {
       if (!isValidUUID(taskId)) {
         throw new Error('Invalid task ID format');
       }
+      
+      const page = options?.page ?? 1;
+      const limit = options?.limit ?? 10;
+      const sort = options?.sort ?? 'desc';
+      const paginationType = options?.paginationType ?? 'standard';
+      
       let response;
       if (isAuth) {
-        response = await api.get<TaskComment[]>(`/task-comments?taskId=${encodeURIComponent(taskId)}`);
+        if (paginationType === 'middle') {
+          const oldestCount = options?.oldestCount ?? 2;
+          const newestCount = options?.newestCount ?? 2;
+          response = await api.get<{
+            data: TaskComment[];
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+            hasMore: boolean;
+            loadedCount: number;
+          }>(`/task-comments/middle-pagination?taskId=${encodeURIComponent(taskId)}&page=${page}&limit=${limit}&oldestCount=${oldestCount}&newestCount=${newestCount}`);
+        } else {
+          response = await api.get<{
+            data: TaskComment[];
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+            hasMore: boolean;
+          }>(`/task-comments?taskId=${encodeURIComponent(taskId)}&page=${page}&limit=${limit}&sort=${sort}`);
+        }
       } else {
-        response = await api.get<TaskComment[]>(`/public/project-tasks/comments/${encodeURIComponent(taskId)}`);
+        // Public endpoint - still returns array (no pagination for now)
+        const publicResponse = await api.get<TaskComment[]>(`/public/project-tasks/comments/${encodeURIComponent(taskId)}`);
+        return {
+          data: publicResponse.data,
+          total: publicResponse.data.length,
+          page: 1,
+          limit: publicResponse.data.length,
+          totalPages: 1,
+          hasMore: false,
+        };
       }
       return response.data;
     } catch (error) {
