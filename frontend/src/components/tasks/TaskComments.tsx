@@ -782,7 +782,7 @@ export default function TaskComments({
               <p className="text-xs text-[var(--muted-foreground)]">
                 {comments.length === 0
                   ? "No comments"
-                  : `${comments.length} ${comments.length === 1 ? "comment" : "comments"}`}
+                  : `${totalComments} ${comments.length === 1 ? "comment" : "comments"}`}
               </p>
             </div>
           </div>
