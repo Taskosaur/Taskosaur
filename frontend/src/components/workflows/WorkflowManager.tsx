@@ -26,6 +26,8 @@ import Tooltip from "../common/ToolTip";
 import { Check } from "lucide-react";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import WorkFlowSkeleton from "../skeletons/WorkFlowSkeleton";
+import { taskStatusApi } from "@/utils/api/taskStatusApi";
+import { toast } from "sonner";
 
 interface WorkflowManagerProps {
   organizationId?: string;
@@ -262,7 +264,7 @@ export default function WorkflowManager({
   );
 
   const handleDeleteStatus = useCallback(
-    (statusId: string) => {
+    async (statusId: string) => {
       if (!selectedWorkflow) {
         return;
       }
@@ -275,16 +277,29 @@ export default function WorkflowManager({
       if (status?.isDefault) {
         return;
       }
-      const updatedWorkflow = {
-        ...selectedWorkflow,
-        statuses: (selectedWorkflow.statuses || []).filter((s) => s.id !== statusId),
-        _count: {
-          statuses: (selectedWorkflow._count?.statuses || 0) - 1,
-          transitions: selectedWorkflow._count?.transitions ?? 0,
-        },
-      };
 
-      setSelectedWorkflow(updatedWorkflow as Workflow);
+      try {
+        // Call API to delete the status on the backend
+        await taskStatusApi.deleteTaskStatus(statusId);
+
+        // Update local UI state only after successful delete
+        const updatedWorkflow = {
+          ...selectedWorkflow,
+          statuses: (selectedWorkflow.statuses || []).filter((s) => s.id !== statusId),
+          _count: {
+            statuses: Math.max((selectedWorkflow._count?.statuses || 1) - 1, 0),
+            transitions: selectedWorkflow._count?.transitions ?? 0,
+          },
+        };
+
+        setSelectedWorkflow(updatedWorkflow as Workflow);
+        toast.success("Status deleted successfully");
+      } catch (err: any) {
+        let errorMessage = "Failed to delete status";
+        if (err instanceof Error) errorMessage = err.message;
+        else if (err?.response?.data?.message) errorMessage = err.response.data.message;
+        toast.error(errorMessage);
+      }
     },
     [selectedWorkflow]
   );
