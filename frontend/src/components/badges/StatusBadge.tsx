@@ -54,7 +54,9 @@ const projectStatusLabels: Record<ProjectStatus, string> = {
   planning: "Planning",
 };
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type = "task", className }) => {
+type Props = StatusBadgeProps & React.ComponentProps<typeof Badge>;
+
+export const StatusBadge: React.FC<Props> = ({ status, type = "task", className, ...props }) => {
   const statusName = typeof status === "string" ? status : status?.name || "unknown";
   const normalizedStatus = statusName.toLowerCase().replace(/\s+/g, "-");
 
@@ -74,7 +76,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type = "task",
   const combinedClasses = `statusbadge-base ${statusClass} ${className || ""}`;
 
   return (
-    <Badge className={`${combinedClasses} `}>
+    <Badge className={`${combinedClasses} cursor-pointer`} {...props}>
       <span className="text-white">{label}</span>
     </Badge>
   );
