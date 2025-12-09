@@ -478,7 +478,7 @@ function OrganizationManagePageContent() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={loadWorkflows}
+                        onClick={() => loadWorkflows()}
                         className="h-8 border-none bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)] transition-all duration-200"
                       >
                         Retry
