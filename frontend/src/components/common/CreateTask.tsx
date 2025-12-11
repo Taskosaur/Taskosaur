@@ -62,10 +62,10 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
   const isFormValid = (): boolean => {
     const hasTitle = formData.title.trim().length > 0;
     const hasProject = selectedProject?.id;
-    const hasStatus = formData.status.length > 0;
+    // const hasStatus = formData.status.length > 0;
     const hasPriority = formData.priority.length > 0;
-    const hasAssignment = assignees.length > 0 || reporters.length > 0;
-    return hasTitle && hasProject && hasStatus && hasPriority && hasAssignment;
+    // const hasAssignment = assignees.length > 0 || reporters.length > 0;
+    return hasTitle && hasProject && hasPriority;
   };
 
   const handleFormDataChange = (field: string, value: string) => {
@@ -191,6 +191,16 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
 
     setIsSubmitting(true);
     try {
+      
+      const defaultStatus =
+        availableStatuses.find(
+          (status) =>
+            status.name.toLowerCase() === "todo" ||
+            status.name.toLowerCase() === "to do" ||
+            status.isDefault
+        ) || availableStatuses[0];
+
+
       const taskData: any = {
         title: formData.title.trim(),
         description: formData.description.trim() || "",
@@ -201,7 +211,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
           ? formatDateForApi(formData.dueDate)
           : formatDateForApi(getTodayDate()),
         projectId: selectedProject.id,
-        statusId: formData.status,
+        statusId: formData.status || defaultStatus.id,
       };
 
       if (assignees.length > 0) taskData.assigneeIds = assignees.map((a) => a.id);
@@ -388,7 +398,8 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="status">
-                  Status <span className="projects-form-label-required">*</span>
+                  Status
+                  {/* <span className="projects-form-label-required">*</span> */}
                 </Label>
                 <Select
                   value={formData.status}
@@ -416,6 +427,9 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                     )}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  If left empty, the default project status will be automatically selected.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -499,7 +513,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
           <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
             <CardHeader className="flex">
               <TaskSectionHeader icon={HiUsers} title="Assignment" />
-              <span className="projects-form-label-required">*</span>
+              {/* <span className="projects-form-label-required">*</span> */}
             </CardHeader>
             <CardContent className="space-y-4">
               {membersLoading ? (
