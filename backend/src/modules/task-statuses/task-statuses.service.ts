@@ -84,7 +84,7 @@ export class TaskStatusesService {
   }
 
   findAll(workflowId?: string): Promise<TaskStatus[]> {
-    const whereClause = workflowId ? { workflowId } : {};
+    const whereClause = workflowId ? { workflowId, deletedAt: null } : { deletedAt: null };
 
     return this.prisma.taskStatus.findMany({
       where: whereClause,
@@ -117,7 +117,7 @@ export class TaskStatusesService {
 
   async findOne(id: string): Promise<TaskStatus> {
     const taskStatus = await this.prisma.taskStatus.findUnique({
-      where: { id },
+      where: { id, deletedAt: null },
       include: {
         workflow: {
           select: {
@@ -300,21 +300,50 @@ export class TaskStatusesService {
     }
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, userId: string): Promise<void> {
     try {
-      const taskCount = await this.prisma.task.count({
-        where: {
-          statusId: id,
-        },
+      // Check if status exists and is not already deleted
+      const existingStatus = await this.prisma.taskStatus.findUnique({
+        where: { id },
       });
 
-      if (taskCount > 0) {
-        throw new ConflictException(
-          'This status cannot be deleted because it is associated with existing tasks.',
-        );
+      if (!existingStatus) {
+        throw new NotFoundException('Task status not found');
       }
-      await this.prisma.taskStatus.delete({
-        where: { id },
+
+      if (existingStatus.deletedAt) {
+        throw new ConflictException('This status has already been deleted');
+      }
+
+      await this.prisma.$transaction(async (tx) => {
+        // Delete related status transitions
+        await tx.statusTransition.deleteMany({
+          where: {
+            OR: [{ fromStatusId: id }, { toStatusId: id }],
+          },
+        });
+
+        await tx.taskStatus.updateMany({
+          where: {
+            workflowId: existingStatus.workflowId,
+            position: { gt: existingStatus.position },
+          },
+          data: {
+            position: {
+              decrement: 1,
+            },
+            updatedBy: userId,
+          },
+        });
+
+        // Perform soft delete on the status
+        await tx.taskStatus.update({
+          where: { id },
+          data: {
+            deletedAt: new Date(),
+            deletedBy: userId,
+          },
+        });
       });
     } catch (error) {
       console.error(error);
@@ -333,7 +362,7 @@ export class TaskStatusesService {
       return [];
     }
     return this.prisma.taskStatus.findMany({
-      where: { workflowId: project.workflowId },
+      where: { workflowId: project.workflowId, deletedAt: null },
       include: {
         workflow: {
           select: {
@@ -359,6 +388,127 @@ export class TaskStatusesService {
         position: 'asc',
       },
     });
+  }
+
+  async findDeleted(workflowId?: string): Promise<TaskStatus[]> {
+    const whereClause = workflowId
+      ? { workflowId, deletedAt: { not: null } }
+      : { deletedAt: { not: null } };
+
+    return this.prisma.taskStatus.findMany({
+      where: whereClause,
+      include: {
+        workflow: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            organization: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
+        deletedByUser: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: {
+        deletedAt: 'desc',
+      },
+    });
+  }
+
+  async restore(id: string, userId: string): Promise<TaskStatus> {
+    try {
+      const existingStatus = await this.prisma.taskStatus.findUnique({
+        where: { id },
+      });
+
+      if (!existingStatus) {
+        throw new NotFoundException('Task status not found');
+      }
+
+      if (!existingStatus.deletedAt) {
+        throw new ConflictException('This status is not deleted and cannot be restored');
+      }
+
+      // Check if status name conflicts with existing active status
+      const conflictingStatus = await this.prisma.taskStatus.findFirst({
+        where: {
+          workflowId: existingStatus.workflowId,
+          name: existingStatus.name,
+          deletedAt: null,
+          id: { not: id },
+        },
+      });
+
+      if (conflictingStatus) {
+        throw new ConflictException('A status with this name already exists in the workflow');
+      }
+
+      const restoredStatus = await this.prisma.taskStatus.update({
+        where: { id },
+        data: {
+          deletedAt: null,
+          deletedBy: null,
+          updatedBy: userId,
+        },
+        include: {
+          workflow: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              organization: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+          createdByUser: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          updatedByUser: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          _count: {
+            select: {
+              tasks: true,
+            },
+          },
+        },
+      });
+
+      return restoredStatus;
+    } catch (error) {
+      console.error(error);
+      if (error.code === 'P2025') {
+        throw new NotFoundException('Task status not found');
+      }
+      throw error;
+    }
   }
   async createFromProject(
     createTaskStatusDto: CreateTaskStatusFromProjectDto,
