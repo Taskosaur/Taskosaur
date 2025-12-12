@@ -26,7 +26,7 @@
   "coverageDirectory": "./coverage",
   "testEnvironment": "node",
   "transformIgnorePatterns": [
-    "node_modules/(?!(mime)/)"
+    "node_modules/(?!(mime|marked)/)"
   ],
   "moduleNameMapper": {
     "^src/(.*)$": "<rootDir>/src/$1"
