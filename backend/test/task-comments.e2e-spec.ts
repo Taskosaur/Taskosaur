@@ -173,8 +173,9 @@ describe('TaskCommentsController (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.OK)
         .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true);
-          const comment = res.body.find((c: any) => c.id === commentId);
+          expect(res.body).toHaveProperty('data');
+          expect(Array.isArray(res.body.data)).toBe(true);
+          const comment = res.body.data.find((c: any) => c.id === commentId);
           expect(comment).toBeDefined();
         });
     });

@@ -52,6 +52,15 @@ describe('WorkspacesController (e2e)', () => {
         }
     });
     organizationId = organization.id;
+
+    // Add user as Organization Member (OWNER)
+    await prismaService.organizationMember.create({
+      data: {
+        organizationId: organizationId,
+        userId: user.id,
+        role: Role.OWNER,
+      },
+    });
   });
 
   afterAll(async () => {
