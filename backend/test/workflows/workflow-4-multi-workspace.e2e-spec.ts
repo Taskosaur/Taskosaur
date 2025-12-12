@@ -68,6 +68,15 @@ describe('Workflow 4: Multi-Workspace Project Management (e2e)', () => {
     });
     organizationId = organization.id;
 
+    // Add user as Organization Member (OWNER)
+    await prismaService.organizationMember.create({
+      data: {
+        organizationId: organizationId,
+        userId: user.id,
+        role: Role.OWNER,
+      },
+    });
+
     // Create workflow
     const workflow = await prismaService.workflow.create({
       data: {

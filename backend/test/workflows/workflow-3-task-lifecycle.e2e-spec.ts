@@ -137,6 +137,28 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
     });
     projectId = project.id;
 
+    // Add Owner memberships
+    await prismaService.organizationMember.create({
+      data: { organizationId, userId: owner.id, role: Role.OWNER },
+    });
+    await prismaService.workspaceMember.create({
+      data: { workspaceId, userId: owner.id, role: Role.OWNER },
+    });
+    await prismaService.projectMember.create({
+      data: { projectId, userId: owner.id, role: Role.OWNER },
+    });
+
+    // Add Member memberships
+    await prismaService.organizationMember.create({
+      data: { organizationId, userId: member.id, role: Role.MEMBER },
+    });
+    await prismaService.workspaceMember.create({
+      data: { workspaceId, userId: member.id, role: Role.MEMBER },
+    });
+    await prismaService.projectMember.create({
+      data: { projectId, userId: member.id, role: Role.MEMBER },
+    });
+
     // Create label
     const label = await prismaService.label.create({
       data: {
@@ -315,8 +337,9 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
         .set('Authorization', `Bearer ${ownerToken}`)
         .expect(HttpStatus.OK);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      const comment = response.body.find((c: any) => c.id === commentId);
+      expect(response.body).toHaveProperty('data');
+      expect(Array.isArray(response.body.data)).toBe(true);
+      const comment = response.body.data.find((c: any) => c.id === commentId);
       expect(comment).toBeDefined();
       expect(comment.content).toBe('I have started working on this task');
     });

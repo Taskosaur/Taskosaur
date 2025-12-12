@@ -35,23 +35,28 @@ describe('Workflow 8: Password Reset Flow (e2e)', () => {
   let capturedResetToken: string | null = null;
 
   beforeAll(async () => {
+    const mockEmailService = {
+      sendPasswordResetEmail: jest.fn(
+        async (email: string, data: { userName: string; resetToken: string; resetUrl: string }) => {
+          capturedResetToken = data.resetToken;
+          return Promise.resolve();
+        },
+      ),
+      sendPasswordResetConfirmationEmail: jest.fn().mockResolvedValue(undefined),
+    };
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(EmailService)
+      .useValue(mockEmailService)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
     prismaService = app.get<PrismaService>(PrismaService);
     jwtService = app.get<JwtService>(JwtService);
-    emailService = app.get<EmailService>(EmailService);
-
-    // Mock the email service to capture the reset token
-    jest.spyOn(emailService, 'sendPasswordResetEmail').mockImplementation(
-      async (email: string, data: { userName: string; resetToken: string; resetUrl: string }) => {
-        capturedResetToken = data.resetToken;
-        return Promise.resolve();
-      }
-    );
+    emailService = app.get<EmailService>(EmailService); // This will be the mock
 
     // Setup test data
     userEmail = `reset-test-${Date.now()}@example.com`;
@@ -96,7 +101,7 @@ describe('Workflow 8: Password Reset Flow (e2e)', () => {
       expect(response.body.message).toContain('reset');
 
       // The reset token was captured by our mocked email service
-      expect(capturedResetToken).toBeDefined();
+      expect(capturedResetToken).toBeTruthy();
       resetToken = capturedResetToken as string;
 
       // Verify the user has a reset token stored (hashed version)
@@ -113,7 +118,8 @@ describe('Workflow 8: Password Reset Flow (e2e)', () => {
         .expect(HttpStatus.OK);
 
       expect(response.body).toHaveProperty('valid', true);
-      expect(response.body).toHaveProperty('email', userEmail);
+      // VerifyResetTokenResponseDto does not return email
+      // expect(response.body).toHaveProperty('email', userEmail);
     });
 
     it('Step 3: Attempt login with old password (should succeed before reset)', async () => {
@@ -125,7 +131,7 @@ describe('Workflow 8: Password Reset Flow (e2e)', () => {
         })
         .expect(HttpStatus.OK);
 
-      expect(response.body).toHaveProperty('accessToken');
+      expect(response.body).toHaveProperty('access_token');
     });
 
     it('Step 4: Reset password with token', async () => {
@@ -133,7 +139,8 @@ describe('Workflow 8: Password Reset Flow (e2e)', () => {
         .post('/api/auth/reset-password')
         .send({
           token: resetToken,
-          newPassword: newPassword,
+          password: newPassword,
+          confirmPassword: newPassword,
         })
         .expect(HttpStatus.OK);
 
@@ -160,8 +167,8 @@ describe('Workflow 8: Password Reset Flow (e2e)', () => {
         })
         .expect(HttpStatus.OK);
 
-      expect(response.body).toHaveProperty('accessToken');
-      expect(response.body).toHaveProperty('refreshToken');
+      expect(response.body).toHaveProperty('access_token');
+      expect(response.body).toHaveProperty('refresh_token');
       expect(response.body).toHaveProperty('user');
       expect(response.body.user.email).toBe(userEmail);
     });
@@ -179,9 +186,11 @@ describe('Workflow 8: Password Reset Flow (e2e)', () => {
     });
 
     it('Step 8: Verify cannot reuse same token', async () => {
-      await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .get(`/api/auth/verify-reset-token/${resetToken}`)
-        .expect(HttpStatus.BAD_REQUEST);
+        .expect(HttpStatus.OK);
+      
+      expect(response.body).toHaveProperty('valid', false);
     });
   });
 });
