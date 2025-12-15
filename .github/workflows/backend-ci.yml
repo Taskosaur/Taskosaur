@@ -17,6 +17,9 @@ on:
       - 'package-lock.json'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: backend-test
