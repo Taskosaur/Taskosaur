@@ -534,6 +534,22 @@ export const taskApi = {
     }
   },
 
+  updateRecurrence: async (taskId: string, recurrenceConfig: any): Promise<Task> => {
+    try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
+      const response = await api.patch<Task>(
+        `/tasks/${encodeURIComponent(taskId)}/recurrence`,
+        recurrenceConfig
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Update recurrence error:", error);
+      throw error;
+    }
+  },
+
   stopRecurrence: async (taskId: string): Promise<Task> => {
     try {
       if (!isValidUUID(taskId)) {

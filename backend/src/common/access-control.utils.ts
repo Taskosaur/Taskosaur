@@ -20,7 +20,7 @@ export interface AccessResult {
 
 @Injectable()
 export class AccessControlService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /**
    * Check if user is SUPER_ADMIN by looking up in database

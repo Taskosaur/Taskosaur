@@ -44,7 +44,7 @@ import { RecurrenceConfigDto } from './dto/recurrence-config.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tasks')
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(private readonly tasksService: TasksService) { }
 
   @Post()
   @Scope('PROJECT', 'projectId')
@@ -915,7 +915,6 @@ export class TasksController {
     status: 400,
     description: 'Task is not a recurring task',
   })
-  @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER)
   updateRecurrence(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() config: RecurrenceConfigDto,
