@@ -66,6 +66,15 @@ describe('TasksController (e2e)', () => {
     });
     workspaceId = workspace.id;
 
+    // Add user as Organization Member (OWNER)
+    await prismaService.organizationMember.create({
+      data: {
+        organizationId: organizationId,
+        userId: user.id,
+        role: Role.OWNER,
+      },
+    });
+
     // Add user to workspace
     await prismaService.workspaceMember.create({
       data: {
@@ -98,6 +107,15 @@ describe('TasksController (e2e)', () => {
       },
     });
     projectId = project.id;
+
+    // Add user as Project Member (OWNER)
+    await prismaService.projectMember.create({
+      data: {
+        projectId: projectId,
+        userId: user.id,
+        role: Role.OWNER,
+      },
+    });
 
     // Create Status
     const status = await prismaService.taskStatus.create({

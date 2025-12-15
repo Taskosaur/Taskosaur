@@ -131,7 +131,7 @@ export class SearchService {
       where.OR = [
         { title: { contains: searchDto.query, mode: 'insensitive' } },
         { description: { contains: searchDto.query, mode: 'insensitive' } },
-        { key: { contains: searchDto.query, mode: 'insensitive' } },
+        { slug: { contains: searchDto.query, mode: 'insensitive' } },
       ];
     }
 
@@ -281,7 +281,7 @@ export class SearchService {
       OR: [
         { title: { contains: query, mode: 'insensitive' } },
         { description: { contains: query, mode: 'insensitive' } },
-        { key: { contains: query, mode: 'insensitive' } },
+        { slug: { contains: query, mode: 'insensitive' } },
       ],
     };
 
@@ -333,7 +333,7 @@ export class SearchService {
       OR: [
         { name: { contains: query, mode: 'insensitive' } },
         { description: { contains: query, mode: 'insensitive' } },
-        { key: { contains: query, mode: 'insensitive' } },
+        { slug: { contains: query, mode: 'insensitive' } },
       ],
     };
 
@@ -611,13 +611,33 @@ export class SearchService {
 
   private addScopeFilters(where: any, searchDto: GlobalSearchDto, prefix: string = '') {
     if (searchDto.projectId) {
-      where[`${prefix}projectId`] = searchDto.projectId;
+      if (prefix === 'task.') {
+        where.task = { ...where.task, projectId: searchDto.projectId };
+      } else {
+        where.projectId = searchDto.projectId;
+      }
     } else if (searchDto.workspaceId) {
-      where[`${prefix}project`] = { workspaceId: searchDto.workspaceId };
+      if (prefix === 'task.') {
+        where.task = {
+          ...where.task,
+          project: { workspaceId: searchDto.workspaceId },
+        };
+      } else {
+        where.project = { workspaceId: searchDto.workspaceId };
+      }
     } else if (searchDto.organizationId) {
-      where[`${prefix}project`] = {
-        workspace: { organizationId: searchDto.organizationId },
-      };
+      if (prefix === 'task.') {
+        where.task = {
+          ...where.task,
+          project: {
+            workspace: { organizationId: searchDto.organizationId },
+          },
+        };
+      } else {
+        where.project = {
+          workspace: { organizationId: searchDto.organizationId },
+        };
+      }
     }
   }
 

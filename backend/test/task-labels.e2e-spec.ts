@@ -200,7 +200,10 @@ describe('TaskLabelsController (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.OK)
         .expect((res) => {
-            expect(res.body.message).toBe('Label removed from task successfully');
+            expect(res.body).toHaveProperty('taskId');
+            expect(res.body).toHaveProperty('labelId');
+            expect(res.body.taskId).toBe(taskId);
+            expect(res.body.labelId).toBe(labelId);
         });
     });
   });
