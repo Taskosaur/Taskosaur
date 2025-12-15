@@ -44,7 +44,7 @@ import { RecurrenceConfigDto } from './dto/recurrence-config.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tasks')
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) { }
+  constructor(private readonly tasksService: TasksService) {}
 
   @Post()
   @Scope('PROJECT', 'projectId')
