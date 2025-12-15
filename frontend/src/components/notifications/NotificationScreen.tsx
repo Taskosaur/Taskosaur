@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
+import { useNotification } from "@/contexts/notification-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -126,6 +127,8 @@ export default function NotificationScreen({ userId, organizationId }: Notificat
           ...prev,
           unread: Math.max(0, prev.unread - 1),
         }));
+        // Update global context
+        refreshNotifications();
       } catch (error) {
         console.error("Failed to mark as read:", error);
       }
@@ -225,6 +228,9 @@ export default function NotificationScreen({ userId, organizationId }: Notificat
     fetchNotifications();
   }, [fetchNotifications]);
 
+  /* import useNotification inside component */
+  const { refreshNotifications } = useNotification();  
+  
   const handleMarkAsRead = async (notificationIds: string[]) => {
     try {
       if (notificationIds.length === 1) {
@@ -241,6 +247,9 @@ export default function NotificationScreen({ userId, organizationId }: Notificat
         unread: Math.max(0, prev.unread - notificationIds.length),
       }));
       toast.success("Successfully marked as read");
+      
+      // Update global context
+      refreshNotifications();
     } catch (error) {
       toast.error(error?.message || "Failed to mark as read the notification(s)");
       console.error("Failed to mark notification(s) as read:", error);
@@ -270,6 +279,9 @@ export default function NotificationScreen({ userId, organizationId }: Notificat
         fetchNotifications();
       }
       toast.success("Notifications(s) deleted successfully!");
+      
+      // Update global context
+      refreshNotifications();
     } catch (error) {
       toast.error(error?.message || "Notifications(s) deleted successfully!");
       console.error("Failed to delete notification(s):", error);
@@ -282,6 +294,9 @@ export default function NotificationScreen({ userId, organizationId }: Notificat
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setStats((prev) => ({ ...prev, unread: 0 }));
       toast.success("Successfully marked all as read");
+      
+      // Update global context
+      refreshNotifications();
     } catch (error) {
       toast.error(error?.message || "Failed to mark all as read");
       console.error("Failed to mark all as read:", error);
