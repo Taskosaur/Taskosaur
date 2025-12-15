@@ -1295,6 +1295,16 @@ export default function TaskDetailClient({
                     ) : (
                       <PriorityBadge
                         priority={editTaskData?.priority}
+                        onClick={() => {
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            priority: true,
+                          }));
+                          setAutoOpenDropdown((prev) => ({
+                            ...prev,
+                            priority: true,
+                          }));
+                        }}
                         className="text-[13px] min-w-[120px] min-h-[29.33px]"
                       />
                     )}
@@ -1379,7 +1389,16 @@ export default function TaskDetailClient({
                         }}
                       />
                     ) : (
-                      <StatusBadge status={currentStatus} className="text-[13px]" />
+                      <StatusBadge onClick={() => {
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            status: true,
+                          }));
+                          setAutoOpenDropdown((prev) => ({
+                            ...prev,
+                            status: true,
+                          }));
+                        }} status={currentStatus} className="text-[13px]" />
                     )}
                   </div>
                 </div>
@@ -1450,6 +1469,13 @@ export default function TaskDetailClient({
                       </div>
                     ) : (
                       <Badge
+                        onClick={() =>
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            startDate: !prev.startDate,
+                            dueDate: !prev.dueDate,
+                          }))
+                        }
                         variant="outline"
                         className="text-[13px] min-w-[120px] min-h-[29.33px] rounded-2xl  px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
                       >
@@ -1501,6 +1527,13 @@ export default function TaskDetailClient({
                       </div>
                     ) : (
                       <Badge
+                        onClick={() =>
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            startDate: !prev.startDate,
+                            dueDate: !prev.dueDate,
+                          }))
+                        }
                         variant="outline"
                         className="min-w-[120px] min-h-[29.33px] text-[13px] rounded-2xl  px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
                       >

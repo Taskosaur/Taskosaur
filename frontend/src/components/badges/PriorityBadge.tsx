@@ -7,7 +7,9 @@ interface PriorityBadgeProps {
   className?: string;
 }
 
-const PriorityBadge: React.FC<PriorityBadgeProps> = ({ priority, className }) => {
+type Props = PriorityBadgeProps & React.ComponentProps<typeof Badge>;
+
+const PriorityBadge: React.FC<Props> = ({ priority, className, ...props }) => {
   const getPriorityConfig = (priority: string) => {
     const normalizedPriority = String(priority || "low").toLowerCase();
 
@@ -45,12 +47,13 @@ const PriorityBadge: React.FC<PriorityBadgeProps> = ({ priority, className }) =>
   return (
     <Badge
       className={cn(
-        "inline-flex items-center gap-1.5 w-20 py-1 text-[13px] font-medium rounded-full border-0 shadow-sm text-white",
+        "inline-flex items-center gap-1.5 w-20 py-1 text-[13px] font-medium rounded-full border-0 shadow-sm text-white cursor-pointer",
         className
       )}
       style={{
         backgroundColor: config.color,
       }}
+      {...props}
     >
       <span>{config.label}</span>
     </Badge>

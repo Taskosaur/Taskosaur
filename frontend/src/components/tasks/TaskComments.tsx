@@ -285,8 +285,14 @@ export default function TaskComments({
   const { isAuthenticated } = useAuth();
   const isAuth = isAuthenticated();
   const [colorMode, setColorMode] = useState<"light" | "dark">("light");
-  const [showAll, setShowAll] = useState(false);
-  const INITIAL_DISPLAY_COUNT = 3;
+  
+  // Pagination configuration
+  const OLDEST_COUNT = 2; // Number of oldest comments to always show
+  const NEWEST_COUNT = 2; // Number of newest comments to always show
+  const LOAD_MORE_BATCH_SIZE = 5; // Number of comments to load per "View more" click
+  
+  // Track how many middle comments are currently visible
+  const [visibleMiddleCount, setVisibleMiddleCount] = useState(0);
 
   const { getTaskComments, createTaskComment, updateTaskComment, deleteTaskComment } = useTask();
   const { resolvedTheme } = useTheme();
@@ -298,6 +304,16 @@ export default function TaskComments({
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loadingComments, setLoadingComments] = useState(true);
   const [sendingEmailCommentId, setSendingEmailCommentId] = useState<string | null>(null);
+
+  const [splitIndex, setSplitIndex] = useState(0); // Tracks where top comments end and bottom start
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalComments, setTotalComments] = useState(0);
+  const [amountRemaining, setAmountRemaining] = useState(0); // Track exact remaining from backend
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   useEffect(() => {
     const userString = localStorage.getItem("user");
@@ -333,8 +349,41 @@ export default function TaskComments({
     const fetchComments = async () => {
       setLoadingComments(true);
       try {
-        const taskComments = await getTaskComments(taskId, isAuth);
-        setComments(taskComments || []);
+        // Fetch with 'middle' pagination
+        const result = await getTaskComments(taskId, isAuth, { 
+          page: 1, 
+          paginationType: 'middle',
+          limit: LOAD_MORE_BATCH_SIZE, // Not used for page 1 logic in backend for counts, but good to pass
+          oldestCount: OLDEST_COUNT,
+          newestCount: NEWEST_COUNT
+        });
+        
+        // Type guard to check if result is paginated response
+        if (typeof result === 'object' && 'data' in result) {
+          setComments(result.data || []);
+          setCurrentPage(result.page);
+          setTotalPages(result.totalPages);
+          setHasMore(result.hasMore);
+          setTotalComments(result.total);
+          
+          // initial split index
+          const initialCount = result.data.length;
+          if (result.total <= OLDEST_COUNT + NEWEST_COUNT) {
+             setSplitIndex(initialCount);
+             setAmountRemaining(0);
+          } else {
+             setSplitIndex(OLDEST_COUNT);
+             // Remaining = Total - (Oldest + Newest)
+             setAmountRemaining(result.total - (OLDEST_COUNT + NEWEST_COUNT));
+          }
+
+        } else {
+          // Fallback
+          setComments(result || []);
+          setSplitIndex((result || []).length);
+        }
+        
+        setVisibleMiddleCount(0);
       } catch (error) {
         console.error("Failed to fetch comments:", error);
       } finally {
@@ -342,7 +391,7 @@ export default function TaskComments({
       }
     };
     fetchComments();
-  }, [taskId]);
+  }, [taskId, isAuth]); 
 
   useEffect(() => {
     if (setLoading) {
@@ -352,15 +401,123 @@ export default function TaskComments({
 
   const refreshComments = useCallback(async () => {
     try {
-      const taskComments = await getTaskComments(taskId, isAuth);
-      setComments(taskComments || []);
+      // If user hasn't loaded any middle comments yet, just do initial fetch
+      if (currentPage === 1) {
+        const result = await getTaskComments(taskId, isAuth, { 
+          page: 1, 
+          paginationType: 'middle',
+          limit: LOAD_MORE_BATCH_SIZE,
+          oldestCount: OLDEST_COUNT,
+          newestCount: NEWEST_COUNT
+        });
+        
+        if (typeof result === 'object' && 'data' in result) {
+          setComments(result.data || []);
+          setTotalPages(result.totalPages);
+          setHasMore(result.hasMore);
+          setTotalComments(result.total);
+          
+          const initialCount = result.data.length;
+          if (result.total <= OLDEST_COUNT + NEWEST_COUNT) {
+            setSplitIndex(initialCount);
+            setAmountRemaining(0);
+          } else {
+            setSplitIndex(OLDEST_COUNT);
+            setAmountRemaining(result.total - (OLDEST_COUNT + NEWEST_COUNT));
+          }
+        }
+      } else {
+        // User has expanded middle comments - preserve their view by fetching all pages up to current
+        const firstPage = await getTaskComments(taskId, isAuth, { 
+          page: 1, 
+          paginationType: 'middle',
+          limit: LOAD_MORE_BATCH_SIZE,
+          oldestCount: OLDEST_COUNT,
+          newestCount: NEWEST_COUNT
+        });
+        
+        if (typeof firstPage === 'object' && 'data' in firstPage) {
+          let allComments = [...firstPage.data];
+          let currentSplitIndex = OLDEST_COUNT;
+          
+          // Fetch all middle pages that were previously loaded
+          for (let page = 2; page <= currentPage; page++) {
+            const middlePage = await getTaskComments(taskId, isAuth, { 
+              page, 
+              paginationType: 'middle',
+              limit: LOAD_MORE_BATCH_SIZE,
+              oldestCount: OLDEST_COUNT,
+              newestCount: NEWEST_COUNT
+            });
+            
+            if (typeof middlePage === 'object' && 'data' in middlePage) {
+              // Insert at split index
+              const before = allComments.slice(0, currentSplitIndex);
+              const after = allComments.slice(currentSplitIndex);
+              allComments = [...before, ...middlePage.data, ...after];
+              currentSplitIndex += middlePage.data.length;
+            }
+          }
+          
+          setComments(allComments);
+          setSplitIndex(currentSplitIndex);
+          setTotalPages(firstPage.totalPages);
+          setHasMore(firstPage.hasMore && currentPage < firstPage.totalPages);
+          setTotalComments(firstPage.total);
+          setAmountRemaining(Math.max(0, firstPage.total - (OLDEST_COUNT + NEWEST_COUNT) - (currentPage - 1) * LOAD_MORE_BATCH_SIZE));
+        }
+      }
+      
       if (onTaskRefetch) {
         onTaskRefetch();
       }
     } catch (error) {
       console.error("Failed to refresh comments:", error);
     }
-  }, [taskId]);
+  }, [taskId, isAuth, currentPage, getTaskComments, OLDEST_COUNT, NEWEST_COUNT, LOAD_MORE_BATCH_SIZE, onTaskRefetch]);
+
+  const loadMoreComments = useCallback(async () => {
+    if (!hasMore || isLoadingMore) return;
+    
+    setIsLoadingMore(true);
+    try {
+      const result = await getTaskComments(taskId, isAuth, { 
+        page: currentPage + 1, 
+        limit: LOAD_MORE_BATCH_SIZE,
+        paginationType: 'middle',
+        oldestCount: OLDEST_COUNT,
+        newestCount: NEWEST_COUNT
+      });
+      
+      // Type guard to check if result is paginated response
+      if (typeof result === 'object' && 'data' in result) {
+        // Insert new middle comments at splitIndex
+        setComments(prev => {
+          const before = prev.slice(0, splitIndex);
+          const after = prev.slice(splitIndex);
+          return [...before, ...result.data, ...after];
+        });
+        
+        // Update split index to include the newly added middle comments
+        setSplitIndex(prev => prev + result.data.length);
+        
+        // Update pagination tracking
+        setCurrentPage(result.page);
+        setTotalPages(result.totalPages);
+        setHasMore(result.hasMore);
+        setTotalComments(result.total);
+        
+        // Update remaining count
+        // We loaded `result.data.length`.
+         setAmountRemaining(prev => Math.max(0, prev - result.data.length));
+      }
+    } catch (error) {
+      console.error("Failed to load more comments:", error);
+      toast.error("Failed to load more comments");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [taskId, isAuth, currentPage, hasMore, isLoadingMore, LOAD_MORE_BATCH_SIZE, getTaskComments, splitIndex, OLDEST_COUNT, NEWEST_COUNT]);
 
   const handleAddOrEdit = async () => {
     if (!currentUser || isSubmitting) return;
@@ -388,9 +545,17 @@ export default function TaskComments({
           return;
         }
 
-        await updateTaskComment(editingCommentId, currentUser.id, {
+        const updatedComment = await updateTaskComment(editingCommentId, currentUser.id, {
           content: sanitizedContent,
         });
+        
+        // Update comment in place without refreshing
+        setComments(prev => prev.map(c => 
+          c.id === editingCommentId 
+            ? { ...c, content: sanitizedContent, updatedAt: updatedComment.updatedAt }
+            : c
+        ));
+        
         toast.success("Comment updated successfully");
         onCommentUpdated?.(editingCommentId, sanitizedContent);
       } else {
@@ -399,10 +564,24 @@ export default function TaskComments({
           authorId: currentUser.id,
           content: sanitizedContent,
         });
+        
+        // Append new comment to the end (newest position)
+        setComments(prev => [...prev, createdComment]);
+        setTotalComments(prev => prev + 1);
+        
+        // Recalculate amountRemaining if we're in paginated mode
+        if (totalComments > OLDEST_COUNT + NEWEST_COUNT) {
+          setAmountRemaining(prev => prev + 1);
+        }
+        
         toast.success("Comment added successfully");
         onCommentAdded?.(createdComment);
       }
-      await refreshComments();
+      
+      // Trigger parent refetch if needed (for task comment count, etc.)
+      if (onTaskRefetch) {
+        onTaskRefetch();
+      }
       setCommentContent("");
       setEditingCommentId(null);
     } catch {
@@ -434,9 +613,34 @@ export default function TaskComments({
     if (!commentToDelete || !currentUser) return;
     try {
       await deleteTaskComment(commentToDelete, currentUser.id);
+      
+      // Find the index of deleted comment to adjust splitIndex if needed
+      const deletedIndex = comments.findIndex(c => c.id === commentToDelete);
+      
+      // Remove comment from array
+      setComments(prev => prev.filter(c => c.id !== commentToDelete));
+      setTotalComments(prev => prev - 1);
+      
+      // Adjust splitIndex if the deleted comment was in the top section
+      if (deletedIndex !== -1 && deletedIndex < splitIndex) {
+        setSplitIndex(prev => Math.max(0, prev - 1));
+      }
+      
+      // Adjust amountRemaining if we're in paginated mode
+      if (totalComments > OLDEST_COUNT + NEWEST_COUNT) {
+        // If deleted from middle section (not yet loaded), decrease remaining
+        if (deletedIndex >= OLDEST_COUNT && deletedIndex < splitIndex) {
+          setAmountRemaining(prev => Math.max(0, prev - 1));
+        }
+      }
+      
       toast.success("Comment deleted");
-      await refreshComments();
       onCommentDeleted?.(commentToDelete);
+      
+      // Trigger parent refetch if needed
+      if (onTaskRefetch) {
+        onTaskRefetch();
+      }
     } finally {
       setDeleteModalOpen(false);
       setCommentToDelete(null);
@@ -467,42 +671,85 @@ export default function TaskComments({
       return null;
     }
 
-    const displayedComments = showAll ? comments : comments.slice(0, INITIAL_DISPLAY_COUNT);
+    if (comments.length === 0) {
+      return <></>;
+    }
+
+    // No need to reverse, comments are maintained in correct order (oldest -> newest) in the state
+    
+    const topComments = comments.slice(0, splitIndex);
+    const bottomComments = comments.slice(splitIndex);
 
     return (
       <div className="space-y-0">
-        {comments.length > 0 ? (
-          <>
-            {displayedComments.map((comment) => (
-              <CommentItem
-                key={comment.id}
-                comment={comment}
-                currentUser={currentUser!}
-                allowEmailReplies={allowEmailReplies}
-                onEdit={handleEditComment}
-                onDelete={handleDeleteComment}
-                onSendAsEmail={handleSendAsEmail}
-                formatTimestamp={formatTimestamp}
-                colorMode={colorMode}
-                isAuth
-              />
-            ))}
-          </>
-        ) : (
-          <></>
+        {topComments.map((comment) => (
+          <CommentItem
+            key={comment.id}
+            comment={comment}
+            currentUser={currentUser!}
+            allowEmailReplies={allowEmailReplies}
+            onEdit={handleEditComment}
+            onDelete={handleDeleteComment}
+            onSendAsEmail={handleSendAsEmail}
+            formatTimestamp={formatTimestamp}
+            colorMode={colorMode}
+            isAuth
+          />
+        ))}
+
+        {/* View more button for middle comments */}
+        {amountRemaining > 0 && (
+          <div className="flex justify-center py-3">
+            <button
+              className="text-sm text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] cursor-pointer transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={loadMoreComments}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore ? (
+                <span>Loading...</span>
+              ) : (
+                <>
+                  <span>View {Math.min(LOAD_MORE_BATCH_SIZE, amountRemaining)} more comment{Math.min(LOAD_MORE_BATCH_SIZE, amountRemaining) > 1 ? 's' : ''}</span>
+                  <span className="text-xs text-[var(--muted-foreground)]">({amountRemaining} remaining)</span>
+                </>
+              )}
+            </button>
+          </div>
         )}
+
+        {bottomComments.map((comment) => (
+          <CommentItem
+            key={comment.id}
+            comment={comment}
+            currentUser={currentUser!}
+            allowEmailReplies={allowEmailReplies}
+            onEdit={handleEditComment}
+            onDelete={handleDeleteComment}
+            onSendAsEmail={handleSendAsEmail}
+            formatTimestamp={formatTimestamp}
+            colorMode={colorMode}
+            isAuth
+          />
+        ))}
       </div>
     );
   }, [
     loadingComments,
-    comments,
+    comments, // Array changes when we append
+    splitIndex, // Tracks split point
+    amountRemaining,
+    isLoadingMore,
     currentUser,
     handleEditComment,
     handleDeleteComment,
     formatTimestamp,
     colorMode,
-    showAll,
+    allowEmailReplies,
+    handleSendAsEmail,
+    loadMoreComments,
+    LOAD_MORE_BATCH_SIZE
   ]);
+
 
   const isEditorEmpty = useMemo(() => {
     return !commentContent.trim();
@@ -535,7 +782,7 @@ export default function TaskComments({
               <p className="text-xs text-[var(--muted-foreground)]">
                 {comments.length === 0
                   ? "No comments"
-                  : `${comments.length} ${comments.length === 1 ? "comment" : "comments"}`}
+                  : `${totalComments} ${comments.length === 1 ? "comment" : "comments"}`}
               </p>
             </div>
           </div>
@@ -544,16 +791,6 @@ export default function TaskComments({
         {/* Comments List */}
         <div className="space-y-2">
           {commentsList}
-          {comments.length > INITIAL_DISPLAY_COUNT && (
-            <div className="flex justify-center pt-2">
-              <button
-                className="text-sm text-[var(--primary)] font-medium py-2 px-4 rounded-md hover:bg-[var(--accent)] cursor-pointer transition"
-                onClick={() => setShowAll((v) => !v)}
-              >
-                {showAll ? "Show less" : `View (${comments.length - INITIAL_DISPLAY_COUNT} more)`}
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Dual Mode Editor (Markdown / Rich Text) */}
