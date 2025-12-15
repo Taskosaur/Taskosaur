@@ -23,7 +23,7 @@ export class TasksService {
     private accessControl: AccessControlService,
     private storageService: StorageService,
     private recurrenceService: RecurrenceService,
-  ) {}
+  ) { }
 
   async create(createTaskDto: CreateTaskDto, userId: string): Promise<Task> {
     const project = await this.prisma.project.findUnique({
@@ -461,7 +461,7 @@ export class TasksService {
           const viewUrl = attachment.url
             ? attachment.url
             : attachment?.storageKey &&
-              (await this.storageService.getFileUrl(attachment?.storageKey));
+            (await this.storageService.getFileUrl(attachment?.storageKey));
 
           return {
             ...attachment,
@@ -916,63 +916,63 @@ export class TasksService {
         },
         childTasks: isElevated
           ? {
-              select: {
-                id: true,
-                title: true,
-                slug: true,
-                type: true,
-                priority: true,
-                status: {
-                  select: { name: true, color: true, category: true },
-                },
-                assignees: {
-                  select: {
-                    id: true,
-                    email: true,
-                    firstName: true,
-                    lastName: true,
-                    avatar: true,
-                  },
-                },
-                reporters: {
-                  select: {
-                    id: true,
-                    email: true,
-                    firstName: true,
-                    lastName: true,
-                    avatar: true,
-                  },
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              type: true,
+              priority: true,
+              status: {
+                select: { name: true, color: true, category: true },
+              },
+              assignees: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                  avatar: true,
                 },
               },
-            }
-          : {
-              select: {
-                id: true,
-                title: true,
-                slug: true,
-                type: true,
-                priority: true,
-                status: {
-                  select: { name: true, color: true, category: true },
+              reporters: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                  avatar: true,
                 },
-                assignees: {
-                  select: {
-                    id: true,
-                    email: true,
-                    firstName: true,
-                    lastName: true,
-                    avatar: true,
-                  },
-                },
-              },
-              where: {
-                OR: [
-                  { assignees: { some: { id: userId } } },
-                  { reporters: { some: { id: userId } } },
-                  { createdBy: userId },
-                ],
               },
             },
+          }
+          : {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              type: true,
+              priority: true,
+              status: {
+                select: { name: true, color: true, category: true },
+              },
+              assignees: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                  avatar: true,
+                },
+              },
+            },
+            where: {
+              OR: [
+                { assignees: { some: { id: userId } } },
+                { reporters: { some: { id: userId } } },
+                { createdBy: userId },
+              ],
+            },
+          },
         labels: {
           include: {
             label: {
@@ -1744,18 +1744,18 @@ export class TasksService {
             taskNumber: task.taskNumber,
             assignees: task.assignees
               ? task.assignees.map((assignee) => ({
-                  id: assignee.id,
-                  firstName: assignee.firstName,
-                  lastName: assignee.lastName,
-                  avatar: assignee.avatar || undefined,
-                }))
+                id: assignee.id,
+                firstName: assignee.firstName,
+                lastName: assignee.lastName,
+                avatar: assignee.avatar || undefined,
+              }))
               : undefined,
             reporters: task.reporters
               ? task.reporters.map((reporter) => ({
-                  id: reporter.id,
-                  firstName: reporter.firstName,
-                  lastName: reporter.lastName,
-                }))
+                id: reporter.id,
+                firstName: reporter.firstName,
+                lastName: reporter.lastName,
+              }))
               : undefined,
             dueDate: task.dueDate ? task.dueDate.toISOString() : undefined,
             createdAt: task.createdAt.toISOString(),
@@ -2101,6 +2101,61 @@ export class TasksService {
   }
 
   /**
+   * Add recurrence configuration to an existing non-recurring task
+   */
+  async addRecurrence(
+    taskId: string,
+    recurrenceConfig: RecurrenceConfigDto,
+    userId: string,
+  ) {
+    await this.accessControl.getTaskAccess(taskId, userId);
+
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: { recurringConfig: true },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    if (task.isRecurring || task.recurringConfig) {
+      throw new BadRequestException('This task is already a recurring task');
+    }
+
+    const nextOccurrence = this.recurrenceService.calculateNextOccurrence(
+      task.dueDate || new Date(),
+      recurrenceConfig,
+    );
+
+    // Create recurring task configuration
+    const recurringTask = await this.prisma.recurringTask.create({
+      data: {
+        taskId: taskId,
+        recurrenceType: recurrenceConfig.recurrenceType,
+        interval: recurrenceConfig.interval,
+        daysOfWeek: recurrenceConfig.daysOfWeek || [],
+        dayOfMonth: recurrenceConfig.dayOfMonth,
+        monthOfYear: recurrenceConfig.monthOfYear,
+        endType: recurrenceConfig.endType,
+        endDate: recurrenceConfig.endDate ? new Date(recurrenceConfig.endDate) : null,
+        occurrenceCount: recurrenceConfig.occurrenceCount,
+        nextOccurrence,
+        currentOccurrence: 1,
+        isActive: true,
+      },
+    });
+
+    // Update task to mark it as recurring
+    await this.prisma.task.update({
+      where: { id: taskId },
+      data: { isRecurring: true },
+    });
+
+    return recurringTask;
+  }
+
+  /**
    * Update recurrence configuration for a task
    */
   async updateRecurrenceConfig(
@@ -2164,9 +2219,8 @@ export class TasksService {
     }
 
     // Deactivate recurrence
-    await this.prisma.recurringTask.update({
-      where: { id: task.recurringConfig.id },
-      data: { isActive: false },
+    await this.prisma.recurringTask.delete({
+      where: { id: task.recurringConfig.id }
     });
 
     // Update task to mark it as not recurring

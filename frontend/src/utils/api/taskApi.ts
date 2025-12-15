@@ -534,6 +534,22 @@ export const taskApi = {
     }
   },
 
+  addRecurrence: async (taskId: string, recurrenceConfig: any): Promise<Task> => {
+    try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
+      const response = await api.post<Task>(
+        `/tasks/${encodeURIComponent(taskId)}/recurrence`,
+        recurrenceConfig
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Add recurrence error:", error);
+      throw error;
+    }
+  },
+
   updateRecurrence: async (taskId: string, recurrenceConfig: any): Promise<Task> => {
     try {
       if (!isValidUUID(taskId)) {
@@ -640,9 +656,9 @@ export const taskApi = {
   getTaskComments: async (
     taskId: string,
     isAuth: boolean,
-    options?: { 
-      page?: number; 
-      limit?: number; 
+    options?: {
+      page?: number;
+      limit?: number;
       sort?: 'asc' | 'desc';
       paginationType?: 'standard' | 'middle';
       oldestCount?: number;
@@ -661,12 +677,12 @@ export const taskApi = {
       if (!isValidUUID(taskId)) {
         throw new Error('Invalid task ID format');
       }
-      
+
       const page = options?.page ?? 1;
       const limit = options?.limit ?? 10;
       const sort = options?.sort ?? 'desc';
       const paginationType = options?.paginationType ?? 'standard';
-      
+
       let response;
       if (isAuth) {
         if (paginationType === 'middle') {

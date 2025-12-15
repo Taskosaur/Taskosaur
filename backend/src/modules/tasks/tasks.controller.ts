@@ -44,7 +44,7 @@ import { RecurrenceConfigDto } from './dto/recurrence-config.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tasks')
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(private readonly tasksService: TasksService) { }
 
   @Post()
   @Scope('PROJECT', 'projectId')
@@ -855,6 +855,54 @@ export class TasksController {
     return this.tasksService.completeOccurrenceAndGenerateNext(id, user.id);
   }
 
+  @Post(':id/recurrence')
+  @ApiOperation({
+    summary: 'Add recurrence to task',
+    description: 'Adds recurrence configuration to an existing non-recurring task',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        recurrenceType: {
+          type: 'string',
+          enum: ['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY', 'CUSTOM'],
+          example: 'WEEKLY',
+        },
+        interval: {
+          type: 'number',
+          example: 1,
+        },
+        daysOfWeek: {
+          type: 'array',
+          items: { type: 'number' },
+          example: [1, 3, 5],
+        },
+        endType: {
+          type: 'string',
+          enum: ['NEVER', 'ON_DATE', 'AFTER_OCCURRENCES'],
+          example: 'NEVER',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Recurrence added to task',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Task is already a recurring task',
+  })
+  addRecurrence(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() config: RecurrenceConfigDto,
+    @Req() req: Request,
+  ) {
+    const user = getAuthUser(req);
+    return this.tasksService.addRecurrence(id, config, user.id);
+  }
+
   @Patch(':id/recurrence')
   @ApiOperation({
     summary: 'Update recurrence configuration',
@@ -937,7 +985,6 @@ export class TasksController {
     status: 400,
     description: 'Task is not a recurring task',
   })
-  @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER)
   stopRecurrence(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
     const user = getAuthUser(req);
     return this.tasksService.stopRecurrence(id, user.id);

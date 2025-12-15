@@ -35,8 +35,8 @@ import TaskDetailSkeleton from "../skeletons/TaskDetailSkeleton";
 import validator from "validator";
 import { sanitizeEditorContent } from "@/utils/sanitize-content";
 import RecurringBadge from "@/components/common/RecurringBadge";
+import { Repeat } from "lucide-react";
 import RecurrenceSelector from "@/components/common/RecurrenceSelector";
-import { taskApi } from "@/utils/api/taskApi";
 
 // Helper function to validate internal paths and prevent open redirect vulnerabilities
 function isValidInternalPath(path: string): boolean {
@@ -86,6 +86,9 @@ export default function TaskDetailClient({
     assignLabelToTask,
     removeLabelFromTask,
     assignTaskAssignees,
+    addRecurrence,
+    updateRecurrence,
+    stopRecurrence,
   } = useTask();
 
   const { getProjectMembers, getTaskStatusByProject } = useProjectContext();
@@ -1390,15 +1393,15 @@ export default function TaskDetailClient({
                       />
                     ) : (
                       <StatusBadge onClick={() => {
-                          setIsEditingTask((prev) => ({
-                            ...prev,
-                            status: true,
-                          }));
-                          setAutoOpenDropdown((prev) => ({
-                            ...prev,
-                            status: true,
-                          }));
-                        }} status={currentStatus} className="text-[13px]" />
+                        setIsEditingTask((prev) => ({
+                          ...prev,
+                          status: true,
+                        }));
+                        setAutoOpenDropdown((prev) => ({
+                          ...prev,
+                          status: true,
+                        }));
+                      }} status={currentStatus} className="text-[13px]" />
                     )}
                   </div>
                 </div>
@@ -1573,7 +1576,7 @@ export default function TaskDetailClient({
                                 endDate: editRecurrenceConfig.endDate,
                                 occurrenceCount: editRecurrenceConfig.occurrenceCount,
                               };
-                              await taskApi.updateRecurrence(taskId, updatePayload);
+                              await updateRecurrence(taskId, updatePayload);
                               task.recurringConfig = { ...task.recurringConfig, ...editRecurrenceConfig };
                               setIsEditingTask((prev) => ({ ...prev, recurrence: false }));
                               toast.success("Recurrence updated successfully.");
@@ -1669,7 +1672,109 @@ export default function TaskDetailClient({
                           </Badge>
                         </div>
                       </div>
+                      {hasAccess && task.recurringConfig.isActive && (
+                        <div className="mt-4 pt-4 border-t border-[var(--border)]">
+                          <ActionButton
+                            onClick={() => {
+                              showConfirmModal(
+                                "Stop Recurrence",
+                                "Are you sure you want to stop the recurrence for this task? This action cannot be undone.",
+                                async () => {
+                                  try {
+                                    await stopRecurrence(taskId);
+                                    task.isRecurring = false;
+                                    task.recurringConfig = null;
+                                    toast.success("Recurrence stopped successfully.");
+                                    if (onTaskRefetch) onTaskRefetch();
+                                  } catch (error) {
+                                    toast.error("Failed to stop recurrence.");
+                                  }
+                                },
+                                "danger"
+                              );
+                            }}
+                            variant="outline"
+                            className="w-full justify-center border-[var(--destructive)] text-[var(--destructive)] hover:bg-[var(--destructive)]/10"
+                          >
+                            Stop Recurrence
+                          </ActionButton>
+                        </div>
+                      )}
                     </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Add Recurrence for non-recurring tasks */}
+            {!task.isRecurring && hasAccess && (
+              <>
+                <Divider label="Recurrence" />
+                <div className="space-y-4">
+                  {isEditingTask.recurrence ? (
+                    <div className="space-y-4">
+                      <RecurrenceSelector
+                        value={editRecurrenceConfig}
+                        onChange={setEditRecurrenceConfig}
+                      />
+                      <div className="flex items-center justify-end gap-4">
+                        <ActionButton
+                          onClick={async () => {
+                            try {
+                              const payload = {
+                                recurrenceType: editRecurrenceConfig.recurrenceType,
+                                interval: editRecurrenceConfig.interval,
+                                daysOfWeek: editRecurrenceConfig.daysOfWeek,
+                                dayOfMonth: editRecurrenceConfig.dayOfMonth,
+                                monthOfYear: editRecurrenceConfig.monthOfYear,
+                                endType: editRecurrenceConfig.endType,
+                                endDate: editRecurrenceConfig.endDate,
+                                occurrenceCount: editRecurrenceConfig.occurrenceCount,
+                              };
+                              await addRecurrence(taskId, payload);
+                              task.isRecurring = true;
+                              task.recurringConfig = editRecurrenceConfig;
+                              setIsEditingTask((prev) => ({ ...prev, recurrence: false }));
+                              toast.success("Recurrence added successfully.");
+                              if (onTaskRefetch) onTaskRefetch();
+                            } catch (error) {
+                              toast.error("Failed to add recurrence.");
+                            }
+                          }}
+                          variant="outline"
+                          primary
+                          className="justify-center bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90"
+                        >
+                          Add Recurrence
+                        </ActionButton>
+                        <ActionButton
+                          onClick={() => {
+                            setIsEditingTask((prev) => ({ ...prev, recurrence: false }));
+                            setEditRecurrenceConfig(null);
+                          }}
+                          secondary
+                          className="justify-center"
+                        >
+                          Cancel
+                        </ActionButton>
+                      </div>
+                    </div>
+                  ) : (
+                    <ActionButton
+                      leftIcon={<Repeat className="w-4 h-4" />}
+                      onClick={() => {
+                        setEditRecurrenceConfig({
+                          recurrenceType: "DAILY",
+                          interval: 1,
+                          endType: "NEVER",
+                        });
+                        setIsEditingTask((prev) => ({ ...prev, recurrence: true }));
+                      }}
+                      variant="outline"
+                      className="w-full justify-center gap-2"
+                    >
+                      Make Recurring
+                    </ActionButton>
                   )}
                 </div>
               </>

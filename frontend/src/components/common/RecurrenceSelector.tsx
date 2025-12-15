@@ -98,20 +98,20 @@ export default function RecurrenceSelector({ value, onChange }: RecurrenceSelect
     }
 
     return (
-        <Card className="p-4 space-y-4 border-[var(--border)] bg-[var(--card)]">
+        <Card className="p-3 border-[var(--border)] bg-[var(--card)]">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Repeat size={18} className="text-[var(--primary)]" />
                     <Label className="font-semibold">Recurring Task</Label>
                 </div>
-                <Button type="button" variant="ghost" size="icon" onClick={handleDisable}>
+                {/* <Button type="button" variant="ghost" size="icon" onClick={handleDisable}>
                     <X size={18} />
-                </Button>
+                </Button> */}
             </div>
 
             {/* Pattern Type */}
-            <div className="space-y-2">
-                <Label>Recurrence Pattern</Label>
+            <div className="space-y-1.5">
+                <Label className="text-xs">Recurrence Pattern</Label>
                 <div className="grid grid-cols-2 gap-2">
                     <div>
                         <Select
@@ -120,30 +120,30 @@ export default function RecurrenceSelector({ value, onChange }: RecurrenceSelect
                                 updateConfig({ recurrenceType: value })
                             }
                         >
-                            <SelectTrigger className="border-[var(--border)] bg-[var(--background)]">
+                            <SelectTrigger className="h-8 text-xs border-[var(--border)] bg-[var(--background)]">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="border-[var(--border)] bg-[var(--popover)]">
-                                <SelectItem value="DAILY" className="hover:bg-[var(--hover-bg)]">Daily</SelectItem>
-                                <SelectItem value="WEEKLY" className="hover:bg-[var(--hover-bg)]">Weekly</SelectItem>
-                                <SelectItem value="MONTHLY" className="hover:bg-[var(--hover-bg)]">Monthly</SelectItem>
-                                <SelectItem value="QUARTERLY" className="hover:bg-[var(--hover-bg)]">Quarterly</SelectItem>
-                                <SelectItem value="YEARLY" className="hover:bg-[var(--hover-bg)]">Yearly</SelectItem>
-                                <SelectItem value="CUSTOM" className="hover:bg-[var(--hover-bg)]">Custom</SelectItem>
+                                <SelectItem value="DAILY" className="text-xs hover:bg-[var(--hover-bg)]">Daily</SelectItem>
+                                <SelectItem value="WEEKLY" className="text-xs hover:bg-[var(--hover-bg)]">Weekly</SelectItem>
+                                <SelectItem value="MONTHLY" className="text-xs hover:bg-[var(--hover-bg)]">Monthly</SelectItem>
+                                <SelectItem value="QUARTERLY" className="text-xs hover:bg-[var(--hover-bg)]">Quarterly</SelectItem>
+                                <SelectItem value="YEARLY" className="text-xs hover:bg-[var(--hover-bg)]">Yearly</SelectItem>
+                                <SelectItem value="CUSTOM" className="text-xs hover:bg-[var(--hover-bg)]">Custom</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm">Every</span>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-xs">Every</span>
                             <Input
                                 type="number"
                                 min="1"
                                 value={config.interval}
                                 onChange={(e) => updateConfig({ interval: parseInt(e.target.value) || 1 })}
-                                className="flex-1 border-[var(--border)] bg-[var(--background)]"
+                                className="flex-1 h-8 text-xs border-[var(--border)] bg-[var(--background)]"
                             />
-                            <span className="text-sm">
+                            <span className="text-xs whitespace-nowrap">
                                 {config.recurrenceType === 'DAILY' && 'day(s)'}
                                 {config.recurrenceType === 'WEEKLY' && 'week(s)'}
                                 {config.recurrenceType === 'MONTHLY' && 'month(s)'}
@@ -158,15 +158,15 @@ export default function RecurrenceSelector({ value, onChange }: RecurrenceSelect
 
             {/* Days of Week (for WEEKLY) */}
             {config.recurrenceType === 'WEEKLY' && (
-                <div className="space-y-2">
-                    <Label>Repeat On</Label>
-                    <div className="flex gap-2">
+                <div className="space-y-1.5">
+                    <Label className="text-xs">Repeat On</Label>
+                    <div className="flex flex-wrap gap-1">
                         {DAYS_OF_WEEK.map((day) => (
                             <button
                                 key={day.value}
                                 type="button"
                                 onClick={() => toggleDayOfWeek(day.value)}
-                                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${(config.daysOfWeek || []).includes(day.value)
+                                className={`min-w-[36px] py-1.5 px-2 rounded text-xs font-medium transition-colors ${(config.daysOfWeek || []).includes(day.value)
                                     ? 'bg-[var(--primary)] text-white'
                                     : 'bg-[var(--muted)] text-[var(--foreground)] hover:bg-[var(--accent)]'
                                     }`}
@@ -182,8 +182,8 @@ export default function RecurrenceSelector({ value, onChange }: RecurrenceSelect
             {(config.recurrenceType === 'MONTHLY' ||
                 config.recurrenceType === 'QUARTERLY' ||
                 config.recurrenceType === 'YEARLY') && (
-                    <div className="space-y-2">
-                        <Label>Day of Month</Label>
+                    <div className="space-y-1.5">
+                        <Label className="text-xs">Day of Month</Label>
                         <Input
                             type="number"
                             min="1"
@@ -195,70 +195,70 @@ export default function RecurrenceSelector({ value, onChange }: RecurrenceSelect
                                 })
                             }
                             placeholder="e.g., 15"
-                            className="border-[var(--border)] bg-[var(--background)]"
+                            className="h-8 text-xs border-[var(--border)] bg-[var(--background)]"
                         />
                     </div>
                 )}
 
             {/* Month of Year (for YEARLY) */}
             {config.recurrenceType === 'YEARLY' && (
-                <div className="space-y-2">
-                    <Label>Month</Label>
+                <div className="space-y-1.5">
+                    <Label className="text-xs">Month</Label>
                     <Select
                         value={config.monthOfYear?.toString() || ''}
                         onValueChange={(value) => updateConfig({ monthOfYear: parseInt(value) })}
                     >
-                        <SelectTrigger className="border-[var(--border)] bg-[var(--background)]">
+                        <SelectTrigger className="h-8 text-xs border-[var(--border)] bg-[var(--background)]">
                             <SelectValue placeholder="Select month" />
                         </SelectTrigger>
                         <SelectContent className="border-[var(--border)] bg-[var(--popover)]">
-                            <SelectItem value="1" className="hover:bg-[var(--hover-bg)]">January</SelectItem>
-                            <SelectItem value="2" className="hover:bg-[var(--hover-bg)]">February</SelectItem>
-                            <SelectItem value="3" className="hover:bg-[var(--hover-bg)]">March</SelectItem>
-                            <SelectItem value="4" className="hover:bg-[var(--hover-bg)]">April</SelectItem>
-                            <SelectItem value="5" className="hover:bg-[var(--hover-bg)]">May</SelectItem>
-                            <SelectItem value="6" className="hover:bg-[var(--hover-bg)]">June</SelectItem>
-                            <SelectItem value="7" className="hover:bg-[var(--hover-bg)]">July</SelectItem>
-                            <SelectItem value="8" className="hover:bg-[var(--hover-bg)]">August</SelectItem>
-                            <SelectItem value="9" className="hover:bg-[var(--hover-bg)]">September</SelectItem>
-                            <SelectItem value="10" className="hover:bg-[var(--hover-bg)]">October</SelectItem>
-                            <SelectItem value="11" className="hover:bg-[var(--hover-bg)]">November</SelectItem>
-                            <SelectItem value="12" className="hover:bg-[var(--hover-bg)]">December</SelectItem>
+                            <SelectItem value="1" className="text-xs hover:bg-[var(--hover-bg)]">January</SelectItem>
+                            <SelectItem value="2" className="text-xs hover:bg-[var(--hover-bg)]">February</SelectItem>
+                            <SelectItem value="3" className="text-xs hover:bg-[var(--hover-bg)]">March</SelectItem>
+                            <SelectItem value="4" className="text-xs hover:bg-[var(--hover-bg)]">April</SelectItem>
+                            <SelectItem value="5" className="text-xs hover:bg-[var(--hover-bg)]">May</SelectItem>
+                            <SelectItem value="6" className="text-xs hover:bg-[var(--hover-bg)]">June</SelectItem>
+                            <SelectItem value="7" className="text-xs hover:bg-[var(--hover-bg)]">July</SelectItem>
+                            <SelectItem value="8" className="text-xs hover:bg-[var(--hover-bg)]">August</SelectItem>
+                            <SelectItem value="9" className="text-xs hover:bg-[var(--hover-bg)]">September</SelectItem>
+                            <SelectItem value="10" className="text-xs hover:bg-[var(--hover-bg)]">October</SelectItem>
+                            <SelectItem value="11" className="text-xs hover:bg-[var(--hover-bg)]">November</SelectItem>
+                            <SelectItem value="12" className="text-xs hover:bg-[var(--hover-bg)]">December</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
             )}
 
             {/* End Condition */}
-            <div className="space-y-2">
-                <Label>Ends</Label>
+            <div className="space-y-1.5">
+                <Label className="text-xs">Ends</Label>
                 <Select
                     value={config.endType}
                     onValueChange={(value: RecurrenceEndType) => updateConfig({ endType: value })}
                 >
-                    <SelectTrigger className="border-[var(--border)] bg-[var(--background)]">
+                    <SelectTrigger className="h-8 text-xs border-[var(--border)] bg-[var(--background)]">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="border-[var(--border)] bg-[var(--popover)]">
-                        <SelectItem value="NEVER" className="hover:bg-[var(--hover-bg)]">Never</SelectItem>
-                        <SelectItem value="ON_DATE" className="hover:bg-[var(--hover-bg)]">On Date</SelectItem>
-                        <SelectItem value="AFTER_OCCURRENCES" className="hover:bg-[var(--hover-bg)]">After Occurrences</SelectItem>
+                        <SelectItem value="NEVER" className="text-xs hover:bg-[var(--hover-bg)]">Never</SelectItem>
+                        <SelectItem value="ON_DATE" className="text-xs hover:bg-[var(--hover-bg)]">On Date</SelectItem>
+                        <SelectItem value="AFTER_OCCURRENCES" className="text-xs hover:bg-[var(--hover-bg)]">After Occurrences</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
 
             {/* End Date */}
             {config.endType === 'ON_DATE' && (
-                <div className="space-y-2">
-                    <Label>End Date</Label>
+                <div className="space-y-1.5">
+                    <Label className="text-xs">End Date</Label>
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="w-full justify-start text-left font-normal border-[var(--border)] bg-[var(--background)]"
+                                className="w-full h-8 justify-start text-left text-xs font-normal border-[var(--border)] bg-[var(--background)]"
                             >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                <CalendarIcon className="mr-2 h-3 w-3" />
                                 {config.endDate ? format(config.endDate, 'PPP') : 'Pick a date'}
                             </Button>
                         </PopoverTrigger>
@@ -276,8 +276,8 @@ export default function RecurrenceSelector({ value, onChange }: RecurrenceSelect
 
             {/* Occurrence Count */}
             {config.endType === 'AFTER_OCCURRENCES' && (
-                <div className="space-y-2">
-                    <Label>Number of Occurrences</Label>
+                <div className="space-y-1.5">
+                    <Label className="text-xs">Number of Occurrences</Label>
                     <Input
                         type="number"
                         min="1"
@@ -288,7 +288,7 @@ export default function RecurrenceSelector({ value, onChange }: RecurrenceSelect
                             })
                         }
                         placeholder="e.g., 10"
-                        className="border-[var(--border)] bg-[var(--background)]"
+                        className="h-8 text-xs border-[var(--border)] bg-[var(--background)]"
                     />
                 </div>
             )}
