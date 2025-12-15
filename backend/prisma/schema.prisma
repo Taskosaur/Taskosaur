@@ -74,6 +74,7 @@ model User {
   createdTimeEntries      TimeEntry[]          @relation("TimeEntryCreatedBy")
   updatedTimeEntries      TimeEntry[]          @relation("TimeEntryUpdatedBy")
   createdNotifications    Notification[]       @relation("NotificationCreatedBy")
+  updatedNotifications    Notification[]       @relation("NotificationUpdatedBy")
   createdActivityLogs     ActivityLog[]        @relation("ActivityLogCreatedBy")
   updatedActivityLogs     ActivityLog[]        @relation("ActivityLogUpdatedBy")
   createdRuleExecutions   RuleExecution[]      @relation("RuleExecutionCreatedBy")
@@ -570,6 +571,7 @@ model Notification {
   userId         String               @map("user_id") @db.Uuid
   organizationId String?              @map("organization_id") @db.Uuid
   createdBy      String?              @map("created_by_id") @db.Uuid
+  updatedBy      String?              @map("updated_by_id") @db.Uuid
   createdAt      DateTime             @default(now()) @map("created_at")
   updatedAt      DateTime             @updatedAt @map("updated_at")
   readAt         DateTime?            @map("read_at")
@@ -577,6 +579,7 @@ model Notification {
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization  Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdByUser User?         @relation("NotificationCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?         @relation("NotificationUpdatedBy", fields: [updatedBy], references: [id])
 
   @@map("notifications")
 }
