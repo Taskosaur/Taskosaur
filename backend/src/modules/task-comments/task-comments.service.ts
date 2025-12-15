@@ -107,7 +107,19 @@ export class TaskCommentsService {
     return comment;
   }
 
-  findAll(taskId?: string): Promise<TaskComment[]> {
+  async findAll(
+    taskId?: string,
+    page: number = 1,
+    limit: number = 10,
+    sort: 'asc' | 'desc' = 'desc',
+  ): Promise<{
+    data: TaskComment[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasMore: boolean;
+  }> {
     const whereClause: any = {};
     if (taskId) {
       whereClause.taskId = taskId;
@@ -115,8 +127,18 @@ export class TaskCommentsService {
       whereClause.parentCommentId = null;
     }
 
-    return this.prisma.taskComment.findMany({
+    // Get total count for pagination
+    const total = await this.prisma.taskComment.count({
       where: whereClause,
+    });
+
+    const totalPages = Math.ceil(total / limit);
+    const skip = (page - 1) * limit;
+
+    const data = await this.prisma.taskComment.findMany({
+      where: whereClause,
+      skip,
+      take: limit,
       include: {
         author: {
           select: {
@@ -161,9 +183,18 @@ export class TaskCommentsService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: sort,
       },
     });
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasMore: page < totalPages,
+    };
   }
 
   async findOne(id: string): Promise<TaskComment> {
@@ -431,5 +462,147 @@ export class TaskCommentsService {
         createdAt: 'desc',
       },
     });
+  }
+
+  /**
+   * GitHub-style pagination
+   */
+  async findWithMiddlePagination(
+    taskId: string,
+    page: number = 1,
+    limit: number = 5,
+    oldestCount: number = 2,
+    newestCount: number = 2,
+  ): Promise<{
+    data: TaskComment[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasMore: boolean;
+    loadedCount: number; // How many middle comments have been loaded so far
+  }> {
+    const whereClause: any = {
+      taskId,
+      parentCommentId: null, // Only top-level comments
+    };
+
+    // Get total count
+    const total = await this.prisma.taskComment.count({
+      where: whereClause,
+    });
+
+    const includeClause = {
+      author: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          avatar: true,
+        },
+      },
+      task: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+        },
+      },
+      replies: {
+        include: {
+          author: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+            },
+          },
+          _count: {
+            select: {
+              replies: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'asc' as const,
+        },
+      },
+      _count: {
+        select: {
+          replies: true,
+        },
+      },
+    };
+
+    let data: TaskComment[] = [];
+    let loadedCount = 0;
+
+    if (page === 1) {
+      // Initial load: Get oldest + newest comments
+      if (total <= oldestCount + newestCount) {
+        // If total comments fit in oldest + newest, just return all
+        data = await this.prisma.taskComment.findMany({
+          where: whereClause,
+          include: includeClause,
+          orderBy: { createdAt: 'asc' as const },
+        });
+      } else {
+        // Get oldest comments
+        const oldest = await this.prisma.taskComment.findMany({
+          where: whereClause,
+          take: oldestCount,
+          include: includeClause,
+          orderBy: { createdAt: 'asc' as const },
+        });
+
+        // Get newest comments
+        const newest = await this.prisma.taskComment.findMany({
+          where: whereClause,
+          take: newestCount,
+          include: includeClause,
+          orderBy: { createdAt: 'desc' as const },
+        });
+
+        // Combine: oldest first, then newest (reversed to maintain chronological order)
+        data = [...oldest, ...newest.reverse()];
+      }
+    } else {
+      // Subsequent loads: Get middle comments
+      // Ensure we don't accidentally fetch into the "newest" section
+      const middleCount = total - oldestCount - newestCount;
+      const endIndex = total - newestCount;
+      const skip = oldestCount + (page - 2) * limit;
+      const remainingMiddle = Math.max(0, endIndex - skip);
+      const take = Math.min(limit, remainingMiddle);
+
+      if (take > 0) {
+        data = await this.prisma.taskComment.findMany({
+          where: whereClause,
+          skip,
+          take,
+          include: includeClause,
+          orderBy: { createdAt: 'asc' as const },
+        });
+      }
+
+      loadedCount = Math.min((page - 1) * limit, middleCount);
+    }
+
+    const middleCount = Math.max(0, total - oldestCount - newestCount);
+    const middlePages = Math.ceil(middleCount / limit);
+    const totalPages = middlePages + 1; // +1 for the initial page
+    const hasMore = page < totalPages;
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasMore,
+      loadedCount,
+    };
   }
 }

@@ -93,9 +93,25 @@ export default function StatusConfiguration({
     }
   };
 
-  const handleDelete = (status: TaskStatus) => {
-    onDeleteStatus(status.id);
-    setShowDeleteModal(null);
+  const handleDelete = async (status: TaskStatus) => {
+    try {
+      await onDeleteStatus(status.id);
+      setShowDeleteModal(null);
+      toast.success("Status deleted successfully");
+    } catch (error: any) {
+      let errorMessage = "Failed to delete status";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (
+        error &&
+        typeof error === "object" &&
+        "response" in error &&
+        error.response?.data?.message
+      ) {
+        errorMessage = error.response.data.message;
+      }
+      toast.error(errorMessage);
+    }
   };
 
   const getCategoryColor = (category: StatusCategory) => {

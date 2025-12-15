@@ -166,7 +166,18 @@ interface TaskContextType extends TaskState {
 
   // Task comment operations
   createTaskComment: (commentData: CreateTaskCommentRequest) => Promise<TaskComment>;
-  getTaskComments: (taskId: string, isAuth: boolean) => Promise<TaskComment[]>;
+  getTaskComments: (
+    taskId: string, 
+    isAuth: boolean, 
+    options?: { 
+      page?: number; 
+      limit?: number; 
+      sort?: 'asc' | 'desc';
+      paginationType?: 'standard' | 'middle';
+      oldestCount?: number;
+      newestCount?: number;
+    }
+  ) => Promise<TaskComment[] | { data: TaskComment[]; total: number; page: number; limit: number; totalPages: number; hasMore: boolean; loadedCount?: number }>;
   updateTaskComment: (
     commentId: string,
     userId: string,
@@ -733,15 +744,32 @@ export function TaskProvider({ children }: TaskProviderProps) {
         return result;
       },
 
-      getTaskComments: async (taskId: string, isAuth: boolean): Promise<TaskComment[]> => {
-        const result = await taskApi.getTaskComments(taskId, isAuth);
+      getTaskComments: async (
+        taskId: string, 
+        isAuth: boolean, 
+        options?: { 
+          page?: number; 
+          limit?: number; 
+          sort?: 'asc' | 'desc';
+          paginationType?: 'standard' | 'middle';
+          oldestCount?: number;
+          newestCount?: number;
+        }
+      ): Promise<TaskComment[] | { data: TaskComment[]; total: number; page: number; limit: number; totalPages: number; hasMore: boolean; loadedCount?: number }> => {
+        const result = await taskApi.getTaskComments(taskId, isAuth, options);
 
+        // If options were provided, return the full paginated response
+        if (options) {
+          return result;
+        }
+
+        // Otherwise, extract data and update state (backward compatibility)
         setTaskState((prev) => ({
           ...prev,
-          taskComments: result,
+          taskComments: result.data,
         }));
 
-        return result;
+        return result.data;
       },
 
       updateTaskComment: async (

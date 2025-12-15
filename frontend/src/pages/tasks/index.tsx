@@ -668,9 +668,21 @@ function TasksPageContent() {
       let bValue = b[sortField];
 
       // Handle date fields
-      if (["createdAt", "updatedAt", "completedAt", "timeline"].includes(sortField)) {
+      if (["createdAt", "updatedAt", "completedAt", "dueDate", "timeline"].includes(sortField)) {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
+      }
+      
+      // Handle status field (object with name property)
+      if (sortField === "status") {
+        aValue = a.status?.name || "";
+        bValue = b.status?.name || "";
+      }
+      
+      // Handle commentsCount field (stored in _count.comments)
+      if (sortField === "commentsCount") {
+        aValue = a._count?.comments || 0;
+        bValue = b._count?.comments || 0;
       }
 
       // Handle string comparison

@@ -725,10 +725,25 @@ function WorkspaceTasksContent() {
     const sorted = [...tasks].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
-      if (["createdAt", "updatedAt", "completedAt", "timeline"].includes(sortField)) {
+      
+      // Handle date fields
+      if (["createdAt", "updatedAt", "completedAt", "dueDate", "timeline"].includes(sortField)) {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
       }
+      
+      // Handle status field (object with name property)
+      if (sortField === "status") {
+        aValue = a.status?.name || "";
+        bValue = b.status?.name || "";
+      }
+      
+      // Handle commentsCount field (stored in _count.comments)
+      if (sortField === "commentsCount") {
+        aValue = a._count?.comments || 0;
+        bValue = b._count?.comments || 0;
+      }
+      
       if (typeof aValue === "string" && typeof bValue === "string") {
         return sortOrder === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
       }

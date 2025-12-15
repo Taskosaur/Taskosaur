@@ -104,12 +104,13 @@ function OrganizationManagePageContent() {
     VIEWER: 0,
   });
 
-  const loadWorkflows = async () => {
-    if (!slug || typeof slug !== "string" || !hasManagementAccess) return;
+  const loadWorkflows = async (organizationSlug?: string) => {
+    const slugToUse = organizationSlug || slug;
+    if (!slugToUse || typeof slugToUse !== "string" || !hasManagementAccess) return;
     try {
       setWorkflowLoading(true);
       setWorkflowError(null);
-      const workflowData = await getOrganizationWorkFlows(slug);
+      const workflowData = await getOrganizationWorkFlows(slugToUse);
       if (!workflowData) {
         setWorkflows([]);
         return;
@@ -138,17 +139,18 @@ function OrganizationManagePageContent() {
     }
   };
 
-  const loadData = async () => {
+  const loadData = async (organizationSlug?: string) => {
+    const slugToUse = organizationSlug || slug;
     try {
       setIsLoading(true);
       setError(null);
 
-      if (!slug || typeof slug !== "string") {
+      if (!slugToUse || typeof slugToUse !== "string") {
         setError("Invalid organization slug");
         return;
       }
 
-      const orgData = await getOrganizationBySlug(slug);
+      const orgData = await getOrganizationBySlug(slugToUse);
       if (!orgData) {
         setError("Organization not found");
         return;
@@ -170,7 +172,7 @@ function OrganizationManagePageContent() {
       }
 
       // Only load members and workflows if user has access
-      const membersData = await getOrganizationMembers(slug, currentPage, pageSize, searchQuery);
+      const membersData = await getOrganizationMembers(slugToUse, currentPage, pageSize, searchQuery);
 
       setOrganization({
         id: orgData.id,
@@ -190,8 +192,7 @@ function OrganizationManagePageContent() {
       setTotalMembers(membersData.total); // Set total count
       setCurrentPage(membersData.page); // Set current page
       setRoleCounts(membersData.roleCounts);
-      // Load workflows in background
-      loadWorkflows();
+      loadWorkflows(slugToUse);
     } catch (err) {
       setError("Failed to load organization data");
       setUserAccess(null);
@@ -199,6 +200,7 @@ function OrganizationManagePageContent() {
       setIsLoading(false);
     }
   };
+
   const loadMembers = async (page: number = currentPage, search: string = searchQuery) => {
     if (!slug || typeof slug !== "string") return;
 
@@ -238,7 +240,7 @@ function OrganizationManagePageContent() {
   const handleOrganizationUpdate = async (updatedOrganization: Organization) => {
     if (!hasManagementAccess) return;
     setOrganization(updatedOrganization);
-    await loadData();
+    await loadData(updatedOrganization.slug);
   };
 
   const handleTabChange = async (value: string) => {
@@ -476,7 +478,7 @@ function OrganizationManagePageContent() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={loadWorkflows}
+                        onClick={() => loadWorkflows()}
                         className="h-8 border-none bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)] transition-all duration-200"
                       >
                         Retry
