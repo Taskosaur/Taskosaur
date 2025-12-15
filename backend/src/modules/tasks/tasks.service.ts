@@ -23,7 +23,7 @@ export class TasksService {
     private accessControl: AccessControlService,
     private storageService: StorageService,
     private recurrenceService: RecurrenceService,
-  ) { }
+  ) {}
 
   async create(createTaskDto: CreateTaskDto, userId: string): Promise<Task> {
     const project = await this.prisma.project.findUnique({
@@ -461,7 +461,7 @@ export class TasksService {
           const viewUrl = attachment.url
             ? attachment.url
             : attachment?.storageKey &&
-            (await this.storageService.getFileUrl(attachment?.storageKey));
+              (await this.storageService.getFileUrl(attachment?.storageKey));
 
           return {
             ...attachment,
@@ -916,63 +916,63 @@ export class TasksService {
         },
         childTasks: isElevated
           ? {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              type: true,
-              priority: true,
-              status: {
-                select: { name: true, color: true, category: true },
-              },
-              assignees: {
-                select: {
-                  id: true,
-                  email: true,
-                  firstName: true,
-                  lastName: true,
-                  avatar: true,
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                type: true,
+                priority: true,
+                status: {
+                  select: { name: true, color: true, category: true },
+                },
+                assignees: {
+                  select: {
+                    id: true,
+                    email: true,
+                    firstName: true,
+                    lastName: true,
+                    avatar: true,
+                  },
+                },
+                reporters: {
+                  select: {
+                    id: true,
+                    email: true,
+                    firstName: true,
+                    lastName: true,
+                    avatar: true,
+                  },
                 },
               },
-              reporters: {
-                select: {
-                  id: true,
-                  email: true,
-                  firstName: true,
-                  lastName: true,
-                  avatar: true,
-                },
-              },
-            },
-          }
+            }
           : {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              type: true,
-              priority: true,
-              status: {
-                select: { name: true, color: true, category: true },
-              },
-              assignees: {
-                select: {
-                  id: true,
-                  email: true,
-                  firstName: true,
-                  lastName: true,
-                  avatar: true,
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                type: true,
+                priority: true,
+                status: {
+                  select: { name: true, color: true, category: true },
+                },
+                assignees: {
+                  select: {
+                    id: true,
+                    email: true,
+                    firstName: true,
+                    lastName: true,
+                    avatar: true,
+                  },
                 },
               },
+              where: {
+                OR: [
+                  { assignees: { some: { id: userId } } },
+                  { reporters: { some: { id: userId } } },
+                  { createdBy: userId },
+                ],
+              },
             },
-            where: {
-              OR: [
-                { assignees: { some: { id: userId } } },
-                { reporters: { some: { id: userId } } },
-                { createdBy: userId },
-              ],
-            },
-          },
         labels: {
           include: {
             label: {
@@ -1744,18 +1744,18 @@ export class TasksService {
             taskNumber: task.taskNumber,
             assignees: task.assignees
               ? task.assignees.map((assignee) => ({
-                id: assignee.id,
-                firstName: assignee.firstName,
-                lastName: assignee.lastName,
-                avatar: assignee.avatar || undefined,
-              }))
+                  id: assignee.id,
+                  firstName: assignee.firstName,
+                  lastName: assignee.lastName,
+                  avatar: assignee.avatar || undefined,
+                }))
               : undefined,
             reporters: task.reporters
               ? task.reporters.map((reporter) => ({
-                id: reporter.id,
-                firstName: reporter.firstName,
-                lastName: reporter.lastName,
-              }))
+                  id: reporter.id,
+                  firstName: reporter.firstName,
+                  lastName: reporter.lastName,
+                }))
               : undefined,
             dueDate: task.dueDate ? task.dueDate.toISOString() : undefined,
             createdAt: task.createdAt.toISOString(),
