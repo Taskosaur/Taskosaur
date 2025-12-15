@@ -52,6 +52,12 @@ export interface NotificationResponse {
     hasNextPage: boolean;
     hasPrevPage: boolean;
   };
+  summary?: {
+    total: number;
+    unread: number;
+    byType: Record<string, number>;
+    byPriority: Record<string, number>;
+  };
 }
 
 export interface NotificationStats {
