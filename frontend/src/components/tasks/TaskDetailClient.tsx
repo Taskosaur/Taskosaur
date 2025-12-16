@@ -941,6 +941,23 @@ export default function TaskDetailClient({
                   ? "Created from mail"
                   : ""}
             </span>
+            {task.parentTask && (
+              <div className="text-sm text-[var(--muted-foreground)] mt-1">
+                Parent:{" "}
+                <span
+                  className="text-[var(--primary)] cursor-pointer hover:underline"
+                  onClick={() => {
+                    const url =
+                      workspaceSlug && projectSlug
+                        ? `/${workspaceSlug}/${projectSlug}/tasks/${task.parentTask.id}`
+                        : `/tasks/${task.parentTask.id}`;
+                    router.push(url);
+                  }}
+                >
+                  {task.parentTask.slug}: {task.parentTask.title}
+                </span>
+              </div>
+            )}
           </div>
 
           {(hasAccess || task.createdBy === currentUser?.id) && (

@@ -284,6 +284,11 @@ export default function TaskDetailModal({
                     Comprehensive task editing interface will be implemented here.
                   </p>
                   <div className="mt-6 text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                    {task.parentTask && (
+                      <p>
+                        <strong>Parent Task:</strong> {task.parentTask.slug}: {task.parentTask.title}
+                      </p>
+                    )}
                     <p>
                       <strong>Description:</strong> {task.description || "No description"}
                     </p>
