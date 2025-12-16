@@ -70,10 +70,14 @@ export class TasksService {
       }
     }
 
-    const sprintResult = await this.prisma.sprint.findFirst({
-      where: { projectId: project.id, isDefault: true },
-    });
-    const sprintId = sprintResult?.id || null;
+    let sprintId = createTaskDto.sprintId;
+
+    if (!sprintId) {
+      const sprintResult = await this.prisma.sprint.findFirst({
+        where: { projectId: project.id, isDefault: true },
+      });
+      sprintId = sprintResult?.id;
+    }
 
     const lastTask = await this.prisma.task.findFirst({
       where: { projectId: createTaskDto.projectId },
@@ -212,10 +216,14 @@ export class TasksService {
       }
     }
 
-    const sprintResult = await this.prisma.sprint.findFirst({
-      where: { projectId: project.id, isDefault: true },
-    });
-    const sprintId = sprintResult?.id || null;
+    let sprintId = createTaskDto.sprintId;
+
+    if (!sprintId) {
+      const sprintResult = await this.prisma.sprint.findFirst({
+        where: { projectId: project.id, isDefault: true },
+      });
+      sprintId = sprintResult?.id;
+    }
 
     const lastTask = await this.prisma.task.findFirst({
       where: { projectId: createTaskDto.projectId },
