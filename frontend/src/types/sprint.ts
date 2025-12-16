@@ -15,6 +15,7 @@ export interface Sprint {
   updatedBy?: string;
   createdAt?: string;
   updatedAt?: string;
+  isDefault?: boolean;
   _count?: {
     tasks?: number;
     completedTasks?: number;
