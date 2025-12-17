@@ -50,6 +50,7 @@ model User {
   updatedWorkflows         Workflow[]           @relation("WorkflowUpdatedBy")
   createdTaskStatuses      TaskStatus[]         @relation("TaskStatusCreatedBy")
   updatedTaskStatuses      TaskStatus[]         @relation("TaskStatusUpdatedBy")
+  deletedTaskStatuses      TaskStatus[]         @relation("TaskStatusDeletedBy")
   createdStatusTransitions StatusTransition[]   @relation("StatusTransitionCreatedBy")
   updatedStatusTransitions StatusTransition[]   @relation("StatusTransitionUpdatedBy")
   createdSprints           Sprint[]             @relation("SprintCreatedBy")
@@ -392,11 +393,14 @@ model TaskStatus {
   updatedAt       DateTime           @updatedAt @map("updated_at")
   createdBy       String?            @map("created_by_id") @db.Uuid
   updatedBy       String?            @map("updated_by_id") @db.Uuid
+  deletedAt       DateTime?          @map("deleted_at")
+  deletedBy       String?            @map("deleted_by") @db.Uuid
   fromTransitions StatusTransition[] @relation("FromStatus")
   toTransitions   StatusTransition[] @relation("ToStatus")
   workflow        Workflow           @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   createdByUser   User?              @relation("TaskStatusCreatedBy", fields: [createdBy], references: [id])
   updatedByUser   User?              @relation("TaskStatusUpdatedBy", fields: [updatedBy], references: [id])
+  deletedByUser   User?              @relation("TaskStatusDeletedBy", fields: [deletedBy], references: [id])
   tasks           Task[]
   defaultInboxes  ProjectInbox[]
 

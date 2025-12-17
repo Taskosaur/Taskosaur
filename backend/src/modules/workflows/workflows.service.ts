@@ -86,10 +86,14 @@ export class WorkflowsService {
             slug: true,
           },
         },
-        statuses: true, // include all workflow statuses
+        statuses: {
+          where: { deletedAt: null },
+        },
         _count: {
           select: {
-            statuses: true,
+            statuses: {
+              where: { deletedAt: null },
+            },
             transitions: true,
           },
         },
@@ -123,11 +127,15 @@ export class WorkflowsService {
             slug: true,
           },
         },
-        statuses: true, // include all workflow statuses
+        statuses: {
+          where: { deletedAt: null },
+        },
         transitions: true, // include transitions if applicable
         _count: {
           select: {
-            statuses: true,
+            statuses: {
+              where: { deletedAt: null },
+            },
             transitions: true,
           },
         },
@@ -151,6 +159,7 @@ export class WorkflowsService {
           orderBy: {
             position: 'asc',
           },
+          where: { deletedAt: null },
         },
         transitions: {
           include: {
@@ -174,7 +183,9 @@ export class WorkflowsService {
         },
         _count: {
           select: {
-            statuses: true,
+            statuses: {
+              where: { deletedAt: null },
+            },
             transitions: true,
           },
         },
@@ -285,6 +296,7 @@ export class WorkflowsService {
           orderBy: {
             position: 'asc',
           },
+          where: { deletedAt: null },
         },
       },
     });

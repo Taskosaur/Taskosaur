@@ -107,6 +107,15 @@ describe('Workflow 6: Permission & Access Control (e2e)', () => {
     });
     organizationId = organization.id;
 
+    // Add owner to organization
+    await prismaService.organizationMember.create({
+      data: {
+        userId: owner.id,
+        organizationId: organizationId,
+        role: Role.OWNER,
+      },
+    });
+
     // Add admin and member to organization
     await prismaService.organizationMember.create({
       data: {
@@ -156,6 +165,15 @@ describe('Workflow 6: Permission & Access Control (e2e)', () => {
     });
     workspaceId = workspace.id;
 
+    // Add owner to workspace
+    await prismaService.workspaceMember.create({
+      data: {
+        userId: owner.id,
+        workspaceId: workspaceId,
+        role: Role.OWNER,
+      },
+    });
+
     // Add admin and member to workspace
     await prismaService.workspaceMember.create({
       data: {
@@ -188,6 +206,15 @@ describe('Workflow 6: Permission & Access Control (e2e)', () => {
       },
     });
     projectId = project.id;
+
+    // Add owner to project
+    await prismaService.projectMember.create({
+      data: {
+        userId: owner.id,
+        projectId: projectId,
+        role: Role.OWNER,
+      },
+    });
 
     // Add admin and member to project
     await prismaService.projectMember.create({

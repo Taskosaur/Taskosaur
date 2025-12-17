@@ -118,6 +118,33 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       },
     });
     projectId = project.id;
+
+    // Add Organization Member
+    await prismaService.organizationMember.create({
+      data: {
+        organizationId: organizationId,
+        userId: user.id,
+        role: Role.OWNER,
+      },
+    });
+
+    // Add Workspace Member
+    await prismaService.workspaceMember.create({
+      data: {
+        workspaceId: workspaceId,
+        userId: user.id,
+        role: Role.OWNER,
+      },
+    });
+
+    // Add Project Member
+    await prismaService.projectMember.create({
+      data: {
+        projectId: projectId,
+        userId: user.id,
+        role: Role.OWNER,
+      },
+    });
   });
 
   afterAll(async () => {
@@ -394,9 +421,8 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.OK);
 
-      expect(response.body).toHaveProperty('data');
-      expect(Array.isArray(response.body.data)).toBe(true);
-      expect(response.body.data.length).toBeGreaterThanOrEqual(3);
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBeGreaterThanOrEqual(3);
     });
   });
 });

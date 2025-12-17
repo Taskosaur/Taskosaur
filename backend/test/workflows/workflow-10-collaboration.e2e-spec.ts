@@ -100,6 +100,15 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
     });
     organizationId = organization.id;
 
+    // Add Organization Members
+    await prismaService.organizationMember.createMany({
+      data: [
+        { userId: userA.id, organizationId, role: Role.OWNER },
+        { userId: userB.id, organizationId, role: Role.MEMBER },
+        { userId: userC.id, organizationId, role: Role.MEMBER },
+      ],
+    });
+
     // Create workflow
     const workflow = await prismaService.workflow.create({
       data: {
@@ -143,6 +152,15 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
     });
     workspaceId = workspace.id;
 
+    // Add Workspace Members
+    await prismaService.workspaceMember.createMany({
+      data: [
+        { userId: userA.id, workspaceId, role: Role.OWNER },
+        { userId: userB.id, workspaceId, role: Role.MEMBER },
+        { userId: userC.id, workspaceId, role: Role.MEMBER },
+      ],
+    });
+
     // Create project
     const project = await prismaService.project.create({
       data: {
@@ -158,6 +176,15 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
       },
     });
     projectId = project.id;
+
+    // Add Project Members
+    await prismaService.projectMember.createMany({
+      data: [
+        { userId: userA.id, projectId, role: Role.OWNER },
+        { userId: userB.id, projectId, role: Role.MEMBER },
+        { userId: userC.id, projectId, role: Role.MEMBER },
+      ],
+    });
   });
 
   afterAll(async () => {
@@ -231,8 +258,9 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
         .set('Authorization', `Bearer ${tokenB}`)
         .expect(HttpStatus.OK);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      const comment = response.body.find((c: any) => c.id === commentAId);
+      expect(response.body).toHaveProperty('data');
+      expect(Array.isArray(response.body.data)).toBe(true);
+      const comment = response.body.data.find((c: any) => c.id === commentAId);
       expect(comment).toBeDefined();
     });
 
@@ -316,10 +344,11 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(HttpStatus.OK);
 
-      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body).toHaveProperty('data');
+      expect(Array.isArray(response.body.data)).toBe(true);
       // Should have comments from B and C, but not A (deleted)
-      const commentB = response.body.find((c: any) => c.id === commentBId);
-      const commentC = response.body.find((c: any) => c.id === commentCId);
+      const commentB = response.body.data.find((c: any) => c.id === commentBId);
+      const commentC = response.body.data.find((c: any) => c.id === commentCId);
       expect(commentB).toBeDefined();
       expect(commentC).toBeDefined();
     });

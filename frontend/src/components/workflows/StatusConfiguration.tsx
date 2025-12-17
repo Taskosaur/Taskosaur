@@ -95,22 +95,12 @@ export default function StatusConfiguration({
 
   const handleDelete = async (status: TaskStatus) => {
     try {
-      await onDeleteStatus(status.id);
-      setShowDeleteModal(null);
-      toast.success("Status deleted successfully");
-    } catch (error: any) {
-      let errorMessage = "Failed to delete status";
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (
-        error &&
-        typeof error === "object" &&
-        "response" in error &&
-        error.response?.data?.message
-      ) {
-        errorMessage = error.response.data.message;
+      if (onDeleteStatus) {
+        await onDeleteStatus(status.id);
+        setShowDeleteModal(null);
       }
-      toast.error(errorMessage);
+    } catch (error) {
+      console.error("Error deleting status:", error);
     }
   };
 
