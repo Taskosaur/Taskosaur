@@ -66,6 +66,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useAuth } from "@/contexts/auth-context";
+import { useRouter } from "next/router";
 
 // Data extraction utility functions
 function extractTaskValue(task: Task, columnId: string): any {
@@ -245,9 +246,22 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const [localAddTaskStatuses, setLocalAddTaskStatuses] = useState<
     Array<{ id: string; name: string }>
   >([]);
-  const [localAddTaskProjectMembers, setLocalAddTaskProjectMembers] = useState<any[]>([]);
-
-  useEffect(() => {
+    const [localAddTaskProjectMembers, setLocalAddTaskProjectMembers] = useState<any[]>([]);
+    const router = useRouter();
+    const [initialPath, setInitialPath] = useState<string>("");
+  
+    useEffect(() => {
+      if (router.isReady && !initialPath) {
+        // Extract the base URL without taskId parameter
+        const [pathname, search] = router.asPath.split('?');
+        const searchParams = new URLSearchParams(search || '');
+        searchParams.delete('taskId');
+        const cleanSearch = searchParams.toString();
+        setInitialPath(pathname + (cleanSearch ? '?' + cleanSearch : ''));
+      }
+    }, [router.isReady, initialPath]);
+  
+    useEffect(() => {
     const fetchProjectMeta = async () => {
       const projectId = currentProject?.id || newTaskData?.projectId;
       if (addTaskStatuses && addTaskStatuses.length > 0) {
@@ -711,6 +725,13 @@ const TaskTable: React.FC<TaskTableProps> = ({
     await getTaskById(task.id, isAuthenticated());
     setSelectedTask(task);
     setIsEditModalOpen(true);
+    router.push(
+      `/${workspaceSlug ? `workspaces/${workspaceSlug}/` : ""}${
+        projectSlug ? `projects/${projectSlug}/` : ""
+      }tasks?taskId=${task.id}`,
+      undefined,
+      { shallow: true }
+    );
   };
 
   if (tasks.length === 0) {
@@ -1321,7 +1342,13 @@ const TaskTable: React.FC<TaskTableProps> = ({
       {isEditModalOpen && (
         <CustomModal
           isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            // Revert URL back to initial state when modal is closed
+            if (initialPath) {
+              router.push(initialPath, undefined, { shallow: true });
+            }
+          }}
           animation="slide-right"
           height="h-screen"
           top="top-4"
@@ -1338,7 +1365,13 @@ const TaskTable: React.FC<TaskTableProps> = ({
               projectSlug={projectSlug as string}
               taskId={selectedTask.id}
               onTaskRefetch={onTaskRefetch}
-              onClose={() => setIsEditModalOpen(false)}
+              onClose={() => {
+                setIsEditModalOpen(false);
+                // Revert URL back to initial state when modal is closed
+                if (initialPath) {
+                  router.push(initialPath, undefined, { shallow: true });
+                }
+              }}
             />
           )}
         </CustomModal>
