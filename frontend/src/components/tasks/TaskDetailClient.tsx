@@ -35,7 +35,7 @@ import TaskDetailSkeleton from "../skeletons/TaskDetailSkeleton";
 import validator from "validator";
 import { sanitizeEditorContent } from "@/utils/sanitize-content";
 import RecurringBadge from "@/components/common/RecurringBadge";
-import { Repeat } from "lucide-react";
+import { Repeat, Plus } from "lucide-react";
 import RecurrenceSelector from "@/components/common/RecurrenceSelector";
 
 // Helper function to validate internal paths and prevent open redirect vulnerabilities
@@ -1743,9 +1743,10 @@ export default function TaskDetailClient({
                           }}
                           variant="outline"
                           primary
-                          className="justify-center bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90"
+                          showPlusIcon
+                          className="flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90"
                         >
-                          Add Recurrence
+                          Add
                         </ActionButton>
                         <ActionButton
                           onClick={() => {
@@ -1760,21 +1761,22 @@ export default function TaskDetailClient({
                       </div>
                     </div>
                   ) : (
-                    <ActionButton
-                      leftIcon={<Repeat className="w-4 h-4" />}
-                      onClick={() => {
-                        setEditRecurrenceConfig({
-                          recurrenceType: "DAILY",
-                          interval: 1,
-                          endType: "NEVER",
-                        });
-                        setIsEditingTask((prev) => ({ ...prev, recurrence: true }));
-                      }}
-                      variant="outline"
-                      className="w-full justify-center gap-2"
-                    >
-                      Make Recurring
-                    </ActionButton>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Recurring</Label>
+                      <ToggleSwitch
+                        checked={false}
+                        onChange={() => {
+                          setEditRecurrenceConfig({
+                            recurrenceType: "DAILY",
+                            interval: 1,
+                            endType: "NEVER",
+                          });
+                          setIsEditingTask((prev) => ({ ...prev, recurrence: true }));
+                        }}
+                        label="Toggle recurrence"
+                        size="sm"
+                      />
+                    </div>
                   )}
                 </div>
               </>

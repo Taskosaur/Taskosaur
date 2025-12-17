@@ -92,7 +92,7 @@ export default function RecurrenceSelector({ value, onChange }: RecurrenceSelect
                 className="w-full justify-start gap-2 border-[var(--border)] bg-[var(--background)]"
             >
                 <Repeat size={16} />
-                Add Recurrence
+                Add
             </Button>
         );
     }
