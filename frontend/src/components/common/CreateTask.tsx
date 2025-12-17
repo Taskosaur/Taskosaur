@@ -55,6 +55,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
     status: "",
     priority: "MEDIUM",
     type: "TASK",
+    startDate: "",
     dueDate: "",
     sprintId: "",
   });
@@ -239,7 +240,8 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
         description: formData.description.trim() || "",
         priority: formData.priority.toUpperCase() as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
         type: formData.type as "TASK" | "BUG" | "EPIC" | "STORY" | "SUBTASK",
-        startDate: new Date().toISOString(),
+        startDate: formData.startDate ? formatDateForApi(formData.startDate)
+          : formatDateForApi(getTodayDate()),
         dueDate: formData.dueDate
           ? formatDateForApi(formData.dueDate)
           : formatDateForApi(getTodayDate()),
@@ -523,16 +525,22 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="sprint">
-                  Sprint
-                </Label>
+                <Label htmlFor="sprint">Sprint</Label>
                 <Select
                   value={formData.sprintId}
                   onValueChange={(value) => handleFormDataChange("sprintId", value)}
                   disabled={loadingSprints}
                 >
                   <SelectTrigger className="w-full border-[var(--border)] bg-[var(--background)]">
-                    <SelectValue placeholder={!selectedProject?.id ? "Select project first" : loadingSprints ? "Loading..." : "Select sprint (optional)"} />
+                    <SelectValue
+                      placeholder={
+                        !selectedProject?.id
+                          ? "Select project first"
+                          : loadingSprints
+                            ? "Loading..."
+                            : "Select sprint (optional)"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent className="border-[var(--border)] bg-[var(--popover)]">
                     {sprints.map((sprint) => (
@@ -542,12 +550,31 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                         value={sprint.id}
                       >
                         <div className="flex items-center gap-2">
-                          {sprint.name} {sprint.isDefault === true && '(Default)'}
+                          {sprint.name} {sprint.isDefault === true && "(Default)"}
                         </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  name="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => handleFormDataChange("startDate", e.target.value)}
+                  onClick={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    target.showPicker?.();
+                  }}
+                  className="w-full border-[var(--border)] bg-[var(--background)] cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:mt-1"
+                  style={{
+                    colorScheme: "dark",
+                  }}
+                />
               </div>
 
               <div className="space-y-2">
@@ -562,7 +589,6 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                     const target = e.target as HTMLInputElement;
                     target.showPicker?.();
                   }}
-                  min={getTodayDate()}
                   className="w-full border-[var(--border)] bg-[var(--background)] cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:mt-1"
                   style={{
                     colorScheme: "dark",
