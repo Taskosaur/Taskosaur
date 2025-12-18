@@ -101,6 +101,9 @@ model User {
   defaultInboxes         ProjectInbox[] @relation("InboxDefaultAssignee")
   convertedInboxMessages InboxMessage[]
 
+  // Settings Relations
+  settings Settings[]
+
   @@map("users")
 }
 
@@ -1163,13 +1166,20 @@ model EmailSyncLog {
 
 model Settings {
   id          String   @id @default(uuid()) @db.Uuid
-  key         String   @unique
+  key         String   
   value       String?
   description String?
   category    String   @default("general")
   isEncrypted Boolean  @default(false) @map("is_encrypted")
+  userId      String?  @db.Uuid // Optional - if null, it's a global setting
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Unique constraint: key must be unique per user (or globally if userId is null)
+  @@unique([userId, key])  // This allows same keys for different users, and also allows global settings (userId = null)
 
   @@map("settings")
 }
