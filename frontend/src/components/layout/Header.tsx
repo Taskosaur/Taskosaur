@@ -103,14 +103,21 @@ export default function Header() {
   // Check AI enabled status
   useEffect(() => {
     const checkAIStatus = () => {
-      const aiEnabled = localStorage.getItem("aiEnabled") === "true";
-      setIsAIEnabled(aiEnabled);
+      // currentUser is the source of truth if available
+      if (currentUser && typeof currentUser.isAiEnabled !== "undefined") {
+        setIsAIEnabled(currentUser.isAiEnabled);
+        localStorage.setItem("aiEnabled", currentUser.isAiEnabled ? "true" : "false");
+      } else {
+        // Fallback to localStorage if user object doesn't have the setting
+        const aiEnabled = localStorage.getItem("aiEnabled") === "true";
+        setIsAIEnabled(aiEnabled);
+      }
     };
 
-    // Check on mount
+    // Check on mount and when user object changes
     checkAIStatus();
 
-    // Listen for AI settings changes
+    // Listen for AI settings changes from other components (e.g., settings page)
     const handleAISettingsChange = (event: CustomEvent) => {
       setIsAIEnabled(event.detail.aiEnabled);
     };
@@ -120,7 +127,7 @@ export default function Header() {
     return () => {
       window.removeEventListener("aiSettingsChanged", handleAISettingsChange as EventListener);
     };
-  }, []);
+  }, [currentUser]);
 
   const pathname = router.pathname;
   const pathParts = pathname?.split("/").filter(Boolean);

@@ -12,7 +12,6 @@ import {
   User,
   UserData,
 } from "@/types";
-import validator from "validator";
 
 // Utility functions for validation
 function sanitizeToken(token: string): string {
@@ -45,6 +44,7 @@ export const authApi = {
       console.error("Logout error:", error);
     } finally {
       localStorage.clear();
+
       if (typeof window !== "undefined") {
         window.location.href = "/login";
       }
