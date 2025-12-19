@@ -273,10 +273,10 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     return { valid: true, missing: [] };
   }
 
-  async chat(chatRequest: ChatRequestDto): Promise<ChatResponseDto> {
+  async chat(chatRequest: ChatRequestDto, userId: string): Promise<ChatResponseDto> {
     try {
       // Check if AI is enabled
-      const isEnabled = await this.settingsService.get('ai_enabled');
+      const isEnabled = await this.settingsService.get('ai_enabled', userId);
       if (isEnabled !== 'true') {
         throw new BadRequestException(
           'AI chat is currently disabled. Please enable it in settings.',
@@ -296,9 +296,9 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
       // Get API settings from database
       const [apiKey, model, apiUrl] = await Promise.all([
-        this.settingsService.get('ai_api_key'),
-        this.settingsService.get('ai_model', 'deepseek/deepseek-chat-v3-0324:free'),
-        this.settingsService.get('ai_api_url', 'https://openrouter.ai/api/v1'),
+        this.settingsService.get('ai_api_key', userId),
+        this.settingsService.get('ai_model', userId, 'deepseek/deepseek-chat-v3-0324:free'),
+        this.settingsService.get('ai_api_url', userId, 'https://openrouter.ai/api/v1'),
       ]);
 
       const provider = this.detectProvider(apiUrl || 'https://openrouter.ai/api/v1');
