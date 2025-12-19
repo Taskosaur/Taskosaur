@@ -645,13 +645,19 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
           <div className="flex items-center justify-end gap-3 " id="submit-form-button">
             <ActionButton
               onClick={() => router.back()}
+              type="button"
               variant="outline"
               secondary
               className="h-8 px-3 cursor-pointer"
             >
               Cancel
             </ActionButton>
-            <ActionButton onClick={handleSubmit} disabled={!isFormValid() || isSubmitting} primary>
+            <ActionButton 
+              onClick={handleSubmit} 
+              type="submit"
+              disabled={!isFormValid() || isSubmitting} 
+              primary
+            >
               {isSubmitting ? (
                 <div className="flex items-center">
                   <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
