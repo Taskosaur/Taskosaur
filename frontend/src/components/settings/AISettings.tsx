@@ -89,26 +89,41 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
     }
   };
 
-  const saveSetting = async (key: string, value: string, description?: string) => {
-    await settingsApi.setSetting({
-      key,
-      value,
-      description,
-      category: "ai",
-      isEncrypted: key === "ai_api_key",
-    });
-  };
-
   const handleSave = async () => {
     setIsSaving(true);
     setMessage(null);
 
     try {
-      await Promise.all([
-        saveSetting("ai_enabled", isEnabled.toString(), "Enable/disable AI chat functionality"),
-        saveSetting("ai_api_key", apiKey, "AI provider API key"),
-        saveSetting("ai_model", model, "AI model to use"),
-        saveSetting("ai_api_url", apiUrl, "API endpoint URL"),
+      // Use bulk save to make a single API call instead of 4 separate calls
+      await settingsApi.bulkSetSettings([
+        {
+          key: "ai_enabled",
+          value: isEnabled.toString(),
+          description: "Enable/disable AI chat functionality",
+          category: "ai",
+          isEncrypted: false,
+        },
+        {
+          key: "ai_api_key",
+          value: apiKey,
+          description: "AI provider API key",
+          category: "ai",
+          isEncrypted: true,
+        },
+        {
+          key: "ai_model",
+          value: model,
+          description: "AI model to use",
+          category: "ai",
+          isEncrypted: false,
+        },
+        {
+          key: "ai_api_url",
+          value: apiUrl,
+          description: "API endpoint URL",
+          category: "ai",
+          isEncrypted: false,
+        },
       ]);
 
       localStorage.setItem("aiEnabled", isEnabled.toString());
@@ -130,13 +145,18 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
   };
 
   const testConnection = async () => {
-    if (!isEnabled) {
-      setMessage({ type: "error", text: "Please enable AI chat first" });
+    if (!apiKey) {
+      setMessage({ type: "error", text: "Please enter an API key first" });
       return;
     }
 
-    if (!apiKey) {
-      setMessage({ type: "error", text: "Please enter an API key first" });
+    if (!model) {
+      setMessage({ type: "error", text: "Please enter a model name first" });
+      return;
+    }
+
+    if (!apiUrl) {
+      setMessage({ type: "error", text: "Please enter an API URL first" });
       return;
     }
 
@@ -144,18 +164,16 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
     setMessage(null);
 
     try {
-      const response = await api.post("/ai-chat/chat", {
-        message: "Hello, this is a test message",
-        history: [],
+      // Use the new test-connection endpoint that doesn't require AI to be enabled
+      const response = await api.post("/ai-chat/test-connection", {
+        apiKey,
+        model,
+        apiUrl,
       });
 
       if (response.data.success) {
-        setMessage({ type: "success", text: "Connection test successful!" });
-        toast.success(
-          response.data.message
-            ? `Success: ${response.data.message}`
-            : "Connection test successful!"
-        );
+        setMessage({ type: "success", text: response.data.message || "Connection test successful!" });
+        toast.success(response.data.message || "Connection test successful!");
       } else {
         const errorMsg = response.data.error || "Connection test failed";
         setMessage({
@@ -401,7 +419,7 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
             <ActionButton
               type="button"
               onClick={testConnection}
-              disabled={!isEnabled || isLoading || isSaving || !isFormValid}
+              disabled={isLoading || isSaving || !apiKey.trim() || !model.trim() || !apiUrl.trim()}
               variant="outline"
               secondary
             >

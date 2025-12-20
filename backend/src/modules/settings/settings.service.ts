@@ -288,4 +288,49 @@ export class SettingsService {
 
     return settings;
   }
+
+  /**
+   * Bulk set multiple settings at once for a specific user
+   * @param settings Array of settings to save
+   * @param userId User ID to associate settings with
+   */
+  async bulkSet(
+    settings: Array<{
+      key: string;
+      value: string;
+      description?: string;
+      category?: string;
+      isEncrypted?: boolean;
+    }>,
+    userId: string,
+  ): Promise<void> {
+    // Use a transaction to ensure all settings are saved atomically
+    await this.prisma.$transaction(
+      settings.map((setting) =>
+        this.prisma.settings.upsert({
+          where: {
+            userId_key: {
+              userId,
+              key: setting.key,
+            },
+          },
+          update: {
+            value: setting.value,
+            description: setting.description || undefined,
+            category: setting.category || 'general',
+            isEncrypted: setting.isEncrypted || false,
+            updatedAt: new Date(),
+          },
+          create: {
+            key: setting.key,
+            value: setting.value,
+            userId,
+            description: setting.description || undefined,
+            category: setting.category || 'general',
+            isEncrypted: setting.isEncrypted || false,
+          },
+        }),
+      ),
+    );
+  }
 }

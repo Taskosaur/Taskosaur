@@ -2,7 +2,12 @@ import { Controller, Post, Body, UseGuards, Delete, Param } from '@nestjs/common
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AiChatService } from './ai-chat.service';
-import { ChatRequestDto, ChatResponseDto } from './dto/chat.dto';
+import {
+  ChatRequestDto,
+  ChatResponseDto,
+  TestConnectionDto,
+  TestConnectionResponseDto,
+} from './dto/chat.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '@prisma/client';
 
@@ -20,6 +25,15 @@ export class AiChatController {
     @Body() chatRequest: ChatRequestDto,
   ): Promise<ChatResponseDto> {
     return this.aiChatService.chat(chatRequest, user.id);
+  }
+
+  @Post('test-connection')
+  @ApiOperation({ summary: 'Test AI provider connection without requiring AI to be enabled' })
+  @ApiResponse({ status: 200, type: TestConnectionResponseDto })
+  async testConnection(
+    @Body() testConnectionDto: TestConnectionDto,
+  ): Promise<TestConnectionResponseDto> {
+    return this.aiChatService.testConnection(testConnectionDto);
   }
 
   @Delete('context/:sessionId')

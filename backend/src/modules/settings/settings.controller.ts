@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '@prisma/client';
 import { SettingsService } from './settings.service';
-import { SetSettingDto, SettingResponseDto } from './dto/settings.dto';
+import { SetSettingDto, SettingResponseDto, BulkSetSettingsDto } from './dto/settings.dto';
 
 @ApiTags('Settings')
 @Controller('settings')
@@ -48,6 +48,17 @@ export class SettingsController {
       setSettingDto.isEncrypted,
     );
     return { message: 'Setting updated successfully' };
+  }
+
+  @Post('bulk')
+  @ApiOperation({ summary: 'Set or update multiple settings at once' })
+  @ApiResponse({
+    status: 201,
+    description: 'Settings created/updated successfully',
+  })
+  async bulkSetSettings(@CurrentUser() user: User, @Body() bulkSetSettingsDto: BulkSetSettingsDto) {
+    await this.settingsService.bulkSet(bulkSetSettingsDto.settings, user.id);
+    return { message: 'Settings updated successfully' };
   }
 
   @Delete(':key')

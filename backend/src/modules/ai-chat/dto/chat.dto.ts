@@ -91,3 +91,43 @@ export class ChatResponseDto {
   })
   error?: string;
 }
+
+export class TestConnectionDto {
+  @ApiProperty({
+    description: 'API key to test',
+  })
+  @IsString()
+  @IsNotEmpty()
+  apiKey: string;
+
+  @ApiProperty({
+    description: 'Model to use for testing',
+  })
+  @IsString()
+  @IsNotEmpty()
+  model: string;
+
+  @ApiProperty({
+    description: 'API URL to test',
+  })
+  @IsString()
+  @IsNotEmpty()
+  apiUrl: string;
+}
+
+export class TestConnectionResponseDto {
+  @ApiProperty({
+    description: 'Success status',
+  })
+  success: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Success or error message',
+  })
+  message?: string;
+
+  @ApiPropertyOptional({
+    description: 'Error details if any',
+  })
+  error?: string;
+}

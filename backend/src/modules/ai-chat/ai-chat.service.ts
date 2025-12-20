@@ -1,5 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { ChatRequestDto, ChatResponseDto, ChatMessageDto } from './dto/chat.dto';
+import {
+  ChatRequestDto,
+  ChatResponseDto,
+  ChatMessageDto,
+  TestConnectionDto,
+  TestConnectionResponseDto,
+} from './dto/chat.dto';
 import { SettingsService } from '../settings/settings.service';
 import * as commandsData from '../../constants/commands.json';
 import { WorkspacesService } from '../workspaces/workspaces.service';
@@ -143,13 +149,23 @@ WORKSPACE CREATION RULES:
 - ALWAYS ask for description before creating workspace
 
 EXAMPLES OF PROPER PARAMETER COLLECTION:
-- User: "create workspace MySpace" 
+- User: "create workspace MySpace"
 - Response: "I'll create a workspace named 'MySpace'. What description would you like for this workspace?"
 - Wait for description, then execute: [COMMAND: createWorkspace] {"name": "MySpace", "description": "user_provided_description"}
 
-- User: "create task X"
+- User: "create task X" (without context)
 - Response: "I'll create task 'X'. Which workspace and project should I create this task in?"
-- Wait for workspace/project, then execute command
+- Wait for workspace/project info
+
+EXAMPLES OF IMMEDIATE COMMAND EXECUTION (when all params available):
+- User: "create task Review Code in project Alpha in workspace Beta"
+- Response: "Creating task 'Review Code' in project 'Alpha'... [COMMAND: createTask] {"workspaceSlug": "beta", "projectSlug": "alpha", "taskTitle": "Review Code"}"
+
+- User (with context set to workspace: marketing, project: test-123): "create task Explore the Doc"
+- Response: "Creating task 'Explore the Doc' in the current project... [COMMAND: createTask] {"workspaceSlug": "marketing", "projectSlug": "test-123", "taskTitle": "Explore the Doc"}"
+
+- User provides missing info: "Use Marketing workspace and Test 123 project"
+- Response: "Got it! Creating the task now... [COMMAND: createTask] {"workspaceSlug": "marketing", "projectSlug": "test-123", "taskTitle": "Explore the Doc"}"
 
 NAVIGATION EXAMPLES:
 - "take me to workspace X" → [COMMAND: navigateToWorkspace] {"workspaceSlug": "x"}  
@@ -218,6 +234,13 @@ CRITICAL REMINDER:
   *You must NEVER invent new slugs. The "workspaceSlug" must always come from AVAILABLE WORKSPACE SLUGS. If no close match, ask the user instead of creating a new slug.
 - NEVER forget the CURRENT CONTEXT.
 - If the current context is missing, ALWAYS use the most recent workspace name or slug that the user either navigated to or created.
+
+MANDATORY COMMAND OUTPUT RULE:
+- When ALL required parameters are available (from user input OR context), you MUST output the command IMMEDIATELY
+- NEVER just say "I will create..." or "Let me create..." without INCLUDING the actual command
+- Your response MUST end with the command in format: [COMMAND: name] {"params": "values"}
+- Example for createTask: "Creating task 'X' in project 'Y'... [COMMAND: createTask] {"workspaceSlug": "ws", "projectSlug": "proj", "taskTitle": "X"}"
+- If you say you'll do something, the command MUST be in that SAME response - not in a future response
 
 
 ${
@@ -833,5 +856,166 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       this.conversationContexts.delete(sessionId);
     }
     return { success: true };
+  }
+
+  /**
+   * Test connection to AI provider without requiring AI to be enabled
+   * This allows users to verify their configuration before saving and enabling
+   */
+  async testConnection(testConnectionDto: TestConnectionDto): Promise<TestConnectionResponseDto> {
+    const { apiKey, model, apiUrl } = testConnectionDto;
+
+    try {
+      const provider = this.detectProvider(apiUrl);
+
+      // Prepare a simple test message
+      const messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
+        {
+          role: 'user',
+          content: 'Hello, this is a connection test. Please respond with "Connection successful."',
+        },
+      ];
+
+      // Prepare request based on provider
+      let requestUrl = apiUrl;
+      const requestHeaders: any = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      };
+      let requestBody: any = {
+        model,
+        messages,
+        temperature: 0.1,
+        max_tokens: 50,
+        stream: false,
+      };
+
+      // Adjust for different providers
+      switch (provider) {
+        case 'openrouter':
+          requestUrl = `${apiUrl}/chat/completions`;
+          requestHeaders['HTTP-Referer'] = process.env.APP_URL || 'http://localhost:3000';
+          requestHeaders['X-Title'] = 'Taskosaur AI Assistant';
+          break;
+
+        case 'openai':
+          requestUrl = `${apiUrl}/chat/completions`;
+          break;
+
+        case 'anthropic':
+          requestUrl = `${apiUrl}/messages`;
+          requestHeaders['x-api-key'] = apiKey;
+          requestHeaders['anthropic-version'] = '2023-06-01';
+          delete requestHeaders['Authorization'];
+          requestBody = {
+            model,
+            messages,
+            max_tokens: 50,
+            temperature: 0.1,
+          };
+          break;
+
+        case 'google':
+          requestUrl = `${apiUrl}/models/${model}:generateContent?key=${apiKey}`;
+          delete requestHeaders['Authorization'];
+          requestBody = {
+            contents: messages.map((m) => ({
+              role: m.role === 'assistant' ? 'model' : m.role,
+              parts: [{ text: m.content }],
+            })),
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 50,
+            },
+          };
+          break;
+
+        default:
+          requestUrl = `${apiUrl}/chat/completions`;
+          break;
+      }
+
+      // Make the test request
+      const response = await fetch(requestUrl, {
+        method: 'POST',
+        headers: requestHeaders,
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+
+        if (response.status === 401) {
+          return {
+            success: false,
+            error: 'Invalid API key. Please check your API key and try again.',
+          };
+        } else if (response.status === 429) {
+          return {
+            success: false,
+            error: 'Rate limit exceeded. Please try again in a moment.',
+          };
+        } else if (response.status === 402) {
+          return {
+            success: false,
+            error: 'Insufficient credits. Please check your account balance.',
+          };
+        } else if (response.status === 404) {
+          return {
+            success: false,
+            error: 'Model not found. Please check the model name and try again.',
+          };
+        }
+
+        return {
+          success: false,
+          error: errorData.error?.message || `API request failed with status ${response.status}`,
+        };
+      }
+
+      // Parse response to verify we got a valid AI response
+      const data = await response.json();
+      let aiMessage = '';
+
+      switch (provider) {
+        case 'anthropic':
+          aiMessage = data.content?.[0]?.text || '';
+          break;
+        case 'google':
+          aiMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          break;
+        default:
+          aiMessage = data.choices?.[0]?.message?.content || '';
+          break;
+      }
+
+      if (aiMessage) {
+        return {
+          success: true,
+          message: 'Connection successful! Your AI configuration is working correctly.',
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Received empty response from AI provider. Please check your configuration.',
+        };
+      }
+    } catch (error: unknown) {
+      console.error('Test connection failed:', error);
+
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+        return {
+          success: false,
+          error: 'Network error. Please check your internet connection and API URL.',
+        };
+      }
+
+      return {
+        success: false,
+        error: errorMessage || 'Connection test failed. Please check your configuration.',
+      };
+    }
   }
 }
