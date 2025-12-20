@@ -31,6 +31,10 @@ model User {
   resetToken       String?    @unique @map("reset_token")
   resetTokenExpiry DateTime?  @map("reset_token_expiry")
 
+  // Default Organization for user
+  defaultOrganizationId String?       @map("default_organization_id") @db.Uuid
+  defaultOrganization   Organization? @relation("UserDefaultOrganization", fields: [defaultOrganizationId], references: [id], onDelete: SetNull)
+
   // User Source Tracking
   source UserSource @default(MANUAL)
 
@@ -127,6 +131,7 @@ model Organization {
   owner           User                 @relation("OrganizationOwner", fields: [ownerId], references: [id])
   createdByUser   User?                @relation("OrganizationCreatedBy", fields: [createdBy], references: [id])
   updatedByUser   User?                @relation("OrganizationUpdatedBy", fields: [updatedBy], references: [id])
+  usersWithDefault User[]              @relation("UserDefaultOrganization")
   workflows       Workflow[]
   workspaces      Workspace[]
   ActivityLog     ActivityLog[]

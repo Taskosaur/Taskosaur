@@ -573,10 +573,10 @@ export class OrganizationMembersService {
   }
 
   async getUserOrganizations(userId: string) {
-    // 1. Get the user role
+    // 1. Get the user with their role and default organization
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true },
+      select: { role: true, defaultOrganizationId: true },
     });
 
     type OrgType = {
@@ -589,7 +589,7 @@ export class OrganizationMembersService {
       website: string | null;
       _count: { members: number; workspaces: number };
       createdAt: Date;
-      members: Array<{ role: string; joinedAt: Date; isDefault: boolean }>;
+      members: Array<{ role: string; joinedAt: Date }>;
     };
 
     let organizations: OrgType[];
@@ -618,7 +618,6 @@ export class OrganizationMembersService {
               id: true,
               role: true,
               joinedAt: true,
-              isDefault: true,
             },
             take: 1,
           },
@@ -655,7 +654,6 @@ export class OrganizationMembersService {
               id: true,
               role: true,
               joinedAt: true,
-              isDefault: true,
             },
             take: 1,
           },
@@ -667,6 +665,7 @@ export class OrganizationMembersService {
     }
 
     // 4. Transform response (SUPER_ADMIN gets role = SUPER_ADMIN)
+    // isDefault is now determined from User.defaultOrganizationId
     return organizations.map((org) => {
       const isOwner = org.ownerId === userId;
       const memberRecord = org.members[0];
@@ -687,7 +686,7 @@ export class OrganizationMembersService {
               : memberRecord?.role || 'MEMBER',
         joinedAt: memberRecord?.joinedAt || org.createdAt,
         isOwner,
-        isDefault: memberRecord?.isDefault,
+        isDefault: user?.defaultOrganizationId === org.id,
       };
     });
   }
@@ -741,53 +740,65 @@ export class OrganizationMembersService {
   async setDefaultOrganizationByOrgAndUser(
     organizationId: string,
     userId: string,
-  ): Promise<OrganizationMember> {
-    const member = await this.prisma.organizationMember.findFirst({
-      where: {
-        userId,
-        organizationId,
+  ): Promise<{ user: any; organization: any }> {
+    // First, get the user to check their role
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verify the organization exists
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        avatar: true,
       },
     });
 
-    if (!member) {
-      throw new NotFoundException(
-        'Organization member not found for the given user and organization',
-      );
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
     }
-    const updatedMember = await this.prisma.$transaction(async (tx) => {
-      await tx.organizationMember.updateMany({
+
+    // For non-SUPER_ADMIN users, verify they are a member of the organization
+    if (user.role !== 'SUPER_ADMIN') {
+      const member = await this.prisma.organizationMember.findFirst({
         where: {
           userId,
-          isDefault: true,
-        },
-        data: { isDefault: false },
-      });
-      return tx.organizationMember.update({
-        where: { id: member.id },
-        data: { isDefault: true },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              avatar: true,
-              status: true,
-            },
-          },
-          organization: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              avatar: true,
-            },
-          },
+          organizationId,
         },
       });
+
+      if (!member) {
+        throw new NotFoundException(
+          'Organization member not found for the given user and organization',
+        );
+      }
+    }
+
+    // Update the user's default organization
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: { defaultOrganizationId: organizationId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        avatar: true,
+        status: true,
+      },
     });
 
-    return updatedMember;
+    return {
+      user: updatedUser,
+      organization,
+    };
   }
 }
