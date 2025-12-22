@@ -324,6 +324,10 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
         this.settingsService.get('ai_api_url', userId, 'https://openrouter.ai/api/v1'),
       ]);
 
+      if (apiUrl) {
+        this.validateApiUrl(apiUrl);
+      }
+
       const provider = this.detectProvider(apiUrl || 'https://openrouter.ai/api/v1');
 
       if (!apiKey) {
@@ -407,6 +411,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
         case 'google':
           // Google Gemini has a different API structure
+          this.validateModelName(model);
           requestUrl = `${apiUrl}/models/${model}:generateContent?key=${apiKey}`;
           delete requestHeaders['Authorization'];
           requestBody = {
@@ -858,6 +863,29 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     return { success: true };
   }
 
+  validateApiUrl(apiUrl: string): void {
+    const url = new URL(apiUrl);
+
+    if (url.protocol !== 'https:') {
+      throw new BadRequestException('Only HTTPS URLs allowed');
+    }
+
+    const hostname = url.hostname;
+
+    // Block obvious internal IPs and private ranges
+    if (
+      ['localhost', '127.0.0.1', '::1', '0.0.0.0'].includes(hostname) ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('127.') ||
+      hostname === '169.254.169.254' ||
+      // Block 172.16.0.0/12 (172.16.x.x - 172.31.x.x)
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
+    ) {
+      throw new BadRequestException('Internal IPs not allowed');
+    }
+  }
+
   /**
    * Test connection to AI provider without requiring AI to be enabled
    * This allows users to verify their configuration before saving and enabling
@@ -866,6 +894,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     const { apiKey, model, apiUrl } = testConnectionDto;
 
     try {
+      this.validateApiUrl(apiUrl);
       const provider = this.detectProvider(apiUrl);
 
       // Prepare a simple test message
@@ -916,6 +945,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
           break;
 
         case 'google':
+          this.validateModelName(model);
           requestUrl = `${apiUrl}/models/${model}:generateContent?key=${apiKey}`;
           delete requestHeaders['Authorization'];
           requestBody = {
@@ -1016,6 +1046,49 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
         success: false,
         error: errorMessage || 'Connection test failed. Please check your configuration.',
       };
+    }
+  }
+
+  validateModelName(
+    model: unknown,
+    options: {
+      allowedPattern?: RegExp;
+      maxLength?: number;
+      allowPathTraversal?: boolean;
+      customErrorMessage?: string;
+    } = {},
+  ): void {
+    const {
+      allowedPattern = /^[a-zA-Z0-9.-]+$/,
+      maxLength = 100,
+      allowPathTraversal = false,
+      customErrorMessage = 'Model name contains invalid characters',
+    } = options;
+
+    if (!model || typeof model !== 'string') {
+      throw new BadRequestException('Model name is required and must be a string');
+    }
+
+    const trimmedModel = model.trim();
+
+    if (trimmedModel.length === 0) {
+      throw new BadRequestException('Model name cannot be empty');
+    }
+
+    if (trimmedModel.length > maxLength) {
+      throw new BadRequestException(`Model name is too long (max ${maxLength} characters)`);
+    }
+
+    if (!allowPathTraversal && trimmedModel.includes('..')) {
+      throw new BadRequestException('Model name cannot contain path traversal sequences (..)');
+    }
+
+    if (trimmedModel.startsWith('/') || /^[a-zA-Z]:\\/.test(trimmedModel)) {
+      throw new BadRequestException('Model name cannot be an absolute path');
+    }
+
+    if (!allowedPattern.test(trimmedModel)) {
+      throw new BadRequestException(customErrorMessage);
     }
   }
 }
