@@ -99,7 +99,7 @@ interface DropdownActionProps {
   hideAvatar?: boolean;
   hideSubtext?: boolean;
   onDropdownOpen?: () => Promise<void>;
-  itemType: "user" | "status" | "projectMember";
+  itemType: "user" | "status" | "projectMember" | "sprint";
   forceOpen?: boolean;
   onOpenStateChange?: (isOpen: boolean) => void;
 }
@@ -376,7 +376,7 @@ export default function DropdownAction({
 
         {isLoading ? (
           <div className="p-4 text-center text-sm text-[var(--muted-foreground)]">
-            Loading {itemType === "user" ? "users" : itemType === "status" ? "statuses" : "members"}
+            Loading {itemType === "user" ? "users" : itemType === "status" ? "statuses" : itemType === "sprint" ? "sprints" : "members"}
             ...
           </div>
         ) : filteredItems.length > 0 ? (
@@ -434,7 +434,7 @@ export default function DropdownAction({
           })
         ) : (
           <div className="p-4 text-center text-sm text-[var(--muted-foreground)]">
-            No {itemType === "user" ? "users" : itemType === "status" ? "statuses" : "members"}{" "}
+            No {itemType === "user" ? "users" : itemType === "status" ? "statuses" : itemType === "sprint" ? "sprints" : "members"}{" "}
             found.
           </div>
         )}

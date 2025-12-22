@@ -7,6 +7,7 @@ import TaskAttachments from "./TaskAttachment";
 import TaskLabels from "./TaskLabels";
 import { useTask } from "@/contexts/task-context";
 import { useProjectContext } from "@/contexts/project-context";
+import { useSprint } from "@/contexts/sprint-context";
 import { useAuth } from "@/contexts/auth-context";
 import { TokenManager } from "@/lib/api";
 import ActionButton from "@/components/common/ActionButton";
@@ -87,6 +88,7 @@ export default function TaskDetailClient({
   } = useTask();
 
   const { getProjectMembers, getTaskStatusByProject } = useProjectContext();
+  const { getSprintsByProject } = useSprint();
   const { getCurrentUser, isAuthenticated } = useAuth();
   const currentUser = getCurrentUser();
   const isAuth = isAuthenticated();
@@ -102,6 +104,7 @@ export default function TaskDetailClient({
     dueDate: false,
     startDate: false,
     taskType: false,
+    sprint: false,
   });
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
@@ -146,6 +149,7 @@ export default function TaskDetailClient({
     dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
     startDate: task.startDate ? task.startDate.split("T")[0] : "",
     taskType: task.type || task.taskType || "",
+    sprintId: task.sprintId || "",
   });
 
   // Track if there are unsaved changes
@@ -175,6 +179,7 @@ export default function TaskDetailClient({
         startDate: formatDateForApi(newStartDate) || undefined,
       };
       await updateTask(taskId, updateData);
+      onTaskRefetch && onTaskRefetch();
       toast.success("Task start date updated successfully.");
     } catch (error) {
       toast.error("Failed to update task start date.");
@@ -194,6 +199,8 @@ export default function TaskDetailClient({
   const [availableLabels, setAvailableLabels] = useState<any[]>([]);
   const [statuses, setStatuses] = useState<any[]>([]);
   const [loadingStatuses, setLoadingStatuses] = useState(true);
+  const [sprints, setSprints] = useState<any[]>([]);
+  const [loadingSprints, setLoadingSprints] = useState(true);
   const [currentStatus, setCurrentStatus] = useState(task.status);
   const currentOrganization = TokenManager.getCurrentOrgId();
   const { getUserAccess } = useAuth();
@@ -209,6 +216,7 @@ export default function TaskDetailClient({
     priority: false,
     status: false,
     taskType: false,
+    sprint: false,
   });
   const [allowEmailReplies, setAllowEmailReplies] = useState(task.allowEmailReplies || false);
 
@@ -228,6 +236,7 @@ export default function TaskDetailClient({
       setCurrentStatus(item);
       // Update the task object's status
       task.status = item;
+      onTaskRefetch && onTaskRefetch();
       toast.success("Task status updated successfully.");
     } catch (error) {
       toast.error("Failed to update task status. Please try again.");
@@ -301,6 +310,26 @@ export default function TaskDetailClient({
     fetchProjectMembers();
   }, [task.projectId, task.project?.id]);
 
+  useEffect(() => {
+    const slug = projectSlug || task.project?.slug;
+    if (!slug || !isAuth) return;
+
+    const fetchSprints = async () => {
+      setLoadingSprints(true);
+      try {
+        const projectSprints = await getSprintsByProject(slug);
+        setSprints(projectSprints || []);
+      } catch (error) {
+        // If getting sprints by slug fails, we might try by ID if API supported it, but for now just log
+        console.error("Failed to fetch sprints:", error);
+      } finally {
+        setLoadingSprints(false);
+      }
+    };
+
+    fetchSprints();
+  }, [projectSlug, task.project?.slug, isAuth]);
+
   const handleDueDateChange = (newDueDate: string) => {
     // Validate that due date is not before start date
     if (newDueDate && editTaskData.startDate) {
@@ -323,6 +352,7 @@ export default function TaskDetailClient({
       };
 
       await updateTask(taskId, updateData);
+      onTaskRefetch && onTaskRefetch();
       toast.success("Task due date updated successfully.");
     } catch (error) {
       toast.error("Failed to update task due date.");
@@ -644,7 +674,7 @@ export default function TaskDetailClient({
         projectId,
       });
 
-      onTaskRefetch;
+      onTaskRefetch && onTaskRefetch();
       setAvailableLabels([...availableLabels, newLabel]);
 
       await assignLabelToTask({
@@ -671,7 +701,7 @@ export default function TaskDetailClient({
         })
       );
 
-      onTaskRefetch;
+      onTaskRefetch && onTaskRefetch();
       toast.success("Label removed from task successfully.");
     } catch (error) {
       toast.error("Failed to remove label. Please try again.");
@@ -688,7 +718,7 @@ export default function TaskDetailClient({
 
       setLabels([...labels, label]);
 
-      onTaskRefetch;
+      onTaskRefetch && onTaskRefetch();
 
       toast.success("Label assigned to task successfully.");
     } catch (error) {
@@ -734,6 +764,7 @@ export default function TaskDetailClient({
       dueDate: false,
       startDate: false,
       taskType: false,
+      sprint: false,
     });
   };
 
@@ -775,7 +806,9 @@ export default function TaskDetailClient({
         dueDate: false,
         startDate: false,
         taskType: false,
+        sprint: false,
       });
+      onTaskRefetch && onTaskRefetch();
       toast.success("Task updated successfully.");
     } catch (error) {
       toast.error("Failed to update the task. Please try again.");
@@ -807,6 +840,7 @@ export default function TaskDetailClient({
             dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
             startDate: task.startDate ? task.startDate.split("T")[0] : "",
             taskType: task.type || task.taskType || "",
+            sprintId: task.sprintId || "",
           });
           setIsEditingTask({
             title: false,
@@ -816,6 +850,7 @@ export default function TaskDetailClient({
             dueDate: false,
             startDate: false,
             taskType: false,
+            sprint: false,
           });
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         },
@@ -829,6 +864,7 @@ export default function TaskDetailClient({
         dueDate: false,
         startDate: false,
         taskType: false,
+        sprint: false,
       });
     }
   };
@@ -1193,6 +1229,7 @@ export default function TaskDetailClient({
                               ...prev,
                               taskType: false,
                             }));
+                            onTaskRefetch && onTaskRefetch();
                             toast.success("Task type updated successfully.");
                           } catch (error) {
                             toast.error("Failed to update task type.");
@@ -1202,7 +1239,7 @@ export default function TaskDetailClient({
                         showUnassign={false}
                         hideAvatar={true}
                         hideSubtext={true}
-                        itemType="user"
+                        itemType="status"
                       />
                     ) : editTaskData.taskType ? (
                       <DynamicBadge
@@ -1224,6 +1261,149 @@ export default function TaskDetailClient({
                         className="text-[13px] h-5 min-h-0 px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
                       >
                         No task type
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sprint */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm">Sprint</Label>
+                    {hasAccess && (
+                      <button
+                        type="button"
+                        className="rounded transition flex items-center cursor-pointer text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs p-1"
+                        onClick={() => {
+                          setIsEditingTask((prev) => ({
+                            ...prev,
+                            sprint: true,
+                          }));
+                          setAutoOpenDropdown((prev) => ({
+                            ...prev,
+                            sprint: true,
+                          }));
+                        }}
+                        tabIndex={0}
+                        aria-label="Edit Sprint"
+                        style={{ lineHeight: 0 }}
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Conditionally render badge or dropdown */}
+                  <div className="mt-2">
+                    {isEditingTask.sprint ? (
+                      <DropdownAction
+                        currentItem={
+                          editTaskData.sprintId
+                            ? {
+                                id: editTaskData.sprintId,
+                                name:
+                                  sprints.find((s) => s.id === editTaskData.sprintId)?.name ||
+                                  task.sprint?.name ||
+                                  "Selected Sprint",
+                                color: "#6366F1",
+                              }
+                            : {
+                                id: "",
+                                name: "Backlog",
+                                color: "#6B7280",
+                              }
+                        }
+                        availableItems={[
+                          { id: "", name: "Backlog", color: "#6B7280" },
+                          ...sprints.map((s) => ({
+                            id: s.id,
+                            name: s.name,
+                            color: "#6366F1",
+                          })),
+                        ]}
+                        loading={loadingSprints}
+                        forceOpen={autoOpenDropdown.sprint}
+                        onOpenStateChange={(isOpen) => {
+                          if (!isOpen) {
+                            setAutoOpenDropdown((prev) => ({
+                              ...prev,
+                              sprint: false,
+                            }));
+                            setIsEditingTask((prev) => ({
+                              ...prev,
+                              sprint: false,
+                            }));
+                          }
+                        }}
+                        onItemSelect={async (item) => {
+                          try {
+                            const updateData: UpdateTaskRequest = {
+                              sprintId: item.id || null,
+                            };
+                            await updateTask(taskId, updateData);
+                            handleTaskFieldChange("sprintId", item.id);
+                            task.sprintId = item.id || null;
+                            task.sprint = item.id ? sprints.find(s => s.id === item.id) : null;
+                            setIsEditingTask((prev) => ({
+                              ...prev,
+                              sprint: false,
+                            }));
+                            setAutoOpenDropdown((prev) => ({
+                              ...prev,
+                              sprint: false,
+                            }));
+                            onTaskRefetch && onTaskRefetch();
+                            toast.success("Task sprint updated successfully.");
+                          } catch (error) {
+                            toast.error("Failed to update task sprint.");
+                          }
+                        }}
+                        placeholder="Select sprint..."
+                        showUnassign={false}
+                        hideAvatar={true}
+                        hideSubtext={true}
+                        itemType="sprint"
+                        onDropdownOpen={async () => {
+                          if (sprints.length === 0) {
+                            const slug = projectSlug || task.project?.slug;
+                            if (slug) {
+                              setLoadingSprints(true);
+                              try {
+                                const projectSprints = await getSprintsByProject(slug);
+                                setSprints(projectSprints || []);
+                              } catch (error) {
+                                toast.error("Failed to fetch sprints");
+                              } finally {
+                                setLoadingSprints(false);
+                              }
+                            }
+                          }
+                        }}
+                      />
+                    ) : (
+                      <Badge
+                        onClick={() => {
+                          if (hasAccess) {
+                            setIsEditingTask((prev) => ({
+                              ...prev,
+                              sprint: true,
+                            }));
+                            setAutoOpenDropdown((prev) => ({
+                              ...prev,
+                              sprint: true,
+                            }));
+                          }
+                        }}
+                        variant="outline"
+                        className={`text-[13px] min-w-[120px] min-h-[29.33px] flex items-center justify-center cursor-pointer ${
+                          !editTaskData.sprintId ? "bg-[var(--muted)]" : "bg-indigo-500/10 text-indigo-500 border-indigo-500/20"
+                        }`}
+                      >
+                        {editTaskData.sprintId
+                          ? sprints.find((s) => s.id === editTaskData.sprintId)?.name ||
+                            task.sprint?.name ||
+                            "Current Sprint"
+                          : "Backlog"}
                       </Badge>
                     )}
                   </div>
@@ -1301,6 +1481,7 @@ export default function TaskDetailClient({
                               ...prev,
                               priority: false,
                             }));
+                            onTaskRefetch && onTaskRefetch();
                             toast.success("Task priority updated successfully.");
                           } catch (error) {
                             toast.error("Failed to update task priority.");
@@ -1310,7 +1491,7 @@ export default function TaskDetailClient({
                         showUnassign={false}
                         hideAvatar={true}
                         hideSubtext={true}
-                        itemType="user"
+                        itemType="status"
                       />
                     ) : (
                       <PriorityBadge
@@ -1582,6 +1763,7 @@ export default function TaskDetailClient({
                         taskId,
                         newAssignees.map((a) => a.id)
                       );
+                      onTaskRefetch && onTaskRefetch();
                       toast.success("Assignees updated successfully.");
                     } catch {
                       toast.error("Failed to update assignees.");
@@ -1604,6 +1786,7 @@ export default function TaskDetailClient({
                       await updateTask(taskId, {
                         reporterIds: newReporters.map((r) => r.id),
                       });
+                      onTaskRefetch && onTaskRefetch();
                       toast.success("Reporters updated successfully.");
                     } catch {
                       toast.error("Failed to update reporters.");
