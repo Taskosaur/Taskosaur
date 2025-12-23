@@ -15,7 +15,7 @@ import { CgArrowsExpandRight } from "react-icons/cg";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { toast } from "sonner";
-import { HiPencil, HiTrash } from "react-icons/hi2";
+import { HiPencil, HiTrash, HiGlobeAlt } from "react-icons/hi2";
 import { PriorityBadge } from "@/components/badges/PriorityBadge";
 import { StatusBadge } from "@/components/badges/StatusBadge";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ import ConfirmationModal from "../modals/ConfirmationModal";
 import { Badge } from "../ui";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
 import TaskActivities from "./TaskActivities";
+import ShareTaskDialog from "./ShareTaskDialog";
 import { TaskPriorities } from "@/utils/data/taskData";
 import { formatDateForApi } from "@/utils/handleDateChange";
 import MemberSelect from "../common/MemberSelect";
@@ -106,6 +107,7 @@ export default function TaskDetailClient({
     taskType: false,
     sprint: false,
   });
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [loadingAttachments, setLoadingAttachments] = useState(true);
@@ -1022,6 +1024,16 @@ export default function TaskDetailClient({
                   </ActionButton>
                 </Tooltip>
               )}
+              <Tooltip content="Share to web" position="left">
+                <ActionButton
+                  onClick={() => setIsShareDialogOpen(true)}
+                  variant="outline"
+                  secondary
+                  className="cursor-pointer justify-center px-3"
+                >
+                  <HiGlobeAlt className="w-4 h-4" />
+                </ActionButton>
+              </Tooltip>
               <Tooltip content="Delete task" position="left">
                 <ActionButton
                   onClick={handleDeleteTask}
@@ -1830,6 +1842,11 @@ export default function TaskDetailClient({
               : "Confirm"
         }
         cancelText="Cancel"
+      />
+      <ShareTaskDialog 
+        taskId={taskId} 
+        isOpen={isShareDialogOpen} 
+        onClose={() => setIsShareDialogOpen(false)} 
       />
     </div>
   );
