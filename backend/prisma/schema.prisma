@@ -108,6 +108,9 @@ model User {
   // Settings Relations
   settings Settings[]
 
+  // Public Task Shares
+  createdPublicTaskShares PublicTaskShare[] @relation("PublicTaskShareCreatedBy")
+
   @@map("users")
 }
 
@@ -311,6 +314,7 @@ model Task {
   timeEntries   TimeEntry[]
   assignees     User[]           @relation("TaskAssignees")
   reporters     User[]           @relation("TaskReporters")
+  publicShares  PublicTaskShare[]
 
   @@unique([projectId, taskNumber])
   @@index([emailThreadId])
@@ -523,6 +527,23 @@ model TaskAttachment {
   updatedByUser User?    @relation("TaskAttachmentUpdatedBy", fields: [updatedBy], references: [id])
 
   @@map("task_attachments")
+}
+
+model PublicTaskShare {
+  id         String    @id @default(uuid()) @db.Uuid
+  token      String    @unique
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  taskId     String    @map("task_id") @db.Uuid
+  createdBy  String?   @map("created_by_id") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  task          Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdByUser User? @relation("PublicTaskShareCreatedBy", fields: [createdBy], references: [id])
+
+  @@index([token])
+  @@index([taskId])
+  @@map("public_task_shares")
 }
 
 model TimeEntry {
