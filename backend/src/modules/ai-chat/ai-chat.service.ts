@@ -863,6 +863,33 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     return { success: true };
   }
 
+  private readonly allowedHosts: string[] = [
+    // OpenRouter
+    'openrouter.ai',
+    'api.openrouter.ai',
+
+    // OpenAI
+    'api.openai.com',
+
+    // Anthropic
+    'api.anthropic.com',
+
+    // Google - base domains
+    'generativelanguage.googleapis.com',
+    'aiplatform.googleapis.com',
+  ];
+
+  // AWS Bedrock pattern
+  private readonly awsBedrockPattern =
+    /^(bedrock|bedrock-runtime|bedrock-agent|bedrock-agent-runtime|bedrock-data-automation|bedrock-data-automation-runtime)(-fips)?\.([a-z0-9-]+)\.amazonaws\.com$/;
+
+  // Azure OpenAI pattern
+  private readonly azurePattern = /^[a-z0-9-]+\.openai\.azure\.com$/;
+
+  // Google Cloud pattern (for regional Vertex AI and PSC endpoints)
+  private readonly googlePattern =
+    /^([a-z0-9-]+\.)?aiplatform\.googleapis\.com$|^[a-z0-9-]+\.p\.googleapis\.com$/;
+
   validateApiUrl(apiUrl: string): void {
     let url: URL;
     try {
@@ -877,6 +904,16 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
     // Remove brackets from IPv6 for cleaner matching
     const hostname = url.hostname.replace(/^\[|\]$/g, '');
+
+    // Check against allowed hosts and patterns
+    if (
+      !this.allowedHosts.includes(hostname) &&
+      !this.awsBedrockPattern.test(hostname) &&
+      !this.azurePattern.test(hostname) &&
+      !this.googlePattern.test(hostname)
+    ) {
+      throw new BadRequestException('Host not allowed');
+    }
 
     // Block obvious internal IPs and private ranges
     if (
