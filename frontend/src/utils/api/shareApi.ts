@@ -29,6 +29,9 @@ export interface PublicSharedTask {
   }>;
 }
 
+// Base64url regex for token validation
+const TOKEN_REGEX = /^[A-Za-z0-9_-]{43}$/;
+
 export const shareApi = {
   // Create a new share link
   createShare: async (data: CreateShareDto): Promise<ShareResponse> => {
@@ -43,8 +46,11 @@ export const shareApi = {
 
   // Get active shares for a task
   getSharesForTask: async (taskId: string): Promise<ShareResponse[]> => {
+    if (!taskId) {
+      throw new Error('Task ID is required');
+    }
     try {
-      const response = await api.get<ShareResponse[]>(`/task-shares/task/${taskId}`);
+      const response = await api.get<ShareResponse[]>(`/task-shares/task/${encodeURIComponent(taskId)}`);
       return response.data;
     } catch (error) {
       console.error('Get shares error:', error);
@@ -64,10 +70,13 @@ export const shareApi = {
 
   // Get public task by token (no auth required)
   getPublicTask: async (token: string): Promise<PublicSharedTask> => {
+    if (!token || !TOKEN_REGEX.test(token)) {
+      throw new Error('Invalid token format');
+    }
     try {
       // Create a new axios instance without interceptors for public access
       // or use the existing one if it handles public routes gracefully
-      const response = await api.get<PublicSharedTask>(`/public/tasks/${token}`);
+      const response = await api.get<PublicSharedTask>(`/public/tasks/${encodeURIComponent(token)}`);
       return response.data;
     } catch (error) {
       console.error('Get public task error:', error);
@@ -77,8 +86,11 @@ export const shareApi = {
 
   // Get public attachment URL
   getAttachmentUrl: async (token: string, attachmentId: string): Promise<string> => {
+    if (!token || !TOKEN_REGEX.test(token)) {
+      throw new Error('Invalid token format');
+    }
     try {
-      const response = await api.get<{ url: string }>(`/public/tasks/${token}/attachments/${attachmentId}`);
+      const response = await api.get<{ url: string }>(`/public/tasks/${encodeURIComponent(token)}/attachments/${encodeURIComponent(attachmentId)}`);
       return response.data.url;
     } catch (error) {
       console.error('Get attachment URL error:', error);
