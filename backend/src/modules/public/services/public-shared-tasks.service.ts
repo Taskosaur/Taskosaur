@@ -12,12 +12,14 @@ import {
   PublicSharedTaskDto,
 } from '../dto/public-shared-task.dto';
 import { ConfigService } from '@nestjs/config';
+import { StorageService } from '../../storage/storage.service';
 
 @Injectable()
 export class PublicSharedTasksService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private storageService: StorageService,
   ) {}
 
   /**
@@ -304,7 +306,11 @@ export class PublicSharedTasksService {
     }
 
     // Return the URL (assuming it's already a presigned URL or public URL)
+    // If URL is not stored (S3 case), generate a presigned URL
     if (!attachment.url) {
+      if (attachment.storageKey) {
+        return await this.storageService.getFileUrl(attachment.storageKey);
+      }
       throw new BadRequestException('Attachment URL not available');
     }
 

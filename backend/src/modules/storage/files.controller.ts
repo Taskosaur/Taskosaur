@@ -49,8 +49,8 @@ export class FilesController {
     return sanitized;
   }
 
+  @Public()
   @Get('tasks/:taskId/:filename')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Serve task attachment file' })
   @ApiParam({ name: 'taskId', description: 'Task ID' })
   @ApiParam({ name: 'filename', description: 'Filename' })

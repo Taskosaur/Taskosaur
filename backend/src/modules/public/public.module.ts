@@ -13,9 +13,10 @@ import { ProjectChartsService } from './services/public-chat.service';
 
 import { PublicSharedTasksController } from './controllers/public-shared-tasks.controller';
 import { PublicSharedTasksService } from './services/public-shared-tasks.service';
+import { S3Module } from '../storage/s3.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, S3Module],
   controllers: [
     PublicWorkspacesController,
     PublicTasksController,
