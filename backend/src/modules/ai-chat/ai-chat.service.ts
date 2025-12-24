@@ -901,7 +901,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     }
 
     // Remove brackets from IPv6 for cleaner matching
-    const hostname = url.hostname.replace(/^\[|\]$/g, '');
+    const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
 
     // Check against allowed hosts and patterns
     if (
@@ -928,6 +928,23 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       /^[fF][eE][89aAbB]/.test(hostname)
     ) {
       throw new BadRequestException('Internal IPs not allowed');
+    }
+
+    // Enforce allowed hosts and standard HTTPS port to prevent SSRF
+    const port = url.port ? Number(url.port) : 443;
+
+    // Only allow standard HTTPS port
+    if (port !== 443) {
+      throw new BadRequestException('Only standard HTTPS port 443 is allowed');
+    }
+
+    const isOpenAIHost = hostname === 'api.openai.com';
+    const isOpenRouterHost = hostname === 'openrouter.ai' || hostname === 'api.openrouter.ai';
+    const isAnthropicHost = hostname === 'api.anthropic.com';
+    const isGoogleHost = this.googlePattern.test(hostname);
+
+    if (!isOpenAIHost && !isOpenRouterHost && !isAnthropicHost && !isGoogleHost) {
+      throw new BadRequestException('Unsupported AI provider host');
     }
 
     return url.toString().replace(/\/$/, '');
