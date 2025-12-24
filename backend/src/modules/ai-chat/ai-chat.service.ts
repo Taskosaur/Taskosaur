@@ -412,7 +412,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
         case 'google':
           // Google Gemini has a different API structure
           this.validateModelName(model);
-          requestUrl = `${apiUrl}/models/${model}:generateContent?key=${apiKey}`;
+          requestUrl = `${apiUrl}/models/${encodeURIComponent(String(model))}:generateContent?key=${encodeURIComponent(apiKey)}`;
           delete requestHeaders['Authorization'];
           requestBody = {
             contents: messages.map((m) => ({
@@ -864,13 +864,19 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
   }
 
   validateApiUrl(apiUrl: string): void {
-    const url = new URL(apiUrl);
+    let url: URL;
+    try {
+      url = new URL(apiUrl);
+    } catch {
+      throw new BadRequestException('Invalid URL format');
+    }
 
     if (url.protocol !== 'https:') {
       throw new BadRequestException('Only HTTPS URLs allowed');
     }
 
-    const hostname = url.hostname;
+    // Remove brackets from IPv6 for cleaner matching
+    const hostname = url.hostname.replace(/^\[|\]$/g, '');
 
     // Block obvious internal IPs and private ranges
     if (
@@ -878,9 +884,13 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       hostname.startsWith('192.168.') ||
       hostname.startsWith('10.') ||
       hostname.startsWith('127.') ||
-      hostname === '169.254.169.254' ||
+      hostname.startsWith('169.254.') ||
       // Block 172.16.0.0/12 (172.16.x.x - 172.31.x.x)
-      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) ||
+      // IPv6 Unique Local Address (fc00::/7) - fc.., fd..
+      /^[fF][cCdD]/.test(hostname) ||
+      // IPv6 Link-Local Address (fe80::/10) - fe8.., fe9.., fea.., feb..
+      /^[fF][eE][89aAbB]/.test(hostname)
     ) {
       throw new BadRequestException('Internal IPs not allowed');
     }
@@ -946,7 +956,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
         case 'google':
           this.validateModelName(model);
-          requestUrl = `${apiUrl}/models/${model}:generateContent?key=${apiKey}`;
+          requestUrl = `${apiUrl}/models/${encodeURIComponent(String(model))}:generateContent?key=${encodeURIComponent(apiKey)}`;
           delete requestHeaders['Authorization'];
           requestBody = {
             contents: messages.map((m) => ({
