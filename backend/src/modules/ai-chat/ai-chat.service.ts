@@ -318,17 +318,15 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       }
 
       // Get API settings from database
-      const [apiKey, model, apiUrl] = await Promise.all([
+      const [apiKey, model, rawApiUrl] = await Promise.all([
         this.settingsService.get('ai_api_key', userId),
         this.settingsService.get('ai_model', userId, 'deepseek/deepseek-chat-v3-0324:free'),
         this.settingsService.get('ai_api_url', userId, 'https://openrouter.ai/api/v1'),
       ]);
 
-      if (apiUrl) {
-        this.validateApiUrl(apiUrl);
-      }
+      const apiUrl = rawApiUrl ? this.validateApiUrl(rawApiUrl) : 'https://openrouter.ai/api/v1';
 
-      const provider = this.detectProvider(apiUrl || 'https://openrouter.ai/api/v1');
+      const provider = this.detectProvider(apiUrl);
 
       if (!apiKey) {
         throw new BadRequestException('AI API key not configured. Please set it in settings.');
@@ -890,7 +888,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
   private readonly googlePattern =
     /^([a-z0-9-]+\.)?aiplatform\.googleapis\.com$|^[a-z0-9-]+\.p\.googleapis\.com$/;
 
-  validateApiUrl(apiUrl: string): void {
+  validateApiUrl(apiUrl: string): string {
     let url: URL;
     try {
       url = new URL(apiUrl);
@@ -931,6 +929,8 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     ) {
       throw new BadRequestException('Internal IPs not allowed');
     }
+
+    return url.toString().replace(/\/$/, '');
   }
 
   /**
@@ -941,8 +941,8 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     const { apiKey, model, apiUrl } = testConnectionDto;
 
     try {
-      this.validateApiUrl(apiUrl);
-      const provider = this.detectProvider(apiUrl);
+      const validatedUrl = this.validateApiUrl(apiUrl);
+      const provider = this.detectProvider(validatedUrl);
 
       // Prepare a simple test message
       const messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
@@ -953,7 +953,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       ];
 
       // Prepare request based on provider
-      let requestUrl = apiUrl;
+      let requestUrl = validatedUrl;
       const requestHeaders: any = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
@@ -969,17 +969,17 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       // Adjust for different providers
       switch (provider) {
         case 'openrouter':
-          requestUrl = `${apiUrl}/chat/completions`;
+          requestUrl = `${validatedUrl}/chat/completions`;
           requestHeaders['HTTP-Referer'] = process.env.APP_URL || 'http://localhost:3000';
           requestHeaders['X-Title'] = 'Taskosaur AI Assistant';
           break;
 
         case 'openai':
-          requestUrl = `${apiUrl}/chat/completions`;
+          requestUrl = `${validatedUrl}/chat/completions`;
           break;
 
         case 'anthropic':
-          requestUrl = `${apiUrl}/messages`;
+          requestUrl = `${validatedUrl}/messages`;
           requestHeaders['x-api-key'] = apiKey;
           requestHeaders['anthropic-version'] = '2023-06-01';
           delete requestHeaders['Authorization'];
@@ -993,7 +993,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
         case 'google':
           this.validateModelName(model);
-          requestUrl = `${apiUrl}/models/${encodeURIComponent(String(model))}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          requestUrl = `${validatedUrl}/models/${encodeURIComponent(String(model))}:generateContent?key=${encodeURIComponent(apiKey)}`;
           delete requestHeaders['Authorization'];
           requestBody = {
             contents: messages.map((m) => ({
@@ -1008,7 +1008,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
           break;
 
         default:
-          requestUrl = `${apiUrl}/chat/completions`;
+          requestUrl = `${validatedUrl}/chat/completions`;
           break;
       }
 
