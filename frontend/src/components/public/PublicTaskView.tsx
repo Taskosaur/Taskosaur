@@ -1,4 +1,4 @@
-import { PublicSharedTask } from '@/utils/api/shareApi';
+import { PublicSharedTask, shareApi } from '@/utils/api/shareApi';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { HiCalendar, HiUser, HiPaperClip, HiArrowDownTray } from 'react-icons/hi2';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { toast } from 'sonner';
 
 interface PublicTaskViewProps {
   task: PublicSharedTask;
@@ -39,12 +40,30 @@ export default function PublicTaskView({ task, token }: PublicTaskViewProps) {
 
   const handleDownload = async (attachment: { id: string, fileName: string }) => {
     try {
-      // In a real app we'd fetch a presigned URL here
-      // For now we'll construct the URL
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-      window.open(`${apiUrl}/public/tasks/${token}/attachments/${attachment.id}`, '_blank');
+      const fileUrl = await shareApi.getAttachmentUrl(token, attachment.id);
+      if (!fileUrl) throw new Error('Attachment URL not found');
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      
+      const fullUrl = fileUrl.startsWith('http') 
+        ? fileUrl 
+        : `${apiUrl}/uploads${fileUrl}`;
+
+      const response = await fetch(fullUrl);
+      if (!response.ok) throw new Error('Failed to fetch file');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = attachment.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download error:', error);
+      toast.error('Failed to download attachment');
     }
   };
 
