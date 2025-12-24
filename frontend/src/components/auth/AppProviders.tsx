@@ -9,6 +9,7 @@ import Header from "@/components/layout/Header";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import InboxProvider from "@/contexts/inbox-context";
 import { LayoutProvider, useLayout } from "@/contexts/layout-context";
+import { NotificationProvider } from "@/contexts/notification-context";
 
 interface CommonProvidersProps {
   children: ReactNode;
@@ -25,7 +26,8 @@ function AppProvidersContent({ children }: CommonProvidersProps) {
   return (
     <>
       <OrganizationProvider>
-        <WorkspaceProvider>
+        <NotificationProvider>
+          <WorkspaceProvider>
           <ProjectProvider>
             <InboxProvider>
               <SprintProvider>
@@ -66,6 +68,7 @@ function AppProvidersContent({ children }: CommonProvidersProps) {
             </InboxProvider>
           </ProjectProvider>
         </WorkspaceProvider>
+        </NotificationProvider>
       </OrganizationProvider>
     </>
   );

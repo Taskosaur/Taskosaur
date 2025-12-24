@@ -330,9 +330,9 @@ export async function createTask(
     let submitButton: Element | null = null;
 
     const submitSelectors = [
-      "#submit-form-button button",
+      "#submit-form-button button:last-of-type", // The "Create Task" button is the last button in the container
       'button[type="submit"]',
-      "form button:last-of-type",
+      "#submit-form-button button",
     ];
 
     for (const selector of submitSelectors) {

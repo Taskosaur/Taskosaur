@@ -11,6 +11,7 @@ import {
   HiFlag,
   HiExclamationTriangle,
   HiTag,
+  HiBolt,
 } from "react-icons/hi2";
 import { HiClipboardList } from "react-icons/hi";
 import {
@@ -43,6 +44,7 @@ import { Button } from "../ui/button";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { useProject } from "@/contexts/project-context";
 import { useTask } from "@/contexts/task-context";
+import { useSprint } from "@/contexts/sprint-context";
 import { toast } from "sonner";
 import { PRIORITY_OPTIONS, TASK_TYPE_OPTIONS } from "@/utils/data/taskData";
 interface FormData {
@@ -60,6 +62,7 @@ interface FormData {
   dueDate: string;
   priority: string;
   type: string;
+  sprintId?: string;
 }
 
 interface NewTaskModalProps {
@@ -86,6 +89,7 @@ export function NewTaskModal({
   const { getProjectsByWorkspace, getTaskStatusByProject } = useProject();
   const { createTask } = useTask();
   const { fetchAnalyticsData } = useProject();
+  const { getSprintsByProject, getActiveSprint } = useSprint();
 
   const [formData, setFormData] = useState<FormData>({
     title: "",
@@ -94,6 +98,7 @@ export function NewTaskModal({
     dueDate: "",
     priority: "MEDIUM",
     type: "TASK",
+    sprintId: "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,6 +113,9 @@ export function NewTaskModal({
   const [projectSearch, setProjectSearch] = useState("");
   const [projectOpen, setProjectOpen] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(false);
+
+  const [sprints, setSprints] = useState<any[]>([]);
+  const [loadingSprints, setLoadingSprints] = useState(false);
 
   const [taskStatuses, setTaskStatuses] = useState<any[]>([]);
 
@@ -158,6 +166,7 @@ export function NewTaskModal({
     requestIdRef.current = "";
     setWorkspaces([]);
     setProjects([]);
+    setSprints([]);
     setTaskStatuses([]);
     setError(null);
     setLoadingWorkspaces(true);
@@ -221,6 +230,7 @@ export function NewTaskModal({
   useEffect(() => {
     if (formData.project?.id) {
       loadTaskStatuses();
+      loadSprints();
     }
   }, [formData.project?.id]);
 
@@ -354,6 +364,27 @@ export function NewTaskModal({
     }
   };
 
+  const loadSprints = async () => {
+    if (!formData.project?.id) return;
+
+    setLoadingSprints(true);
+    try {
+      const [projectSprints, activeSprint] = await Promise.all([
+        getSprintsByProject(formData.project.slug),
+        getActiveSprint(formData.project.id),
+      ]);
+      setSprints(projectSprints || []);
+      
+      if (activeSprint) {
+        setFormData(prev => ({ ...prev, sprintId: activeSprint.id }));
+      }
+    } catch (error) {
+      console.error("Failed to load sprints:", error);
+    } finally {
+      setLoadingSprints(false);
+    }
+  };
+
   const filteredWorkspaces = workspaces.filter((workspace) =>
     workspace.name.toLowerCase().includes(workspaceSearch.toLowerCase())
   );
@@ -396,6 +427,7 @@ export function NewTaskModal({
           dueDate: formData.dueDate ? moment(formData.dueDate).toISOString() : undefined,
           projectId: formData.project!.id,
           statusId: defaultStatus.id,
+          sprintId: formData.sprintId || undefined,
         };
         await createTask(taskData);
 
@@ -434,6 +466,7 @@ export function NewTaskModal({
       dueDate: "",
       priority: "MEDIUM",
       type: "TASK",
+      sprintId: "",
     });
 
     setWorkspaces([]);
@@ -795,6 +828,46 @@ export function NewTaskModal({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="projects-form-field mt-4">
+            <Label className="projects-form-label">
+              <HiBolt 
+                className="projects-form-label-icon"
+                style={{ color: "hsl(var(--primary))" }}
+              />
+              Sprint
+            </Label>
+            <Select
+              value={formData.sprintId}
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, sprintId: value }))}
+              disabled={isSubmitting || !formData.project || loadingSprints}
+            >
+              <SelectTrigger
+                className="projects-workspace-button border-none"
+                onFocus={(e) => {
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                <SelectValue placeholder={!formData.project ? "Select project first" : "Select sprint (optional)"} />
+              </SelectTrigger>
+              <SelectContent className="border-none bg-[var(--card)]">
+                {sprints.map((sprint) => (
+                  <SelectItem
+                    key={sprint.id}
+                    value={sprint.id}
+                    className="hover:bg-[var(--hover-bg)]"
+                  >
+                    <div className="flex items-center gap-2">
+                      {sprint.name} {sprint.isDefault === true && '(Default)'}
+                    </div>
+                  </SelectItem>
+                ))}
+            </SelectContent>
+            </Select>
           </div>
 
           <div className="projects-form-actions flex gap-2 justify-end mt-6">

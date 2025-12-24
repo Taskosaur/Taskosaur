@@ -246,9 +246,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const [localAddTaskStatuses, setLocalAddTaskStatuses] = useState<
     Array<{ id: string; name: string }>
   >([]);
-  const [localAddTaskProjectMembers, setLocalAddTaskProjectMembers] = useState<any[]>([]);
-
-  useEffect(() => {
+    const [localAddTaskProjectMembers, setLocalAddTaskProjectMembers] = useState<any[]>([]);
+  
+    useEffect(() => {
     const fetchProjectMeta = async () => {
       const projectId = currentProject?.id || newTaskData?.projectId;
       if (addTaskStatuses && addTaskStatuses.length > 0) {

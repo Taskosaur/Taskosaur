@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNotification } from "@/contexts/notification-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -38,19 +39,28 @@ export default function NotificationDropdown({
   organizationId,
   className = "",
 }: NotificationDropdownProps) {
+  // Use context for Unread Count to keep it in sync globally
+  const { unreadCount: globalUnreadCount, refreshNotifications } = useNotification();
+  
+  // Local state for the dropdown list items
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  // We ignore local unreadCount in favor of global one for the badge
   const [loading, setLoading] = useState(false);
   const [markingAsRead, setMarkingAsRead] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    // When dropdown opens, fetch the list AND refresh global count
     const fetchNotifications = async () => {
-      if (!userId || !organizationId) return;
+      if (!dropdownOpen || !userId || !organizationId) return;
+      
+      // trigger global refresh
+      refreshNotifications();
 
       try {
         setLoading(true);
+        // We fetch explicitly for the dropdown list
         const response = await notificationApi.getNotificationsByUserAndOrganization(
           userId,
           organizationId,
@@ -62,18 +72,16 @@ export default function NotificationDropdown({
         );
 
         setNotifications(response.notifications);
-        setUnreadCount(response.pagination.totalCount);
       } catch (error) {
         console.error("Failed to fetch notifications:", error);
         setNotifications([]);
-        setUnreadCount(0);
       } finally {
         setLoading(false);
       }
     };
 
     fetchNotifications();
-  }, [userId, organizationId]);
+  }, [userId, organizationId, dropdownOpen, refreshNotifications]);
 
   const formatNotificationTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -110,13 +118,18 @@ export default function NotificationDropdown({
     }
   };
 
+  /* Update handleMarkAsRead to use API and refresh context */
   const handleMarkAsRead = async (notificationId: string) => {
     try {
       setMarkingAsRead(notificationId);
       await notificationApi.markNotificationAsRead(notificationId);
-
+      
+      // Update local list
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      
+      // Refresh global count
+      refreshNotifications();
+
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
     } finally {
@@ -137,19 +150,23 @@ export default function NotificationDropdown({
     <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
       <Tooltip content="Notifications" position="bottom" color="primary">
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className={`header-button-base ${className}`}>
-            <HiBell className="header-button-icon" />
-            {unreadCount > 0 && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`header-notification-button relative w-10 h-10 rounded-full hover:bg-[var(--accent)] ${className}`}
+            aria-label="Notifications"
+          >
+            <div className="relative">
+              <HiBell className="w-6 h-6 text-[var(--muted-foreground)]" />
+              {globalUnreadCount > 0 && (
               <Badge
                 variant="destructive"
                 className="header-notification-badge  header-notification-badge-red"
               >
-                {unreadCount > 99 ? "99+" : unreadCount}
+                {globalUnreadCount > 99 ? "99+" : (globalUnreadCount ?? 0)}
               </Badge>
             )}
-            <span className="hidden max-[530px]:inline-block text-sm font-medium">
-              Notifications
-            </span>
+            </div>
           </Button>
         </DropdownMenuTrigger>
       </Tooltip>
@@ -160,7 +177,7 @@ export default function NotificationDropdown({
           <div className="header-dropdown-menu-title">
             <span className="header-dropdown-menu-title-text">Notifications</span>
             <Badge variant="secondary" className="header-dropdown-menu-badge">
-              {unreadCount}
+              {globalUnreadCount}
             </Badge>
           </div>
         </div>
@@ -251,7 +268,7 @@ export default function NotificationDropdown({
               onClick={handleViewAllNotifications}
               className="header-notifications-view-all"
             >
-              {unreadCount > 0 ? "View All" : "View Old Notifications"}
+              {notifications.length > 0 ? "View All" : "View Old Notifications"}
             </ActionButton>
           </div>
         )}

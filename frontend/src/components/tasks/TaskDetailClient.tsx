@@ -12,6 +12,7 @@ import { TokenManager } from "@/lib/api";
 import ActionButton from "@/components/common/ActionButton";
 import { CgArrowsExpandRight } from "react-icons/cg";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import { toast } from "sonner";
 import { HiPencil, HiTrash } from "react-icons/hi2";
 import { PriorityBadge } from "@/components/badges/PriorityBadge";
@@ -909,6 +910,23 @@ export default function TaskDetailClient({
     }
   })();
 
+  const parentDetailUrl = (() => {
+    if (!task.parentTask?.id || !validator.isUUID(task.parentTask.id, 4)) {
+      return '';
+    }
+
+    const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
+    const safeProjectSlug = sanitizeSlug(projectSlug);
+
+    if (safeWorkspaceSlug && safeProjectSlug) {
+      return `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks/${task.parentTask.id}`;
+    } else if (safeWorkspaceSlug) {
+      return `/${safeWorkspaceSlug}/tasks/${task.parentTask.id}`;
+    } else {
+      return `/tasks/${task.parentTask.id}`;
+    }
+  })();
+
   const isInitialLoading = !initialLoadComplete || !minLoadTimeElapsed;
 
   if (isInitialLoading) {
@@ -953,6 +971,17 @@ export default function TaskDetailClient({
                   ? "Created from mail"
                   : ""}
             </span>
+            {task.parentTask && (
+              <div className="text-sm text-[var(--muted-foreground)] mt-1">
+                Parent:{" "}
+                <Link
+                  href={isValidInternalPath(parentDetailUrl) ? parentDetailUrl : "/"}
+                  className="text-[var(--primary)] cursor-pointer hover:underline"
+                >
+                  {task.parentTask.slug}: {task.parentTask.title}
+                </Link>
+              </div>
+            )}
           </div>
 
           {(hasAccess || task.createdBy === currentUser?.id) && (

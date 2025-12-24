@@ -790,7 +790,7 @@ export default function Subtasks({
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent className="border-none bg-[var(--card)]">
-                    {TASK_TYPE_OPTIONS.map((option) => (
+                    {TASK_TYPE_OPTIONS.filter(option => option.value !='TASK').map((option) => (
                       <SelectItem
                         key={option.value}
                         value={option.value}

@@ -34,6 +34,10 @@ export const settingsApi = {
     await api.post("/settings", settingData);
   },
 
+  bulkSetSettings: async (settings: SetSettingData[]): Promise<void> => {
+    await api.post("/settings/bulk", { settings });
+  },
+
   deleteSetting: async (key: string): Promise<void> => {
     await api.delete(`/settings/${key}`);
   },

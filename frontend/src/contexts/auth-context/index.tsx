@@ -1,6 +1,7 @@
 import { authApi } from "@/utils/api/authApi";
 import { userApi, UpdateEmailData } from "@/utils/api/userApi";
 import { organizationApi } from "@/utils/api/organizationApi";
+import { settingsApi } from "@/utils/api/settingsApi";
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import { notificationApi } from "@/utils/api/notificationApi";
 import {
@@ -219,6 +220,30 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Function to load and update user AI settings after login
+  const loadUserAISettings = useCallback(async () => {
+    try {
+      // Load AI settings
+      const aiSettings = await settingsApi.getAll("ai");
+
+      // Update localStorage with new values
+      const aiEnabledSetting = aiSettings.find(setting => setting.key === 'ai_enabled');
+      if (aiEnabledSetting) {
+        const isEnabled = aiEnabledSetting.value === 'true';
+        localStorage.setItem("aiEnabled", isEnabled.toString());
+
+        // Dispatch event to notify other components about AI settings change
+        window.dispatchEvent(
+          new CustomEvent("aiSettingsChanged", {
+            detail: { aiEnabled: isEnabled },
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Error loading AI settings:", error);
+    }
+  }, []);
+
   // Memoized context value with all methods
   const contextValue = useMemo(
     () => ({
@@ -227,11 +252,19 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       // Auth methods
       register: async (userData: UserData) => {
         const result = await handleApiOperation(() => authApi.register(userData), true);
+        if (result) {
+          // Load AI settings after successful registration
+          await loadUserAISettings();
+        }
         return result;
       },
 
       login: async (loginData: LoginData) => {
         const result = await handleApiOperation(() => authApi.login(loginData), true);
+        if (result) {
+          // Load AI settings after successful login
+          await loadUserAISettings();
+        }
         return result;
       },
 

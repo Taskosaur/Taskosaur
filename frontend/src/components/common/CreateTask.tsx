@@ -9,8 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HiDocumentText, HiCog, HiUsers, HiPaperClip, HiTrash } from "react-icons/hi2";
 import RecurrenceSelector, { RecurrenceConfig } from "./RecurrenceSelector";
+import { HiDocumentText, HiCog, HiUsers, HiPaperClip, HiTrash } from "react-icons/hi2";
 
 import TaskDescription from "@/components/tasks/views/TaskDescription";
 import { useTask } from "@/contexts/task-context";
@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import router from "next/router";
 import ActionButton from "./ActionButton";
 import { useProject } from "@/contexts/project-context";
+import { useSprint } from "@/contexts/sprint-context";
 import { formatDateForApi, getTodayDate } from "@/utils/handleDateChange";
 import MemberSelect from "./MemberSelect";
 import { Plus } from "lucide-react";
@@ -41,18 +42,23 @@ const TaskSectionHeader = ({ icon: Icon, title }: { icon: any; title: string }) 
 export default function CreateTask({ projectSlug, workspace, projects }: CreateTaskProps) {
   const { createTaskWithAttachements } = useTask();
   const { getProjectMembers, getTaskStatusByProject } = useProject();
+  const { getSprintsByProject, getActiveSprint } = useSprint();
 
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [availableStatuses, setAvailableStatuses] = useState<any[]>([]);
+  const [sprints, setSprints] = useState<any[]>([]);
+  const [loadingSprints, setLoadingSprints] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     status: "",
     priority: "MEDIUM",
     type: "TASK",
+    startDate: "",
     dueDate: "",
+    sprintId: "",
   });
   const [assignees, setAssignees] = useState<any[]>([]);
   const [reporters, setReporters] = useState<any[]>([]);
@@ -167,12 +173,40 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
       }
     };
 
+    const fetchProjectSprints = async (projectId: string) => {
+      if (!projectId || !getSprintsByProject) return;
+      
+      const project = projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      setLoadingSprints(true);
+      try {
+        const [projectSprints, activeSprint] = await Promise.all([
+          getSprintsByProject(project.slug),
+          getActiveSprint(projectId),
+        ]);
+        setSprints(projectSprints || []);
+        
+        if (activeSprint) {
+          setFormData(prev => ({ ...prev, sprintId: activeSprint.id }));
+        }
+      } catch (error) {
+        console.error("Failed to fetch project sprints:", error);
+        setSprints([]);
+        toast.error("Failed to load project sprints");
+      } finally {
+        setLoadingSprints(false);
+      }
+    };
+
     if (selectedProject?.id) {
       fetchProjectMembers(selectedProject.id);
       fetchProjectStatuses(selectedProject.id);
+      fetchProjectSprints(selectedProject.id);
     } else {
       setMembers([]);
       setAvailableStatuses([]);
+      setSprints([]);
     }
   }, [selectedProject?.id]);
 
@@ -208,12 +242,14 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
         description: formData.description.trim() || "",
         priority: formData.priority.toUpperCase() as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
         type: formData.type as "TASK" | "BUG" | "EPIC" | "STORY" | "SUBTASK",
-        startDate: new Date().toISOString(),
+        startDate: formData.startDate ? formatDateForApi(formData.startDate)
+          : formatDateForApi(getTodayDate()),
         dueDate: formData.dueDate
           ? formatDateForApi(formData.dueDate)
           : formatDateForApi(getTodayDate()),
         projectId: selectedProject.id,
         statusId: formData.status || defaultStatus.id,
+        sprintId: formData.sprintId || undefined,
       };
 
       if (assignees.length > 0) taskData.assigneeIds = assignees.map((a) => a.id);
@@ -500,6 +536,59 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="sprint">Sprint</Label>
+                <Select
+                  value={formData.sprintId}
+                  onValueChange={(value) => handleFormDataChange("sprintId", value)}
+                  disabled={loadingSprints}
+                >
+                  <SelectTrigger className="w-full border-[var(--border)] bg-[var(--background)]">
+                    <SelectValue
+                      placeholder={
+                        !selectedProject?.id
+                          ? "Select project first"
+                          : loadingSprints
+                            ? "Loading..."
+                            : "Select sprint (optional)"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="border-[var(--border)] bg-[var(--popover)]">
+                    {sprints.map((sprint) => (
+                      <SelectItem
+                        className="hover:bg-[var(--hover-bg)]"
+                        key={sprint.id}
+                        value={sprint.id}
+                      >
+                        <div className="flex items-center gap-2">
+                          {sprint.name} {sprint.isDefault === true && "(Default)"}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  name="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => handleFormDataChange("startDate", e.target.value)}
+                  onClick={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    target.showPicker?.();
+                  }}
+                  className="w-full border-[var(--border)] bg-[var(--background)] cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:mt-1"
+                  style={{
+                    colorScheme: "dark",
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="dueDate">Due Date</Label>
                 <Input
                   id="dueDate"
@@ -511,7 +600,6 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                     const target = e.target as HTMLInputElement;
                     target.showPicker?.();
                   }}
-                  min={getTodayDate()}
                   className="w-full border-[var(--border)] bg-[var(--background)] cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:mt-1"
                   style={{
                     colorScheme: "dark",
@@ -576,13 +664,19 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
           <div className="flex items-center justify-end gap-3 " id="submit-form-button">
             <ActionButton
               onClick={() => router.back()}
+              type="button"
               variant="outline"
               secondary
               className="h-8 px-3 cursor-pointer"
             >
               Cancel
             </ActionButton>
-            <ActionButton onClick={handleSubmit} disabled={!isFormValid() || isSubmitting} primary>
+            <ActionButton 
+              onClick={handleSubmit} 
+              type="submit"
+              disabled={!isFormValid() || isSubmitting} 
+              primary
+            >
               {isSubmitting ? (
                 <div className="flex items-center">
                   <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />

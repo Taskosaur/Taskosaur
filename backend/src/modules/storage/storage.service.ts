@@ -74,12 +74,35 @@ export class StorageService {
     return sanitized;
   }
 
+  private sanitizeFolderPath(folder: string): string {
+    if (!folder || typeof folder !== 'string') {
+      throw new BadRequestException('Invalid folder path');
+    }
+
+    // Safety check for path traversal (defensive programming)
+    if (folder.includes('..')) {
+      throw new Error('Path traversal detected in internally generated path - this is a bug!');
+    }
+
+    // Normalize: remove empty parts and extra slashes
+    const normalized = folder
+      .split('/')
+      .filter((part) => part.trim().length > 0)
+      .join('/');
+
+    if (normalized.length === 0) {
+      throw new BadRequestException('Empty folder path');
+    }
+
+    return normalized;
+  }
+
   async saveFile(
     file: Express.Multer.File,
     folder: string,
   ): Promise<{ url: string | null; key: string; size: number }> {
     // Sanitize folder and fileName to prevent path injection
-    const safeFolder = this.sanitizePathComponent(folder);
+    const safeFolder = this.sanitizeFolderPath(folder);
     const fileName = file.originalname;
     const safeFileName = this.sanitizePathComponent(fileName);
 

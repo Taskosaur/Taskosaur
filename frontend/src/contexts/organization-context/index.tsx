@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
+import { useAuth } from "@/contexts/auth-context";
 import { organizationApi } from "@/utils/api/organizationApi";
 import { workflowsApi } from "@/utils/api/workflowsApi";
 import { taskStatusApi } from "@/utils/api/taskStatusApi";
@@ -506,7 +507,28 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
     [checkOrganizationAndRedirect, organizationState]
   );
 
-  // Combined context value
+  // Initialize organizations when user is available
+  const { user } = useAuth(); // Ensure this is available
+
+  useEffect(() => {
+    if (user?.id) {
+       apiMethods.getUserOrganizations(user.id).then(orgs => {
+           const currentOrgId = typeof window !== 'undefined' ? localStorage.getItem("currentOrganizationId") : null;
+           
+           if (currentOrgId) {
+                const existingOrg = orgs.find(org => org.id === currentOrgId);
+                if (existingOrg) {
+                    // Only update if different to avoid potential loops (though setCurrentOrganization might handle it)
+                    stateMethods.setCurrentOrganization(existingOrg);
+                } else if (orgs.length > 0) {
+                     stateMethods.setCurrentOrganization(orgs[0]);
+                }
+           } else if (orgs.length > 0) {
+               stateMethods.setCurrentOrganization(orgs[0]);
+           }
+       });
+    }
+  }, [user?.id]);
   const contextValue = useMemo(
     () => ({
       ...organizationState,

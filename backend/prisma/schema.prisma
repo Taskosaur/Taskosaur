@@ -31,6 +31,10 @@ model User {
   resetToken       String?    @unique @map("reset_token")
   resetTokenExpiry DateTime?  @map("reset_token_expiry")
 
+  // Default Organization for user
+  defaultOrganizationId String?       @map("default_organization_id") @db.Uuid
+  defaultOrganization   Organization? @relation("UserDefaultOrganization", fields: [defaultOrganizationId], references: [id], onDelete: SetNull)
+
   // User Source Tracking
   source UserSource @default(MANUAL)
 
@@ -74,6 +78,7 @@ model User {
   createdTimeEntries      TimeEntry[]          @relation("TimeEntryCreatedBy")
   updatedTimeEntries      TimeEntry[]          @relation("TimeEntryUpdatedBy")
   createdNotifications    Notification[]       @relation("NotificationCreatedBy")
+  updatedNotifications    Notification[]       @relation("NotificationUpdatedBy")
   createdActivityLogs     ActivityLog[]        @relation("ActivityLogCreatedBy")
   updatedActivityLogs     ActivityLog[]        @relation("ActivityLogUpdatedBy")
   createdRuleExecutions   RuleExecution[]      @relation("RuleExecutionCreatedBy")
@@ -100,6 +105,9 @@ model User {
   defaultInboxes         ProjectInbox[] @relation("InboxDefaultAssignee")
   convertedInboxMessages InboxMessage[]
 
+  // Settings Relations
+  settings Settings[]
+
   @@map("users")
 }
 
@@ -123,6 +131,7 @@ model Organization {
   owner           User                 @relation("OrganizationOwner", fields: [ownerId], references: [id])
   createdByUser   User?                @relation("OrganizationCreatedBy", fields: [createdBy], references: [id])
   updatedByUser   User?                @relation("OrganizationUpdatedBy", fields: [updatedBy], references: [id])
+  usersWithDefault User[]              @relation("UserDefaultOrganization")
   workflows       Workflow[]
   workspaces      Workspace[]
   ActivityLog     ActivityLog[]
@@ -605,6 +614,7 @@ model Notification {
   userId         String               @map("user_id") @db.Uuid
   organizationId String?              @map("organization_id") @db.Uuid
   createdBy      String?              @map("created_by_id") @db.Uuid
+  updatedBy      String?              @map("updated_by_id") @db.Uuid
   createdAt      DateTime             @default(now()) @map("created_at")
   updatedAt      DateTime             @updatedAt @map("updated_at")
   readAt         DateTime?            @map("read_at")
@@ -612,6 +622,7 @@ model Notification {
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization  Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdByUser User?         @relation("NotificationCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?         @relation("NotificationUpdatedBy", fields: [updatedBy], references: [id])
 
   @@map("notifications")
 }
@@ -1195,13 +1206,20 @@ model EmailSyncLog {
 
 model Settings {
   id          String   @id @default(uuid()) @db.Uuid
-  key         String   @unique
+  key         String   
   value       String?
   description String?
   category    String   @default("general")
   isEncrypted Boolean  @default(false) @map("is_encrypted")
+  userId      String?  @db.Uuid // Optional - if null, it's a global setting
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Unique constraint: key must be unique per user (or globally if userId is null)
+  @@unique([userId, key])  // This allows same keys for different users, and also allows global settings (userId = null)
 
   @@map("settings")
 }

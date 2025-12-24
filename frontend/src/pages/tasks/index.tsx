@@ -672,7 +672,20 @@ function TasksPageContent() {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
       }
-      
+
+      // Handle priority field
+      if (sortField === "priority") {
+        const priorityOrder = {
+          HIGHEST: 4,
+          HIGH: 3,
+          MEDIUM: 2,
+          LOW: 1,
+        };
+        aValue = priorityOrder[aValue] || 999;
+        bValue = priorityOrder[bValue] || 999;
+
+        return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
+      }
       // Handle status field (object with name property)
       if (sortField === "status") {
         aValue = a.status?.name || "";
