@@ -21,6 +21,7 @@ import { HiClipboard, HiTrash, HiCheck, HiGlobeAlt } from 'react-icons/hi2';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { HiLink } from 'react-icons/hi';
 
 interface ShareTaskDialogProps {
   taskId: string;
@@ -105,7 +106,7 @@ export default function ShareTaskDialog({ taskId, isOpen, onClose }: ShareTaskDi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-full sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Share to Web</DialogTitle>
           <DialogDescription>
@@ -113,7 +114,7 @@ export default function ShareTaskDialog({ taskId, isOpen, onClose }: ShareTaskDi
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 py-4 min-w-0">
           <div className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="expiry">Link expires in</Label>
@@ -122,7 +123,7 @@ export default function ShareTaskDialog({ taskId, isOpen, onClose }: ShareTaskDi
                   <SelectTrigger id="expiry" className="w-[180px]">
                     <SelectValue placeholder="Select expiry" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className='bg-gray-50/85 '>
                     <SelectItem value="1">1 day</SelectItem>
                     <SelectItem value="3">3 days</SelectItem>
                     <SelectItem value="7">7 days</SelectItem>
@@ -144,14 +145,14 @@ export default function ShareTaskDialog({ taskId, isOpen, onClose }: ShareTaskDi
           {shares.length > 0 && (
             <div className="space-y-3">
               <Label>Active Links ({shares.length})</Label>
-              <ScrollArea className="h-[200px] w-full rounded-md border p-3">
+              <ScrollArea className="h-[200px] w-full rounded-md border p-3" orientation='both'>
                 <div className="space-y-3">
                   {shares.map((share) => (
                     <div 
                       key={share.id} 
-                      className="flex flex-col gap-2 rounded-lg border bg-card p-3 shadow-sm"
+                      className="flex flex-col gap-2 rounded-lg border bg-card p-3 shadow-sm min-w-0"
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between min-w-0">
                         <div className="flex items-center gap-2">
                           <Badge variant={isExpired(share.expiresAt) ? "destructive" : "secondary"}>
                             {isExpired(share.expiresAt) ? 'Expired' : 'Active'}
@@ -172,14 +173,16 @@ export default function ShareTaskDialog({ taskId, isOpen, onClose }: ShareTaskDi
                       </div>
                       
                       <div className="flex items-center gap-2 rounded-md bg-muted p-2">
-                        <HiGlobeAlt className="h-4 w-4 text-muted-foreground" />
-                        <span className="flex-1 overflow-x-auto text-xs font-mono text-muted-foreground">
-                          {share.shareUrl}
-                        </span>
+                        <HiLink className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                        <div className="flex-1 min-w-0"> 
+                          <p className="truncate text-xs font-mono text-muted-foreground w-full">
+                            {share.shareUrl}
+                          </p>
+                        </div>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-6 w-6 flex-shrink-0"
                           onClick={() => copyToClipboard(share.shareUrl, share.id)}
                         >
                           {copiedId === share.id ? (

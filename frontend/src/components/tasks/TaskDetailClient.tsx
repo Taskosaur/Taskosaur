@@ -37,6 +37,7 @@ import { DynamicBadge } from "@/components/common/DynamicBadge";
 import TaskDetailSkeleton from "../skeletons/TaskDetailSkeleton";
 import validator from "validator";
 import { sanitizeEditorContent } from "@/utils/sanitize-content";
+import { HiShare } from "react-icons/hi";
 
 // Helper function to validate internal paths and prevent open redirect vulnerabilities
 function isValidInternalPath(path: string): boolean {
@@ -1031,7 +1032,7 @@ export default function TaskDetailClient({
                   secondary
                   className="cursor-pointer justify-center px-3"
                 >
-                  <HiGlobeAlt className="w-4 h-4" />
+                  <HiShare className="w-4 h-4" />
                 </ActionButton>
               </Tooltip>
               <Tooltip content="Delete task" position="left">
@@ -1843,11 +1844,14 @@ export default function TaskDetailClient({
         }
         cancelText="Cancel"
       />
+      <div className="relative">
+
       <ShareTaskDialog 
         taskId={taskId} 
         isOpen={isShareDialogOpen} 
         onClose={() => setIsShareDialogOpen(false)} 
-      />
+        />
+        </div>
     </div>
   );
 }
