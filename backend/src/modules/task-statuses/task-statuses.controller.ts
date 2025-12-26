@@ -16,6 +16,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TaskStatusesService } from './task-statuses.service';
 import { CreateTaskStatusDto, CreateTaskStatusFromProjectDto } from './dto/create-task-status.dto';
 import { UpdatePositionsDto, UpdateTaskStatusDto } from './dto/update-task-status.dto';
+import { Roles } from 'src/common/decorator/roles.decorator';
+import { Role } from '@prisma/client';
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
@@ -84,6 +86,7 @@ export class TaskStatusesController {
     return this.taskStatusesService.restore(id, user.id as string);
   }
 
+  @Roles(Role.MANAGER, Role.OWNER, Role.SUPER_ADMIN)
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -93,6 +96,7 @@ export class TaskStatusesController {
     return this.taskStatusesService.update(id, updateTaskStatusDto, user.id as string);
   }
 
+  @Roles(Role.MANAGER, Role.OWNER, Role.SUPER_ADMIN)
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
     return this.taskStatusesService.remove(id, user.id as string);
