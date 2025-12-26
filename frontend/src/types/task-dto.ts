@@ -19,6 +19,9 @@ export interface CreateTaskRequest {
   parentTaskId?: string;
   completedAt?: string | null;
   attachments?: File[];
+  // Recurring task fields
+  isRecurring?: boolean;
+  recurrenceConfig?: any;
 }
 
 export interface CreateSubtaskRequest extends CreateTaskRequest {

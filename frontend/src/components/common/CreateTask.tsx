@@ -9,7 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HiDocumentText, HiCog, HiUsers, HiPaperClip, HiTrash, HiBolt } from "react-icons/hi2";
+import RecurrenceSelector, { RecurrenceConfig } from "./RecurrenceSelector";
+import { HiDocumentText, HiCog, HiUsers, HiPaperClip, HiTrash } from "react-icons/hi2";
 
 import TaskDescription from "@/components/tasks/views/TaskDescription";
 import { useTask } from "@/contexts/task-context";
@@ -64,6 +65,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recurrenceConfig, setRecurrenceConfig] = useState<RecurrenceConfig | null>(null);
 
   const isFormValid = (): boolean => {
     const hasTitle = formData.title.trim().length > 0;
@@ -140,12 +142,12 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
 
         const normalizedMembers = Array.isArray(fetchedMembers)
           ? fetchedMembers.map((m) => ({
-              id: m.user?.id || m.id,
-              firstName: m.user?.firstName || "",
-              lastName: m.user?.lastName || "",
-              email: m.user?.email || "",
-              role: m.role,
-            }))
+            id: m.user?.id || m.id,
+            firstName: m.user?.firstName || "",
+            lastName: m.user?.lastName || "",
+            email: m.user?.email || "",
+            role: m.role,
+          }))
           : [];
 
         setMembers(normalizedMembers);
@@ -253,6 +255,15 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
       if (assignees.length > 0) taskData.assigneeIds = assignees.map((a) => a.id);
       if (reporters.length > 0) taskData.reporterIds = reporters.map((r) => r.id);
       if (attachments.length > 0) taskData.attachments = attachments;
+
+      // Add recurrence configuration if enabled
+      if (recurrenceConfig) {
+        taskData.isRecurring = true;
+        taskData.recurrenceConfig = {
+          ...recurrenceConfig,
+          endDate: recurrenceConfig.endDate?.toISOString(),
+        };
+      }
 
       const newTask = await createTaskWithAttachements(taskData);
 
@@ -593,6 +604,14 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                   style={{
                     colorScheme: "dark",
                   }}
+                />
+              </div>
+
+              {/* Recurrence Configuration */}
+              <div className="space-y-2">
+                <RecurrenceSelector
+                  value={recurrenceConfig}
+                  onChange={setRecurrenceConfig}
                 />
               </div>
             </CardContent>

@@ -140,6 +140,14 @@ export const taskApi = {
         formData.append("customFields", JSON.stringify(taskData.customFields));
       }
 
+      // Append recurrence fields
+      if (taskData.isRecurring !== undefined) {
+        formData.append("isRecurring", String(taskData.isRecurring));
+      }
+      if (taskData.recurrenceConfig) {
+        formData.append("recurrenceConfig", JSON.stringify(taskData.recurrenceConfig));
+      }
+
       // Append files
       if (taskData.attachments && taskData.attachments.length > 0) {
         taskData.attachments.forEach((file) => {
@@ -277,9 +285,8 @@ export const taskApi = {
       if (endDate) queryParams.append("endDate", endDate);
 
       const query = queryParams.toString();
-      const url = `/public/workspaces/${workspaceSlug}/projects/${projectSlug}/calendar${
-        query ? `?${query}` : ""
-      }`;
+      const url = `/public/workspaces/${workspaceSlug}/projects/${projectSlug}/calendar${query ? `?${query}` : ""
+        }`;
 
       const response = await api.get<Task[]>(url);
       return response.data;
@@ -511,6 +518,69 @@ export const taskApi = {
     }
   },
 
+  // Recurring Task operations
+  completeOccurrence: async (taskId: string): Promise<{ completedTask: Task; nextTask: Task }> => {
+    try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
+      const response = await api.post<{ completedTask: Task; nextTask: Task }>(
+        `/tasks/${encodeURIComponent(taskId)}/complete-occurrence`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Complete occurrence error:", error);
+      throw error;
+    }
+  },
+
+  addRecurrence: async (taskId: string, recurrenceConfig: any): Promise<Task> => {
+    try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
+      const response = await api.post<Task>(
+        `/tasks/${encodeURIComponent(taskId)}/recurrence`,
+        recurrenceConfig
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Add recurrence error:", error);
+      throw error;
+    }
+  },
+
+  updateRecurrence: async (taskId: string, recurrenceConfig: any): Promise<Task> => {
+    try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
+      const response = await api.patch<Task>(
+        `/tasks/${encodeURIComponent(taskId)}/recurrence`,
+        recurrenceConfig
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Update recurrence error:", error);
+      throw error;
+    }
+  },
+
+  stopRecurrence: async (taskId: string): Promise<Task> => {
+    try {
+      if (!isValidUUID(taskId)) {
+        throw new Error('Invalid task ID format');
+      }
+      const response = await api.delete<Task>(
+        `/tasks/${encodeURIComponent(taskId)}/recurrence`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Stop recurrence error:", error);
+      throw error;
+    }
+  },
+
   getAllTaskStatuses: async (params?: {
     workflowId?: string;
     organizationId?: string;
@@ -586,9 +656,9 @@ export const taskApi = {
   getTaskComments: async (
     taskId: string,
     isAuth: boolean,
-    options?: { 
-      page?: number; 
-      limit?: number; 
+    options?: {
+      page?: number;
+      limit?: number;
       sort?: 'asc' | 'desc';
       paginationType?: 'standard' | 'middle';
       oldestCount?: number;
@@ -607,12 +677,12 @@ export const taskApi = {
       if (!isValidUUID(taskId)) {
         throw new Error('Invalid task ID format');
       }
-      
+
       const page = options?.page ?? 1;
       const limit = options?.limit ?? 10;
       const sort = options?.sort ?? 'desc';
       const paginationType = options?.paginationType ?? 'standard';
-      
+
       let response;
       if (isAuth) {
         if (paginationType === 'middle') {
@@ -1115,7 +1185,7 @@ export const taskApi = {
     }
   },
 
-    // Validate and format UUID using strict v4 check
+  // Validate and format UUID using strict v4 check
   assignTaskAssignees: async (taskId: string, assigneeIds: string[]) => {
     if (!isValidUUID(taskId)) {
       throw new Error("Invalid taskId provided. Must be a valid v4 UUID.");
