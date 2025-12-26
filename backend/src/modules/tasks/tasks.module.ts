@@ -15,8 +15,14 @@ import { TaskSharesController } from './task-shares.controller';
 @Module({
   imports: [PrismaModule, PublicModule, ScheduleModule.forRoot()],
   controllers: [TasksController, TaskSharesController],
-  providers: [TasksService, AccessControlService, StorageService, S3Service, RecurrenceService,
-    RecurringTasksCronService],
+  providers: [
+    TasksService,
+    AccessControlService,
+    StorageService,
+    S3Service,
+    RecurrenceService,
+    RecurringTasksCronService,
+  ],
   exports: [TasksService],
 })
-export class TasksModule { }
+export class TasksModule {}
