@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Badge, Button, Input, Select, Textarea } from "@/components/ui";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
 import { taskStatusApi } from "@/utils/api/taskStatusApi";
@@ -18,11 +18,14 @@ interface StatusConfigurationProps {
 export default function StatusConfiguration({
   workflow,
   onCreateStatus,
+  onUpdateStatus,
   onDeleteStatus,
 }: StatusConfigurationProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState<TaskStatus | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<TaskStatus | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -30,6 +33,19 @@ export default function StatusConfiguration({
     category: "TODO",
     order: 1,
   });
+
+  // Populate form data when update modal is opened
+  useEffect(() => {
+    if (showUpdateModal) {
+      setFormData({
+        name: showUpdateModal.name || "",
+        description: showUpdateModal.description || "",
+        color: showUpdateModal.color || "#64748b",
+        category: showUpdateModal.category || "TODO",
+        order: 1,
+      });
+    }
+  }, [showUpdateModal]);
 
   const predefinedColors = [
     "#64748b",
@@ -90,6 +106,39 @@ export default function StatusConfiguration({
       toast.error(errorMessage);
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleUpdateStatus = async (statusId: string, updatedStatus: Partial<TaskStatus>) => {
+    try {
+      setIsUpdating(true);
+      delete updatedStatus.description;
+      // Call the API to update the status
+      const updated = await taskStatusApi.updateTaskStatus(statusId, updatedStatus);
+      
+      // Update the parent component's state
+      if (onUpdateStatus) {
+        onUpdateStatus(statusId, updatedStatus);
+      }
+      
+      setShowUpdateModal(null);
+      resetForm();
+      toast.success("Status updated successfully");
+    } catch (error: any) {
+      let errorMessage = "Failed to update status";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (
+        error &&
+        typeof error === "object" &&
+        "response" in error &&
+        error.response?.data?.message
+      ) {
+        errorMessage = error.response.data.message;
+      }
+      toast.error(errorMessage);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -211,6 +260,23 @@ export default function StatusConfiguration({
                   </div>
                   <div className="col-span-2">
                     <div className="flex items-center space-x-2">
+                      <Tooltip content="Edit" position="top">
+                        <button onClick={() => setShowUpdateModal(toTaskStatus(status))}>
+                          <svg
+                            className="w-4 h-4 text-blue hover:text-gray  dark:hover:bg-gray transition-colors cursor-pointer"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </button>
+                      </Tooltip>
                       {!status.isDefault && (
                         <Tooltip content="Delete" position="top" color="danger">
                           <button
@@ -396,6 +462,159 @@ export default function StatusConfiguration({
                   </>
                 ) : (
                   "Create Status"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {showUpdateModal && (
+        <Dialog
+          open={!!showUpdateModal}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowUpdateModal(null);
+              resetForm();
+            }
+          }}
+        >
+          <DialogContent className="w-full max-w-[90vw] sm:max-w-[600px] bg-[var(--card)] border-none shadow-lg">
+            <DialogHeader>
+              <DialogTitle>Edit Status</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {/* Name */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-[var(--foreground)]">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                  className="h-10 border-input bg-background text-[var(--foreground)]"
+                  placeholder="Status name"
+                  disabled={isUpdating}
+                />
+              </div>
+
+              {/* Category */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-[var(--foreground)]">
+                  Category <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      category: value as StatusCategory,
+                    }))
+                  }
+                  disabled={isUpdating}
+                >
+                  <SelectTrigger className="w-full px-3 border border-[var(--border)] input-selection dark-input-background focus-ring">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[var(--card)] border border-[var(--border)]">
+                    <SelectItem value={StatusCategory.TODO}>To Do</SelectItem>
+                    <SelectItem value={StatusCategory.IN_PROGRESS}>In Progress</SelectItem>
+                    <SelectItem value={StatusCategory.DONE}>Done</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Color */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
+                  Color <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="color"
+                    value={formData.color}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        color: e.target.value,
+                      }))
+                    }
+                    className="w-12 h-8 border border-gray-300 dark:border-gray-600 rounded cursor-pointer"
+                    disabled={isUpdating}
+                  />
+                  <div className="flex space-x-2">
+                    {predefinedColors.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => !isUpdating && setFormData((prev) => ({ ...prev, color }))}
+                        className={`w-6 h-6 rounded-full border-2 ${
+                          formData.color === color
+                            ? "border-gray-900 dark:border-white"
+                            : "border-gray-300 dark:border-gray-600"
+                        } ${isUpdating ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                        style={{ backgroundColor: color }}
+                        disabled={isUpdating}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="flex justify-end space-x-3 mt-6">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowUpdateModal(null);
+                  resetForm();
+                }}
+                disabled={isUpdating}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                variant="default"
+                onClick={() => {
+                  if (showUpdateModal) {
+                    handleUpdateStatus(showUpdateModal.id, {
+                      name: formData.name.trim(),
+                      description: formData.description,
+                      color: formData.color,
+                      category: formData.category as "TODO" | "IN_PROGRESS" | "DONE",
+                    });
+                  }
+                }}
+                disabled={!formData.name.trim() || isUpdating}
+                className="bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 hover:shadow-md transition-all duration-200 font-medium"
+              >
+                {isUpdating ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Updating...
+                  </>
+                ) : (
+                  "Update Status"
                 )}
               </Button>
             </DialogFooter>

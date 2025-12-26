@@ -645,14 +645,8 @@ export default function WorkflowManager({
                     onUpdateStatus={handleUpdateStatus}
                     onCreateStatus={(newStatus) => {
                       if (typeof newStatus === "object" && newStatus !== null) {
-                        handleCreateStatus({
-                          name: (newStatus as any).name ?? "",
-                          category: (newStatus as any).category ?? "TODO",
-                          position: (newStatus as any).position ?? 0,
-                          color: (newStatus as any).color ?? "#64748b",
-                          isDefault: (newStatus as any).isDefault ?? false,
-                          workflowId: selectedWorkflow.id,
-                        });
+                        // Pass the entire status object including the ID from the backend
+                        handleCreateStatus(newStatus);
                       }
                     }}
                     onDeleteStatus={handleDeleteStatus}

@@ -62,7 +62,7 @@ export default function UserProfileMenu({
     return fullName || "User";
   };
 
-  const getUserRole = () => user?.role || "Admin";
+  const getUserRole = () => user?.role == "SUPER_ADMIN" ? "Super Admin" : user?.role || "Admin";
 
   const handleLogout = async () => {
     try {
