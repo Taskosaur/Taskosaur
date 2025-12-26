@@ -24,6 +24,28 @@ export class TaskStatusesService {
 
   async create(createTaskStatusDto: CreateTaskStatusDto, userId: string): Promise<TaskStatus> {
     try {
+      const existingStatus = await this.prisma.taskStatus.findFirst({
+        where: {
+          workflowId: createTaskStatusDto.workflowId,
+          name: createTaskStatusDto.name,
+          deletedAt: {
+            not: null,
+          },
+        },
+      });
+      if (existingStatus) {
+        existingStatus.deletedAt = null;
+        existingStatus.deletedBy = null;
+        return await this.prisma.taskStatus.update({
+          where: {
+            id: existingStatus.id,
+          },
+          data: {
+            ...existingStatus,
+            updatedBy: userId,
+          },
+        });
+      }
       const taskCount = await this.prisma.taskStatus.count({
         where: {
           workflowId: createTaskStatusDto.workflowId,
