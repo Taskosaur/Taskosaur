@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useDeferredValue } from "react";
 import { createPortal } from "react-dom";
 import { HiMagnifyingGlass, HiXMark } from "react-icons/hi2";
 import { Button } from "../ui";
@@ -7,21 +7,6 @@ import { useOrganization } from "@/contexts/organization-context";
 import { TokenManager } from "@/lib/api";
 import { useRouter } from "next/router";
 
-function useDebounce(value, delay) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
 
 const SearchManager = () => {
   const router = useRouter();
@@ -41,16 +26,16 @@ const SearchManager = () => {
   const currentOrganizationId = TokenManager.getCurrentOrgId();
   const PAGE_SIZE = 10;
 
-  // Debounce search term
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  // Defer search term updates to keep the UI responsive
+  const deferredSearchTerm = useDeferredValue(searchTerm);
 
   const paginatedResults = results;
   const totalPages = Math.ceil(totalResults / PAGE_SIZE);
 
-  // Fetch results with debounced search term and page
+  // Fetch results with deferred search term and page
   useEffect(() => {
     const fetchResults = async () => {
-      const trimmed = debouncedSearchTerm.trim();
+      const trimmed = deferredSearchTerm.trim();
       if (trimmed === "" || !currentOrganizationId) {
         setResults([]);
         setSelectedIndex(0);
@@ -84,12 +69,12 @@ const SearchManager = () => {
     };
 
     fetchResults();
-  }, [debouncedSearchTerm, currentOrganizationId, universalSearch, page]);
+  }, [deferredSearchTerm, currentOrganizationId, universalSearch, page]);
 
   // Reset page when searchTerm changes
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearchTerm]);
+  }, [deferredSearchTerm]);
 
   // Handle opening the search
   const openSearch = () => {

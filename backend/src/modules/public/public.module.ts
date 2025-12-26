@@ -11,13 +11,18 @@ import { PublicCalendarService } from './services/public-calendar.service';
 import { PublicDataFilterService } from './services/public-data-filter.service';
 import { ProjectChartsService } from './services/public-chat.service';
 
+import { PublicSharedTasksController } from './controllers/public-shared-tasks.controller';
+import { PublicSharedTasksService } from './services/public-shared-tasks.service';
+import { S3Module } from '../storage/s3.module';
+
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, S3Module],
   controllers: [
     PublicWorkspacesController,
     PublicTasksController,
     PublicSprintsController,
     PublicCalendarController,
+    PublicSharedTasksController,
   ],
   providers: [
     PublicProjectsService,
@@ -26,6 +31,7 @@ import { ProjectChartsService } from './services/public-chat.service';
     PublicCalendarService,
     PublicDataFilterService,
     ProjectChartsService,
+    PublicSharedTasksService,
   ],
   exports: [
     PublicProjectsService,
@@ -33,6 +39,7 @@ import { ProjectChartsService } from './services/public-chat.service';
     PublicSprintsService,
     PublicCalendarService,
     PublicDataFilterService,
+    PublicSharedTasksService,
   ],
 })
 export class PublicModule {}

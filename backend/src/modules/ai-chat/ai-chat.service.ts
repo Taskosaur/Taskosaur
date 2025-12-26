@@ -318,13 +318,15 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       }
 
       // Get API settings from database
-      const [apiKey, model, apiUrl] = await Promise.all([
+      const [apiKey, model, rawApiUrl] = await Promise.all([
         this.settingsService.get('ai_api_key', userId),
         this.settingsService.get('ai_model', userId, 'deepseek/deepseek-chat-v3-0324:free'),
         this.settingsService.get('ai_api_url', userId, 'https://openrouter.ai/api/v1'),
       ]);
 
-      const provider = this.detectProvider(apiUrl || 'https://openrouter.ai/api/v1');
+      const apiUrl = rawApiUrl ? this.validateApiUrl(rawApiUrl) : 'https://openrouter.ai/api/v1';
+
+      const provider = this.detectProvider(apiUrl);
 
       if (!apiKey) {
         throw new BadRequestException('AI API key not configured. Please set it in settings.');
@@ -407,7 +409,8 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
         case 'google':
           // Google Gemini has a different API structure
-          requestUrl = `${apiUrl}/models/${model}:generateContent?key=${apiKey}`;
+          this.validateModelName(model);
+          requestUrl = `${apiUrl}/models/${encodeURIComponent(String(model))}:generateContent?key=${encodeURIComponent(apiKey)}`;
           delete requestHeaders['Authorization'];
           requestBody = {
             contents: messages.map((m) => ({
@@ -858,6 +861,95 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     return { success: true };
   }
 
+  private readonly allowedHosts: string[] = [
+    // OpenRouter
+    'openrouter.ai',
+    'api.openrouter.ai',
+
+    // OpenAI
+    'api.openai.com',
+
+    // Anthropic
+    'api.anthropic.com',
+
+    // Google - base domains
+    'generativelanguage.googleapis.com',
+    'aiplatform.googleapis.com',
+  ];
+
+  // AWS Bedrock pattern
+  private readonly awsBedrockPattern =
+    /^(bedrock|bedrock-runtime|bedrock-agent|bedrock-agent-runtime|bedrock-data-automation|bedrock-data-automation-runtime)(-fips)?\.([a-z0-9-]+)\.amazonaws\.com$/;
+
+  // Azure OpenAI pattern
+  private readonly azurePattern = /^[a-z0-9-]+\.openai\.azure\.com$/;
+
+  // Google Cloud pattern (for regional Vertex AI and PSC endpoints)
+  private readonly googlePattern =
+    /^([a-z0-9-]+\.)?aiplatform\.googleapis\.com$|^[a-z0-9-]+\.p\.googleapis\.com$/;
+
+  validateApiUrl(apiUrl: string): string {
+    let url: URL;
+    try {
+      url = new URL(apiUrl);
+    } catch {
+      throw new BadRequestException('Invalid URL format');
+    }
+
+    if (url.protocol !== 'https:') {
+      throw new BadRequestException('Only HTTPS URLs allowed');
+    }
+
+    // Remove brackets from IPv6 for cleaner matching
+    const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+
+    // Check against allowed hosts and patterns
+    if (
+      !this.allowedHosts.includes(hostname) &&
+      !this.awsBedrockPattern.test(hostname) &&
+      !this.azurePattern.test(hostname) &&
+      !this.googlePattern.test(hostname)
+    ) {
+      throw new BadRequestException('Host not allowed');
+    }
+
+    // Block obvious internal IPs and private ranges
+    if (
+      ['localhost', '127.0.0.1', '::1', '0.0.0.0'].includes(hostname) ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('127.') ||
+      hostname.startsWith('169.254.') ||
+      // Block 172.16.0.0/12 (172.16.x.x - 172.31.x.x)
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) ||
+      // IPv6 Unique Local Address (fc00::/7) - fc.., fd..
+      /^[fF][cCdD]/.test(hostname) ||
+      // IPv6 Link-Local Address (fe80::/10) - fe8.., fe9.., fea.., feb..
+      /^[fF][eE][89aAbB]/.test(hostname)
+    ) {
+      throw new BadRequestException('Internal IPs not allowed');
+    }
+
+    // Enforce allowed hosts and standard HTTPS port to prevent SSRF
+    const port = url.port ? Number(url.port) : 443;
+
+    // Only allow standard HTTPS port
+    if (port !== 443) {
+      throw new BadRequestException('Only standard HTTPS port 443 is allowed');
+    }
+
+    const isOpenAIHost = hostname === 'api.openai.com';
+    const isOpenRouterHost = hostname === 'openrouter.ai' || hostname === 'api.openrouter.ai';
+    const isAnthropicHost = hostname === 'api.anthropic.com';
+    const isGoogleHost = this.googlePattern.test(hostname);
+
+    if (!isOpenAIHost && !isOpenRouterHost && !isAnthropicHost && !isGoogleHost) {
+      throw new BadRequestException('Unsupported AI provider host');
+    }
+
+    return url.toString().replace(/\/$/, '');
+  }
+
   /**
    * Test connection to AI provider without requiring AI to be enabled
    * This allows users to verify their configuration before saving and enabling
@@ -866,7 +958,8 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     const { apiKey, model, apiUrl } = testConnectionDto;
 
     try {
-      const provider = this.detectProvider(apiUrl);
+      const validatedUrl = this.validateApiUrl(apiUrl);
+      const provider = this.detectProvider(validatedUrl);
 
       // Prepare a simple test message
       const messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
@@ -877,7 +970,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       ];
 
       // Prepare request based on provider
-      let requestUrl = apiUrl;
+      let requestUrl = validatedUrl;
       const requestHeaders: any = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
@@ -893,17 +986,17 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       // Adjust for different providers
       switch (provider) {
         case 'openrouter':
-          requestUrl = `${apiUrl}/chat/completions`;
+          requestUrl = `${validatedUrl}/chat/completions`;
           requestHeaders['HTTP-Referer'] = process.env.APP_URL || 'http://localhost:3000';
           requestHeaders['X-Title'] = 'Taskosaur AI Assistant';
           break;
 
         case 'openai':
-          requestUrl = `${apiUrl}/chat/completions`;
+          requestUrl = `${validatedUrl}/chat/completions`;
           break;
 
         case 'anthropic':
-          requestUrl = `${apiUrl}/messages`;
+          requestUrl = `${validatedUrl}/messages`;
           requestHeaders['x-api-key'] = apiKey;
           requestHeaders['anthropic-version'] = '2023-06-01';
           delete requestHeaders['Authorization'];
@@ -916,7 +1009,8 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
           break;
 
         case 'google':
-          requestUrl = `${apiUrl}/models/${model}:generateContent?key=${apiKey}`;
+          this.validateModelName(model);
+          requestUrl = `${validatedUrl}/models/${encodeURIComponent(String(model))}:generateContent?key=${encodeURIComponent(apiKey)}`;
           delete requestHeaders['Authorization'];
           requestBody = {
             contents: messages.map((m) => ({
@@ -931,7 +1025,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
           break;
 
         default:
-          requestUrl = `${apiUrl}/chat/completions`;
+          requestUrl = `${validatedUrl}/chat/completions`;
           break;
       }
 
@@ -1016,6 +1110,49 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
         success: false,
         error: errorMessage || 'Connection test failed. Please check your configuration.',
       };
+    }
+  }
+
+  validateModelName(
+    model: unknown,
+    options: {
+      allowedPattern?: RegExp;
+      maxLength?: number;
+      allowPathTraversal?: boolean;
+      customErrorMessage?: string;
+    } = {},
+  ): void {
+    const {
+      allowedPattern = /^[a-zA-Z0-9.-]+$/,
+      maxLength = 100,
+      allowPathTraversal = false,
+      customErrorMessage = 'Model name contains invalid characters',
+    } = options;
+
+    if (!model || typeof model !== 'string') {
+      throw new BadRequestException('Model name is required and must be a string');
+    }
+
+    const trimmedModel = model.trim();
+
+    if (trimmedModel.length === 0) {
+      throw new BadRequestException('Model name cannot be empty');
+    }
+
+    if (trimmedModel.length > maxLength) {
+      throw new BadRequestException(`Model name is too long (max ${maxLength} characters)`);
+    }
+
+    if (!allowPathTraversal && trimmedModel.includes('..')) {
+      throw new BadRequestException('Model name cannot contain path traversal sequences (..)');
+    }
+
+    if (trimmedModel.startsWith('/') || /^[a-zA-Z]:\\/.test(trimmedModel)) {
+      throw new BadRequestException('Model name cannot be an absolute path');
+    }
+
+    if (!allowedPattern.test(trimmedModel)) {
+      throw new BadRequestException(customErrorMessage);
     }
   }
 }

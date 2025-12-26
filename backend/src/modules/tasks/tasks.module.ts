@@ -9,17 +9,14 @@ import { RecurrenceService } from './recurrence.service';
 import { RecurringTasksCronService } from './recurring-tasks-cron.service';
 import { ScheduleModule } from '@nestjs/schedule';
 
+import { PublicModule } from '../public/public.module';
+import { TaskSharesController } from './task-shares.controller';
+
 @Module({
-  imports: [PrismaModule, ScheduleModule.forRoot()],
-  controllers: [TasksController],
-  providers: [
-    TasksService,
-    AccessControlService,
-    StorageService,
-    S3Service,
-    RecurrenceService,
-    RecurringTasksCronService,
-  ],
+  imports: [PrismaModule, PublicModule, ScheduleModule.forRoot()],
+  controllers: [TasksController, TaskSharesController],
+  providers: [TasksService, AccessControlService, StorageService, S3Service, RecurrenceService,
+    RecurringTasksCronService],
   exports: [TasksService],
 })
-export class TasksModule {}
+export class TasksModule { }

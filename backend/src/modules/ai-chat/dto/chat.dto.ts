@@ -1,4 +1,12 @@
-import { IsString, IsNotEmpty, IsOptional, IsArray, ValidateNested, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  IsIn,
+  IsUrl,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -111,6 +119,7 @@ export class TestConnectionDto {
     description: 'API URL to test',
   })
   @IsString()
+  @IsUrl()
   @IsNotEmpty()
   apiUrl: string;
 }

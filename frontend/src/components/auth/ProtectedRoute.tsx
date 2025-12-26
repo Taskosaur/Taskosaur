@@ -23,7 +23,8 @@ export default function ProtectedRoute({
     "/reset-password",
     "/terms-of-service",
     "/privacy-policy",
-    "/setup"
+    "/setup",
+    "/public/task/[token]"
   ],
 }: ProtectedRouteProps) {
   const {

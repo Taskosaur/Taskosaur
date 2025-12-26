@@ -41,6 +41,7 @@ export interface UpdateTaskRequest {
   statusId?: string;
   projectId?: string;
   allowEmailReplies?: boolean;
+  sprintId?: string;
 }
 export interface TasksResponse {
   tasks: Task[];
