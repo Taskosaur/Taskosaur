@@ -16,7 +16,7 @@ export class PublicSharedTasksController {
   ) {}
 
   @Get(':token')
-  @RateLimit(5,60000)
+  @RateLimit(10,60000)
   @ApiOperation({
     summary: 'Get shared task by token',
     description: 'Get public task details using share token (no auth required)',

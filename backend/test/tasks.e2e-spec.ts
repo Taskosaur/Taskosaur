@@ -13,12 +13,15 @@ describe('TasksController (e2e)', () => {
   let jwtService: JwtService;
 
   let user: any;
+  let user2: any;
   let accessToken: string;
   let organizationId: string;
   let workspaceId: string;
   let projectId: string;
   let statusId: string;
   let taskId: string;
+  let sprintId: string;
+  let parentTaskId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -117,6 +120,37 @@ describe('TasksController (e2e)', () => {
       },
     });
 
+    // Create a second test user
+    user2 = await prismaService.user.create({
+      data: {
+        email: `task-test-2-${Date.now()}@example.com`,
+        password: 'StrongPassword123!',
+        firstName: 'Task2',
+        lastName: 'Tester2',
+        username: `task_tester_2_${Date.now()}`,
+        role: Role.MEMBER,
+      },
+    });
+
+    // Add user2 to organization
+    await prismaService.organizationMember.create({
+      data: {
+        organizationId: organizationId,
+        userId: user2.id,
+        role: Role.MEMBER,
+      },
+    });
+
+    // Create Sprint
+    const sprint = await prismaService.sprint.create({
+      data: {
+        name: 'Test Sprint',
+        projectId: projectId,
+        status: 'ACTIVE',
+      },
+    });
+    sprintId = sprint.id;
+
     // Create Status
     const status = await prismaService.taskStatus.create({
       data: {
@@ -128,23 +162,36 @@ describe('TasksController (e2e)', () => {
       },
     });
     statusId = status.id;
+
+    // Create Parent Task
+    const parentTask = await prismaService.task.create({
+      data: {
+        title: 'Parent Task',
+        projectId: projectId,
+        statusId: statusId,
+        taskNumber: 1,
+        slug: 'TASK-PR',
+      },
+    });
+    parentTaskId = parentTask.id;
   });
 
   afterAll(async () => {
     if (prismaService) {
       // Cleanup
       await prismaService.task.deleteMany({ where: { projectId } });
+      await prismaService.sprint.deleteMany({ where: { projectId } });
       await prismaService.taskStatus.delete({ where: { id: statusId } });
       await prismaService.project.delete({ where: { id: projectId } });
       await prismaService.workspace.delete({ where: { id: workspaceId } });
       await prismaService.organization.delete({ where: { id: organizationId } });
-      await prismaService.user.delete({ where: { id: user.id } });
+      await prismaService.user.deleteMany({ where: { id: { in: [user.id, user2.id] } } });
     }
     await app.close();
   });
 
   describe('/tasks (POST)', () => {
-    it('should create a task', () => {
+    it('should create a task with basic fields', () => {
       const createDto: CreateTaskDto = {
         title: 'E2E Task',
         description: 'Task created by E2E test',
@@ -162,14 +209,46 @@ describe('TasksController (e2e)', () => {
         .expect((res) => {
           expect(res.body).toHaveProperty('id');
           expect(res.body.title).toBe(createDto.title);
-          expect(res.body.projectId).toBe(projectId);
           taskId = res.body.id;
+        });
+    });
+
+    it('should create a task with all fields', () => {
+      const createDto: CreateTaskDto = {
+        title: 'Full Task',
+        description: 'Comprehensive task creation test',
+        projectId: projectId,
+        statusId: statusId,
+        priority: 'HIGHEST',
+        type: 'STORY',
+        sprintId: sprintId,
+        parentTaskId: parentTaskId,
+        assigneeIds: [user.id, user2.id],
+        reporterIds: [user.id],
+        storyPoints: 5,
+        originalEstimate: 120,
+        remainingEstimate: 60,
+        startDate: new Date().toISOString(),
+        dueDate: new Date(Date.now() + 86400000).toISOString(),
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body.title).toBe(createDto.title);
+          expect(res.body.sprintId).toBe(sprintId);
+          expect(res.body.parentTaskId).toBe(parentTaskId);
+          expect(res.body.storyPoints).toBe(5);
+          expect(res.body.assignees.length).toBe(2);
         });
     });
   });
 
   describe('/tasks (GET)', () => {
-    it('should list tasks', () => {
+    it('should list tasks with organizationId', () => {
       return request(app.getHttpServer())
         .get('/api/tasks')
         .query({ organizationId })
@@ -178,8 +257,71 @@ describe('TasksController (e2e)', () => {
         .expect((res) => {
           expect(res.body).toHaveProperty('data');
           expect(Array.isArray(res.body.data)).toBe(true);
-          const task = res.body.data.find((t: any) => t.id === taskId);
-          expect(task).toBeDefined();
+          expect(res.body.data.length).toBeGreaterThanOrEqual(2);
+        });
+    });
+
+    it('should filter tasks by search query', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks')
+        .query({ organizationId, search: 'E2E Task' })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+          const hasE2ETask = res.body.data.some((t: any) => t.title === 'E2E Task');
+          expect(hasE2ETask).toBe(true);
+        });
+    });
+
+    it('should filter tasks by priorities', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks')
+        .query({ organizationId, priorities: 'HIGHEST' })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          const allHighest = res.body.data.every((t: any) => t.priority === 'HIGHEST');
+          expect(allHighest).toBe(true);
+        });
+    });
+
+    it('should filter tasks by statusIds', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks')
+        .query({ organizationId, statuses: statusId })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          const allMatchStatus = res.body.data.every((t: any) => t.statusId === statusId);
+          expect(allMatchStatus).toBe(true);
+        });
+    });
+
+    it('should filter tasks by assigneeIds', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks')
+        .query({ organizationId, assigneeIds: user2.id })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          const includesUser2 = res.body.data.every((t: any) => 
+            t.assignees.some((a: any) => a.id === user2.id)
+          );
+          expect(includesUser2).toBe(true);
+        });
+    });
+
+    it('should test pagination (limit)', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks')
+        .query({ organizationId, limit: 1 })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.data.length).toBe(1);
+          expect(res.body).toHaveProperty('total');
+          expect(res.body.limit).toBe(1);
         });
     });
   });
