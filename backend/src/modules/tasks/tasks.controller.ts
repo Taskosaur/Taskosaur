@@ -13,6 +13,7 @@ import {
   BadRequestException,
   UploadedFiles,
   UseInterceptors,
+  HttpCode,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -105,6 +106,7 @@ export class TasksController {
     status: 500,
     description: 'Internal server error',
   })
+  @HttpCode(200)
   async bulkDeleteTasks(@Body() bulkDeleteTasksDto: BulkDeleteTasksDto, @Req() req: Request) {
     const user = getAuthUser(req);
 
@@ -682,7 +684,6 @@ export class TasksController {
   }
 
   @Get('key/:key')
-  @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findByKey(@Param('key') key: string, @Req() req: Request) {
     const user = getAuthUser(req);
     return this.tasksService.findByKey(key, user.id);

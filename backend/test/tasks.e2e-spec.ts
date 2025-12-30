@@ -18,6 +18,7 @@ describe('TasksController (e2e)', () => {
   let organizationId: string;
   let workspaceId: string;
   let projectId: string;
+  let projectSlug: string;
   let statusId: string;
   let taskId: string;
   let sprintId: string;
@@ -109,6 +110,7 @@ describe('TasksController (e2e)', () => {
         color: '#000000',
       },
     });
+    projectSlug = project.slug;
     projectId = project.id;
 
     // Add user as Project Member (OWNER)
@@ -181,10 +183,10 @@ describe('TasksController (e2e)', () => {
       // Cleanup
       await prismaService.task.deleteMany({ where: { projectId } });
       await prismaService.sprint.deleteMany({ where: { projectId } });
-      await prismaService.taskStatus.delete({ where: { id: statusId } });
-      await prismaService.project.delete({ where: { id: projectId } });
-      await prismaService.workspace.delete({ where: { id: workspaceId } });
-      await prismaService.organization.delete({ where: { id: organizationId } });
+      await prismaService.taskStatus.deleteMany({ where: { workflow: { organizationId } } });
+      await prismaService.project.deleteMany({ where: { id: projectId } });
+      await prismaService.workspace.deleteMany({ where: { id: workspaceId } });
+      await prismaService.organization.deleteMany({ where: { id: organizationId } });
       await prismaService.user.deleteMany({ where: { id: { in: [user.id, user2.id] } } });
     }
     await app.close();
@@ -326,6 +328,80 @@ describe('TasksController (e2e)', () => {
     });
   });
 
+  describe('/tasks/all-tasks (GET)', () => {
+    it('should get all tasks without pagination', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks/all-tasks')
+        .query({ organizationId })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.length).toBeGreaterThanOrEqual(2);
+        });
+    });
+  });
+
+  describe('/tasks/by-status (GET)', () => {
+    it('should get tasks grouped by status', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks/by-status')
+        .query({ slug: projectSlug })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('data');
+          expect(Array.isArray(res.body.data)).toBe(true);
+        });
+    });
+  });
+
+  describe('/tasks/today (GET)', () => {
+    it('should get today tasks', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks/today')
+        .query({ organizationId })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('tasks');
+          expect(Array.isArray(res.body.tasks)).toBe(true);
+        });
+    });
+  });
+
+  describe('/api/tasks/organization/:orgId (GET)', () => {
+    it('should get tasks by organization', () => {
+      return request(app.getHttpServer())
+        .get(`/api/tasks/organization/${organizationId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('tasks');
+          expect(Array.isArray(res.body.tasks)).toBe(true);
+        });
+    });
+  });
+
+  describe('/tasks/key/:key (GET)', () => {
+    it('should get a task by its key', async () => {
+      const task = await prismaService.task.findUnique({
+        where: { id: taskId },
+        select: { slug: true }
+      });
+      const key = task!.slug;
+
+      return request(app.getHttpServer())
+        .get(`/api/tasks/key/${key}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.id).toBe(taskId);
+          expect(res.body.slug).toBe(key);
+        });
+    });
+  });
+
   describe('/tasks/:id (GET)', () => {
     it('should get a task', () => {
       return request(app.getHttpServer())
@@ -362,6 +438,205 @@ describe('TasksController (e2e)', () => {
         .expect(HttpStatus.OK)
         .expect((res) => {
           expect(res.body.statusId).toBe(statusId);
+        });
+    });
+  });
+
+  describe('/tasks/:id/assignees (PATCH)', () => {
+    it('should update task assignees', () => {
+      return request(app.getHttpServer())
+        .patch(`/api/tasks/${taskId}/assignees`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ assigneeIds: [user.id] })
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.assignees.some((a: any) => a.id === user.id)).toBe(true);
+        });
+    });
+
+    it('should fail to update assignees with invalid user IDs', () => {
+      const invalidUserId = '00000000-0000-0000-0000-000000000000';
+      return request(app.getHttpServer())
+        .patch(`/api/tasks/${taskId}/assignees`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ assigneeIds: [invalidUserId] })
+        .expect(HttpStatus.NOT_FOUND);
+    });
+  });
+
+  describe('/tasks/:id/unassign (PATCH)', () => {
+    it('should unassign all users from a task', () => {
+      return request(app.getHttpServer())
+        .patch(`/api/tasks/${taskId}/unassign`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.assignees.length).toBe(0);
+        });
+    });
+  });
+
+  describe('/tasks/:id/priority (PATCH)', () => {
+    it('should update task priority', () => {
+      return request(app.getHttpServer())
+        .patch(`/api/tasks/${taskId}/priority`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ priority: 'LOW' })
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.priority).toBe('LOW');
+        });
+    });
+  });
+
+  describe('/tasks/:id/due-date (PATCH)', () => {
+    it("should update task's due date", () => {
+      const dueDate = new Date().toISOString();
+      return request(app.getHttpServer())
+        .patch(`/api/tasks/${taskId}/due-date`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ dueDate })
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(new Date(res.body.dueDate).toISOString()).toBe(dueDate);
+        });
+    });
+  });
+
+  describe('/tasks/:id/comments (POST)', () => {
+    it('should add a comment to a task', () => {
+      return request(app.getHttpServer())
+        .post(`/api/tasks/${taskId}/comments`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ comment: 'Test Shortcut Comment' })
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body.content).toBe('Test Shortcut Comment');
+          expect(res.body.taskId).toBe(taskId);
+        });
+    });
+  });
+
+  describe('/tasks/create-task-attachment (POST)', () => {
+    it('should create a task with attachments', () => {
+      return request(app.getHttpServer())
+        .post('/api/tasks/create-task-attachment')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .attach('attachments', Buffer.from('test content'), 'test.txt')
+        .field('title', 'Attachment Task')
+        .field('projectId', projectId)
+        .field('statusId', statusId)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('id');
+          expect(res.body.attachments.length).toBe(1);
+          expect(res.body.attachments[0].fileName).toBe('test.txt');
+        });
+    });
+
+    it('should fail when file exceeds size limit', () => {
+      const largeBuffer = Buffer.alloc(11 * 1024 * 1024); // 11MB
+      return request(app.getHttpServer())
+        .post('/api/tasks/create-task-attachment')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .attach('attachments', largeBuffer, 'large.pdf')
+        .field('title', 'Large File Task')
+        .field('projectId', projectId)
+        .field('statusId', statusId)
+        .expect(HttpStatus.PAYLOAD_TOO_LARGE);
+    });
+
+    it('should fail with disallowed file type', () => {
+      return request(app.getHttpServer())
+        .post('/api/tasks/create-task-attachment')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .attach('attachments', Buffer.from('test'), 'malicious.exe')
+        .field('title', 'Forbidden File Task')
+        .field('projectId', projectId)
+        .field('statusId', statusId)
+        .expect(HttpStatus.BAD_REQUEST)
+        .expect((res) => {
+          expect(res.body.message).toContain('not allowed');
+        });
+    });
+  });
+
+  describe('/tasks/bulk-delete (POST)', () => {
+    it('should delete multiple tasks', async () => {
+      const t1 = await prismaService.task.create({
+        data: { title: 'Delete Me 1', projectId, statusId, taskNumber: 100, slug: `${projectSlug}-100` }
+      });
+      const t2 = await prismaService.task.create({
+        data: { title: 'Delete Me 2', projectId, statusId, taskNumber: 101, slug: `${projectSlug}-101` }
+      });
+
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-delete')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ taskIds: [t1.id, t2.id], projectId })
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.deletedCount).toBe(2);
+        });
+    });
+
+    it('should fail with empty list of IDs and all=false', () => {
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-delete')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ taskIds: [], projectId })
+        .expect(HttpStatus.BAD_REQUEST);
+    });
+
+    it('should report failed tasks when user lacks permission', async () => {
+      const otherUser = await prismaService.user.create({
+        data: {
+          email: `bulk-other-${Date.now()}@example.com`,
+          password: 'Password123!',
+          firstName: 'Other',
+          lastName: 'User',
+          username: `other_user_${Date.now()}`,
+          role: Role.MEMBER,
+        }
+      });
+
+      const tForbidden = await prismaService.task.create({
+        data: { 
+          title: 'Forbidden Task', 
+          projectId, 
+          statusId, 
+          taskNumber: 200, 
+          slug: `${projectSlug}-200`,
+          createdBy: otherUser.id
+        }
+      });
+
+      const memberToken = jwtService.sign({ sub: user2.id, email: user2.email, role: user2.role });
+
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-delete')
+        .set('Authorization', `Bearer ${memberToken}`)
+        .send({ taskIds: [tForbidden.id], projectId })
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.deletedCount).toBe(0);
+          expect(res.body.failedTasks.length).toBe(1);
+          expect(res.body.failedTasks[0].reason).toContain('Insufficient permissions');
+        });
+    });
+
+    it('should delete all tasks in project with all=true', async () => {
+      await prismaService.task.create({
+        data: { title: 'Delete Via All', projectId, statusId, taskNumber: 102, slug: `${projectSlug}-102` }
+      });
+
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-delete')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ projectId, all: true })
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.deletedCount).toBeGreaterThanOrEqual(1);
         });
     });
   });
