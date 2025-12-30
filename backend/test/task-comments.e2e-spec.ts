@@ -181,6 +181,115 @@ describe('TaskCommentsController (e2e)', () => {
     });
   });
 
+  describe('/task-comments (POST) - Reply', () => {
+    it('should create a reply to a comment', () => {
+      const createDto: CreateTaskCommentDto = {
+        content: 'This is a reply',
+        taskId: taskId,
+        authorId: user.id,
+        parentCommentId: commentId,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/task-comments')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('id');
+          expect(res.body.content).toBe(createDto.content);
+          expect(res.body.parentCommentId).toBe(commentId);
+        });
+    });
+  });
+
+  describe('/task-comments/:id/replies (GET)', () => {
+    it('should get replies for a comment', () => {
+      return request(app.getHttpServer())
+        .get(`/api/task-comments/${commentId}/replies`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.length).toBeGreaterThan(0);
+          expect(res.body[0].parentCommentId).toBe(commentId);
+        });
+    });
+  });
+
+  describe('/task-comments/task/:taskId/tree (GET)', () => {
+    it('should get the comment tree for a task', () => {
+      return request(app.getHttpServer())
+        .get(`/api/task-comments/task/${taskId}/tree`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          const parent = res.body.find((c: any) => c.id === commentId);
+          expect(parent).toBeDefined();
+          expect(parent.replies).toBeDefined();
+          expect(parent.replies.length).toBeGreaterThan(0);
+        });
+    });
+  });
+
+  describe('/task-comments/middle-pagination (GET)', () => {
+    it('should get comments with middle pagination', () => {
+      return request(app.getHttpServer())
+        .get('/api/task-comments/middle-pagination')
+        .query({ taskId, page: 1, limit: 5 })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('data');
+          expect(res.body).toHaveProperty('total');
+          expect(Array.isArray(res.body.data)).toBe(true);
+        });
+    });
+  });
+
+  describe('/task-comments (Unauthorized Access)', () => {
+    let otherUser: any;
+    let otherUserToken: string;
+
+    beforeAll(async () => {
+      // Create another user
+      otherUser = await prismaService.user.create({
+        data: {
+          email: `comment-intruder-${Date.now()}@example.com`,
+          password: 'StrongPassword123!',
+          firstName: 'Intruder',
+          lastName: 'User',
+          username: `intruder_${Date.now()}`,
+          role: Role.MEMBER,
+        },
+      });
+      const payload = { sub: otherUser.id, email: otherUser.email, role: otherUser.role };
+      otherUserToken = jwtService.sign(payload);
+    });
+
+    afterAll(async () => {
+      await prismaService.user.delete({ where: { id: otherUser.id } });
+    });
+
+    it('should fail to update another users comment', () => {
+      return request(app.getHttpServer())
+        .patch(`/api/task-comments/${commentId}`)
+        .query({ userId: otherUser.id })
+        .set('Authorization', `Bearer ${otherUserToken}`)
+        .send({ content: 'Hacked content' })
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('should fail to delete another users comment', () => {
+      return request(app.getHttpServer())
+        .delete(`/api/task-comments/${commentId}`)
+        .query({ userId: otherUser.id })
+        .set('Authorization', `Bearer ${otherUserToken}`)
+        .expect(HttpStatus.FORBIDDEN);
+    });
+  });
+
   describe('/task-comments/:id (PATCH)', () => {
     it('should update a comment', () => {
       const updateDto = { content: 'Updated content' };

@@ -70,15 +70,16 @@ export class TaskStatusesController {
       user.id as string,
     );
   }
-  @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.taskStatusesService.findOne(id);
-  }
 
   @Get('deleted')
   @ApiQuery({ name: 'workflowId', required: false, type: String })
   async findDeleted(@Query('workflowId') workflowId?: string) {
     return this.taskStatusesService.findDeleted(workflowId);
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.taskStatusesService.findOne(id);
   }
 
   @Patch(':id/restore')
