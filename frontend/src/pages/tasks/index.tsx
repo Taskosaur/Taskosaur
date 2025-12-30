@@ -29,12 +29,14 @@ import {
   Clipboard,
   User,
   Users,
+  Download,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 import { Task, ColumnConfig, Project, ViewMode } from "@/types";
 import { TokenManager } from "@/lib/api";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
+import { exportTasksToCSV } from "@/utils/exportUtils";
 
 // Custom hook for debouncing
 function useDebounce<T>(value: T, delay: number): T {
@@ -712,6 +714,12 @@ function TasksPageContent() {
     });
   }, [tasks, sortOrder, sortField]);
 
+  const handleExport = useCallback(() => {
+    exportTasksToCSV(sortedTasks, columns, `tasks_export_${new Date().toISOString().split("T")[0]}.csv`, {
+      showProject: true,
+    });
+  }, [columns, sortedTasks]);
+
   // Render content based on view
   const renderContent = () => {
     if (currentView === "gantt") {
@@ -865,6 +873,14 @@ function TasksPageContent() {
                     onAddColumn={handleAddColumn}
                     onRemoveColumn={handleRemoveColumn}
                   />
+
+                  <ActionButton
+                    leftIcon={<Download className="w-4 h-4" />}
+                    onClick={handleExport}
+                    variant="outline"
+                  >
+                    Export
+                  </ActionButton>
                 </div>
               )}
             </>
