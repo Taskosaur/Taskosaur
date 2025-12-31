@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/header/ModeToggle";
 import { HiArrowLeft } from "react-icons/hi2";
+import { SEO } from "@/components/common/SEO";
 
 export default function PrivacyPolicyPage() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function PrivacyPolicyPage() {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
+      <SEO title="Privacy Policy" />
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">

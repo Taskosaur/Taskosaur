@@ -28,6 +28,7 @@ import { ProjectMember, Workspace } from "@/types";
 import PendingInvitations, { PendingInvitationsRef } from "@/components/common/PendingInvitations";
 import WorkspaceMembersSkeleton from "@/components/skeletons/WorkspaceMembersSkeleton";
 import Pagination from "@/components/common/Pagination";
+import { SEO } from "@/components/common/SEO";
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -565,6 +566,7 @@ function WorkspaceMembersContent() {
 
   return (
     <div className="dashboard-container pt-0">
+      <SEO title={workspace ? `${workspace.name} Members` : "Workspace Members"} />
       {/* Header - Compact */}
       <PageHeader
         title={workspace ? `${workspace.name} Members` : "Workspace Members"}

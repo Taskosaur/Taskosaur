@@ -11,6 +11,8 @@ import { OrganizationRole } from "@/types";
 import { LoginContent } from "@/components/login/LoginContent";
 import { questions, QuestionType } from "@/utils/data/newUserQuestions";
 import { invitationApi } from "@/utils/api/invitationsApi";
+import ActionButton from "@/components/common/ActionButton";
+import { SEO } from "@/components/common/SEO";
 import { InvitationModal } from "@/components/notifications/InvitationModal";
 import { ModeToggle } from "@/components/header/ModeToggle";
 
@@ -144,6 +146,7 @@ function IntroQuestions({ onComplete }: { onComplete: () => void }) {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
+      <SEO title="Setup Organization" />
       <div className="login-container">
         <div className="login-content-panel hidden md:block">
           <LoginContent />

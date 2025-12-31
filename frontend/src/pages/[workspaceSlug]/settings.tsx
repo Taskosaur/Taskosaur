@@ -15,6 +15,7 @@ import DangerZoneModal from "@/components/common/DangerZoneModal";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { PageHeader } from "@/components/common/PageHeader";
 import ErrorState from "@/components/common/ErrorState";
+import { SEO } from "@/components/common/SEO";
 
 function WorkspaceSettingsContent() {
   const router = useRouter();
@@ -271,6 +272,7 @@ function WorkspaceSettingsContent() {
 
   return (
     <>
+      <SEO title={workspace ? `${workspace.name} Settings` : "Workspace Settings"} />
       <div className="dashboard-container pt-0 space-y-6">
         <PageHeader
           title="Workspace Settings"

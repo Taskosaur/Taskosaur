@@ -3,6 +3,7 @@ import AuthRedirect from "@/components/auth/AuthRedirect";
 import { ModeToggle } from "@/components/header/ModeToggle";
 import { LoginContent } from "@/components/login/LoginContent";
 import { LoginForm } from "@/components/login/LoginForm";
+import { SEO } from "@/components/common/SEO";
 
 export default function LoginPage() {
   const { checkOrganizationAndRedirect } = useAuth();
@@ -12,22 +13,25 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthRedirect redirectTo={redirectTo}>
-      <div className="min-h-screen bg-[var(--background)]">
-        <div className="login-container">
-          <div className="login-content-panel hidden md:block">
-            <LoginContent />
-          </div>
-          <div className="login-form-mode-toggle">
-            <ModeToggle />
-          </div>
-          <div className="login-form-panel">
-            <div className="login-form-wrapper">
-              <LoginForm />
+    <>
+      <SEO title="Login" />
+      <AuthRedirect redirectTo={redirectTo}>
+        <div className="min-h-screen bg-[var(--background)]">
+          <div className="login-container">
+            <div className="login-content-panel hidden md:block">
+              <LoginContent />
+            </div>
+            <div className="login-form-mode-toggle">
+              <ModeToggle />
+            </div>
+            <div className="login-form-panel">
+              <div className="login-form-wrapper">
+                <LoginForm />
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </AuthRedirect>
+      </AuthRedirect>
+    </>
   );
 }

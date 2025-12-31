@@ -11,6 +11,7 @@ import { AlertCircle, CheckCircle2, Loader2, Mail, ArrowRight, ArrowLeft } from 
 import { LoginContent } from "@/components/login/LoginContent";
 import { ModeToggle } from "@/components/header/ModeToggle";
 import { ForgotPasswordData } from "@/types";
+import { SEO } from "@/components/common/SEO";
 
 function ForgotPasswordForm() {
   const { forgotPassword } = useAuth();
@@ -278,6 +279,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthRedirect redirectTo={redirectTo}>
+      <SEO title="Forgot Password" />
       <div className="min-h-screen bg-[var(--background)]">
         <div className="min-h-screen flex bg-[var(--background)]">
           <div className="lg:w-1/2 relative">

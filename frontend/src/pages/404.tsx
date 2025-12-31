@@ -2,10 +2,13 @@ import ActionButton from "@/components/common/ActionButton";
 import { useRouter } from "next/router";
 import React from "react";
 
+import { SEO } from "@/components/common/SEO";
+
 const NotFound = () => {
   const router = useRouter();
   return (
     <div className="flex justify-center items-center pt-[15%]">
+      <SEO title="Page Not Found" />
       <div className="flex flex-col items-center justify-center p-6 bg-[var(--background)] text-center overflow-hidden">
         <h1 className="text-[8rem] sm:text-[10rem] font-extrabold leading-none text-[var(--primary)] drop-shadow-md">
           404

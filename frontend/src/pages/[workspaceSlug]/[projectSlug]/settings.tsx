@@ -21,6 +21,7 @@ import { Cog } from "lucide-react";
 import { IoWarning } from "react-icons/io5";
 import ActionButton from "@/components/common/ActionButton";
 import ErrorState from "@/components/common/ErrorState";
+import { SEO } from "@/components/common/SEO";
 
 // Helper function to validate internal paths and prevent open redirect vulnerabilities
 function isValidInternalPath(path: string): boolean {
@@ -367,6 +368,7 @@ function ProjectSettingsContent() {
 
   return (
     <div className="dashboard-container space-y-6">
+      <SEO title={project ? `${project.name} Settings` : "Project Settings"} />
       <PageHeader
         title="Project Settings"
         description="Manage your project configuration and preferences"

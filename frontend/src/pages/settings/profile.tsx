@@ -8,6 +8,7 @@ import AISettingsModal from "@/components/settings/AISettings";
 import { useState } from "react";
 import ActionButton from "@/components/common/ActionButton";
 import { PageHeader } from "@/components/common/PageHeader";
+import { SEO } from "@/components/common/SEO";
 
 export default function ProfilePage() {
   const { getCurrentUser } = useAuth();
@@ -35,7 +36,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="dashboard-container">
+    <>
+      <SEO title="Profile" />
+      <div className="dashboard-container">
       <div>
         {/* Header */}
         <PageHeader
@@ -64,5 +67,6 @@ export default function ProfilePage() {
         <AISettingsModal isOpen={isAIModalOpen} onClose={() => setIsAIModalOpen(false)} />
       </div>
     </div>
+    </>
   );
 }

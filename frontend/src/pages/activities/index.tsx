@@ -34,6 +34,7 @@ import { ActivityFeedPanel } from "@/components/activity/ActivityFeedPanel";
 import { ActivityFilters, ActivityItem, ActivityResponse } from "@/types";
 import Tooltip from "@/components/common/ToolTip";
 import ErrorState from "@/components/common/ErrorState";
+import { SEO } from "@/components/common/SEO";
 
 type EntityTypeFilter = "Task" | "Project" | "Workspace" | "Organization" | "User" | "all";
 
@@ -220,6 +221,7 @@ function ActivityPageContent() {
 
   return (
     <div className="min-h-screen bg-[var(--background)] p-4">
+      <SEO title="Activity Feed" />
       <div className="">
         <div className="flex flex-col gap-4">
           <PageHeader
