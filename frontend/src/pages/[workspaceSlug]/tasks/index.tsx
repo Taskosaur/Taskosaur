@@ -819,180 +819,173 @@ function WorkspaceTasksContent() {
   if (error) return <ErrorState error={error} onRetry={handleRetry} />;
 
   return (
-    <div className="dashboard-container h-[86vh] flex flex-col space-y-3">
-      {/* Sticky PageHeader */}
-      <div className="sticky top-0 z-50 ">
-        <PageHeader
-          title={workspace ? `${workspace.name} Tasks` : "Workspace Tasks"}
-          description="Manage and track all tasks across projects in this workspace."
-          actions={
-            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
-              <div className="flex items-center gap-2">
-                <div className="relative w-full sm:max-w-xs">
-                  <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
-                  <Input
-                    type="text"
-                    placeholder="Search tasks..."
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    className="pl-10 rounded-md border border-[var(--border)]"
-                  />
-                  {searchInput && (
-                    <button
-                      onClick={clearSearch}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
-                    >
-                      <HiXMark size={16} />
-                    </button>
+    <div className="dashboard-container flex flex-col">
+      {/* Unified Sticky Header */}
+      <div className="sticky top-0 z-50 bg-[var(--background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80 border-b border-[var(--border)]/10 -mx-4 px-4 pb-0 pt-4">
+        {/* PageHeader */}
+        <div className="pb-2">
+          <PageHeader
+            title={workspace ? `${workspace.name} Tasks` : "Workspace Tasks"}
+            description="Manage and track all tasks across projects in this workspace."
+            actions={
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="relative w-full sm:max-w-xs">
+                    <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
+                    <Input
+                      type="text"
+                      placeholder="Search tasks..."
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      className="pl-10 rounded-md border border-[var(--border)]"
+                    />
+                    {searchInput && (
+                      <button
+                        onClick={clearSearch}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+                      >
+                        <HiXMark size={16} />
+                      </button>
+                    )}
+                  </div>
+                  {currentView === "list" && (
+                    <FilterDropdown
+                      sections={filterSections}
+                      title="Advanced Filters"
+                      activeFiltersCount={totalActiveFilters}
+                      onClearAllFilters={clearAllFilters}
+                      placeholder="Filter results..."
+                      dropdownWidth="w-56"
+                      showApplyButton={false}
+                      onOpen={loadFilterData}
+                    />
                   )}
                 </div>
-                {currentView === "list" && (
-                  <FilterDropdown
-                    sections={filterSections}
-                    title="Advanced Filters"
-                    activeFiltersCount={totalActiveFilters}
-                    onClearAllFilters={clearAllFilters}
-                    placeholder="Filter results..."
-                    dropdownWidth="w-56"
-                    showApplyButton={false}
-                    onOpen={loadFilterData}
-                  />
+                {userAccess?.role !== "VIEWER" && (
+                  <ActionButton
+                    primary
+                    showPlusIcon
+                    onClick={() => {
+                      const safeSlug = sanitizeSlug(workspaceSlug);
+                      if (!safeSlug) {
+                        console.error('Invalid workspace slug');
+                        router.push('/');
+                        return;
+                      }
+                      const path = `/${safeSlug}/tasks/new`;
+                      if (isValidInternalPath(path)) {
+                        router.push(path);
+                      } else {
+                        router.push('/');
+                      }
+                    }}
+                    disabled={!workspace?.id}
+                  >
+                    Create Task
+                  </ActionButton>
                 )}
-              </div>
-              {userAccess?.role !== "VIEWER" && (
-                <ActionButton
-                  primary
-                  showPlusIcon
-                  onClick={() => {
-                    const safeSlug = sanitizeSlug(workspaceSlug);
-                    if (!safeSlug) {
-                      console.error('Invalid workspace slug');
-                      router.push('/');
-                      return;
-                    }
-                    const path = `/${safeSlug}/tasks/new`;
-                    if (isValidInternalPath(path)) {
-                      router.push(path);
-                    } else {
-                      router.push('/');
+                <NewTaskModal
+                  isOpen={isNewTaskModalOpen}
+                  onClose={() => {
+                    setNewTaskModalOpen(false);
+                    setLocalError(null);
+                  }}
+                  onTaskCreated={async () => {
+                    try {
+                      await handleTaskCreated();
+                    } catch (error) {
+                      const errorMessage =
+                        error instanceof Error ? error.message : "Failed to refresh tasks";
+                      console.error("Error creating task:", errorMessage);
+                      await loadTasks();
                     }
                   }}
-                  disabled={!workspace?.id}
-                >
-                  Create Task
-                </ActionButton>
-              )}
-              <NewTaskModal
-                isOpen={isNewTaskModalOpen}
-                onClose={() => {
-                  setNewTaskModalOpen(false);
-                  setLocalError(null);
-                }}
-                onTaskCreated={async () => {
-                  try {
-                    await handleTaskCreated();
-                  } catch (error) {
-                    const errorMessage =
-                      error instanceof Error ? error.message : "Failed to refresh tasks";
-                    console.error("Error creating task:", errorMessage);
-                    await loadTasks();
-                  }
-                }}
-                workspaceSlug={workspaceSlug as string}
-              />
-            </div>
-          }
-        />
-      </div>
-      {/* Sticky TabView */}
-      <div className="sticky top-[64px] z-40">
-        <TabView
-          currentView={currentView}
-          onViewChange={(v) => {
-            setCurrentView(v);
-            const safeSlug = sanitizeSlug(workspaceSlug);
-            if (!safeSlug) {
-              console.error('Invalid workspace slug');
-              router.push('/');
-              return;
+                  workspaceSlug={workspaceSlug as string}
+                />
+              </div>
             }
-            const path = `/${safeSlug}/tasks?type=${v}`;
-            if (isValidInternalPath(path.split('?')[0])) {
-              router.push(path, undefined, {
-                shallow: true,
-              });
-            } else {
-              router.push('/');
-            }
-          }}
-          viewKanban={false}
-          rightContent={
-            <>
-              {currentView === "gantt" && (
-                <div className="flex items-center bg-[var(--odd-row)] rounded-lg p-1 shadow-sm">
-                  {(["days", "weeks", "months"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setGanttViewMode(mode)}
-                      className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${
-                        ganttViewMode === mode
-                          ? "bg-blue-500 text-white"
-                          : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
-                      }`}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {currentView === "list" && (
-                <div className="flex items-center gap-2">
-                  <SortingManager
-                    sortField={sortField}
-                    sortOrder={sortOrder}
-                    onSortFieldChange={setSortField}
-                    onSortOrderChange={setSortOrder}
-                  />
-                  <ColumnManager
-                    currentView={currentView}
-                    availableColumns={columns}
-                    onAddColumn={handleAddColumn}
-                    onRemoveColumn={handleRemoveColumn}
-                  />
-                  <ActionButton
-                    leftIcon={<Download className="w-4 h-4" />}
-                    onClick={handleExport}
-                    variant="outline"
-                  >
-                    Export
-                  </ActionButton>
-                </div>
-              )}
-              {currentView === "kanban" &&
-                (hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER") && (
+          />
+        </div>
+
+        {/* TabView */}
+        <div className="py-3 border-t border-[var(--border)]/50">
+          <TabView
+            currentView={currentView}
+            onViewChange={(v) => {
+              setCurrentView(v);
+              const safeSlug = sanitizeSlug(workspaceSlug);
+              if (!safeSlug) {
+                console.error('Invalid workspace slug');
+                router.push('/');
+                return;
+              }
+              const path = `/${safeSlug}/tasks?type=${v}`;
+              if (isValidInternalPath(path.split('?')[0])) {
+                router.push(path, undefined, {
+                  shallow: true,
+                });
+              } else {
+                router.push('/');
+              }
+            }}
+            viewKanban={false}
+            rightContent={
+              <>
+                {currentView === "gantt" && (
+                  <div className="flex items-center bg-[var(--odd-row)] rounded-lg p-1 shadow-sm">
+                    {(["days", "weeks", "months"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setGanttViewMode(mode)}
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${
+                          ganttViewMode === mode
+                            ? "bg-blue-500 text-white"
+                            : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
+                        }`}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {currentView === "list" && (
                   <div className="flex items-center gap-2">
-                    <Tooltip content="Manage Columns" position="top" color="primary">
-                      <ColumnManager
-                        currentView={currentView}
-                        availableColumns={columns}
-                        onAddColumn={handleAddColumn}
-                        onRemoveColumn={handleRemoveColumn}
-                      />
-                    </Tooltip>
+                    <SortingManager
+                      sortField={sortField}
+                      sortOrder={sortOrder}
+                      onSortFieldChange={setSortField}
+                      onSortOrderChange={setSortOrder}
+                    />
+
+                    <ColumnManager
+                      currentView={currentView}
+                      availableColumns={columns}
+                      onAddColumn={handleAddColumn}
+                      onRemoveColumn={handleRemoveColumn}
+                    />
+
+                    <ActionButton
+                      leftIcon={<Download className="w-4 h-4" />}
+                      onClick={handleExport}
+                      variant="outline"
+                    >
+                      Export
+                    </ActionButton>
                   </div>
                 )}
             </>
           }
         />
       </div>
+    </div>
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto rounded-md">
+      <div className="rounded-md">
         {error ? <ErrorState error={error} onRetry={handleRetry} /> : renderContent()}
       </div>
-      {/* Sticky Pagination */}
+      {/* Natural Flow Pagination */}
       {showPagination && (
-        <div className="sticky bottom-0 z-30 pt-2">
+        <div className="mt-4 border-t border-[var(--border)]/50 py-4 -mx-4 px-4">
           <Pagination
             pagination={pagination}
             pageSize={pageSize}

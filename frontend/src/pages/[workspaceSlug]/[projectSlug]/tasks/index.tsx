@@ -1037,204 +1037,207 @@ function ProjectTasksContent() {
   if (error) return <ErrorState error={error} onRetry={handleRetry} />;
 
   return (
-    <div className="dashboard-container h-[86vh] flex flex-col space-y-3">
-      {/* Sticky PageHeader */}
-      <div className="sticky top-0 z-30 bg-[var(--background)]">
-        <PageHeader
-          title={project ? `${project.name} Tasks` : "Project Tasks"}
-          description={`Manage and track all tasks for ${project?.name || "this project"}`}
-          actions={
-            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
-              <div className="flex items-center gap-2">
-                {/* Hide search for unauthenticated users */}
-                {isAuth && (
-                  <div className="relative w-full sm:max-w-xs">
-                    <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
-                    <Input
-                      type="text"
-                      placeholder="Search tasks..."
-                      value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
-                      className="pl-10 rounded-md border border-[var(--border)]"
-                    />
-                    {searchInput && (
-                      <button
-                        onClick={clearSearch}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
-                      >
-                        <HiXMark size={16} />
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Hide filters for unauthenticated users */}
-                {isAuth && currentView === "list" && (
-                  <FilterDropdown
-                    sections={filterSections}
-                    title="Advanced Filters"
-                    activeFiltersCount={totalActiveFilters}
-                    onClearAllFilters={clearAllFilters}
-                    placeholder="Filter results..."
-                    dropdownWidth="w-56"
-                    showApplyButton={false}
-                  />
-                )}
-              </div>
-
-              {/* ONLY Create Task requires authentication */}
-              {userAccess?.role !== "VIEWER" && isAuth && (
-                <ActionButton
-                  primary
-                  showPlusIcon
-                  onClick={() => {
-                    checkAuthForAction(() => {
-                      const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
-                      const safeProjectSlug = sanitizeSlug(projectSlug);
-                      if (!safeWorkspaceSlug || !safeProjectSlug) {
-                        console.error('Invalid workspace or project slug');
-                        router.push('/');
-                        return;
-                      }
-                      const path = `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks/new`;
-                      if (isValidInternalPath(path)) {
-                        router.push(path);
-                      } else {
-                        router.push('/');
-                      }
-                    });
-                  }}
-                  disabled={!workspace?.id || !project?.id}
-                >
-                  Create Task
-                </ActionButton>
-              )}
-              <NewTaskModal
-                isOpen={isNewTaskModalOpen}
-                onClose={() => {
-                  setNewTaskModalOpen(false);
-                  setLocalError(null);
-                }}
-                onTaskCreated={async () => {
-                  try {
-                    await handleTaskCreated();
-                  } catch (error) {
-                    const errorMessage = error?.message ? error.message : "Failed to refresh tasks";
-                    console.error("Error creating task:", errorMessage);
-                    if (isAuth) {
-                      await loadTasks();
-                    }
-                  }
-                }}
-                workspaceSlug={workspaceSlug as string}
-                projectSlug={projectSlug as string}
-              />
-            </div>
-          }
-        />
-      </div>
-
-      {/* Sticky TabView - Limited for unauthenticated users */}
-      <div className="sticky top-[64px] z-20 bg-[var(--background)]">
-        <TabView
-          currentView={currentView}
-          onViewChange={(v) => {
-            // For unauthenticated users, only allow list view
-            if (!isAuth && v !== "list") {
-              return;
-            }
-            setCurrentView(v);
-            const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
-            const safeProjectSlug = sanitizeSlug(projectSlug);
-            if (!safeWorkspaceSlug || !safeProjectSlug) {
-              console.error('Invalid workspace or project slug');
-              router.push('/');
-              return;
-            }
-            const path = `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks?type=${v}`;
-            if (isValidInternalPath(path.split('?')[0])) {
-              router.push(path, undefined, {
-                shallow: true,
-              });
-            } else {
-              router.push('/');
-            }
-          }}
-          viewKanban={isAuth}
-          viewGantt={isAuth}
-          rightContent={
-            <>
-              {/* Hide most controls for unauthenticated users */}
-              {isAuth && currentView === "gantt" && (
-                <div className="flex items-center bg-[var(--odd-row)] rounded-lg p-1 shadow-sm">
-                  {(["days", "weeks", "months"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setGanttViewMode(mode)}
-                      className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${
-                        ganttViewMode === mode
-                          ? "bg-blue-500 text-white"
-                          : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
-                      }`}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {/* List view controls - Available for all users */}
-              {currentView === "list" && (
+    <div className="dashboard-container flex flex-col">
+      {/* Unified Sticky Header */}
+      <div className="sticky top-0 z-40 bg-[var(--background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80 border-b border-[var(--border)]/10 -mx-4 px-4 pb-0 pt-4">
+        {/* PageHeader */}
+        <div className="pb-2">
+          <PageHeader
+            title={project ? `${project.name} Tasks` : "Project Tasks"}
+            description={`Manage and track all tasks for ${project?.name || "this project"}`}
+            actions={
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
                 <div className="flex items-center gap-2">
-                  <SortingManager
-                    sortField={sortField}
-                    sortOrder={sortOrder}
-                    onSortFieldChange={setSortField}
-                    onSortOrderChange={setSortOrder}
-                  />
-                  <ColumnManager
-                    currentView={currentView}
-                    availableColumns={columns}
-                    onAddColumn={handleAddColumn}
-                    onRemoveColumn={handleRemoveColumn}
-                    setKabBanSettingModal={setKabBanSettingModal}
-                  />
-                  <ActionButton
-                    leftIcon={<Download className="w-4 h-4" />}
-                    onClick={handleExport}
-                    variant="outline"
-                  >
-                    Export
-                  </ActionButton>
-                </div>
-              )}
-              {/* Kanban view controls - Only for authenticated users */}
-              {isAuth &&
-                currentView === "kanban" &&
-                (hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER") && (
-                  <div className="flex items-center gap-2">
-                    <Tooltip content="Manage Columns" position="top" color="primary">
-                      <ColumnManager
-                        currentView={currentView}
-                        availableColumns={columns}
-                        onAddColumn={handleAddColumn}
-                        onRemoveColumn={handleRemoveColumn}
-                        setKabBanSettingModal={setKabBanSettingModal}
+                  {/* Hide search for unauthenticated users */}
+                  {isAuth && (
+                    <div className="relative w-full sm:max-w-xs">
+                      <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
+                      <Input
+                        type="text"
+                        placeholder="Search tasks..."
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                        className="pl-10 rounded-md border border-[var(--border)]"
                       />
-                    </Tooltip>
+                      {searchInput && (
+                        <button
+                          onClick={clearSearch}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+                        >
+                          <HiXMark size={16} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Hide filters for unauthenticated users */}
+                  {isAuth && currentView === "list" && (
+                    <FilterDropdown
+                      sections={filterSections}
+                      title="Advanced Filters"
+                      activeFiltersCount={totalActiveFilters}
+                      onClearAllFilters={clearAllFilters}
+                      placeholder="Filter results..."
+                      dropdownWidth="w-56"
+                      showApplyButton={false}
+                    />
+                  )}
+                </div>
+
+                {/* ONLY Create Task requires authentication */}
+                {userAccess?.role !== "VIEWER" && isAuth && (
+                  <ActionButton
+                    primary
+                    showPlusIcon
+                    onClick={() => {
+                      checkAuthForAction(() => {
+                        const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
+                        const safeProjectSlug = sanitizeSlug(projectSlug);
+                        if (!safeWorkspaceSlug || !safeProjectSlug) {
+                          console.error('Invalid workspace or project slug');
+                          router.push('/');
+                          return;
+                        }
+                        const path = `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks/new`;
+                        if (isValidInternalPath(path)) {
+                          router.push(path);
+                        } else {
+                          router.push('/');
+                        }
+                      });
+                    }}
+                    disabled={!workspace?.id || !project?.id}
+                  >
+                    Create Task
+                  </ActionButton>
+                )}
+                <NewTaskModal
+                  isOpen={isNewTaskModalOpen}
+                  onClose={() => {
+                    setNewTaskModalOpen(false);
+                    setLocalError(null);
+                  }}
+                  onTaskCreated={async () => {
+                    try {
+                      await handleTaskCreated();
+                    } catch (error) {
+                      const errorMessage = error?.message ? error.message : "Failed to refresh tasks";
+                      console.error("Error creating task:", errorMessage);
+                      if (isAuth) {
+                        await loadTasks();
+                      }
+                    }
+                  }}
+                  workspaceSlug={workspaceSlug as string}
+                  projectSlug={projectSlug as string}
+                />
+              </div>
+            }
+          />
+        </div>
+
+        {/* TabView - Limited for unauthenticated users */}
+        <div className="py-3 border-t border-[var(--border)]/50">
+          <TabView
+            currentView={currentView}
+            onViewChange={(v) => {
+              // For unauthenticated users, only allow list view
+              if (!isAuth && v !== "list") {
+                return;
+              }
+              setCurrentView(v);
+              const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
+              const safeProjectSlug = sanitizeSlug(projectSlug);
+              if (!safeWorkspaceSlug || !safeProjectSlug) {
+                console.error('Invalid workspace or project slug');
+                router.push('/');
+                return;
+              }
+              const path = `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks?type=${v}`;
+              if (isValidInternalPath(path.split('?')[0])) {
+                router.push(path, undefined, {
+                  shallow: true,
+                });
+              } else {
+                router.push('/');
+              }
+            }}
+            viewKanban={isAuth}
+            viewGantt={isAuth}
+            rightContent={
+              <>
+                {/* Hide most controls for unauthenticated users */}
+                {isAuth && currentView === "gantt" && (
+                  <div className="flex items-center bg-[var(--odd-row)] rounded-lg p-1 shadow-sm">
+                    {(["days", "weeks", "months"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setGanttViewMode(mode)}
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${
+                          ganttViewMode === mode
+                            ? "bg-blue-500 text-white"
+                            : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
+                        }`}
+                      >
+                        {mode}
+                      </button>
+                    ))}
                   </div>
                 )}
-            </>
-          }
-        />
+                {/* List view controls - Available for all users */}
+                {currentView === "list" && (
+                  <div className="flex items-center gap-2">
+                    <SortingManager
+                      sortField={sortField}
+                      sortOrder={sortOrder}
+                      onSortFieldChange={setSortField}
+                      onSortOrderChange={setSortOrder}
+                    />
+                    <ColumnManager
+                      currentView={currentView}
+                      availableColumns={columns}
+                      onAddColumn={handleAddColumn}
+                      onRemoveColumn={handleRemoveColumn}
+                      setKabBanSettingModal={setKabBanSettingModal}
+                    />
+                    <ActionButton
+                      leftIcon={<Download className="w-4 h-4" />}
+                      onClick={handleExport}
+                      variant="outline"
+                    >
+                      Export
+                    </ActionButton>
+                  </div>
+                )}
+                {/* Kanban view controls - Only for authenticated users */}
+                {isAuth &&
+                  currentView === "kanban" &&
+                  (hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER") && (
+                    <div className="flex items-center gap-2">
+                      <Tooltip content="Manage Columns" position="top" color="primary">
+                        <ColumnManager
+                          currentView={currentView}
+                          availableColumns={columns}
+                          onAddColumn={handleAddColumn}
+                          onRemoveColumn={handleRemoveColumn}
+                          setKabBanSettingModal={setKabBanSettingModal}
+                        />
+                      </Tooltip>
+                    </div>
+                  )}
+              </>
+            }
+          />
+        </div>
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto rounded-md">{renderContent()}</div>
+      <div className="rounded-md">{renderContent()}</div>
 
-      {/* Sticky Pagination - Available for all users */}
+      {/* Natural Flow Pagination */}
       {showPagination && (
-        <div className="sticky bottom-0 z-10 bg-[var(--background)]">
+        <div className="mt-4 border-t border-[var(--border)]/50 py-4 -mx-4 px-4">
           <Pagination
             pagination={pagination}
             pageSize={pageSize}

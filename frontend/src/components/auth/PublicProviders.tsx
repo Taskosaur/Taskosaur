@@ -50,7 +50,7 @@ export default function PublicProviders({ children }: CommonProvidersProps) {
                               className="fixed z-[1000] inset-0 pointer-events-none"
                             />
                           )}
-                          <div className="max-w-[1400px] mx-auto">{children}</div>
+                          <div className="max-w-[90%] mx-auto">{children}</div>
                         </div>
                       </div>
                     </div>

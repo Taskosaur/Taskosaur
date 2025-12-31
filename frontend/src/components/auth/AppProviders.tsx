@@ -54,7 +54,7 @@ function AppProvidersContent({ children }: CommonProvidersProps) {
                                 className="fixed z-[1000] inset-0 pointer-events-none"
                               />
                             )}
-                            <div className="max-w-[1400px] mx-auto">
+                            <div className="max-w-[90%] mx-auto">
                               <Breadcrumb />
                               {children}
                             </div>

@@ -37,6 +37,7 @@ import { Task, ColumnConfig, Project, ViewMode } from "@/types";
 import { TokenManager } from "@/lib/api";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 import { exportTasksToCSV } from "@/utils/exportUtils";
+import { SEO } from "@/components/common/SEO";
 
 // Custom hook for debouncing
 function useDebounce<T>(value: T, delay: number): T {
@@ -777,123 +778,127 @@ function TasksPageContent() {
   }
 
   return (
-    <div className="dashboard-container h-[91vh] flex flex-col space-y-3">
-      {/* Sticky PageHeader */}
-      <div className="sticky top-0 z-50">
-        <PageHeader
-          icon={<Clipboard className="size-20px" />}
-          title="My Tasks"
-          description="Manage and track all your assigned tasks in one place."
-          actions={
-            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
-              <div className="flex items-center gap-2">
-                <div className="relative w-full sm:max-w-xs">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
-                  <Input
-                    type="text"
-                    placeholder="Search tasks..."
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    className="pl-10 rounded-md border border-[var(--border)]"
-                  />
-                  {searchInput && (
-                    <button
-                      onClick={clearSearch}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                    >
-                      <HiXMark size={16} />
-                    </button>
+    <div className="dashboard-container flex flex-col">
+      <SEO title="My Tasks" />
+      {/* Unified Sticky Header */}
+      <div className="sticky top-0 z-50 bg-[var(--background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80 border-b border-[var(--border)]/10 -mx-4 px-4 pb-0 pt-4">
+        {/* PageHeader */}
+        <div className="pb-2">
+          <PageHeader
+            icon={<Clipboard className="size-20px" />}
+            title="My Tasks"
+            description="Manage and track all your assigned tasks in one place."
+            actions={
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="relative w-full sm:max-w-xs">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
+                    <Input
+                      type="text"
+                      placeholder="Search tasks..."
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      className="pl-10 rounded-md border border-[var(--border)]"
+                    />
+                    {searchInput && (
+                      <button
+                        onClick={clearSearch}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                      >
+                        <HiXMark size={16} />
+                      </button>
+                    )}
+                  </div>
+                  {currentView === "list" && (
+                    <Tooltip content="Advanced Filters" position="top" color="primary">
+                      <FilterDropdown
+                        sections={filterSections}
+                        title="Advanced Filters"
+                        activeFiltersCount={totalActiveFilters}
+                        onClearAllFilters={clearAllFilters}
+                        placeholder="Filter results..."
+                        dropdownWidth="w-56"
+                        showApplyButton={false}
+                        onOpen={handleFilterDropdownOpen}
+                      />
+                    </Tooltip>
                   )}
                 </div>
-                {currentView === "list" && (
-                  <Tooltip content="Advanced Filters" position="top" color="primary">
-                    <FilterDropdown
-                      sections={filterSections}
-                      title="Advanced Filters"
-                      activeFiltersCount={totalActiveFilters}
-                      onClearAllFilters={clearAllFilters}
-                      placeholder="Filter results..."
-                      dropdownWidth="w-56"
-                      showApplyButton={false}
-                      onOpen={handleFilterDropdownOpen}
-                    />
-                  </Tooltip>
+                {userAccess?.role !== "VIEWER" && (
+                  <ActionButton primary showPlusIcon onClick={() => setNewTaskModalOpen(true)}>
+                    Create Task
+                  </ActionButton>
                 )}
               </div>
-              {userAccess?.role !== "VIEWER" && (
-                <ActionButton primary showPlusIcon onClick={() => setNewTaskModalOpen(true)}>
-                  Create Task
-                </ActionButton>
-              )}
-            </div>
-          }
-        />
-      </div>
+            }
+          />
+        </div>
 
-      {/* Sticky TabView */}
-      <div className="sticky top-[64px] z-40">
-        <TabView
-          currentView={currentView}
-          onViewChange={(v) => {
-            setCurrentView(v);
-            router.push(`/tasks?type=${v}`, undefined, { shallow: true });
-          }}
-          rightContent={
-            <>
-              {currentView === "gantt" && (
-                <div className="flex items-center bg-[var(--odd-row)] rounded-lg p-1 shadow-sm">
-                  {(["days", "weeks", "months"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setGanttViewMode(mode)}
-                      className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${
-                        ganttViewMode === mode
-                          ? "bg-blue-500 text-white"
-                          : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
-                      }`}
+        {/* TabView */}
+        <div className="py-3 border-t border-[var(--border)]/50">
+          <TabView
+            currentView={currentView}
+            onViewChange={(v) => {
+              setCurrentView(v);
+              router.push(`/tasks?type=${v}`, undefined, { shallow: true });
+            }}
+            rightContent={
+              <>
+                {currentView === "gantt" && (
+                  <div className="flex items-center bg-[var(--odd-row)] rounded-lg p-1 shadow-sm">
+                    {(["days", "weeks", "months"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setGanttViewMode(mode)}
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${
+                          ganttViewMode === mode
+                            ? "bg-blue-500 text-white"
+                            : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
+                        }`}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {currentView === "list" && (
+                  <div className="flex items-center gap-2">
+                    <SortIngManager
+                      sortField={sortField}
+                      sortOrder={sortOrder}
+                      onSortFieldChange={setSortField}
+                      onSortOrderChange={setSortOrder}
+                    />
+
+                    <ColumnManager
+                      currentView={currentView}
+                      availableColumns={columns}
+                      onAddColumn={handleAddColumn}
+                      onRemoveColumn={handleRemoveColumn}
+                    />
+
+                    <ActionButton
+                      leftIcon={<Download className="w-4 h-4" />}
+                      onClick={handleExport}
+                      variant="outline"
                     >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {currentView === "list" && (
-                <div className="flex items-center gap-2">
-                  <SortIngManager
-                    sortField={sortField}
-                    sortOrder={sortOrder}
-                    onSortFieldChange={setSortField}
-                    onSortOrderChange={setSortOrder}
-                  />
-
-                  <ColumnManager
-                    currentView={currentView}
-                    availableColumns={columns}
-                    onAddColumn={handleAddColumn}
-                    onRemoveColumn={handleRemoveColumn}
-                  />
-
-                  <ActionButton
-                    leftIcon={<Download className="w-4 h-4" />}
-                    onClick={handleExport}
-                    variant="outline"
-                  >
-                    Export
-                  </ActionButton>
-                </div>
-              )}
-            </>
-          }
-        />
+                      Export
+                    </ActionButton>
+                  </div>
+                )}
+              </>
+            }
+          />
+        </div>
       </div>
 
       {/* Scrollable Content */}
-      <div className="overflow-y-auto rounded-md">{renderContent()}</div>
+      <div className="rounded-md">{renderContent()}</div>
 
-      {/* Sticky Pagination */}
+      {/* Natural Flow Pagination */}
       {showPagination && (
-        <div className="sticky bottom-0 z-30">
+        <div className="mt-4 border-t border-[var(--border)]/50 py-4 -mx-4 px-4">
           <Pagination
             pagination={pagination}
             pageSize={pageSize}

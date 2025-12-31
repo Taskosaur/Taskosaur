@@ -775,98 +775,87 @@ const SprintTasksTable = () => {
   };
 
   return (
-    <div className="dashboard-container h-[86vh] flex flex-col space-y-3">
-      {/* Sticky PageHeader */}
-      <div className="sticky top-0 z-50">
-        <PageHeader
-          title="Sprint Tasks"
-          description={`Manage and track all tasks in this sprint. ${pagination.totalCount} total tasks`}
-          actions={
-            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
-              <div className="flex items-center gap-2">
-                <div className="relative w-full sm:max-w-xs">
-                  <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
-                  <Input
-                    type="text"
-                    placeholder="Search tasks..."
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    className="pl-10 rounded-md border border-[var(--border)]"
-                  />
-                  {searchInput && (
-                    <button
-                      onClick={clearSearch}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                    >
-                      <HiXMark size={16} />
-                    </button>
+    <div className="dashboard-container flex flex-col">
+      {/* Unified Sticky Header */}
+      <div className="sticky top-0 z-50 bg-[var(--background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80 border-b border-[var(--border)]/10 -mx-4 px-4 pb-0 pt-4">
+        {/* PageHeader */}
+        <div className="pb-2">
+          <PageHeader
+            title="Sprint Tasks"
+            description={`Manage and track all tasks in this sprint. ${pagination.totalCount} total tasks`}
+            actions={
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="relative w-full sm:max-w-xs">
+                    <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
+                    <Input
+                      type="text"
+                      placeholder="Search tasks..."
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      className="pl-10 rounded-md border border-[var(--border)]"
+                    />
+                    {searchInput && (
+                      <button
+                        onClick={clearSearch}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                      >
+                        <HiXMark size={16} />
+                      </button>
+                    )}
+                  </div>
+                  {currentView === "list" && isAuth && (
+                    <FilterDropdown
+                      sections={filterSections}
+                      title="Advanced Filters"
+                      activeFiltersCount={totalActiveFilters}
+                      onClearAllFilters={clearAllFilters}
+                      placeholder="Filter results..."
+                      dropdownWidth="w-56"
+                      showApplyButton={false}
+                    />
                   )}
                 </div>
-                {currentView === "list" && isAuth && (
-                  <FilterDropdown
-                    sections={filterSections}
-                    title="Advanced Filters"
-                    activeFiltersCount={totalActiveFilters}
-                    onClearAllFilters={clearAllFilters}
-                    placeholder="Filter results..."
-                    dropdownWidth="w-56"
-                    showApplyButton={false}
-                  />
-                )}
               </div>
-            </div>
-          }
-        />
-      </div>
+            }
+          />
+        </div>
 
-      {/* Sticky TabView */}
-      <div className="sticky top-[64px] z-40 bg-background">
-        <TabView
-          currentView={currentView}
-          onViewChange={(v) => setCurrentView(v)}
-          viewKanban={isAuth}
-          viewGantt={isAuth}
-          rightContent={
-            <>
-              {currentView === "gantt" && isAuth && (
-                <div className="flex items-center bg-[var(--odd-row)] rounded-lg p-1 shadow-sm">
-                  {(["days", "weeks", "months"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setGanttViewMode(mode)}
-                      className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${
-                        ganttViewMode === mode
-                          ? "bg-blue-500 text-white"
-                          : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
-                      }`}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {currentView === "list" && (
-                <div className="flex items-center gap-2">
-                  <SortingManager
-                    sortField={sortField}
-                    sortOrder={sortOrder}
-                    onSortFieldChange={setSortField}
-                    onSortOrderChange={setSortOrder}
-                  />
-
-                  <ColumnManager
-                    currentView={currentView}
-                    availableColumns={columns}
-                    onAddColumn={handleAddColumn}
-                    onRemoveColumn={handleRemoveColumn}
-                    setKabBanSettingModal={setKabBanSettingModal}
-                  />
-                </div>
-              )}
-              {currentView === "kanban" && isAuthenticated() && hasAccess && (
-                <div className="flex items-center gap-2">
-                  <Tooltip content="Manage Columns" position="top" color="primary">
+        {/* TabView */}
+        <div className="py-3 border-t border-[var(--border)]/50">
+          <TabView
+            currentView={currentView}
+            onViewChange={(v) => setCurrentView(v)}
+            viewKanban={isAuth}
+            viewGantt={isAuth}
+            rightContent={
+              <>
+                {currentView === "gantt" && isAuth && (
+                  <div className="flex items-center bg-[var(--odd-row)] rounded-lg p-1 shadow-sm">
+                    {(["days", "weeks", "months"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setGanttViewMode(mode)}
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${
+                          ganttViewMode === mode
+                            ? "bg-blue-500 text-white"
+                            : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
+                        }`}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {currentView === "list" && (
+                  <div className="flex items-center gap-2">
+                    <SortingManager
+                      sortField={sortField}
+                      sortOrder={sortOrder}
+                      onSortFieldChange={setSortField}
+                      onSortOrderChange={setSortOrder}
+                    />
                     <ColumnManager
                       currentView={currentView}
                       availableColumns={columns}
@@ -874,20 +863,35 @@ const SprintTasksTable = () => {
                       onRemoveColumn={handleRemoveColumn}
                       setKabBanSettingModal={setKabBanSettingModal}
                     />
-                  </Tooltip>
-                </div>
-              )}
-            </>
-          }
-        />
+                  </div>
+                )}
+                {isAuth &&
+                  currentView === "kanban" &&
+                  (hasAccess || userRole === "OWNER" || userRole === "MANAGER") && (
+                    <div className="flex items-center gap-2">
+                      <Tooltip content="Manage Columns" position="top" color="primary">
+                        <ColumnManager
+                          currentView={currentView}
+                          availableColumns={columns}
+                          onAddColumn={handleAddColumn}
+                          onRemoveColumn={handleRemoveColumn}
+                          setKabBanSettingModal={setKabBanSettingModal}
+                        />
+                      </Tooltip>
+                    </div>
+                  )}
+              </>
+            }
+          />
+        </div>
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto rounded-md">{renderContent()}</div>
+      <div className="rounded-md">{renderContent()}</div>
 
-      {/* Sticky Pagination */}
+      {/* Natural Flow Pagination */}
       {showPagination && (
-        <div className="sticky bottom-0 z-30 pt-2">
+        <div className="mt-4 border-t border-[var(--border)]/50 py-4 -mx-4 px-4">
           <Pagination
             pagination={pagination}
             pageSize={pageSize}
