@@ -16,12 +16,12 @@ export class RecurrenceService {
     recurrenceConfig:
       | RecurrenceConfigDto
       | {
-        recurrenceType: RecurrenceType | DtoRecurrenceType;
-        interval: number;
-        daysOfWeek?: number[];
-        dayOfMonth?: number | null;
-        monthOfYear?: number | null;
-      },
+          recurrenceType: RecurrenceType | DtoRecurrenceType;
+          interval: number;
+          daysOfWeek?: number[];
+          dayOfMonth?: number | null;
+          monthOfYear?: number | null;
+        },
   ): Date {
     const nextDate = new Date(currentDate);
 
