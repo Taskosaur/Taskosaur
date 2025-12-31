@@ -16,12 +16,12 @@ export class RecurrenceService {
     recurrenceConfig:
       | RecurrenceConfigDto
       | {
-          recurrenceType: RecurrenceType | DtoRecurrenceType;
-          interval: number;
-          daysOfWeek?: number[];
-          dayOfMonth?: number | null;
-          monthOfYear?: number | null;
-        },
+        recurrenceType: RecurrenceType | DtoRecurrenceType;
+        interval: number;
+        daysOfWeek?: number[];
+        dayOfMonth?: number | null;
+        monthOfYear?: number | null;
+      },
   ): Date {
     const nextDate = new Date(currentDate);
 
@@ -34,11 +34,22 @@ export class RecurrenceService {
       case RecurrenceType.WEEKLY:
       case DtoRecurrenceType.WEEKLY:
         if (recurrenceConfig.daysOfWeek && recurrenceConfig.daysOfWeek.length > 0) {
-          nextDate.setDate(nextDate.getDate() + 1);
-          while (!recurrenceConfig.daysOfWeek.includes(nextDate.getDay())) {
-            nextDate.setDate(nextDate.getDate() + 1);
+          // Find the next occurrence considering both interval and daysOfWeek
+          const sortedDays = [...recurrenceConfig.daysOfWeek].sort((a, b) => a - b);
+          const currentDayOfWeek = currentDate.getDay();
+          const interval = recurrenceConfig.interval || 1;
+
+          const nextDayInWeek = sortedDays.find(day => day > currentDayOfWeek);
+
+          if (nextDayInWeek !== undefined) {
+            nextDate.setDate(nextDate.getDate() + (nextDayInWeek - currentDayOfWeek));
+          } else {
+            const daysUntilEndOfWeek = 7 - currentDayOfWeek;
+            const firstDayNextCycle = sortedDays[0];
+            nextDate.setDate(nextDate.getDate() + daysUntilEndOfWeek + (7 * (interval - 1)) + firstDayNextCycle);
           }
         } else {
+          // No specific days set, just use interval weeks
           nextDate.setDate(nextDate.getDate() + 7 * recurrenceConfig.interval);
         }
         break;
