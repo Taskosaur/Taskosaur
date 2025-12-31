@@ -16,12 +16,12 @@ export class RecurrenceService {
     recurrenceConfig:
       | RecurrenceConfigDto
       | {
-          recurrenceType: RecurrenceType | DtoRecurrenceType;
-          interval: number;
-          daysOfWeek?: number[];
-          dayOfMonth?: number | null;
-          monthOfYear?: number | null;
-        },
+        recurrenceType: RecurrenceType | DtoRecurrenceType;
+        interval: number;
+        daysOfWeek?: number[];
+        dayOfMonth?: number | null;
+        monthOfYear?: number | null;
+      },
   ): Date {
     const nextDate = new Date(currentDate);
 
@@ -57,31 +57,36 @@ export class RecurrenceService {
         break;
 
       case RecurrenceType.MONTHLY:
-      case DtoRecurrenceType.MONTHLY:
-        nextDate.setMonth(nextDate.getMonth() + recurrenceConfig.interval);
-        if (recurrenceConfig.dayOfMonth) {
-          nextDate.setDate(Math.min(recurrenceConfig.dayOfMonth, this.getDaysInMonth(nextDate)));
-        }
+      case DtoRecurrenceType.MONTHLY: {
+        const targetMonth = nextDate.getMonth() + recurrenceConfig.interval;
+        nextDate.setDate(1);
+        nextDate.setMonth(targetMonth);
+        const dayToSet = recurrenceConfig.dayOfMonth || currentDate.getDate();
+        nextDate.setDate(Math.min(dayToSet, this.getDaysInMonth(nextDate)));
         break;
+      }
 
       case RecurrenceType.QUARTERLY:
-      case DtoRecurrenceType.QUARTERLY:
-        nextDate.setMonth(nextDate.getMonth() + 3 * recurrenceConfig.interval);
-        if (recurrenceConfig.dayOfMonth) {
-          nextDate.setDate(Math.min(recurrenceConfig.dayOfMonth, this.getDaysInMonth(nextDate)));
-        }
+      case DtoRecurrenceType.QUARTERLY: {
+        const targetMonth = nextDate.getMonth() + 3 * recurrenceConfig.interval;
+        nextDate.setDate(1);
+        nextDate.setMonth(targetMonth);
+        const dayToSet = recurrenceConfig.dayOfMonth || currentDate.getDate();
+        nextDate.setDate(Math.min(dayToSet, this.getDaysInMonth(nextDate)));
         break;
+      }
 
       case RecurrenceType.YEARLY:
-      case DtoRecurrenceType.YEARLY:
+      case DtoRecurrenceType.YEARLY: {
+        nextDate.setDate(1);
         nextDate.setFullYear(nextDate.getFullYear() + recurrenceConfig.interval);
         if (recurrenceConfig.monthOfYear) {
           nextDate.setMonth(recurrenceConfig.monthOfYear - 1);
         }
-        if (recurrenceConfig.dayOfMonth) {
-          nextDate.setDate(Math.min(recurrenceConfig.dayOfMonth, this.getDaysInMonth(nextDate)));
-        }
+        const dayToSet = recurrenceConfig.dayOfMonth || currentDate.getDate();
+        nextDate.setDate(Math.min(dayToSet, this.getDaysInMonth(nextDate)));
         break;
+      }
 
       case RecurrenceType.CUSTOM:
       case DtoRecurrenceType.CUSTOM:
