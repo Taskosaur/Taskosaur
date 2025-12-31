@@ -20,10 +20,11 @@ import Pagination from "@/components/common/Pagination";
 import { ColumnManager } from "@/components/tasks/ColumnManager";
 import SortingManager, { SortField, SortOrder } from "@/components/tasks/SortIngManager";
 import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
-import { CheckSquare, Flame, Folder, User, Users } from "lucide-react";
+import { CheckSquare, Flame, Folder, User, Users, Download } from "lucide-react";
 import { TaskPriorities } from "@/utils/data/taskData";
 import Tooltip from "@/components/common/ToolTip";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
+import { exportTasksToCSV } from "@/utils/exportUtils";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -755,6 +756,12 @@ function WorkspaceTasksContent() {
     return sorted;
   }, [tasks, sortOrder, sortField]);
 
+  const handleExport = useCallback(() => {
+    exportTasksToCSV(sortedTasks, columns, `tasks_export_${new Date().toISOString().split("T")[0]}.csv`, {
+      showProject: true,
+    });
+  }, [columns, sortedTasks]);
+
   const renderContent = () => {
     if (isInitialLoad || isLoading) return <TaskTableSkeleton />;
 
@@ -953,6 +960,13 @@ function WorkspaceTasksContent() {
                     onAddColumn={handleAddColumn}
                     onRemoveColumn={handleRemoveColumn}
                   />
+                  <ActionButton
+                    leftIcon={<Download className="w-4 h-4" />}
+                    onClick={handleExport}
+                    variant="outline"
+                  >
+                    Export
+                  </ActionButton>
                 </div>
               )}
               {currentView === "kanban" &&

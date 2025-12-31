@@ -21,10 +21,11 @@ import Pagination from "@/components/common/Pagination";
 import { KanbanBoard } from "@/components/tasks/KanbanBoard";
 import { ColumnManager } from "@/components/tasks/ColumnManager";
 import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
-import { CheckSquare, Flame, User, Users } from "lucide-react";
+import { CheckSquare, Flame, User, Users, Download } from "lucide-react";
 import SortingManager, { SortOrder, SortField } from "@/components/tasks/SortIngManager";
 import Tooltip from "@/components/common/ToolTip";
 import { TokenManager } from "@/lib/api";
+import { exportTasksToCSV } from "@/utils/exportUtils";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 import { KanbanColumnSkeleton } from "@/components/skeletons/KanbanColumnSkeleton";
 
@@ -622,6 +623,10 @@ function ProjectTasksContent() {
     return sorted;
   }, [displayTasks, sortOrder, sortField]);
 
+  const handleExport = useCallback(() => {
+    exportTasksToCSV(sortedTasks, columns, `project-tasks-${projectSlug}.csv`);
+  }, [sortedTasks, columns, projectSlug]);
+
   const statusFilters = useMemo(
     () =>
       isAuth
@@ -1194,6 +1199,13 @@ function ProjectTasksContent() {
                     onRemoveColumn={handleRemoveColumn}
                     setKabBanSettingModal={setKabBanSettingModal}
                   />
+                  <ActionButton
+                    leftIcon={<Download className="w-4 h-4" />}
+                    onClick={handleExport}
+                    variant="outline"
+                  >
+                    Export
+                  </ActionButton>
                 </div>
               )}
               {/* Kanban view controls - Only for authenticated users */}
