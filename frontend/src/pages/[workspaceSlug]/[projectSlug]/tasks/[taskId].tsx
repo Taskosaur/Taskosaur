@@ -1,15 +1,17 @@
 import { useRouter } from "next/router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTask } from "@/contexts/task-context";
 import { useAuth } from "@/contexts/auth-context";
 import TaskDetailClient from "@/components/tasks/TaskDetailClient";
 import ErrorState from "@/components/common/ErrorState";
 import { useLayout } from "@/contexts/layout-context";
 import NotFound from "@/pages/404";
+import { extractUuid } from "@/utils/slugUtils";
 
 function TaskDetailContent() {
   const router = useRouter();
   const { workspaceSlug, projectSlug, taskId } = router.query;
+  const cleanTaskId = useMemo(() => extractUuid(taskId as string), [taskId]);
   const { setShow404 } = useLayout();
   const { getTaskById } = useTask();
   const { isAuthenticated } = useAuth();
@@ -20,14 +22,20 @@ function TaskDetailContent() {
 
   useEffect(() => {
     const fetchTask = async () => {
-      if (!taskId || !isAuthenticated()) {
-        setError("Task ID required");
-        setLoading(false);
+      if (!cleanTaskId) {
+        if (router.isReady && isAuthenticated()) {
+           setError("Task ID required");
+           setLoading(false);
+        }
         return;
+      }
+      
+      if (!isAuthenticated()) {
+         return;
       }
 
       try {
-        const taskData = await getTaskById(taskId as string, isAuthenticated());
+        const taskData = await getTaskById(cleanTaskId as string, isAuthenticated());
 
         if (!taskData) {
           setError("Task not found");
@@ -44,7 +52,24 @@ function TaskDetailContent() {
     };
 
     fetchTask();
-  }, [taskId, isAuthenticated]);
+  }, [cleanTaskId, router.isReady, isAuthenticated]);
+
+  // Update URL with slug
+  useEffect(() => {
+    if (task && task.slug && cleanTaskId && taskId) {
+      const expectedId = `${cleanTaskId}-${task.slug}`;
+      if (taskId !== expectedId) {
+        router.replace(
+          {
+            pathname: router.pathname,
+            query: { ...router.query, taskId: expectedId },
+          },
+          undefined,
+          { shallow: true }
+        );
+      }
+    }
+  }, [task, cleanTaskId, taskId, router]);
 
   if (loading) {
     return (
@@ -82,7 +107,7 @@ function TaskDetailContent() {
         task={task}
         workspaceSlug={workspaceSlug as string}
         projectSlug={projectSlug as string}
-        taskId={taskId as string}
+        taskId={cleanTaskId as string}
       />
     </div>
   );
