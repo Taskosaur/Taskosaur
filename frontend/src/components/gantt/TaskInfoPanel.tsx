@@ -40,10 +40,10 @@ export const TaskInfoPanel: React.FC<TaskInfoPanelProps> = ({
           <Link
             href={
               safeWorkspaceSlug && safeProjectSlug
-                ? `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks/${task.id}`
+                ? `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks/${task.id}${task.slug ? `-${task.slug}` : ""}`
                 : safeWorkspaceSlug
-                  ? `/${safeWorkspaceSlug}/tasks/${task.id}`
-                  : `/tasks/${task.id}`
+                  ? `/${safeWorkspaceSlug}/tasks/${task.id}${task.slug ? `-${task.slug}` : ""}`
+                  : `/tasks/${task.id}${task.slug ? `-${task.slug}` : ""}`
             }
             className={`font-medium text-[var(--foreground)] hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 flex-1 min-w-0 focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2 rounded-sm ${
               isCompact ? "text-sm" : "text-base"

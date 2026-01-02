@@ -229,6 +229,26 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const isOrgOrWorkspaceLevel = (!workspaceSlug && !projectSlug) || (workspaceSlug && !projectSlug);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Handle browser back button to close modal
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isEditModalOpen) {
+        setIsEditModalOpen(false);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [isEditModalOpen]);
+
+  // Handle modal close (goes back in history to revert URL)
+  const handleCloseModal = () => {
+    // Check if we have history to go back to (simple heuristic: if modal is open, we likely pushed state)
+    // Alternatively, just close if we didn't push state? 
+    // For now, assuming standard flow: Click -> Push -> Close -> Back
+    window.history.back();
+  };
+
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [newTaskData, setNewTaskData] = useState({
     title: "",
@@ -708,6 +728,18 @@ const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   const handleRowClick = async (task: Task) => {
+    // Update URL to include task ID and slug without navigation
+    const currentPath = window.location.pathname;
+    const slug = task.slug || "";
+    // Ensure we don't duplicate the ID if it's already there (rare in list view) or malformed
+    const idWithSlug = slug ? `${task.id}-${slug}` : task.id;
+    const newUrl = `${currentPath.replace(/\/$/, "")}/${idWithSlug}`;
+    
+    // Check if URL is already correct to avoid duplicate pushes
+    if (!window.location.pathname.endsWith(idWithSlug)) {
+       window.history.pushState({ taskOpen: true }, "", newUrl);
+    }
+
     await getTaskById(task.id, isAuthenticated());
     setSelectedTask(task);
     setIsEditModalOpen(true);
@@ -1321,7 +1353,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
       {isEditModalOpen && (
         <CustomModal
           isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
+          onClose={handleCloseModal}
           animation="slide-right"
           height="h-screen"
           top="top-4"
@@ -1338,7 +1370,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
               projectSlug={projectSlug as string}
               taskId={selectedTask.id}
               onTaskRefetch={onTaskRefetch}
-              onClose={() => setIsEditModalOpen(false)}
+              onClose={handleCloseModal}
             />
           )}
         </CustomModal>
