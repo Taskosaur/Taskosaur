@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
   BadRequestException,
 } from '@nestjs/common';
-import { Task, TaskPriority } from '@prisma/client';
+import { Task, TaskPriority, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -24,6 +24,40 @@ export class TasksService {
     private storageService: StorageService,
     private recurrenceService: RecurrenceService,
   ) {}
+
+  /**
+   * Generates a unique task number by locking the project row to prevent race conditions.
+   * This MUST be called within an interactive transaction.
+   */
+  public async getNextTaskNumber(
+    tx: Prisma.TransactionClient,
+    projectId: string,
+  ): Promise<{ taskNumber: number; taskSlug: string }> {
+    // 1. Lock the project row for this creation request
+    const projects = await tx.$queryRaw<{ slug: string }[]>`
+      SELECT slug FROM projects WHERE id = ${projectId}::uuid FOR UPDATE
+    `;
+
+    if (!projects || projects.length === 0) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const projectSlug = projects[0].slug;
+
+    // 2. Safely find the last task number now that we hold the lock
+    const lastTask = await tx.task.findFirst({
+      where: { projectId },
+      orderBy: { taskNumber: 'desc' },
+      select: { taskNumber: true },
+    });
+
+    const taskNumber = lastTask ? lastTask.taskNumber + 1 : 1;
+
+    return {
+      taskNumber,
+      taskSlug: `${projectSlug}-${taskNumber}`,
+    };
+  }
 
   async create(createTaskDto: CreateTaskDto, userId: string): Promise<Task> {
     const project = await this.prisma.project.findUnique({
@@ -82,143 +116,138 @@ export class TasksService {
       sprintId = sprintResult?.id;
     }
 
-    const lastTask = await this.prisma.task.findFirst({
-      where: { projectId: createTaskDto.projectId },
-      orderBy: { taskNumber: 'desc' },
-      select: { taskNumber: true },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const { taskNumber, taskSlug } = await this.getNextTaskNumber(tx, createTaskDto.projectId);
+      const { assigneeIds, reporterIds, description, isRecurring, recurrenceConfig, ...taskData } =
+        createTaskDto;
 
-    const taskNumber = lastTask ? lastTask.taskNumber + 1 : 1;
-    const key = `${project.slug}-${taskNumber}`;
-    const { assigneeIds, reporterIds, description, isRecurring, recurrenceConfig, ...taskData } =
-      createTaskDto;
-
-    // Build task create data - filter out undefined values
-    const taskCreateData: any = {
-      description: sanitizeHtml(description as string),
-      createdBy: userId,
-      taskNumber,
-      slug: key,
-      sprintId: sprintId,
-      isRecurring: isRecurring || false,
-    };
-
-    // Add optional fields only if they have values
-    if (taskData.title) taskCreateData.title = taskData.title;
-    if (taskData.type) taskCreateData.type = taskData.type;
-    if (taskData.priority) taskCreateData.priority = taskData.priority;
-    if (taskData.projectId) taskCreateData.projectId = taskData.projectId;
-    if (taskData.statusId) taskCreateData.statusId = taskData.statusId;
-    if (taskData.startDate) taskCreateData.startDate = taskData.startDate;
-    if (taskData.dueDate) taskCreateData.dueDate = taskData.dueDate;
-    if (taskData.storyPoints !== undefined) taskCreateData.storyPoints = taskData.storyPoints;
-    if (taskData.originalEstimate !== undefined)
-      taskCreateData.originalEstimate = taskData.originalEstimate;
-    if (taskData.remainingEstimate !== undefined)
-      taskCreateData.remainingEstimate = taskData.remainingEstimate;
-    if (taskData.customFields) taskCreateData.customFields = taskData.customFields;
-    if (taskData.parentTaskId) taskCreateData.parentTaskId = taskData.parentTaskId;
-    if (taskData.completedAt !== undefined) taskCreateData.completedAt = taskData.completedAt;
-    if (taskData.allowEmailReplies !== undefined)
-      taskCreateData.allowEmailReplies = taskData.allowEmailReplies;
-
-    // Only add assignees if there are any
-    if (assigneeIds?.length) {
-      taskCreateData.assignees = {
-        connect: assigneeIds.map((id) => ({ id })),
+      // Build task create data - filter out undefined values
+      const taskCreateData: any = {
+        description: sanitizeHtml(description as string),
+        createdBy: userId,
+        taskNumber,
+        slug: taskSlug,
+        sprintId: sprintId,
+        isRecurring: isRecurring || false,
       };
-    }
 
-    // Only add reporters if there are any
-    if (reporterIds?.length) {
-      taskCreateData.reporters = {
-        connect: reporterIds.map((id) => ({ id })),
-      };
-    }
+      // Add optional fields only if they have values
+      if (taskData.title) taskCreateData.title = taskData.title;
+      if (taskData.type) taskCreateData.type = taskData.type;
+      if (taskData.priority) taskCreateData.priority = taskData.priority;
+      if (taskData.projectId) taskCreateData.projectId = taskData.projectId;
+      if (taskData.statusId) taskCreateData.statusId = taskData.statusId;
+      if (taskData.startDate) taskCreateData.startDate = taskData.startDate;
+      if (taskData.dueDate) taskCreateData.dueDate = taskData.dueDate;
+      if (taskData.storyPoints !== undefined) taskCreateData.storyPoints = taskData.storyPoints;
+      if (taskData.originalEstimate !== undefined)
+        taskCreateData.originalEstimate = taskData.originalEstimate;
+      if (taskData.remainingEstimate !== undefined)
+        taskCreateData.remainingEstimate = taskData.remainingEstimate;
+      if (taskData.customFields) taskCreateData.customFields = taskData.customFields;
+      if (taskData.parentTaskId) taskCreateData.parentTaskId = taskData.parentTaskId;
+      if (taskData.completedAt !== undefined) taskCreateData.completedAt = taskData.completedAt;
+      if (taskData.allowEmailReplies !== undefined)
+        taskCreateData.allowEmailReplies = taskData.allowEmailReplies;
 
-    // Create the task
-    const task = await this.prisma.task.create({
-      data: taskCreateData,
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-            workspace: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                organization: {
-                  select: { id: true, name: true, slug: true },
+      // Only add assignees if there are any
+      if (assigneeIds?.length) {
+        taskCreateData.assignees = {
+          connect: assigneeIds.map((id) => ({ id })),
+        };
+      }
+
+      // Only add reporters if there are any
+      if (reporterIds?.length) {
+        taskCreateData.reporters = {
+          connect: reporterIds.map((id) => ({ id })),
+        };
+      }
+
+      // Create the task
+      const task = await tx.task.create({
+        data: taskCreateData,
+        include: {
+          project: {
+            select: {
+              id: true,
+              name: true,
+              workspace: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  organization: {
+                    select: { id: true, name: true, slug: true },
+                  },
                 },
               },
             },
           },
-        },
-        assignees: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
+          assignees: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+            },
           },
-        },
-        reporters: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
+          reporters: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+            },
           },
-        },
-        status: {
-          select: { id: true, name: true, color: true, category: true },
-        },
-        sprint: {
-          select: { id: true, name: true, status: true },
-        },
-        parentTask: {
-          select: { id: true, title: true, slug: true, type: true },
-        },
-        _count: {
-          select: {
-            childTasks: true,
-            comments: true,
-            attachments: true,
-            watchers: true,
+          status: {
+            select: { id: true, name: true, color: true, category: true },
           },
-        },
-      },
-    });
-
-    // If this is a recurring task, create the recurrence configuration
-    if (isRecurring && recurrenceConfig) {
-      const nextOccurrence = this.recurrenceService.calculateNextOccurrence(
-        task.dueDate || new Date(),
-        recurrenceConfig,
-      );
-
-      await this.prisma.recurringTask.create({
-        data: {
-          taskId: task.id,
-          recurrenceType: recurrenceConfig.recurrenceType,
-          interval: recurrenceConfig.interval,
-          daysOfWeek: recurrenceConfig.daysOfWeek || [],
-          dayOfMonth: recurrenceConfig.dayOfMonth,
-          monthOfYear: recurrenceConfig.monthOfYear,
-          endType: recurrenceConfig.endType,
-          endDate: recurrenceConfig.endDate ? new Date(recurrenceConfig.endDate) : null,
-          occurrenceCount: recurrenceConfig.occurrenceCount,
-          nextOccurrence,
-          isActive: true,
+          sprint: {
+            select: { id: true, name: true, status: true },
+          },
+          parentTask: {
+            select: { id: true, title: true, slug: true, type: true },
+          },
+          _count: {
+            select: {
+              childTasks: true,
+              comments: true,
+              attachments: true,
+              watchers: true,
+            },
+          },
         },
       });
-    }
 
-    return task;
+      // If this is a recurring task, create the recurrence configuration
+      if (isRecurring && recurrenceConfig) {
+        const nextOccurrence = this.recurrenceService.calculateNextOccurrence(
+          task.dueDate || new Date(),
+          recurrenceConfig,
+        );
+
+        await tx.recurringTask.create({
+          data: {
+            taskId: task.id,
+            recurrenceType: recurrenceConfig.recurrenceType,
+            interval: recurrenceConfig.interval,
+            daysOfWeek: recurrenceConfig.daysOfWeek || [],
+            dayOfMonth: recurrenceConfig.dayOfMonth,
+            monthOfYear: recurrenceConfig.monthOfYear,
+            endType: recurrenceConfig.endType,
+            endDate: recurrenceConfig.endDate ? new Date(recurrenceConfig.endDate) : null,
+            occurrenceCount: recurrenceConfig.occurrenceCount,
+            nextOccurrence,
+            isActive: true,
+          },
+        });
+      }
+
+      return task;
+    });
   }
   // Updated Task Create with Attachments
   async createWithAttachments(
@@ -282,109 +311,109 @@ export class TasksService {
       sprintId = sprintResult?.id;
     }
 
-    const lastTask = await this.prisma.task.findFirst({
-      where: { projectId: createTaskDto.projectId },
-      orderBy: { taskNumber: 'desc' },
-      select: { taskNumber: true },
-    });
+    const task = await this.prisma.$transaction(async (tx) => {
+      const { taskNumber, taskSlug } = await this.getNextTaskNumber(tx, createTaskDto.projectId);
+      const { assigneeIds, reporterIds, description, isRecurring, recurrenceConfig, ...taskData } =
+        createTaskDto;
 
-    const taskNumber = lastTask ? lastTask.taskNumber + 1 : 1;
-    const key = `${project.slug}-${taskNumber}`;
-    const { assigneeIds, reporterIds, description, isRecurring, recurrenceConfig, ...taskData } =
-      createTaskDto;
-
-    // Build task create data - filter out undefined values
-    const taskCreateData: any = {
-      description: sanitizeHtml(description as string),
-      createdBy: userId,
-      taskNumber,
-      slug: key,
-      sprintId: sprintId,
-      isRecurring: isRecurring || false,
-    };
-
-    // Add optional fields only if they have values
-    if (taskData.title) taskCreateData.title = taskData.title;
-    if (taskData.type) taskCreateData.type = taskData.type;
-    if (taskData.priority) taskCreateData.priority = taskData.priority;
-    if (taskData.projectId) taskCreateData.projectId = taskData.projectId;
-    if (taskData.statusId) taskCreateData.statusId = taskData.statusId;
-    if (taskData.startDate) taskCreateData.startDate = taskData.startDate;
-    if (taskData.dueDate) taskCreateData.dueDate = taskData.dueDate;
-    if (taskData.storyPoints !== undefined) taskCreateData.storyPoints = taskData.storyPoints;
-    if (taskData.originalEstimate !== undefined)
-      taskCreateData.originalEstimate = taskData.originalEstimate;
-    if (taskData.remainingEstimate !== undefined)
-      taskCreateData.remainingEstimate = taskData.remainingEstimate;
-    if (taskData.customFields) taskCreateData.customFields = taskData.customFields;
-    if (taskData.parentTaskId) taskCreateData.parentTaskId = taskData.parentTaskId;
-    if (taskData.completedAt !== undefined) taskCreateData.completedAt = taskData.completedAt;
-    if (taskData.allowEmailReplies !== undefined)
-      taskCreateData.allowEmailReplies = taskData.allowEmailReplies;
-
-    // Only add assignees if there are any
-    if (assigneeIds?.length) {
-      taskCreateData.assignees = {
-        connect: assigneeIds.map((id) => ({ id })),
+      // Build task create data - filter out undefined values
+      const taskCreateData: any = {
+        description: sanitizeHtml(description as string),
+        createdBy: userId,
+        taskNumber,
+        slug: taskSlug,
+        sprintId: sprintId,
+        isRecurring: isRecurring || false,
       };
-    }
 
-    // Only add reporters if there are any
-    if (reporterIds?.length) {
-      taskCreateData.reporters = {
-        connect: reporterIds.map((id) => ({ id })),
-      };
-    }
+      // Add optional fields only if they have values
+      if (taskData.title) taskCreateData.title = taskData.title;
+      if (taskData.type) taskCreateData.type = taskData.type;
+      if (taskData.priority) taskCreateData.priority = taskData.priority;
+      if (taskData.projectId) taskCreateData.projectId = taskData.projectId;
+      if (taskData.statusId) taskCreateData.statusId = taskData.statusId;
+      if (taskData.startDate) taskCreateData.startDate = taskData.startDate;
+      if (taskData.dueDate) taskCreateData.dueDate = taskData.dueDate;
+      if (taskData.storyPoints !== undefined) taskCreateData.storyPoints = taskData.storyPoints;
+      if (taskData.originalEstimate !== undefined)
+        taskCreateData.originalEstimate = taskData.originalEstimate;
+      if (taskData.remainingEstimate !== undefined)
+        taskCreateData.remainingEstimate = taskData.remainingEstimate;
+      if (taskData.customFields) taskCreateData.customFields = taskData.customFields;
+      if (taskData.parentTaskId) taskCreateData.parentTaskId = taskData.parentTaskId;
+      if (taskData.completedAt !== undefined) taskCreateData.completedAt = taskData.completedAt;
+      if (taskData.allowEmailReplies !== undefined)
+        taskCreateData.allowEmailReplies = taskData.allowEmailReplies;
 
-    // --- Create Task ---
-    const task = await this.prisma.task.create({
-      data: taskCreateData,
-    });
+      // Only add assignees if there are any
+      if (assigneeIds?.length) {
+        taskCreateData.assignees = {
+          connect: assigneeIds.map((id) => ({ id })),
+        };
+      }
 
-    // If this is a recurring task, create the recurrence configuration
-    if (isRecurring && recurrenceConfig) {
-      const nextOccurrence = this.recurrenceService.calculateNextOccurrence(
-        task.dueDate || new Date(),
-        recurrenceConfig,
-      );
+      // Only add reporters if there are any
+      if (reporterIds?.length) {
+        taskCreateData.reporters = {
+          connect: reporterIds.map((id) => ({ id })),
+        };
+      }
 
-      await this.prisma.recurringTask.create({
-        data: {
-          taskId: task.id,
-          recurrenceType: recurrenceConfig.recurrenceType,
-          interval: recurrenceConfig.interval,
-          daysOfWeek: recurrenceConfig.daysOfWeek || [],
-          dayOfMonth: recurrenceConfig.dayOfMonth,
-          monthOfYear: recurrenceConfig.monthOfYear,
-          endType: recurrenceConfig.endType,
-          endDate: recurrenceConfig.endDate ? new Date(recurrenceConfig.endDate) : null,
-          occurrenceCount: recurrenceConfig.occurrenceCount,
-          nextOccurrence,
-          isActive: true,
-        },
+      // --- Create Task ---
+      const createdTask = await tx.task.create({
+        data: taskCreateData,
       });
-    }
 
-    // --- Handle Attachments ---
-    if (files && files.length > 0) {
-      const attachmentPromises = files.map(async (file) => {
-        const { url, key, size } = await this.storageService.saveFile(file, `tasks/${task.id}`);
+      // If this is a recurring task, create the recurrence configuration
+      if (isRecurring && recurrenceConfig) {
+        const nextOccurrence = this.recurrenceService.calculateNextOccurrence(
+          createdTask.dueDate || new Date(),
+          recurrenceConfig,
+        );
 
-        return this.prisma.taskAttachment.create({
+        await tx.recurringTask.create({
           data: {
-            taskId: task.id,
-            fileName: file.originalname,
-            fileSize: size,
-            mimeType: file.mimetype,
-            url: url, // Static/local or pre-signed path
-            storageKey: key,
-            createdBy: userId,
+            taskId: createdTask.id,
+            recurrenceType: recurrenceConfig.recurrenceType,
+            interval: recurrenceConfig.interval,
+            daysOfWeek: recurrenceConfig.daysOfWeek || [],
+            dayOfMonth: recurrenceConfig.dayOfMonth,
+            monthOfYear: recurrenceConfig.monthOfYear,
+            endType: recurrenceConfig.endType,
+            endDate: recurrenceConfig.endDate ? new Date(recurrenceConfig.endDate) : null,
+            occurrenceCount: recurrenceConfig.occurrenceCount,
+            nextOccurrence,
+            isActive: true,
           },
         });
-      });
+      }
 
-      await Promise.all(attachmentPromises);
-    }
+      // --- Handle Attachments ---
+      if (files && files.length > 0) {
+        const attachmentPromises = files.map(async (file) => {
+          const { url, key, size } = await this.storageService.saveFile(
+            file,
+            `tasks/${createdTask.id}`,
+          );
+
+          return tx.taskAttachment.create({
+            data: {
+              taskId: createdTask.id,
+              fileName: file.originalname,
+              fileSize: size,
+              mimeType: file.mimetype,
+              url: url, // Static/local or pre-signed path
+              storageKey: key,
+              createdBy: userId,
+            },
+          });
+        });
+
+        await Promise.all(attachmentPromises);
+      }
+
+      return createdTask;
+    });
 
     // --- Return task with attachments + presigned URLs ---
     return this.getTaskWithPresignedUrls(task.id);
