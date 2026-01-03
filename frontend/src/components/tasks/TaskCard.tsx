@@ -3,6 +3,7 @@ import { Task, TaskType, TaskPriority } from "@/types/tasks";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
 import TaskDetailModal from "./TaskDetailModal";
 import { HiEnvelope } from "react-icons/hi2";
+import RecurringBadge from "@/components/common/RecurringBadge";
 
 interface TaskCardProps {
   task: Task;
@@ -143,9 +144,8 @@ export default function TaskCard({
   return (
     <>
       <div
-        className={`bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 cursor-move transition-all duration-200 hover:shadow-md group ${
-          isDragging ? "opacity-50 rotate-2" : ""
-        }`}
+        className={`bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 cursor-move transition-all duration-200 hover:shadow-md group ${isDragging ? "opacity-50 rotate-2" : ""
+          }`}
         draggable
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
@@ -170,6 +170,8 @@ export default function TaskCard({
                 <HiEnvelope className="w-3 h-3 text-green-500" />
               </div>
             )}
+            {/* Recurring task indicator */}
+            {task.isRecurring && <RecurringBadge />}
           </div>
           <div className="flex items-center space-x-1">
             <span className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(task.priority)}`}>
@@ -296,7 +298,7 @@ export default function TaskCard({
           task={task}
           allTasks={allTasks}
           onClose={() => setShowDetailModal(false)}
-          onUpdate={() => {}}
+          onUpdate={() => { }}
         />
       )}
     </>

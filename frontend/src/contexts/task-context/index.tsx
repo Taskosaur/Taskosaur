@@ -167,11 +167,11 @@ interface TaskContextType extends TaskState {
   // Task comment operations
   createTaskComment: (commentData: CreateTaskCommentRequest) => Promise<TaskComment>;
   getTaskComments: (
-    taskId: string, 
-    isAuth: boolean, 
-    options?: { 
-      page?: number; 
-      limit?: number; 
+    taskId: string,
+    isAuth: boolean,
+    options?: {
+      page?: number;
+      limit?: number;
       sort?: 'asc' | 'desc';
       paginationType?: 'standard' | 'middle';
       oldestCount?: number;
@@ -224,6 +224,11 @@ interface TaskContextType extends TaskState {
 
   // Add assignTaskAssignees to context type
   assignTaskAssignees: (taskId: string, assigneeIds: string[]) => Promise<any>;
+
+  // Recurrence operations
+  addRecurrence: (taskId: string, recurrenceConfig: any) => Promise<Task>;
+  updateRecurrence: (taskId: string, recurrenceConfig: any) => Promise<Task>;
+  stopRecurrence: (taskId: string) => Promise<Task>;
 }
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -382,9 +387,9 @@ export function TaskProvider({ children }: TaskProviderProps) {
           const updatedCurrentTask =
             prev.currentTask?.id === subtaskData.parentTaskId
               ? {
-                  ...prev.currentTask,
-                  subtasks: [...(prev.currentTask?.childTasks || []), result],
-                }
+                ...prev.currentTask,
+                subtasks: [...(prev.currentTask?.childTasks || []), result],
+              }
               : prev.currentTask;
 
           return {
@@ -407,11 +412,11 @@ export function TaskProvider({ children }: TaskProviderProps) {
             (child) => child.id === subtaskId
           )
             ? {
-                ...prev.currentTask,
-                childTasks: prev.currentTask.childTasks.map((child) =>
-                  child.id === subtaskId ? { ...child, ...result } : child
-                ),
-              }
+              ...prev.currentTask,
+              childTasks: prev.currentTask.childTasks.map((child) =>
+                child.id === subtaskId ? { ...child, ...result } : child
+              ),
+            }
             : prev.currentTask;
 
           return {
@@ -433,9 +438,9 @@ export function TaskProvider({ children }: TaskProviderProps) {
             (child) => child.id === subtaskId
           )
             ? {
-                ...prev.currentTask,
-                childTasks: prev.currentTask.childTasks.filter((child) => child.id !== subtaskId),
-              }
+              ...prev.currentTask,
+              childTasks: prev.currentTask.childTasks.filter((child) => child.id !== subtaskId),
+            }
             : prev.currentTask;
 
           return {
@@ -610,11 +615,11 @@ export function TaskProvider({ children }: TaskProviderProps) {
               ? { ...prev.currentTask, ...result }
               : prev.currentTask?.childTasks?.some((child) => child.id === taskId)
                 ? {
-                    ...prev.currentTask,
-                    childTasks: prev.currentTask.childTasks.map((child) =>
-                      child.id === taskId ? { ...child, ...result } : child
-                    ),
-                  }
+                  ...prev.currentTask,
+                  childTasks: prev.currentTask.childTasks.map((child) =>
+                    child.id === taskId ? { ...child, ...result } : child
+                  ),
+                }
                 : prev.currentTask,
         }));
 
@@ -631,9 +636,9 @@ export function TaskProvider({ children }: TaskProviderProps) {
               ? null
               : prev.currentTask?.childTasks?.some((child) => child.id === taskId)
                 ? {
-                    ...prev.currentTask,
-                    childTasks: prev.currentTask.childTasks.filter((child) => child.id !== taskId),
-                  }
+                  ...prev.currentTask,
+                  childTasks: prev.currentTask.childTasks.filter((child) => child.id !== taskId),
+                }
                 : prev.currentTask,
         }));
       },
@@ -665,11 +670,11 @@ export function TaskProvider({ children }: TaskProviderProps) {
               ? null
               : prev.currentTask?.childTasks
                 ? {
-                    ...prev.currentTask,
-                    childTasks: prev.currentTask.childTasks.filter(
-                      (child) => !successfullyDeletedIds.includes(child.id)
-                    ),
-                  }
+                  ...prev.currentTask,
+                  childTasks: prev.currentTask.childTasks.filter(
+                    (child) => !successfullyDeletedIds.includes(child.id)
+                  ),
+                }
                 : prev.currentTask,
         }));
 
@@ -745,11 +750,11 @@ export function TaskProvider({ children }: TaskProviderProps) {
       },
 
       getTaskComments: async (
-        taskId: string, 
-        isAuth: boolean, 
-        options?: { 
-          page?: number; 
-          limit?: number; 
+        taskId: string,
+        isAuth: boolean,
+        options?: {
+          page?: number;
+          limit?: number;
           sort?: 'asc' | 'desc';
           paginationType?: 'standard' | 'middle';
           oldestCount?: number;
@@ -1061,12 +1066,89 @@ export function TaskProvider({ children }: TaskProviderProps) {
           currentTask:
             prev.currentTask?.id === taskId
               ? {
-                  ...prev.currentTask,
-                  assignees: result.assignees || [],
-                }
+                ...prev.currentTask,
+                assignees: result.assignees || [],
+              }
               : prev.currentTask,
           tasks: prev.tasks.map((task) =>
             task.id === taskId ? { ...task, assignees: result.assignees || [] } : task
+          ),
+        }));
+
+        return result;
+      },
+
+      updateRecurrence: async (taskId: string, recurrenceConfig: any): Promise<Task> => {
+        const result = await handleApiOperation(
+          () => taskApi.updateRecurrence(taskId, recurrenceConfig),
+          false
+        );
+
+        setTaskState((prev) => ({
+          ...prev,
+          currentTask:
+            prev.currentTask?.id === taskId
+              ? {
+                ...prev.currentTask,
+                recurringConfig: { ...prev.currentTask.recurringConfig, ...recurrenceConfig },
+              }
+              : prev.currentTask,
+          tasks: prev.tasks.map((task) =>
+            task.id === taskId
+              ? { ...task, recurringConfig: { ...task.recurringConfig, ...recurrenceConfig } }
+              : task
+          ),
+        }));
+
+        return result;
+      },
+
+      addRecurrence: async (taskId: string, recurrenceConfig: any): Promise<Task> => {
+        const result = await handleApiOperation(
+          () => taskApi.addRecurrence(taskId, recurrenceConfig),
+          false
+        );
+
+        setTaskState((prev) => ({
+          ...prev,
+          currentTask:
+            prev.currentTask?.id === taskId
+              ? {
+                ...prev.currentTask,
+                isRecurring: true,
+                recurringConfig: recurrenceConfig,
+              }
+              : prev.currentTask,
+          tasks: prev.tasks.map((task) =>
+            task.id === taskId
+              ? { ...task, isRecurring: true, recurringConfig: recurrenceConfig }
+              : task
+          ),
+        }));
+
+        return result;
+      },
+
+      stopRecurrence: async (taskId: string): Promise<Task> => {
+        const result = await handleApiOperation(
+          () => taskApi.stopRecurrence(taskId),
+          false
+        );
+
+        setTaskState((prev) => ({
+          ...prev,
+          currentTask:
+            prev.currentTask?.id === taskId
+              ? {
+                ...prev.currentTask,
+                isRecurring: false,
+                recurringConfig: null,
+              }
+              : prev.currentTask,
+          tasks: prev.tasks.map((task) =>
+            task.id === taskId
+              ? { ...task, isRecurring: false, recurringConfig: null }
+              : task
           ),
         }));
 
