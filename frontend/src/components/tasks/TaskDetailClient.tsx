@@ -37,6 +37,9 @@ import { DynamicBadge } from "@/components/common/DynamicBadge";
 import TaskDetailSkeleton from "../skeletons/TaskDetailSkeleton";
 import validator from "validator";
 import { sanitizeEditorContent } from "@/utils/sanitize-content";
+import RecurringBadge from "@/components/common/RecurringBadge";
+import { Repeat, Plus } from "lucide-react";
+import RecurrenceSelector from "@/components/common/RecurrenceSelector";
 import { HiShare } from "react-icons/hi";
 
 // Helper function to validate internal paths and prevent open redirect vulnerabilities
@@ -87,6 +90,9 @@ export default function TaskDetailClient({
     assignLabelToTask,
     removeLabelFromTask,
     assignTaskAssignees,
+    addRecurrence,
+    updateRecurrence,
+    stopRecurrence,
   } = useTask();
 
   const { getProjectMembers, getTaskStatusByProject } = useProjectContext();
@@ -106,8 +112,11 @@ export default function TaskDetailClient({
     dueDate: false,
     startDate: false,
     taskType: false,
+    recurrence: false,
     sprint: false,
+
   });
+  const [editRecurrenceConfig, setEditRecurrenceConfig] = useState<any>(null);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
@@ -123,7 +132,7 @@ export default function TaskDetailClient({
     isOpen: false,
     title: "",
     message: "",
-    onConfirm: () => {},
+    onConfirm: () => { },
     type: "info" as "danger" | "warning" | "info",
   });
 
@@ -767,6 +776,7 @@ export default function TaskDetailClient({
       dueDate: false,
       startDate: false,
       taskType: false,
+      recurrence: false,
       sprint: false,
     });
   };
@@ -782,8 +792,8 @@ export default function TaskDetailClient({
     }
 
     // Sanitize description to prevent XSS
-    const sanitizedDescription = descriptionToSave 
-      ? sanitizeEditorContent(descriptionToSave.trim()) 
+    const sanitizedDescription = descriptionToSave
+      ? sanitizeEditorContent(descriptionToSave.trim())
       : undefined;
 
     try {
@@ -809,6 +819,7 @@ export default function TaskDetailClient({
         dueDate: false,
         startDate: false,
         taskType: false,
+        recurrence: false,
         sprint: false,
       });
       onTaskRefetch && onTaskRefetch();
@@ -853,6 +864,7 @@ export default function TaskDetailClient({
             dueDate: false,
             startDate: false,
             taskType: false,
+            recurrence: false,
             sprint: false,
           });
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
@@ -867,6 +879,7 @@ export default function TaskDetailClient({
         dueDate: false,
         startDate: false,
         taskType: false,
+        recurrence: false,
         sprint: false,
       });
     }
@@ -1110,9 +1123,9 @@ export default function TaskDetailClient({
                 <Subtasks
                   taskId={taskId}
                   projectId={task.projectId || task.project?.id}
-                  onSubtaskAdded={() => {}}
-                  onSubtaskUpdated={() => {}}
-                  onSubtaskDeleted={() => {}}
+                  onSubtaskAdded={() => { }}
+                  onSubtaskUpdated={() => { }}
+                  onSubtaskDeleted={() => { }}
                   showConfirmModal={showConfirmModal}
                   isAssignOrRepoter={hasAccess}
                   setLoading={setLoadingSubtasks}
@@ -1193,18 +1206,18 @@ export default function TaskDetailClient({
                         currentItem={
                           editTaskData.taskType
                             ? {
-                                id: editTaskData.taskType,
-                                name:
-                                  TASK_TYPE_OPTIONS.find(
-                                    (type) => type.value === editTaskData.taskType
-                                  )?.label || "Task",
-                                color: "#6B7280",
-                              }
+                              id: editTaskData.taskType,
+                              name:
+                                TASK_TYPE_OPTIONS.find(
+                                  (type) => type.value === editTaskData.taskType
+                                )?.label || "Task",
+                              color: "#6B7280",
+                            }
                             : {
-                                id: "",
-                                name: "Select task type",
-                                color: "#6B7280",
-                              }
+                              id: "",
+                              name: "Select task type",
+                              color: "#6B7280",
+                            }
                         }
                         availableItems={TASK_TYPE_OPTIONS.map((type) => ({
                           id: type.value,
@@ -1457,7 +1470,7 @@ export default function TaskDetailClient({
                           id: editTaskData.priority || "MEDIUM",
                           name:
                             editTaskData.priority?.charAt(0).toUpperCase() +
-                              editTaskData.priority?.slice(1).toLowerCase() || "Medium",
+                            editTaskData.priority?.slice(1).toLowerCase() || "Medium",
                           color: task.priority?.color || "#F59E0B",
                         }}
                         availableItems={TaskPriorities}
@@ -1604,15 +1617,15 @@ export default function TaskDetailClient({
                       />
                     ) : (
                       <StatusBadge onClick={() => {
-                          setIsEditingTask((prev) => ({
-                            ...prev,
-                            status: true,
-                          }));
-                          setAutoOpenDropdown((prev) => ({
-                            ...prev,
-                            status: true,
-                          }));
-                        }} status={currentStatus} className="text-[13px]" />
+                        setIsEditingTask((prev) => ({
+                          ...prev,
+                          status: true,
+                        }));
+                        setAutoOpenDropdown((prev) => ({
+                          ...prev,
+                          status: true,
+                        }));
+                      }} status={currentStatus} className="text-[13px]" />
                     )}
                   </div>
                 </div>
@@ -1760,6 +1773,239 @@ export default function TaskDetailClient({
                 </div>
               </div>
             </div>
+
+            {/* Recurring Details */}
+            {task.isRecurring && task.recurringConfig && (
+              <>
+                <Divider label="Recurrence" />
+                <div className="space-y-4">
+                  {isEditingTask.recurrence ? (
+                    <div className="space-y-4">
+                      <RecurrenceSelector
+                        value={editRecurrenceConfig}
+                        onChange={setEditRecurrenceConfig}
+                      />
+                      <div className="flex items-center justify-end gap-4">
+                        <ActionButton
+                          onClick={async () => {
+                            try {
+                              // Filter out backend-managed fields before sending
+                              const updatePayload = {
+                                recurrenceType: editRecurrenceConfig.recurrenceType,
+                                interval: editRecurrenceConfig.interval,
+                                daysOfWeek: editRecurrenceConfig.daysOfWeek,
+                                dayOfMonth: editRecurrenceConfig.dayOfMonth,
+                                monthOfYear: editRecurrenceConfig.monthOfYear,
+                                endType: editRecurrenceConfig.endType,
+                                endDate: editRecurrenceConfig.endDate,
+                                occurrenceCount: editRecurrenceConfig.occurrenceCount,
+                              };
+                              await updateRecurrence(taskId, updatePayload);
+                              task.recurringConfig = { ...task.recurringConfig, ...editRecurrenceConfig };
+                              setIsEditingTask((prev) => ({ ...prev, recurrence: false }));
+                              toast.success("Recurrence updated successfully.");
+                              if (onTaskRefetch) onTaskRefetch();
+                            } catch (error) {
+                              toast.error("Failed to update recurrence.");
+                            }
+                          }}
+                          variant="outline"
+                          primary
+                          className="justify-center bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90"
+                        >
+                          Save Changes
+                        </ActionButton>
+                        <ActionButton
+                          onClick={() => {
+                            setIsEditingTask((prev) => ({ ...prev, recurrence: false }));
+                            setEditRecurrenceConfig(null);
+                          }}
+                          secondary
+                          className="justify-center"
+                        >
+                          Cancel
+                        </ActionButton>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <RecurringBadge />
+                        </div>
+                        {hasAccess && (
+                          <button
+                            type="button"
+                            className="rounded transition flex items-center cursor-pointer text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs p-1"
+                            onClick={() => {
+                              setEditRecurrenceConfig(task.recurringConfig);
+                              setIsEditingTask((prev) => ({ ...prev, recurrence: true }));
+                            }}
+                            tabIndex={0}
+                            aria-label="Edit Recurrence"
+                            style={{ lineHeight: 0 }}
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[var(--muted-foreground)]">Pattern:</span>
+                          <span className="font-medium">
+                            {task.recurringConfig.recurrenceType === "DAILY" && `Every ${task.recurringConfig.interval} day(s)`}
+                            {task.recurringConfig.recurrenceType === "WEEKLY" && `Every ${task.recurringConfig.interval} week(s)`}
+                            {task.recurringConfig.recurrenceType === "MONTHLY" && `Every ${task.recurringConfig.interval} month(s)`}
+                            {task.recurringConfig.recurrenceType === "QUARTERLY" && `Every ${task.recurringConfig.interval} quarter(s)`}
+                            {task.recurringConfig.recurrenceType === "YEARLY" && `Every ${task.recurringConfig.interval} year(s)`}
+                            {task.recurringConfig.recurrenceType === "CUSTOM" && `Every ${task.recurringConfig.interval} day(s)`}
+                          </span>
+                        </div>
+                        {task.recurringConfig.nextOccurrence && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-[var(--muted-foreground)]">Next Due:</span>
+                            <span className="font-medium">
+                              {new Date(task.recurringConfig.nextOccurrence).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
+                        {task.recurringConfig.endType !== "NEVER" && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-[var(--muted-foreground)]">Ends:</span>
+                            <span className="font-medium">
+                              {task.recurringConfig.endType === "ON_DATE" && task.recurringConfig.endDate
+                                ? new Date(task.recurringConfig.endDate).toLocaleDateString()
+                                : `After ${task.recurringConfig.occurrenceCount} occurrences`}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center">
+                          <span className="text-[var(--muted-foreground)]">Occurrence:</span>
+                          <span className="font-medium">
+                            {task.recurringConfig.currentOccurrence}
+                            {task.recurringConfig.occurrenceCount && ` / ${task.recurringConfig.occurrenceCount}`}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[var(--muted-foreground)]">Status:</span>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${task.recurringConfig.isActive ? "border-green-500 text-green-500" : "border-gray-500 text-gray-500"}`}
+                          >
+                            {task.recurringConfig.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      </div>
+                      {hasAccess && task.recurringConfig.isActive && (
+                        <div className="mt-4 pt-4 border-t border-[var(--border)]">
+                          <ActionButton
+                            onClick={() => {
+                              showConfirmModal(
+                                "Stop Recurrence",
+                                "Are you sure you want to stop the recurrence for this task? This action cannot be undone.",
+                                async () => {
+                                  try {
+                                    await stopRecurrence(taskId);
+                                    task.isRecurring = false;
+                                    task.recurringConfig = null;
+                                    toast.success("Recurrence stopped successfully.");
+                                    if (onTaskRefetch) onTaskRefetch();
+                                  } catch (error) {
+                                    toast.error("Failed to stop recurrence.");
+                                  }
+                                },
+                                "danger"
+                              );
+                            }}
+                            variant="outline"
+                            className="w-full justify-center border-[var(--destructive)] text-[var(--destructive)] hover:bg-[var(--destructive)]/10"
+                          >
+                            Stop Recurrence
+                          </ActionButton>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Add Recurrence for non-recurring tasks */}
+            {!task.isRecurring && hasAccess && (
+              <>
+                <Divider label="Recurrence" />
+                <div className="space-y-4">
+                  {isEditingTask.recurrence ? (
+                    <div className="space-y-4">
+                      <RecurrenceSelector
+                        value={editRecurrenceConfig}
+                        onChange={setEditRecurrenceConfig}
+                      />
+                      <div className="flex items-center justify-end gap-4">
+                        <ActionButton
+                          onClick={async () => {
+                            try {
+                              const payload = {
+                                recurrenceType: editRecurrenceConfig.recurrenceType,
+                                interval: editRecurrenceConfig.interval,
+                                daysOfWeek: editRecurrenceConfig.daysOfWeek,
+                                dayOfMonth: editRecurrenceConfig.dayOfMonth,
+                                monthOfYear: editRecurrenceConfig.monthOfYear,
+                                endType: editRecurrenceConfig.endType,
+                                endDate: editRecurrenceConfig.endDate,
+                                occurrenceCount: editRecurrenceConfig.occurrenceCount,
+                              };
+                              await addRecurrence(taskId, payload);
+                              task.isRecurring = true;
+                              task.recurringConfig = editRecurrenceConfig;
+                              setIsEditingTask((prev) => ({ ...prev, recurrence: false }));
+                              toast.success("Recurrence added successfully.");
+                              if (onTaskRefetch) onTaskRefetch();
+                            } catch (error) {
+                              toast.error("Failed to add recurrence.");
+                            }
+                          }}
+                          variant="outline"
+                          primary
+                          showPlusIcon
+                          className="flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90"
+                        >
+                          Add
+                        </ActionButton>
+                        <ActionButton
+                          onClick={() => {
+                            setIsEditingTask((prev) => ({ ...prev, recurrence: false }));
+                            setEditRecurrenceConfig(null);
+                          }}
+                          secondary
+                          className="justify-center"
+                        >
+                          Cancel
+                        </ActionButton>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Recurring</Label>
+                      <ToggleSwitch
+                        checked={false}
+                        onChange={() => {
+                          setEditRecurrenceConfig({
+                            recurrenceType: "DAILY",
+                            interval: 1,
+                            endType: "NEVER",
+                          });
+                          setIsEditingTask((prev) => ({ ...prev, recurrence: true }));
+                        }}
+                        label="Toggle recurrence"
+                        size="sm"
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
             <Divider label="Assignment" />
             {/* Assignment Section */}
             <div className="space-y-4">

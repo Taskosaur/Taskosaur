@@ -66,6 +66,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useAuth } from "@/contexts/auth-context";
+import RecurringBadge from "@/components/common/RecurringBadge";
 
 // Data extraction utility functions
 function extractTaskValue(task: Task, columnId: string): any {
@@ -97,13 +98,13 @@ function extractTaskValue(task: Task, columnId: string): any {
     case "reporter":
       return task.reporter
         ? {
-            id: task.reporter.id,
-            firstName: task.reporter.firstName,
-            lastName: task.reporter.lastName,
-            name: task.reporter.firstName || `${task.reporter.firstName} ${task.reporter.lastName}`,
-            email: task.reporter.email,
-            avatar: task.reporter.avatar,
-          }
+          id: task.reporter.id,
+          firstName: task.reporter.firstName,
+          lastName: task.reporter.lastName,
+          name: task.reporter.firstName || `${task.reporter.firstName} ${task.reporter.lastName}`,
+          email: task.reporter.email,
+          avatar: task.reporter.avatar,
+        }
         : null;
 
     case "createdBy":
@@ -356,8 +357,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
 
         if (result.failedTasks.length > maxErrorsToShow) {
           toast.warning(
-            `...and ${result.failedTasks.length - maxErrorsToShow} more task${
-              result.failedTasks.length - maxErrorsToShow === 1 ? "" : "s"
+            `...and ${result.failedTasks.length - maxErrorsToShow} more task${result.failedTasks.length - maxErrorsToShow === 1 ? "" : "s"
             } could not be deleted`,
             { duration: 5000 }
           );
@@ -496,9 +496,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
                     >
                       <AvatarImage
                         src={assignee.user?.avatar || assignee.avatar || "/placeholder.svg"}
-                        alt={`${
-                          assignee.user?.firstName || assignee.firstName
-                        } ${assignee.user?.lastName || assignee.lastName}`}
+                        alt={`${assignee.user?.firstName || assignee.firstName
+                          } ${assignee.user?.lastName || assignee.lastName}`}
                       />
                       <AvatarFallback className="text-xs">
                         {getInitials(
@@ -542,9 +541,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
                   return (
                     <CommandItem
                       key={memberId}
-                      value={`${member.user?.firstName || member.firstName} ${
-                        member.user?.lastName || member.lastName
-                      }`}
+                      value={`${member.user?.firstName || member.firstName} ${member.user?.lastName || member.lastName
+                        }`}
                       onSelect={() => handleAssigneeToggle(memberId)}
                       className="flex items-center gap-2 cursor-pointer"
                     >
@@ -552,9 +550,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
                       <Avatar className="w-6 h-6">
                         <AvatarImage
                           src={member.user?.avatar || member.avatar || "/placeholder.svg"}
-                          alt={`${member.user?.firstName || member.firstName} ${
-                            member.user?.lastName || member.lastName
-                          }`}
+                          alt={`${member.user?.firstName || member.firstName} ${member.user?.lastName || member.lastName
+                            }`}
                         />
                         <AvatarFallback className="text-xs">
                           {getInitials(
@@ -939,9 +936,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           }}
                           onBlur={() => setTitleTouched(true)}
                           placeholder="Enter task title..."
-                          className={`flex-1 border-none shadow-none focus-visible:ring-1 bg-transparent ${
-                            isTitleInvalid ? "ring-2 ring-red-500" : ""
-                          }`}
+                          className={`flex-1 border-none shadow-none focus-visible:ring-1 bg-transparent ${isTitleInvalid ? "ring-2 ring-red-500" : ""
+                            }`}
                           autoFocus
                           disabled={isSubmitting}
                           onKeyDown={(e) => {
@@ -995,15 +991,14 @@ const TaskTable: React.FC<TaskTableProps> = ({
                             disabled={isSubmitting}
                           >
                             <SelectTrigger
-                              className={`border-none shadow-none -ml-3 ${
-                                !newTaskData.projectId ? "ring-1 ring-red-300" : ""
-                              }`}
+                              className={`border-none shadow-none -ml-3 ${!newTaskData.projectId ? "ring-1 ring-red-300" : ""
+                                }`}
                             >
                               <SelectValue placeholder="Select project *" />
                             </SelectTrigger>
                             <SelectContent className="overflow-y-auto bg-[var(--card)] border-none text-[var(--foreground)]">
                               {Array.isArray(projectsOfCurrentWorkspace) &&
-                              projectsOfCurrentWorkspace.length > 0 ? (
+                                projectsOfCurrentWorkspace.length > 0 ? (
                                 projectsOfCurrentWorkspace.map((project: any) => (
                                   <SelectItem key={project.id} value={project.id}>
                                     {project.name}
@@ -1020,8 +1015,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           <span className="text-sm text-gray-500">
                             {projectsOfCurrentWorkspace && projectsOfCurrentWorkspace.length > 0
                               ? projectsOfCurrentWorkspace.find(
-                                  (p: any) => p.id === projectSlug || p.slug === projectSlug
-                                )?.name || "Current Project"
+                                (p: any) => p.id === projectSlug || p.slug === projectSlug
+                              )?.name || "Current Project"
                               : "Current Project"}
                           </span>
                         ) : (
@@ -1072,9 +1067,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           disabled={isSubmitting}
                         >
                           <SelectTrigger
-                            className={`border-none shadow-none bg-transparent ${
-                              !newTaskData.statusId ? "ring-1 ring-red-300" : ""
-                            }`}
+                            className={`border-none shadow-none bg-transparent ${!newTaskData.statusId ? "ring-1 ring-red-300" : ""
+                              }`}
                           >
                             <SelectValue placeholder="Select status *" />
                           </SelectTrigger>
@@ -1199,10 +1193,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           >
                             <span className="text-muted text-xs">#{task.taskNumber}</span>
                           </Badge>
+                          {task.isRecurring && <RecurringBadge />}
                         </div>
                         <div className="flex items-center gap-3 mt-2">
                           {task._count?.comments > 0 && (
-                            <div className="flex items-center gap-0.5 text-xs text-[var(--muted-foreground)]">
+                            <div className="flex items-center gap-0.5 text-xs text-[varml(--muted-foreground)]">
                               <MessageSquare className="w-4 h-4 mt-0.5" />
                               <span className="">{task._count.comments}</span>
                             </div>
@@ -1235,7 +1230,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                       {renderMultipleAssignees(
                         currentTask && currentTask.id === task.id
                           ? currentTask.assignees ||
-                              (currentTask.assignee ? [currentTask.assignee] : [])
+                          (currentTask.assignee ? [currentTask.assignee] : [])
                           : task.assignees || (task.assignee ? [task.assignee] : [])
                       )}
                     </div>

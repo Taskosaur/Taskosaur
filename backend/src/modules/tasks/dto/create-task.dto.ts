@@ -10,10 +10,12 @@ import {
   IsArray,
   ArrayUnique,
   IsBoolean,
+  ValidateNested,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { TaskType, TaskPriority } from '@prisma/client';
-import { Transform } from 'class-transformer';
+import { Transform, Type, plainToInstance } from 'class-transformer';
+import { RecurrenceConfigDto } from './recurrence-config.dto';
 
 export class CreateTaskDto {
   @ApiProperty({
@@ -120,9 +122,19 @@ export class CreateTaskDto {
     },
     required: false,
   })
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value) as Record<string, unknown>;
+      } catch {
+        return {} as Record<string, unknown>;
+      }
+    }
+    return (value ?? {}) as Record<string, unknown>;
+  })
   @IsObject()
   @IsOptional()
-  customFields?: Record<string, any>;
+  customFields?: Record<string, unknown>;
 
   @ApiProperty({
     description: 'ID of the project this task belongs to',
@@ -144,13 +156,12 @@ export class CreateTaskDto {
     if (typeof value === 'string') {
       try {
         const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        console.error('Error parsing JSON for assigneeIds:', error);
+        return Array.isArray(parsed) ? parsed.map(String) : [];
+      } catch {
         return [];
       }
     }
-    return value as string[];
+    return Array.isArray(value) ? value.map(String) : [];
   })
   @IsArray()
   @IsUUID('all', { each: true })
@@ -169,13 +180,12 @@ export class CreateTaskDto {
     if (typeof value === 'string') {
       try {
         const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        console.error('Error parsing JSON for reporterIds:', error);
+        return Array.isArray(parsed) ? parsed.map(String) : [];
+      } catch {
         return [];
       }
     }
-    return value as string[];
+    return Array.isArray(value) ? value.map(String) : [];
   })
   @IsArray()
   @IsUUID('all', { each: true })
@@ -230,4 +240,47 @@ export class CreateTaskDto {
   @IsBoolean()
   @IsOptional()
   allowEmailReplies?: boolean;
+
+  @ApiProperty({
+    description: 'Whether this task is recurring',
+    example: false,
+    required: false,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isRecurring?: boolean;
+
+  @ApiProperty({
+    description: 'Recurrence configuration for recurring tasks',
+    type: RecurrenceConfigDto,
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return plainToInstance(RecurrenceConfigDto, parsed, {
+          enableImplicitConversion: true,
+          exposeDefaultValues: true,
+        });
+      } catch {
+        return undefined;
+      }
+    }
+
+    if (value && typeof value === 'object') {
+      return plainToInstance(RecurrenceConfigDto, value, {
+        enableImplicitConversion: true,
+        exposeDefaultValues: true,
+      });
+    }
+
+    return undefined;
+  })
+  @Type(() => RecurrenceConfigDto)
+  @ValidateNested()
+  @IsOptional()
+  recurrenceConfig?: RecurrenceConfigDto;
 }

@@ -13,6 +13,8 @@ import { TasksByStatus, TasksByStatusParams } from './dto/task-by-status.dto';
 import { AccessControlService } from 'src/common/access-control.utils';
 import { StorageService } from '../storage/storage.service';
 import { sanitizeHtml } from 'src/common/utils/sanitizer.util';
+import { RecurrenceService } from './recurrence.service';
+import { RecurrenceConfigDto } from './dto/recurrence-config.dto';
 
 @Injectable()
 export class TasksService {
@@ -20,6 +22,7 @@ export class TasksService {
     private prisma: PrismaService,
     private accessControl: AccessControlService,
     private storageService: StorageService,
+    private recurrenceService: RecurrenceService,
   ) {}
 
   async create(createTaskDto: CreateTaskDto, userId: string): Promise<Task> {
@@ -87,27 +90,55 @@ export class TasksService {
 
     const taskNumber = lastTask ? lastTask.taskNumber + 1 : 1;
     const key = `${project.slug}-${taskNumber}`;
-    const { assigneeIds, reporterIds, description, ...taskData } = createTaskDto;
-    return this.prisma.task.create({
-      data: {
-        ...taskData,
-        description: sanitizeHtml(description as string),
-        createdBy: userId,
-        taskNumber,
-        slug: key,
-        sprintId: sprintId,
-        assignees: assigneeIds?.length
-          ? {
-              connect: assigneeIds.map((id) => ({ id })),
-            }
-          : undefined,
-        // Connect multiple reporters
-        reporters: reporterIds?.length
-          ? {
-              connect: reporterIds.map((id) => ({ id })),
-            }
-          : undefined,
-      },
+    const { assigneeIds, reporterIds, description, isRecurring, recurrenceConfig, ...taskData } =
+      createTaskDto;
+
+    // Build task create data - filter out undefined values
+    const taskCreateData: any = {
+      description: sanitizeHtml(description as string),
+      createdBy: userId,
+      taskNumber,
+      slug: key,
+      sprintId: sprintId,
+      isRecurring: isRecurring || false,
+    };
+
+    // Add optional fields only if they have values
+    if (taskData.title) taskCreateData.title = taskData.title;
+    if (taskData.type) taskCreateData.type = taskData.type;
+    if (taskData.priority) taskCreateData.priority = taskData.priority;
+    if (taskData.projectId) taskCreateData.projectId = taskData.projectId;
+    if (taskData.statusId) taskCreateData.statusId = taskData.statusId;
+    if (taskData.startDate) taskCreateData.startDate = taskData.startDate;
+    if (taskData.dueDate) taskCreateData.dueDate = taskData.dueDate;
+    if (taskData.storyPoints !== undefined) taskCreateData.storyPoints = taskData.storyPoints;
+    if (taskData.originalEstimate !== undefined)
+      taskCreateData.originalEstimate = taskData.originalEstimate;
+    if (taskData.remainingEstimate !== undefined)
+      taskCreateData.remainingEstimate = taskData.remainingEstimate;
+    if (taskData.customFields) taskCreateData.customFields = taskData.customFields;
+    if (taskData.parentTaskId) taskCreateData.parentTaskId = taskData.parentTaskId;
+    if (taskData.completedAt !== undefined) taskCreateData.completedAt = taskData.completedAt;
+    if (taskData.allowEmailReplies !== undefined)
+      taskCreateData.allowEmailReplies = taskData.allowEmailReplies;
+
+    // Only add assignees if there are any
+    if (assigneeIds?.length) {
+      taskCreateData.assignees = {
+        connect: assigneeIds.map((id) => ({ id })),
+      };
+    }
+
+    // Only add reporters if there are any
+    if (reporterIds?.length) {
+      taskCreateData.reporters = {
+        connect: reporterIds.map((id) => ({ id })),
+      };
+    }
+
+    // Create the task
+    const task = await this.prisma.task.create({
+      data: taskCreateData,
       include: {
         project: {
           select: {
@@ -162,6 +193,32 @@ export class TasksService {
         },
       },
     });
+
+    // If this is a recurring task, create the recurrence configuration
+    if (isRecurring && recurrenceConfig) {
+      const nextOccurrence = this.recurrenceService.calculateNextOccurrence(
+        task.dueDate || new Date(),
+        recurrenceConfig,
+      );
+
+      await this.prisma.recurringTask.create({
+        data: {
+          taskId: task.id,
+          recurrenceType: recurrenceConfig.recurrenceType,
+          interval: recurrenceConfig.interval,
+          daysOfWeek: recurrenceConfig.daysOfWeek || [],
+          dayOfMonth: recurrenceConfig.dayOfMonth,
+          monthOfYear: recurrenceConfig.monthOfYear,
+          endType: recurrenceConfig.endType,
+          endDate: recurrenceConfig.endDate ? new Date(recurrenceConfig.endDate) : null,
+          occurrenceCount: recurrenceConfig.occurrenceCount,
+          nextOccurrence,
+          isActive: true,
+        },
+      });
+    }
+
+    return task;
   }
   // Updated Task Create with Attachments
   async createWithAttachments(
@@ -233,29 +290,80 @@ export class TasksService {
 
     const taskNumber = lastTask ? lastTask.taskNumber + 1 : 1;
     const key = `${project.slug}-${taskNumber}`;
-    const { assigneeIds, reporterIds, description, ...taskData } = createTaskDto;
+    const { assigneeIds, reporterIds, description, isRecurring, recurrenceConfig, ...taskData } =
+      createTaskDto;
+
+    // Build task create data - filter out undefined values
+    const taskCreateData: any = {
+      description: sanitizeHtml(description as string),
+      createdBy: userId,
+      taskNumber,
+      slug: key,
+      sprintId: sprintId,
+      isRecurring: isRecurring || false,
+    };
+
+    // Add optional fields only if they have values
+    if (taskData.title) taskCreateData.title = taskData.title;
+    if (taskData.type) taskCreateData.type = taskData.type;
+    if (taskData.priority) taskCreateData.priority = taskData.priority;
+    if (taskData.projectId) taskCreateData.projectId = taskData.projectId;
+    if (taskData.statusId) taskCreateData.statusId = taskData.statusId;
+    if (taskData.startDate) taskCreateData.startDate = taskData.startDate;
+    if (taskData.dueDate) taskCreateData.dueDate = taskData.dueDate;
+    if (taskData.storyPoints !== undefined) taskCreateData.storyPoints = taskData.storyPoints;
+    if (taskData.originalEstimate !== undefined)
+      taskCreateData.originalEstimate = taskData.originalEstimate;
+    if (taskData.remainingEstimate !== undefined)
+      taskCreateData.remainingEstimate = taskData.remainingEstimate;
+    if (taskData.customFields) taskCreateData.customFields = taskData.customFields;
+    if (taskData.parentTaskId) taskCreateData.parentTaskId = taskData.parentTaskId;
+    if (taskData.completedAt !== undefined) taskCreateData.completedAt = taskData.completedAt;
+    if (taskData.allowEmailReplies !== undefined)
+      taskCreateData.allowEmailReplies = taskData.allowEmailReplies;
+
+    // Only add assignees if there are any
+    if (assigneeIds?.length) {
+      taskCreateData.assignees = {
+        connect: assigneeIds.map((id) => ({ id })),
+      };
+    }
+
+    // Only add reporters if there are any
+    if (reporterIds?.length) {
+      taskCreateData.reporters = {
+        connect: reporterIds.map((id) => ({ id })),
+      };
+    }
 
     // --- Create Task ---
     const task = await this.prisma.task.create({
-      data: {
-        ...taskData,
-        description: sanitizeHtml(description as string),
-        createdBy: userId,
-        taskNumber,
-        slug: key,
-        sprintId: sprintId,
-        assignees: assigneeIds?.length
-          ? {
-              connect: assigneeIds.map((id) => ({ id })),
-            }
-          : undefined,
-        reporters: reporterIds?.length
-          ? {
-              connect: reporterIds.map((id) => ({ id })),
-            }
-          : undefined,
-      },
+      data: taskCreateData,
     });
+
+    // If this is a recurring task, create the recurrence configuration
+    if (isRecurring && recurrenceConfig) {
+      const nextOccurrence = this.recurrenceService.calculateNextOccurrence(
+        task.dueDate || new Date(),
+        recurrenceConfig,
+      );
+
+      await this.prisma.recurringTask.create({
+        data: {
+          taskId: task.id,
+          recurrenceType: recurrenceConfig.recurrenceType,
+          interval: recurrenceConfig.interval,
+          daysOfWeek: recurrenceConfig.daysOfWeek || [],
+          dayOfMonth: recurrenceConfig.dayOfMonth,
+          monthOfYear: recurrenceConfig.monthOfYear,
+          endType: recurrenceConfig.endType,
+          endDate: recurrenceConfig.endDate ? new Date(recurrenceConfig.endDate) : null,
+          occurrenceCount: recurrenceConfig.occurrenceCount,
+          nextOccurrence,
+          isActive: true,
+        },
+      });
+    }
 
     // --- Handle Attachments ---
     if (files && files.length > 0) {
@@ -932,6 +1040,22 @@ export class TasksService {
             firstName: true,
             lastName: true,
             id: true,
+          },
+        },
+        recurringConfig: {
+          select: {
+            id: true,
+            recurrenceType: true,
+            interval: true,
+            daysOfWeek: true,
+            dayOfMonth: true,
+            monthOfYear: true,
+            endType: true,
+            endDate: true,
+            occurrenceCount: true,
+            currentOccurrence: true,
+            nextOccurrence: true,
+            isActive: true,
           },
         },
         _count: {
@@ -1908,5 +2032,248 @@ export class TasksService {
     }
 
     return { deletedCount, failedTasks };
+  }
+
+  /**
+   * Complete current occurrence and generate the next one for recurring tasks
+   */
+  async completeOccurrenceAndGenerateNext(taskId: string, userId: string) {
+    // Verify task access
+    await this.accessControl.getTaskAccess(taskId, userId);
+
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        recurringConfig: true,
+        assignees: { select: { id: true } },
+        reporters: { select: { id: true } },
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    if (!task.isRecurring || !task.recurringConfig) {
+      throw new BadRequestException('This task is not a recurring task');
+    }
+
+    const recurringConfig = task.recurringConfig;
+
+    // Check if recurrence is complete
+    if (this.recurrenceService.isRecurrenceComplete(recurringConfig)) {
+      // Just mark this task as complete without generating next
+      return this.update(taskId, { completedAt: new Date().toISOString() }, userId);
+    }
+
+    // Mark current task as complete
+    await this.update(taskId, { completedAt: new Date().toISOString() }, userId);
+
+    // Calculate next occurrence
+    const nextOccurrence = this.recurrenceService.calculateNextOccurrence(
+      task.dueDate || new Date(),
+      recurringConfig,
+    );
+
+    // Create next task instance
+    const nextTask = await this.create(
+      {
+        title: task.title,
+        description: task.description || undefined,
+        type: task.type,
+        priority: task.priority,
+        projectId: task.projectId,
+        statusId: task.statusId,
+        sprintId: task.sprintId || undefined,
+        dueDate: nextOccurrence.toISOString(),
+        assigneeIds: task.assignees.map((a) => a.id),
+        reporterIds: task.reporters.map((r) => r.id),
+        isRecurring: false, // Next instance is not itself recurring
+      },
+      userId,
+    );
+
+    // Update recurring config
+    await this.prisma.recurringTask.update({
+      where: { id: recurringConfig.id },
+      data: {
+        currentOccurrence: recurringConfig.currentOccurrence + 1,
+        nextOccurrence,
+      },
+    });
+
+    return {
+      completedTask: task,
+      nextTask,
+    };
+  }
+
+  /**
+   * Add recurrence configuration to an existing non-recurring task
+   */
+  async addRecurrence(taskId: string, recurrenceConfig: RecurrenceConfigDto, userId: string) {
+    await this.accessControl.getTaskAccess(taskId, userId);
+
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: { recurringConfig: true },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    if (task.isRecurring || task.recurringConfig) {
+      throw new BadRequestException('This task is already a recurring task');
+    }
+
+    const nextOccurrence = this.recurrenceService.calculateNextOccurrence(
+      task.dueDate || new Date(),
+      recurrenceConfig,
+    );
+
+    // Create recurring task configuration
+    const recurringTask = await this.prisma.recurringTask.create({
+      data: {
+        taskId: taskId,
+        recurrenceType: recurrenceConfig.recurrenceType,
+        interval: recurrenceConfig.interval,
+        daysOfWeek: recurrenceConfig.daysOfWeek || [],
+        dayOfMonth: recurrenceConfig.dayOfMonth,
+        monthOfYear: recurrenceConfig.monthOfYear,
+        endType: recurrenceConfig.endType,
+        endDate: recurrenceConfig.endDate ? new Date(recurrenceConfig.endDate) : null,
+        occurrenceCount: recurrenceConfig.occurrenceCount,
+        nextOccurrence,
+        currentOccurrence: 1,
+        isActive: true,
+      },
+    });
+
+    // Update task to mark it as recurring
+    await this.prisma.task.update({
+      where: { id: taskId },
+      data: { isRecurring: true },
+    });
+
+    return recurringTask;
+  }
+
+  /**
+   * Update recurrence configuration for a task
+   */
+  async updateRecurrenceConfig(
+    taskId: string,
+    recurrenceConfig: RecurrenceConfigDto,
+    userId: string,
+  ) {
+    await this.accessControl.getTaskAccess(taskId, userId);
+
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: { recurringConfig: true },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    if (!task.isRecurring || !task.recurringConfig) {
+      throw new BadRequestException('This task is not a recurring task');
+    }
+
+    const nextOccurrence = this.recurrenceService.calculateNextOccurrence(
+      task.dueDate || new Date(),
+      recurrenceConfig,
+    );
+
+    return this.prisma.recurringTask.update({
+      where: { id: task.recurringConfig.id },
+      data: {
+        recurrenceType: recurrenceConfig.recurrenceType,
+        interval: recurrenceConfig.interval,
+        daysOfWeek: recurrenceConfig.daysOfWeek || [],
+        dayOfMonth: recurrenceConfig.dayOfMonth,
+        monthOfYear: recurrenceConfig.monthOfYear,
+        endType: recurrenceConfig.endType,
+        endDate: recurrenceConfig.endDate ? new Date(recurrenceConfig.endDate) : null,
+        occurrenceCount: recurrenceConfig.occurrenceCount,
+        nextOccurrence,
+      },
+    });
+  }
+
+  /**
+   * Stop recurrence for a task
+   */
+  async stopRecurrence(taskId: string, userId: string) {
+    await this.accessControl.getTaskAccess(taskId, userId);
+
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: { recurringConfig: true },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    if (!task.isRecurring || !task.recurringConfig) {
+      throw new BadRequestException('This task is not a recurring task');
+    }
+
+    // Deactivate recurrence
+    await this.prisma.recurringTask.delete({
+      where: { id: task.recurringConfig.id },
+    });
+
+    // Update task to mark it as not recurring
+    return this.prisma.task.update({
+      where: { id: taskId },
+      data: { isRecurring: false },
+    });
+  }
+
+  /**
+   * Get all recurring tasks for a project
+   */
+  async getRecurringTasks(projectId: string, userId: string) {
+    // Verify project access
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        workspace: {
+          select: { organizationId: true },
+        },
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    await this.accessControl.getOrgAccess(project.workspace.organizationId, userId);
+
+    return this.prisma.task.findMany({
+      where: {
+        projectId,
+        isRecurring: true,
+      },
+      include: {
+        recurringConfig: true,
+        assignees: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
+        },
+        status: {
+          select: { id: true, name: true, color: true, category: true },
+        },
+      },
+    });
   }
 }
