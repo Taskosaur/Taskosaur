@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { DangerouslyHTMLComment } from "@/components/common/DangerouslyHTMLComment";
+import { ShadowDomHtmlRenderer } from "@/components/common/ShadowDomHtmlRenderer";
 import { SafeMarkdownRenderer } from "@/components/common/SafeMarkdownRenderer";
 import DualModeEditor, { EditorMode } from "@/components/common/DualModeEditor";
 import { useTheme } from "next-themes";
@@ -194,14 +194,21 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
     );
   }
 
+  // If content is HTML (email or rich text), use ShadowDom renderer to isolate styles
+  if (emailThreadId || isHtmlContent) {
+    return (
+      <div className="task-description-view rounded-md border border-[var(--border)] overflow-hidden">
+        <ShadowDomHtmlRenderer content={value} />
+      </div>
+    );
+  }
+
   return (
     <div
       className="task-description-view prose prose-sm max-w-none bg-[var(--background)] text-[var(--foreground)] p-2 rounded-md border border-[var(--border)]"
       data-color-mode={colorMode}
     >
-      {emailThreadId || isHtmlContent ? (
-        <DangerouslyHTMLComment comment={value} />
-      ) : value ? (
+      {value ? (
         <MarkdownWithInteractiveTasks md={value} />
       ) : (
         <div>No description provided</div>
