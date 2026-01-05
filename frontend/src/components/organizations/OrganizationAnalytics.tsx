@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   organizationAnalyticsWidgets,
   Widget,
@@ -50,6 +50,10 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
 
   const [kpiCards, setKpiCards] = useState<KPICard[]>(organizationKPICards);
 
+  // Track which organization's data is currently loaded to prevent race conditions during saving
+  // Using useState instead of useRef to ensure render cycles are synchronized
+  const [loadedOrg, setLoadedOrg] = useState<string | null>(null);
+
   const handleFetchData = () => {
     if (error) clearAnalyticsError();
     fetchAnalyticsData(organizationId);
@@ -79,6 +83,29 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
     );
   };
 
+  const handleKPIOrderChange = (newOrder: string[]) => {
+    setKpiCards((prev) => {
+      const cardMap = new Map(prev.map((c) => [c.id, c]));
+      const newKpiCards: KPICard[] = [];
+      const usedIds = new Set(newOrder);
+
+      // Add ordered visible cards
+      newOrder.forEach((id) => {
+        const card = cardMap.get(id);
+        if (card) newKpiCards.push(card);
+      });
+
+      // Add remaining (hidden) cards
+      prev.forEach((card) => {
+        if (!usedIds.has(card.id)) {
+          newKpiCards.push(card);
+        }
+      });
+
+      return newKpiCards;
+    });
+  };
+
   const resetWidgets = () => {
     setWidgets((prev) => prev.map((widget) => ({ ...widget, visible: true })));
   };
@@ -93,6 +120,9 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
 
   // Save preferences to localStorage
   useEffect(() => {
+    // Only save if we are sure the current state belongs to the current organization
+    if (!organizationId || loadedOrg !== organizationId) return;
+
     const widgetPreferences = widgets.reduce(
       (acc, widget) => {
         acc[widget.id] = widget.visible;
@@ -101,13 +131,16 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
       {} as Record<string, boolean>
     );
 
-    const kpiPreferences = kpiCards.reduce(
-      (acc, card) => {
-        acc[card.id] = card.visible;
-        return acc;
-      },
-      {} as Record<string, boolean>
-    );
+    // Save full KPI objects to persist order and visibility
+    const kpiPreferences = kpiCards.map((card) => ({
+      id: card.id,
+      visible: card.visible,
+    }));
+
+    console.log(`[Dashboard] Saving preferences for org: ${organizationId}`, {
+      widgets: widgetPreferences,
+      kpiCards: kpiPreferences,
+    });
 
     localStorage.setItem(
       `organization-analytics-preferences-${organizationId}`,
@@ -116,33 +149,77 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
         kpiCards: kpiPreferences,
       })
     );
-  }, [widgets, kpiCards, organizationId]);
+  }, [widgets, kpiCards, organizationId, loadedOrg]);
 
   // Load preferences from localStorage
   useEffect(() => {
+    if (!organizationId) return;
+
     const saved = localStorage.getItem(`organization-analytics-preferences-${organizationId}`);
 
     if (saved) {
       try {
         const preferences = JSON.parse(saved);
+        console.log(`[Dashboard] Fetched preferences for org: ${organizationId}`, preferences);
 
-        setWidgets((prev) =>
-          prev.map((widget) => ({
-            ...widget,
-            visible: preferences.widgets[widget.id] ?? widget.visible,
-          }))
-        );
+        if (preferences.widgets) {
+          setWidgets((prev) =>
+            prev.map((widget) => ({
+              ...widget,
+              visible: preferences.widgets[widget.id] ?? widget.visible,
+            }))
+          );
+        }
 
-        setKpiCards((prev) =>
-          prev.map((card) => ({
-            ...card,
-            visible: preferences.kpiCards[card.id] ?? card.visible,
-          }))
-        );
+        if (preferences.kpiCards) {
+          if (Array.isArray(preferences.kpiCards)) {
+            // New format: Array of objects with order
+            const savedCards = preferences.kpiCards as { id: string; visible: boolean }[];
+            const processedIds = new Set<string>();
+            const newCards: KPICard[] = [];
+
+            // Add saved cards in order
+            savedCards.forEach((pref) => {
+              const defaultCard = organizationKPICards.find((c) => c.id === pref.id);
+              if (defaultCard) {
+                newCards.push({ ...defaultCard, visible: pref.visible });
+                processedIds.add(pref.id);
+              }
+            });
+
+            // Add any missing default cards (in case of new features)
+            organizationKPICards.forEach((card) => {
+              if (!processedIds.has(card.id)) {
+                newCards.push(card);
+              }
+            });
+
+            setKpiCards(newCards);
+          } else {
+            // Old format: Object map (backward compatibility)
+            const kpiPrefs = preferences.kpiCards as Record<string, boolean>;
+            setKpiCards((prev) =>
+              prev.map((card) => ({
+                ...card,
+                visible: kpiPrefs[card.id] ?? card.visible,
+              }))
+            );
+          }
+        }
       } catch (error) {
         console.error("Failed to load analytics preferences:", error);
+        // Fallback to defaults on error
+        setWidgets(organizationAnalyticsWidgets);
+        setKpiCards(organizationKPICards);
       }
+    } else {
+      console.log(`[Dashboard] No saved preferences for org: ${organizationId}, using defaults.`);
+      setWidgets(organizationAnalyticsWidgets);
+      setKpiCards(organizationKPICards);
     }
+
+    // Mark this organization as loaded
+    setLoadedOrg(organizationId);
   }, [organizationId]);
 
   useEffect(() => {
@@ -160,6 +237,12 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
     .sort((a, b) => a.priority - b.priority);
 
   const visibleCount = widgets.filter((w) => w.visible).length;
+
+  // Log rendering state for debugging
+  if (data && visibleCount > 0) {
+    console.log(`[Dashboard] Rendering with KPI card order:`, kpiCards.map(c => `${c.id} (${c.visible ? 'v' : 'h'})`));
+  }
+
   const settingSections = [
     createKPISection(kpiCards, toggleKPICard, showAllKPICards, resetKPICards),
     createWidgetsSection(widgets, toggleWidget, resetWidgets, () => {
@@ -275,7 +358,11 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
             return (
               <div key={widget.id} className={widget.gridCols}>
                 {widget.id === "kpi-metrics" ? (
-                  <Component data={widgetData} visibleCards={kpiCards} />
+                  <Component
+                    data={widgetData}
+                    visibleCards={kpiCards}
+                    onOrderChange={handleKPIOrderChange}
+                  />
                 ) : (
                   <Component data={widgetData} />
                 )}
