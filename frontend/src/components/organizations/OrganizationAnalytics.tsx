@@ -10,6 +10,27 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
+// DnD Imports
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  DragEndEvent,
+  DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
 // Chart Components
 import { PageHeader } from "../common/PageHeader";
 import {
@@ -30,6 +51,34 @@ import { HiHome } from "react-icons/hi";
 
 interface OrganizationAnalyticsProps {
   organizationId: string;
+}
+
+// Sortable Widget Component
+function SortableWidget({
+  id,
+  children,
+  className,
+}: {
+  id: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
+    zIndex: isDragging ? 100 : "auto",
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={className}>
+      {children}
+    </div>
+  );
 }
 
 export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsProps) {
@@ -53,6 +102,20 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
   // Track which organization's data is currently loaded to prevent race conditions during saving
   // Using useState instead of useRef to ensure render cycles are synchronized
   const [loadedOrg, setLoadedOrg] = useState<string | null>(null);
+
+  // DnD State
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const handleFetchData = () => {
     if (error) clearAnalyticsError();
@@ -118,6 +181,50 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
     setKpiCards((prev) => prev.map((card) => ({ ...card, visible: true })));
   };
 
+  // DnD Handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      setWidgets((prevWidgets) => {
+        const visibleWidgets = prevWidgets
+          .filter((w) => w.visible)
+          .sort((a, b) => a.priority - b.priority);
+
+        const oldIndex = visibleWidgets.findIndex((w) => w.id === active.id);
+        const newIndex = visibleWidgets.findIndex((w) => w.id === over?.id);
+
+        const reorderedVisibleWidgets = arrayMove(visibleWidgets, oldIndex, newIndex);
+
+        // Map id to new priority
+        const priorityMap = new Map<string, number>();
+        reorderedVisibleWidgets.forEach((w, index) => {
+          priorityMap.set(w.id, index);
+        });
+
+        // Hidden widgets keep their relative order after visible ones
+        const hiddenWidgets = prevWidgets
+          .filter((w) => !w.visible)
+          .sort((a, b) => a.priority - b.priority);
+
+        hiddenWidgets.forEach((w, index) => {
+          priorityMap.set(w.id, reorderedVisibleWidgets.length + index);
+        });
+
+        return prevWidgets.map((w) => ({
+          ...w,
+          priority: priorityMap.get(w.id) ?? w.priority,
+        }));
+      });
+    }
+
+    setActiveId(null);
+  };
+
   // Save preferences to localStorage
   useEffect(() => {
     // Only save if we are sure the current state belongs to the current organization
@@ -125,10 +232,10 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
 
     const widgetPreferences = widgets.reduce(
       (acc, widget) => {
-        acc[widget.id] = widget.visible;
+        acc[widget.id] = { visible: widget.visible, priority: widget.priority };
         return acc;
       },
-      {} as Record<string, boolean>
+      {} as Record<string, { visible: boolean; priority: number }>
     );
 
     // Save full KPI objects to persist order and visibility
@@ -136,11 +243,6 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
       id: card.id,
       visible: card.visible,
     }));
-
-    console.log(`[Dashboard] Saving preferences for org: ${organizationId}`, {
-      widgets: widgetPreferences,
-      kpiCards: kpiPreferences,
-    });
 
     localStorage.setItem(
       `organization-analytics-preferences-${organizationId}`,
@@ -160,14 +262,23 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
     if (saved) {
       try {
         const preferences = JSON.parse(saved);
-        console.log(`[Dashboard] Fetched preferences for org: ${organizationId}`, preferences);
 
         if (preferences.widgets) {
           setWidgets((prev) =>
-            prev.map((widget) => ({
-              ...widget,
-              visible: preferences.widgets[widget.id] ?? widget.visible,
-            }))
+            prev.map((widget) => {
+              const savedWidget = preferences.widgets[widget.id];
+              if (typeof savedWidget === "boolean") {
+                // Backward compatibility
+                return { ...widget, visible: savedWidget };
+              } else if (typeof savedWidget === "object") {
+                return {
+                  ...widget,
+                  visible: savedWidget.visible ?? widget.visible,
+                  priority: savedWidget.priority ?? widget.priority,
+                };
+              }
+              return widget;
+            })
           );
         }
 
@@ -213,7 +324,6 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
         setKpiCards(organizationKPICards);
       }
     } else {
-      console.log(`[Dashboard] No saved preferences for org: ${organizationId}, using defaults.`);
       setWidgets(organizationAnalyticsWidgets);
       setKpiCards(organizationKPICards);
     }
@@ -240,7 +350,10 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
 
   // Log rendering state for debugging
   if (data && visibleCount > 0) {
-    console.log(`[Dashboard] Rendering with KPI card order:`, kpiCards.map(c => `${c.id} (${c.visible ? 'v' : 'h'})`));
+    console.log(
+      `[Dashboard] Rendering with KPI card order:`,
+      kpiCards.map((c) => `${c.id} (${c.visible ? "v" : "h"})`)
+    );
   }
 
   const settingSections = [
@@ -268,7 +381,41 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
     });
   };
 
-  if (error) <ErrorState error="Error loading organization analytics:" onRetry={handleFetchData} />;
+  // Helper to render widget content
+  const renderWidgetContent = (widget: Widget) => {
+    if (!data) return null;
+
+    const Component = widget.component;
+    const widgetData = data[widget.dataKey];
+
+    // Handle case where API request failed and data is null
+    if (widgetData === null) {
+      return (
+        <Card className="p-4 h-full flex items-center justify-center">
+          <div className="text-center text-muted-foreground">
+            <p>Failed to load data for {widget.title}</p>
+            <Button variant="outline" size="sm" onClick={handleFetchData} className="mt-2">
+              Retry
+            </Button>
+          </div>
+        </Card>
+      );
+    }
+
+    return widget.id === "kpi-metrics" ? (
+      <Component data={widgetData} visibleCards={kpiCards} onOrderChange={handleKPIOrderChange} />
+    ) : (
+      <Component data={widgetData} />
+    );
+  };
+
+  const activeWidget = activeId ? widgets.find((w) => w.id === activeId) : null;
+
+  if (error) {
+    return (
+      <ErrorState error="Error loading organization analytics:" onRetry={handleFetchData} />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -329,47 +476,34 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
 
       {/* Widgets Grid */}
       {data && visibleCount > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {visibleWidgets.map((widget) => {
-            const Component = widget.component;
-            const widgetData = data[widget.dataKey];
-
-            // Handle case where API request failed and data is null
-            if (widgetData === null) {
-              return (
-                <div key={widget.id} className={widget.gridCols}>
-                  <Card className="p-4 h-full flex items-center justify-center">
-                    <div className="text-center text-muted-foreground">
-                      <p>Failed to load data for {widget.title}</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleFetchData}
-                        className="mt-2"
-                      >
-                        Retry
-                      </Button>
-                    </div>
-                  </Card>
-                </div>
-              );
-            }
-
-            return (
-              <div key={widget.id} className={widget.gridCols}>
-                {widget.id === "kpi-metrics" ? (
-                  <Component
-                    data={widgetData}
-                    visibleCards={kpiCards}
-                    onOrderChange={handleKPIOrderChange}
-                  />
-                ) : (
-                  <Component data={widgetData} />
-                )}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={visibleWidgets.map((w) => w.id)}
+            strategy={rectSortingStrategy}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {visibleWidgets.map((widget) => (
+                <SortableWidget key={widget.id} id={widget.id} className={widget.gridCols}>
+                  {renderWidgetContent(widget)}
+                </SortableWidget>
+              ))}
+            </div>
+          </SortableContext>
+          <DragOverlay>
+            {activeWidget ? (
+              <div className={activeWidget.gridCols}>
+                <Card className="h-full opacity-80 shadow-xl cursor-grabbing">
+                  {renderWidgetContent(activeWidget)}
+                </Card>
               </div>
-            );
-          })}
-        </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
     </div>
   );

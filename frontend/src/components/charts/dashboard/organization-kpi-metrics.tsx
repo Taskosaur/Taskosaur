@@ -139,17 +139,15 @@ export function OrganizationKPIMetrics({
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      setOrderedIds((items) => {
-        const oldIndex = items.indexOf(active.id as string);
-        const newIndex = items.indexOf(over.id as string);
-        const newOrder = arrayMove(items, oldIndex, newIndex);
+      const oldIndex = orderedIds.indexOf(active.id as string);
+      const newIndex = orderedIds.indexOf(over.id as string);
+      const newOrder = arrayMove(orderedIds, oldIndex, newIndex);
 
-        if (onOrderChange) {
-          onOrderChange(newOrder);
-        }
+      setOrderedIds(newOrder);
 
-        return newOrder;
-      });
+      if (onOrderChange) {
+        onOrderChange(newOrder);
+      }
     }
   };
 
