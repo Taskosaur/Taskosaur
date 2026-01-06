@@ -940,10 +940,11 @@ export class EmailSyncService {
 
       // Try to find existing task using thread ID (should work reliably with improved extraction)
       // Search within the same project to ensure security
+      // We check both raw threadId and bracketed version to support legacy tasks created before normalization
       let existingTask = await this.prisma.task.findFirst({
         where: {
-          emailThreadId: message.threadId,
           projectId: inbox.projectId,
+          OR: [{ emailThreadId: message.threadId }, { emailThreadId: `<${message.threadId}>` }],
         },
         include: {
           project: {

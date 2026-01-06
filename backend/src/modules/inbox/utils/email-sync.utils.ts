@@ -18,6 +18,9 @@ export class EmailSyncUtils {
     inReplyTo?: string;
     references?: string[] | string | Set<string>;
   }): string {
+    // Helper to clean message IDs (remove angle brackets)
+    const cleanId = (id: string) => id.trim().replace(/^<|>$/g, '');
+
     // Normalize references to always be an array of valid message IDs
     let references: string[] = [];
 
@@ -28,14 +31,14 @@ export class EmailSyncUtils {
           .filter(
             (ref): ref is string => ref !== null && ref !== undefined && typeof ref === 'string',
           )
-          .map((ref: string) => ref.trim())
+          .map(cleanId)
           .filter((ref: string) => ref.length > 0);
       } else if (typeof message.references === 'string' && message.references.trim()) {
         // String format - split by whitespace (RFC 5322 allows space-separated list)
         references = message.references
           .trim()
           .split(/\s+/)
-          .map((ref: string) => ref.trim())
+          .map(cleanId)
           .filter((ref: string) => ref.length > 0);
       } else if (message.references instanceof Set) {
         // Some parsers return Set - convert to array
@@ -43,7 +46,7 @@ export class EmailSyncUtils {
           .filter(
             (ref): ref is string => ref !== null && ref !== undefined && typeof ref === 'string',
           )
-          .map((ref: string) => ref.trim())
+          .map(cleanId)
           .filter((ref: string) => ref.length > 0);
       }
     }
@@ -56,7 +59,7 @@ export class EmailSyncUtils {
     // Priority 2: Use inReplyTo (for direct replies without full references chain)
     // This happens when an email client only sets In-Reply-To but not References
     if (message.inReplyTo && typeof message.inReplyTo === 'string') {
-      const inReplyTo = message.inReplyTo.trim();
+      const inReplyTo = cleanId(message.inReplyTo);
       if (inReplyTo.length > 0) {
         return inReplyTo;
       }
@@ -65,7 +68,7 @@ export class EmailSyncUtils {
     // Priority 3: This IS the original email (start of a new thread)
     // Use its own messageId as the thread identifier
     if (message.messageId && typeof message.messageId === 'string') {
-      const messageId = message.messageId.trim();
+      const messageId = cleanId(message.messageId);
       if (messageId.length > 0) {
         return messageId;
       }
