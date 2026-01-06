@@ -444,6 +444,7 @@ export class EmailService {
           userName: data.userName,
           resetToken: data.resetToken,
           resetUrl: data.resetUrl,
+          expiresIn: '24 hours',
           // Add any other data your email template needs
         },
         priority: EmailPriority.HIGH, // Password reset is high priority

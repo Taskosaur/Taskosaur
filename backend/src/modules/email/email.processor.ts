@@ -16,7 +16,7 @@ export class EmailProcessor {
 
   private initializeTransporter() {
     const smtpHost = this.configService.get<string>('SMTP_HOST');
-    const smtpPort = this.configService.get<number>('SMTP_PORT', 587);
+    const smtpPort = Number(this.configService.get<number>('SMTP_PORT', 587));
     const smtpUser = this.configService.get<string>('SMTP_USER');
     const smtpPass = this.configService.get<string>('SMTP_PASS');
 
