@@ -103,7 +103,15 @@ interface OrganizationContextType extends OrganizationState {
   ) => Promise<TaskStatus[]>;
 
   // Add analytics methods
-  fetchAnalyticsData: (organizationId: string) => Promise<void>;
+  fetchAnalyticsData: (
+    organizationId: string,
+    filters?: { workspaceId?: string; projectId?: string }
+  ) => Promise<void>;
+  fetchSingleChartData: (
+    organizationId: string,
+    chartType: ChartType,
+    filters?: { workspaceId?: string; projectId?: string }
+  ) => Promise<any>;
   clearAnalyticsError: () => void;
   setDefaultOrganization: (organizationId: string) => Promise<OrganizationMember>;
 
@@ -205,61 +213,117 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
   }, []);
 
   // Add fetchAnalyticsData function
-  const fetchAnalyticsData = useCallback(async (organizationId: string): Promise<void> => {
-    try {
-      setOrganizationState((prev) => ({
-        ...prev,
-        analyticsLoading: true,
-        analyticsError: null,
-        refreshingAnalytics: true,
-      }));
+  const fetchAnalyticsData = useCallback(
+    async (
+      organizationId: string,
+      filters: { workspaceId?: string; projectId?: string } = {}
+    ): Promise<void> => {
+      try {
+        setOrganizationState((prev) => ({
+          ...prev,
+          analyticsLoading: true,
+          analyticsError: null,
+          refreshingAnalytics: true,
+        }));
 
-      // Get all charts data - returns an object, not an array
-      const results = await orgChartsApi.getAllCharts(organizationId);
+        // Get all charts data - returns an object, not an array
+        const results = await orgChartsApi.getAllCharts(organizationId, filters);
 
-      // Check for any failed requests (charts with error property)
-      const failedCharts = Object.entries(results).filter(
-        ([, data]) => data && typeof data === "object" && "error" in data
-      );
+        // Check for any failed requests (charts with error property)
+        const failedCharts = Object.entries(results).filter(
+          ([, data]) => data && typeof data === "object" && "error" in data
+        );
 
-      if (failedCharts.length > 0) {
-        console.error("Some chart requests failed:", failedCharts);
+        if (failedCharts.length > 0) {
+          console.error("Some chart requests failed:", failedCharts);
+        }
+
+        // Extract chart data using ChartType enum keys
+        const analyticsData = {
+          kpiMetrics: results[ChartType.KPI_METRICS],
+          projectPortfolio: results[ChartType.PROJECT_PORTFOLIO],
+          teamUtilization: results[ChartType.TEAM_UTILIZATION],
+          taskDistribution: results[ChartType.TASK_DISTRIBUTION],
+          taskType: results[ChartType.TASK_TYPE],
+          sprintMetrics: results[ChartType.SPRINT_METRICS],
+          qualityMetrics: results[ChartType.QUALITY_METRICS],
+          workspaceProjectCount: results[ChartType.WORKSPACE_PROJECT_COUNT],
+          memberWorkload: results[ChartType.MEMBER_WORKLOAD],
+          resourceAllocation: results[ChartType.RESOURCE_ALLOCATION],
+        };
+
+        setOrganizationState((prev) => ({
+          ...prev,
+          analyticsData,
+          analyticsLoading: false,
+          refreshingAnalytics: false,
+        }));
+      } catch (err) {
+        console.error("Error fetching analytics data:", err);
+        const errorMessage = err?.message
+          ? err.message
+          : "Failed to load organization analytics data";
+
+        setOrganizationState((prev) => ({
+          ...prev,
+          analyticsLoading: false,
+          refreshingAnalytics: false,
+          analyticsError: errorMessage,
+        }));
       }
+    },
+    []
+  );
 
-      // Extract chart data using ChartType enum keys
-      const analyticsData = {
-        kpiMetrics: results[ChartType.KPI_METRICS],
-        projectPortfolio: results[ChartType.PROJECT_PORTFOLIO],
-        teamUtilization: results[ChartType.TEAM_UTILIZATION],
-        taskDistribution: results[ChartType.TASK_DISTRIBUTION],
-        taskType: results[ChartType.TASK_TYPE],
-        sprintMetrics: results[ChartType.SPRINT_METRICS],
-        qualityMetrics: results[ChartType.QUALITY_METRICS],
-        workspaceProjectCount: results[ChartType.WORKSPACE_PROJECT_COUNT],
-        memberWorkload: results[ChartType.MEMBER_WORKLOAD],
-        resourceAllocation: results[ChartType.RESOURCE_ALLOCATION],
-      };
+  const fetchSingleChartData = useCallback(
+    async (
+      organizationId: string,
+      chartType: ChartType,
+      filters: { workspaceId?: string; projectId?: string } = {}
+    ): Promise<any> => {
+      try {
+        const result = await orgChartsApi.getSingleChart(organizationId, chartType, filters);
 
-      setOrganizationState((prev) => ({
-        ...prev,
-        analyticsData,
-        analyticsLoading: false,
-        refreshingAnalytics: false,
-      }));
-    } catch (err) {
-      console.error("Error fetching analytics data:", err);
-      const errorMessage = err?.message
-        ? err.message
-        : "Failed to load organization analytics data";
+        // Update local state if successful
+        if (result && !result.error) {
+          setOrganizationState((prev) => {
+            if (!prev.analyticsData) return prev;
 
-      setOrganizationState((prev) => ({
-        ...prev,
-        analyticsLoading: false,
-        refreshingAnalytics: false,
-        analyticsError: errorMessage,
-      }));
-    }
-  }, []);
+            // Map chartType to data key
+            const typeToKeyMap: Record<string, keyof AnalyticsData> = {
+              [ChartType.KPI_METRICS]: "kpiMetrics",
+              [ChartType.PROJECT_PORTFOLIO]: "projectPortfolio",
+              [ChartType.TEAM_UTILIZATION]: "teamUtilization",
+              [ChartType.TASK_DISTRIBUTION]: "taskDistribution",
+              [ChartType.TASK_TYPE]: "taskType",
+              [ChartType.SPRINT_METRICS]: "sprintMetrics",
+              [ChartType.QUALITY_METRICS]: "qualityMetrics",
+              [ChartType.WORKSPACE_PROJECT_COUNT]: "workspaceProjectCount",
+              [ChartType.MEMBER_WORKLOAD]: "memberWorkload",
+              [ChartType.RESOURCE_ALLOCATION]: "resourceAllocation",
+            };
+
+            const dataKey = typeToKeyMap[chartType];
+            if (!dataKey) return prev;
+
+            return {
+              ...prev,
+              analyticsData: {
+                ...prev.analyticsData,
+                [dataKey]: result,
+              },
+            };
+          });
+        }
+
+        return result;
+      } catch (error) {
+        console.error(`Error fetching single chart ${chartType}:`, error);
+        throw error;
+      }
+    },
+    []
+  );
 
   // Helper function for organization redirect logic
   const checkOrganizationAndRedirect = useCallback((): string => {
@@ -448,6 +512,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
 
       // Add analytics methods
       fetchAnalyticsData,
+      fetchSingleChartData,
 
       universalSearch: async (
         query: string,
