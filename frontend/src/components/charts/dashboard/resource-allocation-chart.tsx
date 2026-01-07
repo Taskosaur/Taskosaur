@@ -1,4 +1,5 @@
 // components/charts/organization/resource-allocation-chart.tsx
+import { useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -8,22 +9,33 @@ import {
   Tooltip,
   Legend,
   CartesianGrid,
+  Cell,
 } from "recharts";
 import { ChartWrapper } from "../chart-wrapper";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useProject } from "@/contexts/project-context";
+import { useOrganization } from "@/contexts/organization-context";
+import { ChartType } from "@/types";
 
 const chartConfig = {
   ADMIN: { label: "Admin", color: "#DC2626" },
   MANAGER: { label: "Manager", color: "#EA580C" },
   MEMBER: { label: "Member", color: "#3B82F6" },
   GUEST: { label: "Guest", color: "#10B981" },
-  // Add any other roles your system might have
   CONTRIBUTOR: { label: "Contributor", color: "#8B5CF6" },
   VIEWER: { label: "Viewer", color: "#94A3B8" },
 };
 
 interface ResourceAllocationChartProps {
   data: Array<{
-    workspaceId: string;
+    workspaceId?: string;
+    projectId?: string;
     role: string;
     _count: { role: number };
   }>;
@@ -45,37 +57,89 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-export function ResourceAllocationChart({ data }: ResourceAllocationChartProps) {
-  // Group data by role and sum counts
-  const roleData = data.reduce(
-    (acc, item) => {
-      const existing = acc.find((a) => a.role === item.role);
-      if (existing) {
-        existing.count += item._count.role;
-      } else {
-        acc.push({ role: item.role, count: item._count.role });
-      }
-      return acc;
-    },
-    [] as Array<{ role: string; count: number }>
-  );
+export function ResourceAllocationChart({ data: initialData }: ResourceAllocationChartProps) {
+  const { listProjects, projects } = useProject();
+  const { fetchSingleChartData, currentOrganization } = useOrganization();
+  const [selectedProject, setSelectedProject] = useState<string>("all");
+  const [chartData, setChartData] = useState<any[]>([]);
 
-  // Sort by count (descending) for better visualization
-  roleData.sort((a, b) => b.count - a.count);
+  useEffect(() => {
+    listProjects();
+  }, []);
 
-  const chartData = roleData.map((item) => ({
-    role: item.role,
-    count: item.count,
-    fill: chartConfig[item.role as keyof typeof chartConfig]?.color || "#8B5CF6",
-    label: chartConfig[item.role as keyof typeof chartConfig]?.label || item.role,
-  }));
+  useEffect(() => {
+    processData(initialData);
+  }, [initialData]);
+
+  const processData = (data: any[]) => {
+    // Group data by role and sum counts
+    const roleData = (data || []).reduce(
+      (acc, item) => {
+        const existing = acc.find((a: any) => a.role === item.role);
+        if (existing) {
+          existing.count += item._count.role;
+        } else {
+          acc.push({ role: item.role, count: item._count.role });
+        }
+        return acc;
+      },
+      [] as Array<{ role: string; count: number }>
+    );
+
+    // Sort by count (descending)
+    roleData.sort((a, b) => b.count - a.count);
+
+    const mappedData = roleData.map((item) => ({
+      role: item.role,
+      count: item.count,
+      fill: chartConfig[item.role as keyof typeof chartConfig]?.color || "#8B5CF6",
+      label: chartConfig[item.role as keyof typeof chartConfig]?.label || item.role,
+    }));
+
+    setChartData(mappedData);
+  };
+
+  const handleProjectChange = async (projectId: string) => {
+    setSelectedProject(projectId);
+    if (!currentOrganization) return;
+
+    const filters = projectId === "all" ? {} : { projectId };
+    const newData = await fetchSingleChartData(
+      currentOrganization.id,
+      ChartType.RESOURCE_ALLOCATION,
+      filters
+    );
+
+    if (newData && !newData.error) {
+      processData(newData);
+    }
+  };
 
   return (
     <ChartWrapper
       title="Resource Allocation"
-      description="Team member distribution by role"
+      description={
+        selectedProject === "all"
+          ? "Team member distribution by role"
+          : "Role distribution for selected project"
+      }
       config={chartConfig}
       className="border-[var(--border)]"
+      extraHeader={
+        <Select value={selectedProject} onValueChange={handleProjectChange}>
+          <SelectTrigger className="w-[150px] h-8 text-xs">
+            <SelectValue placeholder="All Projects" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Projects</SelectItem>
+            {projects.map((project) => (
+              <SelectItem key={project.id} value={project.id}>
+                {project.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      }
     >
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -95,7 +159,11 @@ export function ResourceAllocationChart({ data }: ResourceAllocationChartProps) 
               </span>
             )}
           />
-          <Bar dataKey="count" radius={[4, 4, 0, 0]} name="role" />
+          <Bar dataKey="count" radius={[4, 4, 0, 0]} name="role">
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.fill} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </ChartWrapper>

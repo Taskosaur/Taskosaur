@@ -9,6 +9,7 @@ interface ChartWrapperProps {
   children: ReactNode;
   config: ChartConfig;
   className?: string;
+  extraHeader?: ReactNode;
 }
 
 export function ChartWrapper({
@@ -17,14 +18,20 @@ export function ChartWrapper({
   children,
   config,
   className = "analytics-chart-container",
+  extraHeader,
 }: ChartWrapperProps) {
   return (
     <Card className={className}>
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-        {description && (
-          <CardDescription className="text-sm text-muted-foreground">{description}</CardDescription>
-        )}
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <div>
+          <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+          {description && (
+            <CardDescription className="text-sm text-muted-foreground">
+              {description}
+            </CardDescription>
+          )}
+        </div>
+        {extraHeader && <div className="flex items-center gap-2">{extraHeader}</div>}
       </CardHeader>
       <CardContent>
         <ChartContainer config={config} className="min-h-[200px] w-full">

@@ -1,5 +1,5 @@
 // components/charts/organization/workspace-project-chart.tsx
-import { BarChart, Bar, XAxis, YAxis } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
 
@@ -40,12 +40,14 @@ export function WorkspaceProjectChart({ data }: WorkspaceProjectChartProps) {
       config={chartConfig}
       className="border-[var(--border)]"
     >
-      <BarChart data={chartData}>
-        <XAxis dataKey="workspace" angle={-45} textAnchor="end" height={100} />
-        <YAxis />
-        <ChartTooltip content={<ChartTooltipContent className="border-0 bg-[var(--accent)]" />} />
-        <Bar dataKey="projects" radius={[4, 4, 0, 0]} />
-      </BarChart>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={chartData}>
+          <XAxis dataKey="workspace" angle={-45} textAnchor="end" height={100} />
+          <YAxis />
+          <ChartTooltip content={<ChartTooltipContent className="border-0 bg-[var(--accent)]" />} />
+          <Bar dataKey="projects" radius={[4, 4, 0, 0]} fill="fill" />
+        </BarChart>
+      </ResponsiveContainer>
     </ChartWrapper>
   );
 }
