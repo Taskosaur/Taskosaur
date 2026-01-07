@@ -1,5 +1,5 @@
 // src/organization/dto/get-charts-query.dto.ts
-import { IsArray, IsEnum, ArrayNotEmpty } from 'class-validator';
+import { IsArray, IsEnum, ArrayNotEmpty, IsOptional, IsUUID } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -36,4 +36,14 @@ export class GetChartsQueryDto {
     return typeof value === 'string' ? [value] : [value];
   })
   types: ChartType[];
+
+  @ApiProperty({ description: 'Filter by workspace ID', required: false })
+  @IsOptional()
+  @IsUUID()
+  workspaceId?: string;
+
+  @ApiProperty({ description: 'Filter by project ID', required: false })
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
 }

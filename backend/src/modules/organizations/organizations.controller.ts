@@ -223,10 +223,12 @@ export class OrganizationsController {
     @CurrentUser() user: any,
   ): Promise<ChartDataResponse> {
     try {
+      const { types, ...filters } = query;
       const chartRes = await this.orgChartsService.getMultipleChartData(
         organizationId,
         user.id as string,
-        query.types,
+        types,
+        filters,
       );
       return chartRes;
     } catch (error) {

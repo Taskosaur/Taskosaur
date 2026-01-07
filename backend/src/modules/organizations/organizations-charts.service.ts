@@ -62,16 +62,17 @@ export class OrganizationChartsService {
     orgId: string,
     userId: string,
     chartTypes: ChartType[],
+    filters: { workspaceId?: string; projectId?: string; minMemberCount?: number } = {},
   ): Promise<ChartDataResponse> {
     this.logger.log(
-      `Fetching chart data for organization ${orgId}, types: ${chartTypes.join(', ')}`,
+      `Fetching chart data for organization ${orgId}, types: ${chartTypes.join(', ')} with filters: ${JSON.stringify(filters)}`,
     );
 
     try {
       // Execute all chart requests in parallel for better performance
       const chartPromises = chartTypes.map(async (type) => {
         try {
-          const data = await this.getSingleChartData(orgId, userId, type);
+          const data = await this.getSingleChartData(orgId, userId, type, filters);
           return { type, data, error: null };
         } catch (error) {
           this.logger.error(
@@ -109,6 +110,7 @@ export class OrganizationChartsService {
     orgId: string,
     userId: string,
     chartType: ChartType,
+    filters: { workspaceId?: string; projectId?: string; minMemberCount?: number } = {},
   ): Promise<any> {
     switch (chartType) {
       case ChartType.KPI_METRICS:
@@ -116,7 +118,7 @@ export class OrganizationChartsService {
       case ChartType.PROJECT_PORTFOLIO:
         return this.organizationProjectPortfolio(orgId, userId);
       case ChartType.TEAM_UTILIZATION:
-        return this.organizationTeamUtilization(orgId, userId);
+        return this.organizationTeamUtilization(orgId, userId, filters.workspaceId);
       case ChartType.TASK_DISTRIBUTION:
         return this.organizationTaskDistribution(orgId, userId);
       case ChartType.TASK_TYPE:
@@ -130,7 +132,7 @@ export class OrganizationChartsService {
       case ChartType.MEMBER_WORKLOAD:
         return this.organizationMemberWorkload(orgId, userId);
       case ChartType.RESOURCE_ALLOCATION:
-        return this.organizationResourceAllocation(orgId, userId);
+        return this.organizationResourceAllocation(orgId, userId, filters.projectId);
       default:
         throw new BadRequestException(`Unsupported chart type: ${String(chartType)}`);
     }
@@ -376,8 +378,17 @@ export class OrganizationChartsService {
   /**
    * 3) Team Utilization (roles distribution)
    */
-  async organizationTeamUtilization(orgId: string, userId: string) {
+  async organizationTeamUtilization(orgId: string, userId: string, workspaceId?: string) {
     const { isElevated } = await this.accessControl.getOrgAccess(orgId, userId);
+
+    if (workspaceId) {
+      // If workspaceId is provided, group by role in that workspace
+      return this.prisma.workspaceMember.groupBy({
+        by: ['role'],
+        where: { workspaceId },
+        _count: { role: true },
+      });
+    }
 
     if (isElevated) {
       return this.prisma.organizationMember.groupBy({
@@ -612,8 +623,18 @@ export class OrganizationChartsService {
   /**
    * 10) Resource Allocation Matrix
    */
-  async organizationResourceAllocation(orgId: string, userId: string) {
+  async organizationResourceAllocation(orgId: string, userId: string, projectId?: string) {
     const { isElevated } = await this.accessControl.getOrgAccess(orgId, userId);
+
+    if (projectId) {
+      // If projectId is provided, group by role in that project
+      return this.prisma.projectMember.groupBy({
+        by: ['projectId', 'role'],
+        where: { projectId },
+        _count: { role: true },
+      });
+    }
+
     const where = isElevated
       ? { workspace: { organizationId: orgId } }
       : { workspace: { organizationId: orgId, members: { some: { userId } } } };
