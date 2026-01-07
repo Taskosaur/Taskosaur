@@ -844,7 +844,6 @@ export class TasksController {
     status: 404,
     description: 'Task not found',
   })
-  @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER)
   @LogActivity({
     type: 'TASK_UPDATED',
     entityType: 'Task',
