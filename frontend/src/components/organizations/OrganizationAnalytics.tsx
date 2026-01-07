@@ -72,6 +72,8 @@ function SortableWidget({
     transition,
     opacity: isDragging ? 0.3 : 1,
     zIndex: isDragging ? 100 : "auto",
+    cursor: isDragging ? "grabbing" : "grab",
+    touchAction: "none",
   };
 
   return (
@@ -496,10 +498,12 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
           </SortableContext>
           <DragOverlay>
             {activeWidget ? (
-              <div className={activeWidget.gridCols}>
-                <Card className="h-full opacity-80 shadow-xl cursor-grabbing">
-                  {renderWidgetContent(activeWidget)}
-                </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <div className={activeWidget.gridCols}>
+                  <Card className="h-full opacity-80 shadow-xl cursor-grabbing">
+                    {renderWidgetContent(activeWidget)}
+                  </Card>
+                </div>
               </div>
             ) : null}
           </DragOverlay>
