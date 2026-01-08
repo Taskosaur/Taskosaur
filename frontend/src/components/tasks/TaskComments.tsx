@@ -13,7 +13,7 @@ import {
 import { TaskComment, User } from "@/types";
 import ActionButton from "../common/ActionButton";
 import ConfirmationModal from "../modals/ConfirmationModal";
-import { DangerouslyHTMLComment } from "@/components/common/DangerouslyHTMLComment";
+import { ShadowDomHtmlRenderer } from "@/components/common/ShadowDomHtmlRenderer";
 import { SafeMarkdownRenderer } from "@/components/common/SafeMarkdownRenderer";
 import { sanitizeEditorContent } from "@/utils/sanitize-content";
 import { inboxApi } from "@/utils/api/inboxApi";
@@ -141,6 +141,10 @@ const CommentItem = React.memo(
       comment.author?.id,
     ]);
 
+    const isEmailOrRichText = useMemo(() => 
+      Boolean(comment.emailMessageId || isRichTextHtml(comment.content)), 
+    [comment.emailMessageId, comment.content]);
+
     return (
       <div
         className="group"
@@ -238,16 +242,17 @@ const CommentItem = React.memo(
             </div>
 
             {/* Comment content */}
-            <div className="prose prose-sm max-w-none bg-[var(--background)] text-sm text-[var(--foreground)] p-2 rounded-md border border-[var(--border)] mt-1">
-              <div className="markdown-content">
-
-              {comment.emailMessageId || isRichTextHtml(comment.content) ? (
-                <DangerouslyHTMLComment comment={comment.content} />
-              ) : (
-                <SafeMarkdownRenderer content={comment.content} />
-              )}
+            {isEmailOrRichText ? (
+              <div className="mt-1">
+                <ShadowDomHtmlRenderer content={comment.content} />
               </div>
-            </div>
+            ) : (
+              <div className="prose prose-sm max-w-none bg-[var(--background)] text-sm text-[var(--foreground)] p-2 rounded-md border border-[var(--border)] mt-1">
+                <div className="markdown-content">
+                  <SafeMarkdownRenderer content={comment.content} />
+                </div>
+              </div>
+            )}
 
             {/* Send as Email button - positioned below content */}
             {allowEmailReplies && !comment.sentAsEmail && onSendAsEmail && (

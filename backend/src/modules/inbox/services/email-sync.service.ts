@@ -1103,11 +1103,7 @@ export class EmailSyncService {
         String(inbox.projectId),
         this.prisma,
       );
-      const slug = await EmailSyncUtils.generateTaskSlug(
-        String(message.subject),
-        String(inbox.projectId),
-        this.prisma,
-      );
+      const slug = EmailSyncUtils.generateTaskSlug(String(inbox.project.slug), taskNumber);
       const sprintResult = await this.prisma.sprint.findFirst({
         where: { projectId: inbox.projectId, isDefault: true },
       });
