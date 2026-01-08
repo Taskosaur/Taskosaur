@@ -402,8 +402,10 @@ export class ProjectInboxService {
     }
 
     // Create new task
-    const taskNumber = await this.getNextTaskNumber(message.projectInbox.projectId);
-    const slug = await this.generateTaskSlug(message.subject, message.projectInbox.projectId);
+    const { taskNumber, projectSlug } = await this.getNextTaskNumber(
+      message.projectInbox.projectId,
+    );
+    const slug = this.generateTaskSlug(projectSlug, taskNumber);
 
     const task = await this.prisma.task.create({
       data: {
@@ -510,30 +512,31 @@ export class ProjectInboxService {
   }
 
   // Helper methods
-  private async getNextTaskNumber(projectId: string): Promise<any> {
+  private async getNextTaskNumber(
+    projectId: string,
+  ): Promise<{ taskNumber: number; projectSlug: string }> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { slug: true },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
     const lastTask = await this.prisma.task.findFirst({
       where: { projectId },
       orderBy: { taskNumber: 'desc' },
     });
-    return (lastTask?.taskNumber || 0) + 1;
+
+    return {
+      taskNumber: (lastTask?.taskNumber || 0) + 1,
+      projectSlug: project.slug,
+    };
   }
 
-  private async generateTaskSlug(title: string, projectId: string): Promise<string> {
-    const baseSlug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .substring(0, 50);
-
-    let slug = baseSlug;
-    let counter = 1;
-
-    while (await this.prisma.task.findFirst({ where: { projectId, slug } })) {
-      slug = `${baseSlug}-${counter}`;
-      counter++;
-    }
-
-    return slug;
+  private generateTaskSlug(projectSlug: string, taskNumber: number): string {
+    return `${projectSlug}-${taskNumber}`;
   }
 
   private async copyAttachmentsToTask(messageId: string, taskId: string) {

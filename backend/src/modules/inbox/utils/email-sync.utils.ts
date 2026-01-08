@@ -285,26 +285,8 @@ export class EmailSyncUtils {
       : EmailSyncUtils.extractVisibleReplyText(content);
   }
 
-  static async generateTaskSlug(
-    title: string,
-    projectId: string,
-    prisma: { task: { findFirst: (args: any) => Promise<any> } },
-  ): Promise<string> {
-    const baseSlug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .substring(0, 50);
-
-    let slug = baseSlug;
-    let counter = 1;
-
-    while (await prisma.task.findFirst({ where: { projectId, slug } })) {
-      slug = `${baseSlug}-${counter}`;
-      counter++;
-    }
-
-    return slug;
+  static generateTaskSlug(projectSlug: string, taskNumber: number): string {
+    return `${projectSlug}-${taskNumber}`;
   }
 
   static async getNextTaskNumber(
