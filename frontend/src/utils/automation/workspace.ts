@@ -759,10 +759,15 @@ export async function editWorkspace(
     // Wait for save completion
     await waitFor(1500);
 
+    const newSlug = name ? generateSlug(name) : workspaceSlug;
+
+    await navigateTo(`/${newSlug}`);
+    await waitFor(300);
+
     return {
       success: true,
       message: `Workspace ${workspaceSlug} updated successfully`,
-      data: { workspaceSlug, updates },
+      data: { workspaceSlug, newSlug, updates },
     };
   } catch (error) {
     return {

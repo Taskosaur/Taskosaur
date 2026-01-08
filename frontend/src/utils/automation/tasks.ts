@@ -516,18 +516,23 @@ export async function updateTaskStatus(
     let statusDropdown: Element | null = null;
 
     // First, find the Status label and then look for the dropdown button below it
-    const labels = document.querySelectorAll('label[data-slot="label"]');
+    const allLabels = document.querySelectorAll("label");
     let statusSection: Element | null = null;
 
-    for (const label of labels) {
+    for (const label of allLabels) {
       if (label.textContent?.trim() === "Status") {
-        statusSection = label.parentElement;
+        statusSection = label.closest("div")?.parentElement || label.parentElement;
         break;
       }
     }
 
     if (statusSection) {
-      // Look for dropdown button within the status section
+      const editButton = statusSection.querySelector('button[aria-label="Edit Status"]');
+      if (editButton) {
+        await simulateClick(editButton);
+        await waitFor(500);
+      }
+
       statusDropdown = statusSection.querySelector(
         'button[data-slot="dropdown-menu-trigger"], button[aria-haspopup="menu"]'
       );
@@ -539,15 +544,15 @@ export async function updateTaskStatus(
         'button[data-slot="dropdown-menu-trigger"], button[aria-haspopup="menu"]'
       );
       for (const button of buttons) {
-        const buttonText = button.textContent?.trim() || "";
+        const buttonText = button.textContent?.trim().toLowerCase() || "";
         // Check if this button contains status-related text
         if (
-          buttonText === "To Do" ||
-          buttonText === "In Progress" ||
-          buttonText === "Done" ||
-          buttonText === "Completed" ||
-          buttonText === "Open" ||
-          buttonText === "Closed"
+          buttonText.includes("to do") ||
+          buttonText.includes("in progress") ||
+          buttonText.includes("done") ||
+          buttonText.includes("completed") ||
+          buttonText.includes("open") ||
+          buttonText.includes("closed")
         ) {
           statusDropdown = button;
           break;
@@ -679,21 +684,18 @@ export async function updateTaskStatus(
       );
     }
 
-    // Close the task detail view
-    // Find close button
-    const closeButton =
-      document.querySelector('[aria-label="Close"]') ||
-      Array.from(document.querySelectorAll("button")).find((btn) =>
-        btn.querySelector('svg[data-slot="icon"]')
-      );
+    // Close the modal
+    const closeButton = document.querySelector('[aria-label="Close modal"]');
     if (closeButton) {
       await simulateClick(closeButton);
     } else {
-      // Try ESC key
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      const overlay = document.querySelector(".fixed.inset-0.z-50");
+      if (overlay) {
+        await simulateClick(overlay);
+      }
     }
 
-    await waitFor(1000);
+    await waitFor(500);
 
     return {
       success: true,
