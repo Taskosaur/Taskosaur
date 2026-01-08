@@ -71,7 +71,5 @@
         "shx": "^0.3.4",
         "to-ico": "^1.1.5"
     },
-    "dependencies": {
-        "lightningcss-darwin-arm64": "^1.30.2"
-    }
+    "dependencies": {}
 }
