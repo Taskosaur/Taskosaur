@@ -67,6 +67,42 @@ import {
 } from "@/components/ui/command";
 import { useAuth } from "@/contexts/auth-context";
 import RecurringBadge from "@/components/common/RecurringBadge";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  horizontalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Sortable Header Component
+const SortableHeader = ({ id, children, className }: { id: string; children: React.ReactNode; className?: string }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: "grab",
+    zIndex: isDragging ? 1 : "auto", 
+  };
+
+  return (
+    <TableHead ref={setNodeRef} style={style} className={className} {...attributes} {...listeners}>
+      {children}
+    </TableHead>
+  );
+};
 
 // Data extraction utility functions
 function extractTaskValue(task: Task, columnId: string): any {
@@ -230,6 +266,102 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const isOrgOrWorkspaceLevel = (!workspaceSlug && !projectSlug) || (workspaceSlug && !projectSlug);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Column Reordering State with localStorage persistence
+  // Make the key project-specific so each project can have its own column order
+  const getStorageKey = () => {
+    if (projectSlug) {
+      return `taskosaur_task_table_column_order_${projectSlug}`;
+    } else if (workspaceSlug) {
+      return `taskosaur_task_table_column_order_workspace_${workspaceSlug}`;
+    } else {
+      return 'taskosaur_task_table_column_order_global';
+    }
+  };
+  
+  const [columnOrder, setColumnOrder] = useState<string[]>([]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Load column order from localStorage and sync with current columns
+  useEffect(() => {
+    const fixedColumns = ["task"];
+    if (showProject) fixedColumns.push("project");
+    fixedColumns.push("priority", "status", "assignees", "dueDate");
+    
+    const dynamicColumns = columns.filter((col) => col.visible).map((col) => col.id);
+    const allIds = [...fixedColumns, ...dynamicColumns];
+    
+    setColumnOrder((prev) => {
+      // Try to load from localStorage on first render
+      if (prev.length === 0) {
+        try {
+          const storageKey = getStorageKey();
+          const stored = localStorage.getItem(storageKey);
+          if (stored) {
+            const storedOrder = JSON.parse(stored) as string[];
+            const validIds = new Set(allIds);
+            
+            // Filter stored order to only include currently valid columns
+            const validStoredOrder = storedOrder.filter(id => validIds.has(id));
+            
+            // Add any new columns that weren't in the stored order
+            const newIds = allIds.filter(id => !storedOrder.includes(id));
+            
+            // If we have a valid stored order, use it
+            if (validStoredOrder.length > 0) {
+              return [...validStoredOrder, ...newIds];
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load column order from localStorage:', error);
+        }
+        
+        // Fallback to default order
+        return allIds;
+      }
+      
+      // Sync with current props/visibility while preserving order
+      const validIds = new Set(allIds);
+      const currentOrderValid = prev.filter(id => validIds.has(id));
+      const newIds = allIds.filter(id => !prev.includes(id));
+      
+      return [...currentOrderValid, ...newIds];
+    });
+  }, [columns, showProject, projectSlug, workspaceSlug]); // Added projectSlug and workspaceSlug to dependencies
+
+  // Save column order to localStorage whenever it changes
+  useEffect(() => {
+    if (columnOrder.length > 0) {
+      try {
+        const storageKey = getStorageKey();
+        localStorage.setItem(storageKey, JSON.stringify(columnOrder));
+      } catch (error) {
+        console.error('Failed to save column order to localStorage:', error);
+      }
+    }
+  }, [columnOrder, projectSlug, workspaceSlug]); // Added projectSlug and workspaceSlug to dependencies
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      setColumnOrder((items) => {
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over?.id as string);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
 
   // Handle browser back button to close modal
   useEffect(() => {
@@ -857,424 +989,461 @@ const TaskTable: React.FC<TaskTableProps> = ({
     return hasTitle && hasStatus && hasProject;
   };
 
+  // Helper to render Header Cell based on ID
+  const renderHeaderCell = (colId: string) => {
+    switch (colId) {
+      case "task":
+        return (
+          <div className="flex items-center gap-4">
+            {!isOrgOrWorkspaceLevel && onTaskSelect && showBulkActionBar && (
+              <Checkbox
+                className="border-[var(--ring)]"
+                checked={selectedTasks.length === tasks.length && tasks.length > 0}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    tasks.forEach((task) => {
+                      if (!selectedTasks.includes(task.id)) {
+                        onTaskSelect(task.id);
+                      }
+                    });
+                  } else {
+                    tasks.forEach((task) => {
+                      if (selectedTasks.includes(task.id)) {
+                        onTaskSelect(task.id);
+                      }
+                    });
+                  }
+                }}
+              />
+            )}
+            <span>Task</span>
+          </div>
+        );
+      case "project":
+        return <span>Project</span>;
+      case "priority":
+        return <span>Priority</span>;
+      case "status":
+        return <p className="ml-3">Status</p>;
+      case "assignees":
+        return <span>Assignees</span>;
+      case "dueDate":
+        return <span>Due Date</span>;
+      default:
+        const col = columns.find((c) => c.id === colId);
+        return (
+          <div className="flex items-center justify-between group">
+            <span>{col?.label || colId}</span>
+          </div>
+        );
+    }
+  };
+
+  const getHeaderClass = (colId: string) => {
+    switch (colId) {
+      case "task": return "tasktable-header-cell-task pl-6";
+      case "project": return "tasktable-header-cell-project";
+      case "priority": return "tasktable-header-cell-priority";
+      case "status": return "tasktable-header-cell-status";
+      case "assignees": return "tasktable-header-cell-assignee w-32 text-center min-w-[120px] max-w-[180px]";
+      case "dueDate": return "tasktable-header-cell-date";
+      default: return "tasktable-header-cell w-[8%] min-w-[80px] max-w-[120px]";
+    }
+  };
+
+  const renderAddRowCell = (colId: string) => {
+    switch (colId) {
+      case "task":
+        return (
+          <TableCell key={colId} className="tasktable-cell-task gap-0">
+            <div className="flex items-center gap-2">
+              {onTaskSelect && <div className="w-4 h-4" />}
+              <Input
+                value={newTaskData.title}
+                onChange={(e) => {
+                  setNewTaskData((prev) => ({
+                    ...prev,
+                    title: e.target.value,
+                  }));
+                  if (!titleTouched) setTitleTouched(true);
+                }}
+                onBlur={() => setTitleTouched(true)}
+                placeholder="Enter task title..."
+                className={`flex-1 border-none shadow-none focus-visible:ring-1 bg-transparent ${isTitleInvalid ? "ring-2 ring-red-500" : ""}`}
+                autoFocus
+                disabled={isSubmitting}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (isTaskValid()) {
+                      handleCreateTask();
+                    } else {
+                      toast.error("Please fill in all required fields");
+                    }
+                  } else if (e.key === "Escape") {
+                    handleCancelCreating();
+                  }
+                }}
+              />
+              <div className="flex items-center gap-1 ml-2">
+                <Tooltip content="Create task" position="top">
+                  <button
+                    onClick={handleCreateTask}
+                    disabled={isSubmitting || !isTaskValid() || !newTaskData.title.trim()}
+                    className="p-1 text-green-600 hover:bg-green-100 rounded disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+                <Tooltip content="Cancel" position="top">
+                  <button
+                    onClick={handleCancelCreating}
+                    disabled={isSubmitting}
+                    className="p-1 text-red-600 hover:bg-red-100 rounded cursor-pointer disabled:opacity-50"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+              </div>
+            </div>
+          </TableCell>
+        );
+      case "project":
+        return (
+          <TableCell key={colId} className="tasktable-cell-project">
+            {workspaceSlug && !projectSlug ? (
+              <Select
+                value={newTaskData.projectId || ""}
+                onValueChange={(value) =>
+                  setNewTaskData((prev) => ({
+                    ...prev,
+                    projectId: value,
+                  }))
+                }
+                disabled={isSubmitting}
+              >
+                <SelectTrigger className={`border-none shadow-none -ml-3 ${!newTaskData.projectId ? "ring-1 ring-red-300" : ""}`}>
+                  <SelectValue placeholder="Select project *" />
+                </SelectTrigger>
+                <SelectContent className="overflow-y-auto bg-[var(--card)] border-none text-[var(--foreground)]">
+                  {Array.isArray(projectsOfCurrentWorkspace) && projectsOfCurrentWorkspace.length > 0 ? (
+                    projectsOfCurrentWorkspace.map((project: any) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-projects" disabled>
+                      No projects found
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            ) : workspaceSlug && projectSlug ? (
+              <span className="text-sm text-gray-500">
+                {projectsOfCurrentWorkspace && projectsOfCurrentWorkspace.length > 0
+                  ? projectsOfCurrentWorkspace.find(
+                    (p: any) => p.id === projectSlug || p.slug === projectSlug
+                  )?.name || "Current Project"
+                  : "Current Project"}
+              </span>
+            ) : (
+              <span className="text-sm text-gray-500">Current Project</span>
+            )}
+          </TableCell>
+        );
+      case "priority":
+        return (
+          <TableCell key={colId} className="tasktable-cell">
+            <Select
+              value={newTaskData.priority}
+              onValueChange={(value) =>
+                setNewTaskData((prev) => ({
+                  ...prev,
+                  priority: value as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
+                }))
+              }
+              disabled={isSubmitting}
+            >
+              <SelectTrigger className="border-none shadow-none bg-transparent -ml-3">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[var(--card)] border-none text-[var(--foreground)]">
+                {(TaskPriorities || TaskPriorities || []).map((priority) => {
+                  const value = priority.value ?? "undefined";
+                  const label = priority.name ?? "undefined";
+                  return (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </TableCell>
+        );
+      case "status":
+        return (
+          <TableCell key={colId} className="tasktable-cell">
+            {newTaskData.projectId || projectSlug || currentProject?.id ? (
+              <Select
+                value={newTaskData.statusId}
+                onValueChange={(value) =>
+                  setNewTaskData((prev) => ({
+                    ...prev,
+                    statusId: value,
+                  }))
+                }
+                disabled={isSubmitting}
+              >
+                <SelectTrigger className={`border-none shadow-none bg-transparent ${!newTaskData.statusId ? "ring-1 ring-red-300" : ""}`}>
+                  <SelectValue placeholder="Select status *" />
+                </SelectTrigger>
+                <SelectContent className="bg-[var(--card)] border-none text-[var(--foreground)]">
+                  {localAddTaskStatuses.length > 0 ? (
+                    localAddTaskStatuses.map((status) => (
+                      <SelectItem key={status.id} value={status.id}>
+                        {status.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-status" disabled>
+                      No statuses found
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            ) : (
+              <span className="text-sm text-gray-400">Select project first</span>
+            )}
+          </TableCell>
+        );
+      case "assignees":
+        return (
+          <TableCell key={colId} className="tasktable-cell-assignee">
+            {newTaskData.projectId || projectSlug || currentProject?.id ? (
+              <MultiSelectAssignee />
+            ) : (
+              <span className="text-sm text-gray-400">Select project first</span>
+            )}
+          </TableCell>
+        );
+      case "dueDate":
+        return (
+          <TableCell key={colId} className="tasktable-cell-date">
+            <div className="relative">
+              <Input
+                type="date"
+                value={newTaskData.dueDate}
+                onChange={(e) =>
+                  setNewTaskData((prev) => ({
+                    ...prev,
+                    dueDate: e.target.value,
+                  }))
+                }
+                min={getToday()}
+                className="border-none -ml-3 shadow-none focus-visible:ring-1 bg-transparent text-sm w-full pr-8 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                disabled={isSubmitting}
+                placeholder="Select due date"
+              />
+              {newTaskData.dueDate && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNewTaskData((prev) => ({
+                      ...prev,
+                      dueDate: "",
+                    }));
+                  }}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded z-10"
+                  title="Clear date"
+                  disabled={isSubmitting}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </TableCell>
+        );
+      default:
+        return (
+          <TableCell key={colId} className="tasktable-cell">
+            <span className="text-sm text-gray-400">-</span>
+          </TableCell>
+        );
+    }
+  };
+
+  const renderTaskRowCell = (colId: string, task: Task) => {
+    switch (colId) {
+      case "task":
+        return (
+          <TableCell key={colId} className="tasktable-cell-task">
+            <div className="flex items-start gap-3">
+              {!isOrgOrWorkspaceLevel && onTaskSelect && showBulkActionBar && (
+                <div className="flex-shrink-0 mt-0.5">
+                  <Checkbox
+                    className="cursor-pointer border-[var(--ring)]"
+                    checked={selectedTasks.includes(task.id)}
+                    onCheckedChange={() => onTaskSelect(task.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              )}
+              <div className="flex-shrink-0 mt-0.5">{getTaskTypeIcon(task.type)}</div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="tasktable-task-title line-clamp-1 max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">
+                    {task.title}
+                  </h4>
+                  <Badge variant="outline" className="text-xs px-1.5 py-0 h-5 flex-shrink-0">
+                    <span className="text-muted text-xs">#{task.taskNumber}</span>
+                  </Badge>
+                  {task.isRecurring && <RecurringBadge />}
+                </div>
+                <div className="flex items-center gap-3 mt-2">
+                  {task._count?.comments > 0 && (
+                    <div className="flex items-center gap-0.5 text-xs text-[varml(--muted-foreground)]">
+                      <MessageSquare className="w-4 h-4 mt-0.5" />
+                      <span className="">{task._count.comments}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </TableCell>
+        );
+      case "project":
+        return (
+          <TableCell key={colId} className="tasktable-cell-project">
+            <div className="flex items-center">
+              <span className="tasktable-project-name">
+                {task.project?.name || "Unknown Project"}
+              </span>
+            </div>
+          </TableCell>
+        );
+      case "priority":
+        return (
+          <TableCell key={colId} className="tasktable-cell">
+            <PriorityBadge priority={task.priority} />
+          </TableCell>
+        );
+      case "status":
+        return (
+          <TableCell key={colId} className="tasktable-cell">
+            <StatusBadge status={task.status} />
+          </TableCell>
+        );
+      case "assignees":
+        return (
+          <TableCell key={colId} className="tasktable-cell-assignee w-32 min-w-[120px] max-w-[180px] text-center align-middle">
+            <div className="flex justify-center items-center">
+              {renderMultipleAssignees(
+                currentTask && currentTask.id === task.id
+                  ? currentTask.assignees || (currentTask.assignee ? [currentTask.assignee] : [])
+                  : task.assignees || (task.assignee ? [task.assignee] : [])
+              )}
+            </div>
+          </TableCell>
+        );
+      case "dueDate":
+        return (
+          <TableCell key={colId} className="tasktable-cell-date">
+            {task.dueDate ? (
+              <div className="tasktable-date-container">
+                <CalendarDays className="tasktable-date-icon w-4 h-4" />
+                <span className={cn("tasktable-date-text", isOverdue(task.dueDate) && "text-red-600")}>
+                  {formatDate(task.dueDate)}
+                </span>
+              </div>
+            ) : (
+              <div className="tasktable-date-container">
+                <CalendarDays className="tasktable-date-icon w-4 h-4" />
+                <span className="tasktable-date-empty">No due date</span>
+              </div>
+            )}
+          </TableCell>
+        );
+      default:
+        const column = columns.find(c => c.id === colId);
+        return (
+          <TableCell
+            key={colId}
+            className="tasktable-cell"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {column ? renderDynamicCellContent(task, column) : null}
+          </TableCell>
+        );
+    }
+  };
+
   return (
     <div className="w-full">
       <div className="tasktable-container">
         <div className="tasktable-wrapper">
-          <Table className="tasktable-table">
-            <TableHeader className="tasktable-header">
-              <TableRow className="tasktable-header-row">
-                <TableHead className="tasktable-header-cell-task pl-6">
-                  <div className="flex items-center gap-4">
-                    {!isOrgOrWorkspaceLevel && onTaskSelect && showBulkActionBar && (
-                      <Checkbox
-                        className="border-[var(--ring)]"
-                        checked={selectedTasks.length === tasks.length && tasks.length > 0}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            tasks.forEach((task) => {
-                              if (!selectedTasks.includes(task.id)) {
-                                onTaskSelect(task.id);
-                              }
-                            });
-                          } else {
-                            // Deselect all: only toggle tasks that ARE selected
-                            tasks.forEach((task) => {
-                              if (selectedTasks.includes(task.id)) {
-                                onTaskSelect(task.id);
-                              }
-                            });
-                          }
-                        }}
-                      />
-                    )}
-                    <span>Task</span>
-                  </div>
-                </TableHead>
-                {showProject && (
-                  <TableHead className="tasktable-header-cell-project">Project</TableHead>
-                )}
-                <TableHead className="tasktable-header-cell-priority">Priority</TableHead>
-                <TableHead className="tasktable-header-cell-status">
-                  <p className="ml-3">Status</p>
-                </TableHead>
-                <TableHead className="tasktable-header-cell-assignee w-32 text-center min-w-[120px] max-w-[180px]">
-                  <span>Assignees</span>
-                </TableHead>
-                <TableHead className="tasktable-header-cell-date">Due Date</TableHead>
-
-                {/* Dynamic columns */}
-                {visibleColumns.map((column) => (
-                  <TableHead
-                    key={column.id}
-                    className="tasktable-header-cell w-[8%] min-w-[80px] max-w-[120px]"
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <Table className="tasktable-table">
+              <TableHeader className="tasktable-header">
+                <TableRow className="tasktable-header-row">
+                  <SortableContext
+                    items={columnOrder}
+                    strategy={horizontalListSortingStrategy}
                   >
-                    <div className="flex items-center justify-between group">
-                      <span>{column.label}</span>
-                    </div>
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-
-            <TableBody className="tasktable-body">
-              {showAddTaskRow &&
-                (isCreatingTask ? (
-                  <TableRow className="tasktable-add-row h-12 bg-[var(--mini-sidebar)]/50 border-none">
-                    {/* Task Title */}
-                    <TableCell className="tasktable-cell-task gap-0">
-                      <div className="flex items-center gap-2">
-                        {onTaskSelect && <div className="w-4 h-4" />}
-                        <Input
-                          value={newTaskData.title}
-                          onChange={(e) => {
-                            setNewTaskData((prev) => ({
-                              ...prev,
-                              title: e.target.value,
-                            }));
-                            if (!titleTouched) setTitleTouched(true);
-                          }}
-                          onBlur={() => setTitleTouched(true)}
-                          placeholder="Enter task title..."
-                          className={`flex-1 border-none shadow-none focus-visible:ring-1 bg-transparent ${isTitleInvalid ? "ring-2 ring-red-500" : ""
-                            }`}
-                          autoFocus
-                          disabled={isSubmitting}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              if (isTaskValid()) {
-                                handleCreateTask();
-                              } else {
-                                toast.error("Please fill in all required fields");
-                              }
-                            } else if (e.key === "Escape") {
-                              handleCancelCreating();
-                            }
-                          }}
-                        />
-
-                        <div className="flex items-center gap-1 ml-2">
-                          <Tooltip content="Create task" position="top">
-                            <button
-                              onClick={handleCreateTask}
-                              disabled={isSubmitting || !isTaskValid() || !newTaskData.title.trim()}
-                              className="p-1 text-green-600 hover:bg-green-100 rounded disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                          </Tooltip>
-                          <Tooltip content="Cancel" position="top">
-                            <button
-                              onClick={handleCancelCreating}
-                              disabled={isSubmitting}
-                              className="p-1 text-red-600 hover:bg-red-100 rounded cursor-pointer disabled:opacity-50"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </Tooltip>
-                        </div>
-                      </div>
-                    </TableCell>
-                    {/* Project column if shown */}
-                    {showProject && (
-                      <TableCell className="tasktable-cell-project">
-                        {workspaceSlug && !projectSlug ? (
-                          <Select
-                            value={newTaskData.projectId || ""}
-                            onValueChange={(value) =>
-                              setNewTaskData((prev) => ({
-                                ...prev,
-                                projectId: value,
-                              }))
-                            }
-                            disabled={isSubmitting}
-                          >
-                            <SelectTrigger
-                              className={`border-none shadow-none -ml-3 ${!newTaskData.projectId ? "ring-1 ring-red-300" : ""
-                                }`}
-                            >
-                              <SelectValue placeholder="Select project *" />
-                            </SelectTrigger>
-                            <SelectContent className="overflow-y-auto bg-[var(--card)] border-none text-[var(--foreground)]">
-                              {Array.isArray(projectsOfCurrentWorkspace) &&
-                                projectsOfCurrentWorkspace.length > 0 ? (
-                                projectsOfCurrentWorkspace.map((project: any) => (
-                                  <SelectItem key={project.id} value={project.id}>
-                                    {project.name}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <SelectItem value="no-projects" disabled>
-                                  No projects found
-                                </SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        ) : workspaceSlug && projectSlug ? (
-                          <span className="text-sm text-gray-500">
-                            {projectsOfCurrentWorkspace && projectsOfCurrentWorkspace.length > 0
-                              ? projectsOfCurrentWorkspace.find(
-                                (p: any) => p.id === projectSlug || p.slug === projectSlug
-                              )?.name || "Current Project"
-                              : "Current Project"}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-500">Current Project</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {/* Priority */}
-                    <TableCell className="tasktable-cell">
-                      <Select
-                        value={newTaskData.priority}
-                        onValueChange={(value) =>
-                          setNewTaskData((prev) => ({
-                            ...prev,
-                            priority: value as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
-                          }))
-                        }
-                        disabled={isSubmitting}
-                      >
-                        <SelectTrigger className="border-none shadow-none bg-transparent -ml-3">
-                          <SelectValue />
-                        </SelectTrigger>
-
-                        <SelectContent className="bg-[var(--card)] border-none text-[var(--foreground)]">
-                          {(TaskPriorities || TaskPriorities || []).map((priority) => {
-                            const value = priority.value ?? "undefined";
-                            const label = priority.name ?? "undefined";
-                            return (
-                              <SelectItem key={value} value={value}>
-                                {label}
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    {/* Status - only show if projectId is selected */}
-                    <TableCell className="tasktable-cell">
-                      {newTaskData.projectId || projectSlug || currentProject?.id ? (
-                        <Select
-                          value={newTaskData.statusId}
-                          onValueChange={(value) =>
-                            setNewTaskData((prev) => ({
-                              ...prev,
-                              statusId: value,
-                            }))
-                          }
-                          disabled={isSubmitting}
-                        >
-                          <SelectTrigger
-                            className={`border-none shadow-none bg-transparent ${!newTaskData.statusId ? "ring-1 ring-red-300" : ""
-                              }`}
-                          >
-                            <SelectValue placeholder="Select status *" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-[var(--card)] border-none text-[var(--foreground)]">
-                            {localAddTaskStatuses.length > 0 ? (
-                              localAddTaskStatuses.map((status) => (
-                                <SelectItem key={status.id} value={status.id}>
-                                  {status.name}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem value="no-status" disabled>
-                                No statuses found
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <span className="text-sm text-gray-400">Select project first</span>
-                      )}
-                    </TableCell>
-                    {/* Assignees - Multi-select */}
-                    <TableCell className="tasktable-cell-assignee">
-                      {newTaskData.projectId || projectSlug || currentProject?.id ? (
-                        <MultiSelectAssignee />
-                      ) : (
-                        <span className="text-sm text-gray-400">Select project first</span>
-                      )}
-                    </TableCell>
-                    {/* Due Date - Enhanced with calendar input */}
-                    <TableCell className="tasktable-cell-date">
-                      <div className="relative">
-                        <Input
-                          type="date"
-                          value={newTaskData.dueDate}
-                          onChange={(e) =>
-                            setNewTaskData((prev) => ({
-                              ...prev,
-                              dueDate: e.target.value,
-                            }))
-                          }
-                          min={getToday()}
-                          className="border-none -ml-3 shadow-none focus-visible:ring-1 bg-transparent text-sm w-full pr-8 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                          disabled={isSubmitting}
-                          placeholder="Select due date"
-                        />
-                        {newTaskData.dueDate && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setNewTaskData((prev) => ({
-                                ...prev,
-                                dueDate: "",
-                              }));
-                            }}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded z-10"
-                            title="Clear date"
-                            disabled={isSubmitting}
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    {/* Dynamic columns - show empty cells */}
-                    {visibleColumns.map((column) => (
-                      <TableCell key={column.id} className="tasktable-cell">
-                        <span className="text-sm text-gray-400">-</span>
-                      </TableCell>
+                    {columnOrder.map((colId) => (
+                      <SortableHeader key={colId} id={colId} className={getHeaderClass(colId)}>
+                        {renderHeaderCell(colId)}
+                      </SortableHeader>
                     ))}
-                  </TableRow>
-                ) : (
-                  <TableRow className="tasktable-add-row h-12 border-none transition-colors bg-[var(--mini-sidebar)]/50">
-                    <TableCell
-                      colSpan={
-                        6 + // Base columns
-                        (showProject ? 1 : 0) +
-                        visibleColumns.length +
-                        1
-                      }
-                      className="text-center py-3"
-                    >
-                      <button
-                        onClick={handleStartCreating}
-                        className="flex items-center pl-4 justify-start gap-2 w-full  cursor-pointer"
+                  </SortableContext>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody className="tasktable-body">
+                {showAddTaskRow &&
+                  (isCreatingTask ? (
+                    <TableRow className="tasktable-add-row h-12 bg-[var(--mini-sidebar)]/50 border-none">
+                      {columnOrder.map((colId) => renderAddRowCell(colId))}
+                    </TableRow>
+                  ) : (
+                    <TableRow className="tasktable-add-row h-12 border-none transition-colors bg-[var(--mini-sidebar)]/50">
+                      <TableCell
+                        colSpan={columnOrder.length + 1}
+                        className="text-center py-3"
                       >
-                        <Plus className="w-4 h-4" />
-                        <span className="text-sm font-medium ">Add task</span>
-                      </button>
-                    </TableCell>
+                        <button
+                          onClick={handleStartCreating}
+                          className="flex items-center pl-4 justify-start gap-2 w-full  cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span className="text-sm font-medium ">Add task</span>
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                {tasks.map((task) => (
+                  <TableRow
+                    key={task.id}
+                    className="tasktable-row h-12 odd:bg-[var(--odd-row)] cursor-pointer"
+                    onClick={() => handleRowClick(task)}
+                  >
+                    {columnOrder.map((colId) => renderTaskRowCell(colId, task))}
                   </TableRow>
                 ))}
-              {tasks.map((task) => (
-                <TableRow
-                  key={task.id}
-                  className="tasktable-row h-12 odd:bg-[var(--odd-row)] cursor-pointer"
-                  onClick={() => handleRowClick(task)}
-                >
-                  <TableCell className="tasktable-cell-task">
-                    <div className="flex items-start gap-3">
-                      {!isOrgOrWorkspaceLevel && onTaskSelect && showBulkActionBar && (
-                        <div className="flex-shrink-0 mt-0.5">
-                          <Checkbox
-                            className="cursor-pointer border-[var(--ring)]"
-                            checked={selectedTasks.includes(task.id)}
-                            onCheckedChange={() => onTaskSelect(task.id)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </div>
-                      )}
-                      <div className="flex-shrink-0 mt-0.5">{getTaskTypeIcon(task.type)}</div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="tasktable-task-title line-clamp-1 max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">
-                            {task.title}
-                          </h4>
-                          <Badge
-                            variant="outline"
-                            className="text-xs px-1.5 py-0 h-5 flex-shrink-0"
-                          >
-                            <span className="text-muted text-xs">#{task.taskNumber}</span>
-                          </Badge>
-                          {task.isRecurring && <RecurringBadge />}
-                        </div>
-                        <div className="flex items-center gap-3 mt-2">
-                          {task._count?.comments > 0 && (
-                            <div className="flex items-center gap-0.5 text-xs text-[varml(--muted-foreground)]">
-                              <MessageSquare className="w-4 h-4 mt-0.5" />
-                              <span className="">{task._count.comments}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-
-                  {showProject && (
-                    <TableCell className="tasktable-cell-project">
-                      <div className="flex items-center">
-                        <span className="tasktable-project-name">
-                          {task.project?.name || "Unknown Project"}
-                        </span>
-                      </div>
-                    </TableCell>
-                  )}
-
-                  <TableCell className="tasktable-cell">
-                    <PriorityBadge priority={task.priority} />
-                  </TableCell>
-
-                  <TableCell className="tasktable-cell">
-                    <StatusBadge status={task.status} />
-                  </TableCell>
-
-                  <TableCell className="tasktable-cell-assignee w-32 min-w-[120px] max-w-[180px] text-center align-middle">
-                    <div className="flex justify-center items-center">
-                      {renderMultipleAssignees(
-                        currentTask && currentTask.id === task.id
-                          ? currentTask.assignees ||
-                          (currentTask.assignee ? [currentTask.assignee] : [])
-                          : task.assignees || (task.assignee ? [task.assignee] : [])
-                      )}
-                    </div>
-                  </TableCell>
-
-                  <TableCell className="tasktable-cell-date">
-                    {task.dueDate ? (
-                      <div className="tasktable-date-container">
-                        <CalendarDays className="tasktable-date-icon w-4 h-4" />
-                        <span
-                          className={cn(
-                            "tasktable-date-text",
-                            isOverdue(task.dueDate) && "text-red-600"
-                          )}
-                        >
-                          {formatDate(task.dueDate)}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="tasktable-date-container">
-                        <CalendarDays className="tasktable-date-icon w-4 h-4" />
-                        <span className="tasktable-date-empty">No due date</span>
-                      </div>
-                    )}
-                  </TableCell>
-
-                  {visibleColumns.map((column) => (
-                    <TableCell
-                      key={column.id}
-                      className="tasktable-cell"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {renderDynamicCellContent(task, column)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableBody>
+            </Table>
+          </DndContext>
         </div>
 
         {pagination && pagination.totalPages > 1 && (
           <TableRow className="tasktable-footer-row">
-            <TableCell colSpan={8 + visibleColumns.length} className="tasktable-footer-cell">
+            <TableCell colSpan={columnOrder.length + 1} className="tasktable-footer-cell">
               <div className="tasktable-pagination-container">
                 <div className="tasktable-pagination-info">
                   Showing {(pagination.currentPage - 1) * pagination.pageSize + 1} to{" "}
