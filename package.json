@@ -68,7 +68,8 @@
         "concurrently": "^9.2.1",
         "dotenv-cli": "^7.4.2",
         "husky": "^9.1.7",
-        "to-ico": "^1.1.5",
-        "shx": "^0.3.4"
-    }
+        "shx": "^0.3.4",
+        "to-ico": "^1.1.5"
+    },
+    "dependencies": {}
 }

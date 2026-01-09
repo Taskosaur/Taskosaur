@@ -886,7 +886,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
   // Google Cloud pattern (for regional Vertex AI and PSC endpoints)
   private readonly googlePattern =
-    /^([a-z0-9-]+\.)?aiplatform\.googleapis\.com$|^[a-z0-9-]+\.p\.googleapis\.com$/;
+    /^([a-z0-9-]+\.)?aiplatform\.googleapis\.com$|^[a-z0-9-]+\.p\.googleapis\.com$|^generativelanguage\.googleapis\.com$/;
 
   validateApiUrl(apiUrl: string): string {
     let url: URL;
