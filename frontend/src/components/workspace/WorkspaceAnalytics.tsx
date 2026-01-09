@@ -18,6 +18,57 @@ import { TokenManager } from "@/lib/api";
 import { workspaceWidgets } from "@/utils/data/workspaceWidgets";
 import Tooltip from "../common/ToolTip";
 
+// DnD Imports
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  DragEndEvent,
+  DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Sortable Widget Component
+function SortableWidget({
+  id,
+  children,
+  className,
+}: {
+  id: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
+    zIndex: isDragging ? 100 : "auto",
+    cursor: isDragging ? "grabbing" : "grab",
+    touchAction: "none",
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={className}>
+      {children}
+    </div>
+  );
+}
+
 export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
   const {
     analyticsData,
@@ -29,6 +80,20 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
   const { createWidgetsSection } = useDashboardSettings();
   const currentOrgId = TokenManager.getCurrentOrgId();
   const [widgets, setWidgets] = useState<Widget[]>(workspaceWidgets);
+
+  // DnD State
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const toggleWidget = (widgetId: string) => {
     setWidgets((prev) =>
@@ -56,10 +121,10 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
   useEffect(() => {
     const preferences = widgets.reduce(
       (acc, widget) => {
-        acc[widget.id] = widget.visible;
+        acc[widget.id] = { visible: widget.visible, priority: widget.priority };
         return acc;
       },
-      {} as Record<string, boolean>
+      {} as Record<string, { visible: boolean; priority: number }>
     );
 
     localStorage.setItem(`workspace-widgets-${workspaceSlug}`, JSON.stringify(preferences));
@@ -71,16 +136,71 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
       try {
         const preferences = JSON.parse(saved);
         setWidgets((prev) =>
-          prev.map((widget) => ({
-            ...widget,
-            visible: preferences[widget.id] ?? widget.visible,
-          }))
+          prev.map((widget) => {
+            const savedWidget = preferences[widget.id];
+            // Handle both legacy (boolean) and new (object) formats
+            if (typeof savedWidget === "boolean") {
+               return { ...widget, visible: savedWidget };
+            } else if (savedWidget) {
+               return {
+                 ...widget,
+                 visible: savedWidget.visible ?? widget.visible,
+                 priority: savedWidget.priority ?? widget.priority,
+               };
+            }
+            return widget;
+          })
         );
       } catch (error) {
         console.error("Failed to load widget preferences:", error);
       }
     }
   }, [workspaceSlug]);
+
+  // DnD Handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      setWidgets((prevWidgets) => {
+        const visibleWidgets = prevWidgets
+          .filter((w) => w.visible)
+          .sort((a, b) => a.priority - b.priority);
+
+        const oldIndex = visibleWidgets.findIndex((w) => w.id === active.id);
+        const newIndex = visibleWidgets.findIndex((w) => w.id === over?.id);
+
+        const reorderedVisibleWidgets = arrayMove(visibleWidgets, oldIndex, newIndex);
+
+        // Map id to new priority
+        const priorityMap = new Map<string, number>();
+        reorderedVisibleWidgets.forEach((w, index) => {
+          priorityMap.set(w.id, index);
+        });
+
+        // Hidden widgets keep their relative order after visible ones
+        const hiddenWidgets = prevWidgets
+          .filter((w) => !w.visible)
+          .sort((a, b) => a.priority - b.priority);
+
+        hiddenWidgets.forEach((w, index) => {
+          priorityMap.set(w.id, reorderedVisibleWidgets.length + index);
+        });
+
+        return prevWidgets.map((w) => ({
+          ...w,
+          priority: priorityMap.get(w.id) ?? w.priority,
+        }));
+      });
+    }
+
+    setActiveId(null);
+  };
+
 
   if (analyticsLoading) {
     return <AnalyticsSkeleton />;
@@ -122,6 +242,8 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
     }),
   ];
 
+  const activeWidget = activeId ? widgets.find((w) => w.id === activeId) : null;
+
   return (
     <div className="space-y-6" data-testid="workspace-content">
       <PageHeader
@@ -154,18 +276,45 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
       )}
 
       {analyticsData && visibleCount > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {visibleWidgets.map((widget) => {
-            const Component = widget.component;
-            const widgetData = analyticsData[widget.dataKey];
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={visibleWidgets.map((w) => w.id)}
+            strategy={rectSortingStrategy}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {visibleWidgets.map((widget) => {
+                const Component = widget.component;
+                const widgetData = analyticsData[widget.dataKey];
 
-            return (
-              <div key={widget.id} className={widget.gridCols}>
-                <Component data={widgetData} />
+                return (
+                  <SortableWidget key={widget.id} id={widget.id} className={widget.gridCols}>
+                    <Component data={widgetData} />
+                  </SortableWidget>
+                );
+              })}
+            </div>
+          </SortableContext>
+          <DragOverlay>
+            {activeWidget ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <div className={activeWidget.gridCols}>
+                   <Card className="h-full opacity-80 shadow-xl cursor-grabbing">
+                    {(() => {
+                       const Component = activeWidget.component;
+                       const widgetData = analyticsData[activeWidget.dataKey];
+                       return <Component data={widgetData} />;
+                    })()}
+                  </Card>
+                </div>
               </div>
-            );
-          })}
-        </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
     </div>
   );

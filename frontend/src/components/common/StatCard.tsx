@@ -8,6 +8,7 @@ interface StatCardProps {
   isLoading?: boolean;
   loadingPlaceholder?: ReactNode;
   statSuffix?: string | any; // e.g., "Active", "Total"
+  className?: string;
 }
 
 export function StatCard({
@@ -17,9 +18,10 @@ export function StatCard({
   isLoading = false,
   loadingPlaceholder = <span className="dashboard-loading-placeholder" />,
   statSuffix,
+  className,
 }: StatCardProps) {
   return (
-    <div className="dashboard-stat-card">
+    <div className={`dashboard-stat-card ${className || ""}`}>
       <Card className="dashboard-stat-card-inner">
         <CardContent className="dashboard-stat-content">
           <div className="dashboard-stat-header">
