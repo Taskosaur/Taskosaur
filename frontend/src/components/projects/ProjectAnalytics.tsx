@@ -6,6 +6,27 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useLayout } from "@/contexts/layout-context";
 import NotFound from "@/pages/404";
 
+// DnD Imports
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  DragEndEvent,
+  DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
 // Chart Components
 import { TaskStatusChart } from "@/components/charts/project/task-status-chart";
 import { TaskTypeChart } from "@/components/charts/project/task-type-chart";
@@ -43,6 +64,36 @@ interface Widget {
   visible: boolean;
   gridCols: string;
   priority: number;
+}
+
+// Sortable Widget Component
+function SortableWidget({
+  id,
+  children,
+  className,
+}: {
+  id: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
+    zIndex: isDragging ? 100 : "auto",
+    cursor: isDragging ? "grabbing" : "grab",
+    touchAction: "none",
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={className}>
+      {children}
+    </div>
+  );
 }
 
 export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
@@ -108,6 +159,20 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
     },
   ]);
 
+  // DnD State
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const toggleWidget = (widgetId: string) => {
     setWidgets((prev) =>
       prev.map((widget) =>
@@ -131,31 +196,45 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
 
   // Load widget preferences from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem(`project-widgets`);
+    const saved = localStorage.getItem(`project-widgets-${projectSlug}`);
     if (saved) {
       try {
         const preferences = JSON.parse(saved);
         setWidgets((prev) =>
-          prev.map((widget) => ({
-            ...widget,
-            visible: preferences[widget.id] ?? widget.visible,
-          }))
+          prev.map((widget) => {
+            const savedWidget = preferences[widget.id];
+            if (typeof savedWidget === "boolean") {
+               // Legacy format support
+               return { ...widget, visible: savedWidget };
+            } else if (savedWidget) {
+               return {
+                 ...widget,
+                 visible: savedWidget.visible ?? widget.visible,
+                 priority: savedWidget.priority ?? widget.priority,
+               };
+            }
+            return widget;
+          })
         );
       } catch (error) {
         console.error("Failed to load widget preferences:", error);
       }
-    } else {
-      const preferences = widgets.reduce(
-        (acc, widget) => {
-          acc[widget.id] = widget.visible;
-          return acc;
-        },
-        {} as Record<string, boolean>
-      );
-
-      localStorage.setItem(`project-widgets`, JSON.stringify(preferences));
     }
   }, [projectSlug]);
+
+  // Save widget preferences to localStorage
+  useEffect(() => {
+    const preferences = widgets.reduce(
+      (acc, widget) => {
+        acc[widget.id] = { visible: widget.visible, priority: widget.priority };
+        return acc;
+      },
+      {} as Record<string, { visible: boolean; priority: number }>
+    );
+
+    localStorage.setItem(`project-widgets-${projectSlug}`, JSON.stringify(preferences));
+  }, [widgets, projectSlug]);
+
 
   // Check for 404 errors and show full-page 404 - MUST be before any returns
   useEffect(() => {
@@ -170,6 +249,50 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
       }
     }
   }, [error, setShow404, show404]);
+
+  // DnD Handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      setWidgets((prevWidgets) => {
+        const visibleWidgets = prevWidgets
+          .filter((w) => w.visible)
+          .sort((a, b) => a.priority - b.priority);
+
+        const oldIndex = visibleWidgets.findIndex((w) => w.id === active.id);
+        const newIndex = visibleWidgets.findIndex((w) => w.id === over?.id);
+
+        const reorderedVisibleWidgets = arrayMove(visibleWidgets, oldIndex, newIndex);
+
+        // Map id to new priority
+        const priorityMap = new Map<string, number>();
+        reorderedVisibleWidgets.forEach((w, index) => {
+          priorityMap.set(w.id, index);
+        });
+
+        // Hidden widgets keep their relative order after visible ones
+        const hiddenWidgets = prevWidgets
+          .filter((w) => !w.visible)
+          .sort((a, b) => a.priority - b.priority);
+
+        hiddenWidgets.forEach((w, index) => {
+          priorityMap.set(w.id, reorderedVisibleWidgets.length + index);
+        });
+
+        return prevWidgets.map((w) => ({
+          ...w,
+          priority: priorityMap.get(w.id) ?? w.priority,
+        }));
+      });
+    }
+
+    setActiveId(null);
+  };
 
   if (loading) {
     return <AnalyticsSkeleton />;
@@ -220,6 +343,9 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
       );
     }),
   ];
+
+  const activeWidget = activeId ? widgets.find((w) => w.id === activeId) : null;
+
   return (
     <div className="space-y-6" data-testid="project-content">
       {/* Header */}
@@ -255,18 +381,53 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
 
       {/* Widgets Grid */}
       {data && visibleCount > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {visibleWidgets.map((widget) => {
-            const Component = widget.component;
-            const widgetData = data[widget.dataKey];
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={visibleWidgets.map((w) => w.id)}
+            strategy={rectSortingStrategy}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {visibleWidgets.map((widget) => {
+                const Component = widget.component;
+                const widgetData = data[widget.dataKey];
 
-            return (
-              <div key={widget.id} className={widget.gridCols}>
-                <Component data={widgetData} />
+                return (
+                  <SortableWidget key={widget.id} id={widget.id} className={widget.gridCols}>
+                    <Component 
+                      data={widgetData} 
+                      {...(widget.id === "kpi-metrics" ? { taskStatus: data.taskStatus } : {})}
+                    />
+                  </SortableWidget>
+                );
+              })}
+            </div>
+          </SortableContext>
+          <DragOverlay>
+            {activeWidget ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <div className={activeWidget.gridCols}>
+                  <Card className="h-full opacity-80 shadow-xl cursor-grabbing">
+                    {(() => {
+                       const Component = activeWidget.component;
+                       const widgetData = data[activeWidget.dataKey];
+                       return (
+                         <Component 
+                           data={widgetData} 
+                           {...(activeWidget.id === "kpi-metrics" ? { taskStatus: data.taskStatus } : {})}
+                         />
+                       );
+                    })()}
+                  </Card>
+                </div>
               </div>
-            );
-          })}
-        </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
     </div>
   );
