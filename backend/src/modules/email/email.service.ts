@@ -32,17 +32,23 @@ export class EmailService {
 
     const priority = this.getPriorityNumber(emailDto.priority || EmailPriority.NORMAL);
 
-    await this.emailQueue.add('send-email', jobData, {
-      priority,
-      delay: emailDto.delay || 0,
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 2000,
-      },
-    });
+    try {
+      await this.emailQueue.add('send-email', jobData, {
+        priority,
+        delay: emailDto.delay || 0,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+      });
 
-    this.logger.log(`Email queued for ${emailDto.to} with template ${emailDto.template}`);
+      this.logger.log(`Email queued for ${emailDto.to} with template ${emailDto.template}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to queue email for ${emailDto.to}: ${errorMessage}`);
+      throw error;
+    }
   }
 
   async sendBulkEmail(bulkEmailDto: BulkEmailDto): Promise<void> {

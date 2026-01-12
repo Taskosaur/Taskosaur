@@ -1,17 +1,62 @@
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { EmailJobData, EmailTemplate } from './dto/email.dto';
 import { QueueProcessor } from '../queue/decorators/queue-processor.decorator';
 import { IJob } from '../queue/interfaces/job.interface';
+import { QueueService } from '../queue/services/queue.service';
 
 @QueueProcessor('email')
-export class EmailProcessor {
+export class EmailProcessor implements OnModuleInit {
   private readonly logger = new Logger(EmailProcessor.name);
-  private transporter: nodemailer.Transporter;
+  private transporter: nodemailer.Transporter | null = null;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private queueService: QueueService,
+  ) {
     this.initializeTransporter();
+  }
+
+  onModuleInit() {
+    try {
+      const adapter = this.queueService.getAdapter();
+      if (!adapter) {
+        this.logger.error('Queue adapter not available. Email jobs will not be processed.');
+        return;
+      }
+
+      // Ensure the queue is registered
+      try {
+        this.queueService.registerQueue('email');
+      } catch {
+        // Queue might already be registered, which is fine
+      }
+
+      // Get the queue to extract its configuration
+      const queue = this.queueService.getQueue<EmailJobData>('email');
+      const underlyingQueue = (queue as { getUnderlyingQueue?: () => { opts?: { prefix?: string; connection?: any } } }).getUnderlyingQueue?.();
+
+      // Extract prefix and connection from queue to ensure worker matches
+      const queuePrefix = underlyingQueue?.opts?.prefix || 'default';
+      const queueConnection = underlyingQueue?.opts?.connection;
+
+      // Create worker with the SAME connection and prefix as the queue
+      // This is the critical fix: worker must use same Redis prefix as queue
+      const processor = async (job: IJob<EmailJobData>) => {
+        return await this.process(job);
+      };
+
+      const workerConfig: any = {
+        connection: queueConnection,
+        prefix: queuePrefix,
+      };
+
+      adapter.createWorker('email', processor, workerConfig);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to register EmailProcessor as worker: ${errorMessage}`);
+    }
   }
 
   private initializeTransporter() {
@@ -25,32 +70,43 @@ export class EmailProcessor {
       return;
     }
 
-    this.transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465,
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
+    try {
+      this.transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+        // Add TLS configuration for AWS SES compatibility
+        tls: {
+          rejectUnauthorized: false, // AWS SES uses self-signed certificates
+        },
+      });
+    } catch (error) {
+      this.logger.error('Failed to initialize SMTP transporter:', error);
+      this.transporter = null as any;
+    }
 
     // Note: SMTP connection will be verified only when sending emails
   }
 
   async process(job: IJob<EmailJobData>) {
-    return this.handleSendEmail(job);
+    return await this.handleSendEmail(job);
   }
 
   async handleSendEmail(job: IJob<EmailJobData>) {
     const { to, subject, template, data } = job.data;
+    const smtpFrom = this.configService.get<string>('SMTP_FROM', 'noreply@taskosaur.com');
 
     try {
       const html = this.generateEmailHTML(template, data);
       const text = this.generateEmailText(template, data);
+
       if (this.transporter) {
-        await this.transporter.sendMail({
-          from: this.configService.get<string>('SMTP_FROM', 'noreply@taskosaur.com'),
+        const result = await this.transporter.sendMail({
+          from: smtpFrom,
           to,
           subject,
           html,
@@ -58,17 +114,29 @@ export class EmailProcessor {
         });
 
         this.logger.log(`Email sent successfully to ${to} using template ${template}`);
+        return { success: true, messageId: result.messageId };
       } else {
         // Simulate email sending for development
         this.logger.log(
           `📧 EMAIL SIMULATION - To: ${to}, Subject: ${subject}, Template: ${template}`,
         );
-        this.logger.debug('Email data:', JSON.stringify(data, null, 2));
+        return { success: true, simulated: true };
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to send email to ${to}:`, errorMessage);
+
+      // Log additional error details for common SMTP errors
+      if (error instanceof Error) {
+        if (errorMessage.includes('ECONNREFUSED')) {
+          this.logger.error(`Connection refused - Check SMTP_HOST and SMTP_PORT`);
+        } else if (errorMessage.includes('EAUTH')) {
+          this.logger.error(`Authentication failed - Check SMTP_USER and SMTP_PASS`);
+        } else if (errorMessage.includes('ETIMEDOUT')) {
+          this.logger.error(`Connection timeout - Check network connectivity and SMTP settings`);
+        }
       }
 
-      return { success: true };
-    } catch (error) {
-      this.logger.error(`Failed to send email to ${to}:`, error);
       throw error;
     }
   }
