@@ -1268,19 +1268,35 @@ export default function TaskDetailClient({
                         itemType="status"
                       />
                     ) : editTaskData.taskType ? (
-                      <DynamicBadge
-                        label={
-                          TASK_TYPE_OPTIONS.find((type) => type.value === editTaskData.taskType)
-                            ?.label || "Task"
-                        }
-                        bgColor={getTaskTypeHexColor(
-                          editTaskData.taskType as keyof typeof TaskTypeIcon
-                        )}
-                        textColor="#FFFFFF"
-                        size="sm"
-                        variant="solid"
-                        className="flex-shrink-0 min-w-[120px] min-h-[29.33px] text-[13px]"
-                      />
+                      <div
+                        onClick={() => {
+                          if (hasAccess) {
+                            setIsEditingTask((prev) => ({
+                              ...prev,
+                              taskType: true,
+                            }));
+                            setAutoOpenDropdown((prev) => ({
+                              ...prev,
+                              taskType: true,
+                            }));
+                          }
+                        }}
+                        className={hasAccess ? 'cursor-pointer' : ''}
+                      >
+                        <DynamicBadge
+                          label={
+                            TASK_TYPE_OPTIONS.find((type) => type.value === editTaskData.taskType)
+                              ?.label || "Task"
+                          }
+                          bgColor={getTaskTypeHexColor(
+                            editTaskData.taskType as keyof typeof TaskTypeIcon
+                          )}
+                          textColor="#FFFFFF"
+                          size="sm"
+                          variant="solid"
+                          className="flex-shrink-0 min-w-[120px] min-h-[29.33px] text-[13px]"
+                        />
+                      </div>
                     ) : (
                       <Badge
                         variant="outline"
@@ -1407,7 +1423,7 @@ export default function TaskDetailClient({
                         }}
                       />
                     ) : (
-                      <Badge
+                      <div
                         onClick={() => {
                           if (hasAccess) {
                             setIsEditingTask((prev) => ({
@@ -1420,17 +1436,23 @@ export default function TaskDetailClient({
                             }));
                           }
                         }}
-                        variant="outline"
-                        className={`text-[13px] min-w-[120px] min-h-[29.33px] flex items-center justify-center cursor-pointer ${
-                          !editTaskData.sprintId ? "bg-[var(--muted)]" : "bg-indigo-500/10 text-indigo-500 border-indigo-500/20"
-                        }`}
+                        className={hasAccess ? 'cursor-pointer' : ''}
                       >
-                        {editTaskData.sprintId
-                          ? sprints.find((s) => s.id === editTaskData.sprintId)?.name ||
-                            task.sprint?.name ||
-                            "Current Sprint"
-                          : "Backlog"}
-                      </Badge>
+                        <DynamicBadge
+                          label={
+                            editTaskData.sprintId
+                              ? sprints.find((s) => s.id === editTaskData.sprintId)?.name ||
+                              task.sprint?.name ||
+                              "Current Sprint"
+                              : "Backlog"
+                          }
+                          bgColor={editTaskData.sprintId ? "#6366F1" : "#6B7280"}
+                          textColor="#FFFFFF"
+                          size="sm"
+                          variant="solid"
+                          className="flex-shrink-0 min-w-[120px] min-h-[29.33px] text-[13px]"
+                        />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1625,7 +1647,7 @@ export default function TaskDetailClient({
                           ...prev,
                           status: true,
                         }));
-                      }} status={currentStatus} className="text-[13px]" />
+                      }} status={currentStatus} className="text-[13px] min-w-[120px] min-h-[29.33px] flex items-center justify-center" />
                     )}
                   </div>
                 </div>
@@ -2092,12 +2114,12 @@ export default function TaskDetailClient({
       />
       <div className="relative">
 
-      <ShareTaskDialog 
-        taskId={taskId} 
-        isOpen={isShareDialogOpen} 
-        onClose={() => setIsShareDialogOpen(false)} 
+        <ShareTaskDialog
+          taskId={taskId}
+          isOpen={isShareDialogOpen}
+          onClose={() => setIsShareDialogOpen(false)}
         />
-        </div>
+      </div>
     </div>
   );
 }
