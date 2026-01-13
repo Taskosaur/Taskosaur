@@ -685,7 +685,9 @@ export class EmailService {
 
       await Promise.all(emailPromises);
     } catch (error) {
-      this.logger.error(`Failed to send task commented email: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `Failed to send task commented email: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -760,7 +762,9 @@ export class EmailService {
 
       await Promise.all(emailPromises);
     } catch (error) {
-      this.logger.error(`Failed to send project created email: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `Failed to send project created email: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -835,7 +839,9 @@ export class EmailService {
 
       await Promise.all(emailPromises);
     } catch (error) {
-      this.logger.error(`Failed to send project updated email: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `Failed to send project updated email: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -944,7 +950,9 @@ export class EmailService {
         priority: EmailPriority.HIGH,
       });
     } catch (error) {
-      this.logger.error(`Failed to send mention email: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `Failed to send mention email: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -977,13 +985,17 @@ export class EmailService {
           notification: {
             title: notificationData.title,
             message: notificationData.message,
-            actionUrl: notificationData.actionUrl || `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/`,
+            actionUrl:
+              notificationData.actionUrl ||
+              `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/`,
           },
         },
         priority: EmailPriority.LOW,
       });
     } catch (error) {
-      this.logger.error(`Failed to send system notification email: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `Failed to send system notification email: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 }
