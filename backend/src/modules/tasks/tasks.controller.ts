@@ -777,6 +777,13 @@ export class TasksController {
     includeOldValue: true,
     includeNewValue: true,
   })
+  @AutoNotify({
+    type: NotificationType.TASK_ASSIGNED,
+    entityType: 'Task',
+    priority: NotificationPriority.HIGH,
+    title: 'Task Assigned',
+    message: 'You have been assigned to a task',
+  })
   updateAssignees(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('assigneeIds') assigneeIds: string[],
