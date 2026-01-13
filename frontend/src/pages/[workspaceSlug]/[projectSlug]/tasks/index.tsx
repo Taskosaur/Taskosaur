@@ -21,13 +21,14 @@ import Pagination from "@/components/common/Pagination";
 import { KanbanBoard } from "@/components/tasks/KanbanBoard";
 import { ColumnManager } from "@/components/tasks/ColumnManager";
 import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
-import { CheckSquare, Flame, User, Users, Download } from "lucide-react";
+import { CheckSquare, Flame, User, Users, Download, Shapes } from "lucide-react";
 import SortingManager, { SortOrder, SortField } from "@/components/tasks/SortIngManager";
 import Tooltip from "@/components/common/ToolTip";
 import { TokenManager } from "@/lib/api";
 import { exportTasksToCSV } from "@/utils/exportUtils";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 import { KanbanColumnSkeleton } from "@/components/skeletons/KanbanColumnSkeleton";
+import { TaskTypeIcon } from "@/utils/data/taskData";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -103,9 +104,11 @@ function ProjectTasksContent() {
   const [isNewTaskModalOpen, setNewTaskModalOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  const [selectedTaskTypes, setSelectedTaskTypes] = useState<string[]>([]);
   const [availableStatuses, setAvailableStatuses] = useState<any[]>([]);
   const [statusesLoaded, setStatusesLoaded] = useState(false);
   const [availablePriorities] = useState(TaskPriorities);
+  const [availableTaskTypes] = useState(Object.keys(TaskTypeIcon));
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [addTaskPriorities, setAddTaskPriorities] = useState<any[]>([]);
@@ -222,12 +225,16 @@ function ProjectTasksContent() {
       const params = new URLSearchParams(window.location.search);
       const statusParams = params.get("statuses");
       const priorityParams = params.get("priorities");
+      const typeParams = params.get("types");
 
       if (statusParams) {
         setSelectedStatuses(statusParams.split(","));
       }
       if (priorityParams) {
         setSelectedPriorities(priorityParams.split(","));
+      }
+      if (typeParams) {
+        setSelectedTaskTypes(typeParams.split(","));
       }
     }
   }, [isAuth]);
@@ -372,6 +379,9 @@ function ProjectTasksContent() {
         ...(selectedPriorities.length > 0 && {
           priorities: selectedPriorities.join(","),
         }),
+        ...(selectedTaskTypes.length > 0 && {
+          types: selectedTaskTypes.join(","),
+        }),
         ...(selectedAssignees.length > 0 && {
           assignees: selectedAssignees.join(","),
         }),
@@ -403,6 +413,7 @@ function ProjectTasksContent() {
     debouncedSearchQuery,
     selectedStatuses,
     selectedPriorities,
+    selectedTaskTypes,
     validateRequiredData,
     getAllTasks,
   ]);
@@ -528,6 +539,7 @@ function ProjectTasksContent() {
     search: debouncedSearchQuery,
     statuses: selectedStatuses.join(","),
     priorities: selectedPriorities.join(","),
+    types: selectedTaskTypes.join(","),
   });
 
   useEffect(() => {
@@ -540,6 +552,7 @@ function ProjectTasksContent() {
       search: debouncedSearchQuery,
       statuses: selectedStatuses.join(","),
       priorities: selectedPriorities.join(","),
+      types: selectedTaskTypes.join(","),
     };
 
     const filtersChanged =
@@ -563,6 +576,7 @@ function ProjectTasksContent() {
     debouncedSearchQuery,
     selectedStatuses,
     selectedPriorities,
+    selectedTaskTypes,
   ]);
 
   useEffect(() => {
@@ -657,6 +671,25 @@ function ProjectTasksContent() {
     [availablePriorities, selectedPriorities, displayTasks, isAuth]
   );
 
+  const taskTypeFilters = useMemo(
+    () =>
+      isAuth
+        ? availableTaskTypes.map((type) => {
+            const typeKey = type as keyof typeof TaskTypeIcon;
+            const iconData = TaskTypeIcon[typeKey];
+            return {
+              id: type,
+              name: type.charAt(0) + type.slice(1).toLowerCase(),
+              value: type,
+              selected: selectedTaskTypes.includes(type),
+              count: displayTasks.filter((task) => task.type === type).length,
+              color: iconData?.color || "text-gray-500",
+            };
+          })
+        : [],
+    [availableTaskTypes, selectedTaskTypes, displayTasks, isAuth]
+  );
+
   const assigneeFilters = useMemo(() => {
     return projectMembers.map((member) => ({
       id: member.user.id,
@@ -743,6 +776,32 @@ function ProjectTasksContent() {
     [isAuth]
   );
 
+  const safeToggleTaskType = useCallback(
+    (id: string) => {
+      if (!isAuth) return;
+
+      try {
+        setSelectedTaskTypes((prev) => {
+          const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+
+          const params = new URLSearchParams(window.location.search);
+          if (newSelection.length > 0) {
+            params.set("types", newSelection.join(","));
+          } else {
+            params.delete("types");
+          }
+          const newUrl = `${window.location.pathname}?${params.toString()}`;
+          window.history.replaceState({}, "", newUrl);
+          return newSelection;
+        });
+        setCurrentPage(1);
+      } catch (error) {
+        console.error("Error toggling task type filter:", error);
+      }
+    },
+    [isAuth]
+  );
+
   const toggleAssignee = useCallback((id: string) => {
     setSelectedAssignees((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -784,6 +843,17 @@ function ProjectTasksContent() {
               onClearAll: () => setSelectedPriorities([]),
             }),
             createSection({
+              id: "type",
+              title: "Type",
+              icon: Shapes,
+              data: taskTypeFilters,
+              selectedIds: selectedTaskTypes,
+              searchable: false,
+              onToggle: safeToggleTaskType,
+              onSelectAll: () => setSelectedTaskTypes(taskTypeFilters.map((t) => t.id)),
+              onClearAll: () => setSelectedTaskTypes([]),
+            }),
+            createSection({
               id: "assignee",
               title: "Assignee",
               icon: User,
@@ -811,8 +881,10 @@ function ProjectTasksContent() {
       isAuth,
       statusFilters,
       priorityFilters,
+      taskTypeFilters,
       selectedStatuses,
       selectedPriorities,
+      selectedTaskTypes,
       assigneeFilters,
       selectedAssignees,
       selectedReporters,
@@ -821,6 +893,7 @@ function ProjectTasksContent() {
       toggleReporter,
       safeToggleStatus,
       safeTogglePriority,
+      safeToggleTaskType,
       createSection,
     ]
   );
@@ -828,6 +901,7 @@ function ProjectTasksContent() {
   const totalActiveFilters = isAuth
     ? selectedStatuses.length +
       selectedPriorities.length +
+      selectedTaskTypes.length +
       selectedAssignees.length +
       selectedReporters.length
     : 0;
@@ -837,6 +911,7 @@ function ProjectTasksContent() {
 
     setSelectedStatuses([]);
     setSelectedPriorities([]);
+    setSelectedTaskTypes([]);
     setSelectedAssignees([]);
     setSelectedReporters([]);
     setCurrentPage(1);
@@ -844,6 +919,7 @@ function ProjectTasksContent() {
     const params = new URLSearchParams(window.location.search);
     params.delete("statuses");
     params.delete("priorities");
+    params.delete("types");
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState({}, "", newUrl);
   }, [isAuth]);

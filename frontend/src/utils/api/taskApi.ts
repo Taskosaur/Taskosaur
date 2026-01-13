@@ -189,6 +189,7 @@ export const taskApi = {
       parentTaskId?: string;
       priorities?: string;
       statuses?: string;
+      types?: string;
       assignees?: string;
       reporters?: string;
       search?: string;
@@ -209,6 +210,7 @@ export const taskApi = {
       if (params?.parentTaskId) queryParams.append("parentTaskId", params.parentTaskId);
       if (params?.priorities) queryParams.append("priorities", params.priorities);
       if (params?.statuses) queryParams.append("statuses", params.statuses);
+      if (params?.types) queryParams.append("types", params.types);
       if (params?.search) queryParams.append("search", params.search);
       if (params?.assignees) queryParams.append("assigneeIds", params.assignees);
       if (params?.reporters) queryParams.append("reporterIds", params.reporters);
@@ -1134,6 +1136,7 @@ export const taskApi = {
     statuses?: string[];
     search?: string;
     priorities?: ("LOW" | "MEDIUM" | "HIGH" | "HIGHEST")[];
+    types?: string[];
   }): Promise<PaginatedTaskResponse> => {
     try {
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1168,6 +1171,9 @@ export const taskApi = {
       }
       if (params.priorities && params.priorities.length > 0) {
         queryParams.append("priorities", params.priorities.join(","));
+      }
+      if (params.types && params.types.length > 0) {
+        queryParams.append("types", params.types.join(","));
       }
 
       const query = queryParams.toString();
