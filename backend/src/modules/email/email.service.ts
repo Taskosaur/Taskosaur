@@ -143,7 +143,7 @@ export class EmailService {
             organization: {
               name: task.project.workspace.organization.name,
             },
-            taskUrl: `${this.configService.get('FRONTEND_URL')}/tasks/${task.slug}`,
+            taskUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`,
           },
           priority: EmailPriority.HIGH,
         });
@@ -202,7 +202,7 @@ export class EmailService {
                 name: task.project.name,
                 key: task.project.slug,
               },
-              taskUrl: `${this.configService.get('FRONTEND_URL')}/tasks/${task.slug}`,
+              taskUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`,
             },
             priority: hoursUntilDue <= 2 ? EmailPriority.HIGH : EmailPriority.NORMAL,
           }),
@@ -349,7 +349,7 @@ export class EmailService {
             name: task.project.name,
             key: task.project.slug,
           },
-          taskUrl: `${this.configService.get('FRONTEND_URL')}/tasks/${task.slug}`,
+              taskUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`,
         },
         priority: EmailPriority.NORMAL,
       });
@@ -442,7 +442,7 @@ export class EmailService {
               title: task.title,
               dueDate: task.dueDate,
               project: task.project.name,
-              url: `${this.configService.get('FRONTEND_URL')}/tasks/${task.slug}`,
+              url: `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`,
             })),
           },
         },
@@ -677,7 +677,7 @@ export class EmailService {
               organization: {
                 name: comment.task.project.workspace.organization.name,
               },
-              taskUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/tasks/${comment.task.slug}`,
+              taskUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/tasks/${comment.task.id}`,
             },
             priority: EmailPriority.NORMAL,
           }),
@@ -892,7 +892,7 @@ export class EmailService {
             title: task.title,
           };
           entityName = task.title;
-          entityUrl = `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.slug}`;
+          entityUrl = `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`;
         }
       } else if (entityType.toLowerCase() === 'taskcomment') {
         const comment = await this.prisma.taskComment.findUnique({
@@ -921,7 +921,7 @@ export class EmailService {
             title: comment.task.title,
           };
           entityName = comment.task.title;
-          entityUrl = `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/tasks/${comment.task.slug}#comments`;
+          entityUrl = `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/tasks/${comment.task.id}#comments`;
         }
       }
 
