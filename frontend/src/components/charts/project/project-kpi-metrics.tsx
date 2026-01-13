@@ -101,6 +101,14 @@ export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) 
       .join(",");
   }, [taskStatus]);
 
+  const openStatusIds = useMemo(() => {
+    if (!taskStatus) return "";
+    return taskStatus
+      .filter((s) => s.status?.category !== "DONE")
+      .map((s) => s.statusId)
+      .join(",");
+  }, [taskStatus]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -177,7 +185,7 @@ export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) 
             value: `${data?.bugResolutionRate.toFixed(1)}%`,
             description: `${data?.resolvedBugs}/${data?.totalBugs} bugs fixed`,
             icon: <Bug className="h-4 w-4" />,
-            onClick: () => handleNavigate("/tasks"),
+            onClick: () => handleNavigate("/tasks",  doneStatusIds ? { statuses: doneStatusIds, types: "BUG" } : {}),
           };
         case "task-completion":
           return {
@@ -207,7 +215,7 @@ export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) 
               ) : (
                 <Bug className="h-4 w-4" />
               ),
-            onClick: () => handleNavigate("/tasks"),
+            onClick: () => handleNavigate("/tasks", openStatusIds ? { types: "BUG", statuses: openStatusIds } : {} ),
           };
         default:
           return null;

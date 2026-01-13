@@ -30,6 +30,7 @@ import {
   User,
   Users,
   Download,
+  Shapes,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -38,6 +39,7 @@ import { TokenManager } from "@/lib/api";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 import { exportTasksToCSV } from "@/utils/exportUtils";
 import { SEO } from "@/components/common/SEO";
+import { TaskTypeIcon } from "@/utils/data/taskData";
 
 // Custom hook for debouncing
 function useDebounce<T>(value: T, delay: number): T {
@@ -112,6 +114,7 @@ function TasksPageContent() {
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  const [selectedTaskTypes, setSelectedTaskTypes] = useState<string[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [selectedReporters, setSelectedReporters] = useState<string[]>([]);
 
@@ -159,6 +162,33 @@ function TasksPageContent() {
   useEffect(() => {
     localStorage.setItem(COLUMNS_KEY, JSON.stringify(columns));
   }, [columns]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const workspaceParams = params.get("workspaces");
+      const projectParams = params.get("projects");
+      const statusParams = params.get("statuses");
+      const priorityParams = params.get("priorities");
+      const typeParams = params.get("types");
+
+      if (workspaceParams) {
+        setSelectedWorkspaces(workspaceParams.split(","));
+      }
+      if (projectParams) {
+        setSelectedProjects(projectParams.split(","));
+      }
+      if (statusParams) {
+        setSelectedStatuses(statusParams.split(","));
+      }
+      if (priorityParams) {
+        setSelectedPriorities(priorityParams.split(","));
+      }
+      if (typeParams) {
+        setSelectedTaskTypes(typeParams.split(","));
+      }
+    }
+  }, []);
 
   // Check user access
   useEffect(() => {
@@ -239,6 +269,9 @@ function TasksPageContent() {
         ...(selectedPriorities.length > 0 && {
           priorities: selectedPriorities.join(","),
         }),
+        ...(selectedTaskTypes.length > 0 && {
+          types: selectedTaskTypes.join(","),
+        }),
         ...(selectedAssignees.length > 0 && {
           assignees: selectedAssignees.join(","),
         }),
@@ -267,6 +300,7 @@ function TasksPageContent() {
     selectedProjects,
     selectedStatuses,
     selectedPriorities,
+    selectedTaskTypes,
     selectedAssignees,
     selectedReporters,
     currentPage,
@@ -310,6 +344,7 @@ function TasksPageContent() {
     selectedProjects,
     selectedStatuses,
     selectedPriorities,
+    selectedTaskTypes,
     selectedAssignees,
     selectedReporters,
     currentPage,
@@ -370,29 +405,75 @@ function TasksPageContent() {
   const toggleWorkspace = useCallback((id: string) => {
     setSelectedWorkspaces((prev) => {
       const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const params = new URLSearchParams(window.location.search);
+      if (newSelection.length > 0) {
+        params.set("workspaces", newSelection.join(","));
+      } else {
+        params.delete("workspaces");
+      }
+      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
       return newSelection;
     });
     setCurrentPage(1);
   }, []);
 
   const toggleProject = useCallback((id: string) => {
-    setSelectedProjects((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setSelectedProjects((prev) => {
+      const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const params = new URLSearchParams(window.location.search);
+      if (newSelection.length > 0) {
+        params.set("projects", newSelection.join(","));
+      } else {
+        params.delete("projects");
+      }
+      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+      return newSelection;
+    });
     setCurrentPage(1);
   }, []);
 
   const toggleStatus = useCallback((id: string) => {
-    setSelectedStatuses((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setSelectedStatuses((prev) => {
+      const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const params = new URLSearchParams(window.location.search);
+      if (newSelection.length > 0) {
+        params.set("statuses", newSelection.join(","));
+      } else {
+        params.delete("statuses");
+      }
+      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+      return newSelection;
+    });
     setCurrentPage(1);
   }, []);
 
   const togglePriority = useCallback((id: string) => {
-    setSelectedPriorities((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setSelectedPriorities((prev) => {
+      const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const params = new URLSearchParams(window.location.search);
+      if (newSelection.length > 0) {
+        params.set("priorities", newSelection.join(","));
+      } else {
+        params.delete("priorities");
+      }
+      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+      return newSelection;
+    });
+    setCurrentPage(1);
+  }, []);
+
+  const toggleTaskType = useCallback((id: string) => {
+    setSelectedTaskTypes((prev) => {
+      const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const params = new URLSearchParams(window.location.search);
+      if (newSelection.length > 0) {
+        params.set("types", newSelection.join(","));
+      } else {
+        params.delete("types");
+      }
+      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+      return newSelection;
+    });
     setCurrentPage(1);
   }, []);
 
@@ -415,9 +496,11 @@ function TasksPageContent() {
     setSelectedProjects([]);
     setSelectedStatuses([]);
     setSelectedPriorities([]);
+    setSelectedTaskTypes([]);
     setSelectedAssignees([]);
     setSelectedReporters([]);
     setCurrentPage(1);
+    window.history.replaceState({}, "", window.location.pathname);
   }, []);
 
   // Event handlers
@@ -453,6 +536,7 @@ function TasksPageContent() {
       selectedProjects.length +
       selectedStatuses.length +
       selectedPriorities.length +
+      selectedTaskTypes.length +
       selectedAssignees.length +
       selectedReporters.length,
     [
@@ -460,6 +544,7 @@ function TasksPageContent() {
       selectedProjects.length,
       selectedStatuses.length,
       selectedPriorities.length,
+      selectedTaskTypes.length,
       selectedAssignees.length,
       selectedReporters.length,
     ]
@@ -533,6 +618,23 @@ function TasksPageContent() {
         : 0,
     }));
   }, [selectedPriorities, tasks]);
+
+  const taskTypeFilters = useMemo(
+    () =>
+      Object.keys(TaskTypeIcon).map((type) => {
+        const typeKey = type as keyof typeof TaskTypeIcon;
+        const iconData = TaskTypeIcon[typeKey];
+        return {
+          id: type,
+          name: type.charAt(0) + type.slice(1).toLowerCase(),
+          value: type,
+          selected: selectedTaskTypes.includes(type),
+          count: tasks.filter((task) => task.type === type).length,
+          color: iconData?.color || "text-gray-500",
+        };
+      }),
+    [selectedTaskTypes, tasks]
+  );
 
   const assigneeFilters = useMemo(() => {
     return organizationMembers.map((member) => ({
@@ -618,6 +720,17 @@ function TasksPageContent() {
         onClearAll: () => setSelectedPriorities([]),
       }),
       createSection({
+        id: "type",
+        title: "Type",
+        icon: Shapes,
+        data: taskTypeFilters,
+        selectedIds: selectedTaskTypes,
+        searchable: false,
+        onToggle: toggleTaskType,
+        onSelectAll: () => setSelectedTaskTypes(taskTypeFilters.map((t) => t.id)),
+        onClearAll: () => setSelectedTaskTypes([]),
+      }),
+      createSection({
         id: "assignee",
         title: "Assignee",
         icon: User,
@@ -645,18 +758,21 @@ function TasksPageContent() {
       projectFilters,
       statusFilters,
       priorityFilters,
+      taskTypeFilters,
       assigneeFilters,
       reporterFilters,
       selectedWorkspaces,
       selectedProjects,
       selectedStatuses,
       selectedPriorities,
+      selectedTaskTypes,
       selectedAssignees,
       selectedReporters,
       toggleWorkspace,
       toggleProject,
       toggleStatus,
       togglePriority,
+      toggleTaskType,
       toggleAssignee,
       toggleReporter,
       statusFilterEnabled,
