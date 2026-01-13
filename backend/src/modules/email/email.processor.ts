@@ -35,7 +35,9 @@ export class EmailProcessor implements OnModuleInit {
 
       // Get the queue to extract its configuration
       const queue = this.queueService.getQueue<EmailJobData>('email');
-      const underlyingQueue = (queue as { getUnderlyingQueue?: () => { opts?: { prefix?: string; connection?: any } } }).getUnderlyingQueue?.();
+      const underlyingQueue = (
+        queue as { getUnderlyingQueue?: () => { opts?: { prefix?: string; connection?: any } } }
+      ).getUnderlyingQueue?.();
 
       // Extract prefix and connection from queue to ensure worker matches
       const queuePrefix = underlyingQueue?.opts?.prefix || 'default';
@@ -582,11 +584,15 @@ export class EmailProcessor implements OnModuleInit {
                 <p>${data.notification.message}</p>
               </div>
               
-              ${data.notification.actionUrl ? `
+              ${
+                data.notification.actionUrl
+                  ? `
               <div class="button-container">
                 <a href="${data.notification.actionUrl}" class="button">View Details</a>
               </div>
-              ` : ''}
+              `
+                  : ''
+              }
             </div>
             <div class="footer">
               <p>Taskosaur - Modern Project Management</p>

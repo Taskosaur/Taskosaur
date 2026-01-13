@@ -165,7 +165,7 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
           if (responseData?.id) {
             const assigneeIds = Array.isArray(notifyUserIds) ? notifyUserIds : [notifyUserIds];
             await this.emailService.sendTaskAssignedEmail(
-              responseData.id,
+              responseData.id as string,
               assigneeIds,
               user.id as string,
             );
@@ -175,9 +175,9 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
         case NotificationType.TASK_STATUS_CHANGED:
           if (responseData?.id) {
             // Try to get oldStatusId from requestData, otherwise email service will fetch from activity log
-            const oldStatusId = requestData?.oldStatusId;
+            const oldStatusId = requestData?.oldStatusId as string | undefined;
             await this.emailService.sendTaskStatusChangedEmail(
-              responseData.id,
+              responseData.id as string,
               oldStatusId,
             );
           }
@@ -185,8 +185,8 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
 
         case NotificationType.TASK_COMMENTED:
           if (responseData?.id && responseData?.taskId) {
-            const commentId = responseData.id;
-            const taskId = responseData.taskId;
+            const commentId = responseData.id as string;
+            const taskId = responseData.taskId as string;
             await this.emailService.sendTaskCommentedEmail(
               taskId,
               commentId,
@@ -199,7 +199,7 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
         case NotificationType.PROJECT_CREATED:
           if (responseData?.id) {
             await this.emailService.sendProjectCreatedEmail(
-              responseData.id,
+              responseData.id as string,
               user.id as string,
               notifyUserIds,
             );
@@ -209,7 +209,7 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
         case NotificationType.PROJECT_UPDATED:
           if (responseData?.id) {
             await this.emailService.sendProjectUpdatedEmail(
-              responseData.id,
+              responseData.id as string,
               user.id as string,
               notifyUserIds,
             );
@@ -223,8 +223,8 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
 
         case NotificationType.MENTION:
           if (responseData?.id && notifyUserIds.length > 0) {
-            const entityType = config.entityType || 'taskcomment';
-            const entityId = responseData.id;
+            const entityType = (config.entityType || 'taskcomment') as string;
+            const entityId = responseData.id as string;
             // Send mention email to each mentioned user
             for (const mentionedUserId of notifyUserIds) {
               await this.emailService.sendMentionEmail(
