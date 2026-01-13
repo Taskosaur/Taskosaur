@@ -458,6 +458,12 @@ export class TasksController {
     example: 'status-1,status-2',
   })
   @ApiQuery({
+    name: 'types',
+    required: false,
+    description: 'Filter by task types (comma-separated)',
+    example: 'TASK,BUG',
+  })
+  @ApiQuery({
     name: 'search',
     required: false,
     description: 'Filter by search query',
@@ -487,6 +493,7 @@ export class TasksController {
     @Query('reporterIds') reporterIds?: string,
     @Query('priorities') priorities?: string,
     @Query('statuses') statuses?: string,
+    @Query('types') types?: string,
     @Query('search') search?: string,
     @Query('page') page = '1',
     @Query('limit') limit = '20',
@@ -496,6 +503,7 @@ export class TasksController {
     }
     const priorityArray = priorities ? priorities.split(',').filter(Boolean) : undefined;
     const statusArray = statuses ? statuses.split(',').filter(Boolean) : undefined;
+    const typeArray = types ? types.split(',').filter(Boolean) : undefined;
 
     let projectIdArray: string[] | undefined = undefined;
     if (projectId) {
@@ -523,6 +531,7 @@ export class TasksController {
       parentTaskId,
       priorityArray,
       statusArray,
+      typeArray,
       assigneeIdsArray,
       reporterIdsArray,
       user.id as string,
@@ -572,6 +581,12 @@ export class TasksController {
     example: 'status-1,status-2',
   })
   @ApiQuery({
+    name: 'types',
+    required: false,
+    description: 'Filter by task types (comma-separated)',
+    example: 'TASK,BUG',
+  })
+  @ApiQuery({
     name: 'search',
     required: false,
     description: 'Filter by search query',
@@ -587,6 +602,7 @@ export class TasksController {
     @Query('parentTaskId') parentTaskId?: string,
     @Query('priorities') priorities?: string,
     @Query('statuses') statuses?: string,
+    @Query('types') types?: string,
     @Query('search') search?: string,
   ) {
     if (!organizationId) {
@@ -595,6 +611,7 @@ export class TasksController {
 
     const priorityArray = priorities ? priorities.split(',').filter(Boolean) : undefined;
     const statusArray = statuses ? statuses.split(',').filter(Boolean) : undefined;
+    const typeArray = types ? types.split(',').filter(Boolean) : undefined;
     const projectIdArray = projectId ? projectId.split(',').filter(Boolean) : undefined;
     const workspaceIdArray = workspaceId ? workspaceId.split(',').filter(Boolean) : undefined;
 
@@ -606,6 +623,7 @@ export class TasksController {
       parentTaskId,
       priorityArray,
       statusArray,
+      typeArray,
       user.id as string,
       search,
     );

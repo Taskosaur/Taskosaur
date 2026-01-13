@@ -523,6 +523,7 @@ export class TasksService {
     parentTaskId?: string,
     priorities?: string[],
     statuses?: string[],
+    types?: string[],
     assigneeIds?: string[],
     reporterIds?: string[],
     userId?: string,
@@ -611,6 +612,14 @@ export class TasksService {
         statusId: { in: statuses },
       });
     }
+
+    // Filter by types if provided
+    if (types && types.length > 0) {
+      andConditions.push({
+        type: { in: types },
+      });
+    }
+
     if (assigneeIds && assigneeIds.length > 0) {
       andConditions.push({
         assignees: {
@@ -752,6 +761,7 @@ export class TasksService {
     parentTaskId?: string,
     priorities?: string[],
     statuses?: string[],
+    types?: string[],
     userId?: string,
     search?: string,
   ): Promise<Task[]> {
@@ -804,6 +814,10 @@ export class TasksService {
 
     if (statuses?.length) {
       andConditions.push({ statusId: { in: statuses } });
+    }
+
+    if (types?.length) {
+      andConditions.push({ type: { in: types } });
     }
 
     if (search?.trim()) {
