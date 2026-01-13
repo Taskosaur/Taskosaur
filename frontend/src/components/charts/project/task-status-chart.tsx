@@ -2,6 +2,7 @@
 import { PieChart, Pie, ResponsiveContainer, Cell, Legend } from "recharts";
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
+import { useRouter } from "next/router";
 
 interface StatusInfo {
   id: string;
@@ -22,6 +23,9 @@ interface TaskStatusChartProps {
 }
 
 export function TaskStatusChart({ data }: TaskStatusChartProps) {
+  const router = useRouter();
+  const { workspaceSlug, projectSlug } = router.query;
+
   // Sort data by status position for better visualization
   const safeData = Array.isArray(data) ? data : [];
   const sortedData = [...safeData].sort(
@@ -34,8 +38,15 @@ export function TaskStatusChart({ data }: TaskStatusChartProps) {
       name: status?.name || "Unknown",
       value: item.count,
       color: status?.color || "#8B5CF6",
+      id: item.statusId,
     };
   });
+
+  const handleClick = (entry: any) => {
+    if (workspaceSlug && projectSlug && entry?.id) {
+      router.push(`/${workspaceSlug}/${projectSlug}/tasks?statuses=${entry.id}`);
+    }
+  };
 
   // Build dynamic config from status data for legend
   const chartConfig = sortedData?.reduce(
@@ -92,6 +103,8 @@ export function TaskStatusChart({ data }: TaskStatusChartProps) {
             outerRadius={100}
             paddingAngle={2}
             dataKey="value"
+            onClick={handleClick}
+            className="cursor-pointer outline-none"
           >
             {chartData?.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
