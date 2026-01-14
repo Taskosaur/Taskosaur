@@ -3,6 +3,7 @@ import { StatCard } from "@/components/common/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
 import { useState, useMemo } from "react";
+import { useRouter } from "next/router";
 import {
   DndContext,
   closestCenter,
@@ -30,6 +31,7 @@ interface KPIMetricsProps {
     overdueTasks: number;
     completionRate: number;
   };
+  workspaceId?: string;
 }
 
 interface SortableStatCardProps {
@@ -38,9 +40,10 @@ interface SortableStatCardProps {
   value: string | number;
   icon: React.ReactNode;
   statSuffix?: React.ReactNode;
+  onClick?: () => void;
 }
 
-function SortableStatCard({ id, label, value, icon, statSuffix }: SortableStatCardProps) {
+function SortableStatCard({ id, label, value, icon, statSuffix, onClick }: SortableStatCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
   });
@@ -49,23 +52,46 @@ function SortableStatCard({ id, label, value, icon, statSuffix }: SortableStatCa
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    cursor: "grab",
+    cursor: isDragging ? "grabbing" : "pointer",
     touchAction: "none",
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...attributes} 
+      {...listeners}
+      onClick={(e) => {
+        if (!isDragging && onClick) {
+          onClick();
+        }
+      }}
+    >
       <StatCard
         label={label}
         value={value}
         icon={icon}
         statSuffix={statSuffix}
+        className="transition-colors hover:bg-[var(--accent)]/50"
       />
     </div>
   );
 }
 
-export function KPIMetrics({ data }: KPIMetricsProps) {
+export function KPIMetrics({ data, workspaceId }: KPIMetricsProps) {
+  console.log("KPIMetrics data:", data);
+  const router = useRouter();
+  const { workspaceSlug } = router.query;
+
+  const handleNavigate = (path: string, query?: Record<string, string>) => {
+    if (!workspaceSlug) return;
+    router.push({
+      pathname: `/${workspaceSlug}${path}`,
+      query,
+    });
+  };
+
   const [orderedIds, setOrderedIds] = useState<string[]>([
     "total-projects",
     "active-projects",
@@ -107,6 +133,7 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
             label: "Total Projects",
             value: data?.totalProjects,
             icon: <CheckCircle className="h-4 w-4" />,
+            onClick: () => handleNavigate("/projects"),
           };
         case "active-projects":
           return {
@@ -118,6 +145,7 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
               data?.totalProjects > 0
                 ? `${((data?.activeProjects / data?.totalProjects) * 100).toFixed(1)}%`
                 : "0%",
+            onClick: () => handleNavigate("/projects", { statuses: "ACTIVE" }),
           };
         case "completion-rate":
           return {
@@ -148,6 +176,7 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
                     : "Needs Focus"}
               </Badge>
             ),
+            onClick: () => handleNavigate("/projects", { statuses: "COMPLETED" }),
           };
         case "total-tasks":
           return {
@@ -155,6 +184,7 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
             label: "Total Tasks",
             value: data?.totalTasks,
             icon: <CheckCircle className="h-4 w-4" />,
+            onClick: () => handleNavigate("/tasks"),
           };
         case "overdue-tasks":
           return {
@@ -172,6 +202,7 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
                 {data?.overdueTasks === 0 ? "Perfect" : data?.overdueTasks < 10 ? "Good" : "Critical"}
               </Badge>
             ),
+            onClick: () => handleNavigate("/tasks"),
           };
         case "task-health":
           return {
@@ -192,12 +223,13 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
                 {data?.overdueTasks === 0 ? "Perfect" : "Monitor"}
               </Badge>
             ),
+            onClick: () => handleNavigate("/tasks"),
           };
         default:
           return null;
       }
     }).filter((c): c is NonNullable<typeof c> => c !== null);
-  }, [orderedIds, data]);
+  }, [orderedIds, data, workspaceSlug]);
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -211,6 +243,7 @@ export function KPIMetrics({ data }: KPIMetricsProps) {
               value={card.value}
               icon={card.icon}
               statSuffix={card.statSuffix}
+              onClick={card.onClick}
             />
           ))}
         </div>

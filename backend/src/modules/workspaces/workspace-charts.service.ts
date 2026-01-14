@@ -212,14 +212,25 @@ export class WorkspaceChartsService {
   ): Promise<WorkspaceKPIMetrics> {
     const { isElevated } = await this.getWorkspaceWithAccess(organizationId, workspaceSlug, userId);
 
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { organizationId_slug: { organizationId, slug: workspaceSlug } },
+      select: { id: true },
+    });
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
     const projectBase = {
-      workspace: { slug: workspaceSlug, archive: false },
+      workspaceId: workspace.id,
       archive: false,
       ...(isElevated ? {} : { members: { some: { userId } } }),
     };
 
     const taskBase = {
-      project: projectBase,
+      project: {
+        workspaceId: workspace.id,
+        archive: false,
+        ...(isElevated ? {} : { members: { some: { userId } } }),
+      },
       ...(isElevated
         ? {}
         : {

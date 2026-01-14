@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/router";
 import { Building2, FolderOpen, Users, CheckCircle, Bug, Zap, Clock } from "lucide-react";
 import { StatCard } from "@/components/common/StatCard";
 import {
@@ -43,8 +44,10 @@ interface OrganizationKPIMetricsProps {
     label: string;
     visible: boolean;
     isDefault: boolean;
+    link?: string;
   }>;
   onOrderChange?: (newOrder: string[]) => void;
+  taskStatuses?: any[];
 }
 
 interface KPICardConfig {
@@ -78,9 +81,11 @@ interface SortableStatCardProps {
   value: string | number;
   icon: React.ReactNode;
   description?: string;
+  link?: string;
 }
 
-function SortableStatCard({ id, label, value, icon, description }: SortableStatCardProps) {
+function SortableStatCard({ id, label, value, icon, description, link }: SortableStatCardProps) {
+  const router = useRouter();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
   });
@@ -93,9 +98,16 @@ function SortableStatCard({ id, label, value, icon, description }: SortableStatC
     touchAction: "none", // Prevent scrolling on touch devices while dragging
   };
 
+  const handleClick = (e: React.MouseEvent) => {
+    // Only navigate if we're not dragging and we have a link
+    if (!isDragging && link) {
+      router.push(link);
+    }
+  };
+
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <StatCard label={label} value={value} icon={icon} />
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={handleClick}>
+      <StatCard label={label} value={value} icon={icon} className="cursor-pointer" />
     </div>
   );
 }
@@ -104,14 +116,24 @@ export function OrganizationKPIMetrics({
   data,
   visibleCards = [],
   onOrderChange,
+  taskStatuses = [],
 }: OrganizationKPIMetricsProps) {
   // Initialize orderedIds based on visibleCards prop or default static config
   const [orderedIds, setOrderedIds] = useState<string[]>(() => {
     if (visibleCards.length > 0) {
-      return visibleCards.filter((c) => c.visible).map((c) => c.id);
+      return visibleCards.filter((card) => card.visible).map((card) => card.id);
     }
-    return STATIC_CARD_CONFIG.map((c) => c.id); // Default to all
+    return ["workspaces", "projects", "members", "task-completion"];
   });
+
+  // Compute done status IDs from task statuses
+  const doneStatusIds = useMemo(() => {
+    if (!taskStatuses || taskStatuses.length === 0) return "";
+    return taskStatuses
+      .filter((s) => s.category === "DONE")
+      .map((s) => s.id)
+      .join(",");
+  }, [taskStatuses]);
 
   // Sync state if visibleCards prop changes order or visibility externally
   useEffect(() => {
@@ -212,6 +234,11 @@ export function OrganizationKPIMetrics({
           value,
           description,
           icon,
+          link: id === "task-completion" && doneStatusIds
+            ? `/tasks?statuses=${doneStatusIds}&types=TASK`
+            : id === "bug-resolution" && doneStatusIds
+            ? `/tasks?statuses=${doneStatusIds}&types=BUG`
+            : visibleCards.find((c) => c.id === id)?.link,
         };
       })
       .filter((card): card is NonNullable<typeof card> => card !== null);
@@ -239,6 +266,7 @@ export function OrganizationKPIMetrics({
               value={card.value}
               icon={card.icon}
               description={card.description}
+              link={card.link}
             />
           ))}
         </div>

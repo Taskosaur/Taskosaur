@@ -56,7 +56,7 @@ export class TaskWatchersSeederService {
         } catch (error) {
           console.error(error);
           // Skip if watcher already exists (unique constraint)
-          console.log(` ⚠ ${watcher.firstName} might already be watching this task, skipping...`);
+          console.log(`   ⚠ ${watcher.firstName} might already be watching this task, skipping...`);
         }
       }
     }
