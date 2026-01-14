@@ -87,11 +87,37 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
   const [workspace, setWorkspace] = useState<any>(null);
   const [searchInput, setSearchInput] = useState("");
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const statuses = params.get("statuses");
+      return statuses ? statuses.split(",") : [];
+    }
+    return [];
+  });
+  const [selectedPriorities, setSelectedPriorities] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const priorities = params.get("priorities");
+      return priorities ? priorities.split(",") : [];
+    }
+    return [];
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(12);
   const [hasMore, setHasMore] = useState(false);
+
+  useEffect(() => {
+    if (router.isReady) {
+      const { statuses, priorities } = router.query;
+      if (statuses) {
+        setSelectedStatuses(Array.isArray(statuses) ? statuses : statuses.split(","));
+      }
+      if (priorities) {
+        setSelectedPriorities(Array.isArray(priorities) ? priorities : priorities.split(","));
+      }
+    }
+  }, [router.isReady, router.query.statuses, router.query.priorities]);
 
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
@@ -149,23 +175,41 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 
   // Filter functions
   const toggleStatus = useCallback((id: string) => {
-    setSelectedStatuses((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  }, []);
+    setSelectedStatuses((prev) => {
+      const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const newQuery = { ...router.query };
+      if (newSelection.length > 0) {
+        newQuery.statuses = newSelection.join(",");
+      } else {
+        delete newQuery.statuses;
+      }
+      router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+      return newSelection;
+    });
+  }, [router]);
 
   const togglePriority = useCallback((id: string) => {
-    setSelectedPriorities((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  }, []);
+    setSelectedPriorities((prev) => {
+      const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const newQuery = { ...router.query };
+      if (newSelection.length > 0) {
+        newQuery.priorities = newSelection.join(",");
+      } else {
+        delete newQuery.priorities;
+      }
+      router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+      return newSelection;
+    });
+  }, [router]);
 
   const clearAllFilters = useCallback(() => {
     setSelectedStatuses([]);
     setSelectedPriorities([]);
     setSearchInput("");
     setCurrentPage(1);
-  }, []);
+    const { statuses, priorities, ...restQuery } = router.query;
+    router.push({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+  }, [router]);
 
   // Filter data preparation - always use context projects
   const statusFilters = useMemo(
@@ -208,8 +252,18 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
         searchable: false,
         multiSelect: true,
         onToggle: toggleStatus,
-        onSelectAll: () => setSelectedStatuses(statusFilters.map((s) => s.value)),
-        onClearAll: () => setSelectedStatuses([]),
+        onSelectAll: () => {
+          const allValues = statusFilters.map((s) => s.value);
+          setSelectedStatuses(allValues);
+          const newQuery = { ...router.query, statuses: allValues.join(",") };
+          router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+        },
+        onClearAll: () => {
+          setSelectedStatuses([]);
+          const newQuery = { ...router.query };
+          delete newQuery.statuses;
+          router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+        },
       }),
       createSection({
         id: "priority",
@@ -221,8 +275,18 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
         multiSelect: true,
         allowSelectAll: false,
         onToggle: togglePriority,
-        onSelectAll: () => setSelectedPriorities(priorityFilters.map((p) => p.value)),
-        onClearAll: () => setSelectedPriorities([]),
+        onSelectAll: () => {
+          const allValues = priorityFilters.map((p) => p.value);
+          setSelectedPriorities(allValues);
+          const newQuery = { ...router.query, priorities: allValues.join(",") };
+          router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+        },
+        onClearAll: () => {
+          setSelectedPriorities([]);
+          const newQuery = { ...router.query };
+          delete newQuery.priorities;
+          router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+        },
       }),
     ],
     [
@@ -375,12 +439,20 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 
     // Handle context changes
     if (currentContextRef.current !== contextKey) {
+      // Robust check for first actual context load
+      const isInitialContextLoad = currentContextRef.current === "" || currentContextRef.current.endsWith("/undefined");
       isInitializedRef.current = false;
       setIsInitialLoad(true);
       setWorkspace(null);
-      setSelectedStatuses([]);
-      setSelectedPriorities([]);
-      setSearchInput("");
+      
+      // Only reset filters if we are switching from one valid context to another
+      // This preserves filters passed via URL on mount even as workspaceSlug resolves
+      if (!isInitialContextLoad) {
+        setSelectedStatuses([]);
+        setSelectedPriorities([]);
+        setSearchInput("");
+      }
+      
       setCurrentPage(1);
       currentContextRef.current = contextKey;
     }
