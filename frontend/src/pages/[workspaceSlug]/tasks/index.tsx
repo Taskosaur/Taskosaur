@@ -20,8 +20,8 @@ import Pagination from "@/components/common/Pagination";
 import { ColumnManager } from "@/components/tasks/ColumnManager";
 import SortingManager, { SortField, SortOrder } from "@/components/tasks/SortIngManager";
 import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
-import { CheckSquare, Flame, Folder, User, Users, Download } from "lucide-react";
-import { TaskPriorities } from "@/utils/data/taskData";
+import { CheckSquare, Flame, Folder, User, Users, Download, Shapes } from "lucide-react";
+import { TaskPriorities, TaskTypeIcon } from "@/utils/data/taskData";
 import Tooltip from "@/components/common/ToolTip";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 import { exportTasksToCSV } from "@/utils/exportUtils";
@@ -73,6 +73,7 @@ function WorkspaceTasksContent() {
   const {
     getAllTasks,
     getCalendarTask,
+    getAllTaskStatuses,
     tasks,
     isLoading,
     error: contextError,
@@ -102,8 +103,8 @@ function WorkspaceTasksContent() {
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  const [selectedTaskTypes, setSelectedTaskTypes] = useState<string[]>([]);
   const [availableStatuses, setAvailableStatuses] = useState<any[]>([]);
-  const [statusFilterEnabled, setStatusFilterEnabled] = useState(false);
   const [availablePriorities] = useState(TaskPriorities);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [workspaceMembers, setWorkspaceMembers] = useState<any[]>([]);
@@ -112,6 +113,18 @@ function WorkspaceTasksContent() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [selectedReporters, setSelectedReporters] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (router.isReady) {
+      const { projects, statuses, priorities, types, assignees, reporters } = router.query;
+      if (projects) setSelectedProjects((Array.isArray(projects) ? projects : projects.split(",")));
+      if (statuses) setSelectedStatuses((Array.isArray(statuses) ? statuses : statuses.split(",")));
+      if (priorities) setSelectedPriorities((Array.isArray(priorities) ? priorities : priorities.split(",")));
+      if (types) setSelectedTaskTypes((Array.isArray(types) ? types : types.split(",")));
+      if (assignees) setSelectedAssignees((Array.isArray(assignees) ? assignees : assignees.split(",")));
+      if (reporters) setSelectedReporters((Array.isArray(reporters) ? reporters : reporters.split(",")));
+    }
+  }, [router.isReady]);
 
   const handleTaskSelect = (taskId: string) => {
     setSelectedTasks((prev) =>
@@ -137,6 +150,21 @@ function WorkspaceTasksContent() {
       return [];
     }
   });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const priorityParams = params.get("priorities");
+      const statusParams = params.get("statuses");
+
+      if (priorityParams) {
+        setSelectedPriorities(priorityParams.split(","));
+      }
+      if (statusParams) {
+        setSelectedStatuses(statusParams.split(","));
+      }
+    }
+  }, [router.asPath]);
 
   const error = contextError || localError;
 
@@ -302,6 +330,9 @@ function WorkspaceTasksContent() {
         ...(selectedPriorities.length > 0 && {
           priorities: selectedPriorities.join(","),
         }),
+        ...(selectedTaskTypes.length > 0 && {
+          types: selectedTaskTypes.join(","),
+        }),
         ...(debouncedSearchQuery.trim() && {
           search: debouncedSearchQuery.trim(),
         }),
@@ -333,6 +364,7 @@ function WorkspaceTasksContent() {
     selectedProjects,
     selectedStatuses,
     selectedPriorities,
+    selectedTaskTypes,
     selectedAssignees,
     selectedReporters,
     validateRequiredData,
@@ -382,6 +414,7 @@ function WorkspaceTasksContent() {
     projects: selectedProjects.join(","),
     statuses: selectedStatuses.join(","),
     priorities: selectedPriorities.join(","),
+    types: selectedTaskTypes.join(","),
   });
 
   useEffect(() => {
@@ -393,6 +426,7 @@ function WorkspaceTasksContent() {
       projects: selectedProjects.join(","),
       statuses: selectedStatuses.join(","),
       priorities: selectedPriorities.join(","),
+      types: selectedTaskTypes.join(","),
     };
     const filtersChanged =
       JSON.stringify(currentFilters) !== JSON.stringify(previousFiltersRef.current);
@@ -410,6 +444,7 @@ function WorkspaceTasksContent() {
     selectedProjects,
     selectedStatuses,
     selectedPriorities,
+    selectedTaskTypes,
     validateRequiredData,
   ]);
 
@@ -427,18 +462,21 @@ function WorkspaceTasksContent() {
 
   const statusFilters = useMemo(
     () =>
-      availableStatuses.map((status) => ({
-        id: status.id,
-        name: status.name,
-        value: status.id,
-        selected: selectedStatuses.includes(status.id),
-        count: tasks.filter((task) => {
-          const taskStatusId =
-            task.statusId || (typeof task.status === "object" ? task.status?.id : task.status);
-          return taskStatusId === status.id;
-        }).length,
-        color: status.color || "#6b7280",
-      })),
+      availableStatuses.map((status) => {
+        const allIds = status.allIds || [status.id];
+        return {
+          id: status.id,
+          name: status.name,
+          value: status.id,
+          selected: allIds.some((id: string) => selectedStatuses.includes(id)),
+          count: tasks.filter((task) => {
+            const taskStatusId =
+              task.statusId || (typeof task.status === "object" ? task.status?.id : task.status);
+            return allIds.includes(taskStatusId);
+          }).length,
+          color: status.color || "#6b7280",
+        };
+      }),
     [availableStatuses, selectedStatuses, tasks]
   );
 
@@ -453,6 +491,23 @@ function WorkspaceTasksContent() {
         color: priority.color,
       })),
     [availablePriorities, selectedPriorities, tasks]
+  );
+
+  const taskTypeFilters = useMemo(
+    () =>
+      Object.keys(TaskTypeIcon).map((type) => {
+        const typeKey = type as keyof typeof TaskTypeIcon;
+        const iconData = TaskTypeIcon[typeKey];
+        return {
+          id: type,
+          name: type.charAt(0) + type.slice(1).toLowerCase(),
+          value: type,
+          selected: selectedTaskTypes.includes(type),
+          count: tasks.filter((task) => task.type === type).length,
+          color: iconData?.color || "text-gray-500",
+        };
+      }),
+    [selectedTaskTypes, tasks]
   );
 
   const assigneeFilters = useMemo(() => {
@@ -492,26 +547,65 @@ function WorkspaceTasksContent() {
   const toggleProject = useCallback((id: string) => {
     setSelectedProjects((prev) => {
       const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const newQuery = { ...router.query };
+      if (newSelection.length > 0) {
+        newQuery.projects = newSelection.join(",");
+      } else {
+        delete newQuery.projects;
+      }
+      router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
       return newSelection;
     });
     setCurrentPage(1);
-  }, []);
+  }, [router]);
 
   const toggleStatus = useCallback((id: string) => {
+    const status = availableStatuses.find((s: any) => s.id === id);
+    const allIds = status?.allIds || [id];
+
     setSelectedStatuses((prev) => {
       const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const newQuery = { ...router.query };
+      if (newSelection.length > 0) {
+        newQuery.statuses = newSelection.join(",");
+      } else {
+        delete newQuery.statuses;
+      }
+      router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
       return newSelection;
     });
     setCurrentPage(1);
-  }, []);
+  }, [router]);
 
   const togglePriority = useCallback((id: string) => {
     setSelectedPriorities((prev) => {
       const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const newQuery = { ...router.query };
+      if (newSelection.length > 0) {
+        newQuery.priorities = newSelection.join(",");
+      } else {
+        delete newQuery.priorities;
+      }
+      router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
       return newSelection;
     });
     setCurrentPage(1);
-  }, []);
+  }, [router]);
+
+  const toggleTaskType = useCallback((id: string) => {
+    setSelectedTaskTypes((prev) => {
+      const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const newQuery = { ...router.query };
+      if (newSelection.length > 0) {
+        newQuery.types = newSelection.join(",");
+      } else {
+        delete newQuery.types;
+      }
+      router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+      return newSelection;
+    });
+    setCurrentPage(1);
+  }, [router]);
 
   const toggleAssignee = useCallback((id: string) => {
     setSelectedAssignees((prev) =>
@@ -527,26 +621,29 @@ function WorkspaceTasksContent() {
     setCurrentPage(1);
   }, []);
 
-  // Fetch statuses for selected project
+  // Fetch statuses for selected project or all statuses for organization
   useEffect(() => {
-    const fetchStatusesForProject = async () => {
+    const fetchStatuses = async () => {
       if (selectedProjects.length === 1) {
         try {
           const statuses = await getTaskStatusByProject(selectedProjects[0]);
           setAvailableStatuses(statuses || []);
-          setStatusFilterEnabled(true);
         } catch (error) {
           console.error("Failed to fetch statuses for selected project:", error);
           setAvailableStatuses([]);
-          setStatusFilterEnabled(false);
         }
-      } else {
-        setAvailableStatuses([]);
-        setStatusFilterEnabled(false);
+      } else if (workspace?.organizationId) {
+        try {
+          const statuses = await getAllTaskStatuses({ organizationId: workspace.organizationId });
+          setAvailableStatuses(statuses || []);
+        } catch (error) {
+          console.error("Failed to fetch all task statuses:", error);
+          setAvailableStatuses([]);
+        }
       }
     };
-    fetchStatusesForProject();
-  }, [selectedProjects]);
+    fetchStatuses();
+  }, [selectedProjects, workspace?.organizationId]);
 
   const filterSections = useMemo(
     () => [
@@ -560,7 +657,12 @@ function WorkspaceTasksContent() {
         multiSelect: false,
         onToggle: toggleProject,
         onSelectAll: undefined,
-        onClearAll: () => setSelectedProjects([]),
+        onClearAll: () => {
+          setSelectedProjects([]);
+          const newQuery = { ...router.query };
+          delete newQuery.projects;
+          router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+        },
       }),
       createSection({
         id: "status",
@@ -569,12 +671,19 @@ function WorkspaceTasksContent() {
         data: statusFilters,
         selectedIds: selectedStatuses,
         searchable: false,
-        onToggle: statusFilterEnabled ? toggleStatus : undefined,
-        onSelectAll: statusFilterEnabled
-          ? () => setSelectedStatuses(statusFilters.map((s) => s.id))
-          : undefined,
-        onClearAll: statusFilterEnabled ? () => setSelectedStatuses([]) : undefined,
-        disabled: !statusFilterEnabled,
+        onToggle: toggleStatus,
+        onSelectAll: () => {
+          const allValues = statusFilters.map((s) => s.id);
+          setSelectedStatuses(allValues);
+          const newQuery = { ...router.query, statuses: allValues.join(",") };
+          router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+        },
+        onClearAll: () => {
+          setSelectedStatuses([]);
+          const newQuery = { ...router.query };
+          delete newQuery.statuses;
+          router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+        },
       }),
       createSection({
         id: "priority",
@@ -584,8 +693,39 @@ function WorkspaceTasksContent() {
         selectedIds: selectedPriorities,
         searchable: false,
         onToggle: togglePriority,
-        onSelectAll: () => setSelectedPriorities(priorityFilters.map((p) => p.id)),
-        onClearAll: () => setSelectedPriorities([]),
+        onSelectAll: () => {
+          const allValues = priorityFilters.map((p) => p.id);
+          setSelectedPriorities(allValues);
+          const newQuery = { ...router.query, priorities: allValues.join(",") };
+          router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+        },
+        onClearAll: () => {
+          setSelectedPriorities([]);
+          const newQuery = { ...router.query };
+          delete newQuery.priorities;
+          router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+        },
+      }),
+      createSection({
+        id: "type",
+        title: "Type",
+        icon: Shapes,
+        data: taskTypeFilters,
+        selectedIds: selectedTaskTypes,
+        searchable: false,
+        onToggle: toggleTaskType,
+        onSelectAll: () => {
+          const allValues = taskTypeFilters.map((t) => t.id);
+          setSelectedTaskTypes(allValues);
+          const newQuery = { ...router.query, types: allValues.join(",") };
+          router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+        },
+        onClearAll: () => {
+          setSelectedTaskTypes([]);
+          const newQuery = { ...router.query };
+          delete newQuery.types;
+          router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
+        },
       }),
       createSection({
         id: "assignee",
@@ -611,12 +751,12 @@ function WorkspaceTasksContent() {
       }),
     ],
     [
-      projectFilters,
-      statusFilters,
       priorityFilters,
+      taskTypeFilters,
       selectedProjects,
       selectedStatuses,
       selectedPriorities,
+      selectedTaskTypes,
       assigneeFilters,
       reporterFilters,
       selectedAssignees,
@@ -626,7 +766,7 @@ function WorkspaceTasksContent() {
       toggleProject,
       toggleStatus,
       togglePriority,
-      statusFilterEnabled,
+      toggleTaskType,
     ]
   );
 
@@ -634,6 +774,7 @@ function WorkspaceTasksContent() {
     selectedProjects.length +
     selectedStatuses.length +
     selectedPriorities.length +
+    selectedTaskTypes.length +
     selectedAssignees.length +
     selectedReporters.length;
 
@@ -641,10 +782,12 @@ function WorkspaceTasksContent() {
     setSelectedProjects([]);
     setSelectedStatuses([]);
     setSelectedPriorities([]);
+    setSelectedTaskTypes([]);
     setSelectedAssignees([]);
     setSelectedReporters([]);
     setCurrentPage(1);
-  }, []);
+    router.push({ pathname: router.pathname }, undefined, { shallow: true });
+  }, [router]);
 
   const handleAddColumn = (columnId: string) => {
     const columnConfigs: Record<string, { label: string; type: ColumnConfig["type"] }> = {
@@ -726,25 +869,25 @@ function WorkspaceTasksContent() {
     const sorted = [...tasks].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
-      
+
       // Handle date fields
       if (["createdAt", "updatedAt", "completedAt", "dueDate", "timeline"].includes(sortField)) {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
       }
-      
+
       // Handle status field (object with name property)
       if (sortField === "status") {
         aValue = a.status?.name || "";
         bValue = b.status?.name || "";
       }
-      
+
       // Handle commentsCount field (stored in _count.comments)
       if (sortField === "commentsCount") {
         aValue = a._count?.comments || 0;
         bValue = b._count?.comments || 0;
       }
-      
+
       if (typeof aValue === "string" && typeof bValue === "string") {
         return sortOrder === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
       }
@@ -938,11 +1081,10 @@ function WorkspaceTasksContent() {
                         key={mode}
                         type="button"
                         onClick={() => setGanttViewMode(mode)}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${
-                          ganttViewMode === mode
-                            ? "bg-blue-500 text-white"
-                            : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
-                        }`}
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${ganttViewMode === mode
+                          ? "bg-blue-500 text-white"
+                          : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
+                          }`}
                       >
                         {mode}
                       </button>
@@ -974,11 +1116,11 @@ function WorkspaceTasksContent() {
                     </ActionButton>
                   </div>
                 )}
-            </>
-          }
-        />
+              </>
+            }
+          />
+        </div>
       </div>
-    </div>
       {/* Scrollable Content */}
       <div className="rounded-md">
         {error ? <ErrorState error={error} onRetry={handleRetry} /> : renderContent()}

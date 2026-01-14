@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-import { Task, ColumnConfig, Project, ViewMode } from "@/types";
+import { Task, ColumnConfig, Project, ViewMode, TaskStatus } from "@/types";
 import { TokenManager } from "@/lib/api";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 import { exportTasksToCSV } from "@/utils/exportUtils";
@@ -63,7 +63,7 @@ interface PaginationInfo {
 
 function TasksPageContent() {
   const router = useRouter();
-  const { getAllTasks, getCalendarTask, isLoading: taskLoading, taskResponse, tasks } = useTask();
+  const { getAllTasks, getCalendarTask, getAllTaskStatuses, isLoading: taskLoading, taskResponse, tasks } = useTask();
   const { getWorkspacesByOrganization } = useWorkspaceContext();
   const { getProjectsByOrganization, getTaskStatusByProject } = useProjectContext();
   const { getCurrentUser, getUserAccess } = useAuth();
@@ -85,7 +85,8 @@ function TasksPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [hasAccess, setHasAccess] = useState(false);
-  const [userAccess, setUserAcess] = useState(null);
+  const [userAccess, setUserAcess] = useState<any>(null);
+  const [urlParamsInitialized, setUrlParamsInitialized] = useState(false);
   const [statusFilterEnabled, setStatusFilterEnabled] = useState(false);
   const [isNewTaskModalOpen, setNewTaskModalOpen] = useState(false);
 
@@ -136,6 +137,20 @@ function TasksPageContent() {
       return [];
     }
   });
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const priorityParams = params.get("priorities");
+      const statusParams = params.get("statuses");
+
+      if (priorityParams) {
+        setSelectedPriorities(priorityParams.split(","));
+      }
+      if (statusParams) {
+        setSelectedStatuses(statusParams.split(","));
+      }
+    }
+  }, [router.asPath]);
 
   // Derived state
   const debouncedSearchQuery = useDebounce(searchInput, 500);
@@ -187,6 +202,9 @@ function TasksPageContent() {
       if (typeParams) {
         setSelectedTaskTypes(typeParams.split(","));
       }
+      
+      // Mark URL params as initialized
+      setUrlParamsInitialized(true);
     }
   }, []);
 
@@ -201,28 +219,49 @@ function TasksPageContent() {
       .catch((error) => console.error("Error fetching user access:", error));
   }, [currentOrganizationId]);
 
-  // Fetch statuses for selected project
+  // Fetch statuses for selected project or for the entire organization
   useEffect(() => {
-    const fetchStatusesForProject = async () => {
-      if (selectedProjects.length !== 1) {
-        setAvailableStatuses([]);
-        setStatusFilterEnabled(false);
-        return;
-      }
-
+    const fetchStatusesList = async () => {
       try {
-        const statuses = await getTaskStatusByProject(selectedProjects[0]);
-        setAvailableStatuses(statuses || []);
-        setStatusFilterEnabled(true);
+        let statuses: TaskStatus[] = [];
+        if (selectedProjects.length === 1) {
+          statuses = await getTaskStatusByProject(selectedProjects[0]);
+        } else if (currentOrganizationId) {
+          statuses = await getAllTaskStatuses({ organizationId: currentOrganizationId });
+        }
+
+        if (statuses.length > 0) {
+          setAvailableStatuses(statuses);
+          setStatusFilterEnabled(true);
+
+          // Handle category=COMPLETED from URL only if statuses aren't already set from URL params
+          const params = new URLSearchParams(window.location.search);
+          const categoryParam = params.get("category");
+          const statusParams = params.get("statuses");
+
+          // Only apply category logic if we have a category param and no explicit status params
+          if (categoryParam === "COMPLETED" && !statusParams) {
+            const completedStatusIds = statuses
+              .filter((s) => s.category === "DONE")
+              .map((s) => s.id);
+
+            if (completedStatusIds.length > 0) {
+              setSelectedStatuses(completedStatusIds);
+            }
+          }
+        } else {
+          setAvailableStatuses([]);
+          setStatusFilterEnabled(false);
+        }
       } catch (error) {
-        console.error("Failed to fetch statuses for selected project:", error);
+        console.error("Failed to fetch statuses:", error);
         setAvailableStatuses([]);
         setStatusFilterEnabled(false);
       }
     };
 
-    fetchStatusesForProject();
-  }, [selectedProjects]);
+    fetchStatusesList();
+  }, [selectedProjects, currentOrganizationId]);
 
   // Load initial data (workspaces and projects)
   const loadInitialData = useCallback(async () => {
@@ -336,10 +375,13 @@ function TasksPageContent() {
     }
   }, [hasValidUserAndOrg, currentOrganizationId, loadInitialData]);
 
-  // Load tasks when filters change
+  // Load tasks when filters change (only after URL params are initialized)
   useEffect(() => {
-    loadTasks();
+    if (urlParamsInitialized) {
+      loadTasks();
+    }
   }, [
+    urlParamsInitialized,
     selectedWorkspaces,
     selectedProjects,
     selectedStatuses,
@@ -405,77 +447,77 @@ function TasksPageContent() {
   const toggleWorkspace = useCallback((id: string) => {
     setSelectedWorkspaces((prev) => {
       const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      const params = new URLSearchParams(window.location.search);
+      const newQuery = { ...router.query };
       if (newSelection.length > 0) {
-        params.set("workspaces", newSelection.join(","));
+        newQuery.workspaces = newSelection.join(",");
       } else {
-        params.delete("workspaces");
+        delete newQuery.workspaces;
       }
-      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+      router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
       return newSelection;
     });
     setCurrentPage(1);
-  }, []);
+  }, [router]);
 
   const toggleProject = useCallback((id: string) => {
     setSelectedProjects((prev) => {
       const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      const params = new URLSearchParams(window.location.search);
+      const newQuery = { ...router.query };
       if (newSelection.length > 0) {
-        params.set("projects", newSelection.join(","));
+        newQuery.projects = newSelection.join(",");
       } else {
-        params.delete("projects");
+        delete newQuery.projects;
       }
-      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+      router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
       return newSelection;
     });
     setCurrentPage(1);
-  }, []);
+  }, [router]);
 
   const toggleStatus = useCallback((id: string) => {
     setSelectedStatuses((prev) => {
       const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      const params = new URLSearchParams(window.location.search);
+      const newQuery = { ...router.query };
       if (newSelection.length > 0) {
-        params.set("statuses", newSelection.join(","));
+        newQuery.statuses = newSelection.join(",");
       } else {
-        params.delete("statuses");
+        delete newQuery.statuses;
       }
-      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+      router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
       return newSelection;
     });
     setCurrentPage(1);
-  }, []);
+  }, [router]);
 
   const togglePriority = useCallback((id: string) => {
     setSelectedPriorities((prev) => {
       const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      const params = new URLSearchParams(window.location.search);
+      const newQuery = { ...router.query };
       if (newSelection.length > 0) {
-        params.set("priorities", newSelection.join(","));
+        newQuery.priorities = newSelection.join(",");
       } else {
-        params.delete("priorities");
+        delete newQuery.priorities;
       }
-      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+      router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
       return newSelection;
     });
     setCurrentPage(1);
-  }, []);
+  }, [router]);
 
   const toggleTaskType = useCallback((id: string) => {
     setSelectedTaskTypes((prev) => {
       const newSelection = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      const params = new URLSearchParams(window.location.search);
+      const newQuery = { ...router.query };
       if (newSelection.length > 0) {
-        params.set("types", newSelection.join(","));
+        newQuery.types = newSelection.join(",");
       } else {
-        params.delete("types");
+        delete newQuery.types;
       }
-      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+      router.push({ pathname: router.pathname, query: newQuery }, undefined, { shallow: true });
       return newSelection;
     });
     setCurrentPage(1);
-  }, []);
+  }, [router]);
 
   const toggleAssignee = useCallback((id: string) => {
     setSelectedAssignees((prev) =>
@@ -500,8 +542,8 @@ function TasksPageContent() {
     setSelectedAssignees([]);
     setSelectedReporters([]);
     setCurrentPage(1);
-    window.history.replaceState({}, "", window.location.pathname);
-  }, []);
+    router.push({ pathname: router.pathname }, undefined, { shallow: true });
+  }, [router]);
 
   // Event handlers
   const handleRetry = useCallback(() => {
@@ -587,18 +629,21 @@ function TasksPageContent() {
 
   const statusFilters = useMemo(
     () =>
-      availableStatuses.map((status) => ({
-        id: status.id,
-        name: status.name,
-        value: status.id,
-        selected: selectedStatuses.includes(status.id),
-        count: tasks.filter((task) => {
-          const taskStatusId =
-            task.statusId || (typeof task.status === "object" ? task.status?.id : task.status);
-          return taskStatusId === status.id;
-        }).length,
-        color: status.color || "#6b7280",
-      })),
+      availableStatuses.map((status) => {
+        const allIds = status.allIds || [status.id];
+        return {
+          id: status.id,
+          name: status.name,
+          value: status.id,
+          selected: allIds.some((id: string) => selectedStatuses.includes(id)),
+          count: tasks.filter((task) => {
+            const taskStatusId =
+              task.statusId || (typeof task.status === "object" ? task.status?.id : task.status);
+            return allIds.includes(taskStatusId);
+          }).length,
+          color: status.color || "#6b7280",
+        };
+      }),
     [availableStatuses, selectedStatuses, tasks]
   );
 
@@ -701,11 +746,9 @@ function TasksPageContent() {
         data: statusFilters,
         selectedIds: selectedStatuses,
         searchable: false,
-        onToggle: statusFilterEnabled ? toggleStatus : undefined,
-        onSelectAll: statusFilterEnabled
-          ? () => setSelectedStatuses(statusFilters.map((s) => s.id))
-          : undefined,
-        onClearAll: statusFilterEnabled ? () => setSelectedStatuses([]) : undefined,
+        onToggle: toggleStatus,
+        onSelectAll: () => setSelectedStatuses(statusFilters.map((s) => s.id)),
+        onClearAll: () => setSelectedStatuses([]),
         disabled: !statusFilterEnabled,
       }),
       createSection({
@@ -810,7 +853,7 @@ function TasksPageContent() {
         aValue = a.status?.name || "";
         bValue = b.status?.name || "";
       }
-      
+
       // Handle commentsCount field (stored in _count.comments)
       if (sortField === "commentsCount") {
         aValue = a._count?.comments || 0;
