@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { HiPlus } from "react-icons/hi2";
 
 export interface ActionButtonProps {
+  id?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   children: React.ReactNode;

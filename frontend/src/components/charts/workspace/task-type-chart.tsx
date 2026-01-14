@@ -2,6 +2,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from "recharts";
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
+import { useRouter } from "next/router";
 
 const chartConfig = {
   STORY: { label: "Story", color: "#10B981" },
@@ -9,18 +10,31 @@ const chartConfig = {
   BUG: { label: "Bug", color: "#EF4444" },
   EPIC: { label: "Epic", color: "#8B5CF6" },
   FEATURE: { label: "Feature", color: "#F59E0B" },
+  SUBTASK: { label: "Subtask", color: "#F97316" },
 };
 
 interface TaskTypeChartProps {
   data: Array<{ type: string; _count: { type: number } }>;
+  workspaceId?: string;
 }
 
-export function TaskTypeChart({ data }: TaskTypeChartProps) {
+export function TaskTypeChart({ data, workspaceId }: TaskTypeChartProps) {
+  const router = useRouter();
+  const { workspaceSlug } = router.query;
+
   const chartData = data?.map((item) => ({
     name: chartConfig[item.type as keyof typeof chartConfig]?.label || item.type,
     value: item._count.type,
     color: chartConfig[item.type as keyof typeof chartConfig]?.color || "#8B5CF6",
+    id: item.type,
   }));
+
+  const handleClick = (entry: any) => {
+    const id = workspaceId || workspaceSlug;
+    if (id && entry?.id) {
+      router.push(`/${workspaceSlug}/tasks?types=${entry.id}`);
+    }
+  };
 
   // Custom label renderer
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
@@ -34,7 +48,7 @@ export function TaskTypeChart({ data }: TaskTypeChartProps) {
         x={x}
         y={y}
         fill="white"
-        textAnchor={x > cx ? "start" : "end"}
+        textAnchor="middle"
         dominantBaseline="central"
         fontSize={12}
         fontWeight="bold"
@@ -63,9 +77,15 @@ export function TaskTypeChart({ data }: TaskTypeChartProps) {
             innerRadius={60}
             paddingAngle={2}
             dataKey="value"
+            className="outline-none"
           >
             {chartData?.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
+              <Cell 
+                key={`cell-${index}`} 
+                fill={entry.color} 
+                onClick={() => handleClick(entry)}
+                className="cursor-pointer"
+              />
             ))}
           </Pie>
           <ChartTooltip content={<ChartTooltipContent className="bg-[var(--accent)] border-0" />} />

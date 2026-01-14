@@ -76,10 +76,18 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
     analyticsError,
     fetchAnalyticsData,
     clearAnalyticsError,
+    currentWorkspace,
+    getWorkspaceBySlug,
   } = useWorkspace();
   const { createWidgetsSection } = useDashboardSettings();
   const currentOrgId = TokenManager.getCurrentOrgId();
   const [widgets, setWidgets] = useState<Widget[]>(workspaceWidgets);
+
+  useEffect(() => {
+    if (workspaceSlug && (!currentWorkspace || currentWorkspace.slug !== workspaceSlug)) {
+      getWorkspaceBySlug(workspaceSlug);
+    }
+  }, [workspaceSlug, currentWorkspace?.slug]);
 
   // DnD State
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -293,7 +301,10 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
 
                 return (
                   <SortableWidget key={widget.id} id={widget.id} className={widget.gridCols}>
-                    <Component data={widgetData} />
+                    <Component
+                      data={widgetData}
+                      workspaceId={currentWorkspace?.slug === workspaceSlug ? currentWorkspace?.id : undefined}
+                    />
                   </SortableWidget>
                 );
               })}
@@ -307,7 +318,12 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
                     {(() => {
                        const Component = activeWidget.component;
                        const widgetData = analyticsData[activeWidget.dataKey];
-                       return <Component data={widgetData} />;
+                       return (
+                         <Component
+                           data={widgetData}
+                           workspaceId={currentWorkspace?.slug === workspaceSlug ? currentWorkspace?.id : undefined}
+                         />
+                       );
                     })()}
                   </Card>
                 </div>

@@ -2,6 +2,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
+import { useRouter } from "next/router";
 
 const chartConfig = {
   PLANNING: { label: "Planning", color: "#8B5CF6" },
@@ -16,11 +17,21 @@ interface ProjectStatusChartProps {
 }
 
 export function ProjectStatusChart({ data }: ProjectStatusChartProps) {
+  const router = useRouter();
+  const { workspaceSlug } = router.query;
+
   const chartData = data?.map((item) => ({
     name: chartConfig[item.status as keyof typeof chartConfig]?.label || item.status,
     value: item._count.status,
     color: chartConfig[item.status as keyof typeof chartConfig]?.color || "#8B5CF6",
+    id: item.status,
   }));
+
+  const handleClick = (entry: any) => {
+    if (workspaceSlug && entry?.id) {
+      router.push(`/${workspaceSlug}/projects?statuses=${entry.id}`);
+    }
+  };
 
   // Custom label renderer
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
@@ -34,7 +45,7 @@ export function ProjectStatusChart({ data }: ProjectStatusChartProps) {
         x={x}
         y={y}
         fill="white"
-        textAnchor={x > cx ? "start" : "end"}
+        textAnchor="middle"
         dominantBaseline="central"
         fontSize={12}
         fontWeight="bold"
@@ -63,6 +74,8 @@ export function ProjectStatusChart({ data }: ProjectStatusChartProps) {
             innerRadius={60}
             paddingAngle={2}
             dataKey="value"
+            onClick={handleClick}
+            className="cursor-pointer outline-none"
           >
             {chartData?.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
