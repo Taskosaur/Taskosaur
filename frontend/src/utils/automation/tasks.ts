@@ -6,12 +6,36 @@ import {
   AutomationResult,
   waitForElement,
   simulateClick,
+  simulateTyping,
   navigateTo,
   waitFor,
   generateSlug,
 } from "./helpers";
 import { taskStatusApi } from "../api/taskStatusApi";
 import { projectApi } from "../api/projectApi";
+function buildTasksUrl(workspaceSlug?: string, projectSlug?: string, suffix?: string): string {
+  let baseUrl = "";
+
+  if (workspaceSlug && projectSlug) {
+    baseUrl = `/${workspaceSlug}/${projectSlug}/tasks`;
+  } else if (workspaceSlug) {
+    baseUrl = `/${workspaceSlug}/tasks`;
+  } else {
+    baseUrl = "/tasks";
+  }
+
+  return suffix ? `${baseUrl}/${suffix}` : baseUrl;
+}
+
+// Helper for PointerEvent click sequence (works better with React)
+function pointerClick(el: HTMLElement) {
+  const r = el.getBoundingClientRect();
+  const x = r.left + r.width / 2;
+  const y = r.top + r.height / 2;
+  el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "mouse", clientX: x, clientY: y, buttons: 1 }));
+  el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 1, pointerType: "mouse", clientX: x, clientY: y, buttons: 0 }));
+  el.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: x, clientY: y, detail: 1 }));
+}
 
 /**
  * Create a new task with enhanced DOM automation
@@ -480,7 +504,7 @@ export async function updateTaskStatus(
 
   try {
     // Navigate to the tasks page first
-    const tasksUrl = `/${workspaceSlug}/${projectSlug}/tasks`;
+    const tasksUrl = buildTasksUrl(workspaceSlug, projectSlug);
     await navigateTo(tasksUrl);
 
     // Wait for page to load
@@ -599,15 +623,15 @@ export async function updateTaskStatus(
 
         // Radix UI patterns - look in body for portal-rendered content
         'body [data-radix-dropdown-menu-content] [role="menuitem"], ' +
-          'body [data-radix-dropdown-menu-content] [data-slot="item"], ' +
-          "body [data-radix-dropdown-menu-content] div[data-value], " +
-          "body [data-radix-dropdown-menu-content] button",
+        'body [data-radix-dropdown-menu-content] [data-slot="item"], ' +
+        "body [data-radix-dropdown-menu-content] div[data-value], " +
+        "body [data-radix-dropdown-menu-content] button",
 
         // Look for any recently appeared dropdown content
         '[data-state="open"] [role="menuitem"], ' +
-          '[aria-expanded="true"] + * [role="menuitem"], ' +
-          '.dropdown-menu [role="menuitem"], ' +
-          '.popover-content [role="menuitem"]',
+        '[aria-expanded="true"] + * [role="menuitem"], ' +
+        '.dropdown-menu [role="menuitem"], ' +
+        '.popover-content [role="menuitem"]',
 
         // Look for elements that appeared after our click (using mutation observer approach)
         'body > div[style*="position"], body > div[data-radix-portal]',
@@ -736,8 +760,8 @@ export async function navigateToTasksView(
     // Construct URL for the view
     const tasksUrl =
       view === "list"
-        ? `/${workspaceSlug}/${projectSlug}/tasks`
-        : `/${workspaceSlug}/${projectSlug}/tasks/${view}`;
+        ? buildTasksUrl(workspaceSlug, projectSlug)
+        : buildTasksUrl(workspaceSlug, projectSlug, view);
 
     await navigateTo(tasksUrl);
 
@@ -798,7 +822,7 @@ export async function searchTasks(
 
   try {
     // Navigate to tasks page first
-    const baseUrl = `/${workspaceSlug}/${projectSlug}/tasks`;
+    const baseUrl = buildTasksUrl(workspaceSlug, projectSlug);
     await navigateTo(baseUrl);
 
     // Wait for page to load
@@ -815,18 +839,8 @@ export async function searchTasks(
     }
 
     // Clear existing value and type the new query
-    searchInput.value = "";
-    searchInput.dispatchEvent(new Event("input", { bubbles: true }));
-    await waitFor(500);
-
-    if (query) {
-      searchInput.value = query;
-      searchInput.dispatchEvent(new Event("input", { bubbles: true }));
-      searchInput.dispatchEvent(new Event("change", { bubbles: true }));
-
-      // Wait for search to filter results
-      await waitFor(2000);
-    }
+    await simulateTyping(searchInput, query || "", { clearFirst: true });
+    await waitFor(1500);
 
     // Count search results (UI should have already filtered them)
     const taskElements = document.querySelectorAll(
@@ -873,8 +887,8 @@ export async function searchTasks(
 
     // Build search URL for reference
     const searchUrl = query
-      ? `/${workspaceSlug}/${projectSlug}/tasks?search=${encodeURIComponent(query)}`
-      : `/${workspaceSlug}/${projectSlug}/tasks`;
+      ? `${buildTasksUrl(workspaceSlug, projectSlug)}?search=${encodeURIComponent(query)}`
+      : buildTasksUrl(workspaceSlug, projectSlug);
 
     return {
       success: true,
@@ -898,7 +912,7 @@ export async function searchTasks(
 }
 
 /**
- * Filter tasks by priority using URL parameters
+ * Filter tasks by priority using UI interaction
  */
 export async function filterTasksByPriority(
   workspaceSlug: string,
@@ -909,19 +923,79 @@ export async function filterTasksByPriority(
   const { timeout = 5000 } = options;
 
   try {
-    // Build the tasks URL with priority filter parameter
-    let tasksUrl = `/${workspaceSlug}/${projectSlug}/tasks`;
-
-    if (priority !== "all") {
-      tasksUrl += `?priorities=${priority}`;
-    }
-
-    // Navigate to the filtered URL
+    const tasksUrl = buildTasksUrl(workspaceSlug, projectSlug);
     await navigateTo(tasksUrl);
 
-    // Wait for tasks page to load
     await waitForElement(".dashboard-container, .space-y-6", timeout);
-    await waitFor(1500); // Wait for tasks to load with filter
+    await waitFor(500);
+
+    const filterButton = document.getElementById("filter-dropdown-trigger") as HTMLElement;
+    if (!filterButton) {
+      throw new Error("Filter dropdown button not found");
+    }
+
+    filterButton.click();
+    await waitFor(500);
+
+    const dropdownContent = document.querySelector('[data-slot="dropdown-menu-content"]');
+    if (!dropdownContent) {
+      throw new Error("Filter dropdown did not open");
+    }
+
+    const sectionHeaders = dropdownContent.querySelectorAll('.cursor-pointer');
+    let prioritySectionFound = false;
+
+    for (const header of sectionHeaders) {
+      const labelText = header.textContent?.toLowerCase() || "";
+      if (labelText.includes("priority")) {
+        (header as HTMLElement).click();
+        await waitFor(300);
+        prioritySectionFound = true;
+        break;
+      }
+    }
+
+    if (!prioritySectionFound) {
+      throw new Error("Priority section not found in filter dropdown");
+    }
+
+    if (priority === "all") {
+      const priorityItems = dropdownContent.querySelectorAll('[data-slot="checkbox"]');
+      for (const checkbox of priorityItems) {
+        const isChecked = checkbox.getAttribute("data-state") === "checked";
+        if (isChecked) {
+          const itemRow = checkbox.closest('.cursor-pointer');
+          if (itemRow) {
+            (itemRow as HTMLElement).click();
+            await waitFor(200);
+          }
+        }
+      }
+    } else {
+      const targetLabel = priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase();
+      const allSpans = dropdownContent.querySelectorAll('span');
+      let priorityClicked = false;
+
+      for (const span of allSpans) {
+        const spanText = span.textContent?.trim() || "";
+        if (spanText.toLowerCase() === targetLabel.toLowerCase()) {
+          const clickableRow = span.closest('.rounded-md') || span.closest('[class*="cursor"]') || span.parentElement?.parentElement;
+          if (clickableRow) {
+            (clickableRow as HTMLElement).click();
+            await waitFor(500);
+            priorityClicked = true;
+            break;
+          }
+        }
+      }
+
+      if (!priorityClicked) {
+        throw new Error(`Priority option "${priority}" not found`);
+      }
+    }
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await waitFor(500);
 
     // Count and collect filtered results
     const taskElements = document.querySelectorAll(
@@ -931,20 +1005,19 @@ export async function filterTasksByPriority(
     const filteredTasks = Array.from(taskElements).map((row, index) => {
       const titleElement = row.querySelector(".tasktable-task-title, .task-title");
 
-      // Get all badges and find the priority badge
       const badges = row.querySelectorAll('[data-slot="badge"]');
-      let priority = "Unknown";
+      let taskPriority = "Unknown";
 
       badges.forEach((badge) => {
         const text = badge.textContent?.trim() || "";
         if (["LOW", "MEDIUM", "HIGH", "HIGHEST"].includes(text.toUpperCase())) {
-          priority = text.toUpperCase();
+          taskPriority = text.toUpperCase();
         }
       });
 
       return {
         title: titleElement?.textContent?.trim() || `Task ${index + 1}`,
-        priority,
+        priority: taskPriority,
       };
     });
 
@@ -957,10 +1030,11 @@ export async function filterTasksByPriority(
         filteredTasks,
         workspaceSlug,
         projectSlug,
-        filterUrl: tasksUrl,
       },
     };
   } catch (error) {
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+
     return {
       success: false,
       message: `Failed to filter tasks by priority: ${priority}`,
@@ -981,96 +1055,92 @@ export async function filterTasksByStatus(
   const { timeout = 5000 } = options;
 
   try {
-    const tasksUrl = `/${workspaceSlug}/${projectSlug}/tasks`;
+    const tasksUrl = buildTasksUrl(workspaceSlug, projectSlug);
 
-    if (statusName === "all") {
+    // 1. Ensure we are on the tasks page
+    if (window.location.pathname !== tasksUrl) {
       await navigateTo(tasksUrl);
       await waitForElement(".dashboard-container, .space-y-6", timeout);
-      await waitFor(1000);
-
-      // Count all tasks
-      const taskElements = document.querySelectorAll(
-        '.tasktable-row, tbody tr[data-slot="table-row"]'
+      await waitFor(500);
+    }
+    // 2. Open Filter Dropdown
+    const filterButton = document.getElementById("filter-dropdown-trigger") as HTMLElement;
+    if (!filterButton) {
+      const buttons = Array.from(document.querySelectorAll("button"));
+      const filterBtn = buttons.find(
+        (b) => b.textContent?.includes("Filter") || b.querySelector(".lucide-list-filter")
       );
-      const allTasks = Array.from(taskElements).map((row, index) => {
-        const titleElement = row.querySelector(".tasktable-task-title, .task-title");
-        const statusElement = row.querySelector(
-          '.statusbadge-base, .tasktable-cell [data-slot="badge"]'
+      if (!filterBtn) throw new Error("Filter dropdown button not found");
+      filterBtn.click();
+    } else {
+      filterButton.click();
+    }
+    await waitFor(500);
+
+    // 3. Find dropdown content
+    const dropdownContent = document.querySelector(
+      '[data-slot="dropdown-menu-content"], [role="menu"]'
+    );
+    if (!dropdownContent) {
+      throw new Error("Filter dropdown did not open");
+    }
+
+    // 4. Find and expand Status section if needed
+    // 5. Click the specific status option
+    if (statusName === "all") {
+    } else {
+      const normalizedStatus = statusName.toLowerCase().trim();
+
+      // Helper to find option
+      const findOption = () => {
+        const currentOptions = Array.from(
+          dropdownContent.querySelectorAll(
+            '[role="menuitemcheckbox"], [role="menuitem"], label, span'
+          )
+        );
+        return currentOptions.find((opt) => {
+          const text = opt.textContent?.trim().toLowerCase() || "";
+          return text === normalizedStatus;
+        });
+      };
+
+      let targetOption = findOption();
+
+      // If not found, try toggling the status section
+      if (!targetOption) {
+        const sectionHeaders = Array.from(
+          dropdownContent.querySelectorAll('.cursor-pointer, [role="menuitem"]')
+        );
+        const statusHeader = sectionHeaders.find(
+          (h) => h.textContent?.trim().toLowerCase() === "status"
         );
 
-        return {
-          title: titleElement?.textContent?.trim() || `Task ${index + 1}`,
-          status: statusElement?.textContent?.trim() || "Unknown",
-        };
-      });
-
-      return {
-        success: true,
-        message: `Showing all tasks. Found ${allTasks.length} tasks.`,
-        data: {
-          status: "all",
-          resultCount: allTasks.length,
-          filteredTasks: allTasks,
-          workspaceSlug,
-          projectSlug,
-          filterUrl: tasksUrl,
-        },
-      };
-    }
-
-    await navigateTo(tasksUrl);
-    await waitForElement(".dashboard-container, .space-y-6", timeout);
-    await waitFor(1000);
-
-    let projectId: string | null = null;
-
-    try {
-      const orgId = localStorage.getItem("currentOrganizationId");
-      if (!orgId) {
-        throw new Error("Organization ID not found");
+        if (statusHeader) {
+          (statusHeader as HTMLElement).click();
+          await waitFor(300);
+          targetOption = findOption();
+        }
       }
 
-      // Get all projects and find matching slug
-      const projects = await projectApi.getProjectsByOrganization(orgId);
-      const matchedProject = projects.find(
-        (p: any) =>
-          p.slug === projectSlug || p.name?.toLowerCase().replace(/\s+/g, "-") === projectSlug
-      );
+      if (targetOption) {
+        // Check if already selected
+        const checkbox = targetOption.closest('[role="menuitemcheckbox"]') || targetOption;
+        const isChecked =
+          checkbox.getAttribute("data-state") === "checked" ||
+          checkbox.getAttribute("aria-checked") === "true";
 
-      if (matchedProject) {
-        projectId = matchedProject.id;
+        if (!isChecked) {
+          (targetOption as HTMLElement).click();
+          await waitFor(500);
+        }
       } else {
-        throw new Error(`Project not found: ${projectSlug}`);
+        throw new Error(`Status option "${statusName}" not found in filter menu`);
       }
-    } catch (error) {
-      console.error("Failed to get project ID:", error);
-      throw new Error(`Could not determine project ID for project: ${projectSlug}`);
     }
 
-    let statusId: string | null = null;
-
-    try {
-      const statuses = await taskStatusApi.getTaskStatusByProject(projectId);
-      const matchedStatus = statuses.find(
-        (s: any) => s.name?.toLowerCase().trim() === statusName.toLowerCase().trim()
-      );
-
-      if (matchedStatus) {
-        statusId = matchedStatus.id;
-      } else {
-        const availableStatuses = statuses.map((s) => s.name).join(", ");
-        throw new Error(`Status "${statusName}" not found. Available: ${availableStatuses}`);
-      }
-    } catch (error) {
-      throw new Error(
-        `Failed to fetch task statuses: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
-
-    const filteredUrl = `${tasksUrl}?statuses=${statusId}`;
-    await navigateTo(filteredUrl);
-
-    await waitFor(1500);
+    // 6. Close dropdown
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await waitFor(500);
 
     const taskElements = document.querySelectorAll(
       '.tasktable-row, tbody tr[data-slot="table-row"]'
@@ -1079,7 +1149,6 @@ export async function filterTasksByStatus(
     const filteredTasks = Array.from(taskElements).map((row, index) => {
       const titleElement = row.querySelector(".tasktable-task-title, .task-title");
 
-      // Get all badges and find the status badge
       const badges = row.querySelectorAll('[data-slot="badge"]');
       let status = "Unknown";
 
@@ -1109,12 +1178,10 @@ export async function filterTasksByStatus(
       message: `Applied status filter: ${statusName}. Showing ${filteredTasks.length} tasks.`,
       data: {
         status: statusName,
-        statusId,
         resultCount: filteredTasks.length,
         filteredTasks,
         workspaceSlug,
         projectSlug,
-        filterUrl: filteredUrl,
       },
     };
   } catch (error) {
@@ -1139,7 +1206,7 @@ export async function filterTasks(
 
   try {
     // Navigate to the tasks page first
-    const tasksUrl = `/${workspaceSlug}/${projectSlug}/tasks`;
+    const tasksUrl = buildTasksUrl(workspaceSlug, projectSlug);
     await navigateTo(tasksUrl);
 
     // Wait for tasks page to load
@@ -1265,36 +1332,71 @@ export async function clearTaskFilters(
     let workspace = workspaceSlug;
     let project = projectSlug;
 
-    if (!workspace || !project) {
+    if (!workspace) {
       const currentPath = window.location.pathname;
       const pathParts = currentPath.split("/").filter((p) => p);
 
-      // URL pattern: /workspaceSlug/projectSlug/tasks
-      if (pathParts.length >= 2) {
-        // Even if we're not on /tasks, we can extract workspace and project
-        workspace = workspace || pathParts[0];
-        project = project || pathParts[1];
-      }
-
-      // If still undefined, throw error with helpful message
-      if (!workspace || !project) {
-        throw new Error(
-          `Could not determine workspace and project. Current URL: ${currentPath}. Please provide them as parameters.`
-        );
+      if (pathParts[0] === "tasks") {
+        workspace = undefined;
+        project = undefined;
+      } else if (pathParts.length >= 2 && pathParts[1] === "tasks") {
+        workspace = pathParts[0];
+        project = undefined;
+      } else if (pathParts.length >= 3 && pathParts[2] === "tasks") {
+        workspace = pathParts[0];
+        project = pathParts[1];
+      } else if (pathParts.length >= 1 && pathParts[0] !== "tasks") {
+        workspace = pathParts[0];
+        project = pathParts.length >= 2 && pathParts[1] !== "tasks" ? pathParts[1] : undefined;
       }
     }
 
-    // Simply navigate to clean URL without any parameters
-    const cleanUrl = `/${workspace}/${project}/tasks`;
+    const tasksUrl = buildTasksUrl(workspace, project);
+    await navigateTo(tasksUrl);
 
-    // Navigate to the clean URL
-    await navigateTo(cleanUrl);
-
-    // Wait for page to load
     await waitForElement(".dashboard-container, .space-y-6", timeout);
-    await waitFor(1500);
+    await waitFor(1000);
 
-    // Count all tasks
+    const filterButton = document.getElementById("filter-dropdown-trigger") as HTMLElement;
+    if (!filterButton) {
+      throw new Error("Filter dropdown button not found");
+    }
+
+    filterButton.click();
+    await waitFor(500);
+
+    const clearButton = document.querySelector(
+      '[data-slot="dropdown-menu-content"] button.h-5'
+    ) as HTMLElement;
+
+    if (!clearButton) {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await waitFor(300);
+
+      const taskElements = document.querySelectorAll(
+        '.tasktable-row, tbody tr[data-slot="table-row"]'
+      );
+      const resultCount = taskElements.length;
+
+      return {
+        success: true,
+        message: `No filters are currently applied. Showing ${resultCount} tasks.`,
+        data: {
+          workspace,
+          project,
+          resultCount,
+          filtersCleared: false,
+          currentUrl: window.location.href,
+        },
+      };
+    }
+
+    clearButton.click();
+    await waitFor(500);
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await waitFor(500);
+
     const taskElements = document.querySelectorAll(
       '.tasktable-row, tbody tr[data-slot="table-row"]'
     );
@@ -1307,6 +1409,7 @@ export async function clearTaskFilters(
         workspace,
         project,
         resultCount,
+        filtersCleared: true,
         currentUrl: window.location.href,
       },
     };
@@ -1333,9 +1436,9 @@ export async function getTaskDetails(
   try {
     // Navigate to tasks page if needed
     const currentPath = window.location.pathname;
-    const expectedPath = `/${workspaceSlug}/${projectSlug}/tasks`;
+    const expectedPath = buildTasksUrl(workspaceSlug, projectSlug);
 
-    if (!currentPath.startsWith(`/${workspaceSlug}/${projectSlug}/tasks`)) {
+    if (!currentPath.startsWith(expectedPath)) {
       await navigateTo(expectedPath);
       await waitForElement(".dashboard-container, .space-y-6", timeout);
       await waitFor(500);
@@ -1446,9 +1549,9 @@ export async function deleteTask(
 
   try {
     const currentPath = window.location.pathname;
-    const expectedPath = `/${workspaceSlug}/${projectSlug}/tasks`;
+    const expectedPath = buildTasksUrl(workspaceSlug, projectSlug);
 
-    if (!currentPath.startsWith(`/${workspaceSlug}/${projectSlug}/tasks`)) {
+    if (!currentPath.startsWith(expectedPath)) {
       await navigateTo(expectedPath);
       await waitForElement(".dashboard-container, .space-y-6", timeout);
       await waitFor(500);
@@ -1474,52 +1577,34 @@ export async function deleteTask(
     await simulateClick(taskElement);
 
     await waitForElement('.fixed.inset-0.z-50, [role="dialog"], .task-detail', timeout);
-    await waitFor(500);
+    await waitFor(1000);
 
-    let deleteButton: Element | null = null;
-    const allButtons = document.querySelectorAll("button");
-
-    for (const button of allButtons) {
-      const className = button.className || "";
-
-      if (className.includes("text-[var(--destructive)]")) {
-        deleteButton = button;
-        break;
-      }
-
-      const svgPath = button.querySelector("svg path");
-      if (svgPath) {
-        const pathData = svgPath.getAttribute("d") || "";
-        if (pathData.startsWith("M16.5 4.478")) {
-          deleteButton = button;
-          break;
-        }
-      }
+    let deleteButton: HTMLElement | null = null;
+    for (let i = 0; i < 10 && !deleteButton; i++) {
+      deleteButton = document.getElementById("delete-task-button");
+      if (!deleteButton) await waitFor(200);
     }
+    if (!deleteButton) throw new Error("Delete button not found");
 
-    await simulateClick(deleteButton);
+    pointerClick(deleteButton);
     await waitFor(500);
 
     if (confirmDeletion) {
-      const confirmationDialog = await waitForElement(
-        ".confirmationmodal-overlay, .confirmationmodal-panel",
-        3000
-      ).catch(() => null);
-
-      if (confirmationDialog) {
-        const confirmButton = document.querySelector(".confirmationmodal-confirm-danger");
-        await simulateClick(confirmButton);
-        await waitFor(1000);
+      let confirmBtn: HTMLElement | null = null;
+      for (let i = 0; i < 10 && !confirmBtn; i++) {
+        confirmBtn = Array.from(document.querySelectorAll('button[type="submit"]'))
+          .find(b => b.textContent?.includes('Delete')) as HTMLElement | null;
+        if (!confirmBtn) await waitFor(200);
       }
+      if (confirmBtn) pointerClick(confirmBtn);
+      await waitFor(100);
+
+      window.location.reload();
 
       return {
         success: true,
         message: `Task "${taskIdentifier}" deleted successfully`,
-        data: {
-          taskIdentifier,
-          workspaceSlug,
-          projectSlug,
-        },
+        data: { taskIdentifier, workspaceSlug, projectSlug },
       };
     } else {
       const cancelButton =

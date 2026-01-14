@@ -323,7 +323,13 @@ class AutomationExecutor {
 
       // Validate required parameters
       const missingParams = actionDetails.parameters
-        .filter((p) => p.required && !parameters[p.name])
+        .filter((p) => {
+          if (!p.required) return false;
+          if (p.name === "workspaceSlug" || p.name === "projectSlug") {
+            return parameters[p.name] === undefined || parameters[p.name] === null;
+          }
+          return !parameters[p.name];
+        })
         .map((p) => p.name);
 
       if (missingParams.length > 0) {
@@ -422,6 +428,9 @@ class AutomationExecutor {
       case "deleteTask":
         return [parameters.workspaceSlug, parameters.projectSlug, parameters.taskId];
 
+      case "getTaskDetails":
+        return [parameters.workspaceSlug, parameters.projectSlug, parameters.taskId];
+        
       case "clearTaskFilters":
         return [parameters.workspaceSlug, parameters.projectSlug];
 

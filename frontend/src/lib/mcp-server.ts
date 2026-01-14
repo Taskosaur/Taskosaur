@@ -146,7 +146,19 @@ class MCPServer {
 
       // If response becomes empty after cleaning, provide a user-friendly message
       if (!userVisibleResponse || userVisibleResponse.length < 10) {
-        if (data.action && data.action.name) {
+        if (data.actionChain && data.actionChain.length > 0) {
+          const lastAction = data.actionChain[data.actionChain.length - 1];
+          switch (lastAction.name) {
+            case "createTask":
+              userVisibleResponse = "Creating your task now (along with any required workspace/project)...";
+              break;
+            case "createProject":
+              userVisibleResponse = "Creating your project now (along with any required workspace)...";
+              break;
+            default:
+              userVisibleResponse = "Processing your request...";
+          }
+        } else if (data.action && data.action.name) {
           switch (data.action.name) {
             case "listWorkspaces":
               userVisibleResponse = "Let me show you your available workspaces...";
@@ -179,7 +191,17 @@ class MCPServer {
 
       // Add response to history with context about what was created
       let historyContent = userVisibleResponse;
-      if (data.action && data.action.name === "createWorkspace" && data.action.parameters.name) {
+      if (data.actionChain && data.actionChain.length > 0) {
+        const chainSummary = data.actionChain
+          .map((a: { name: string; parameters: Record<string, string> }) => {
+            if (a.name === "createWorkspace") return `workspace: ${a.parameters.name}`;
+            if (a.name === "createProject") return `project: ${a.parameters.name}`;
+            if (a.name === "createTask") return `task: ${a.parameters.taskTitle}`;
+            return a.name;
+          })
+          .join(" → ");
+        historyContent = `${userVisibleResponse} [Creating: ${chainSummary}]`;
+      } else if (data.action && data.action.name === "createWorkspace" && data.action.parameters.name) {
         historyContent = `${userVisibleResponse} [Created workspace: ${data.action.parameters.name}]`;
       } else if (
         data.action &&
@@ -194,8 +216,10 @@ class MCPServer {
         content: historyContent,
       });
 
-      // Check if backend returned an action to execute (execute silently in background)
-      if (data.action && data.action.name) {
+      if (data.actionChain && data.actionChain.length > 0) {
+        this.executeActionChainInBackground(data.actionChain, userVisibleResponse, options);
+      }
+      else if (data.action && data.action.name) {
         // Execute automation in the background without showing to user
         this.executeActionInBackground(data.action, userVisibleResponse, options);
       }
@@ -261,6 +285,14 @@ class MCPServer {
   ) {
     try {
       const parameters = { ...action.parameters };
+      const invalidSlugs = ["tasks", "dashboard", "workspaces", "settings", "activities", "projects", "members"];
+      if (parameters.workspaceSlug && invalidSlugs.includes(parameters.workspaceSlug)) {
+        parameters.workspaceSlug = "";
+      }
+
+      if (parameters.projectSlug && invalidSlugs.includes(parameters.projectSlug)) {
+        parameters.projectSlug = "";
+      }
 
       // Replace "current" placeholders with actual context
       if (parameters.workspaceSlug === "current" && this.context.currentWorkspace) {
@@ -285,7 +317,7 @@ class MCPServer {
           parameters.workspaceSlug.includes(" ") ||
           /[A-Z]/.test(parameters.workspaceSlug) ||
           parameters.workspaceSlug.toLowerCase() !==
-            parameters.workspaceSlug.replace(/[^a-z0-9-]/g, "")
+          parameters.workspaceSlug.replace(/[^a-z0-9-]/g, "")
         ) {
           // First try to get the slug from the current context
           const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
@@ -470,6 +502,82 @@ class MCPServer {
       }
     }
   }
+
+  private async executeActionChainInBackground(
+    actionChain: Array<{ name: string; parameters: Record<string, any> }>,
+    _userResponse: string,
+    options: { stream?: boolean; onChunk?: (chunk: string) => void }
+  ) {
+    try {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("aiAutomationChainStart", { detail: { actions: actionChain } }));
+      }
+
+      if (options.stream && options.onChunk) {
+        options.onChunk("\n\n Executing chain...");
+      }
+
+      const slugify = (name: string) => name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      const createdSlugs: { workspaceSlug?: string; projectSlug?: string } = {};
+
+      for (let i = 0; i < actionChain.length; i++) {
+        const action = actionChain[i];
+        const parameters = { ...action.parameters };
+
+        if (createdSlugs.workspaceSlug) parameters.workspaceSlug = createdSlugs.workspaceSlug;
+        if (createdSlugs.projectSlug && !parameters.projectSlug) parameters.projectSlug = createdSlugs.projectSlug;
+
+        if (options.stream && options.onChunk) {
+          const desc = action.name === "createWorkspace" ? `workspace "${parameters.name}"`
+            : action.name === "createProject" ? `project "${parameters.name}"`
+              : action.name === "createTask" ? `task "${parameters.taskTitle}"`
+                : action.name;
+          options.onChunk(`\n  ${i + 1}/${actionChain.length}: Creating ${desc}...`);
+        }
+
+        const result = await automationExecutor.executeAction(action.name, parameters);
+
+        if (!result.success) {
+          if (options.stream && options.onChunk) {
+            options.onChunk(`\n\n Failed at ${action.name}: ${result.error || "Unknown error"}`);
+          }
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("aiAutomationChainError", { detail: { actions: actionChain, error: result.error } }));
+          }
+          return;
+        }
+
+        if (action.name === "createWorkspace" && parameters.name) {
+          createdSlugs.workspaceSlug = slugify(parameters.name);
+          this.updateContext({ currentWorkspace: createdSlugs.workspaceSlug, currentProject: undefined });
+        } else if (action.name === "createProject" && parameters.name) {
+          createdSlugs.projectSlug = slugify(parameters.name);
+          this.updateContext({ currentWorkspace: createdSlugs.workspaceSlug || parameters.workspaceSlug, currentProject: createdSlugs.projectSlug });
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+
+      if (options.stream && options.onChunk) {
+        options.onChunk(`\n\n All ${actionChain.length} actions completed!`);
+      }
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("aiAutomationChainSuccess", { detail: { createdSlugs } }));
+        if (createdSlugs.workspaceSlug) {
+          window.dispatchEvent(new CustomEvent("aiWorkspaceCreated", { detail: { workspaceSlug: createdSlugs.workspaceSlug } }));
+        }
+        if (createdSlugs.projectSlug && createdSlugs.workspaceSlug) {
+          window.dispatchEvent(new CustomEvent("aiProjectCreated", { detail: { workspaceSlug: createdSlugs.workspaceSlug, projectSlug: createdSlugs.projectSlug } }));
+        }
+      }
+    } catch (error) {
+      console.error("Action chain failed:", error);
+      if (options.stream && options.onChunk) {
+        options.onChunk(`\n\n ${error instanceof Error ? error.message : "Chain failed"}`);
+      }
+    }
+  }
 }
 
 // Export singleton instance
@@ -481,17 +589,43 @@ export function extractContextFromPath(pathname: string): Partial<TaskosaurConte
   if (pathname == null || pathname == undefined) return context;
   const pathParts = pathname.split("/").filter(Boolean);
 
+  // Exclude known global routes that are not workspaces
+  const globalRoutes = [
+    "dashboard",
+    "workspaces",
+    "settings",
+    "activities",
+    "tasks",
+    "projects",
+    "notifications",
+    "organization",
+    "public",
+    "login",
+    "register",
+    "forgot-password",
+    "reset-password",
+    "invite",
+    "intro",
+    "setup",
+    "privacy-policy",
+    "terms-of-service",
+    "404",
+  ];
+
   if (
     pathParts?.length > 0 &&
-    !["dashboard", "workspaces", "settings", "activities"].includes(pathParts[0])
+    !globalRoutes.includes(pathParts[0])
   ) {
     context.currentWorkspace = pathParts[0];
   }
 
+  // Exclude known sub-routes that are not projects
+  const workspaceSubRoutes = ["projects", "members", "settings", "tasks", "activities"];
+
   if (
     pathParts?.length > 1 &&
     context.currentWorkspace &&
-    !["projects", "members", "settings"].includes(pathParts[1])
+    !workspaceSubRoutes.includes(pathParts[1])
   ) {
     context.currentProject = pathParts[1];
   }

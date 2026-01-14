@@ -202,7 +202,8 @@ export async function simulateClick(
  * Navigate to a specific URL
  */
 export async function navigateTo(url: string): Promise<void> {
-  if (window.location.pathname !== url) {
+  const currentUrl = window.location.pathname + window.location.search;
+  if (currentUrl !== url) {
     // Use Next.js router if available, otherwise fall back to direct navigation
     if (typeof window !== "undefined" && (window as any).next?.router) {
       await (window as any).next.router.push(url);

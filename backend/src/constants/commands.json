@@ -2,7 +2,10 @@
   "commands": [
     {
       "name": "createWorkspace",
-      "params": ["name", "description"]
+      "params": [
+        "name",
+        "description"
+      ]
     },
     {
       "name": "listWorkspaces",
@@ -10,91 +13,167 @@
     },
     {
       "name": "navigateToWorkspace",
-      "params": ["workspaceSlug"]
+      "params": [
+        "workspaceSlug"
+      ]
     },
     {
       "name": "editWorkspace",
-      "params": ["workspaceSlug", "updates"]
+      "params": [
+        "workspaceSlug",
+        "updates"
+      ]
     },
     {
       "name": "deleteWorkspace",
-      "params": ["workspaceSlug"]
+      "params": [
+        "workspaceSlug"
+      ]
     },
     {
       "name": "searchWorkspaces",
-      "params": ["query"]
+      "params": [
+        "query"
+      ]
     },
     {
       "name": "createProject",
-      "params": ["workspaceSlug", "name", "description?", "options?"]
+      "params": [
+        "workspaceSlug",
+        "name",
+        "description?",
+        "options?"
+      ]
     },
     {
-      "name": "listProjects", 
-      "params": ["workspaceSlug?"]
+      "name": "listProjects",
+      "params": [
+        "workspaceSlug?"
+      ]
     },
     {
       "name": "navigateToProject",
-      "params": ["workspaceSlug", "projectSlug"]
+      "params": [
+        "workspaceSlug",
+        "projectSlug"
+      ]
     },
     {
       "name": "editProject",
-      "params": ["workspaceSlug", "projectSlug", "updates"]
+      "params": [
+        "workspaceSlug",
+        "projectSlug",
+        "updates"
+      ]
     },
     {
       "name": "deleteProject",
-      "params": ["workspaceSlug", "projectSlug"]
+      "params": [
+        "workspaceSlug",
+        "projectSlug"
+      ]
     },
     {
       "name": "searchProjects",
-      "params": ["workspaceSlug", "query"]
+      "params": [
+        "workspaceSlug",
+        "query"
+      ]
     },
     {
       "name": "createTask",
-      "params": ["workspaceSlug", "projectSlug", "taskTitle", "options?"]
+      "params": [
+        "workspaceSlug",
+        "projectSlug",
+        "taskTitle",
+        "options?"
+      ]
     },
     {
-      "name": "updateTaskStatus", 
-      "params": ["workspaceSlug", "projectSlug", "taskTitle", "newStatus"]
+      "name": "updateTaskStatus",
+      "params": [
+        "workspaceSlug?",
+        "projectSlug?",
+        "taskTitle",
+        "newStatus"
+      ]
     },
     {
       "name": "searchTasks",
-      "params": ["workspaceSlug", "projectSlug", "query"]
+      "params": [
+        "workspaceSlug?",
+        "projectSlug?",
+        "query"
+      ]
     },
     {
       "name": "filterTasks",
-      "params": ["workspaceSlug", "projectSlug", "filters"]
+      "params": [
+        "workspaceSlug?",
+        "projectSlug?",
+        "filters"
+      ]
     },
     {
       "name": "filterTasksByPriority",
-      "params": ["workspaceSlug", "projectSlug", "priority"]
+      "params": [
+        "workspaceSlug?",
+        "projectSlug?",
+        "priority"
+      ]
     },
     {
       "name": "filterTasksByStatus",
-      "params": ["workspaceSlug", "projectSlug", "status"]
+      "params": [
+        "workspaceSlug?",
+        "projectSlug?",
+        "status"
+      ]
     },
     {
       "name": "clearTaskFilters",
-      "params": ["workspaceSlug", "projectSlug"]
+      "params": [
+        "workspaceSlug?",
+        "projectSlug?"
+      ]
     },
     {
       "name": "getTaskDetails",
-      "params": ["workspaceSlug", "projectSlug", "taskId"]
+      "params": [
+        "workspaceSlug?",
+        "projectSlug?",
+        "taskId"
+      ]
     },
     {
       "name": "deleteTask",
-      "params": ["workspaceSlug", "projectSlug", "taskId"]
+      "params": [
+        "workspaceSlug?",
+        "projectSlug?",
+        "taskId"
+      ]
     },
     {
       "name": "navigateToTasksView",
-      "params": ["workspaceSlug", "projectSlug"]
+      "params": [
+        "workspaceSlug?",
+        "projectSlug?"
+      ]
     },
     {
       "name": "navigateTo",
-      "params": ["destination", "workspaceSlug?", "projectSlug?"]
+      "params": [
+        "destination",
+        "workspaceSlug?",
+        "projectSlug?"
+      ]
     },
     {
       "name": "login",
-      "params": ["email", "password"]
+      "params": [
+        "email",
+        "password"
+      ]
     },
     {
       "name": "logout",
@@ -114,23 +193,43 @@
     },
     {
       "name": "completeProjectSetup",
-      "params": ["workspaceSlug", "projectData"]
+      "params": [
+        "workspaceSlug",
+        "projectData"
+      ]
     },
     {
       "name": "bulkTaskOperations",
-      "params": ["workspaceSlug", "projectSlug", "operations"]
+      "params": [
+        "workspaceSlug",
+        "projectSlug",
+        "operations"
+      ]
     },
     {
-    "name": "navigateToDashboard",
-    "params":[]
+      "name": "navigateToDashboard",
+      "params": []
     },
     {
-    "name": "inviteMember",
-    "params": ["workspaceSlug", "projectSlug", "email", "role"]
+      "name": "inviteMember",
+      "params": [
+        "workspaceSlug",
+        "projectSlug",
+        "email",
+        "role"
+      ]
     },
     {
       "name": "createSprint",
-      "params": ["workspaceSlug", "projectSlug", "name", "status", "startDate", "endDate", "goalDescription?"]
+      "params": [
+        "workspaceSlug",
+        "projectSlug",
+        "name",
+        "status",
+        "startDate",
+        "endDate",
+        "goalDescription?"
+      ]
     }
   ]
 }

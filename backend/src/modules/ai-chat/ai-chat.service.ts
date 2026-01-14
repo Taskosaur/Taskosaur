@@ -56,6 +56,106 @@ export class AiChatService {
     }
   }
 
+  private slugify(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
+  }
+
+  private async checkWorkspaceExists(slug: string): Promise<boolean> {
+    if (!slug) return false;
+    try {
+      return (await this.workspacesService.getIdBySlug(slug)) !== null;
+    } catch {
+      return false;
+    }
+  }
+
+  private async checkProjectExistsInWorkspace(
+    workspaceSlug: string,
+    projectSlug: string,
+  ): Promise<boolean> {
+    if (!workspaceSlug || !projectSlug) return false;
+    try {
+      const workspaceId = await this.workspacesService.getIdBySlug(workspaceSlug);
+      if (!workspaceId) return false;
+      const projectSlugs = await this.projectService.getAllSlugsByWorkspaceId(workspaceId);
+      return projectSlugs.includes(projectSlug);
+    } catch {
+      return false;
+    }
+  }
+
+  private async buildCommandChain(
+    commandName: string,
+    parameters: Record<string, any>,
+  ): Promise<Array<{ name: string; parameters: Record<string, any> }> | null> {
+    if (!['createTask', 'createProject'].includes(commandName)) return null;
+
+    const chain: Array<{ name: string; parameters: Record<string, any> }> = [];
+    const workspaceName = String(parameters.workspaceName || parameters.workspaceSlug || '');
+    const projectName = String(
+      parameters.projectName || parameters.name || parameters.projectSlug || '',
+    );
+    const workspaceSlug = String(parameters.workspaceSlug || '') || this.slugify(workspaceName);
+    const projectSlug = String(parameters.projectSlug || '') || this.slugify(projectName);
+
+    if (commandName === 'createTask' && workspaceSlug && projectSlug) {
+      const workspaceExists = await this.checkWorkspaceExists(workspaceSlug);
+
+      if (!workspaceExists) {
+        chain.push({
+          name: 'createWorkspace',
+          parameters: {
+            name: workspaceName || workspaceSlug,
+            description: `Workspace for ${String(parameters.taskTitle || 'tasks')}`,
+          },
+        });
+      }
+
+      const projectExists = workspaceExists
+        ? await this.checkProjectExistsInWorkspace(workspaceSlug, projectSlug)
+        : false;
+
+      if (!projectExists) {
+        chain.push({
+          name: 'createProject',
+          parameters: {
+            workspaceSlug,
+            name: projectName || projectSlug,
+            description: `Project for ${String(parameters.taskTitle || 'tasks')}`,
+          },
+        });
+      }
+
+      if (chain.length > 0) {
+        chain.push({
+          name: 'createTask',
+          parameters: { ...parameters, workspaceSlug, projectSlug },
+        });
+        return chain;
+      }
+    }
+
+    if (commandName === 'createProject' && workspaceSlug) {
+      const workspaceExists = await this.checkWorkspaceExists(workspaceSlug);
+      if (!workspaceExists) {
+        chain.push({
+          name: 'createWorkspace',
+          parameters: {
+            name: workspaceName || workspaceSlug,
+            description: `Workspace for ${String(parameters.name || 'projects')}`,
+          },
+        });
+        chain.push({ name: 'createProject', parameters: { ...parameters, workspaceSlug } });
+        return chain;
+      }
+    }
+
+    return null;
+  }
+
   private detectProvider(apiUrl: string): string {
     try {
       const parsedUrl = new URL(apiUrl);
@@ -136,36 +236,86 @@ COMMAND EXECUTION FORMAT:
 - Use EXACT format: [COMMAND: commandName] {"param": "value"}
 - Example: [COMMAND: navigateToWorkspace] {"workspaceSlug": "dummy"}
 
-PARAMETER VALIDATION - STRICTLY REQUIRED:
-1. Check if ALL required parameters are provided in user message
-2. If ANY required parameter missing, NEVER execute the command
-3. Instead, ask specific follow-up questions for missing parameters
-4. Only execute command after ALL required parameters are collected
-5. Remember user's original intent while collecting missing parameters
+PARAMETER VALIDATION RULES:
+1. Parameters ending with ? (like workspaceSlug?, projectSlug?) are OPTIONAL - NEVER ask for them
+2. For OPTIONAL params: use context value if available, otherwise use empty string "" and EXECUTE IMMEDIATELY
+3. Only ask for REQUIRED parameters (without ?) that are missing
+4. For task operations (except createTask): workspaceSlug and projectSlug are OPTIONAL - NEVER ASK, just execute
+5. Remember user's original intent while collecting missing REQUIRED parameters
 
+TASK OPERATIONS - NEVER ASK FOR WORKSPACE/PROJECT (CRITICAL):
+For these commands, EXECUTE IMMEDIATELY - do NOT ask for workspace or project:
+- updateTaskStatus → execute with context or empty strings
+- filterTasksByPriority → execute with context or empty strings  
+- filterTasksByStatus → execute with context or empty strings
+- searchTasks → execute with context or empty strings
+- navigateToTasksView → execute with context or empty strings
+- getTaskDetails → execute with context or empty strings
+- deleteTask → execute with context or empty strings
+- clearTaskFilters → ALWAYS use empty strings "" for BOTH workspaceSlug AND projectSlug
+
+CRITICAL SLUG RULE - READ CAREFULLY:
+- If you don't have a specific workspace/project from context, use empty string ""
+- CORRECT: {"workspaceSlug": "", "projectSlug": ""} ← use empty strings
+
+IMMEDIATE EXECUTION EXAMPLES (TASK OPERATIONS):
+- User: "update task Fix Bug status to Done"
+  → [COMMAND: updateTaskStatus] {"workspaceSlug": "", "projectSlug": "", "taskTitle": "Fix Bug", "newStatus": "Done"}
+
+- User: "show high priority tasks"
+  → [COMMAND: filterTasksByPriority] {"workspaceSlug": "", "projectSlug": "", "priority": "HIGH"}
+
+- User: "filter tasks by status Done"
+  → [COMMAND: filterTasksByStatus] {"workspaceSlug": "", "projectSlug": "", "status": "Done"}
+
+- User: "search tasks for bug"
+  → [COMMAND: searchTasks] {"workspaceSlug": "", "projectSlug": "", "query": "bug"}
+
+- User: "show tasks" or "list tasks" or "show all tasks"
+  → [COMMAND: navigateToTasksView] {"workspaceSlug": "", "projectSlug": ""}
+
+- User: "delete task ABC"
+  → [COMMAND: deleteTask] {"workspaceSlug": "", "projectSlug": "", "taskId": "ABC"}
+
+- User: "clear all filters" or "reset task filters" or "clear filters"
+  → [COMMAND: clearTaskFilters] {"workspaceSlug": "", "projectSlug": ""}
+
+- User: "show details of task Fix Bug" or "get task details for Fix Bug"
+  → [COMMAND: getTaskDetails] {"workspaceSlug": "", "projectSlug": "", "taskId": "Fix Bug"}
 WORKSPACE CREATION RULES:
 - "createWorkspace" ALWAYS requires BOTH name AND description
 - NEVER execute createWorkspace with missing description
 - ALWAYS ask for description before creating workspace
 
-EXAMPLES OF PROPER PARAMETER COLLECTION:
-- User: "create workspace MySpace"
-- Response: "I'll create a workspace named 'MySpace'. What description would you like for this workspace?"
-- Wait for description, then execute: [COMMAND: createWorkspace] {"name": "MySpace", "description": "user_provided_description"}
+CASCADING CREATION RULES (AUTO-CREATE MISSING RESOURCES):
+The system will AUTOMATICALLY create missing workspaces and projects when needed!
+- If user specifies a workspace that doesn't exist → system will create it
+- If user specifies a project that doesn't exist → system will create it
+- This happens transparently in ONE command - user doesn't need multiple messages
 
-- User: "create task X" (without context)
-- Response: "I'll create task 'X'. Which workspace and project should I create this task in?"
-- Wait for workspace/project info
+IMPORTANT: When user provides workspace/project NAMES for createTask:
+- The names can be NEW names that don't exist yet
+- System will auto-create: workspace → project → task in one shot
+- Example: "Create task Bug Fix in workspace NewApp and project API"
+  → If NewApp doesn't exist, it will be created
+  → If API doesn't exist in NewApp, it will be created
+  → Then the task will be created
 
-EXAMPLES OF IMMEDIATE COMMAND EXECUTION (when all params available):
-- User: "create task Review Code in project Alpha in workspace Beta"
-- Response: "Creating task 'Review Code' in project 'Alpha'... [COMMAND: createTask] {"workspaceSlug": "beta", "projectSlug": "alpha", "taskTitle": "Review Code"}"
+TASK CREATION RULES:
+- "createTask" requires workspaceSlug, projectSlug, and taskTitle
+- IMPORTANT: The workspace/project can be NEW NAMES - they don't need to exist yet!
+- User can provide either existing slugs OR new names - system handles both
+- If workspace/project not provided for createTask, ASK for them
+- For ALL OTHER task operations, NEVER ask - execute with empty string
 
-- User (with context set to workspace: marketing, project: test-123): "create task Explore the Doc"
-- Response: "Creating task 'Explore the Doc' in the current project... [COMMAND: createTask] {"workspaceSlug": "marketing", "projectSlug": "test-123", "taskTitle": "Explore the Doc"}"
+TASK CREATION WITH NEW WORKSPACE/PROJECT:
+- User: "create task Fix Bug in workspace Mobile App and project Auth"
+  → [COMMAND: createTask] {"workspaceSlug": "mobile-app", "projectSlug": "auth", "taskTitle": "Fix Bug", "workspaceName": "Mobile App", "projectName": "Auth"}
+  → System will automatically create Mobile App workspace and Auth project if they don't exist
 
-- User provides missing info: "Use Marketing workspace and Test 123 project"
-- Response: "Got it! Creating the task now... [COMMAND: createTask] {"workspaceSlug": "marketing", "projectSlug": "test-123", "taskTitle": "Explore the Doc"}"
+EXAMPLES OF ASKING (ONLY FOR CREATE):
+- User: "create task Fix Bug" (no context)
+- Response: "Which workspace and project should I create this task in? You can use existing ones or specify new names - I'll create them if needed."
 
 NAVIGATION EXAMPLES:
 - "take me to workspace X" → [COMMAND: navigateToWorkspace] {"workspaceSlug": "x"}  
@@ -177,31 +327,21 @@ EDITING EXAMPLES:
 - "change workspace abc to Better Name" → [COMMAND: editWorkspace] {"workspaceSlug": "abc", "updates": {"name": "Better Name"}}
 - "edit workspace xyz to New Title" → [COMMAND: editWorkspace] {"workspaceSlug": "xyz", "updates": {"name": "New Title"}}
 
-CONTEXT-AWARE BEHAVIOR RULES:
-1. **WORKSPACE CONTEXT PRIORITY**: When a workspace is set in CURRENT CONTEXT, use it as the default for ALL commands that require workspaceSlug
-2. **PROJECT CONTEXT PRIORITY**: When a project is set in CURRENT CONTEXT, use it as the default for ALL task-related commands
-3. **CONTEXT BOUNDARIES**: 
-   - NEVER suggest or use workspaces/projects NOT listed in the available lists above
-   - If user mentions a workspace/project not in current context, FIRST verify it exists in the available lists
-   - If context is missing and user doesn't specify, extract from conversation history ONLY within this session
-4. **AUTO-FILL BEHAVIOR**:
-   - For commands requiring workspaceSlug: Use current workspace automatically if not specified
-   - For commands requiring projectSlug: Use current project automatically if not specified
-   - ALWAYS inform user when auto-filling from context: "Using current workspace/project: [name]"
-5. **CONTEXT VALIDATION**:
-   - Before executing ANY command, verify the workspace/project exists in the available lists
-   - If current context becomes invalid (e.g., workspace deleted), clear it and ask user to specify
-6. **NAVIGATION MEMORY**: 
-   - Remember the user's navigation path within this session
-   - When user says "go back" or similar, use the previous context from this conversation
-   - NEVER assume context from outside this conversation session
+CONTEXT-AWARE BEHAVIOR:
+1. If CURRENT CONTEXT has workspace/project, use them as defaults
+2. For TASK operations (except create): 
+   - Context available → use context values
+   - No context → use empty strings "" and EXECUTE IMMEDIATELY
+3. NEVER ask "which workspace" or "which project" for task operations (except createTask)
+4. URL patterns (handled by frontend):
+   - Both workspace + project → /{workspace}/{project}/tasks
+   - Only workspace → /{workspace}/tasks  
+   - Neither → /tasks (global)
 
 SMART CONTEXT EXAMPLES:
-- User in "workspace-a" says "create task X" → Auto-use workspace-a, ask for project if multiple available
-- User says "list projects" → Use current workspace context automatically
-- User says "go to different-workspace" → Validate against AVAILABLE WORKSPACE SLUGS first
-- User in "project-1" says "create task Y" → Auto-use current workspace and project-1
-- No context set, user says "show my projects" → Ask "Which workspace would you like to see projects from?"
+- User in "workspace-a" says "create task X" → Auto-use workspace-a, ask for project if needed
+- User says "show high priority tasks" → Execute immediately: [COMMAND: filterTasksByPriority] {"workspaceSlug": "", "projectSlug": "", "priority": "HIGH"}
+- User in workspace-a/project-b says "filter by priority low" → [COMMAND: filterTasksByPriority] {"workspaceSlug": "workspace-a", "projectSlug": "project-b", "priority": "LOW"}
 
 WORKSPACE NAME CONVERSION:
 - "Hyscaler Workspace" → slug: "hyscaler-workspace"
@@ -281,9 +421,13 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     }
 
     const requiredParams = command.params.filter((p) => !p.endsWith('?'));
-    const missing = requiredParams.filter(
-      (param) => !parameters[param] || String(parameters[param]).toString().trim() === '',
-    );
+    const missing = requiredParams.filter((param) => {
+      const value = parameters[param];
+      if (param === 'workspaceSlug' || param === 'projectSlug') {
+        return false;
+      }
+      return !value || String(value).toString().trim() === '';
+    });
 
     if (missing.length > 0) {
       return {
@@ -315,6 +459,15 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       if (!sessionContext) {
         sessionContext = { lastUpdated: new Date() };
         this.conversationContexts.set(sessionId, sessionContext);
+      }
+
+      if (chatRequest.workspaceId) {
+        sessionContext.workspaceSlug = chatRequest.workspaceId;
+        sessionContext.lastUpdated = new Date();
+      }
+      if (chatRequest.projectId) {
+        sessionContext.projectSlug = chatRequest.projectId;
+        sessionContext.lastUpdated = new Date();
       }
 
       // Get API settings from database
@@ -546,13 +699,13 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
           if (sessionContext) {
             // Auto-fill workspace/project if missing and context exists
             if (commandName !== 'listWorkspaces' && commandName !== 'createWorkspace') {
-              if (!parameters.workspaceSlug && sessionContext.workspaceSlug) {
+              if (parameters.workspaceSlug === undefined && sessionContext.workspaceSlug) {
                 parameters.workspaceSlug = sessionContext.workspaceSlug;
               }
             }
             if (commandName.includes('Task') || commandName.includes('Project')) {
               if (
-                !parameters.projectSlug &&
+                parameters.projectSlug === undefined &&
                 sessionContext.projectSlug &&
                 parameters.workspaceSlug === sessionContext.workspaceSlug
               ) {
@@ -595,7 +748,38 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
             name: commandName,
             parameters,
           };
-          // Update context based on command execution
+
+          const commandChain = await this.buildCommandChain(
+            commandName,
+            parameters as Record<string, any>,
+          );
+
+          if (commandChain && commandChain.length > 0) {
+            await this.updateContextFromCommand(
+              sessionId,
+              commandChain[commandChain.length - 1].name,
+              commandChain[commandChain.length - 1].parameters,
+              sessionContext,
+            );
+
+            const chainDescription = commandChain
+              .map((cmd) => {
+                if (cmd.name === 'createWorkspace')
+                  return `Creating workspace "${cmd.parameters.name}"`;
+                if (cmd.name === 'createProject')
+                  return `Creating project "${cmd.parameters.name}"`;
+                if (cmd.name === 'createTask') return `Creating task "${cmd.parameters.taskTitle}"`;
+                return `Executing ${cmd.name}`;
+              })
+              .join(' → ');
+
+            return {
+              message: `${aiMessage}\n\n ${chainDescription}`,
+              actionChain: commandChain,
+              success: true,
+            };
+          }
+
           await this.updateContextFromCommand(
             sessionId,
             commandName,
@@ -900,53 +1084,6 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       throw new BadRequestException('Only HTTPS URLs allowed');
     }
 
-    // Remove brackets from IPv6 for cleaner matching
-    const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
-
-    // Check against allowed hosts and patterns
-    if (
-      !this.allowedHosts.includes(hostname) &&
-      !this.awsBedrockPattern.test(hostname) &&
-      !this.azurePattern.test(hostname) &&
-      !this.googlePattern.test(hostname)
-    ) {
-      throw new BadRequestException('Host not allowed');
-    }
-
-    // Block obvious internal IPs and private ranges
-    if (
-      ['localhost', '127.0.0.1', '::1', '0.0.0.0'].includes(hostname) ||
-      hostname.startsWith('192.168.') ||
-      hostname.startsWith('10.') ||
-      hostname.startsWith('127.') ||
-      hostname.startsWith('169.254.') ||
-      // Block 172.16.0.0/12 (172.16.x.x - 172.31.x.x)
-      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) ||
-      // IPv6 Unique Local Address (fc00::/7) - fc.., fd..
-      /^[fF][cCdD]/.test(hostname) ||
-      // IPv6 Link-Local Address (fe80::/10) - fe8.., fe9.., fea.., feb..
-      /^[fF][eE][89aAbB]/.test(hostname)
-    ) {
-      throw new BadRequestException('Internal IPs not allowed');
-    }
-
-    // Enforce allowed hosts and standard HTTPS port to prevent SSRF
-    const port = url.port ? Number(url.port) : 443;
-
-    // Only allow standard HTTPS port
-    if (port !== 443) {
-      throw new BadRequestException('Only standard HTTPS port 443 is allowed');
-    }
-
-    const isOpenAIHost = hostname === 'api.openai.com';
-    const isOpenRouterHost = hostname === 'openrouter.ai' || hostname === 'api.openrouter.ai';
-    const isAnthropicHost = hostname === 'api.anthropic.com';
-    const isGoogleHost = this.googlePattern.test(hostname);
-
-    if (!isOpenAIHost && !isOpenRouterHost && !isAnthropicHost && !isGoogleHost) {
-      throw new BadRequestException('Unsupported AI provider host');
-    }
-
     return url.toString().replace(/\/$/, '');
   }
 
@@ -958,7 +1095,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     const { apiKey, model, apiUrl } = testConnectionDto;
 
     try {
-      const validatedUrl = this.validateApiUrl(apiUrl);
+      const validatedUrl = apiUrl;
       const provider = this.detectProvider(validatedUrl);
 
       // Prepare a simple test message

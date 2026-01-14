@@ -1,12 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsArray,
-  ValidateNested,
-  IsIn,
-  IsUrl,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsArray, ValidateNested, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -82,12 +74,21 @@ export class ChatResponseDto {
   message: string;
 
   @ApiPropertyOptional({
-    description: 'Action to execute if detected',
+    description: 'Single action to execute if detected',
   })
   action?: {
     name: string;
     parameters: Record<string, any>;
   };
+
+  @ApiPropertyOptional({
+    description:
+      'Chain of actions to execute sequentially (e.g., createWorkspace → createProject → createTask)',
+  })
+  actionChain?: Array<{
+    name: string;
+    parameters: Record<string, any>;
+  }>;
 
   @ApiProperty({
     description: 'Success status',
@@ -119,7 +120,7 @@ export class TestConnectionDto {
     description: 'API URL to test',
   })
   @IsString()
-  @IsUrl()
+  // @IsUrl()
   @IsNotEmpty()
   apiUrl: string;
 }
