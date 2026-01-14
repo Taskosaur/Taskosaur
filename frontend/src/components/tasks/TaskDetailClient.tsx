@@ -1050,6 +1050,7 @@ export default function TaskDetailClient({
               </Tooltip>
               <Tooltip content="Delete task" position="left">
                 <ActionButton
+                  id="delete-task-button"
                   onClick={handleDeleteTask}
                   variant="outline"
                   className="justify-center cursor-pointer border-none bg-[var(--destructive)]/5 hover:bg-[var(--destructive)]/10 text-[var(--destructive)]"

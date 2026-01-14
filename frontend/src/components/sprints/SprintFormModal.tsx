@@ -273,7 +273,6 @@ export const SprintFormModal = ({
                     }))
                   }
                   max={formData?.endDate || undefined}
-                  min={getTodayDate()}
                   className="projects-form-input border-none"
                   onFocus={(e) => {
                     e.target.style.boxShadow = "none";

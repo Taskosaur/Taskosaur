@@ -178,6 +178,14 @@ export function FilterDropdown({
         <Button
           variant="outline"
           size="sm"
+          id="filter-dropdown-trigger"
+          data-testid="filter-dropdown-trigger"
+          onClick={(e) => {
+            if (e.detail === 0) {
+              e.preventDefault();
+              setOpen((prev) => !prev);
+            }
+          }}
           className={`relative ${triggerClassName} transition-all duration-200 h-9`}
         >
           <SlidersHorizontal className="h-5 w-5" />
