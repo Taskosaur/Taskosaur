@@ -106,7 +106,7 @@
 
 /* Single Value Stats */
 .dashboard-single-stat-values {
-  @apply flex items-center justify-center flex-1 gap-2;
+  @apply flex items-center justify-center flex-1 gap-2 flex-wrap overflow-hidden;
 }
 
 .dashboard-stat-icon {

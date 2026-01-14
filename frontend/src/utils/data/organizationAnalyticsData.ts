@@ -14,6 +14,7 @@ export interface KPICard {
   label: string;
   visible: boolean;
   isDefault: boolean;
+  link?: string;
 }
 
 export interface AnalyticsData {
@@ -37,6 +38,7 @@ export interface Widget {
   visible: boolean;
   gridCols: string;
   priority: number;
+  link?: string;
 }
 
 export const organizationAnalyticsWidgets: Widget[] = [
@@ -57,6 +59,7 @@ export const organizationAnalyticsWidgets: Widget[] = [
     visible: true,
     gridCols: "col-span-1 md:col-span-1",
     priority: 2,
+    link: "/projects",
   },
   {
     id: "team-utilization",
@@ -75,6 +78,7 @@ export const organizationAnalyticsWidgets: Widget[] = [
     visible: true,
     gridCols: "col-span-1 md:col-span-1",
     priority: 4,
+    link: "/tasks",
   },
   {
     id: "task-type",
@@ -138,18 +142,21 @@ export const organizationKPICards: KPICard[] = [
     label: "Total Workspaces",
     visible: true,
     isDefault: true,
+    link: "/workspaces",
   },
   {
     id: "projects",
     label: "Total Projects",
     visible: true,
     isDefault: true,
+    link: "/projects",
   },
   {
     id: "members",
     label: "Team Members",
     visible: true,
     isDefault: true,
+    link: "/organization",
   },
   {
     id: "task-completion",
@@ -168,6 +175,7 @@ export const organizationKPICards: KPICard[] = [
     label: "Overdue Tasks",
     visible: false,
     isDefault: false,
+    link: "/tasks",
   },
   {
     id: "active-sprints",

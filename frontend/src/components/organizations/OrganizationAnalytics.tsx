@@ -90,11 +90,13 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
     analyticsError: error,
     fetchAnalyticsData,
     clearAnalyticsError,
+    currentOrganization,
   } = useOrganization();
   const { createKPISection, createWidgetsSection } = useDashboardSettings();
-  const { getTodayAgenda } = useTask();
+  const { getTodayAgenda, getAllTaskStatuses } = useTask();
   const [todayTask, setTodayTask] = useState<TasksResponse | null>(null);
   const [showTodayAgenda, setShowTodayAgenda] = useState(false);
+  const [taskStatuses, setTaskStatuses] = useState<any[]>([]);
 
   // Widget configuration
   const [widgets, setWidgets] = useState<Widget[]>(organizationAnalyticsWidgets);
@@ -340,6 +342,33 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
     }
   }, [organizationId]);
 
+  // Update members link dynamically
+  useEffect(() => {
+    if (currentOrganization?.slug) {
+      setKpiCards((prev) =>
+        prev.map((card) =>
+          card.id === "members"
+            ? { ...card, link: `/settings/${currentOrganization.slug}?tab=Members` }
+            : card
+        )
+      );
+    }
+  }, [currentOrganization?.slug]);
+
+  // Fetch task statuses for the organization
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      if (!organizationId) return;
+      try {
+        const statuses = await getAllTaskStatuses({ organizationId });
+        setTaskStatuses(statuses || []);
+      } catch (error) {
+        console.error("Failed to fetch task statuses:", error);
+      }
+    };
+    fetchStatuses();
+  }, [organizationId]);
+
   if (loading) {
     return <OrganizationAnalyticsSkeleton />;
   }
@@ -405,7 +434,7 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
     }
 
     return widget.id === "kpi-metrics" ? (
-      <Component data={widgetData} visibleCards={kpiCards} onOrderChange={handleKPIOrderChange} />
+      <Component data={widgetData} visibleCards={kpiCards} onOrderChange={handleKPIOrderChange} taskStatuses={taskStatuses} />
     ) : (
       <Component data={widgetData} />
     );

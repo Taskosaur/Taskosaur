@@ -21,16 +21,16 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <div className={`dashboard-stat-card ${className || ""}`}>
-      <Card className="dashboard-stat-card-inner">
+    <div className={`dashboard-stat-card transition-all duration-300 hover:translate-y-[-2px] ${className || ""}`}>
+      <Card className="dashboard-stat-card-inner transition-colors duration-300 hover:bg-accent/50 group">
         <CardContent className="dashboard-stat-content">
           <div className="dashboard-stat-header">
-            <div className="dashboard-stat-indicator" />
+            <div className="dashboard-stat-indicator transition-all duration-300 group-hover:h-3 group-hover:bg-primary" />
             <h3 className="dashboard-stat-title">{label}</h3>
           </div>
           <div className="dashboard-single-stat-values">
             <span className="dashboard-stat-number">{isLoading ? loadingPlaceholder : value}</span>
-            <div className="dashboard-stat-icon">{icon}</div>
+            <div className="dashboard-stat-icon transition-transform duration-300 group-hover:scale-110 group-hover:text-primary">{icon}</div>
             {statSuffix && <span className="dashboard-stat-label-inline">{statSuffix}</span>}
           </div>
         </CardContent>
