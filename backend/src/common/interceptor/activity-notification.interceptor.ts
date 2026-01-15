@@ -6,12 +6,14 @@ import { NotificationsService } from '../../modules/notifications/notifications.
 import { Reflector } from '@nestjs/core';
 import { NotificationType, NotificationPriority } from '@prisma/client';
 import { ActivityLogService } from 'src/modules/activity-log/activity-log.service';
+import { EmailService } from '../../modules/email/email.service';
 
 @Injectable()
 export class ActivityNotificationInterceptor implements NestInterceptor {
   constructor(
     private activityLogService: ActivityLogService,
     private notificationsService: NotificationsService,
+    private emailService: EmailService,
     private reflector: Reflector,
   ) {}
 
@@ -155,6 +157,115 @@ export class ActivityNotificationInterceptor implements NestInterceptor {
     if (notifyUserIds.length === 0) {
       return;
     }
+
+    // Send email notifications for all notification types
+    try {
+      switch (config.type) {
+        case NotificationType.TASK_ASSIGNED:
+          if (responseData?.id) {
+            const assigneeIds = Array.isArray(notifyUserIds) ? notifyUserIds : [notifyUserIds];
+            await this.emailService.sendTaskAssignedEmail(
+              responseData.id as string,
+              assigneeIds,
+              user.id as string,
+            );
+          }
+          break;
+
+        case NotificationType.TASK_STATUS_CHANGED:
+          if (responseData?.id) {
+            // Try to get oldStatusId from requestData, otherwise email service will fetch from activity log
+            const oldStatusId = requestData?.oldStatusId as string | undefined;
+            await this.emailService.sendTaskStatusChangedEmail(
+              responseData.id as string,
+              oldStatusId,
+            );
+          }
+          break;
+
+        case NotificationType.TASK_COMMENTED:
+          if (responseData?.id && responseData?.taskId) {
+            const commentId = responseData.id as string;
+            const taskId = responseData.taskId as string;
+            await this.emailService.sendTaskCommentedEmail(
+              taskId,
+              commentId,
+              user.id as string,
+              notifyUserIds,
+            );
+          }
+          break;
+
+        case NotificationType.PROJECT_CREATED:
+          if (responseData?.id) {
+            await this.emailService.sendProjectCreatedEmail(
+              responseData.id as string,
+              user.id as string,
+              notifyUserIds,
+            );
+          }
+          break;
+
+        case NotificationType.PROJECT_UPDATED:
+          if (responseData?.id) {
+            await this.emailService.sendProjectUpdatedEmail(
+              responseData.id as string,
+              user.id as string,
+              notifyUserIds,
+            );
+          }
+          break;
+
+        case NotificationType.WORKSPACE_INVITED:
+          // Workspace invitations use the existing invitation email flow
+          // This is handled separately in invitations.service.ts
+          break;
+
+        case NotificationType.MENTION:
+          if (responseData?.id && notifyUserIds.length > 0) {
+            const entityType = (config.entityType || 'taskcomment') as string;
+            const entityId = responseData.id as string;
+            // Send mention email to each mentioned user
+            for (const mentionedUserId of notifyUserIds) {
+              await this.emailService.sendMentionEmail(
+                entityType,
+                entityId,
+                mentionedUserId,
+                user.id as string,
+              );
+            }
+          }
+          break;
+
+        case NotificationType.SYSTEM:
+          // Send system notification emails to all recipients
+          for (const recipientId of notifyUserIds) {
+            await this.emailService.sendSystemNotificationEmail(recipientId, {
+              title: config.title || this.generateTitle(config.type as NotificationType),
+              message:
+                config.message ||
+                this.generateMessage(config.type as NotificationType, user, responseData),
+              actionUrl:
+                config.actionUrl ||
+                this.generateActionUrl(config.entityType as string, responseData?.id as string),
+            });
+          }
+          break;
+
+        case NotificationType.TASK_DUE_SOON:
+          // TASK_DUE_SOON is handled by the scheduler service
+          break;
+
+        default:
+          // No email for unknown notification types
+          break;
+      }
+    } catch (error) {
+      console.error(`❌ Failed to send email notification for ${config.type}:`, error);
+      // Don't throw - continue with in-app notifications even if email fails
+    }
+
+    // Create in-app notifications
     for (const notifyUserId of notifyUserIds) {
       try {
         await this.notificationsService.createNotification({

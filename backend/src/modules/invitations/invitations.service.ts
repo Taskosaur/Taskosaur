@@ -699,14 +699,15 @@ export class InvitationsService {
 
     // Try to send the invitation email, but don't fail the entire operation if email fails
     let emailSent = false;
-    let emailError = null;
+    let emailError: string | null = null;
 
     try {
       await this.sendInvitationEmail(updatedInvitation);
       emailSent = true;
     } catch (error) {
-      console.error('Failed to send resend invitation email:', error);
-      emailError = error.message;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Failed to resend invitation email:', errorMessage);
+      emailError = errorMessage;
       // Continue execution - the invitation was updated successfully
     }
 

@@ -1,17 +1,64 @@
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { EmailJobData, EmailTemplate } from './dto/email.dto';
 import { QueueProcessor } from '../queue/decorators/queue-processor.decorator';
 import { IJob } from '../queue/interfaces/job.interface';
+import { QueueService } from '../queue/services/queue.service';
 
 @QueueProcessor('email')
-export class EmailProcessor {
+export class EmailProcessor implements OnModuleInit {
   private readonly logger = new Logger(EmailProcessor.name);
-  private transporter: nodemailer.Transporter;
+  private transporter: nodemailer.Transporter | null = null;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private queueService: QueueService,
+  ) {
     this.initializeTransporter();
+  }
+
+  onModuleInit() {
+    try {
+      const adapter = this.queueService.getAdapter();
+      if (!adapter) {
+        this.logger.error('Queue adapter not available. Email jobs will not be processed.');
+        return;
+      }
+
+      // Ensure the queue is registered
+      try {
+        this.queueService.registerQueue('email');
+      } catch {
+        // Queue might already be registered, which is fine
+      }
+
+      // Get the queue to extract its configuration
+      const queue = this.queueService.getQueue<EmailJobData>('email');
+      const underlyingQueue = (
+        queue as { getUnderlyingQueue?: () => { opts?: { prefix?: string; connection?: any } } }
+      ).getUnderlyingQueue?.();
+
+      // Extract prefix and connection from queue to ensure worker matches
+      const queuePrefix = underlyingQueue?.opts?.prefix || 'default';
+      const queueConnection = underlyingQueue?.opts?.connection;
+
+      // Create worker with the SAME connection and prefix as the queue
+      // This is the critical fix: worker must use same Redis prefix as queue
+      const processor = async (job: IJob<EmailJobData>) => {
+        return await this.process(job);
+      };
+
+      const workerConfig: any = {
+        connection: queueConnection,
+        prefix: queuePrefix,
+      };
+
+      adapter.createWorker('email', processor, workerConfig);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to register EmailProcessor as worker: ${errorMessage}`);
+    }
   }
 
   private initializeTransporter() {
@@ -25,32 +72,43 @@ export class EmailProcessor {
       return;
     }
 
-    this.transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465,
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
+    try {
+      this.transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+        // Add TLS configuration for AWS SES compatibility
+        tls: {
+          rejectUnauthorized: false, // AWS SES uses self-signed certificates
+        },
+      });
+    } catch (error) {
+      this.logger.error('Failed to initialize SMTP transporter:', error);
+      this.transporter = null as any;
+    }
 
     // Note: SMTP connection will be verified only when sending emails
   }
 
   async process(job: IJob<EmailJobData>) {
-    return this.handleSendEmail(job);
+    return await this.handleSendEmail(job);
   }
 
   async handleSendEmail(job: IJob<EmailJobData>) {
     const { to, subject, template, data } = job.data;
+    const smtpFrom = this.configService.get<string>('SMTP_FROM', 'noreply@taskosaur.com');
 
     try {
       const html = this.generateEmailHTML(template, data);
       const text = this.generateEmailText(template, data);
+
       if (this.transporter) {
-        await this.transporter.sendMail({
-          from: this.configService.get<string>('SMTP_FROM', 'noreply@taskosaur.com'),
+        const result = await this.transporter.sendMail({
+          from: smtpFrom,
           to,
           subject,
           html,
@@ -58,17 +116,29 @@ export class EmailProcessor {
         });
 
         this.logger.log(`Email sent successfully to ${to} using template ${template}`);
+        return { success: true, messageId: result.messageId };
       } else {
         // Simulate email sending for development
         this.logger.log(
           `📧 EMAIL SIMULATION - To: ${to}, Subject: ${subject}, Template: ${template}`,
         );
-        this.logger.debug('Email data:', JSON.stringify(data, null, 2));
+        return { success: true, simulated: true };
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to send email to ${to}:`, errorMessage);
+
+      // Log additional error details for common SMTP errors
+      if (error instanceof Error) {
+        if (errorMessage.includes('ECONNREFUSED')) {
+          this.logger.error(`Connection refused - Check SMTP_HOST and SMTP_PORT`);
+        } else if (errorMessage.includes('EAUTH')) {
+          this.logger.error(`Authentication failed - Check SMTP_USER and SMTP_PASS`);
+        } else if (errorMessage.includes('ETIMEDOUT')) {
+          this.logger.error(`Connection timeout - Check network connectivity and SMTP settings`);
+        }
       }
 
-      return { success: true };
-    } catch (error) {
-      this.logger.error(`Failed to send email to ${to}:`, error);
       throw error;
     }
   }
@@ -384,6 +454,153 @@ export class EmailProcessor {
       `;
         break;
 
+      case EmailTemplate.TASK_COMMENTED:
+        bodyContent = `
+          <div class="container">
+            <div class="content">
+              <p>${data.commenter.name} commented on a task you're involved with.</p>
+              
+              <div class="task-info">
+                <p><strong>Task:</strong> ${data.task.key} - ${data.task.title}</p>
+                <p><strong>Project:</strong> ${data.project.name}</p>
+                <p><strong>Comment by:</strong> ${data.commenter.name}</p>
+                <p><strong>Comment:</strong> ${data.comment.content}</p>
+              </div>
+              
+              <div class="button-container">
+                <a href="${data.taskUrl}" class="button">View Task & Comment</a>
+              </div>
+            </div>
+            <div class="footer">
+              <p>Taskosaur - Modern Project Management</p>
+            </div>
+          </div>
+        `;
+        break;
+
+      case EmailTemplate.PROJECT_CREATED:
+        bodyContent = `
+          <div class="container">
+            <div class="content">
+              <p>${data.creator.name} created a new project.</p>
+              
+              <div class="task-info">
+                <p><strong>Project:</strong> ${data.project.name}</p>
+                ${data.project.description ? `<p><strong>Description:</strong> ${data.project.description}</p>` : ''}
+                <p><strong>Workspace:</strong> ${data.workspace.name}</p>
+                <p><strong>Organization:</strong> ${data.organization.name}</p>
+                <p><strong>Created by:</strong> ${data.creator.name}</p>
+              </div>
+              
+              <div class="button-container">
+                <a href="${data.projectUrl}" class="button">View Project</a>
+              </div>
+            </div>
+            <div class="footer">
+              <p>Taskosaur - Modern Project Management</p>
+            </div>
+          </div>
+        `;
+        break;
+
+      case EmailTemplate.PROJECT_UPDATED:
+        bodyContent = `
+          <div class="container">
+            <div class="content">
+              <p>${data.updater.name} updated a project you're a member of.</p>
+              
+              <div class="task-info">
+                <p><strong>Project:</strong> ${data.project.name}</p>
+                ${data.project.description ? `<p><strong>Description:</strong> ${data.project.description}</p>` : ''}
+                <p><strong>Workspace:</strong> ${data.workspace.name}</p>
+                <p><strong>Organization:</strong> ${data.organization.name}</p>
+                <p><strong>Updated by:</strong> ${data.updater.name}</p>
+              </div>
+              
+              <div class="button-container">
+                <a href="${data.projectUrl}" class="button">View Project</a>
+              </div>
+            </div>
+            <div class="footer">
+              <p>Taskosaur - Modern Project Management</p>
+            </div>
+          </div>
+        `;
+        break;
+
+      case EmailTemplate.WORKSPACE_INVITED:
+        bodyContent = `
+          <div class="container">
+            <div class="content">
+              <p>You've been invited to join a workspace on Taskosaur.</p>
+              
+              <div class="task-info">
+                <p><strong>Workspace:</strong> ${data.entityName || 'Workspace'}</p>
+                ${data.organizationName ? `<p><strong>Organization:</strong> ${data.organizationName}</p>` : ''}
+                <p><strong>Invited by:</strong> ${data.inviterName}</p>
+              </div>
+              
+              <div class="button-container">
+                <a href="${data.invitationUrl || data.entityUrl || '#'}" class="button">View Invitation</a>
+              </div>
+            </div>
+            <div class="footer">
+              <p>Taskosaur - Modern Project Management</p>
+            </div>
+          </div>
+        `;
+        break;
+
+      case EmailTemplate.MENTION:
+        bodyContent = `
+          <div class="container">
+            <div class="content">
+              <p>${data.mentioner.name} mentioned you.</p>
+              
+              <div class="task-info">
+                <p><strong>${data.entityType === 'task' ? 'Task' : 'Comment'}:</strong> ${data.entityName || data.entity?.title || 'Item'}</p>
+                ${data.entity?.key ? `<p><strong>Key:</strong> ${data.entity.key}</p>` : ''}
+                <p><strong>Mentioned by:</strong> ${data.mentioner.name}</p>
+              </div>
+              
+              <div class="button-container">
+                <a href="${data.entityUrl}" class="button">View ${data.entityType === 'task' ? 'Task' : 'Comment'}</a>
+              </div>
+            </div>
+            <div class="footer">
+              <p>Taskosaur - Modern Project Management</p>
+            </div>
+          </div>
+        `;
+        break;
+
+      case EmailTemplate.SYSTEM:
+        bodyContent = `
+          <div class="container">
+            <div class="content">
+              <p>${data.notification.title}</p>
+              
+              <div class="task-info">
+                <p>${data.notification.message}</p>
+              </div>
+              
+              ${
+                data.notification.actionUrl
+                  ? `
+              <div class="button-container">
+                <a href="${data.notification.actionUrl}" class="button">View Details</a>
+              </div>
+              `
+                  : ''
+              }
+            </div>
+            <div class="footer">
+              <p>Taskosaur - Modern Project Management</p>
+            </div>
+          </div>
+        `;
+        break;
+
       default:
         bodyContent = `
           <div class="container">
@@ -486,6 +703,127 @@ Stay secure! 🛡️
 --
 Taskosaur - Modern Project Management
 This email was sent because a password reset was requested for your account.
+        `;
+
+      case EmailTemplate.TASK_STATUS_CHANGED:
+        return `
+Task Status Changed: ${data.task.title}
+
+The status of a task you're involved with has been updated.
+
+Task: ${data.task.key} - ${data.task.title}
+Project: ${data.project.name}
+Status: ${data.oldStatus.name} → ${data.newStatus.name}
+
+View task: ${data.taskUrl}
+
+--
+Taskosaur - Modern Project Management
+        `;
+
+      case EmailTemplate.TASK_COMMENTED:
+        return `
+New Comment on Task: ${data.task.title}
+
+Hi ${data.recipient.name}!
+
+${data.commenter.name} commented on a task you're involved with.
+
+Task: ${data.task.key} - ${data.task.title}
+Project: ${data.project.name}
+Comment by: ${data.commenter.name}
+Comment: ${data.comment.content}
+
+View task and comment: ${data.taskUrl}
+
+--
+Taskosaur - Modern Project Management
+        `;
+
+      case EmailTemplate.PROJECT_CREATED:
+        return `
+New Project Created: ${data.project.name}
+
+Hi ${data.recipient.name}!
+
+${data.creator.name} created a new project.
+
+Project: ${data.project.name}
+${data.project.description ? `Description: ${data.project.description}` : ''}
+Workspace: ${data.workspace.name}
+Organization: ${data.organization.name}
+Created by: ${data.creator.name}
+
+View project: ${data.projectUrl}
+
+--
+Taskosaur - Modern Project Management
+        `;
+
+      case EmailTemplate.PROJECT_UPDATED:
+        return `
+Project Updated: ${data.project.name}
+
+Hi ${data.recipient.name}!
+
+${data.updater.name} updated a project you're a member of.
+
+Project: ${data.project.name}
+${data.project.description ? `Description: ${data.project.description}` : ''}
+Workspace: ${data.workspace.name}
+Organization: ${data.organization.name}
+Updated by: ${data.updater.name}
+
+View project: ${data.projectUrl}
+
+--
+Taskosaur - Modern Project Management
+        `;
+
+      case EmailTemplate.WORKSPACE_INVITED:
+        return `
+Workspace Invitation
+
+You've been invited to join a workspace on Taskosaur.
+
+Workspace: ${data.entityName || 'Workspace'}
+${data.organizationName ? `Organization: ${data.organizationName}` : ''}
+Invited by: ${data.inviterName}
+
+View invitation: ${data.invitationUrl || data.entityUrl || '#'}
+
+--
+Taskosaur - Modern Project Management
+        `;
+
+      case EmailTemplate.MENTION:
+        return `
+You Were Mentioned
+
+Hi ${data.mentionedUser.name}!
+
+${data.mentioner.name} mentioned you in a ${data.entityType === 'task' ? 'task' : 'comment'}.
+
+${data.entityType === 'task' ? 'Task' : 'Comment'}: ${data.entityName || data.entity?.title || 'Item'}
+${data.entity?.key ? `Key: ${data.entity.key}` : ''}
+Mentioned by: ${data.mentioner.name}
+
+View ${data.entityType === 'task' ? 'task' : 'comment'}: ${data.entityUrl}
+
+--
+Taskosaur - Modern Project Management
+        `;
+
+      case EmailTemplate.SYSTEM:
+        return `
+${data.notification.title}
+
+${data.notification.message}
+
+${data.notification.actionUrl ? `View details: ${data.notification.actionUrl}` : ''}
+
+--
+Taskosaur - Modern Project Management
         `;
 
       default:

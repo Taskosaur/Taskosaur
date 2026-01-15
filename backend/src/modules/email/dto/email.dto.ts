@@ -7,6 +7,7 @@ export enum EmailTemplate {
   DUE_DATE_REMINDER = 'due-date-reminder',
   TASK_OVERDUE = 'task-overdue',
   COMMENT_ADDED = 'comment-added',
+  TASK_COMMENTED = 'task-commented',
   WEEKLY_SUMMARY = 'weekly-summary',
   SPRINT_STARTED = 'sprint-started',
   SPRINT_COMPLETED = 'sprint-completed',
@@ -17,6 +18,11 @@ export enum EmailTemplate {
   INVITATION_DECLINED = 'invitation-declined',
   INVITATION_EXPIRED = 'invitation-expired',
   DIRECT_ADD_NOTIFICATION = 'direct_add_notification',
+  PROJECT_CREATED = 'project-created',
+  PROJECT_UPDATED = 'project-updated',
+  WORKSPACE_INVITED = 'workspace-invited',
+  MENTION = 'mention',
+  SYSTEM = 'system-notification',
 }
 
 export enum EmailPriority {
