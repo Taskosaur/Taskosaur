@@ -43,8 +43,19 @@ export function TaskStatusChart({ data }: TaskStatusChartProps) {
   });
 
   const handleClick = (entry: any) => {
-    if (workspaceSlug && projectSlug && entry?.id) {
-      router.push(`/${workspaceSlug}/${projectSlug}/tasks?statuses=${entry.id}`);
+    if (
+      workspaceSlug &&
+      typeof workspaceSlug === "string" &&
+      /^[a-zA-Z0-9-]+$/.test(workspaceSlug) &&
+      projectSlug &&
+      typeof projectSlug === "string" &&
+      /^[a-zA-Z0-9-]+$/.test(projectSlug) &&
+      entry?.id
+    ) {
+      router.push({
+        pathname: "/[workspaceSlug]/[projectSlug]/tasks",
+        query: { workspaceSlug, projectSlug, statuses: entry.id },
+      });
     }
   };
 

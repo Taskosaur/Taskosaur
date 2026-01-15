@@ -555,7 +555,6 @@ export class TasksService {
 
     // Build base where clause
     const whereClause: any = {
-      parentTaskId: null,
       // Ensure tasks belong to the organization through project->workspace->organization
       project: {
         workspace: {
