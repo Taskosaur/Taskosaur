@@ -10,8 +10,8 @@ export default function SetupChecker({ children }: { children: React.ReactNode }
   useEffect(() => {
     const checkSetupStatus = async () => {
       // Skip setup check for certain routes where it's not needed
-      const publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/terms-of-service", "/privacy-policy"];
-      const isPublicRoute = publicRoutes.includes(router.pathname);
+      const publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/terms-of-service", "/privacy-policy", "/public/"];
+      const isPublicRoute = publicRoutes.some(route => router.pathname.startsWith(route));
 
       try {
         // Check if any users exist in the system

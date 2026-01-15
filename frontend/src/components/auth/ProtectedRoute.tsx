@@ -39,7 +39,7 @@ export default function ProtectedRoute({
   const [isInitializing, setIsInitializing] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const isPublicRoute = publicRoutes.includes(router.pathname);
+  const isPublicRoute = publicRoutes.includes(router.pathname) || router.pathname.startsWith("/public/task/");
 
   //For Public
   const isProjectRoute = router.pathname.includes("/[workspaceSlug]/[projectSlug]");
@@ -71,6 +71,12 @@ export default function ProtectedRoute({
       }
 
       if (isPublicRoute) {
+        // Redirect to dashboard when user is on an "Auth" page (login/register/etc.) ignore auth on public pages.
+        const authPages = ["/login", "/register", "/forgot-password", "/reset-password", "/setup"];
+        if (!authPages.includes(router.pathname)) {
+          return { isAuth: true, isOrg: true };
+        }
+
         if (typeof checkOrganizationAndRedirect === "function") {
           const orgRedirect = await checkOrganizationAndRedirect();
           if (!currentOrgId && orgRedirect === "/organization") {

@@ -82,7 +82,7 @@ export class PublicSharedTasksService {
 
     // Generate share URL
     const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      (this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000').replace(/\/$/, '');
     const shareUrl = `${frontendUrl}/public/task/${token}`;
 
     return {
@@ -215,7 +215,7 @@ export class PublicSharedTasksService {
     });
 
     const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      (this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000').replace(/\/$/, '');
 
     return shares.map((share) => ({
       id: share.id,
