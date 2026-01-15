@@ -134,6 +134,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize auth state once on mount
   useEffect(() => {
     const initializeAuth = async () => {
+      // Skip initialization for public routes to prevent stale tokens from triggering background 401s
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/public/")) {
+        setAuthState((prev) => ({ ...prev, isLoading: false }));
+        return;
+      }
+
       try {
         const user = authApi.getCurrentUser();
         const isAuth = authApi.isAuthenticated();

@@ -240,7 +240,7 @@ const safeRedirect = (url: string): void => {
   try {
     if (typeof window !== "undefined") {
       const currentPath = window.location.pathname;
-      const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password", "/404"];
+      const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password", "/404", "/public/"];
 
       // Don't redirect if already on a public page or 404
       if (!publicPaths.some((path) => currentPath.startsWith(path))) {
@@ -314,7 +314,8 @@ api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     try {
       const token = TokenManager.getAccessToken();
-      if (token && config.headers) {
+      // Don't add token for public endpoints to avoid 401s from stale tokens
+      if (token && config.headers && !config.url?.startsWith("/public/")) {
         config.headers.Authorization = `Bearer ${token}`;
       }
 
