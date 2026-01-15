@@ -52,7 +52,7 @@ function SortableStatCard({ id, label, value, icon, statSuffix, onClick }: Sorta
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    cursor: isDragging ? "grabbing" : "pointer",
+    cursor: isDragging ? "grabbing" : (onClick ? "pointer" : "default"),
     touchAction: "none",
   };
 
@@ -223,7 +223,7 @@ export function KPIMetrics({ data, workspaceId }: KPIMetricsProps) {
                 {data?.overdueTasks === 0 ? "Perfect" : "Monitor"}
               </Badge>
             ),
-            onClick: () => handleNavigate("/tasks"),
+            // Removed onClick: () => handleNavigate("/tasks"),
           };
         default:
           return null;
