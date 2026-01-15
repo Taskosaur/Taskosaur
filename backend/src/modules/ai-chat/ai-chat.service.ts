@@ -160,6 +160,13 @@ export class AiChatService {
     try {
       const parsedUrl = new URL(apiUrl);
       const hostname = parsedUrl.hostname;
+
+      // Check for Ollama (localhost/private network)
+      // Treats all localhost and private network addresses as Ollama (OpenAI-compatible)
+      if (this.isLocalhost(hostname) || this.isPrivateNetwork(hostname)) {
+        return 'ollama';
+      }
+
       if (hostname === 'openrouter.ai' || hostname.endsWith('.openrouter.ai')) return 'openrouter';
       if (hostname === 'api.openai.com' || hostname.endsWith('.api.openai.com')) return 'openai';
       if (hostname === 'api.anthropic.com' || hostname.endsWith('.api.anthropic.com'))
@@ -481,7 +488,8 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
       const provider = this.detectProvider(apiUrl);
 
-      if (!apiKey) {
+      // API key is optional for Ollama (localhost/private network)
+      if (!apiKey && provider !== 'ollama') {
         throw new BadRequestException('AI API key not configured. Please set it in settings.');
       }
 
@@ -546,6 +554,24 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
           requestBody.presence_penalty = 0;
           break;
 
+        case 'ollama':
+          // Ollama uses OpenAI-compatible API at /v1/chat/completions or /api/chat
+          // Check if URL already contains the endpoint path
+          if (apiUrl.includes('/v1')) {
+            requestUrl = apiUrl.endsWith('/chat/completions')
+              ? apiUrl
+              : `${apiUrl}/chat/completions`;
+          } else if (apiUrl.includes('/api')) {
+            requestUrl = apiUrl.endsWith('/chat') ? apiUrl : `${apiUrl}/chat`;
+          } else {
+            // Default to OpenAI-compatible endpoint
+            requestUrl = `${apiUrl}/v1/chat/completions`;
+          }
+          // Ollama doesn't require auth for local instances
+          delete requestHeaders['Authorization'];
+          requestBody.top_p = 0.9;
+          break;
+
         case 'anthropic':
           requestUrl = `${apiUrl}/messages`;
           requestHeaders['x-api-key'] = apiKey;
@@ -563,7 +589,7 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
         case 'google':
           // Google Gemini has a different API structure
           this.validateModelName(model);
-          requestUrl = `${apiUrl}/models/${encodeURIComponent(String(model))}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          requestUrl = `${apiUrl}/models/${encodeURIComponent(String(model))}:generateContent?key=${encodeURIComponent(apiKey || '')}`;
           delete requestHeaders['Authorization'];
           requestBody = {
             contents: messages.map((m) => ({
@@ -1072,6 +1098,26 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
   private readonly googlePattern =
     /^([a-z0-9-]+\.)?aiplatform\.googleapis\.com$|^[a-z0-9-]+\.p\.googleapis\.com$|^generativelanguage\.googleapis\.com$/;
 
+  /**
+   * Check if hostname is localhost or loopback
+   */
+  private isLocalhost(hostname: string): boolean {
+    return ['localhost', '127.0.0.1', '::1'].includes(hostname.toLowerCase());
+  }
+
+  /**
+   * Check if hostname is a private network address (RFC 1918)
+   */
+  private isPrivateNetwork(hostname: string): boolean {
+    // Check for private IPv4 ranges
+    // 10.0.0.0 - 10.255.255.255
+    // 172.16.0.0 - 172.31.255.255
+    // 192.168.0.0 - 192.168.255.255
+    const privateIPv4Pattern =
+      /^(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})$/;
+    return privateIPv4Pattern.test(hostname);
+  }
+
   validateApiUrl(apiUrl: string): string {
     let url: URL;
     try {
@@ -1080,8 +1126,13 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
       throw new BadRequestException('Invalid URL format');
     }
 
-    if (url.protocol !== 'https:') {
-      throw new BadRequestException('Only HTTPS URLs allowed');
+    // Allow HTTP for localhost and private networks (e.g., self-hosted Ollama)
+    const allowHttp = this.isLocalhost(url.hostname) || this.isPrivateNetwork(url.hostname);
+
+    if (url.protocol !== 'https:' && !allowHttp) {
+      throw new BadRequestException(
+        'Only HTTPS URLs allowed (HTTP is permitted for localhost and private network addresses)',
+      );
     }
 
     return url.toString().replace(/\/$/, '');
@@ -1095,8 +1146,17 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
     const { apiKey, model, apiUrl } = testConnectionDto;
 
     try {
-      const validatedUrl = apiUrl;
+      // Validate the URL (this also allows HTTP for localhost/private networks)
+      const validatedUrl = this.validateApiUrl(apiUrl);
       const provider = this.detectProvider(validatedUrl);
+
+      // API key is required for non-Ollama providers
+      if (!apiKey && provider !== 'ollama') {
+        return {
+          success: false,
+          error: 'API key is required for this provider.',
+        };
+      }
 
       // Prepare a simple test message
       const messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
@@ -1130,6 +1190,21 @@ ${sessionContext?.currentWorkSpaceProjectSlug ? `- Available Projects in Current
 
         case 'openai':
           requestUrl = `${validatedUrl}/chat/completions`;
+          break;
+
+        case 'ollama':
+          // Ollama uses OpenAI-compatible API at /v1/chat/completions or /api/chat
+          if (validatedUrl.includes('/v1')) {
+            requestUrl = validatedUrl.endsWith('/chat/completions')
+              ? validatedUrl
+              : `${validatedUrl}/chat/completions`;
+          } else if (validatedUrl.includes('/api')) {
+            requestUrl = validatedUrl.endsWith('/chat') ? validatedUrl : `${validatedUrl}/chat`;
+          } else {
+            requestUrl = `${validatedUrl}/v1/chat/completions`;
+          }
+          // Ollama doesn't require auth for local instances
+          delete requestHeaders['Authorization'];
           break;
 
         case 'anthropic':

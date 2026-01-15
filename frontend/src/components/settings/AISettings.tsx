@@ -144,8 +144,26 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
     }
   };
 
+  // Check if URL is localhost or private network (Ollama)
+  const isLocalOrPrivateUrl = (url: string): boolean => {
+    try {
+      const parsedUrl = new URL(url);
+      const hostname = parsedUrl.hostname.toLowerCase();
+      // Check for localhost
+      if (["localhost", "127.0.0.1", "::1"].includes(hostname)) return true;
+      // Check for private IPv4 ranges
+      const privateIPv4Pattern =
+        /^(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})$/;
+      return privateIPv4Pattern.test(hostname);
+    } catch {
+      return false;
+    }
+  };
+
   const testConnection = async () => {
-    if (!apiKey) {
+    // API key is optional for localhost/private network (Ollama)
+    const isLocalNetwork = isLocalOrPrivateUrl(apiUrl);
+    if (!apiKey && !isLocalNetwork) {
       setMessage({ type: "error", text: "Please enter an API key first" });
       return;
     }
@@ -197,8 +215,11 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
     onClose();
   };
 
+  // Form is valid if model and URL are set, and either API key is set or it's a local/private URL
   const isFormValid = isEnabled
-    ? apiKey.trim().length > 0 && model.trim().length > 0 && apiUrl.trim().length > 0
+    ? (apiKey.trim().length > 0 || isLocalOrPrivateUrl(apiUrl)) &&
+      model.trim().length > 0 &&
+      apiUrl.trim().length > 0
     : true;
 
   return (
@@ -231,7 +252,13 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
                 className="projects-form-label-icon size-3"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              API Key <span className="projects-form-label-required">*</span>
+              API Key{" "}
+              {!isLocalOrPrivateUrl(apiUrl) && (
+                <span className="projects-form-label-required">*</span>
+              )}
+              {isLocalOrPrivateUrl(apiUrl) && (
+                <span className="text-xs text-muted-foreground">(optional for Ollama)</span>
+              )}
             </Label>
 
             <div className="relative">
@@ -362,7 +389,11 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
                     setIsEnabled(newValue);
                   }}
                   disabled={
-                    isLoading || isSaving || !apiKey.trim() || !model.trim() || !apiUrl.trim()
+                    isLoading ||
+                    isSaving ||
+                    (!apiKey.trim() && !isLocalOrPrivateUrl(apiUrl)) ||
+                    !model.trim() ||
+                    !apiUrl.trim()
                   }
                   className="sr-only peer"
                 />
@@ -398,10 +429,15 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
                 • <strong>Google:</strong> https://generativelanguage.googleapis.com/v1beta (Gemini
                 models)
               </li>
+              <li>
+                • <strong>Ollama (Self-hosted):</strong> http://localhost:11434 (Local models like
+                llama3, mistral, codellama)
+              </li>
             </ul>
             <p className="text-xs" style={{ fontSize: "13px" }}>
               • API keys are encrypted and stored securely • Test connection after changes • The URL
-              determines which provider is used
+              determines which provider is used • HTTP is allowed for localhost/private network
+              addresses
             </p>
           </div>
 
@@ -419,7 +455,13 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
             <ActionButton
               type="button"
               onClick={testConnection}
-              disabled={isLoading || isSaving || !apiKey.trim() || !model.trim() || !apiUrl.trim()}
+              disabled={
+                isLoading ||
+                isSaving ||
+                (!apiKey.trim() && !isLocalOrPrivateUrl(apiUrl)) ||
+                !model.trim() ||
+                !apiUrl.trim()
+              }
               variant="outline"
               secondary
             >
