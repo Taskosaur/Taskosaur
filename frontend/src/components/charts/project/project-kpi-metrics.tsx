@@ -39,12 +39,10 @@ interface SortableStatCardProps {
   value: string | number;
   icon: React.ReactNode;
   description?: string;
-  color?: string;
-  bgColor?: string;
   onClick?: () => void;
 }
 
-function SortableStatCard({ id, label, value, icon, description, color, bgColor, onClick }: SortableStatCardProps) {
+function SortableStatCard({ id, label, value, icon, description, onClick }: SortableStatCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
   });
@@ -74,7 +72,7 @@ function SortableStatCard({ id, label, value, icon, description, color, bgColor,
         label={label} 
         value={value} 
         icon={icon} 
-        className={`${color ? `${color} ${bgColor || ''}` : ''} transition-colors hover:bg-[var(--accent)]/50`}
+        className={`transition-colors hover:bg-[var(--accent)]/50`}
       />
     </div>
   );
@@ -82,6 +80,7 @@ function SortableStatCard({ id, label, value, icon, description, color, bgColor,
 
 export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) {
   const router = useRouter();
+
   const { workspaceSlug, projectSlug } = router.query;
 
   const [orderedIds, setOrderedIds] = useState<string[]>([
@@ -152,8 +151,6 @@ export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) 
             value: data?.totalTasks,
             description: "All tasks in project",
             icon: <CheckCircle className="h-4 w-4" />,
-            color: "text-blue-600",
-            bgColor: "bg-blue-50",
             onClick: () => handleNavigate("/tasks"),
           };
         case "completed-tasks":
@@ -174,7 +171,6 @@ export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) 
             value: data?.activeSprints,
             description: "Currently running",
             icon: <Zap className="h-4 w-4" />,
-            color: "text-purple-600",
             onClick: () => handleNavigate("/sprints"),
           };
         case "bug-resolution":
@@ -223,6 +219,12 @@ export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) 
     }).filter((c): c is NonNullable<typeof c> => c !== null);
   }, [orderedIds, data, workspaceSlug, projectSlug, doneStatusIds]);
 
+
+  if (!router.isReady) {
+    return null;
+  }
+
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={orderedIds} strategy={rectSortingStrategy}>
@@ -235,8 +237,6 @@ export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) 
               value={card.value}
               icon={card.icon}
               description={card.description}
-              color={card.color}
-              bgColor={card.bgColor}
               onClick={card.onClick}
             />
           ))}
