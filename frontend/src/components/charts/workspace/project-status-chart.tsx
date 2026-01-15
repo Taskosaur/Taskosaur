@@ -28,8 +28,16 @@ export function ProjectStatusChart({ data }: ProjectStatusChartProps) {
   }));
 
   const handleClick = (entry: any) => {
-    if (workspaceSlug && entry?.id) {
-      router.push(`/${workspaceSlug}/projects?statuses=${entry.id}`);
+    if (
+      workspaceSlug &&
+      typeof workspaceSlug === "string" &&
+      /^[a-zA-Z0-9-]+$/.test(workspaceSlug) &&
+      entry?.id
+    ) {
+      router.push({
+        pathname: "/[workspaceSlug]/projects",
+        query: { workspaceSlug, statuses: entry.id },
+      });
     }
   };
 

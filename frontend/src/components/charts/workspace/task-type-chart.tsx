@@ -30,9 +30,17 @@ export function TaskTypeChart({ data, workspaceId }: TaskTypeChartProps) {
   }));
 
   const handleClick = (entry: any) => {
-    const id = workspaceId || workspaceSlug;
-    if (id && entry?.id) {
-      router.push(`/${workspaceSlug}/tasks?types=${entry.id}`);
+    const slug = workspaceSlug || workspaceId;
+    if (
+      slug &&
+      typeof slug === "string" &&
+      /^[a-zA-Z0-9-]+$/.test(slug) &&
+      entry?.id
+    ) {
+      router.push({
+        pathname: "/[workspaceSlug]/tasks",
+        query: { workspaceSlug: slug, types: entry.id },
+      });
     }
   };
 

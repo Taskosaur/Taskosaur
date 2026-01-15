@@ -106,7 +106,6 @@ export class TestConnectionDto {
     description: 'API key to test',
   })
   @IsString()
-  @IsNotEmpty()
   apiKey: string;
 
   @ApiProperty({
