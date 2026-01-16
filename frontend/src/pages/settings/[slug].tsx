@@ -84,6 +84,17 @@ function OrganizationManagePageContent() {
   const [workflowError, setWorkflowError] = useState<string | null>(null);
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"settings" | "members" | "workflows">("settings");
+
+  useEffect(() => {
+    if (router.isReady && router.query.tab) {
+      const tabParam = router.query.tab;
+      const tab = (Array.isArray(tabParam) ? tabParam[0] : tabParam).toLowerCase();
+      if (["settings", "members", "workflows"].includes(tab)) {
+        setActiveTab(tab as "settings" | "members" | "workflows");
+      }
+    }
+  }, [router.isReady, router.query.tab]);
+
   const pendingInvitationsRef = useRef<PendingInvitationsRef>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalMembers, setTotalMembers] = useState(0);
