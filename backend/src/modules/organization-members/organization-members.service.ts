@@ -23,13 +23,14 @@ export class OrganizationMembersService {
 
   async create(
     createOrganizationMemberDto: CreateOrganizationMemberDto,
+    requestUserId?: string,
   ): Promise<OrganizationMember> {
     const { userId, organizationId, role = OrganizationRole.MEMBER } = createOrganizationMemberDto;
 
     // Verify organization exists
     const organization = await this.prisma.organization.findUnique({
       where: { id: organizationId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, ownerId: true },
     });
 
     if (!organization) {
@@ -44,6 +45,39 @@ export class OrganizationMembersService {
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    // Permission check if requestUserId is provided
+    if (requestUserId) {
+      const requestUser = await this.prisma.user.findUnique({
+        where: { id: requestUserId },
+        select: { role: true },
+      });
+      const isSuperAdmin = requestUser?.role === OrganizationRole.SUPER_ADMIN;
+
+      if (!isSuperAdmin) {
+        const requesterMember = await this.prisma.organizationMember.findUnique({
+          where: {
+            userId_organizationId: {
+              userId: requestUserId,
+              organizationId,
+            },
+          },
+        });
+
+        if (!requesterMember) {
+          throw new ForbiddenException('You are not a member of this organization');
+        }
+
+        const isOwner = organization.ownerId === requestUserId;
+        const isAdmin =
+          requesterMember.role === OrganizationRole.OWNER ||
+          requesterMember.role === OrganizationRole.MANAGER;
+
+        if (!isOwner && !isAdmin) {
+          throw new ForbiddenException('Only organization owners and admins can add members');
+        }
+      }
     }
 
     try {
@@ -106,6 +140,7 @@ export class OrganizationMembersService {
 
   async inviteByEmail(
     inviteOrganizationMemberDto: InviteOrganizationMemberDto,
+    requestUserId?: string,
   ): Promise<OrganizationMember> {
     const { email, organizationId, role = OrganizationRole.MEMBER } = inviteOrganizationMemberDto;
 
@@ -119,14 +154,44 @@ export class OrganizationMembersService {
       throw new NotFoundException('User with this email not found');
     }
 
-    return this.create({
-      userId: user.id,
-      organizationId,
-      role,
-    });
+    return this.create(
+      {
+        userId: user.id,
+        organizationId,
+        role,
+      },
+      requestUserId,
+    );
   }
 
-  findAll(organizationId?: string, search?: string): Promise<OrganizationMember[]> {
+  async findAll(
+    organizationId?: string,
+    search?: string,
+    requestUserId?: string,
+  ): Promise<OrganizationMember[]> {
+    if (organizationId && requestUserId) {
+      const requestUser = await this.prisma.user.findUnique({
+        where: { id: requestUserId },
+        select: { role: true },
+      });
+      const isSuperAdmin = requestUser?.role === OrganizationRole.SUPER_ADMIN;
+
+      if (!isSuperAdmin) {
+        const requesterMember = await this.prisma.organizationMember.findUnique({
+          where: {
+            userId_organizationId: {
+              userId: requestUserId,
+              organizationId,
+            },
+          },
+        });
+
+        if (!requesterMember) {
+          throw new ForbiddenException('You are not a member of this organization');
+        }
+      }
+    }
+
     const whereClause: any = {};
 
     if (organizationId) {
@@ -177,6 +242,7 @@ export class OrganizationMembersService {
     page?: number,
     limit?: number,
     search?: string,
+    requestUserId?: string,
   ): Promise<{
     data: OrganizationMember[];
     total: number;
@@ -189,6 +255,36 @@ export class OrganizationMembersService {
       VIEWER: number;
     };
   }> {
+    if (slug && requestUserId) {
+      const requestUser = await this.prisma.user.findUnique({
+        where: { id: requestUserId },
+        select: { role: true },
+      });
+      const isSuperAdmin = requestUser?.role === OrganizationRole.SUPER_ADMIN;
+
+      if (!isSuperAdmin) {
+        const org = await this.prisma.organization.findUnique({
+          where: { slug },
+          select: { id: true },
+        });
+
+        if (org) {
+          const requesterMember = await this.prisma.organizationMember.findUnique({
+            where: {
+              userId_organizationId: {
+                userId: requestUserId,
+                organizationId: org.id,
+              },
+            },
+          });
+
+          if (!requesterMember) {
+            throw new ForbiddenException('You are not a member of this organization');
+          }
+        }
+      }
+    }
+
     const isPaginated = !!(page && limit);
 
     // Build search conditions
@@ -309,7 +405,7 @@ export class OrganizationMembersService {
     return { data, total, page, limit, roleCounts: roleCountsMap };
   }
 
-  async findOne(id: string): Promise<OrganizationMember> {
+  async findOne(id: string, requestUserId?: string): Promise<OrganizationMember> {
     const member = await this.prisma.organizationMember.findUnique({
       where: { id },
       include: {
@@ -352,10 +448,56 @@ export class OrganizationMembersService {
       throw new NotFoundException('Organization member not found');
     }
 
+    if (requestUserId) {
+      const requestUser = await this.prisma.user.findUnique({
+        where: { id: requestUserId },
+        select: { role: true },
+      });
+      const isSuperAdmin = requestUser?.role === OrganizationRole.SUPER_ADMIN;
+
+      if (!isSuperAdmin) {
+        const requesterMember = await this.prisma.organizationMember.findUnique({
+          where: {
+            userId_organizationId: {
+              userId: requestUserId,
+              organizationId: member.organizationId,
+            },
+          },
+        });
+
+        if (!requesterMember) {
+          throw new ForbiddenException('You are not a member of this organization');
+        }
+      }
+    }
+
     return member;
   }
 
-  findByUserAndOrganization(userId: string, organizationId: string) {
+  async findByUserAndOrganization(userId: string, organizationId: string, requestUserId?: string) {
+    if (requestUserId) {
+      const requestUser = await this.prisma.user.findUnique({
+        where: { id: requestUserId },
+        select: { role: true },
+      });
+      const isSuperAdmin = requestUser?.role === OrganizationRole.SUPER_ADMIN;
+
+      if (!isSuperAdmin) {
+        const requesterMember = await this.prisma.organizationMember.findUnique({
+          where: {
+            userId_organizationId: {
+              userId: requestUserId,
+              organizationId,
+            },
+          },
+        });
+
+        if (!requesterMember) {
+          throw new ForbiddenException('You are not a member of this organization');
+        }
+      }
+    }
+
     return this.prisma.organizationMember.findUnique({
       where: {
         userId_organizationId: {
@@ -406,23 +548,39 @@ export class OrganizationMembersService {
     }
 
     // Check if requester has permission to update
-    const requesterMember = await this.findByUserAndOrganization(
-      requestUserId,
-      member.organizationId,
-    );
+    const requestUser = await this.prisma.user.findUnique({
+      where: { id: requestUserId },
+      select: { role: true },
+    });
+    const isSuperAdmin = requestUser?.role === OrganizationRole.SUPER_ADMIN;
 
-    if (!requesterMember) {
-      throw new ForbiddenException('You are not a member of this organization');
-    }
+    if (!isSuperAdmin) {
+      const requesterMember = await this.prisma.organizationMember.findUnique({
+        where: {
+          userId_organizationId: {
+            userId: requestUserId,
+            organizationId: member.organizationId,
+          },
+        },
+        include: {
+          user: true,
+          organization: true,
+        },
+      });
 
-    // Only organization owner or admins can update member roles
-    const isOwner = member.organization.ownerId === requestUserId;
-    const isAdmin =
-      requesterMember.role === OrganizationRole.OWNER ||
-      requesterMember.role === OrganizationRole.MANAGER;
+      if (!requesterMember) {
+        throw new ForbiddenException('You are not a member of this organization');
+      }
 
-    if (!isOwner && !isAdmin) {
-      throw new ForbiddenException('Only organization owners and admins can update member roles');
+      // Only organization owner or admins can update member roles
+      const isOwner = member.organization.ownerId === requestUserId;
+      const isAdmin =
+        requesterMember.role === OrganizationRole.OWNER ||
+        requesterMember.role === OrganizationRole.MANAGER;
+
+      if (!isOwner && !isAdmin) {
+        throw new ForbiddenException('Only organization owners and admins can update member roles');
+      }
     }
 
     // Prevent demoting the organization owner
@@ -506,24 +664,40 @@ export class OrganizationMembersService {
     }
 
     // Check if requester has permission to remove
-    const requesterMember = await this.findByUserAndOrganization(
-      requestUserId,
-      member.organizationId,
-    );
+    const requestUser = await this.prisma.user.findUnique({
+      where: { id: requestUserId },
+      select: { role: true },
+    });
+    const isSuperAdmin = requestUser?.role === OrganizationRole.SUPER_ADMIN;
 
-    if (!requesterMember) {
-      throw new ForbiddenException('You are not a member of this organization');
-    }
+    if (!isSuperAdmin) {
+      const requesterMember = await this.prisma.organizationMember.findUnique({
+        where: {
+          userId_organizationId: {
+            userId: requestUserId,
+            organizationId: member.organizationId,
+          },
+        },
+        include: {
+          user: true,
+          organization: true,
+        },
+      });
 
-    // Users can remove themselves, or admins/owners can remove others
-    const isSelfRemoval = member.userId === requestUserId;
-    const isOwner = member.organization.ownerId === requestUserId;
-    const isAdmin =
-      requesterMember.role === OrganizationRole.OWNER ||
-      requesterMember.role === OrganizationRole.MANAGER;
+      if (!requesterMember) {
+        throw new ForbiddenException('You are not a member of this organization');
+      }
 
-    if (!isSelfRemoval && !isOwner && !isAdmin) {
-      throw new ForbiddenException('You can only remove yourself or you must be an admin/owner');
+      // Users can remove themselves, or admins/owners can remove others
+      const isSelfRemoval = member.userId === requestUserId;
+      const isOwner = member.organization.ownerId === requestUserId;
+      const isAdmin =
+        requesterMember.role === OrganizationRole.OWNER ||
+        requesterMember.role === OrganizationRole.MANAGER;
+
+      if (!isSelfRemoval && !isOwner && !isAdmin) {
+        throw new ForbiddenException('You can only remove yourself or you must be an admin/owner');
+      }
     }
 
     // Prevent removing the organization owner
@@ -572,11 +746,25 @@ export class OrganizationMembersService {
     });
   }
 
-  async getUserOrganizations(userId: string) {
-    // 1. Get the user with their role and default organization
+  async getUserOrganizations(userId: string, requestUserId?: string) {
+    // 1. Get the requester to check their role
+    let requesterRole = 'MEMBER';
+    if (requestUserId) {
+      const requester = await this.prisma.user.findUnique({
+        where: { id: requestUserId },
+        select: { role: true },
+      });
+      requesterRole = requester?.role || 'MEMBER';
+    }
+
+    // Permission check: users can only see their own organizations unless they are SUPER_ADMIN
+    if (requestUserId && userId !== requestUserId && requesterRole !== 'SUPER_ADMIN') {
+      throw new ForbiddenException('You can only view your own organizations');
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true, defaultOrganizationId: true },
+      select: { defaultOrganizationId: true },
     });
 
     type OrgType = {
@@ -589,83 +777,50 @@ export class OrganizationMembersService {
       website: string | null;
       _count: { members: number; workspaces: number };
       createdAt: Date;
-      members: Array<{ role: string; joinedAt: Date }>;
+      members: Array<{ id: string; role: string; joinedAt: Date }>;
     };
 
-    let organizations: OrgType[];
+    // 2. If requester is SUPER_ADMIN → fetch all organizations (but they might not be members)
+    // Actually, normally even a SUPER_ADMIN wants to see the organizations the user is part of.
+    // The previous logic was a bit confused.
+    // Let's return organizations where the target user (userId) is a member or owner.
 
-    // 2. If SUPER_ADMIN → fetch all organizations
-    if (user?.role === 'SUPER_ADMIN') {
-      organizations = await this.prisma.organization.findMany({
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          description: true,
-          avatar: true,
-          website: true,
-          ownerId: true,
-          createdAt: true,
-          _count: {
-            select: {
-              members: true,
-              workspaces: true,
-            },
-          },
-          members: {
-            where: { userId },
-            select: {
-              id: true,
-              role: true,
-              joinedAt: true,
-            },
-            take: 1,
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      });
-    } else {
-      // 3. Normal users → only organizations they own or belong to
-      organizations = await this.prisma.organization.findMany({
-        where: {
-          OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-        },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          description: true,
-          avatar: true,
-          website: true,
-          ownerId: true,
-          createdAt: true,
+    const organizations: OrgType[] = await this.prisma.organization.findMany({
+      where: {
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        avatar: true,
+        website: true,
+        ownerId: true,
+        createdAt: true,
 
-          _count: {
-            select: {
-              members: true,
-              workspaces: true,
-            },
-          },
-          members: {
-            where: { userId },
-            select: {
-              id: true,
-              role: true,
-              joinedAt: true,
-            },
-            take: 1,
+        _count: {
+          select: {
+            members: true,
+            workspaces: true,
           },
         },
-        orderBy: {
-          createdAt: 'desc',
+        members: {
+          where: { userId },
+          select: {
+            id: true,
+            role: true,
+            joinedAt: true,
+          },
+          take: 1,
         },
-      });
-    }
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
 
-    // 4. Transform response (SUPER_ADMIN gets role = SUPER_ADMIN)
-    // isDefault is now determined from User.defaultOrganizationId
+    // 4. Transform response
     return organizations.map((org) => {
       const isOwner = org.ownerId === userId;
       const memberRecord = org.members[0];
@@ -678,12 +833,7 @@ export class OrganizationMembersService {
         avatar: org.avatar,
         website: org.website,
         _count: org._count,
-        userRole:
-          user?.role === 'SUPER_ADMIN'
-            ? 'SUPER_ADMIN'
-            : isOwner
-              ? 'OWNER'
-              : memberRecord?.role || 'MEMBER',
+        userRole: isOwner ? 'OWNER' : memberRecord?.role || 'MEMBER',
         joinedAt: memberRecord?.joinedAt || org.createdAt,
         isOwner,
         isDefault: user?.defaultOrganizationId === org.id,
@@ -691,7 +841,30 @@ export class OrganizationMembersService {
     });
   }
 
-  async getOrganizationStats(organizationId: string): Promise<any> {
+  async getOrganizationStats(organizationId: string, requestUserId?: string): Promise<any> {
+    if (requestUserId) {
+      const requestUser = await this.prisma.user.findUnique({
+        where: { id: requestUserId },
+        select: { role: true },
+      });
+      const isSuperAdmin = requestUser?.role === OrganizationRole.SUPER_ADMIN;
+
+      if (!isSuperAdmin) {
+        const requesterMember = await this.prisma.organizationMember.findUnique({
+          where: {
+            userId_organizationId: {
+              userId: requestUserId,
+              organizationId,
+            },
+          },
+        });
+
+        if (!requesterMember) {
+          throw new ForbiddenException('You are not a member of this organization');
+        }
+      }
+    }
+
     const organization = await this.prisma.organization.findUnique({
       where: { id: organizationId },
       select: { id: true },
