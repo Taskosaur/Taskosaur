@@ -518,10 +518,10 @@ function WorkspaceTasksContent() {
       selected: selectedAssignees.includes(member.user.id),
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
-            Array.isArray(task.assignees)
-              ? task.assignees.some((assignee) => assignee.id === member.user.id)
-              : false
-          ).length
+          Array.isArray(task.assignees)
+            ? task.assignees.some((assignee) => assignee.id === member.user.id)
+            : false
+        ).length
         : 0,
       email: member?.user?.email,
     }));
@@ -535,10 +535,10 @@ function WorkspaceTasksContent() {
       selected: selectedReporters.includes(member.user.id),
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
-            Array.isArray(task.reporters)
-              ? task.reporters.some((reporter) => reporter.id === member.user.id)
-              : false
-          ).length
+          Array.isArray(task.reporters)
+            ? task.reporters.some((reporter) => reporter.id === member.user.id)
+            : false
+        ).length
         : 0,
       email: member?.user?.email,
     }));
@@ -869,6 +869,13 @@ function WorkspaceTasksContent() {
     const sorted = [...tasks].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
+      
+      if (sortField === "dueIn") {
+        const now = Date.now();
+        const aDue = a.dueDate ? new Date(a.dueDate).getTime() - now : Infinity;
+        const bDue = b.dueDate ? new Date(b.dueDate).getTime() - now : Infinity;
+        return sortOrder === "asc" ? aDue - bDue : bDue - aDue;
+      }
 
       // Handle date fields
       if (["createdAt", "updatedAt", "completedAt", "dueDate", "timeline"].includes(sortField)) {

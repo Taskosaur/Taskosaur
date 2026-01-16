@@ -202,7 +202,7 @@ function TasksPageContent() {
       if (typeParams) {
         setSelectedTaskTypes(typeParams.split(","));
       }
-      
+
       // Mark URL params as initialized
       setUrlParamsInitialized(true);
     }
@@ -689,10 +689,10 @@ function TasksPageContent() {
       selected: selectedAssignees.includes(member.user.id),
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
-            Array.isArray(task.assignees)
-              ? task.assignees.some((assignee) => assignee.id === member.user.id)
-              : false
-          ).length
+          Array.isArray(task.assignees)
+            ? task.assignees.some((assignee) => assignee.id === member.user.id)
+            : false
+        ).length
         : 0,
       email: member?.user?.email,
     }));
@@ -706,10 +706,10 @@ function TasksPageContent() {
       selected: selectedReporters.includes(member.user.id),
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
-            Array.isArray(task.reporters)
-              ? task.reporters.some((reporter) => reporter.id === member.user.id)
-              : false
-          ).length
+          Array.isArray(task.reporters)
+            ? task.reporters.some((reporter) => reporter.id === member.user.id)
+            : false
+        ).length
         : 0,
       email: member?.user?.email,
     }));
@@ -829,6 +829,13 @@ function TasksPageContent() {
       let aValue = a[sortField];
       let bValue = b[sortField];
 
+      if (sortField === "dueIn") {
+        const now = Date.now();
+        const aDue = a.dueDate ? new Date(a.dueDate).getTime() - now : Infinity;
+        const bDue = b.dueDate ? new Date(b.dueDate).getTime() - now : Infinity;
+        return sortOrder === "asc" ? aDue - bDue : bDue - aDue;
+      }
+      
       // Handle date fields
       if (["createdAt", "updatedAt", "completedAt", "dueDate", "timeline"].includes(sortField)) {
         aValue = aValue ? new Date(aValue).getTime() : 0;
@@ -1010,11 +1017,10 @@ function TasksPageContent() {
                         key={mode}
                         type="button"
                         onClick={() => setGanttViewMode(mode)}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${
-                          ganttViewMode === mode
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${ganttViewMode === mode
                             ? "bg-blue-500 text-white"
                             : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
-                        }`}
+                          }`}
                       >
                         {mode}
                       </button>

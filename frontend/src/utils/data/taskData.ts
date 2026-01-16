@@ -75,6 +75,7 @@ export const DEFAULT_SORT_FIELDS = [
   { value: "createdAt", label: "Created Date", icon: Clock, category: "date" },
   { value: "updatedAt", label: "Updated Date", icon: CalendarDays, category: "date" },
   { value: "dueDate", label: "Due Date", icon: CalendarDays, category: "date" },
+  { value: "dueIn", label: "Due In", icon: Clock, category: "date" },
   { value: "completedAt", label: "Completed Date", icon: CheckCircle, category: "date" },
   { value: "title", label: "Task Title", icon: Type, category: "text" },
   { value: "priority", label: "Priority", icon: Star, category: "text" },

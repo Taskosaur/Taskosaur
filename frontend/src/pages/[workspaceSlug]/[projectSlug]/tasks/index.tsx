@@ -593,6 +593,13 @@ function ProjectTasksContent() {
       let aValue = a[sortField];
       let bValue = b[sortField];
       
+      if (sortField === "dueIn") {
+        const now = Date.now();
+        const aDue = a.dueDate ? new Date(a.dueDate).getTime() - now : Infinity;
+        const bDue = b.dueDate ? new Date(b.dueDate).getTime() - now : Infinity;
+        return sortOrder === "asc" ? aDue - bDue : bDue - aDue;
+      }
+
       // Handle date fields
       if (["createdAt", "updatedAt", "completedAt", "dueDate", "timeline"].includes(sortField)) {
         aValue = aValue ? new Date(aValue).getTime() : 0;

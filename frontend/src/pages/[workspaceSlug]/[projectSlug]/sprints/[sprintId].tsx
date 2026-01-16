@@ -673,6 +673,14 @@ const SprintTasksTable = () => {
     const sorted = [...tasks].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
+      
+      if (sortField === "dueIn") {
+        const now = Date.now();
+        const aDue = a.dueDate ? new Date(a.dueDate).getTime() - now : Infinity;
+        const bDue = b.dueDate ? new Date(b.dueDate).getTime() - now : Infinity;
+        return sortOrder === "asc" ? aDue - bDue : bDue - aDue;
+      }
+
       if (["createdAt", "updatedAt", "completedAt", "timeline"].includes(sortField)) {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
