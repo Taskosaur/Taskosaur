@@ -13,7 +13,9 @@ describe('ProjectsController (e2e)', () => {
   let jwtService: JwtService;
 
   let user: any;
+  let user2: any;
   let accessToken: string;
+  let memberAccessToken: string;
   let workspaceId: string;
   let projectId: string;
   let organizationId: string;
@@ -40,9 +42,24 @@ describe('ProjectsController (e2e)', () => {
       },
     });
 
+    // Create a second test user (MEMBER)
+    user2 = await prismaService.user.create({
+      data: {
+        email: `proj-member-${Date.now()}@example.com`,
+        password: 'StrongPassword123!',
+        firstName: 'Project',
+        lastName: 'Member',
+        username: `proj_mem_${Date.now()}`,
+        role: Role.MEMBER,
+      },
+    });
+
     // Generate token
     const payload = { sub: user.id, email: user.email, role: user.role };
     accessToken = jwtService.sign(payload);
+
+    const memberPayload = { sub: user2.id, email: user2.email, role: user2.role };
+    memberAccessToken = jwtService.sign(memberPayload);
 
     // Create Organization
     const organization = await prismaService.organization.create({
@@ -88,6 +105,15 @@ describe('ProjectsController (e2e)', () => {
         role: Role.OWNER,
       },
     });
+
+    // Add user2 to workspace as MEMBER
+    await prismaService.workspaceMember.create({
+      data: {
+        userId: user2.id,
+        workspaceId: workspace.id,
+        role: Role.MEMBER,
+      },
+    });
   });
 
   afterAll(async () => {
@@ -96,7 +122,7 @@ describe('ProjectsController (e2e)', () => {
       await prismaService.project.deleteMany({ where: { workspaceId } });
       await prismaService.workspace.delete({ where: { id: workspaceId } });
       await prismaService.organization.delete({ where: { id: organizationId } });
-      await prismaService.user.delete({ where: { id: user.id } });
+      await prismaService.user.deleteMany({ where: { id: { in: [user.id, user2.id] } } });
     }
     await app.close();
   });
@@ -127,6 +153,24 @@ describe('ProjectsController (e2e)', () => {
           expect(res.body.name).toBe(createProjectDto.name);
           expect(res.body.slug).toBe(createProjectDto.slug);
           projectId = res.body.id;
+        });
+    });
+
+    it('should handle slug collision by modifying the slug', () => {
+      // Attempt to create another project with the same slug
+      const duplicateSlugDto = { ...createProjectDto };
+      
+      return request(app.getHttpServer())
+        .post('/api/projects')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(duplicateSlugDto)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('id');
+          expect(res.body.name).toBe(duplicateSlugDto.name);
+          // Expect slug to be modified (e.g., appended with -1)
+          expect(res.body.slug).not.toBe(duplicateSlugDto.slug);
+          expect(res.body.slug).toMatch(new RegExp(`^${duplicateSlugDto.slug}-\\d+$`));
         });
     });
   });
@@ -173,8 +217,58 @@ describe('ProjectsController (e2e)', () => {
     });
   });
 
+  describe('/projects/archive/:id (PATCH)', () => {
+    let projectToArchiveId: string;
+
+    beforeAll(async () => {
+        // Create a separate project for archiving test
+        const archiveDto = { ...createProjectDto, slug: `archive-test-${Date.now()}` };
+        const res = await request(app.getHttpServer())
+            .post('/api/projects')
+            .set('Authorization', `Bearer ${accessToken}`)
+            .send(archiveDto);
+        projectToArchiveId = res.body.id;
+    });
+
+    it('should archive the project', () => {
+        return request(app.getHttpServer())
+            .patch(`/api/projects/archive/${projectToArchiveId}`)
+            .set('Authorization', `Bearer ${accessToken}`)
+            .expect(HttpStatus.NO_CONTENT);
+    });
+
+    it('should verify project is archived', async () => {
+        // Check direct access
+        const res = await request(app.getHttpServer())
+            .get(`/api/projects/${projectToArchiveId}`)
+            .set('Authorization', `Bearer ${accessToken}`)
+            .expect(HttpStatus.OK);
+        
+        expect(res.body.archive).toBe(true);
+    });
+
+    it('should exclude archived project from lists', () => {
+        return request(app.getHttpServer())
+            .get('/api/projects')
+            .query({ workspaceId })
+            .set('Authorization', `Bearer ${accessToken}`)
+            .expect(HttpStatus.OK)
+            .expect((res) => {
+                const archivedProject = res.body.find((p: any) => p.id === projectToArchiveId);
+                expect(archivedProject).toBeUndefined();
+            });
+    });
+  });
+
   describe('/projects/:id (DELETE)', () => {
-    it('should delete the project', () => {
+    it('should prevent non-owners from deleting the project', () => {
+      return request(app.getHttpServer())
+        .delete(`/api/projects/${projectId}`)
+        .set('Authorization', `Bearer ${memberAccessToken}`)
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('should delete the project (owner)', () => {
       return request(app.getHttpServer())
         .delete(`/api/projects/${projectId}`)
         .set('Authorization', `Bearer ${accessToken}`)
