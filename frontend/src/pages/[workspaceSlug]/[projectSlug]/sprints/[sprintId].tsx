@@ -671,19 +671,31 @@ const SprintTasksTable = () => {
   // Sorting logic for tasks (client-side sorting of server results)
   const sortedTasks = useMemo(() => {
     const sorted = [...tasks].sort((a, b) => {
-      let aValue = a[sortField];
-      let bValue = b[sortField];
+      const aValue = a[sortField];
+      const bValue = b[sortField];
       
       if (sortField === "dueIn") {
         const now = Date.now();
-        const aDue = a.dueDate ? new Date(a.dueDate).getTime() - now : Infinity;
-        const bDue = b.dueDate ? new Date(b.dueDate).getTime() - now : Infinity;
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        
+        const aDue = new Date(a.dueDate).getTime() - now;
+        const bDue = new Date(b.dueDate).getTime() - now;
         return sortOrder === "asc" ? aDue - bDue : bDue - aDue;
       }
 
-      if (["createdAt", "updatedAt", "completedAt", "timeline"].includes(sortField)) {
-        aValue = aValue ? new Date(aValue).getTime() : 0;
-        bValue = bValue ? new Date(bValue).getTime() : 0;
+      if (["createdAt", "updatedAt", "completedAt", "dueDate", "timeline"].includes(sortField)) {
+        const aVal = a[sortField];
+        const bVal = b[sortField];
+        
+        if (!aVal && !bVal) return 0;
+        if (!aVal) return 1;
+        if (!bVal) return -1;
+        
+        const aTime = new Date(aVal).getTime();
+        const bTime = new Date(bVal).getTime();
+        return sortOrder === "asc" ? aTime - bTime : bTime - aTime;
       }
       if (typeof aValue === "string" && typeof bValue === "string") {
         return sortOrder === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
