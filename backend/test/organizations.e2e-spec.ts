@@ -6,6 +6,7 @@ import { PrismaService } from './../src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
 import { CreateOrganizationDto } from './../src/modules/organizations/dto/create-organization.dto';
+import { UpdateOrganizationDto } from './../src/modules/organizations/dto/update-organization.dto';
 
 describe('OrganizationsController (e2e)', () => {
   let app: INestApplication;
@@ -15,6 +16,7 @@ describe('OrganizationsController (e2e)', () => {
   let user: any;
   let accessToken: string;
   let organizationId: string;
+  let organizationSlug: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -57,6 +59,7 @@ describe('OrganizationsController (e2e)', () => {
       const createDto: CreateOrganizationDto = {
         name: 'E2E Organization',
         ownerId: user.id,
+        description: 'Test Description',
       };
 
       return request(app.getHttpServer())
@@ -67,8 +70,9 @@ describe('OrganizationsController (e2e)', () => {
         .expect((res) => {
           expect(res.body).toHaveProperty('id');
           expect(res.body.name).toBe(createDto.name);
-          expect(res.body).toHaveProperty('slug'); // Slug is generated
+          expect(res.body).toHaveProperty('slug');
           organizationId = res.body.id;
+          organizationSlug = res.body.slug;
         });
     });
   });
@@ -88,7 +92,7 @@ describe('OrganizationsController (e2e)', () => {
   });
 
   describe('/organizations/:id (GET)', () => {
-    it('should get an organization', () => {
+    it('should get an organization by ID', () => {
       return request(app.getHttpServer())
         .get(`/api/organizations/${organizationId}`)
         .set('Authorization', `Bearer ${accessToken}`)
@@ -100,9 +104,36 @@ describe('OrganizationsController (e2e)', () => {
     });
   });
 
+  describe('/organizations/slug/:slug (GET)', () => {
+    it('should get an organization by slug', () => {
+      return request(app.getHttpServer())
+        .get(`/api/organizations/slug/${organizationSlug}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.id).toBe(organizationId);
+          expect(res.body.slug).toBe(organizationSlug);
+        });
+    });
+  });
+
+  describe('/organizations/:id/stats (GET)', () => {
+    it('should get organization statistics', () => {
+      return request(app.getHttpServer())
+        .get(`/api/organizations/${organizationId}/stats`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('statistics');
+          expect(res.body).toHaveProperty('recentActivities');
+          expect(res.body.organizationId).toBe(organizationId);
+        });
+    });
+  });
+
   describe('/organizations/:id (PATCH)', () => {
     it('should update an organization', () => {
-      const updateDto = { name: 'Updated Organization' };
+      const updateDto: UpdateOrganizationDto = { name: 'Updated Organization' };
       return request(app.getHttpServer())
         .patch(`/api/organizations/${organizationId}`)
         .set('Authorization', `Bearer ${accessToken}`)
@@ -110,6 +141,26 @@ describe('OrganizationsController (e2e)', () => {
         .expect(HttpStatus.OK)
         .expect((res) => {
           expect(res.body.name).toBe(updateDto.name);
+        });
+    });
+  });
+
+  describe('/organizations/archive/:id (PATCH)', () => {
+    it('should archive an organization', () => {
+      return request(app.getHttpServer())
+        .patch(`/api/organizations/archive/${organizationId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.NO_CONTENT);
+    });
+
+    it('should not list archived organizations', () => {
+      return request(app.getHttpServer())
+        .get('/api/organizations')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          const org = res.body.find((o: any) => o.id === organizationId);
+          expect(org).toBeUndefined();
         });
     });
   });
