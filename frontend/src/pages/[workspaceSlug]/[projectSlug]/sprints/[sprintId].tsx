@@ -52,6 +52,7 @@ const SprintTasksTable = () => {
     isLoading,
     error: contextError,
     taskResponse,
+    updateTask,
   } = useTask();
 
   const SORT_FIELD_KEY = "tasks_sort_field";
@@ -373,6 +374,19 @@ const SprintTasksTable = () => {
     selectedStatuses,
     selectedPriorities,
   ]);
+
+  const handleTaskUpdate = useCallback(
+    async (taskId: string, updates: any) => {
+      try {
+        await updateTask(taskId, updates);
+        // Refresh Gantt data if needed
+        loadGanttData();
+      } catch (error) {
+        console.error("Failed to update task:", error);
+      }
+    },
+    [updateTask, loadGanttData]
+  );
 
   useEffect(() => {
     if (!project?.id || membersLoaded) return;
@@ -776,6 +790,7 @@ const SprintTasksTable = () => {
             projectSlug={tasks[0]?.project?.slug || ""}
             viewMode={ganttViewMode}
             onViewModeChange={setGanttViewMode}
+            onTaskUpdate={handleTaskUpdate}
           />
         );
       default:

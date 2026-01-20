@@ -78,6 +78,7 @@ function WorkspaceTasksContent() {
     isLoading,
     error: contextError,
     taskResponse,
+    updateTask,
   } = useTask();
 
   const { isAuthenticated, getUserAccess } = useAuth();
@@ -385,6 +386,18 @@ function WorkspaceTasksContent() {
       setIsInitialLoad(false);
     }
   }, [workspace?.id, getCalendarTask]);
+
+  const handleTaskUpdate = useCallback(
+    async (taskId: string, updates: any) => {
+      try {
+        await updateTask(taskId, updates);
+        loadGanttData();
+      } catch (error) {
+        console.error("Failed to update task:", error);
+      }
+    },
+    [updateTask, loadGanttData]
+  );
 
   useEffect(() => {
     if (currentView === "gantt" && workspace?.id) {
@@ -952,6 +965,7 @@ function WorkspaceTasksContent() {
             projectSlug="default-project"
             viewMode={ganttViewMode}
             onViewModeChange={setGanttViewMode}
+            onTaskUpdate={handleTaskUpdate}
           />
         );
       default:

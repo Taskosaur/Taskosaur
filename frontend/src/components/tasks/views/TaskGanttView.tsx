@@ -22,6 +22,7 @@ export default function TaskGanttView({
   projectSlug,
   viewMode: externalViewMode,
   onViewModeChange,
+  onTaskUpdate,
 }: TaskGanttViewProps) {
   const router = useRouter();
 
@@ -373,6 +374,7 @@ export default function TaskGanttView({
                       onHover={setHoveredTask}
                       onFocus={setFocusedTask}
                       onKeyDown={handleKeyDown}
+                      onTaskUpdate={onTaskUpdate}
                     />
                   </div>
                 );

@@ -77,6 +77,7 @@ function ProjectTasksContent() {
     isLoading,
     error: contextError,
     taskResponse,
+    updateTask,
   } = useTask();
 
   const { getUserAccess, isAuthenticated } = useAuth();
@@ -505,6 +506,21 @@ function ProjectTasksContent() {
       setIsInitialLoad(false);
     }
   }, [currentOrganizationId, workspace?.id, project?.id, isAuth]);
+
+  const handleTaskUpdate = useCallback(
+    async (taskId: string, updates: any) => {
+      try {
+        await updateTask(taskId, updates);
+        // Refresh Gantt data if needed, or rely on optimistic update in context
+        if (isAuth) {
+          loadGanttData();
+        }
+      } catch (error) {
+        console.error("Failed to update task:", error);
+      }
+    },
+    [updateTask, isAuth, loadGanttData]
+  );
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -1102,6 +1118,7 @@ function ProjectTasksContent() {
             projectSlug={projectSlug as string}
             viewMode={ganttViewMode}
             onViewModeChange={setGanttViewMode}
+            onTaskUpdate={handleTaskUpdate}
           />
         );
       default:

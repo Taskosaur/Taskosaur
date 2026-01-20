@@ -63,7 +63,7 @@ interface PaginationInfo {
 
 function TasksPageContent() {
   const router = useRouter();
-  const { getAllTasks, getCalendarTask, getAllTaskStatuses, isLoading: taskLoading, taskResponse, tasks } = useTask();
+  const { getAllTasks, getCalendarTask, getAllTaskStatuses, isLoading: taskLoading, taskResponse, tasks, updateTask } = useTask();
   const { getWorkspacesByOrganization } = useWorkspaceContext();
   const { getProjectsByOrganization, getTaskStatusByProject } = useProjectContext();
   const { getCurrentUser, getUserAccess } = useAuth();
@@ -393,6 +393,18 @@ function TasksPageContent() {
     pageSize,
     debouncedSearchQuery,
   ]);
+
+  const handleTaskUpdate = useCallback(
+    async (taskId: string, updates: any) => {
+      try {
+        await updateTask(taskId, updates);
+        // If we were using separate ganttTasks state, we'd need to update it here
+      } catch (error) {
+        console.error("Failed to update task:", error);
+      }
+    },
+    [updateTask]
+  );
 
   // Load Gantt data when Gantt tab is active
   useEffect(() => {
@@ -915,6 +927,7 @@ function TasksPageContent() {
           projectSlug={defaultProject.slug}
           viewMode={ganttViewMode}
           onViewModeChange={setGanttViewMode}
+          onTaskUpdate={handleTaskUpdate}
         />
       );
     }
