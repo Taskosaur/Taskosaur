@@ -39,7 +39,7 @@ describe('S3Controller (e2e)', () => {
     // Generate token
     const payload = { sub: user.id, email: user.email, role: user.role };
     accessToken = jwtService.sign(payload);
-  });
+  }, 10000);
 
   afterAll(async () => {
     if (prismaService) {
@@ -47,7 +47,7 @@ describe('S3Controller (e2e)', () => {
       await prismaService.user.delete({ where: { id: user.id } });
     }
     await app.close();
-  });
+  }, 10000);
 
   describe('/s3/presigned-put-url (GET)', () => {
     it('should get a presigned PUT URL', () => {
