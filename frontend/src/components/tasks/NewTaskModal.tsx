@@ -377,6 +377,11 @@ export function NewTaskModal({
       
       if (activeSprint) {
         setFormData(prev => ({ ...prev, sprintId: activeSprint.id }));
+      } else if (projectSprints && projectSprints.length > 0) {
+        const defaultSprint = projectSprints.find((s: any) => s.isDefault);
+        if (defaultSprint) {
+          setFormData(prev => ({ ...prev, sprintId: defaultSprint.id }));
+        }
       }
     } catch (error) {
       console.error("Failed to load sprints:", error);
