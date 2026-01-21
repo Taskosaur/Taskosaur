@@ -113,14 +113,16 @@ export class InvitationsService {
     });
 
     // Try to send the invitation email, but don't fail the entire operation if email fails
+    let emailSent = false;
     try {
       await this.sendInvitationEmail(invitation);
+      emailSent = true;
     } catch (error) {
       console.error('Failed to send invitation email:', error);
       // Continue execution - the invitation was created successfully
     }
 
-    return invitation;
+    return { ...invitation, emailSent };
   }
   async deleteInvitation(invitationId: string) {
     const invitation = await this.prisma.invitation.findUnique({

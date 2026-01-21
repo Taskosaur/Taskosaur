@@ -33,6 +33,9 @@ export class EmailProcessor {
         user: smtpUser,
         pass: smtpPass,
       },
+      tls: {
+        rejectUnauthorized: this.configService.get('NODE_ENV') !== 'development',
+      },
     });
 
     // Note: SMTP connection will be verified only when sending emails

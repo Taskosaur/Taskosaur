@@ -137,7 +137,7 @@ export class EmailService {
             organization: {
               name: task.project.workspace.organization.name,
             },
-            taskUrl: `${this.configService.get('FRONTEND_URL')}/tasks/${task.slug}`,
+            taskUrl: `${this.configService.getOrThrow('FRONTEND_URL')}/tasks/${task.slug}`,
           },
           priority: EmailPriority.HIGH,
         });
@@ -196,7 +196,7 @@ export class EmailService {
                 name: task.project.name,
                 key: task.project.slug,
               },
-              taskUrl: `${this.configService.get('FRONTEND_URL')}/tasks/${task.slug}`,
+              taskUrl: `${this.configService.getOrThrow('FRONTEND_URL')}/tasks/${task.slug}`,
             },
             priority: hoursUntilDue <= 2 ? EmailPriority.HIGH : EmailPriority.NORMAL,
           }),
@@ -293,7 +293,7 @@ export class EmailService {
             name: task.project.name,
             key: task.project.slug,
           },
-          taskUrl: `${this.configService.get('FRONTEND_URL')}/tasks/${task.slug}`,
+          taskUrl: `${this.configService.getOrThrow('FRONTEND_URL')}/tasks/${task.slug}`,
         },
         priority: EmailPriority.NORMAL,
       });
@@ -386,7 +386,7 @@ export class EmailService {
               title: task.title,
               dueDate: task.dueDate,
               project: task.project.name,
-              url: `${this.configService.get('FRONTEND_URL')}/tasks/${task.slug}`,
+              url: `${this.configService.getOrThrow('FRONTEND_URL')}/tasks/${task.slug}`,
             })),
           },
         },
