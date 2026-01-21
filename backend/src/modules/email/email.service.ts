@@ -349,7 +349,7 @@ export class EmailService {
             name: task.project.name,
             key: task.project.slug,
           },
-              taskUrl: `${this.configService.getOrThrow('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`,
+          taskUrl: `${this.configService.getOrThrow('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`,
         },
         priority: EmailPriority.NORMAL,
       });
