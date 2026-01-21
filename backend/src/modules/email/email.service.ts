@@ -32,17 +32,23 @@ export class EmailService {
 
     const priority = this.getPriorityNumber(emailDto.priority || EmailPriority.NORMAL);
 
-    await this.emailQueue.add('send-email', jobData, {
-      priority,
-      delay: emailDto.delay || 0,
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 2000,
-      },
-    });
+    try {
+      await this.emailQueue.add('send-email', jobData, {
+        priority,
+        delay: emailDto.delay || 0,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+      });
 
-    this.logger.log(`Email queued for ${emailDto.to} with template ${emailDto.template}`);
+      this.logger.log(`Email queued for ${emailDto.to} with template ${emailDto.template}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to queue email for ${emailDto.to}: ${errorMessage}`);
+      throw error;
+    }
   }
 
   async sendBulkEmail(bulkEmailDto: BulkEmailDto): Promise<void> {
@@ -137,7 +143,7 @@ export class EmailService {
             organization: {
               name: task.project.workspace.organization.name,
             },
-            taskUrl: `${this.configService.getOrThrow('FRONTEND_URL')}/tasks/${task.slug}`,
+            taskUrl: `${this.configService.getOrThrow('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`,
           },
           priority: EmailPriority.HIGH,
         });
@@ -196,7 +202,7 @@ export class EmailService {
                 name: task.project.name,
                 key: task.project.slug,
               },
-              taskUrl: `${this.configService.getOrThrow('FRONTEND_URL')}/tasks/${task.slug}`,
+              taskUrl: `${this.configService.getOrThrow('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`,
             },
             priority: hoursUntilDue <= 2 ? EmailPriority.HIGH : EmailPriority.NORMAL,
           }),
@@ -209,7 +215,7 @@ export class EmailService {
     }
   }
 
-  async sendTaskStatusChangedEmail(taskId: string, oldStatusId: string): Promise<void> {
+  async sendTaskStatusChangedEmail(taskId: string, oldStatusId?: string): Promise<void> {
     try {
       const task = await this.prisma.task.findUnique({
         where: { id: taskId },
@@ -234,12 +240,62 @@ export class EmailService {
         },
       });
 
-      const oldStatus = await this.prisma.taskStatus.findUnique({
-        where: { id: oldStatusId },
-      });
-
-      if (!task || !oldStatus) {
+      if (!task) {
         return;
+      }
+
+      // If oldStatusId is not provided, try to get it from the most recent activity log
+      let oldStatus: { name: string; color: string } | null = null;
+      if (oldStatusId) {
+        const status = await this.prisma.taskStatus.findUnique({
+          where: { id: oldStatusId },
+        });
+        if (status) {
+          oldStatus = {
+            name: status.name,
+            color: status.color,
+          };
+        }
+      } else {
+        // Fetch the most recent status change activity log entry
+        const recentActivity = await this.prisma.activityLog.findFirst({
+          where: {
+            entityId: taskId,
+            entityType: 'Task',
+            type: 'TASK_STATUS_CHANGED',
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        if (recentActivity?.oldValue) {
+          const oldValue = recentActivity.oldValue as any;
+          let statusId: string | undefined;
+          if (oldValue.statusId) {
+            statusId = oldValue.statusId;
+          } else if (oldValue.status?.id) {
+            statusId = oldValue.status.id;
+          }
+
+          if (statusId) {
+            const status = await this.prisma.taskStatus.findUnique({
+              where: { id: statusId },
+            });
+            if (status) {
+              oldStatus = {
+                name: status.name,
+                color: status.color,
+              };
+            }
+          }
+        }
+      }
+
+      // If we still don't have oldStatus, use a default
+      if (!oldStatus) {
+        oldStatus = {
+          name: 'Previous Status',
+          color: '#6b7280',
+        };
       }
 
       // Collect all recipients (assignees, reporters, watchers)
@@ -293,7 +349,7 @@ export class EmailService {
             name: task.project.name,
             key: task.project.slug,
           },
-          taskUrl: `${this.configService.getOrThrow('FRONTEND_URL')}/tasks/${task.slug}`,
+              taskUrl: `${this.configService.getOrThrow('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`,
         },
         priority: EmailPriority.NORMAL,
       });
@@ -386,7 +442,7 @@ export class EmailService {
               title: task.title,
               dueDate: task.dueDate,
               project: task.project.name,
-              url: `${this.configService.getOrThrow('FRONTEND_URL')}/tasks/${task.slug}`,
+              url: `${this.configService.getOrThrow('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`,
             })),
           },
         },
@@ -549,6 +605,397 @@ export class EmailService {
         error,
       );
       throw error;
+    }
+  }
+
+  async sendTaskCommentedEmail(
+    taskId: string,
+    commentId: string,
+    commenterId: string,
+    recipientIds: string[],
+  ): Promise<void> {
+    try {
+      const comment = await this.prisma.taskComment.findUnique({
+        where: { id: commentId },
+        include: {
+          author: true,
+          task: {
+            include: {
+              project: {
+                include: {
+                  workspace: {
+                    include: {
+                      organization: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!comment) {
+        this.logger.warn(`Comment ${commentId} not found`);
+        return;
+      }
+
+      const commenter = comment.author;
+      const recipients = await this.prisma.user.findMany({
+        where: { id: { in: recipientIds } },
+      });
+
+      const emailPromises = recipients
+        .filter((recipient) => recipient.email)
+        .map((recipient) =>
+          this.sendEmail({
+            to: recipient.email,
+            subject: `New Comment on Task: ${comment.task.title}`,
+            template: EmailTemplate.TASK_COMMENTED,
+            data: {
+              task: {
+                id: comment.task.id,
+                key: comment.task.slug,
+                title: comment.task.title,
+              },
+              comment: {
+                id: comment.id,
+                content: comment.content,
+                createdAt: comment.createdAt,
+              },
+              commenter: {
+                name: `${commenter.firstName} ${commenter.lastName}`,
+                email: commenter.email,
+              },
+              recipient: {
+                name: `${recipient.firstName} ${recipient.lastName}`,
+              },
+              project: {
+                name: comment.task.project.name,
+                key: comment.task.project.slug,
+              },
+              organization: {
+                name: comment.task.project.workspace.organization.name,
+              },
+              taskUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/tasks/${comment.task.id}`,
+            },
+            priority: EmailPriority.NORMAL,
+          }),
+        );
+
+      await Promise.all(emailPromises);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send task commented email: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  async sendProjectCreatedEmail(
+    projectId: string,
+    creatorId: string,
+    recipientIds: string[],
+  ): Promise<void> {
+    try {
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        include: {
+          workspace: {
+            include: {
+              organization: true,
+            },
+          },
+        },
+      });
+
+      if (!project) {
+        this.logger.warn(`Project ${projectId} not found`);
+        return;
+      }
+
+      const creator = await this.prisma.user.findUnique({
+        where: { id: creatorId },
+      });
+
+      if (!creator) {
+        this.logger.warn(`Creator ${creatorId} not found`);
+        return;
+      }
+
+      const recipients = await this.prisma.user.findMany({
+        where: { id: { in: recipientIds } },
+      });
+
+      const emailPromises = recipients
+        .filter((recipient) => recipient.email)
+        .map((recipient) =>
+          this.sendEmail({
+            to: recipient.email,
+            subject: `New Project Created: ${project.name}`,
+            template: EmailTemplate.PROJECT_CREATED,
+            data: {
+              project: {
+                id: project.id,
+                name: project.name,
+                key: project.slug,
+                description: project.description,
+              },
+              creator: {
+                name: `${creator.firstName} ${creator.lastName}`,
+                email: creator.email,
+              },
+              recipient: {
+                name: `${recipient.firstName} ${recipient.lastName}`,
+              },
+              workspace: {
+                name: project.workspace.name,
+                key: project.workspace.slug,
+              },
+              organization: {
+                name: project.workspace.organization.name,
+              },
+              projectUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/projects/${project.slug}`,
+            },
+            priority: EmailPriority.NORMAL,
+          }),
+        );
+
+      await Promise.all(emailPromises);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send project created email: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  async sendProjectUpdatedEmail(
+    projectId: string,
+    updaterId: string,
+    recipientIds: string[],
+  ): Promise<void> {
+    try {
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        include: {
+          workspace: {
+            include: {
+              organization: true,
+            },
+          },
+        },
+      });
+
+      if (!project) {
+        this.logger.warn(`Project ${projectId} not found`);
+        return;
+      }
+
+      const updater = await this.prisma.user.findUnique({
+        where: { id: updaterId },
+      });
+
+      if (!updater) {
+        this.logger.warn(`Updater ${updaterId} not found`);
+        return;
+      }
+
+      const recipients = await this.prisma.user.findMany({
+        where: { id: { in: recipientIds } },
+      });
+
+      const emailPromises = recipients
+        .filter((recipient) => recipient.email)
+        .map((recipient) =>
+          this.sendEmail({
+            to: recipient.email,
+            subject: `Project Updated: ${project.name}`,
+            template: EmailTemplate.PROJECT_UPDATED,
+            data: {
+              project: {
+                id: project.id,
+                name: project.name,
+                key: project.slug,
+                description: project.description,
+              },
+              updater: {
+                name: `${updater.firstName} ${updater.lastName}`,
+                email: updater.email,
+              },
+              recipient: {
+                name: `${recipient.firstName} ${recipient.lastName}`,
+              },
+              workspace: {
+                name: project.workspace.name,
+                key: project.workspace.slug,
+              },
+              organization: {
+                name: project.workspace.organization.name,
+              },
+              projectUrl: `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/projects/${project.slug}`,
+            },
+            priority: EmailPriority.NORMAL,
+          }),
+        );
+
+      await Promise.all(emailPromises);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send project updated email: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  async sendMentionEmail(
+    entityType: string,
+    entityId: string,
+    mentionedUserId: string,
+    mentionerId: string,
+  ): Promise<void> {
+    try {
+      const mentionedUser = await this.prisma.user.findUnique({
+        where: { id: mentionedUserId },
+      });
+
+      const mentioner = await this.prisma.user.findUnique({
+        where: { id: mentionerId },
+      });
+
+      if (!mentionedUser?.email || !mentioner) {
+        this.logger.warn(`User data not found for mention email`);
+        return;
+      }
+
+      let entityData: any = null;
+      let entityUrl = '';
+      let entityName = '';
+
+      if (entityType.toLowerCase() === 'task') {
+        const task = await this.prisma.task.findUnique({
+          where: { id: entityId },
+          include: {
+            project: {
+              include: {
+                workspace: {
+                  include: {
+                    organization: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (task) {
+          entityData = {
+            id: task.id,
+            key: task.slug,
+            title: task.title,
+          };
+          entityName = task.title;
+          entityUrl = `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`;
+        }
+      } else if (entityType.toLowerCase() === 'taskcomment') {
+        const comment = await this.prisma.taskComment.findUnique({
+          where: { id: entityId },
+          include: {
+            task: {
+              include: {
+                project: {
+                  include: {
+                    workspace: {
+                      include: {
+                        organization: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (comment) {
+          entityData = {
+            id: comment.task.id,
+            key: comment.task.slug,
+            title: comment.task.title,
+          };
+          entityName = comment.task.title;
+          entityUrl = `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/tasks/${comment.task.id}#comments`;
+        }
+      }
+
+      if (!entityData) {
+        this.logger.warn(`Entity ${entityType} with id ${entityId} not found`);
+        return;
+      }
+
+      await this.sendEmail({
+        to: mentionedUser.email,
+        subject: `${mentioner.firstName} ${mentioner.lastName} mentioned you`,
+        template: EmailTemplate.MENTION,
+        data: {
+          mentioner: {
+            name: `${mentioner.firstName} ${mentioner.lastName}`,
+            email: mentioner.email,
+          },
+          mentionedUser: {
+            name: `${mentionedUser.firstName} ${mentionedUser.lastName}`,
+          },
+          entity: entityData,
+          entityType: entityType.toLowerCase(),
+          entityUrl,
+          entityName,
+        },
+        priority: EmailPriority.HIGH,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send mention email: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  async sendSystemNotificationEmail(
+    userId: string,
+    notificationData: {
+      title: string;
+      message: string;
+      actionUrl?: string;
+    },
+  ): Promise<void> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user?.email) {
+        this.logger.warn(`User ${userId} not found or has no email`);
+        return;
+      }
+
+      await this.sendEmail({
+        to: user.email,
+        subject: notificationData.title,
+        template: EmailTemplate.SYSTEM,
+        data: {
+          user: {
+            name: `${user.firstName} ${user.lastName}`,
+          },
+          notification: {
+            title: notificationData.title,
+            message: notificationData.message,
+            actionUrl:
+              notificationData.actionUrl ||
+              `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/`,
+          },
+        },
+        priority: EmailPriority.LOW,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send system notification email: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 }
