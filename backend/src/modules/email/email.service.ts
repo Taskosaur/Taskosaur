@@ -106,8 +106,11 @@ export class EmailService {
         where: { id: assignedById },
       });
 
-      // Send email to each assignee
-      for (const assignee of task.assignees) {
+      // Filter to only include the assignees that were just added (present in assigneeIds)
+      const newAssignees = task.assignees.filter((assignee) => assigneeIds.includes(assignee.id));
+
+      // Send email to each NEW assignee
+      for (const assignee of newAssignees) {
         if (!assignee.email) {
           this.logger.warn(`No email found for assignee ${assignee.id}`);
           continue;
@@ -215,7 +218,11 @@ export class EmailService {
     }
   }
 
-  async sendTaskStatusChangedEmail(taskId: string, oldStatusId?: string): Promise<void> {
+  async sendTaskStatusChangedEmail(
+    taskId: string,
+    oldStatusId?: string,
+    actorId?: string,
+  ): Promise<void> {
     try {
       const task = await this.prisma.task.findUnique({
         where: { id: taskId },
@@ -267,6 +274,11 @@ export class EmailService {
           orderBy: { createdAt: 'desc' },
         });
 
+        // Use the userId from activity log as actorId if not provided
+        if (!actorId && recentActivity?.userId) {
+          actorId = recentActivity.userId;
+        }
+
         if (recentActivity?.oldValue) {
           const oldValue = recentActivity.oldValue as any;
           let statusId: string | undefined;
@@ -303,21 +315,21 @@ export class EmailService {
 
       // Add all assignees' emails
       task.assignees?.forEach((assignee) => {
-        if (assignee.email) {
+        if (assignee.email && assignee.id !== actorId) {
           recipients.add(assignee.email);
         }
       });
 
       // Add all reporters' emails
       task.reporters?.forEach((reporter) => {
-        if (reporter.email) {
+        if (reporter.email && reporter.id !== actorId) {
           recipients.add(reporter.email);
         }
       });
 
       // Add watchers' emails
       task.watchers.forEach((watcher) => {
-        if (watcher.user.email) {
+        if (watcher.user.email && watcher.user.id !== actorId) {
           recipients.add(watcher.user.email);
         }
       });
@@ -483,6 +495,14 @@ export class EmailService {
       failed: failed.length,
     };
   }
+
+  isSmtpEnabled(): boolean {
+    const smtpHost = this.configService.get<string>('SMTP_HOST');
+    const smtpUser = this.configService.get<string>('SMTP_USER');
+    const smtpPass = this.configService.get<string>('SMTP_PASS');
+    return !!(smtpHost && smtpUser && smtpPass);
+  }
+
   async sendPasswordResetEmail(
     email: string,
     data: {
@@ -641,8 +661,12 @@ export class EmailService {
       }
 
       const commenter = comment.author;
+
+      // Filter out the commenter from recipients to prevent self-notification
+      const filteredRecipientIds = recipientIds.filter((id) => id !== commenterId);
+
       const recipients = await this.prisma.user.findMany({
-        where: { id: { in: recipientIds } },
+        where: { id: { in: filteredRecipientIds } },
       });
 
       const emailPromises = recipients
@@ -722,8 +746,11 @@ export class EmailService {
         return;
       }
 
+      // Filter out the creator from recipients to prevent self-notification
+      const filteredRecipientIds = recipientIds.filter((id) => id !== creatorId);
+
       const recipients = await this.prisma.user.findMany({
-        where: { id: { in: recipientIds } },
+        where: { id: { in: filteredRecipientIds } },
       });
 
       const emailPromises = recipients
@@ -799,8 +826,11 @@ export class EmailService {
         return;
       }
 
+      // Filter out the updater from recipients to prevent self-notification
+      const filteredRecipientIds = recipientIds.filter((id) => id !== updaterId);
+
       const recipients = await this.prisma.user.findMany({
-        where: { id: { in: recipientIds } },
+        where: { id: { in: filteredRecipientIds } },
       });
 
       const emailPromises = recipients
@@ -852,6 +882,10 @@ export class EmailService {
     mentionerId: string,
   ): Promise<void> {
     try {
+      if (mentionedUserId === mentionerId) {
+        return;
+      }
+
       const mentionedUser = await this.prisma.user.findUnique({
         where: { id: mentionedUserId },
       });

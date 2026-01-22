@@ -1,5 +1,11 @@
 // src/modules/invitations/invitations.service.ts
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EmailService } from '../email/email.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import * as crypto from 'crypto';
@@ -15,9 +21,19 @@ export class InvitationsService {
     private emailService: EmailService,
     private workspaceMemberService: WorkspaceMembersService,
     private organizationMemberService: OrganizationMembersService,
+    private configService: ConfigService,
   ) {}
 
   async createInvitation(dto: CreateInvitationDto, inviterId: string) {
+    const isSmtpEnabled = this.emailService.isSmtpEnabled();
+    const isDev = this.configService.get('NODE_ENV') === 'development';
+
+    if (!isSmtpEnabled && !isDev) {
+      throw new ServiceUnavailableException(
+        'Email service is not configured. Cannot send invitations.',
+      );
+    }
+
     const targetCount = [dto.organizationId, dto.workspaceId, dto.projectId].filter(Boolean).length;
 
     if (targetCount !== 1) {
