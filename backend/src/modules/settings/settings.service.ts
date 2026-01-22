@@ -209,12 +209,10 @@ export class SettingsService {
   async delete(key: string, userId?: string): Promise<void> {
     if (userId) {
       // Delete user-specific setting
-      await this.prisma.settings.delete({
+      await this.prisma.settings.deleteMany({
         where: {
-          userId_key: {
-            userId,
-            key,
-          },
+          userId,
+          key,
         },
       });
     } else {
