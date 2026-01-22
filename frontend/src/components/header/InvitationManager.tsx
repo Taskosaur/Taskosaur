@@ -154,7 +154,7 @@ export default function InvitationManager({ userId, className = "" }: Invitation
       <DropdownMenu>
         <Tooltip content="Invitations" position="bottom" color="primary">
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className={`header-button-base ${className}`}>
+            <Button variant="ghost" size="icon" className={`header-button-base ${className}`} data-automation-id="header-pending-invitations" aria-label="View pending invitations">
               <TbMailPlus className="header-button-icon" />
               {pendingInvites.length > 0 && (
                 <Badge

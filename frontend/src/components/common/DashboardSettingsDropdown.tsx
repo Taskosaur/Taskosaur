@@ -46,7 +46,12 @@ export function DashboardSettingsDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <ActionButton variant="default" className={triggerClassName}>
+        <ActionButton
+          variant="default"
+          className={triggerClassName}
+          data-automation-id="dashboard-settings-button"
+          aria-label="Dashboard Settings"
+        >
           <Settings className="h-4 w-4" />
         </ActionButton>
       </DropdownMenuTrigger>

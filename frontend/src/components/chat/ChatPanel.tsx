@@ -4,6 +4,7 @@ import { useChatContext } from "@/contexts/chat-context";
 import { mcpServer, extractContextFromPath } from "@/lib/mcp-server";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
+import { BrowserAgent } from "@/lib/browser-automation/browser-agent";
 
 interface Message {
   role: "user" | "assistant" | "system";
@@ -34,6 +35,10 @@ export default function ChatPanel() {
   const [panelWidth, setPanelWidth] = useState(400);
   const resizing = useRef(false);
 
+  // Browser automation state
+  const [isBrowserAgentRunning, setIsBrowserAgentRunning] = useState(false);
+  const browserAgentRef = useRef<BrowserAgent | null>(null);
+
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     resizing.current = true;
@@ -56,6 +61,16 @@ export default function ChatPanel() {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
+  }, []);
+
+  // Initialize browser agent
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !browserAgentRef.current) {
+      browserAgentRef.current = new BrowserAgent({
+        maxIterations: 30,
+        waitAfterAction: 500,
+      });
+    }
   }, []);
   // Auto-resize textarea function
   const adjustTextareaHeight = useCallback(() => {
@@ -216,38 +231,43 @@ export default function ChatPanel() {
     }
   }, [router]);
 
-  // Stable callback for handling streaming chunks
-  const handleChunk = useCallback((chunk: string) => {
-    setMessages((prev) => {
-      const updatedMessages = [...prev];
-      const lastMessageIndex = updatedMessages.length - 1;
-      const lastMessage = updatedMessages[lastMessageIndex];
+  // Handle browser automation
+  const handleBrowserAutomation = async (message: string) => {
+    if (!browserAgentRef.current) return;
 
-      if (lastMessage && lastMessage.role === "assistant") {
-        // Create a new message object instead of mutating
-        updatedMessages[lastMessageIndex] = {
-          ...lastMessage,
-          content: lastMessage.content + chunk,
-        };
-      } else {
-        console.warn("[Chat] No streaming message found to append chunk to", {
-          lastMessage,
-        });
+    setIsBrowserAgentRunning(true);
+
+    try {
+      const result = await browserAgentRef.current.executeTask(message);
+
+      let cleanMessage = result.message || "";
+      if (cleanMessage.startsWith("DONE:")) {
+        cleanMessage = cleanMessage.substring(5).trim() || "Done!";
+      } else if (cleanMessage.startsWith("ASK:")) {
+        cleanMessage = cleanMessage.substring(4).trim();
       }
-      return updatedMessages;
-    });
-  }, []);
+
+      const resultMessage: Message = {
+        role: "assistant",
+        content: cleanMessage,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, resultMessage]);
+    } catch (error: any) {
+      const errorMessage: Message = {
+        role: "assistant",
+        content: `Browser automation error: ${error.message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsBrowserAgentRunning(false);
+    }
+  };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
-
-    // If user sends a message with workspace/project specification, clear the manual flag
-    if (
-      inputValue.toLowerCase().includes("workspace") ||
-      inputValue.toLowerCase().includes("project")
-    ) {
-      setIsContextManuallyCleared(false);
-    }
+    if (!inputValue.trim() || isLoading || isBrowserAgentRunning) return;
 
     const userMessage: Message = {
       role: "user",
@@ -255,68 +275,10 @@ export default function ChatPanel() {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => {
-      return [...prev, userMessage];
-    });
+    setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
-    setIsLoading(true);
-    setError(null);
 
-    // Create streaming message placeholder
-    const assistantMessage: Message = {
-      role: "assistant",
-      content: "",
-      timestamp: new Date(),
-      isStreaming: true,
-    };
-
-    setMessages((prev) => {
-      return [...prev, assistantMessage];
-    });
-
-    try {
-      // Let backend handle all validation
-      await mcpServer.processMessage(userMessage.content, {
-        stream: true,
-        onChunk: handleChunk,
-      });
-
-      // Mark streaming as complete and sync final content
-      setMessages((prev) => {
-        const updatedMessages = [...prev];
-        const lastMessage = updatedMessages[updatedMessages.length - 1];
-        if (lastMessage && lastMessage.role === "assistant" && lastMessage.isStreaming) {
-          lastMessage.isStreaming = false;
-
-          // Sync final content from MCP history to ensure consistency
-          try {
-            const mcpHistory = mcpServer.getHistory();
-            if (mcpHistory.length > 0) {
-              const lastMcpMessage = mcpHistory[mcpHistory.length - 1];
-              if (lastMcpMessage.role === "assistant" && lastMcpMessage.content) {
-                // Only sync if the MCP content is substantially longer (indicating it has the full content)
-                if (lastMcpMessage.content.length > lastMessage.content.length) {
-                  lastMessage.content = lastMcpMessage.content;
-                }
-              }
-            }
-          } catch (error) {
-            console.warn("[Chat] Failed to sync final content:", error);
-          }
-        } else {
-          console.warn("[Chat] No streaming assistant message found to mark as complete");
-        }
-        return updatedMessages;
-      });
-    } catch (err: any) {
-      console.error("Chat error:", err);
-      setError(err.message || "Failed to send message");
-
-      // Remove the streaming placeholder message
-      setMessages((prev) => prev.slice(0, -1));
-    } finally {
-      setIsLoading(false);
-    }
+    await handleBrowserAutomation(userMessage.content);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -329,6 +291,7 @@ export default function ChatPanel() {
   const clearChat = () => {
     setMessages([]);
     mcpServer.clearHistory();
+    browserAgentRef.current?.reset();
   };
 
   const clearContext = async () => {
@@ -408,7 +371,7 @@ export default function ChatPanel() {
     <>
       {/* Chat Panel - positioned below header */}
       <div
-        className={`fixed top-0 right-0 bottom-0 bg-[var(--background)] border-l border-[var(--border)] z-40 transform transition-transform duration-300 ease-in-out h-full pb-20 ${
+        className={`fixed top-0 right-0 bottom-0 bg-[var(--background)] border-l border-[var(--border)] z-40 transform transition-transform duration-300 ease-in-out flex flex-col ${
           isChatOpen ? "translate-x-0" : "translate-x-full"
         }`}
         style={{ width: `${panelWidth}px` }}
@@ -418,7 +381,7 @@ export default function ChatPanel() {
           className="absolute left-0 top-0 bottom-0 w-0.5 cursor-col-resize bg-transparent hover:bg-gray-300/40"
         />
         {/* Chat Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--background)]">
+        <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--background)]">
           <div className="flex items-center gap-2">
             <HiSparkles className="w-5 h-5 text-blue-600" />
             <h2 className="text-lg font-semibold text-primary">AI Assistant</h2>
@@ -450,14 +413,14 @@ export default function ChatPanel() {
           </div>
         </div>
 
-        <div className="flex flex-col h-full">
-          <div
-            className="flex-1 overflow-y-auto px-4 py-4 space-y-6 chatgpt-scrollbar h-full"
-            style={{
-              scrollbarWidth: "none" /* Firefox */,
-              msOverflowStyle: "none" /* Internet Explorer 10+ */,
-            }}
-          >
+        {/* Messages Area */}
+        <div
+          className="flex-1 overflow-y-auto px-4 py-4 space-y-6 chatgpt-scrollbar"
+          style={{
+            scrollbarWidth: "none" /* Firefox */,
+            msOverflowStyle: "none" /* Internet Explorer 10+ */,
+          }}
+        >
             {messages.length === 0 ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center text-[var(--muted)] max-w-sm">
@@ -561,24 +524,65 @@ export default function ChatPanel() {
                     )}
                   </div>
                 ))}
+                {isBrowserAgentRunning && (
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-400 flex items-center justify-center flex-shrink-0">
+                    <HiSparkles className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex items-center gap-0.5 h-4">
+                    <span 
+                      className="w-1 bg-gray-400 rounded-sm animate-pulse" 
+                      style={{ 
+                        animationDuration: "1.2s",
+                        animationDelay: "0s",
+                        height: "40%"
+                      }} 
+                    />
+                    <span 
+                      className="w-1 bg-gray-400 rounded-sm animate-pulse" 
+                      style={{ 
+                        animationDuration: "1.2s",
+                        animationDelay: "0.2s",
+                        height: "60%"
+                      }} 
+                    />
+                    <span 
+                      className="w-1 bg-gray-400 rounded-sm animate-pulse" 
+                      style={{ 
+                        animationDuration: "1.2s",
+                        animationDelay: "0.4s",
+                        height: "80%"
+                      }} 
+                    />
+                    <span 
+                      className="w-1 bg-gray-400 rounded-sm animate-pulse" 
+                      style={{ 
+                        animationDuration: "1.2s",
+                        animationDelay: "0.6s",
+                        height: "60%"
+                      }} 
+                    />
+                  </div>
+                </div>
+              )}
                 <div ref={messagesEndRef} />
               </>
             )}
 
-            {error && (
-              <div className="mx-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center flex-shrink-0">
-                    <span className="text-red-600 dark:text-red-400 text-sm">!</span>
-                  </div>
-                  <p className="text-sm text-red-600 dark:text-red-400 mt-1">{error}</p>
+          {error && (
+            <div className="mx-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center flex-shrink-0">
+                  <span className="text-red-600 dark:text-red-400 text-sm">!</span>
                 </div>
+                <p className="text-sm text-red-600 dark:text-red-400 mt-1">{error}</p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
 
-          {/* Chat Input Area - Fixed at bottom with auto-expanding textarea */}
-          <div className="flex-shrink-0 border-t border-[var(--border)] bg-[var(--background)] pt-4 px-2">
+        {/* Chat Input Area - Fixed at bottom with auto-expanding textarea */}
+        <div className="flex-shrink-0 border-t border-[var(--border)] bg-[var(--background)] p-4">
             <div className="flex gap-3 items-end">
               <textarea
                 ref={textareaRef}
@@ -586,9 +590,12 @@ export default function ChatPanel() {
                 onChange={handleInputChange}
                 onKeyDown={handleKeyPress}
                 placeholder={
-                  !user ? "Please log in to use AI assistant..." : "Message AI Assistant..."
+                  !user
+                    ? "Please log in to use AI assistant..."
+                    :
+                      "Message AI Assistant..."
                 }
-                disabled={isLoading || !user}
+                disabled={isLoading || isBrowserAgentRunning || !user}
                 rows={1}
                 className="flex-1 px-4 py-3 bg-[var(--muted)] border-[var(--border)] focus:ring-1 focus:ring-[var(--border)] focus:border-transparent transition-all duration-200 rounded-xl shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
                 style={{
@@ -600,17 +607,16 @@ export default function ChatPanel() {
               />
               <button
                 onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isLoading || !user}
+                disabled={!inputValue.trim() || isLoading || isBrowserAgentRunning || !user}
                 className="p-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md disabled:shadow-none flex-shrink-0"
               >
-                {isLoading ? (
+                {isLoading || isBrowserAgentRunning ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <HiPaperAirplane className="w-4 h-4" />
                 )}
               </button>
             </div>
-          </div>
         </div>
       </div>
 

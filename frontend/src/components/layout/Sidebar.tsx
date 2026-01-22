@@ -525,6 +525,14 @@ export default function Sidebar() {
                         ? "layout-sidebar-nav-link-active"
                         : "layout-sidebar-nav-link-inactive"
                     }`}
+                    {...(item.name === "Settings" && {
+                      "data-automation-id": item.href === "/settings"
+                        ? "sidebar-org-settings"
+                        : item.href.endsWith("/settings") && item.href.split("/").length === 3
+                        ? "sidebar-workspace-settings"
+                        : "sidebar-project-settings",
+                      "aria-label": item.title || "Settings"
+                    })}
                   >
                     <span className="layout-sidebar-nav-link-icon">{item.icon}</span>
                     <span className="layout-sidebar-nav-link-text">{item.name}</span>

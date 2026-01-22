@@ -3,11 +3,9 @@ import { AiChatController } from './ai-chat.controller';
 import { AiChatService } from './ai-chat.service';
 import { SettingsModule } from '../settings/settings.module';
 import { PrismaModule } from '../../prisma/prisma.module';
-import { WorkspacesModule } from '../workspaces/workspaces.module';
-import { ProjectsModule } from '../projects/projects.module';
 
 @Module({
-  imports: [SettingsModule, PrismaModule, WorkspacesModule, ProjectsModule],
+  imports: [SettingsModule, PrismaModule],
   controllers: [AiChatController],
   providers: [AiChatService],
   exports: [AiChatService],

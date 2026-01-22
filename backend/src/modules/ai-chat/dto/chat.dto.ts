@@ -73,23 +73,6 @@ export class ChatResponseDto {
   })
   message: string;
 
-  @ApiPropertyOptional({
-    description: 'Single action to execute if detected',
-  })
-  action?: {
-    name: string;
-    parameters: Record<string, any>;
-  };
-
-  @ApiPropertyOptional({
-    description:
-      'Chain of actions to execute sequentially (e.g., createWorkspace → createProject → createTask)',
-  })
-  actionChain?: Array<{
-    name: string;
-    parameters: Record<string, any>;
-  }>;
-
   @ApiProperty({
     description: 'Success status',
   })

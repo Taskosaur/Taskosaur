@@ -7,154 +7,11 @@ import {
   TestConnectionResponseDto,
 } from './dto/chat.dto';
 import { SettingsService } from '../settings/settings.service';
-import * as commandsData from '../../constants/commands.json';
-import { WorkspacesService } from '../workspaces/workspaces.service';
-import { ProjectsService } from '../projects/projects.service';
-
-interface Command {
-  name: string;
-  params: string[];
-}
-
-interface CommandsData {
-  commands: Command[];
-}
+import { enhancePromptWithContext } from './app-guide';
 
 @Injectable()
 export class AiChatService {
-  private commands: CommandsData;
-  // Store conversation context per session/user
-  private conversationContexts: Map<
-    string,
-    {
-      workspaceSlug?: string;
-      workspaceName?: string;
-      projectSlug?: string;
-      projectName?: string;
-      lastUpdated: Date;
-      currentWorkSpaceProjectSlug?: string[];
-    }
-  > = new Map();
-
-  constructor(
-    private settingsService: SettingsService,
-    private workspacesService: WorkspacesService,
-    private projectService: ProjectsService,
-  ) {
-    // Load commands from imported JSON
-    this.commands = commandsData;
-    // Clean up old contexts every hour
-    setInterval(() => this.cleanupOldContexts(), 3600000);
-  }
-
-  private cleanupOldContexts() {
-    const oneHourAgo = new Date(Date.now() - 3600000);
-    for (const [sessionId, context] of this.conversationContexts.entries()) {
-      if (context.lastUpdated < oneHourAgo) {
-        this.conversationContexts.delete(sessionId);
-      }
-    }
-  }
-
-  private slugify(name: string): string {
-    return name
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '');
-  }
-
-  private async checkWorkspaceExists(slug: string): Promise<boolean> {
-    if (!slug) return false;
-    try {
-      return (await this.workspacesService.getIdBySlug(slug)) !== null;
-    } catch {
-      return false;
-    }
-  }
-
-  private async checkProjectExistsInWorkspace(
-    workspaceSlug: string,
-    projectSlug: string,
-  ): Promise<boolean> {
-    if (!workspaceSlug || !projectSlug) return false;
-    try {
-      const workspaceId = await this.workspacesService.getIdBySlug(workspaceSlug);
-      if (!workspaceId) return false;
-      const projectSlugs = await this.projectService.getAllSlugsByWorkspaceId(workspaceId);
-      return projectSlugs.includes(projectSlug);
-    } catch {
-      return false;
-    }
-  }
-
-  private async buildCommandChain(
-    commandName: string,
-    parameters: Record<string, any>,
-  ): Promise<Array<{ name: string; parameters: Record<string, any> }> | null> {
-    if (!['createTask', 'createProject'].includes(commandName)) return null;
-
-    const chain: Array<{ name: string; parameters: Record<string, any> }> = [];
-    const workspaceName = String(parameters.workspaceName || parameters.workspaceSlug || '');
-    const projectName = String(
-      parameters.projectName || parameters.name || parameters.projectSlug || '',
-    );
-    const workspaceSlug = String(parameters.workspaceSlug || '') || this.slugify(workspaceName);
-    const projectSlug = String(parameters.projectSlug || '') || this.slugify(projectName);
-
-    if (commandName === 'createTask' && workspaceSlug && projectSlug) {
-      const workspaceExists = await this.checkWorkspaceExists(workspaceSlug);
-
-      if (!workspaceExists) {
-        chain.push({
-          name: 'createWorkspace',
-          parameters: {
-            name: workspaceName || workspaceSlug,
-            description: `Workspace for ${String(parameters.taskTitle || 'tasks')}`,
-          },
-        });
-      }
-
-      const projectExists = workspaceExists
-        ? await this.checkProjectExistsInWorkspace(workspaceSlug, projectSlug)
-        : false;
-
-      if (!projectExists) {
-        chain.push({
-          name: 'createProject',
-          parameters: {
-            workspaceSlug,
-            name: projectName || projectSlug,
-            description: `Project for ${String(parameters.taskTitle || 'tasks')}`,
-          },
-        });
-      }
-
-      if (chain.length > 0) {
-        chain.push({
-          name: 'createTask',
-          parameters: { ...parameters, workspaceSlug, projectSlug },
-        });
-        return chain;
-      }
-    }
-
-    if (commandName === 'createProject' && workspaceSlug) {
-      const workspaceExists = await this.checkWorkspaceExists(workspaceSlug);
-      if (!workspaceExists) {
-        chain.push({
-          name: 'createWorkspace',
-          parameters: {
-            name: workspaceName || workspaceSlug,
-            description: `Workspace for ${String(parameters.name || 'projects')}`,
-          },
-        });
-        chain.push({ name: 'createProject', parameters: { ...parameters, workspaceSlug } });
-        return chain;
-      }
-    }
-
-    return null;
-  }
+  constructor(private settingsService: SettingsService) {}
 
   private detectProvider(apiUrl: string): string {
     try {
@@ -183,170 +40,52 @@ export class AiChatService {
     return 'custom'; // fallback for unknown providers
   }
 
-  private generateSystemPrompt(
-    sessionContext?: {
-      workspaceSlug?: string;
-      workspaceName?: string;
-      projectSlug?: string;
-      projectName?: string;
-      currentWorkSpaceProjectSlug?: string[];
-    },
-    slugs: string[] = [],
-  ): string {
-    // Generate compact command list from commands.json
-    const commandList = this.commands.commands
-      .map((cmd) => {
-        const params = cmd.params.map((p) => (p.endsWith('?') ? `[${p.slice(0, -1)}]` : p));
-        return `${cmd.name}(${params.join(', ')})`;
-      })
-      .join('\n');
+  private generateSystemPrompt(): string {
+    return `You are Taskosaur AI assistant for browser automation.Your job is to help users automate tasks on web pages.
 
-    // Build context section
-    const hasContext = sessionContext?.workspaceSlug || sessionContext?.projectSlug;
-    const contextSection = hasContext
-      ? `CURRENT CONTEXT:
-- Workspace: ${sessionContext.workspaceSlug || 'none'}${sessionContext.workspaceName ? ` (${sessionContext.workspaceName})` : ''}
-- Project: ${sessionContext.projectSlug || 'none'}${sessionContext.projectName ? ` (${sessionContext.projectName})` : ''}${sessionContext.currentWorkSpaceProjectSlug?.length ? `\n- Available projects: ${sessionContext.currentWorkSpaceProjectSlug.join(', ')}` : ''}`
-      : 'CURRENT CONTEXT: No workspace/project selected';
+You will receive:
+1. The current page URL
+2. A list of interactive elements on the page with their index numbers
+3. History of ALL previous actions with their results (marked with ✅ for success or ❌ for failure)
 
-    // Build available workspaces section
-    const workspacesSection =
-      slugs.length > 0 ? `EXISTING WORKSPACES: ${slugs.join(', ')}` : 'EXISTING WORKSPACES: none';
+Your task is to respond with the NEXT NEW action to take. Available actions:
+- click(index) - Click an element
+- type(index, "text") - Type text into an input field
+- scroll("up" or "down") - Scroll the page
+- select(index, "option text") - Select an option from dropdown
 
-    return `You are Taskosaur AI Assistant - a task management helper. You execute commands to manage workspaces, projects, and tasks.
+Format your response EXACTLY like this:
+ACTION: click(5)
+OR
+DONE: [short clear message]
+OR
+ASK: [question] (only when required data missing)
 
-COMMANDS (params in [] are optional):
-${commandList}
+RESPONSE RULES:
+- For greetings (hi, hello, hey): DONE: Hi! How can I help you with Taskosaur today?
+- For off-topic/non-app requests: DONE: I can only help with Taskosaur tasks like creating tasks, projects, filtering, etc.
+- For completed actions: DONE: [what was done, e.g. "Task created" or "Filter applied"]
+- For questions needing data: ASK: [specific question]
+- Keep responses short and clear - no explanations or thinking
 
-OUTPUT FORMAT:
-When executing a command, respond with a brief message followed by the command block:
-[COMMAND: commandName] {"param": "value"}
+WHEN TO ASK:
+- Only when required data is missing (task name, which project, etc.)
+- Do NOT ask for optional fields
 
-${contextSection}
-
-${workspacesSection}
-
-VALID VALUES:
-- priority: "URGENT", "HIGH", "MEDIUM", "LOW", "NONE"
-- status: "Backlog", "Todo", "In Progress", "Done", "Cancelled"
-
-INTENT MAPPING (understand these phrases):
-- "add/new/create task" → createTask
-- "show/list/my tasks" or "todos" or "what do I need to do" → navigateToTasksView
-- "complete/finish/done with task X" → updateTaskStatus (newStatus: "Done")
-- "start/begin task X" → updateTaskStatus (newStatus: "In Progress")
-- "show/filter urgent/high/medium/low priority" → filterTasksByPriority
-- "show completed/done/pending/backlog tasks" → filterTasksByStatus
-- "find/search/look for task X" → searchTasks
-- "remove/delete task X" → deleteTask
-- "open/go to/switch to/navigate to workspace X" → navigateToWorkspace
-- "open/go to project X" → navigateToProject
-- "show/list workspaces" or "my workspaces" → listWorkspaces
-- "show/list projects" or "my projects" → listProjects
-- "create/add/new workspace" → createWorkspace
-- "create/add/new project" → createProject
-- "rename/edit/change workspace X to Y" → editWorkspace
-- "clear/reset/remove filters" → clearTaskFilters
-- "details of task X" or "show task X" → getTaskDetails
-
-CORE RULES:
-
-1. SLUGS: Convert names to slugs (lowercase, spaces→hyphens). Example: "My App" → "my-app"
-
-2. CONTEXT USAGE: When workspace/project params are optional ([workspaceSlug], [projectSlug]):
-   - If context exists → use context values
-   - If no context → use empty string ""
-   - Never ask the user for optional params
-
-3. TASK OPERATIONS (updateTaskStatus, filterTasksByPriority, filterTasksByStatus, searchTasks, deleteTask, getTaskDetails, clearTaskFilters, navigateToTasksView):
-   → Execute immediately using context or empty strings. Do NOT ask for workspace/project.
-
-4. CREATE OPERATIONS:
-   - createTask: Needs workspaceSlug, projectSlug, taskTitle. If user specifies new workspace/project names, include workspaceName/projectName and the system will auto-create them.
-   - createWorkspace: Needs name AND description. Ask if missing.
-   - createProject: Needs workspaceSlug and name.
-
-5. NAVIGATION: For navigateToWorkspace, the slug must match EXISTING WORKSPACES. If not found, show available options.
-
-6. ALWAYS OUTPUT COMMAND: When you have enough info, include the [COMMAND: ...] block. Never just say "I will do X" without the command.
-
-EXAMPLES:
-
-"what's urgent?" / "show urgent tasks"
-→ [COMMAND: filterTasksByPriority] {"workspaceSlug": "", "projectSlug": "", "priority": "URGENT"}
-
-"I finished the Login Bug task" / "complete Login Bug"
-→ [COMMAND: updateTaskStatus] {"workspaceSlug": "", "projectSlug": "", "taskTitle": "Login Bug", "newStatus": "Done"}
-
-"start working on API fix"
-→ [COMMAND: updateTaskStatus] {"workspaceSlug": "", "projectSlug": "", "taskTitle": "API fix", "newStatus": "In Progress"}
-
-"add task Fix API to Backend workspace, Core project"
-→ [COMMAND: createTask] {"workspaceSlug": "backend", "projectSlug": "core", "taskTitle": "Fix API", "workspaceName": "Backend", "projectName": "Core"}
-
-"switch to marketing workspace" / "open marketing"
-→ [COMMAND: navigateToWorkspace] {"workspaceSlug": "marketing"}
-
-"show my tasks" / "what do I need to do?"
-→ [COMMAND: navigateToTasksView] {"workspaceSlug": "", "projectSlug": ""}
-
-"show completed tasks" / "what's done?"
-→ [COMMAND: filterTasksByStatus] {"workspaceSlug": "", "projectSlug": "", "status": "Done"}
-
-"new workspace Analytics" (missing description)
-→ What description would you like for the Analytics workspace?
-
-"my workspaces" / "list workspaces"
-→ [COMMAND: listWorkspaces] {}
-
-"show projects" / "my projects"
-→ [COMMAND: listProjects] {"workspaceSlug": ""}
-
-"rename workspace dev to Development"
-→ [COMMAND: editWorkspace] {"workspaceSlug": "dev", "updates": {"name": "Development"}}
-
-"find tasks about authentication"
-→ [COMMAND: searchTasks] {"workspaceSlug": "", "projectSlug": "", "query": "authentication"}
-
-"remove task Old Feature"
-→ [COMMAND: deleteTask] {"workspaceSlug": "", "projectSlug": "", "taskId": "Old Feature"}
-
-"reset filters" / "clear all filters"
-→ [COMMAND: clearTaskFilters] {"workspaceSlug": "", "projectSlug": ""}
-`;
-  }
-
-  private validateCommandParameters(
-    commandName: string,
-    parameters: Record<string, any>,
-  ): { valid: boolean; missing: string[]; message?: string } {
-    const command = this.commands.commands.find((cmd) => cmd.name === commandName);
-    if (!command) {
-      return {
-        valid: false,
-        missing: [],
-        message: `Unknown command: ${commandName}`,
-      };
-    }
-
-    const requiredParams = command.params.filter((p) => !p.endsWith('?'));
-    const missing = requiredParams.filter((param) => {
-      const value = parameters[param];
-      if (param === 'workspaceSlug' || param === 'projectSlug') {
-        return false;
-      }
-      return !value || String(value).toString().trim() === '';
-    });
-
-    if (missing.length > 0) {
-      return {
-        valid: false,
-        missing,
-        message: `Missing required parameters for ${commandName}: ${missing.join(', ')}`,
-      };
-    }
-
-    return { valid: true, missing: [] };
+CRITICAL RULES:
+1. LOOK at the conversation history - you will see messages like "✅ Action completed: click(5)"
+2. NEVER repeat an action that already has "✅ Action completed" in the history
+3. If you see "✅ Action completed: click(5)", DO NOT do "ACTION: click(5)" again
+4. After 2-3 successful actions, the task is likely done - say DONE
+5. Think: "What haven't I done yet?" before choosing the next action
+6. Be precise and only perform ONE NEW action at a time
+7. Focus ONLY on performing the requested action - NOT on evaluating results
+8. If user says "filter by high priority" and you clicked the filter and selected "High" - you are DONE, even if 0 results show
+9. Empty results, zero items, or "no data" does NOT mean failure - the action was still completed correctly
+10. NEVER retry an action just because the result looks empty
+11. Do NOT judge whether the result "looks right" - just complete the requested steps
+12. Do NOT explain your thinking - just respond
+13. Modal/dropdown staying open after clicking an option = task is DONE, do not retry and after the modal open you have close the modal through click outside of the modal`;
   }
 
   async chat(chatRequest: ChatRequestDto, userId: string): Promise<ChatResponseDto> {
@@ -357,26 +96,6 @@ EXAMPLES:
         throw new BadRequestException(
           'AI chat is currently disabled. Please enable it in settings.',
         );
-      }
-      const slugs = await this.workspacesService.findAllSlugs(
-        chatRequest.currentOrganizationId ?? '',
-      );
-
-      // Get or create session context
-      const sessionId = chatRequest.sessionId || 'default';
-      let sessionContext = this.conversationContexts.get(sessionId);
-      if (!sessionContext) {
-        sessionContext = { lastUpdated: new Date() };
-        this.conversationContexts.set(sessionId, sessionContext);
-      }
-
-      if (chatRequest.workspaceId) {
-        sessionContext.workspaceSlug = chatRequest.workspaceId;
-        sessionContext.lastUpdated = new Date();
-      }
-      if (chatRequest.projectId) {
-        sessionContext.projectSlug = chatRequest.projectId;
-        sessionContext.lastUpdated = new Date();
       }
 
       // Get API settings from database
@@ -398,8 +117,8 @@ EXAMPLES:
       // Build messages array with system prompt and conversation history
       const messages: ChatMessageDto[] = [];
 
-      // Generate dynamic system prompt from commands.json with session context
-      const systemPrompt = this.generateSystemPrompt(sessionContext, slugs);
+      // Generate system prompt
+      const systemPrompt = this.generateSystemPrompt();
       messages.push({
         role: 'system',
         content: systemPrompt,
@@ -415,13 +134,21 @@ EXAMPLES:
         });
       }
 
-      // Extract and update context from user message before processing
-      this.extractContextFromMessage(sessionId, chatRequest.message, sessionContext);
+      let userMessage = chatRequest.message;
 
-      // Add current user message
+      const taskMatch = userMessage.match(/Task:\s*(.+?)(?:\n|$)/);
+      const urlMatch = userMessage.match(/Current URL:\s*(.+?)(?:\n|$)/);
+
+      if (taskMatch && urlMatch) {
+        const task = taskMatch[1].trim();
+        const url = urlMatch[1].trim();
+        const appContext = enhancePromptWithContext(task, url);
+        userMessage = userMessage.replace(/Task:/, `Task:`) + `\n\n${appContext}`;
+      }
+
       messages.push({
         role: 'user',
-        content: chatRequest.message,
+        content: userMessage,
       });
 
       // Prepare request based on provider
@@ -558,170 +285,8 @@ EXAMPLES:
           break;
       }
 
-      // Parse command if detected
-      let action: { name: string; parameters: Record<string, any> } | undefined;
-
-      // Try both formats: with ** markers and without
-      // Use a more robust regex that handles nested braces
-      let commandMatch = aiMessage.match(/\*\*\[COMMAND:\s*([^\]]+)\]\*\*\s*(\{.*\})$/m);
-      if (!commandMatch) {
-        commandMatch = aiMessage.match(/\[COMMAND:\s*([^\]]+)\]\s*(\{.*\})$/m);
-      }
-
-      // If still no match, try without requiring closing brace and attempt to fix JSON
-      if (!commandMatch) {
-        commandMatch = aiMessage.match(/\[COMMAND:\s*([^\]]+)\]\s*(\{.*)/);
-      }
-
-      if (commandMatch) {
-        try {
-          const commandName = commandMatch[1].trim();
-          const parametersString = commandMatch[2] || '{}';
-
-          let parameters: any;
-          try {
-            parameters = JSON.parse(parametersString);
-          } catch (parseError) {
-            // Attempt to repair incomplete JSON by adding missing closing braces
-            let repairedJson = parametersString;
-            let openBraces = 0;
-            for (let i = 0; i < repairedJson.length; i++) {
-              if (repairedJson[i] === '{') openBraces++;
-              if (repairedJson[i] === '}') openBraces--;
-            }
-
-            // Add missing closing braces
-            while (openBraces > 0) {
-              repairedJson += '}';
-              openBraces--;
-            }
-
-            try {
-              parameters = JSON.parse(repairedJson);
-            } catch (error) {
-              console.error('Failed to parse repaired JSON:', error);
-              throw parseError; // Throw original error
-            }
-          }
-
-          // Validate command parameters
-          const validation = this.validateCommandParameters(
-            commandName,
-            parameters as Record<string, any>,
-          );
-
-          if (!validation.valid) {
-            // Override the AI message with parameter collection guidance
-            const missingParamsList =
-              validation.missing.length > 0
-                ? `I need the following information to proceed: ${validation.missing.join(', ')}.`
-                : validation.message;
-
-            // Don't return action if validation fails - this prevents execution
-            return {
-              message: `${aiMessage}\n\n${missingParamsList}`,
-              success: true,
-            };
-          }
-
-          if (sessionContext) {
-            // Auto-fill workspace/project if missing and context exists
-            if (commandName !== 'listWorkspaces' && commandName !== 'createWorkspace') {
-              if (parameters.workspaceSlug === undefined && sessionContext.workspaceSlug) {
-                parameters.workspaceSlug = sessionContext.workspaceSlug;
-              }
-            }
-            if (commandName.includes('Task') || commandName.includes('Project')) {
-              if (
-                parameters.projectSlug === undefined &&
-                sessionContext.projectSlug &&
-                parameters.workspaceSlug === sessionContext.workspaceSlug
-              ) {
-                parameters.projectSlug = sessionContext.projectSlug;
-              }
-            }
-          }
-
-          // Validate the project slug
-          switch (commandName) {
-            case 'navigateToProject': {
-              const projectSlug = await this.projectService.validateProjectSlug(
-                parameters.projectSlug as string,
-              );
-
-              if (projectSlug.status === 'exact' || projectSlug.status === 'fuzzy') {
-                parameters.projectSlug = projectSlug.slug;
-              }
-
-              switch (projectSlug.status) {
-                case 'exact':
-                  aiMessage = `✅ Great! I found the project **${projectSlug.slug}**. Taking you there now.`;
-                  break;
-
-                case 'fuzzy':
-                  aiMessage = `🤔 I couldn’t find an exact match, but I found something close: **${projectSlug.slug}**. Navigating there for you.`;
-                  break;
-
-                case 'not_found':
-                  parameters.projectSlug = '';
-                  aiMessage = `⚠️ I couldn't find any project matching that name.
-                  Try again with a different project name, or use **list all projects** to see what's available.`;
-                  break;
-              }
-              break;
-            }
-          }
-
-          action = {
-            name: commandName,
-            parameters,
-          };
-
-          const commandChain = await this.buildCommandChain(
-            commandName,
-            parameters as Record<string, any>,
-          );
-
-          if (commandChain && commandChain.length > 0) {
-            await this.updateContextFromCommand(
-              sessionId,
-              commandChain[commandChain.length - 1].name,
-              commandChain[commandChain.length - 1].parameters,
-              sessionContext,
-            );
-
-            const chainDescription = commandChain
-              .map((cmd) => {
-                if (cmd.name === 'createWorkspace')
-                  return `Creating workspace "${cmd.parameters.name}"`;
-                if (cmd.name === 'createProject')
-                  return `Creating project "${cmd.parameters.name}"`;
-                if (cmd.name === 'createTask') return `Creating task "${cmd.parameters.taskTitle}"`;
-                return `Executing ${cmd.name}`;
-              })
-              .join(' → ');
-
-            return {
-              message: `${aiMessage}\n\n ${chainDescription}`,
-              actionChain: commandChain,
-              success: true,
-            };
-          }
-
-          await this.updateContextFromCommand(
-            sessionId,
-            commandName,
-            parameters as Record<string, any>,
-            sessionContext,
-          );
-        } catch (error) {
-          console.error('Failed to parse command parameters:', error);
-        }
-      }
-
       return {
         message: aiMessage,
-        action,
         success: true,
       };
     } catch (error: any) {
@@ -743,233 +308,9 @@ EXAMPLES:
     }
   }
 
-  private async updateContextFromCommand(
-    sessionId: string,
-    commandName: string,
-    parameters: Record<string, any>,
-    context: any,
-  ) {
-    // Update workspace context
-    if (commandName === 'navigateToWorkspace') {
-      if (parameters.workspaceSlug) {
-        const slug = await this.workspacesService.getIdBySlug(parameters.workspaceSlug as string);
-        const currentWorkSpaceAllProjects = await this.projectService.getAllSlugsByWorkspaceId(
-          slug ?? '',
-        );
-        context.currentWorkSpaceProjectSlug = currentWorkSpaceAllProjects;
-        context.workspaceSlug = parameters.workspaceSlug;
-        context.workspaceName = parameters.workspaceName || parameters.workspaceSlug;
-        // Clear project context when switching workspaces
-        delete context.projectSlug;
-        delete context.projectName;
-      }
-    }
-
-    // Handle createWorkspace - convert name to slug and update context
-    if (commandName === 'createWorkspace') {
-      if (parameters.name) {
-        // Convert workspace name to slug format
-        const workspaceSlug = String(parameters.name)
-          .toLowerCase()
-          .replace(/\s+/g, '-')
-          .replace(/[^a-z0-9-]/g, '');
-        context.workspaceSlug = workspaceSlug;
-        context.workspaceName = String(parameters.name);
-        // Clear project context when creating new workspace
-        delete context.projectSlug;
-        delete context.projectName;
-      }
-    }
-
-    // Update project context
-    const slugify = (str: string | undefined) =>
-      str
-        ?.toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9-]/g, '');
-
-    if (commandName === 'navigateToProject' || commandName === 'createProject') {
-      const { name, projectSlug, workspaceSlug } = parameters;
-
-      if (commandName === 'createProject') {
-        // Priority: name → slug
-        context.projectSlug = name ? slugify(name as string) : projectSlug;
-        context.projectName = name || projectSlug;
-      } else if (commandName === 'navigateToProject') {
-        // Priority: projectSlug → slug from name
-        context.projectSlug = projectSlug || (name ? slugify(name as string) : undefined);
-        context.projectName = projectSlug || name;
-      }
-      if (workspaceSlug) {
-        context.workspaceSlug = workspaceSlug;
-      }
-    }
-
-    // Update workspace context from editWorkspace
-    if (commandName === 'editWorkspace' && parameters.updates?.name) {
-      if (parameters.workspaceSlug) {
-        context.workspaceSlug = parameters.workspaceSlug;
-        context.workspaceName = parameters.updates.name;
-      }
-    }
-
-    // Update last activity timestamp
-    context.lastUpdated = new Date();
-
-    // Save updated context
-    this.conversationContexts.set(
-      sessionId,
-      context as {
-        workspaceSlug?: string;
-        workspaceName?: string;
-        projectSlug?: string;
-        projectName?: string;
-        lastUpdated: Date;
-        currentWorkSpaceProjectSlug?: string[];
-      },
-    );
-  }
-  private extractContextFromMessage(sessionId: string, message: string, context: any) {
-    // Prevent ReDoS attacks by limiting message length for regex processing
-    const MAX_MESSAGE_LENGTH = 10000;
-    const safeMessage =
-      message.length > MAX_MESSAGE_LENGTH ? message.substring(0, MAX_MESSAGE_LENGTH) : message;
-
-    const lowerMessage = safeMessage.toLowerCase();
-    let contextUpdated = false;
-
-    // Extract workspace mentions - improved patterns
-    const workspacePatterns = [
-      /(?:go\s+with|use|with|navigate\s+to|go\s+to)\s+workspace\s+["']([^"']+)["']?/gi,
-      /workspace\s+is\s+["']([^"']+)["']?/gi,
-      /use\s+["']?([^"'.,!?\n]+)\s+workspace["']?/gi,
-      /["']([^"']+)\s+workspace["']?/gi,
-      /in\s+(?:the\s+)?["']?([^"'.,!?\n]+)\s+workspace["']?/gi,
-      /["']?([a-zA-Z][^"'.,!?\n]*?)\s+w[uo]rkspace["']?/gi,
-      // Add pattern for "take me to X" or "navigate to X"
-      /(?:take\s+me\s+to|navigate\s+to|go\s+to)\s+["']?([^"'.,!?\n]+)["']?(?:\s+workspace)?/gi,
-    ];
-
-    for (const pattern of workspacePatterns) {
-      const matches = [...safeMessage.matchAll(pattern)];
-      for (const match of matches) {
-        if (match[1]) {
-          const workspaceName = match[1].trim();
-
-          context.workspaceName = workspaceName;
-          contextUpdated = true;
-
-          // Clear project context when switching workspaces (unless mentioned in same message)
-          if (!lowerMessage.includes('project')) {
-            delete context.projectSlug;
-            delete context.projectName;
-          }
-
-          break; // Use first match
-        }
-      }
-    }
-
-    // Extract project mentions - improved patterns
-    const projectPatterns = [
-      // "Ok, go with HIMS project"
-      /(?:ok,?\s+)?(?:go\s+with|use|with|navigate\s+to|go\s+to)\s+["']?([^"'.,!?\n]+?)\s+project["']?/gi,
-      // "I choose hims"
-      /(?:i\s+)?(?:choose|select|pick)\s+["']?([^"'.,!?\n]+)["']?/gi,
-      // "project is HIMS"
-      /project\s+is\s+["']?([^"'.,!?\n]+)["']?/gi,
-      // "HIMS project"
-      /["']?([^"'.,!?\n\s]+)\s+project["']?/gi,
-      // "in HIMS project"
-      /in\s+(?:the\s+)?["']?([^"'.,!?\n]+?)\s+project["']?/gi,
-      // Add pattern for "take me to project X"
-      /(?:take\s+me\s+to|navigate\s+to|go\s+to)\s+project\s+["']?([^"'.,!?\n]+)["']?/gi,
-    ];
-
-    for (const pattern of projectPatterns) {
-      const matches = [...safeMessage.matchAll(pattern)];
-      for (const match of matches) {
-        if (match[1]) {
-          const projectName = match[1].trim();
-
-          // Skip if it looks like a workspace (contains 'workspace')
-          if (
-            projectName.toLowerCase().includes('workspace') ||
-            projectName.toLowerCase().includes('wokspace')
-          ) {
-            continue;
-          }
-
-          // Skip common words that aren't project names
-          const skipWords = [
-            'yes',
-            'no',
-            'ok',
-            'fine',
-            'good',
-            'sure',
-            'right',
-            'correct',
-            'thanks',
-            'thank you',
-            'i want to create a task drink water',
-            'can you first list the projects sot hat i can choose',
-            'the',
-            'a',
-            'an',
-            'and',
-            'or',
-            'but',
-            'with',
-            'without',
-            'please',
-            'help',
-          ];
-          if (
-            skipWords.some((word) => projectName.toLowerCase().includes(word)) ||
-            projectName.toLowerCase().startsWith('i want to') ||
-            projectName.toLowerCase().startsWith('can you')
-          ) {
-            continue;
-          }
-
-          // Convert name to slug format
-          const projectSlug = projectName
-            .toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9-]/g, '');
-
-          context.projectSlug = projectSlug;
-          context.projectName = projectName;
-          contextUpdated = true;
-
-          break; // Use first match
-        }
-      }
-    }
-
-    // Update last activity timestamp and save context
-    if (contextUpdated) {
-      context.lastUpdated = new Date();
-      this.conversationContexts.set(
-        sessionId,
-        context as {
-          workspaceSlug?: string;
-          workspaceName?: string;
-          projectSlug?: string;
-          projectName?: string;
-          lastUpdated: Date;
-          currentWorkSpaceProjectSlug?: string[];
-        },
-      );
-    }
-  }
-
-  // Clear context for a specific session
+  // Clear context for a specific session (no-op since context tracking was removed)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   clearContext(sessionId: string): { success: boolean } {
-    if (this.conversationContexts.has(sessionId)) {
-      this.conversationContexts.delete(sessionId);
-    }
     return { success: true };
   }
 

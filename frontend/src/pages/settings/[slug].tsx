@@ -428,6 +428,9 @@ function OrganizationManagePageContent() {
 
               <TabsTrigger
                 value="settings"
+                data-automation-id="org-settings-tab"
+                aria-label="Organization Settings Tab"
+                onClick={() => handleTabChange("settings")}
                 className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-transparent data-[state=active]:text-[var(--primary)] hover:text-[var(--foreground)] transition-colors bg-transparent rounded-none shadow-none cursor-pointer"
               >
                 <HiCog className="w-4 h-4" />
@@ -435,6 +438,9 @@ function OrganizationManagePageContent() {
               </TabsTrigger>
               <TabsTrigger
                 value="workflows"
+                data-automation-id="org-workflows-tab"
+                aria-label="Organization Workflows Tab"
+                onClick={() => handleTabChange("workflows")}
                 className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-transparent data-[state=active]:text-[var(--primary)] hover:text-[var(--foreground)] transition-colors bg-transparent rounded-none cursor-pointer"
               >
                 <HiViewGrid className="w-4 h-4" />
@@ -442,6 +448,9 @@ function OrganizationManagePageContent() {
               </TabsTrigger>
               <TabsTrigger
                 value="members"
+                data-automation-id="org-members-tab"
+                aria-label="Organization Members Tab"
+                onClick={() => handleTabChange("members")}
                 className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-transparent data-[state=active]:text-[var(--primary)] hover:text-[var(--foreground)] transition-colors bg-transparent rounded-none cursor-pointer"
               >
                 <HiUsers className="w-4 h-4" />
