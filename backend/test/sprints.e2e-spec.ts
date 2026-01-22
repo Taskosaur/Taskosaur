@@ -307,6 +307,89 @@
       });
     });
 
+    describe('PATCH /sprints/:id/start', () => {
+      it('should successfully start a planning sprint', async () => {
+        // Ensure no active sprints exist
+        await prismaService.sprint.updateMany({
+          where: { projectId: projectId, status: SprintStatus.ACTIVE },
+          data: { status: SprintStatus.COMPLETED },
+        });
+
+        const sprint = await createTestSprint(
+          'Sprint to Start',
+          SprintStatus.PLANNING,
+        );
+
+        const res = await request(app.getHttpServer())
+          .patch(`/api/sprints/${sprint.id}/start`)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(HttpStatus.OK);
+
+        expect(res.body.status).toBe(SprintStatus.ACTIVE);
+      });
+
+      it('should fail to start if another sprint is active', async () => {
+        // Ensure no active sprints exist initially
+        await prismaService.sprint.updateMany({
+          where: { projectId: projectId, status: SprintStatus.ACTIVE },
+          data: { status: SprintStatus.COMPLETED },
+        });
+
+        // Create and force-activate one sprint
+        const activeSprint = await createTestSprint(
+          'Existing Active Sprint',
+          SprintStatus.PLANNING,
+        );
+        await prismaService.sprint.update({
+          where: { id: activeSprint.id },
+          data: { status: SprintStatus.ACTIVE },
+        });
+
+        const newSprint = await createTestSprint(
+          'New Planning Sprint',
+          SprintStatus.PLANNING,
+        );
+
+        await request(app.getHttpServer())
+          .patch(`/api/sprints/${newSprint.id}/start`)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(HttpStatus.CONFLICT);
+      });
+    });
+
+    describe('PATCH /sprints/:id/complete', () => {
+      it('should successfully complete an active sprint', async () => {
+        const sprint = await createTestSprint(
+          'Sprint to Complete',
+          SprintStatus.PLANNING,
+        );
+        // Force status to active
+        await prismaService.sprint.update({
+          where: { id: sprint.id },
+          data: { status: SprintStatus.ACTIVE },
+        });
+
+        const res = await request(app.getHttpServer())
+          .patch(`/api/sprints/${sprint.id}/complete`)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(HttpStatus.OK);
+
+        expect(res.body.status).toBe(SprintStatus.COMPLETED);
+      });
+
+      it('should fail to complete a planning sprint', async () => {
+        const sprint = await createTestSprint(
+          'Planning Sprint Fail Complete',
+          SprintStatus.PLANNING,
+        );
+
+        await request(app.getHttpServer())
+          .patch(`/api/sprints/${sprint.id}/complete`)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(HttpStatus.BAD_REQUEST);
+      });
+    });
+
     describe('DELETE /sprints/:id', () => {
       let sprintToDeleteId: string;
       let activeSprintForDeleteTestId: string;
@@ -329,6 +412,23 @@
           .get(`/api/sprints/${sprintToDeleteId}`)
           .set('Authorization', `Bearer ${accessToken}`)
           .expect(HttpStatus.NOT_FOUND);
+      });
+
+      it('should fail to delete an active sprint', async () => {
+        const sprint = await createTestSprint(
+          'Active Sprint Delete Fail',
+          SprintStatus.PLANNING,
+        );
+        // Force status to active
+        await prismaService.sprint.update({
+          where: { id: sprint.id },
+          data: { status: SprintStatus.ACTIVE },
+        });
+
+        await request(app.getHttpServer())
+          .delete(`/api/sprints/${sprint.id}`)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(HttpStatus.BAD_REQUEST);
       });
 
       it('should return 404 if sprint ID does not exist', () => {

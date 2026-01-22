@@ -61,14 +61,14 @@ export class SprintsController {
 
   @Patch(':id/start')
   @HttpCode(HttpStatus.OK)
-  startSprint(@Param('id', ParseUUIDPipe) id: string) {
-    return this.sprintsService.startSprint(id);
+  startSprint(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.sprintsService.startSprint(id, user.id as string);
   }
 
   @Patch(':id/complete')
   @HttpCode(HttpStatus.OK)
-  completeSprint(@Param('id', ParseUUIDPipe) id: string) {
-    return this.sprintsService.completeSprint(id);
+  completeSprint(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.sprintsService.completeSprint(id, user.id as string);
   }
 
   @Delete(':id')

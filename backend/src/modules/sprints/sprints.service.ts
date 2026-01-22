@@ -381,7 +381,7 @@ export class SprintsService {
     }
   }
 
-  async startSprint(id: string): Promise<Sprint> {
+  async startSprint(id: string, userId: string): Promise<Sprint> {
     const sprint = await this.prisma.sprint.findUnique({
       where: { id },
       select: {
@@ -417,10 +417,10 @@ export class SprintsService {
       throw new ConflictException('There is already an active sprint in this project');
     }
 
-    return this.update(id, { status: SprintStatus.ACTIVE }, 'system');
+    return this.update(id, { status: SprintStatus.ACTIVE }, userId);
   }
 
-  async completeSprint(id: string): Promise<Sprint> {
+  async completeSprint(id: string, userId: string): Promise<Sprint> {
     const sprint = await this.prisma.sprint.findUnique({
       where: { id },
       select: { id: true, status: true },
@@ -434,7 +434,7 @@ export class SprintsService {
       throw new BadRequestException('Only active sprints can be completed');
     }
 
-    return this.update(id, { status: SprintStatus.COMPLETED }, 'system');
+    return this.update(id, { status: SprintStatus.COMPLETED }, userId);
   }
 
   async remove(id: string): Promise<void> {

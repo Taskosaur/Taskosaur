@@ -108,6 +108,13 @@ export class TasksController {
     description: 'Internal server error',
   })
   @HttpCode(200)
+  @AutoNotify({
+    type: NotificationType.SYSTEM,
+    entityType: 'Task',
+    priority: NotificationPriority.LOW,
+    title: 'Tasks Deleted',
+    message: 'Multiple tasks you were involved in have been deleted',
+  })
   async bulkDeleteTasks(@Body() bulkDeleteTasksDto: BulkDeleteTasksDto, @Req() req: Request) {
     const user = getAuthUser(req);
 
