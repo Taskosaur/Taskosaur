@@ -436,6 +436,9 @@ export class ActionExecutor {
       href.startsWith("mailto:") ||
       href.startsWith("tel:") ||
       href.startsWith("javascript:") ||
+      href.startsWith("data:") ||
+      href.startsWith("vbscript:") ||
+      href.startsWith("blob:") ||
       href === "#" ||
       href.startsWith("#")
     ) {

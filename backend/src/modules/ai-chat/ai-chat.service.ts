@@ -136,14 +136,14 @@ CRITICAL RULES:
 
       let userMessage = chatRequest.message;
 
-      const taskMatch = userMessage.match(/Task:\s*(.+?)(?:\n|$)/);
-      const urlMatch = userMessage.match(/Current URL:\s*(.+?)(?:\n|$)/);
+      const taskMatch = userMessage.match(/Task:\s*([^\n]+)/);
+      const urlMatch = userMessage.match(/Current URL:\s*([^\n]+)/);
 
       if (taskMatch && urlMatch) {
         const task = taskMatch[1].trim();
         const url = urlMatch[1].trim();
         const appContext = enhancePromptWithContext(task, url);
-        userMessage = userMessage.replace(/Task:/, `Task:`) + `\n\n${appContext}`;
+        userMessage = userMessage + `\n\n${appContext}`;
       }
 
       messages.push({
