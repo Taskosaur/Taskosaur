@@ -19,6 +19,9 @@ import { CreateTaskCommentDto } from './dto/create-task-comment.dto';
 import { UpdateTaskCommentDto } from './dto/update-task-comment.dto';
 import { LogActivity } from 'src/common/decorator/log-activity.decorator';
 
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '@prisma/client';
+
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
 @Controller('task-comments')
@@ -32,8 +35,8 @@ export class TaskCommentsController {
     description: 'Added comment to task',
     includeNewValue: true,
   })
-  create(@Body() createTaskCommentDto: CreateTaskCommentDto) {
-    return this.taskCommentsService.create(createTaskCommentDto);
+  create(@Body() createTaskCommentDto: CreateTaskCommentDto, @CurrentUser() user: User) {
+    return this.taskCommentsService.create(createTaskCommentDto, user.id);
   }
 
   @Get()
@@ -82,19 +85,14 @@ export class TaskCommentsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateTaskCommentDto: UpdateTaskCommentDto,
-    // TODO: Get userId from JWT token when authentication is implemented
-    @Query('userId') userId: string,
+    @CurrentUser() user: User,
   ) {
-    return this.taskCommentsService.update(id, updateTaskCommentDto, userId);
+    return this.taskCommentsService.update(id, updateTaskCommentDto, user.id);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    // TODO: Get userId from JWT token when authentication is implemented
-    @Query('userId') userId: string,
-  ) {
-    return this.taskCommentsService.remove(id, userId);
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+    return this.taskCommentsService.remove(id, user.id);
   }
 }

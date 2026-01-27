@@ -18,8 +18,36 @@ export class TaskCommentsService {
     private emailReply: EmailReplyService,
   ) {}
 
-  async create(createTaskCommentDto: CreateTaskCommentDto): Promise<TaskComment> {
-    const { taskId, authorId, parentCommentId } = createTaskCommentDto;
+  private async checkProjectAccess(userId: string, taskId: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      select: { projectId: true },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    const projectMember = await this.prisma.projectMember.findUnique({
+      where: {
+        userId_projectId: {
+          userId,
+          projectId: task.projectId,
+        },
+      },
+    });
+
+    if (!projectMember) {
+      throw new ForbiddenException('You do not have access to this project');
+    }
+  }
+
+  async create(createTaskCommentDto: CreateTaskCommentDto, userId: string): Promise<TaskComment> {
+    const { taskId, parentCommentId } = createTaskCommentDto;
+    // Override authorId with the authenticated user's ID
+    const authorId = userId;
+
+    await this.checkProjectAccess(userId, taskId);
 
     // Verify task exists
     const task = await this.prisma.task.findUnique({
@@ -60,6 +88,7 @@ export class TaskCommentsService {
     const comment = await this.prisma.taskComment.create({
       data: {
         ...createTaskCommentDto,
+        authorId, // Ensure we use the authenticated user ID
         content: sanitizeHtml(createTaskCommentDto.content),
       },
       include: {
@@ -331,12 +360,15 @@ export class TaskCommentsService {
     // Verify comment exists and user is the author
     const comment = await this.prisma.taskComment.findUnique({
       where: { id },
-      select: { id: true, authorId: true },
+      select: { id: true, authorId: true, taskId: true },
     });
 
     if (!comment) {
       throw new NotFoundException('Comment not found');
     }
+
+    // Check if user has access to the project
+    await this.checkProjectAccess(userId, comment.taskId);
 
     if (comment.authorId !== userId) {
       throw new ForbiddenException('You can only edit your own comments');
@@ -379,12 +411,15 @@ export class TaskCommentsService {
     // Verify comment exists and user is the author
     const comment = await this.prisma.taskComment.findUnique({
       where: { id },
-      select: { id: true, authorId: true },
+      select: { id: true, authorId: true, taskId: true },
     });
 
     if (!comment) {
       throw new NotFoundException('Comment not found');
     }
+
+    // Check if user has access to the project
+    await this.checkProjectAccess(userId, comment.taskId);
 
     if (comment.authorId !== userId) {
       throw new ForbiddenException('You can only delete your own comments');
