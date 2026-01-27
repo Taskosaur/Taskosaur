@@ -123,7 +123,7 @@ export default function ShareTaskDialog({ taskId, isOpen, onClose }: ShareTaskDi
                   <SelectTrigger id="expiry" className="w-[180px]">
                     <SelectValue placeholder="Select expiry" />
                   </SelectTrigger>
-                  <SelectContent className='bg-gray-50/85 '>
+                  <SelectContent className='bg-[var(--card)]'>
                     <SelectItem value="1">1 day</SelectItem>
                     <SelectItem value="3">3 days</SelectItem>
                     <SelectItem value="7">7 days</SelectItem>
