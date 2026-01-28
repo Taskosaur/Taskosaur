@@ -119,11 +119,14 @@ export class OrganizationMembersService {
         if (workspaces.length > 0) {
           await Promise.all(
             workspaces.map(async (workspace) => {
-              await this.workspaceMembersService.create({
-                userId,
-                role,
-                workspaceId: workspace.id,
-              });
+              await this.workspaceMembersService.create(
+                {
+                  userId,
+                  role,
+                  workspaceId: workspace.id,
+                },
+                requestUserId,
+              );
             }),
           );
         }

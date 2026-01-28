@@ -5,12 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import {
-  WorkspaceMember,
-  Role as WorkspaceRole,
-  Role as OrganizationRole,
-  Role,
-} from '@prisma/client';
+import { WorkspaceMember, Role as WorkspaceRole, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   CreateWorkspaceMemberDto,
@@ -22,8 +17,92 @@ import { UpdateWorkspaceMemberDto } from './dto/update-workspace-member.dto';
 export class WorkspaceMembersService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createWorkspaceMemberDto: CreateWorkspaceMemberDto): Promise<WorkspaceMember> {
+  private async checkActorPermissions(
+    actorId: string,
+    workspaceId: string,
+    requiredRole?: Role,
+  ): Promise<void> {
+    // 1. Check if user is a SUPER_ADMIN
+    const actor = await this.prisma.user.findUnique({
+      where: { id: actorId },
+      select: { role: true },
+    });
+
+    if (actor?.role === Role.SUPER_ADMIN) {
+      return;
+    }
+
+    // 2. Get workspace and its organization info
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: {
+        organizationId: true,
+        organization: {
+          select: {
+            ownerId: true,
+          },
+        },
+      },
+    });
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    // 3. Check if requester is org owner
+    if (workspace.organization.ownerId === actorId) {
+      return;
+    }
+
+    // 4. Check org membership and role
+    const requesterOrgMember = await this.prisma.organizationMember.findUnique({
+      where: {
+        userId_organizationId: {
+          userId: actorId,
+          organizationId: workspace.organizationId,
+        },
+      },
+    });
+
+    if (requesterOrgMember?.role === Role.OWNER || requesterOrgMember?.role === Role.MANAGER) {
+      // Org owners and managers have full access to all workspaces in their org
+      return;
+    }
+
+    // 5. Check workspace membership and role
+    const requesterWorkspaceMember = await this.prisma.workspaceMember.findUnique({
+      where: {
+        userId_workspaceId: {
+          userId: actorId,
+          workspaceId: workspaceId,
+        },
+      },
+    });
+
+    if (!requesterWorkspaceMember) {
+      throw new ForbiddenException('You are not a member of this workspace');
+    }
+
+    if (requiredRole) {
+      const roles: Role[] = [Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER, Role.SUPER_ADMIN];
+      const actorRoleIndex = roles.indexOf(requesterWorkspaceMember.role);
+      const requiredRoleIndex = roles.indexOf(requiredRole);
+
+      if (actorRoleIndex < requiredRoleIndex) {
+        throw new ForbiddenException(`${requiredRole} privileges required`);
+      }
+    }
+  }
+
+  async create(
+    createWorkspaceMemberDto: CreateWorkspaceMemberDto,
+    actorId?: string,
+  ): Promise<WorkspaceMember> {
     const { userId, workspaceId, role = WorkspaceRole.MEMBER } = createWorkspaceMemberDto;
+
+    if (actorId) {
+      await this.checkActorPermissions(actorId, workspaceId, Role.MANAGER);
+    }
 
     // Verify workspace exists and get organization info
     const workspace = await this.prisma.workspace.findUnique({
@@ -59,7 +138,7 @@ export class WorkspaceMembersService {
         },
       },
     });
-    console.log(JSON.stringify(user));
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -76,6 +155,7 @@ export class WorkspaceMembersService {
           userId,
           workspaceId,
           role,
+          createdBy: actorId,
         },
         include: {
           user: {
@@ -117,6 +197,7 @@ export class WorkspaceMembersService {
               userId,
               projectId: project.id,
               role,
+              createdBy: actorId,
             })),
             skipDuplicates: true,
           });
@@ -134,8 +215,13 @@ export class WorkspaceMembersService {
 
   async inviteByEmail(
     inviteWorkspaceMemberDto: InviteWorkspaceMemberDto,
+    actorId?: string,
   ): Promise<WorkspaceMember> {
     const { email, workspaceId, role = WorkspaceRole.MEMBER } = inviteWorkspaceMemberDto;
+
+    if (actorId) {
+      await this.checkActorPermissions(actorId, workspaceId, Role.MANAGER);
+    }
 
     // Find user by email
     const user = await this.prisma.user.findUnique({
@@ -147,11 +233,14 @@ export class WorkspaceMembersService {
       throw new NotFoundException('User with this email not found');
     }
 
-    return this.create({
-      userId: user.id,
-      workspaceId,
-      role,
-    });
+    return this.create(
+      {
+        userId: user.id,
+        workspaceId,
+        role,
+      },
+      actorId,
+    );
   }
 
   async findAll(
@@ -159,12 +248,27 @@ export class WorkspaceMembersService {
     search?: string,
     page?: number,
     limit?: number,
+    actorId?: string,
   ): Promise<{
     data: WorkspaceMember[];
     total: number;
     page?: number;
     limit?: number;
   }> {
+    if (actorId) {
+      const actor = await this.prisma.user.findUnique({
+        where: { id: actorId },
+        select: { role: true },
+      });
+
+      if (actor?.role !== Role.SUPER_ADMIN) {
+        if (!workspaceId) {
+          throw new BadRequestException('workspaceId is required for non-super-admins');
+        }
+        await this.checkActorPermissions(actorId, workspaceId);
+      }
+    }
+
     const whereClause: any = {};
 
     if (workspaceId) {
@@ -267,7 +371,7 @@ export class WorkspaceMembersService {
     return { data, total, page, limit };
   }
 
-  async findOne(id: string): Promise<WorkspaceMember> {
+  async findOne(id: string, actorId?: string): Promise<WorkspaceMember> {
     const member = await this.prisma.workspaceMember.findUnique({
       where: { id },
       include: {
@@ -298,6 +402,7 @@ export class WorkspaceMembersService {
                 id: true,
                 name: true,
                 slug: true,
+                ownerId: true,
                 owner: {
                   select: {
                     id: true,
@@ -316,10 +421,18 @@ export class WorkspaceMembersService {
       throw new NotFoundException('Workspace member not found');
     }
 
+    if (actorId) {
+      await this.checkActorPermissions(actorId, member.workspaceId);
+    }
+
     return member;
   }
 
-  findByUserAndWorkspace(userId: string, workspaceId: string) {
+  async findByUserAndWorkspace(userId: string, workspaceId: string, actorId?: string) {
+    if (actorId) {
+      await this.checkActorPermissions(actorId, workspaceId);
+    }
+
     return this.prisma.workspaceMember.findUnique({
       where: {
         userId_workspaceId: {
@@ -350,7 +463,7 @@ export class WorkspaceMembersService {
   async update(
     id: string,
     updateWorkspaceMemberDto: UpdateWorkspaceMemberDto,
-    requestUserId: string,
+    actorId: string,
   ): Promise<WorkspaceMember> {
     // Get current member info
     const member = await this.prisma.workspaceMember.findUnique({
@@ -375,41 +488,11 @@ export class WorkspaceMembersService {
     }
 
     // Check if requester has permission to update
-    const requesterWorkspaceMember = await this.findByUserAndWorkspace(
-      requestUserId,
-      member.workspaceId,
-    );
-    const requesterOrgMember = await this.prisma.organizationMember.findUnique({
-      where: {
-        userId_organizationId: {
-          userId: requestUserId,
-          organizationId: member.workspace.organizationId,
-        },
-      },
-    });
+    await this.checkActorPermissions(actorId, member.workspaceId, Role.MANAGER);
 
-    if (!requesterWorkspaceMember && !requesterOrgMember) {
-      throw new ForbiddenException('You are not a member of this workspace or organization');
-    }
-
-    // Permission check: organization owner, org admins, or workspace admins can update
-    const isOrgOwner = member.workspace.organization.ownerId === requestUserId;
-    const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
-    const isWorkspaceAdmin =
-      requesterWorkspaceMember?.role === WorkspaceRole.OWNER ||
-      requesterWorkspaceMember?.role === WorkspaceRole.MANAGER;
-
-    if (!isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin) {
-      throw new ForbiddenException(
-        'Only organization owners/admins or workspace admins can update member roles',
-      );
-    }
-
-    if (
-      requesterWorkspaceMember?.role === WorkspaceRole.MANAGER &&
-      updateWorkspaceMemberDto.role === 'OWNER'
-    ) {
-      throw new ForbiddenException('Manager can not change the role to owner');
+    if (updateWorkspaceMemberDto.role === 'OWNER') {
+      // Double check if requester has OWNER role if they are trying to promote someone to OWNER
+      await this.checkActorPermissions(actorId, member.workspaceId, Role.OWNER);
     }
 
     // Update workspace member and handle project members in a transaction
@@ -417,7 +500,10 @@ export class WorkspaceMembersService {
       // Update the workspace member
       const updated = await tx.workspaceMember.update({
         where: { id },
-        data: updateWorkspaceMemberDto,
+        data: {
+          ...updateWorkspaceMemberDto,
+          updatedBy: actorId,
+        },
         include: {
           user: {
             select: {
@@ -463,11 +549,13 @@ export class WorkspaceMembersService {
             },
             update: {
               role: role, // Update existing member's role
+              updatedBy: actorId,
             },
             create: {
               userId: userId,
               projectId: project.id,
               role: role, // Create new member with role
+              createdBy: actorId,
             },
           }),
         );
@@ -482,7 +570,7 @@ export class WorkspaceMembersService {
     return updatedMember;
   }
 
-  async remove(id: string, requestUserId: string): Promise<void> {
+  async remove(id: string, actorId: string): Promise<void> {
     // Get current member info
     const member = await this.prisma.workspaceMember.findUnique({
       where: { id },
@@ -505,30 +593,10 @@ export class WorkspaceMembersService {
       throw new NotFoundException('Workspace member not found');
     }
 
-    // Check if requester has permission to remove
-    const requesterWorkspaceMember = await this.findByUserAndWorkspace(
-      requestUserId,
-      member.workspaceId,
-    );
-    const requesterOrgMember = await this.prisma.organizationMember.findUnique({
-      where: {
-        userId_organizationId: {
-          userId: requestUserId,
-          organizationId: member.workspace.organizationId,
-        },
-      },
-    });
-
     // Users can remove themselves, or admins can remove others
-    const isSelfRemoval = member.userId === requestUserId;
-    const isOrgOwner = member.workspace.organization.ownerId === requestUserId;
-    const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
-    const isWorkspaceAdmin =
-      requesterWorkspaceMember?.role === WorkspaceRole.OWNER ||
-      requesterWorkspaceMember?.role === WorkspaceRole.MANAGER;
-
-    if (!isSelfRemoval && !isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin) {
-      throw new ForbiddenException('You can only remove yourself or you must be an admin');
+    const isSelfRemoval = member.userId === actorId;
+    if (!isSelfRemoval) {
+      await this.checkActorPermissions(actorId, member.workspaceId, Role.MANAGER);
     }
 
     // Use transaction to remove member from workspace and all related projects
@@ -556,7 +624,17 @@ export class WorkspaceMembersService {
     });
   }
 
-  getUserWorkspaces(userId: string): Promise<WorkspaceMember[]> {
+  async getUserWorkspaces(userId: string, actorId?: string): Promise<WorkspaceMember[]> {
+    if (actorId && userId !== actorId) {
+      const actor = await this.prisma.user.findUnique({
+        where: { id: actorId },
+        select: { role: true },
+      });
+      if (actor?.role !== Role.SUPER_ADMIN) {
+        throw new ForbiddenException('You can only view your own workspaces');
+      }
+    }
+
     return this.prisma.workspaceMember.findMany({
       where: { userId },
       include: {
@@ -590,7 +668,11 @@ export class WorkspaceMembersService {
     });
   }
 
-  async getWorkspaceStats(workspaceId: string): Promise<any> {
+  async getWorkspaceStats(workspaceId: string, actorId?: string): Promise<any> {
+    if (actorId) {
+      await this.checkActorPermissions(actorId, workspaceId);
+    }
+
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: workspaceId },
       select: { id: true },

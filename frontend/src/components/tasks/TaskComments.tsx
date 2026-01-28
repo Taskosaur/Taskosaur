@@ -566,7 +566,6 @@ export default function TaskComments({
       } else {
         const createdComment = await createTaskComment({
           taskId,
-          authorId: currentUser.id,
           content: sanitizedContent,
         });
         
