@@ -62,12 +62,10 @@ interface WorkspaceContextType extends WorkspaceState {
   inviteMemberToWorkspace: (inviteData: InviteMemberToWorkspaceData) => Promise<any>;
   updateMemberRole: (
     memberId: string,
-    updateData: UpdateMemberRoleData,
-    requestUserId: string
+    updateData: UpdateMemberRoleData
   ) => Promise<WorkspaceMember>;
   removeMemberFromWorkspace: (
-    memberId: string,
-    requestUserId: string
+    memberId: string
   ) => Promise<{ success: boolean; message: string }>;
 
   // Stats and utility methods
@@ -479,11 +477,10 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
       updateMemberRole: async (
         memberId: string,
-        updateData: UpdateMemberRoleData,
-        requestUserId: string
+        updateData: UpdateMemberRoleData
       ): Promise<WorkspaceMember> => {
         const result = await handleApiOperation(
-          () => workspaceApi.updateMemberRole(memberId, updateData, requestUserId),
+          () => workspaceApi.updateMemberRole(memberId, updateData),
           false
         );
 
@@ -499,11 +496,10 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       },
 
       removeMemberFromWorkspace: async (
-        memberId: string,
-        requestUserId: string
+        memberId: string
       ): Promise<{ success: boolean; message: string }> => {
         const result = await handleApiOperation(
-          () => workspaceApi.removeMemberFromWorkspace(memberId, requestUserId),
+          () => workspaceApi.removeMemberFromWorkspace(memberId),
           false
         );
 

@@ -444,7 +444,7 @@ function WorkspaceMembersContent() {
 
     try {
       setUpdatingMember(memberId);
-      await updateMemberRole(memberId, { role: newRole as any }, currentUser.id);
+      await updateMemberRole(memberId, { role: newRole as any });
       await refreshMembers();
       updateLocalStorageUser(newRole);
       toast.success("Member role updated successfully");
@@ -465,7 +465,7 @@ function WorkspaceMembersContent() {
 
     try {
       setRemovingMember(member?.id);
-      await removeMemberFromWorkspace(member?.id, currentUser.id);
+      await removeMemberFromWorkspace(member?.id);
       await refreshMembers();
       setMemberToRemove(null);
 

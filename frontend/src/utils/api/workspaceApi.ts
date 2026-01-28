@@ -204,12 +204,11 @@ export const workspaceApi = {
 
   updateMemberRole: async (
     memberId: string,
-    updateData: UpdateMemberRoleData,
-    requestUserId: string
+    updateData: UpdateMemberRoleData
   ): Promise<WorkspaceMember> => {
     try {
       const response = await api.patch<WorkspaceMember>(
-        `/workspace-members/${memberId}?requestUserId=${requestUserId}`,
+        `/workspace-members/${memberId}`,
         updateData
       );
       return response.data;
@@ -220,12 +219,11 @@ export const workspaceApi = {
   },
 
   removeMemberFromWorkspace: async (
-    memberId: string,
-    requestUserId: string
+    memberId: string
   ): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await api.delete(
-        `/workspace-members/${memberId}?requestUserId=${requestUserId}`
+        `/workspace-members/${memberId}`
       );
 
       // Handle different response types

@@ -730,18 +730,14 @@ export const taskApi = {
 
   updateTaskComment: async (
     commentId: string,
-    userId: string,
     commentData: UpdateTaskCommentRequest
   ): Promise<TaskComment> => {
     try {
       if (!isValidUUID(commentId)) {
         throw new Error('Invalid comment ID format');
       }
-      if (!isValidUUID(userId)) {
-        throw new Error('Invalid user ID format');
-      }
       const response = await api.patch<TaskComment>(
-        `/task-comments/${encodeURIComponent(commentId)}?userId=${encodeURIComponent(userId)}`,
+        `/task-comments/${encodeURIComponent(commentId)}`,
         commentData
       );
       return response.data;
@@ -751,15 +747,12 @@ export const taskApi = {
     }
   },
 
-  deleteTaskComment: async (commentId: string, userId: string): Promise<void> => {
+  deleteTaskComment: async (commentId: string): Promise<void> => {
     try {
       if (!isValidUUID(commentId)) {
         throw new Error('Invalid comment ID format');
       }
-      if (!isValidUUID(userId)) {
-        throw new Error('Invalid user ID format');
-      }
-      await api.delete(`/task-comments/${encodeURIComponent(commentId)}?userId=${encodeURIComponent(userId)}`);
+      await api.delete(`/task-comments/${encodeURIComponent(commentId)}`);
     } catch (error) {
       console.error("Delete task comment error:", error);
       throw error;

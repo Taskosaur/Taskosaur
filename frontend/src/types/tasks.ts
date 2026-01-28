@@ -179,7 +179,7 @@ export interface DynamicColumn {
 export interface CreateTaskCommentRequest {
   content: string;
   taskId: string;
-  authorId: string;
+  authorId?: string;
   parentCommentId?: string;
 }
 
