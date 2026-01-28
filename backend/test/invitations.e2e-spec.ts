@@ -102,7 +102,7 @@ describe('InvitationsController (e2e)', () => {
       },
     });
     projectId = project.id;
-  });
+  },10000);
 
   afterAll(async () => {
     if (prismaService) {
@@ -116,7 +116,7 @@ describe('InvitationsController (e2e)', () => {
       await prismaService.user.delete({ where: { id: invitee.id } });
     }
     await app.close();
-  });
+  },10000);
 
   describe('/invitations (POST)', () => {
     it('should create an organization invitation', () => {

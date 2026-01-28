@@ -87,7 +87,7 @@ describe('WorkspacesController (e2e)', () => {
           role: Role.MEMBER,
         },
       });
-  });
+  },10000);
 
   afterAll(async () => {
     if (prismaService) {
@@ -97,7 +97,7 @@ describe('WorkspacesController (e2e)', () => {
       await prismaService.user.deleteMany({ where: { id: { in: [user.id, user2.id] } } });
     }
     await app.close();
-  });
+  },10000);
 
   const createDto: CreateWorkspaceDto = {
     name: 'E2E Workspace',

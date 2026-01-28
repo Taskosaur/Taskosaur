@@ -100,6 +100,15 @@ describe('TaskCommentsController (e2e)', () => {
     });
     projectId = project.id;
 
+    // Add user to project
+    await prismaService.projectMember.create({
+      data: {
+        userId: user.id,
+        projectId: project.id,
+        role: Role.OWNER,
+      },
+    });
+
     // Create Status
     const status = await prismaService.taskStatus.create({
       data: {
@@ -148,7 +157,6 @@ describe('TaskCommentsController (e2e)', () => {
       const createDto: CreateTaskCommentDto = {
         content: 'This is a test comment',
         taskId: taskId,
-        authorId: user.id,
       };
 
       return request(app.getHttpServer())
@@ -186,7 +194,6 @@ describe('TaskCommentsController (e2e)', () => {
       const createDto: CreateTaskCommentDto = {
         content: 'This is a reply',
         taskId: taskId,
-        authorId: user.id,
         parentCommentId: commentId,
       };
 
@@ -275,7 +282,6 @@ describe('TaskCommentsController (e2e)', () => {
     it('should fail to update another users comment', () => {
       return request(app.getHttpServer())
         .patch(`/api/task-comments/${commentId}`)
-        .query({ userId: otherUser.id })
         .set('Authorization', `Bearer ${otherUserToken}`)
         .send({ content: 'Hacked content' })
         .expect(HttpStatus.FORBIDDEN);
@@ -284,7 +290,6 @@ describe('TaskCommentsController (e2e)', () => {
     it('should fail to delete another users comment', () => {
       return request(app.getHttpServer())
         .delete(`/api/task-comments/${commentId}`)
-        .query({ userId: otherUser.id })
         .set('Authorization', `Bearer ${otherUserToken}`)
         .expect(HttpStatus.FORBIDDEN);
     });
@@ -295,7 +300,6 @@ describe('TaskCommentsController (e2e)', () => {
       const updateDto = { content: 'Updated content' };
       return request(app.getHttpServer())
         .patch(`/api/task-comments/${commentId}`)
-        .query({ userId: user.id }) // Passing userId as per controller requirement
         .set('Authorization', `Bearer ${accessToken}`)
         .send(updateDto)
         .expect(HttpStatus.OK)
@@ -309,7 +313,6 @@ describe('TaskCommentsController (e2e)', () => {
     it('should delete a comment', () => {
       return request(app.getHttpServer())
         .delete(`/api/task-comments/${commentId}`)
-        .query({ userId: user.id }) // Passing userId as per controller requirement
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.NO_CONTENT);
     });
