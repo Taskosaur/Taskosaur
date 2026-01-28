@@ -391,7 +391,7 @@ export default function ChatPanel() {
             <button
               onClick={clearContext}
               className="flex items-center gap-1 px-2 py-1 text-xs text-[var(--muted-foreground)] hover:bg-[var(--accent)]  rounded-md transition-all duration-200"
-              title="Clear workspace/project context"
+              title="Clear Current Chat Context"
             >
               <HiArrowPath className="w-3 h-3" />
               Context

@@ -85,7 +85,19 @@ CRITICAL RULES:
 10. NEVER retry an action just because the result looks empty
 11. Do NOT judge whether the result "looks right" - just complete the requested steps
 12. Do NOT explain your thinking - just respond
-13. Modal/dropdown staying open after clicking an option = task is DONE, do not retry and after the modal open you have close the modal through click outside of the modal`;
+13. NEVER click outside a modal to close it - the app will auto-close modals when needed
+
+TASK UPDATE RULES (VERY IMPORTANT - for updating priority, status, sprint, assignee, etc.):
+- Step 1: Click on the task to open task detail modal
+- Step 2: Click on the field you want to change (e.g., priority badge shows "Medium")
+- Step 3: Click the new value in the dropdown (e.g., "Highest")
+- Step 4: IMMEDIATELY say "DONE: Task [field] updated to [value]"
+- STOP after Step 4 - do NOT do anything else
+- The modal will close automatically - do NOT try to close it yourself
+- Do NOT click outside the modal
+- Do NOT click any close button
+- Do NOT repeat any clicks
+- After you click the dropdown option, your job is FINISHED - say DONE`;
   }
 
   async chat(chatRequest: ChatRequestDto, userId: string): Promise<ChatResponseDto> {

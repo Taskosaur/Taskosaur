@@ -250,6 +250,7 @@ export default function TaskDetailClient({
       task.status = item;
       onTaskRefetch && onTaskRefetch();
       toast.success("Task status updated successfully.");
+      handleAIAutoClose();
     } catch (error) {
       toast.error("Failed to update task status. Please try again.");
     }
@@ -889,6 +890,15 @@ export default function TaskDetailClient({
     setEditTaskData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleAIAutoClose = () => {
+    if ((window as any).__AI_AUTOMATION_ACTIVE__ && onClose) {
+      setTimeout(() => {
+        (window as any).__AI_AUTOMATION_ACTIVE__ = false;
+        onClose();
+      }, 500);
+    }
+  };
+
   const handleDeleteTask = () => {
     setConfirmModal({
       isOpen: true,
@@ -1258,6 +1268,7 @@ export default function TaskDetailClient({
                             }));
                             onTaskRefetch && onTaskRefetch();
                             toast.success("Task type updated successfully.");
+                            handleAIAutoClose();
                           } catch (error) {
                             toast.error("Failed to update task type.");
                           }
@@ -1397,6 +1408,7 @@ export default function TaskDetailClient({
                             }));
                             onTaskRefetch && onTaskRefetch();
                             toast.success("Task sprint updated successfully.");
+                            handleAIAutoClose();
                           } catch (error) {
                             toast.error("Failed to update task sprint.");
                           }
@@ -1532,6 +1544,7 @@ export default function TaskDetailClient({
                             }));
                             onTaskRefetch && onTaskRefetch();
                             toast.success("Task priority updated successfully.");
+                            handleAIAutoClose();
                           } catch (error) {
                             toast.error("Failed to update task priority.");
                           }
@@ -2047,6 +2060,7 @@ export default function TaskDetailClient({
                       );
                       onTaskRefetch && onTaskRefetch();
                       toast.success("Assignees updated successfully.");
+                      handleAIAutoClose();
                     } catch {
                       toast.error("Failed to update assignees.");
                     }

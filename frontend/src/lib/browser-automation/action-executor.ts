@@ -24,6 +24,8 @@ export class ActionExecutor {
     }
 
     try {
+      (window as any).__AI_AUTOMATION_ACTIVE__ = true;
+
       const htmlElement = element as HTMLElement;
       htmlElement.scrollIntoView({ behavior: "smooth", block: "center" });
       await this.wait(300);

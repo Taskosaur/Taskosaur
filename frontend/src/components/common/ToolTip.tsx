@@ -7,10 +7,15 @@ const Tooltip = ({ children, content, position = "top", color = "dark", delay = 
   const [timeoutId, setTimeoutId] = useState<ReturnType<typeof setTimeout> | null>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
 
+  const hasOpenChild = () => {
+    if (!triggerRef.current) return false;
+    return triggerRef.current.querySelector('[data-state="open"]') !== null;
+  };
+
   const handleMouseEnter = () => {
     if (timeoutId) clearTimeout(timeoutId);
     const id = setTimeout(() => {
-      if (triggerRef.current) {
+      if (triggerRef.current && !hasOpenChild()) {
         setIsVisible(true);
       }
     }, delay);
@@ -71,11 +76,12 @@ const Tooltip = ({ children, content, position = "top", color = "dark", delay = 
     <div
       ref={triggerRef}
       className="inline-block"
+      data-tooltip={typeof content === "string" ? content : undefined}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {children}
-      {isVisible &&
+      {isVisible && !hasOpenChild() &&
         createPortal(
           <div
             className={`fixed z-[9999] px-3 py-2 rounded-md text-sm whitespace-nowrap shadow-lg ${colorClasses[color]}`}
