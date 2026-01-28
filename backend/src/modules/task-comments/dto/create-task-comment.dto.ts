@@ -23,15 +23,6 @@ export class CreateTaskCommentDto {
   taskId: string;
 
   @ApiProperty({
-    description: 'ID of the user creating the comment',
-    example: '123e4567-e89b-12d3-a456-426614174001',
-    format: 'uuid',
-  })
-  @IsUUID()
-  @IsNotEmpty()
-  authorId: string;
-
-  @ApiProperty({
     description: 'ID of the parent comment (for replies)',
     example: '123e4567-e89b-12d3-a456-426614174002',
     format: 'uuid',

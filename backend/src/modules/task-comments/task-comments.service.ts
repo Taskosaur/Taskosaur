@@ -4,18 +4,22 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { TaskComment } from '@prisma/client';
+import { TaskComment, NotificationType, NotificationPriority } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskCommentDto } from './dto/create-task-comment.dto';
 import { UpdateTaskCommentDto } from './dto/update-task-comment.dto';
 import { EmailReplyService } from '../inbox/services/email-reply.service';
 import { sanitizeHtml } from 'src/common/utils/sanitizer.util';
+import { NotificationsService } from '../notifications/notifications.service';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class TaskCommentsService {
   constructor(
     private prisma: PrismaService,
     private emailReply: EmailReplyService,
+    private notificationsService: NotificationsService,
+    private usersService: UsersService,
   ) {}
 
   private async checkProjectAccess(userId: string, taskId: string) {
@@ -39,6 +43,85 @@ export class TaskCommentsService {
 
     if (!projectMember) {
       throw new ForbiddenException('You do not have access to this project');
+    }
+  }
+
+  private async handleNotifications(
+    comment: {
+      content: string;
+      taskId: string;
+      author: { firstName: string };
+    },
+    authorId: string,
+  ) {
+    // 1. Fetch Task Details with Participants and Context
+    const task = await this.prisma.task.findUnique({
+      where: { id: comment.taskId },
+      include: {
+        assignees: true,
+        reporters: true,
+        watchers: { include: { user: true } },
+        project: {
+          include: {
+            workspace: true,
+          },
+        },
+      },
+    });
+
+    if (!task) return;
+
+    const organizationId = task.project.workspace.organizationId;
+    const notifiedUserIds = new Set<string>();
+    notifiedUserIds.add(authorId); // Don't notify author
+
+    // 2. Handle Mentions
+    const mentionRegex = /@([\w.-]+)/g;
+    const matches = [...comment.content.matchAll(mentionRegex)];
+    const usernames = [...new Set(matches.map((m) => m[1]))];
+
+    for (const username of usernames) {
+      const user = await this.usersService.findByUsername(username);
+      if (user && !notifiedUserIds.has(user.id)) {
+        await this.notificationsService.createNotification({
+          title: 'You were mentioned',
+          message: `${comment.author.firstName} mentioned you in a comment on "${task.title}"`,
+          type: NotificationType.MENTION,
+          userId: user.id,
+          organizationId,
+          entityType: 'Task',
+          entityId: task.id,
+          actionUrl: `/tasks/${task.id}`,
+          priority: NotificationPriority.HIGH,
+          createdBy: authorId,
+        });
+        notifiedUserIds.add(user.id);
+      }
+    }
+
+    // 3. Notify Assignees, Reporters, Watchers (Task Commented)
+    const participants = [
+      ...task.assignees,
+      ...task.reporters,
+      ...task.watchers.map((w) => w.user),
+    ];
+
+    for (const participant of participants) {
+      if (!notifiedUserIds.has(participant.id)) {
+        await this.notificationsService.createNotification({
+          title: 'New Comment',
+          message: `${comment.author.firstName} commented on "${task.title}"`,
+          type: NotificationType.TASK_COMMENTED,
+          userId: participant.id,
+          organizationId,
+          entityType: 'Task',
+          entityId: task.id,
+          actionUrl: `/tasks/${task.id}`,
+          priority: NotificationPriority.MEDIUM,
+          createdBy: authorId,
+        });
+        notifiedUserIds.add(participant.id);
+      }
     }
   }
 
@@ -129,6 +212,10 @@ export class TaskCommentsService {
         },
       },
     });
+
+    // Handle mentions and notifications
+    await this.handleNotifications(comment, userId);
+
     if (comment.task.allowEmailReplies) {
       await this.emailReply.sendCommentAsEmail(comment.id);
     }
