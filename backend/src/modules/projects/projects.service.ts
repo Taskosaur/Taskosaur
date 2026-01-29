@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { Project, Role } from '@prisma/client';
+import { Project, Role, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -52,24 +52,21 @@ export class ProjectsService {
 
     // Check if user can create projects in this workspace
     if (workspace.organization.ownerId !== userId) {
-      // const _orgMember = await this.prisma.organizationMember.findUnique({
-      //   where: {
-      //     userId_organizationId: {
-      //       userId,
-      //       organizationId: workspace.organizationId,
-      //     },
-      //   },
-      //   select: { role: true },
-      // });
-      // const _wsMember = await this.prisma.workspaceMember.findUnique({
-      //   where: {
-      //     userId_workspaceId: {
-      //       userId,
-      //       workspaceId: createProjectDto.workspaceId,
-      //     },
-      //   },
-      //   select: { role: true },
-      // });
+      const wsMember = await this.prisma.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId,
+            workspaceId: createProjectDto.workspaceId,
+          },
+        },
+        select: { role: true },
+      });
+
+      if (!wsMember || wsMember.role === Role.VIEWER) {
+        throw new ForbiddenException(
+          'Insufficient permissions to create projects in this workspace',
+        );
+      }
     }
 
     // Generate unique slug
@@ -107,115 +104,145 @@ export class ProjectsService {
       userId: member.userId,
       role: member.role,
     }));
-    try {
-      return await this.prisma.$transaction(async (tx) => {
-        const project = await tx.project.create({
-          data: {
-            ...createProjectDto,
-            slug,
-            workflowId: createProjectDto.workflowId || defaultWorkflow.id,
-            createdBy: userId,
-            updatedBy: userId,
-            sprints: {
-              create: {
-                name: DEFAULT_SPRINT.name,
-                goal: DEFAULT_SPRINT.goal,
-                status: DEFAULT_SPRINT.status,
-                isDefault: DEFAULT_SPRINT.isDefault,
-                createdBy: userId,
-                updatedBy: userId,
-              },
-            },
-          },
-          include: {
-            workspace: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                organization: {
-                  select: { id: true, name: true, slug: true },
-                },
-              },
-            },
-            workflow: {
-              select: {
-                id: true,
-                name: true,
-                isDefault: true,
-                statuses: {
-                  select: {
-                    id: true,
-                    name: true,
-                    color: true,
-                    category: true,
-                    position: true,
-                  },
-                  orderBy: { position: 'asc' },
-                },
-              },
-            },
-            createdByUser: {
-              select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
-            updatedByUser: {
-              select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
-            sprints: {
-              select: {
-                id: true,
-                name: true,
-                goal: true,
-                status: true,
-                startDate: true,
-                endDate: true,
-              },
-              orderBy: { createdAt: 'asc' },
-            },
-            _count: { select: { members: true, tasks: true, sprints: true } },
-          },
-        });
-        const membersToAdd = new Map<string, Role>();
-        membersToAdd.set(userId, Role.OWNER);
-        workspaceOwners.forEach((member) => {
-          if (!membersToAdd.has(member.userId)) {
-            membersToAdd.set(member.userId, member.role);
-          }
-        });
-        // Add creator as project member with MANAGER role
-        await Promise.all(
-          Array.from(membersToAdd.entries()).map(([memberId, memberRole]) =>
-            tx.projectMember.create({
-              data: {
-                userId: memberId,
-                projectId: project.id,
-                role: memberRole,
-                createdBy: userId,
-                updatedBy: userId,
-              },
-            }),
-          ),
-        );
 
-        return project;
-      });
-    } catch (error: any) {
-      console.error(error);
-      if (error.code === 'P2002') {
-        throw new ConflictException('Project with this key already exists in this workspace');
+    let retryCount = 0;
+    const maxRetries = 5;
+
+    while (retryCount < maxRetries) {
+      try {
+        return await this.prisma.$transaction(async (tx) => {
+          const project = await tx.project.create({
+            data: {
+              ...createProjectDto,
+              slug,
+              workflowId: createProjectDto.workflowId || defaultWorkflow.id,
+              createdBy: userId,
+              updatedBy: userId,
+              sprints: {
+                create: {
+                  name: DEFAULT_SPRINT.name,
+                  goal: DEFAULT_SPRINT.goal,
+                  status: DEFAULT_SPRINT.status,
+                  isDefault: DEFAULT_SPRINT.isDefault,
+                  createdBy: userId,
+                  updatedBy: userId,
+                },
+              },
+            },
+            include: {
+              workspace: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  organization: {
+                    select: { id: true, name: true, slug: true },
+                  },
+                },
+              },
+              workflow: {
+                select: {
+                  id: true,
+                  name: true,
+                  isDefault: true,
+                  statuses: {
+                    select: {
+                      id: true,
+                      name: true,
+                      color: true,
+                      category: true,
+                      position: true,
+                    },
+                    orderBy: { position: 'asc' },
+                  },
+                },
+              },
+              createdByUser: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+              updatedByUser: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+              sprints: {
+                select: {
+                  id: true,
+                  name: true,
+                  goal: true,
+                  status: true,
+                  startDate: true,
+                  endDate: true,
+                },
+                orderBy: { createdAt: 'asc' },
+              },
+              _count: { select: { members: true, tasks: true, sprints: true } },
+            },
+          });
+          const membersToAdd = new Map<string, Role>();
+          membersToAdd.set(userId, Role.OWNER);
+          workspaceOwners.forEach((member) => {
+            if (!membersToAdd.has(member.userId)) {
+              membersToAdd.set(member.userId, member.role);
+            }
+          });
+          // Add creator as project member with MANAGER role
+          await Promise.all(
+            Array.from(membersToAdd.entries()).map(([memberId, memberRole]) =>
+              tx.projectMember.create({
+                data: {
+                  userId: memberId,
+                  projectId: project.id,
+                  role: memberRole,
+                  createdBy: userId,
+                  updatedBy: userId,
+                },
+              }),
+            ),
+          );
+
+          return project;
+        });
+      } catch (error: unknown) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002' &&
+          Array.isArray(error.meta?.target) &&
+          (error.meta.target as string[]).includes('slug')
+        ) {
+          retryCount++;
+          // Fetch existing again to get the latest max suffix
+          const existing = await this.prisma.project.findMany({
+            where: { slug: { startsWith: baseSlug } },
+            select: { slug: true },
+          });
+          let maxSuffix = 0;
+          existing.forEach((p) => {
+            const match = p.slug.match(new RegExp(`^${baseSlug}-(\\d+)$`));
+            if (match) {
+              const num = parseInt(match[1], 10);
+              if (num > maxSuffix) maxSuffix = num;
+            }
+          });
+          slug = `${baseSlug}-${maxSuffix + 1}`;
+          continue;
+        }
+        console.error(error);
+        if (error.code === 'P2002') {
+          throw new ConflictException('Project with this key already exists in this workspace');
+        }
+        throw error;
       }
-      throw error;
     }
+    throw new ConflictException('Could not generate a unique slug after multiple attempts');
   }
 
   findAll(
@@ -266,7 +293,20 @@ export class ProjectsService {
 
     const whereClause: any = {
       archive: false,
-      OR: [{ members: { some: { userId } } }, { visibility: 'PUBLIC' }],
+      OR: [
+        { visibility: 'PUBLIC' },
+        { members: { some: { userId } } },
+        {
+          visibility: 'INTERNAL',
+          workspace: { members: { some: { userId } } },
+        },
+        { workspace: { organization: { ownerId: userId } } },
+        {
+          workspace: {
+            members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } },
+          },
+        },
+      ],
     };
     if (workspaceId) {
       whereClause.workspaceId = workspaceId;
@@ -399,7 +439,20 @@ export class ProjectsService {
     const whereClause: any = {
       workspace: { organizationId },
       archive: false,
-      OR: [{ members: { some: { userId } } }, { visibility: 'PUBLIC' }],
+      OR: [
+        { visibility: 'PUBLIC' },
+        { members: { some: { userId } } },
+        {
+          visibility: 'INTERNAL',
+          workspace: { members: { some: { userId } } },
+        },
+        { workspace: { organization: { ownerId: userId } } },
+        {
+          workspace: {
+            members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } },
+          },
+        },
+      ],
     };
     if (workspaceId) {
       whereClause.workspaceId = workspaceId;
@@ -480,52 +533,26 @@ export class ProjectsService {
     userId: string,
     workspaceId?: string,
   ): Promise<string[]> {
-    // Get all workspaces in the organization (filtered by workspaceId if provided)
-    const workspaces = await this.prisma.workspace.findMany({
+    const projects = await this.prisma.project.findMany({
       where: {
-        organizationId,
+        workspace: {
+          organizationId,
+          ...(workspaceId && { id: workspaceId }),
+        },
         archive: false,
-        ...(workspaceId && { id: workspaceId }),
-      },
-      select: { id: true },
-    });
-
-    const accessibleProjectIds: string[] = [];
-
-    // Check each workspace
-    for (const workspace of workspaces) {
-      try {
-        // If not elevated at workspace level, get projects user is member of OR INTERNAL projects
-        const memberProjects = await this.prisma.project.findMany({
-          where: {
-            workspaceId: workspace.id,
-            archive: false,
-            OR: [{ members: { some: { userId } } }, { visibility: 'INTERNAL' }],
+        OR: [
+          { visibility: 'PUBLIC' },
+          { members: { some: { userId } } },
+          {
+            visibility: 'INTERNAL',
+            workspace: { members: { some: { userId } } },
           },
-          select: { id: true },
-        });
-        accessibleProjectIds.push(...memberProjects.map((p) => p.id));
-      } catch (error) {
-        console.error('Error accessing workspace:', error);
-        // If user doesn't have access to workspace, skip it
-        // This handles the ForbiddenException from getWorkspaceAccess
-        continue;
-      }
-    }
-
-    // Also add PUBLIC projects from this organization
-    const publicProjects = await this.prisma.project.findMany({
-      where: {
-        workspace: { organizationId },
-        visibility: 'PUBLIC',
-        archive: false,
+        ],
       },
       select: { id: true },
     });
 
-    accessibleProjectIds.push(...publicProjects.map((p) => p.id));
-
-    return [...new Set(accessibleProjectIds)]; // Remove duplicates
+    return projects.map((p) => p.id);
   }
 
   async findOne(id: string, userId: string): Promise<Project> {
@@ -619,9 +646,6 @@ export class ProjectsService {
     });
 
     if (!project) throw new NotFoundException('Project not found');
-
-    // Check access
-    await this.accessControl.getProjectAccess(project.id, userId);
 
     return this.findOne(project.id, userId);
   }
@@ -723,10 +747,18 @@ export class ProjectsService {
 
     // Add user access filtering
     whereClause.OR = [
-      { workspace: { organization: { ownerId: userId } } },
-      { workspace: { organization: { members: { some: { userId } } } } },
-      { workspace: { members: { some: { userId } } } },
+      { visibility: 'PUBLIC' },
       { members: { some: { userId } } },
+      {
+        visibility: 'INTERNAL',
+        workspace: { members: { some: { userId } } },
+      },
+      { workspace: { organization: { ownerId: userId } } },
+      {
+        workspace: {
+          members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } },
+        },
+      },
     ];
 
     // Add search filter
@@ -790,7 +822,20 @@ export class ProjectsService {
     }
 
     // Add user access filtering
-    whereClause.OR = [{ members: { some: { userId } } }];
+    whereClause.OR = [
+      { visibility: 'PUBLIC' },
+      { members: { some: { userId } } },
+      {
+        visibility: 'INTERNAL',
+        workspace: { members: { some: { userId } } },
+      },
+      { workspace: { organization: { ownerId: userId } } },
+      {
+        workspace: {
+          members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } },
+        },
+      },
+    ];
 
     if (search && search.trim()) {
       const searchConditions = [
