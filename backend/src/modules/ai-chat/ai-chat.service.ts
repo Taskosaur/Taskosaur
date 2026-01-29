@@ -178,6 +178,8 @@ CRITICAL RULES:
 
         case 'openai':
           requestUrl = `${apiUrl}/chat/completions`;
+          delete requestBody.max_tokens;
+          requestBody.max_completion_tokens = 500;
           requestBody.top_p = 0.9;
           requestBody.frequency_penalty = 0;
           requestBody.presence_penalty = 0;
@@ -433,6 +435,8 @@ CRITICAL RULES:
 
         case 'openai':
           requestUrl = `${validatedUrl}/chat/completions`;
+          delete requestBody.max_tokens;
+          requestBody.max_completion_tokens = 50;
           break;
 
         case 'ollama':
