@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { HiXMark, HiPaperAirplane, HiSparkles, HiArrowPath } from "react-icons/hi2";
+import { HiXMark, HiPaperAirplane, HiSparkles, HiArrowPath, HiStop } from "react-icons/hi2";
 import { useChatContext } from "@/contexts/chat-context";
 import { mcpServer, extractContextFromPath } from "@/lib/mcp-server";
 import { usePathname, useRouter } from "next/navigation";
@@ -39,6 +39,43 @@ export default function ChatPanel() {
   const [isBrowserAgentRunning, setIsBrowserAgentRunning] = useState(false);
   const browserAgentRef = useRef<BrowserAgent | null>(null);
 
+  // Agent status display
+  const thinkingWords = useRef([
+    "Thinking", "Pondering", "Analyzing", "Processing",
+    "Examining", "Figuring out", "Working on it", "Looking into it",
+    "On it", "Brewing ideas", "Cooking up a plan", "Strategizing", "Contemplating", "Deliberating", 
+  ]);
+  const lastStartIndex = useRef(0);
+  const [agentStatus, setAgentStatus] = useState("");
+  const thinkingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const thinkingDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleAgentStatus = useCallback((status: string) => {
+    if (thinkingIntervalRef.current) {
+      clearInterval(thinkingIntervalRef.current);
+      thinkingIntervalRef.current = null;
+    }
+    if (thinkingDelayRef.current) {
+      clearTimeout(thinkingDelayRef.current);
+      thinkingDelayRef.current = null;
+    }
+    if (status === "thinking") {
+      setAgentStatus("");
+      thinkingDelayRef.current = setTimeout(() => {
+        const words = thinkingWords.current;
+        let index = lastStartIndex.current;
+        lastStartIndex.current = (lastStartIndex.current + 1) % words.length;
+        setAgentStatus(words[index]);
+        thinkingIntervalRef.current = setInterval(() => {
+          index = (index + 1) % words.length;
+          setAgentStatus(words[index]);
+        }, 60000);
+      }, 10000);
+    } else {
+      setAgentStatus(status);
+    }
+  }, []);
+
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     resizing.current = true;
@@ -63,13 +100,19 @@ export default function ChatPanel() {
     };
   }, []);
 
-  // Initialize browser agent
+  // Initialize browser agent and clear stale history on mount
   useEffect(() => {
-    if (typeof window !== 'undefined' && !browserAgentRef.current) {
+    if (typeof window !== 'undefined') {
+      if (!browserAgentRef.current) {
       browserAgentRef.current = new BrowserAgent({
         maxIterations: 30,
         waitAfterAction: 500,
       });
+      } else {
+        browserAgentRef.current.reset();
+      }
+      sessionStorage.removeItem("mcp_conversation_history");
+      mcpServer.clearHistory();
     }
   }, []);
   // Auto-resize textarea function
@@ -238,7 +281,7 @@ export default function ChatPanel() {
     setIsBrowserAgentRunning(true);
 
     try {
-      const result = await browserAgentRef.current.executeTask(message);
+      const result = await browserAgentRef.current.executeTask(message, undefined, handleAgentStatus);
 
       let cleanMessage = result.message || "";
       if (cleanMessage.startsWith("DONE:")) {
@@ -262,6 +305,15 @@ export default function ChatPanel() {
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
+      if (thinkingIntervalRef.current) {
+        clearInterval(thinkingIntervalRef.current);
+        thinkingIntervalRef.current = null;
+      }
+      if (thinkingDelayRef.current) {
+        clearTimeout(thinkingDelayRef.current);
+        thinkingDelayRef.current = null;
+      }
+      setAgentStatus("");
       setIsBrowserAgentRunning(false);
     }
   };
@@ -286,6 +338,10 @@ export default function ChatPanel() {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleStopAgent = () => {
+    browserAgentRef.current?.stop();
   };
 
   const clearChat = () => {
@@ -529,39 +585,14 @@ export default function ChatPanel() {
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-400 flex items-center justify-center flex-shrink-0">
                     <HiSparkles className="w-4 h-4 text-white" />
                   </div>
-                  <div className="flex items-center gap-0.5 h-4">
-                    <span 
-                      className="w-1 bg-gray-400 rounded-sm animate-pulse" 
-                      style={{ 
-                        animationDuration: "1.2s",
-                        animationDelay: "0s",
-                        height: "40%"
-                      }} 
-                    />
-                    <span 
-                      className="w-1 bg-gray-400 rounded-sm animate-pulse" 
-                      style={{ 
-                        animationDuration: "1.2s",
-                        animationDelay: "0.2s",
-                        height: "60%"
-                      }} 
-                    />
-                    <span 
-                      className="w-1 bg-gray-400 rounded-sm animate-pulse" 
-                      style={{ 
-                        animationDuration: "1.2s",
-                        animationDelay: "0.4s",
-                        height: "80%"
-                      }} 
-                    />
-                    <span 
-                      className="w-1 bg-gray-400 rounded-sm animate-pulse" 
-                      style={{ 
-                        animationDuration: "1.2s",
-                        animationDelay: "0.6s",
-                        height: "60%"
-                      }} 
-                    />
+                  <div className="flex items-center gap-2">
+                    {agentStatus && <span className="text-sm text-gray-500 dark:text-gray-400 italic thinking-fade" key={agentStatus}>{agentStatus}...</span>}
+                    <div className="flex items-center gap-0.5 h-4">
+                      <span className="w-1 bg-gray-400 rounded-sm animate-pulse" style={{ animationDuration: "1.2s", animationDelay: "0s", height: "40%" }} />
+                      <span className="w-1 bg-gray-400 rounded-sm animate-pulse" style={{ animationDuration: "1.2s", animationDelay: "0.2s", height: "60%" }} />
+                      <span className="w-1 bg-gray-400 rounded-sm animate-pulse" style={{ animationDuration: "1.2s", animationDelay: "0.4s", height: "80%" }} />
+                      <span className="w-1 bg-gray-400 rounded-sm animate-pulse" style={{ animationDuration: "1.2s", animationDelay: "0.6s", height: "60%" }} />
+                    </div>
                   </div>
                 </div>
               )}
@@ -605,17 +636,22 @@ export default function ChatPanel() {
                   height: "48px",
                 }}
               />
-              <button
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isLoading || isBrowserAgentRunning || !user}
-                className="p-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md disabled:shadow-none flex-shrink-0"
-              >
-                {isLoading || isBrowserAgentRunning ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
+              {isBrowserAgentRunning ? (
+                <button
+                  onClick={handleStopAgent}
+                  className="p-3 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md flex-shrink-0"
+                >
+                  <HiStop className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isLoading || !user}
+                  className="p-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md disabled:shadow-none flex-shrink-0"
+                >
                   <HiPaperAirplane className="w-4 h-4" />
-                )}
-              </button>
+                </button>
+              )}
             </div>
         </div>
       </div>
@@ -641,6 +677,14 @@ export default function ChatPanel() {
           scroll-behavior: smooth;
           scrollbar-width: none; /* Firefox */
           -ms-overflow-style: none; /* Internet Explorer 10+ */
+        }
+
+        .thinking-fade {
+          animation: fade-swap 4s ease-in-out infinite;
+        }
+        @keyframes fade-swap {
+          0%, 90%, 100% { opacity: 1; }
+          95% { opacity: 0; }
         }
       `}</style>
     </>

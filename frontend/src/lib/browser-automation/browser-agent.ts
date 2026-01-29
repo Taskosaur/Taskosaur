@@ -26,6 +26,7 @@ export class BrowserAgent {
   private config: Required<BrowserAgentConfig>;
   private steps: AgentStep[] = [];
   private conversationHistory: Array<{ role: string; content: string }> = [];
+  private aborted: boolean = false;
 
   constructor(config?: BrowserAgentConfig) {
     this.detector = new DOMDetector();
@@ -38,12 +39,24 @@ export class BrowserAgent {
 
   public async executeTask(
     task: string,
-    onProgress?: (step: AgentStep) => void
+    onProgress?: (step: AgentStep) => void,
+    onStatusChange?: (status: string) => void
   ): Promise<AgentResult> {
     this.steps = [];
+    this.aborted = false;
 
     for (let i = 0; i < this.config.maxIterations; i++) {
+      if (this.aborted) {
+        return {
+          success: false,
+          message: "Stopped by user",
+          steps: this.steps,
+        };
+      }
       try {
+        // Thinking phase
+        if (onStatusChange) onStatusChange("thinking");
+
         const detectionResult = this.detector.detectElements();
 
         const llmResponse = await this.callLLM(
@@ -69,6 +82,12 @@ export class BrowserAgent {
             message: llmResponse,
             steps: this.steps,
           };
+        }
+
+        // Action phase - show what's being done
+        if (onStatusChange) {
+          const actionLabel = this.getActionLabel(parsedAction);
+          onStatusChange(actionLabel);
         }
 
         //  Execute the action
@@ -254,10 +273,28 @@ export class BrowserAgent {
     return this.steps;
   }
 
+  private getActionLabel(parsedAction: { type: string; params: any[] }): string {
+    switch (parsedAction.type) {
+      case "click":
+        return "Clicking element";
+      case "type":
+        return `Typing "${parsedAction.params[1]?.toString().substring(0, 30) || ""}"`;
+      case "scroll":
+        return `Scrolling ${parsedAction.params[0] || "down"}`;
+      case "select":
+        return `Selecting "${parsedAction.params[1] || ""}"`;
+      default:
+        return "Performing action";
+    }
+  }
 
   public reset(): void {
     this.steps = [];
     this.conversationHistory = [];
+    this.aborted = false;
+  }
+      public stop(): void {
+    this.aborted = true;
   }
 }
 
