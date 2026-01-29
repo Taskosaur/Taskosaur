@@ -71,6 +71,24 @@ describe('ProjectsController (e2e)', () => {
     });
     organizationId = organization.id;
 
+    // Add user to organization as OWNER
+    await prismaService.organizationMember.create({
+      data: {
+        userId: user.id,
+        organizationId: organization.id,
+        role: Role.OWNER,
+      },
+    });
+
+    // Add user2 to organization as MEMBER
+    await prismaService.organizationMember.create({
+      data: {
+        userId: user2.id,
+        organizationId: organization.id,
+        role: Role.MEMBER,
+      },
+    });
+
     // Create default workflow
     await prismaService.workflow.create({
       data: {
@@ -213,6 +231,121 @@ describe('ProjectsController (e2e)', () => {
           expect(Array.isArray(res.body)).toBe(true);
           const project = res.body.find((p: any) => p.id === projectId);
           expect(project).toBeDefined();
+        });
+    });
+
+    it('should support pagination', () => {
+      return request(app.getHttpServer())
+        .get('/api/projects')
+        .query({ workspaceId, page: 1, pageSize: 5 })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.length).toBeLessThanOrEqual(5);
+        });
+    });
+
+    it('should filter by status', () => {
+      return request(app.getHttpServer())
+        .get('/api/projects')
+        .query({ workspaceId, status: ProjectStatus.PLANNING })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          res.body.forEach((p: any) => {
+            expect(p.status).toBe(ProjectStatus.PLANNING);
+          });
+        });
+    });
+
+    it('should search projects', () => {
+      return request(app.getHttpServer())
+        .get('/api/projects')
+        .query({ workspaceId, search: 'E2E' })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.length).toBeGreaterThan(0);
+          expect(res.body[0].name).toContain('E2E');
+        });
+    });
+  });
+
+  describe('/projects/by-organization (GET)', () => {
+    it('should list projects in organization', () => {
+      return request(app.getHttpServer())
+        .get('/api/projects/by-organization')
+        .query({ organizationId })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.length).toBeGreaterThan(0);
+          expect(res.body[0].workspace.organization.id).toBe(organizationId);
+        });
+    });
+  });
+
+  describe('Search Endpoints', () => {
+    it('/projects/search (GET) should search projects', () => {
+      return request(app.getHttpServer())
+        .get('/api/projects/search')
+        .query({ organizationId, search: 'E2E' })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.length).toBeGreaterThan(0);
+        });
+    });
+
+    it('/projects/search/paginated (GET) should search with pagination', () => {
+      return request(app.getHttpServer())
+        .get('/api/projects/search/paginated')
+        .query({ organizationId, search: 'E2E', page: 1, limit: 10 })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('projects');
+          expect(res.body).toHaveProperty('pagination');
+          expect(Array.isArray(res.body.projects)).toBe(true);
+          expect(res.body.pagination.currentPage).toBe(1);
+        });
+    });
+  });
+
+  describe('Find by Key and Slug', () => {
+    it('/projects/workspace/:workspaceId/key/:key (GET) should find by key', async () => {
+      // Get the project slug
+      const projectRes = await request(app.getHttpServer())
+        .get(`/api/projects/${projectId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+      const slug = projectRes.body.slug;
+
+      return request(app.getHttpServer())
+        .get(`/api/projects/workspace/${workspaceId}/key/${slug}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.id).toBe(projectId);
+        });
+    });
+
+    it('/projects/by-slug/:slug (GET) should find by slug', async () => {
+      const projectRes = await request(app.getHttpServer())
+        .get(`/api/projects/${projectId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+      const slug = projectRes.body.slug;
+
+      return request(app.getHttpServer())
+        .get(`/api/projects/by-slug/${slug}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.id).toBe(projectId);
         });
     });
   });

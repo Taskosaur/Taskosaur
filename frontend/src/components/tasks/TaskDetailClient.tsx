@@ -248,7 +248,7 @@ export default function TaskDetailClient({
       setCurrentStatus(item);
       // Update the task object's status
       task.status = item;
-      onTaskRefetch && onTaskRefetch();
+      if (!isAIActive()) { onTaskRefetch && onTaskRefetch(); }
       toast.success("Task status updated successfully.");
       handleAIAutoClose();
     } catch (error) {
@@ -890,12 +890,12 @@ export default function TaskDetailClient({
     setEditTaskData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const isAIActive = () => !!(window as any).__AI_AUTOMATION_ACTIVE__;
+
   const handleAIAutoClose = () => {
-    if ((window as any).__AI_AUTOMATION_ACTIVE__ && onClose) {
-      setTimeout(() => {
-        (window as any).__AI_AUTOMATION_ACTIVE__ = false;
-        onClose();
-      }, 500);
+    if (isAIActive() && onClose) {
+      (window as any).__AI_AUTOMATION_ACTIVE__ = false;
+      setTimeout(() => onClose(), 500);
     }
   };
 
@@ -1266,7 +1266,7 @@ export default function TaskDetailClient({
                               ...prev,
                               taskType: false,
                             }));
-                            onTaskRefetch && onTaskRefetch();
+                            if (!isAIActive()) { onTaskRefetch && onTaskRefetch(); }
                             toast.success("Task type updated successfully.");
                             handleAIAutoClose();
                           } catch (error) {
@@ -1406,7 +1406,7 @@ export default function TaskDetailClient({
                               ...prev,
                               sprint: false,
                             }));
-                            onTaskRefetch && onTaskRefetch();
+                            if (!isAIActive()) { onTaskRefetch && onTaskRefetch(); }
                             toast.success("Task sprint updated successfully.");
                             handleAIAutoClose();
                           } catch (error) {
@@ -1542,7 +1542,7 @@ export default function TaskDetailClient({
                               ...prev,
                               priority: false,
                             }));
-                            onTaskRefetch && onTaskRefetch();
+                            if (!isAIActive()) { onTaskRefetch && onTaskRefetch(); }
                             toast.success("Task priority updated successfully.");
                             handleAIAutoClose();
                           } catch (error) {
@@ -2058,7 +2058,7 @@ export default function TaskDetailClient({
                         taskId,
                         newAssignees.map((a) => a.id)
                       );
-                      onTaskRefetch && onTaskRefetch();
+                      if (!isAIActive()) { onTaskRefetch && onTaskRefetch(); }
                       toast.success("Assignees updated successfully.");
                       handleAIAutoClose();
                     } catch {
