@@ -236,7 +236,7 @@ export class ProjectsService {
           continue;
         }
         console.error(error);
-        if (error.code === 'P2002') {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
           throw new ConflictException('Project with this key already exists in this workspace');
         }
         throw error;

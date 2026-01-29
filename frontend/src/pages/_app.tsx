@@ -2,6 +2,7 @@ import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import "@/styles/globals.css";
+import "@/lib/i18n";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import AuthProvider from "@/contexts/auth-context";
