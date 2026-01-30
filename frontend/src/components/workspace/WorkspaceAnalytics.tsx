@@ -17,6 +17,7 @@ import { Widget, WorkspaceAnalyticsProps } from "@/types/analytics";
 import { TokenManager } from "@/lib/api";
 import { workspaceWidgets } from "@/utils/data/workspaceWidgets";
 import Tooltip from "../common/ToolTip";
+import { useTranslation } from "react-i18next";
 
 // DnD Imports
 import {
@@ -70,6 +71,7 @@ function SortableWidget({
 }
 
 export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
+  const { t } = useTranslation("workspace-home");
   const {
     analyticsData,
     analyticsLoading,
@@ -82,6 +84,13 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
   const { createWidgetsSection } = useDashboardSettings();
   const currentOrgId = TokenManager.getCurrentOrgId();
   const [widgets, setWidgets] = useState<Widget[]>(workspaceWidgets);
+
+  const translatedWidgets = React.useMemo(() => {
+    return widgets.map((w) => ({
+      ...w,
+      title: t(`widgets.${w.id.replace(/-/g, "_")}`, w.title),
+    }));
+  }, [widgets, t]);
 
   useEffect(() => {
     if (workspaceSlug && (!currentWorkspace || currentWorkspace.slug !== workspaceSlug)) {
@@ -215,27 +224,27 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
   }
 
   if (analyticsError) {
-    return <ErrorState error="Error loading organization analytics:" onRetry={handleFetchData} />;
+    return <ErrorState error={t("error_loading")} onRetry={handleFetchData} />;
   }
 
   if (!analyticsData) {
     return (
       <Alert className="flex items-center justify-between">
-        <AlertDescription>No analytics data available for this organization.</AlertDescription>
+        <AlertDescription>{t("no_data")}</AlertDescription>
         <Button onClick={handleFetchData} variant="outline" size="sm" className="ml-4 shrink-0">
-          Load Data
+          {t("load_data")}
         </Button>
       </Alert>
     );
   }
 
-  const visibleWidgets = widgets
+  const visibleWidgets = translatedWidgets
     .filter((widget) => widget.visible)
     .sort((a, b) => a.priority - b.priority);
 
-  const visibleCount = widgets.filter((w) => w.visible).length;
+  const visibleCount = translatedWidgets.filter((w) => w.visible).length;
   const settingSections = [
-    createWidgetsSection(widgets, toggleWidget, resetWidgets, () => {
+    createWidgetsSection(translatedWidgets, toggleWidget, resetWidgets, () => {
       setWidgets((prev) =>
         prev.map((widget) => ({
           ...widget,
@@ -250,19 +259,19 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
     }),
   ];
 
-  const activeWidget = activeId ? widgets.find((w) => w.id === activeId) : null;
+  const activeWidget = activeId ? translatedWidgets.find((w) => w.id === activeId) : null;
 
   return (
     <div className="space-y-6" data-testid="workspace-content">
       <PageHeader
-        title="Workspace Analytics"
-        description="Insights into your workspace performance and metrics"
+        title={t("analytics_title")}
+        description={t("analytics_description")}
         actions={
           <div className="flex items-center gap-2">
-            <Tooltip content="Dashboard Settings" position="top" color="primary">
+            <Tooltip content={t("dashboard_settings")} position="top" color="primary">
               <DashboardSettingsDropdown
                 sections={settingSections}
-                description="Customize your dashboard widgets"
+                description={t("customize_widgets")}
               />
             </Tooltip>
           </div>
@@ -272,12 +281,12 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
       {analyticsData && visibleCount === 0 && (
         <Card className="p-8 text-center">
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">No widgets to display</h3>
+            <h3 className="text-lg font-semibold">{t("no_widgets_title")}</h3>
             <p className="text-muted-foreground">
-              All widgets are currently hidden. Use the customize button to show widgets.
+              {t("no_widgets_description")}
             </p>
             <Button onClick={resetWidgets} variant="outline" className="mt-4">
-              Show All Widgets
+              {t("show_all_widgets")}
             </Button>
           </div>
         </Card>

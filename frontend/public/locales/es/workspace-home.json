@@ -1,0 +1,42 @@
+{
+  "analytics_title": "Análisis del Espacio de Trabajo",
+  "analytics_description": "Información sobre el rendimiento y las métricas de su espacio de trabajo",
+  "dashboard_settings": "Configuración del Panel",
+  "customize_widgets": "Personalice sus widgets del panel",
+  "no_widgets_title": "No hay widgets para mostrar",
+  "no_widgets_description": "Todos los widgets están actualmente ocultos. Use el botón de personalizar para mostrar los widgets.",
+  "show_all_widgets": "Mostrar todos los widgets",
+  "no_data": "No hay datos analíticos disponibles para esta organización.",
+  "load_data": "Cargar Datos",
+  "error_loading": "Error al cargar las analíticas de la organización:",
+  "widgets": {
+    "kpi_metrics": "Métricas KPI",
+    "project_status": "Distribución del Estado del Proyecto",
+    "task_priority": "Desglose de Prioridad de Tareas",
+    "task_type": "Distribución del Tipo de Tarea",
+    "sprint_status": "Resumen del Estado del Sprint",
+    "monthly_completion": "Finalización Mensual de Tareas"
+  },
+  "charts": {
+    "project_status_description": "Desglose del estado actual de todos los proyectos",
+    "task_priority_description": "Resumen de tareas por sus niveles de prioridad",
+    "task_type_description": "Distribución de tareas por su tipo",
+    "sprint_status_description": "Estado actual de todos los sprints en este espacio de trabajo",
+    "kpi_metrics_description": "Indicadores clave de rendimiento para su espacio de trabajo",
+    "monthly_completion_description": "Número de tareas completadas cada mes"
+  },
+  "kpi": {
+    "total_projects": "Proyectos Totales",
+    "active_projects": "Proyectos Activos",
+    "completion_rate": "Tasa de Finalización",
+    "total_tasks": "Tareas Totales",
+    "overdue_tasks": "Tareas Atrasadas",
+    "task_health": "Salud de las Tareas",
+    "excellent": "Excelente",
+    "good": "Bueno",
+    "needs_focus": "Necesita Enfoque",
+    "perfect": "Perfecto",
+    "critical": "Crítico",
+    "monitor": "Monitorear"
+  }
+}

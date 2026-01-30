@@ -5,16 +5,18 @@ import { useLayout } from "@/contexts/layout-context";
 import NotFound from "@/pages/404";
 import ActionButton from "@/components/common/ActionButton";
 import { SEO } from "@/components/common/SEO";
+import { useTranslation } from "react-i18next";
 
 export default function WorkspacePage() {
+  const { t } = useTranslation("workspaces");
   const router = useRouter();
   const { workspaceSlug } = router.query;
-  const { error } = useWorkspace();
+  const { error, currentWorkspace } = useWorkspace();
   const { setShow404 } = useLayout();
 
-  const displayTitle = workspaceSlug 
+  const displayTitle = currentWorkspace?.name || (workspaceSlug 
     ? (workspaceSlug as string).charAt(0).toUpperCase() + (workspaceSlug as string).slice(1)
-    : "Workspace";
+    : t("title"));
 
   if (error) {
     // Check if it's a 404/not found error
@@ -26,7 +28,7 @@ export default function WorkspacePage() {
       setShow404(true);
       return (
         <>
-          <SEO title="Workspace Not Found" />
+          <SEO title={t("messages.load_failed")} />
           <NotFound />
         </>
       );

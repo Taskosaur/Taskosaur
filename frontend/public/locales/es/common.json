@@ -2,5 +2,12 @@
   "save": "Guardar",
   "cancel": "Cancelar",
   "error": "Error",
-  "success": "Éxito"
+  "success": "Éxito",
+  "priorities": {
+    "lowest": "Muy Baja",
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "highest": "Muy Alta"
+  }
 }

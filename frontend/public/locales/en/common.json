@@ -2,5 +2,12 @@
   "save": "Save",
   "cancel": "Cancel",
   "error": "Error",
-  "success": "Success"
+  "success": "Success",
+  "priorities": {
+    "lowest": "Lowest",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "highest": "Highest"
+  }
 }
