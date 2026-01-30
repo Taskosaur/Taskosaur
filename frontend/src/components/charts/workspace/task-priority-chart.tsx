@@ -7,6 +7,7 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
+import { useTranslation } from "react-i18next";
 
 const chartConfig = {
   LOWEST: { label: "Lowest", color: "#94A3B8" },
@@ -21,10 +22,12 @@ interface TaskPriorityChartProps {
 }
 
 export function TaskPriorityChart({ data }: TaskPriorityChartProps) {
+  const { t } = useTranslation(["workspace-home", "common"]);
   const chartData = data?.map((item) => ({
-    name: chartConfig[item.priority as keyof typeof chartConfig]?.label || item.priority,
+    name: t(`common:priorities.${item.priority.toLowerCase()}`, chartConfig[item.priority as keyof typeof chartConfig]?.label || item.priority),
     value: item._count.priority,
     color: chartConfig[item.priority as keyof typeof chartConfig]?.color || "#8B5CF6",
+    id: item.priority
   }));
 
   // Sort data by priority level for better visualization
@@ -33,14 +36,14 @@ export function TaskPriorityChart({ data }: TaskPriorityChartProps) {
     chartData &&
     [...chartData].sort((a, b) => {
       return (
-        priorityOrder.indexOf(a.name.toUpperCase()) - priorityOrder.indexOf(b.name.toUpperCase())
+        priorityOrder.indexOf(a.id.toUpperCase()) - priorityOrder.indexOf(b.id.toUpperCase())
       );
     });
 
   return (
     <ChartWrapper
-      title="Task Priority Distribution"
-      description="Priority breakdown across all tasks"
+      title={t("widgets.task_priority")}
+      description={t("charts.task_priority_description")}
       config={chartConfig}
       className="border-[var(--border)]"
     >

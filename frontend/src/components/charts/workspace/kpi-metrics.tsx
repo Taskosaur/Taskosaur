@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import {
   DndContext,
   closestCenter,
@@ -80,7 +81,7 @@ function SortableStatCard({ id, label, value, icon, statSuffix, onClick }: Sorta
 }
 
 export function KPIMetrics({ data, workspaceId }: KPIMetricsProps) {
-  console.log("KPIMetrics data:", data);
+  const { t } = useTranslation("workspace-home");
   const router = useRouter();
   const { workspaceSlug } = router.query;
 
@@ -130,7 +131,7 @@ export function KPIMetrics({ data, workspaceId }: KPIMetricsProps) {
         case "total-projects":
           return {
             id,
-            label: "Total Projects",
+            label: t("kpi.total_projects"),
             value: data?.totalProjects,
             icon: <CheckCircle className="h-4 w-4" />,
             onClick: () => handleNavigate("/projects"),
@@ -138,7 +139,7 @@ export function KPIMetrics({ data, workspaceId }: KPIMetricsProps) {
         case "active-projects":
           return {
             id,
-            label: "Active Projects",
+            label: t("kpi.active_projects"),
             value: data?.activeProjects,
             icon: <TrendingUp className="h-4 w-4" />,
             statSuffix:
@@ -150,7 +151,7 @@ export function KPIMetrics({ data, workspaceId }: KPIMetricsProps) {
         case "completion-rate":
           return {
             id,
-            label: "Completion Rate",
+            label: t("kpi.completion_rate"),
             value: `${data?.completionRate?.toFixed(1) || 0}%`,
             icon:
               data?.completionRate > 70 ? (
@@ -170,10 +171,10 @@ export function KPIMetrics({ data, workspaceId }: KPIMetricsProps) {
                 className="text-xs"
               >
                 {data?.completionRate > 70
-                  ? "Excellent"
+                  ? t("kpi.excellent")
                   : data?.completionRate > 50
-                    ? "Good"
-                    : "Needs Focus"}
+                    ? t("kpi.good")
+                    : t("kpi.needs_focus")}
               </Badge>
             ),
             onClick: () => handleNavigate("/projects", { statuses: "COMPLETED" }),
@@ -181,7 +182,7 @@ export function KPIMetrics({ data, workspaceId }: KPIMetricsProps) {
         case "total-tasks":
           return {
             id,
-            label: "Total Tasks",
+            label: t("kpi.total_tasks"),
             value: data?.totalTasks,
             icon: <CheckCircle className="h-4 w-4" />,
             onClick: () => handleNavigate("/tasks"),
@@ -189,7 +190,7 @@ export function KPIMetrics({ data, workspaceId }: KPIMetricsProps) {
         case "overdue-tasks":
           return {
             id,
-            label: "Overdue Tasks",
+            label: t("kpi.overdue_tasks"),
             value: data?.overdueTasks,
             icon:
               data?.overdueTasks > 0 ? (
@@ -199,7 +200,7 @@ export function KPIMetrics({ data, workspaceId }: KPIMetricsProps) {
               ),
             statSuffix: (
               <Badge variant={data?.overdueTasks === 0 ? "default" : "outline"} className="text-xs">
-                {data?.overdueTasks === 0 ? "Perfect" : data?.overdueTasks < 10 ? "Good" : "Critical"}
+                {data?.overdueTasks === 0 ? t("kpi.perfect") : data?.overdueTasks < 10 ? t("kpi.good") : t("kpi.critical")}
               </Badge>
             ),
             onClick: () => handleNavigate("/tasks"),
@@ -207,7 +208,7 @@ export function KPIMetrics({ data, workspaceId }: KPIMetricsProps) {
         case "task-health":
           return {
             id,
-            label: "Task Health",
+            label: t("kpi.task_health"),
             value:
               data?.totalTasks > 0
                 ? `${(((data?.totalTasks - data?.overdueTasks) / data?.totalTasks) * 100).toFixed(1)}%`
@@ -220,7 +221,7 @@ export function KPIMetrics({ data, workspaceId }: KPIMetricsProps) {
               ),
             statSuffix: (
               <Badge variant={data?.overdueTasks === 0 ? "default" : "outline"} className="text-xs">
-                {data?.overdueTasks === 0 ? "Perfect" : "Monitor"}
+                {data?.overdueTasks === 0 ? t("kpi.perfect") : t("kpi.monitor")}
               </Badge>
             ),
             // Removed onClick: () => handleNavigate("/tasks"),
@@ -229,7 +230,7 @@ export function KPIMetrics({ data, workspaceId }: KPIMetricsProps) {
           return null;
       }
     }).filter((c): c is NonNullable<typeof c> => c !== null);
-  }, [orderedIds, data, workspaceSlug]);
+  }, [orderedIds, data, workspaceSlug, t]);
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

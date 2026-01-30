@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recha
 import { ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 
 const chartConfig = {
   PLANNING: { label: "Planning", color: "#8B5CF6" },
@@ -17,11 +18,12 @@ interface ProjectStatusChartProps {
 }
 
 export function ProjectStatusChart({ data }: ProjectStatusChartProps) {
+  const { t } = useTranslation(["workspace-home", "projects"]);
   const router = useRouter();
   const { workspaceSlug } = router.query;
 
   const chartData = data?.map((item) => ({
-    name: chartConfig[item.status as keyof typeof chartConfig]?.label || item.status,
+    name: t(`projects:status.${item.status.toLowerCase()}`, chartConfig[item.status as keyof typeof chartConfig]?.label || item.status),
     value: item._count.status,
     color: chartConfig[item.status as keyof typeof chartConfig]?.color || "#8B5CF6",
     id: item.status,
@@ -65,8 +67,8 @@ export function ProjectStatusChart({ data }: ProjectStatusChartProps) {
 
   return (
     <ChartWrapper
-      title="Project Status Distribution"
-      description="Current status breakdown of all projects"
+      title={t("widgets.project_status")}
+      description={t("charts.project_status_description", "Current status breakdown of all projects")}
       config={chartConfig}
       className="border-[var(--border)]"
     >
