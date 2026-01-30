@@ -1,0 +1,37 @@
+{
+  "title": "Your Projects",
+  "description": "Manage and organize projects within this organization.",
+  "search_placeholder": "Search projects...",
+  "advanced_filters": "Advanced Filters",
+  "filter_placeholder": "Filter projects...",
+  "create_project": "Create Project",
+  "no_projects_found": "No projects found",
+  "no_projects_match": "No projects match your current search and filters. Try adjusting your criteria.",
+  "clear_filters": "Clear Filters",
+  "empty_state_title": "No projects found",
+  "empty_state_description": "Create your first project to get started with organizing your tasks and collaborating with your team.",
+  "tasks_count": "Number of Tasks",
+  "start_date": "Start Date",
+  "load_more": "Load More",
+  "loading": "Loading...",
+  "showing_projects": "Showing {{count}} project",
+  "showing_projects_plural": "Showing {{count}} projects",
+  "matching": " matching \"{{query}}\"",
+  "with_filters": " with {{count}} filter applied",
+  "with_filters_plural": " with {{count}} filters applied",
+  "status": {
+    "active": "Active",
+    "planning": "Planning",
+    "on_hold": "On Hold",
+    "completed": "Completed"
+  },
+  "priority": {
+    "title": "Priority"
+  },
+  "messages": {
+    "created_success": "Project created successfully!",
+    "refresh_failed": "Project created but failed to refresh list",
+    "load_failed": "Failed to load projects",
+    "auth_required": "Authentication required. Please log in again."
+  }
+}

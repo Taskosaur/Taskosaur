@@ -1,0 +1,37 @@
+{
+  "title": "Tus Proyectos",
+  "description": "Gestiona y organiza proyectos dentro de esta organización.",
+  "search_placeholder": "Buscar proyectos...",
+  "advanced_filters": "Filtros Avanzados",
+  "filter_placeholder": "Filtrar proyectos...",
+  "create_project": "Crear Proyecto",
+  "no_projects_found": "No se encontraron proyectos",
+  "no_projects_match": "Ningún proyecto coincide con su búsqueda y filtros actuales. Intente ajustar sus criterios.",
+  "clear_filters": "Limpiar Filtros",
+  "empty_state_title": "No se encontraron proyectos",
+  "empty_state_description": "Crea tu primer proyecto para empezar a organizar tus tareas y colaborar con tu equipo.",
+  "tasks_count": "Número de Tareas",
+  "start_date": "Fecha de Inicio",
+  "load_more": "Cargar Más",
+  "loading": "Cargando...",
+  "showing_projects": "Mostrando {{count}} proyecto",
+  "showing_projects_plural": "Mostrando {{count}} proyectos",
+  "matching": " coincidente con \"{{query}}\"",
+  "with_filters": " con {{count}} filtro aplicado",
+  "with_filters_plural": " con {{count}} filtros aplicados",
+  "status": {
+    "active": "Activo",
+    "planning": "Planificación",
+    "on_hold": "En Espera",
+    "completed": "Completado"
+  },
+  "priority": {
+    "title": "Prioridad"
+  },
+  "messages": {
+    "created_success": "¡Proyecto creado con éxito!",
+    "refresh_failed": "Proyecto creado pero falló al actualizar la lista",
+    "load_failed": "Error al cargar los proyectos",
+    "auth_required": "Autenticación requerida. Por favor, inicie sesión de nuevo."
+  }
+}

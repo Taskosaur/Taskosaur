@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import Tooltip from "../common/ToolTip";
 import { CardsSkeleton } from "../skeletons/CardsSkeleton";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 
 interface ProjectsContentProps {
   contextType: "workspace" | "organization";
@@ -70,6 +71,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
   enablePagination = false,
   generateProjectLink,
 }) => {
+  const { t } = useTranslation("projects");
   const { isAuthenticated, getUserAccess } = useAuth();
   const { getWorkspaceBySlug } = useWorkspaceContext();
   const router = useRouter();
@@ -161,15 +163,15 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
   const formatStatus = (status: string) => {
     switch (status?.toUpperCase()) {
       case "ACTIVE":
-        return "Active";
+        return t("status.active");
       case "PLANNING":
-        return "Planning";
+        return t("status.planning");
       case "ON_HOLD":
-        return "On Hold";
+        return t("status.on_hold");
       case "COMPLETED":
-        return "Completed";
+        return t("status.completed");
       default:
-        return "Active";
+        return t("status.active");
     }
   };
 
@@ -216,14 +218,14 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     () =>
       availableStatuses.map((status) => ({
         id: status.id,
-        name: status.name,
+        name: t(`status.${status.value.toLowerCase()}`),
         value: status.value,
         selected: selectedStatuses.includes(status.value),
         count: projects.filter((project) => project.status === status.value).length,
         color: status.color,
         icon: status.icon,
       })),
-    [availableStatuses, selectedStatuses, projects]
+    [availableStatuses, selectedStatuses, projects, t]
   );
 
   const priorityFilters = useMemo(
@@ -244,7 +246,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     () => [
       createSection({
         id: "status",
-        title: "Status",
+        title: t("status.title", "Status"),
         icon: CheckSquare,
         data: statusFilters,
         selectedIds: selectedStatuses,
@@ -267,7 +269,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
       }),
       createSection({
         id: "priority",
-        title: "Priority",
+        title: t("priority.title"),
         icon: Flame,
         data: priorityFilters,
         selectedIds: selectedPriorities,
@@ -296,6 +298,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
       selectedPriorities,
       toggleStatus,
       togglePriority,
+      t
     ]
   );
 
@@ -382,18 +385,14 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
       } catch (error: any) {
         if (requestIdRef.current === requestId && isMountedRef.current) {
           if (error.status === 403) {
-            toast.error(error?.message || "User not authenticated");
+            toast.error(error?.message || t("messages.load_failed"));
             router.back();
             return;
           }
           if (error.message?.includes("401") || error.message?.includes("Unauthorized")) {
-            toast.error("Authentication required. Please log in again.");
+            toast.error(t("messages.auth_required"));
           } else {
-            toast.error(
-              `Failed to load ${
-                contextType === "workspace" ? "workspace" : "organization"
-              } projects`
-            );
+            toast.error(t("messages.load_failed"));
           }
         }
       } finally {
@@ -412,6 +411,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
       debouncedSearchQuery,
       enablePagination,
       pageSize,
+      t
     ]
   );
 
@@ -524,12 +524,12 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     try {
       await refreshProjects();
       await fetchData(1, true);
-      toast.success("Project created successfully!");
+      toast.success(t("messages.created_success"));
     } catch (error) {
       console.error("Error refreshing projects after creation:", error);
-      toast.error("Project created but failed to refresh list");
+      toast.error(t("messages.refresh_failed"));
     }
-  }, [refreshProjects]);
+  }, [refreshProjects, t]);
 
   const loadMore = () => {
     if (hasMore && !isFetching && enablePagination) {
@@ -548,7 +548,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
   }
 
   const displayTitle =
-    contextType === "workspace" && workspace ? `${workspace.name} Projects` : title;
+    contextType === "workspace" && workspace ? t("workspace_projects", { name: workspace.name, defaultValue: `${workspace.name} Projects` }) : title;
 
   return (
     <div className="dashboard-container">
@@ -566,7 +566,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                     <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
                     <Input
                       type="text"
-                      placeholder="Search projects..."
+                      placeholder={t("search_placeholder")}
                       value={searchInput}
                       onChange={handleSearchChange}
                       className="pl-10 rounded-md border border-[var(--border)]"
@@ -586,13 +586,13 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                     )}
                   </div>
                   <div className="flex-shrink-0">
-                    <Tooltip content="Advanced Filters" position="top" color="primary">
+                    <Tooltip content={t("advanced_filters")} position="top" color="primary">
                       <FilterDropdown
                         sections={filterSections}
-                        title="Advanced Filters"
+                        title={t("advanced_filters")}
                         activeFiltersCount={totalActiveFilters}
                         onClearAllFilters={clearAllFilters}
-                        placeholder="Filter projects..."
+                        placeholder={t("filter_placeholder")}
                         dropdownWidth="w-56"
                         showApplyButton={false}
                       />
@@ -608,7 +608,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                       onClick={() => setIsNewProjectModalOpen(true)}
                       className="w-full"
                     >
-                      Create Project
+                      {t("create_project")}
                     </ActionButton>
                   </div>
                 )}
@@ -617,7 +617,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
               {hasAccess && (
                 <div className="hidden md:block">
                   <ActionButton primary showPlusIcon onClick={() => setIsNewProjectModalOpen(true)}>
-                    Create Project
+                    {t("create_project")}
                   </ActionButton>
                 </div>
               )}
@@ -641,13 +641,11 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
               searchInput || totalActiveFilters > 0 ? (
                 <EmptyState
                   icon={<HiSearch size={24} />}
-                  title="No projects found"
-                  description={`No projects match your current search${
-                    totalActiveFilters > 0 ? " and filters" : ""
-                  }. Try adjusting your criteria.`}
+                  title={t("no_projects_found")}
+                  description={t("no_projects_match")}
                   action={
                     <ActionButton primary onClick={clearAllFilters}>
-                      Clear Filters
+                      {t("clear_filters")}
                     </ActionButton>
                   }
                 />
@@ -663,7 +661,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                         showPlusIcon
                         onClick={() => setIsNewProjectModalOpen(true)}
                       >
-                        Create Project
+                        {t("create_project")}
                       </ActionButton>
                     )
                   }
@@ -690,13 +688,13 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                         footer={
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-4">
-                              <Tooltip content="Number of Tasks" position="top" color="primary">
+                              <Tooltip content={t("tasks_count")} position="top" color="primary">
                                 <span className="flex items-center gap-1">
                                   <HiClipboardDocumentList size={12} />
                                   {project._count?.tasks || 0}
                                 </span>
                               </Tooltip>
-                              <Tooltip content="Start Date" position="top" color="primary">
+                              <Tooltip content={t("start_date")} position="top" color="primary">
                                 <span className="flex items-center gap-1">
                                   <HiCalendarDays size={12} />
                                   {formatDate(project.updatedAt)}
@@ -724,11 +722,11 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                         {isFetching ? (
                           <>
                             <div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-                            <span>Loading...</span>
+                            <span>{t("loading")}</span>
                           </>
                         ) : (
                           <>
-                            <span>Load More</span>
+                            <span>{t("load_more")}</span>
                             <HiChevronDown className="w-4 h-4 transition-transform group-hover:translate-y-0.5" />
                           </>
                         )}
@@ -741,13 +739,10 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                 {projects.length > 0 && (
                   <div className="fixed bottom-0 left-[50%] md:left-[55%] -translate-x-1/2 w-full min-h-[48px] flex items-center justify-center pb-4 pointer-events-none">
                     <p className="text-sm text-[var(--muted-foreground)] pointer-events-auto">
-                      Showing {projects.length} project
-                      {projects.length !== 1 ? "s" : ""}
-                      {searchInput && ` matching "${searchInput}"`}
+                      {t("showing_projects", { count: projects.length })}
+                      {searchInput && t("matching", { query: searchInput })}
                       {totalActiveFilters > 0 &&
-                        ` with ${totalActiveFilters} filter${
-                          totalActiveFilters !== 1 ? "s" : ""
-                        } applied`}
+                        t("with_filters", { count: totalActiveFilters })}
                     </p>
                   </div>
                 )}
@@ -759,5 +754,6 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     </div>
   );
 };
+
 
 export default ProjectsContent;
