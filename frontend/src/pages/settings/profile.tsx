@@ -2,6 +2,7 @@
 import { useAuth } from "@/contexts/auth-context";
 import { HiCog6Tooth, HiSparkles } from "react-icons/hi2";
 import ProfileSection from "@/components/settings/ProfileSection";
+import LanguageSection from "@/components/settings/LanguageSection";
 import ResetPasswordSection from "@/components/settings/ResetPasswordSection";
 import DangerZoneSection from "@/components/settings/DangerZoneSection";
 import AISettingsModal from "@/components/settings/AISettings";
@@ -59,6 +60,7 @@ export default function ProfilePage() {
         {/* Settings Sections */}
         <div className="space-y-4">
           <ProfileSection />
+          <LanguageSection />
           <ResetPasswordSection />
           <DangerZoneSection />
         </div>

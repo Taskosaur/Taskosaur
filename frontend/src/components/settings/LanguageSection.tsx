@@ -1,0 +1,61 @@
+"use client";
+import { useTranslation } from "react-i18next";
+import { HiGlobeAlt } from "react-icons/hi2";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+
+export default function LanguageSection() {
+  const { i18n } = useTranslation("common");
+
+  const changeLanguage = (value: string) => {
+    i18n.changeLanguage(value);
+  };
+
+  const languages = [
+    { code: "en", name: "English" },
+    { code: "es", name: "Español" },
+  ];
+
+  return (
+    <div className="bg-[var(--card)] rounded-[var(--card-radius)] border border-[var(--border)] p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-md bg-[var(--primary)]/10 flex items-center justify-center">
+          <HiGlobeAlt className="w-5 h-5 text-[var(--primary)]" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">Language & Region</h2>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Select your preferred language for the application interface.
+          </p>
+        </div>
+      </div>
+
+      <div className="max-w-md space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="language-select">Display Language</Label>
+          <Select
+            value={i18n.language}
+            onValueChange={changeLanguage}
+          >
+            <SelectTrigger id="language-select" className="w-full">
+              <SelectValue placeholder="Select a language" />
+            </SelectTrigger>
+            <SelectContent>
+              {languages.map((lang) => (
+                <SelectItem key={lang.code} value={lang.code}>
+                  {lang.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+}

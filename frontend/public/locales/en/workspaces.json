@@ -1,0 +1,24 @@
+{
+  "title": "Workspaces",
+  "description": "Manage your workspaces efficiently and collaborate with your team.",
+  "search_placeholder": "Search workspaces...",
+  "new_workspace": "New Workspace",
+  "create_workspace": "Create Workspace",
+  "no_workspaces_found": "No workspaces found",
+  "no_workspaces_match": "No workspaces match \"{{query}}\". Try different search terms.",
+  "clear_search": "Clear Search",
+  "empty_state_description_admin": "Create your first workspace to get started with organizing your projects and collaborating with your team.",
+  "empty_state_description_member": "No workspaces available. Contact your organization admin to create workspaces or get access.",
+  "projects_count": "{{count}} projects",
+  "members_count": "{{count}} members",
+  "showing_workspaces": "Showing {{count}} workspace",
+  "showing_workspaces_plural": "Showing {{count}} workspaces",
+  "matching": " matching \"{{query}}\"",
+  "messages": {
+    "no_org_selected": "No organization selected. Please select an organization first.",
+    "auth_required": "Authentication required. Please log in again.",
+    "load_failed": "Failed to load workspaces",
+    "created_success": "Workspace created successfully!",
+    "refresh_failed": "Workspace created but failed to refresh list. Please refresh the page."
+  }
+}

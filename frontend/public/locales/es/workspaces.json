@@ -1,0 +1,24 @@
+{
+  "title": "Espacios de Trabajo",
+  "description": "Gestiona tus espacios de trabajo de manera eficiente y colabora con tu equipo.",
+  "search_placeholder": "Buscar espacios de trabajo...",
+  "new_workspace": "Nuevo Espacio de Trabajo",
+  "create_workspace": "Crear Espacio de Trabajo",
+  "no_workspaces_found": "No se encontraron espacios de trabajo",
+  "no_workspaces_match": "Ningún espacio de trabajo coincide con \"{{query}}\". Intenta con otros términos de búsqueda.",
+  "clear_search": "Borrar Búsqueda",
+  "empty_state_description_admin": "Crea tu primer espacio de trabajo para empezar a organizar tus proyectos y colaborar con tu equipo.",
+  "empty_state_description_member": "No hay espacios de trabajo disponibles. Contacta al administrador de tu organización para crear espacios de trabajo u obtener acceso.",
+  "projects_count": "{{count}} proyectos",
+  "members_count": "{{count}} miembros",
+  "showing_workspaces": "Mostrando {{count}} espacio de trabajo",
+  "showing_workspaces_plural": "Mostrando {{count}} espacios de trabajo",
+  "matching": " coincidente con \"{{query}}\"",
+  "messages": {
+    "no_org_selected": "No se ha seleccionado ninguna organización. Por favor, selecciona una organización primero.",
+    "auth_required": "Autenticación requerida. Por favor, inicia sesión de nuevo.",
+    "load_failed": "Error al cargar los espacios de trabajo",
+    "created_success": "¡Espacio de trabajo creado con éxito!",
+    "refresh_failed": "Espacio de trabajo creado pero falló al actualizar la lista. Por favor, actualiza la página."
+  }
+}
