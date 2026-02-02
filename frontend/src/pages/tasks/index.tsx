@@ -4,6 +4,7 @@ import { useProjectContext } from "@/contexts/project-context";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 import TaskListView from "@/components/tasks/views/TaskListView";
@@ -63,6 +64,7 @@ interface PaginationInfo {
 
 function TasksPageContent() {
   const router = useRouter();
+  const { t } = useTranslation("tasks");
   const { getAllTasks, getCalendarTask, getAllTaskStatuses, isLoading: taskLoading, taskResponse, tasks, updateTask } = useTask();
   const { getWorkspacesByOrganization } = useWorkspaceContext();
   const { getProjectsByOrganization, getTaskStatusByProject } = useProjectContext();
@@ -416,23 +418,23 @@ function TasksPageContent() {
   // Column management
   const handleAddColumn = useCallback((columnId: string) => {
     const columnConfigs: Record<string, { label: string; type: ColumnConfig["type"] }> = {
-      description: { label: "Description", type: "text" },
-      taskNumber: { label: "Task Number", type: "number" },
-      timeline: { label: "Timeline", type: "dateRange" },
-      completedAt: { label: "Completed Date", type: "date" },
-      storyPoints: { label: "Story Points", type: "number" },
-      originalEstimate: { label: "Original Estimate", type: "number" },
-      remainingEstimate: { label: "Remaining Estimate", type: "number" },
-      reporter: { label: "Reporter", type: "user" },
-      updatedBy: { label: "Updated By", type: "user" },
-      createdAt: { label: "Created Date", type: "date" },
-      updatedAt: { label: "Updated Date", type: "date" },
-      sprint: { label: "Sprint", type: "text" },
-      parentTask: { label: "Parent Task", type: "text" },
-      childTasksCount: { label: "Child Tasks", type: "number" },
-      commentsCount: { label: "Comments", type: "number" },
-      attachmentsCount: { label: "Attachments", type: "number" },
-      timeEntries: { label: "Time Entries", type: "number" },
+      description: { label: t("columns.description"), type: "text" },
+      taskNumber: { label: t("columns.taskNumber"), type: "number" },
+      timeline: { label: t("columns.timeline"), type: "dateRange" },
+      completedAt: { label: t("columns.completedAt"), type: "date" },
+      storyPoints: { label: t("columns.storyPoints"), type: "number" },
+      originalEstimate: { label: t("columns.originalEstimate"), type: "number" },
+      remainingEstimate: { label: t("columns.remainingEstimate"), type: "number" },
+      reporter: { label: t("columns.reporter"), type: "user" },
+      updatedBy: { label: t("columns.updatedBy"), type: "user" },
+      createdAt: { label: t("columns.createdAt"), type: "date" },
+      updatedAt: { label: t("columns.updatedAt"), type: "date" },
+      sprint: { label: t("columns.sprint"), type: "text" },
+      parentTask: { label: t("columns.parentTask"), type: "text" },
+      childTasksCount: { label: t("columns.childTasksCount"), type: "number" },
+      commentsCount: { label: t("columns.commentsCount"), type: "number" },
+      attachmentsCount: { label: t("columns.attachmentsCount"), type: "number" },
+      timeEntries: { label: t("columns.timeEntries"), type: "number" },
     };
 
     const config = columnConfigs[columnId];
@@ -731,7 +733,7 @@ function TasksPageContent() {
     () => [
       createSection({
         id: "workspace",
-        title: "Workspace",
+        title: t("filters.workspace"),
         icon: Building2,
         data: workspaceFilters,
         selectedIds: selectedWorkspaces,
@@ -742,7 +744,7 @@ function TasksPageContent() {
       }),
       createSection({
         id: "project",
-        title: "Project",
+        title: t("filters.project"),
         icon: Folder,
         data: projectFilters,
         selectedIds: selectedProjects,
@@ -753,7 +755,7 @@ function TasksPageContent() {
       }),
       createSection({
         id: "status",
-        title: "Status",
+        title: t("filters.status"),
         icon: CheckSquare,
         data: statusFilters,
         selectedIds: selectedStatuses,
@@ -765,7 +767,7 @@ function TasksPageContent() {
       }),
       createSection({
         id: "priority",
-        title: "Priority",
+        title: t("filters.priority"),
         icon: Flame,
         data: priorityFilters,
         selectedIds: selectedPriorities,
@@ -776,7 +778,7 @@ function TasksPageContent() {
       }),
       createSection({
         id: "type",
-        title: "Type",
+        title: t("filters.type"),
         icon: Shapes,
         data: taskTypeFilters,
         selectedIds: selectedTaskTypes,
@@ -787,7 +789,7 @@ function TasksPageContent() {
       }),
       createSection({
         id: "assignee",
-        title: "Assignee",
+        title: t("filters.assignee"),
         icon: User,
         data: assigneeFilters,
         selectedIds: selectedAssignees,
@@ -798,7 +800,7 @@ function TasksPageContent() {
       }),
       createSection({
         id: "reporter",
-        title: "Reporter",
+        title: t("filters.reporter"),
         icon: Users,
         data: reporterFilters,
         selectedIds: selectedReporters,
@@ -832,6 +834,7 @@ function TasksPageContent() {
       toggleReporter,
       statusFilterEnabled,
       createSection,
+      t,
     ]
   );
 
@@ -947,7 +950,7 @@ function TasksPageContent() {
 
     switch (currentView) {
       case "kanban":
-        return <div>Kanban Is only available on Project Level.</div>;
+        return <div>{t("kanbanRestriction")}</div>;
       default:
         return (
           <TaskListView
@@ -962,6 +965,7 @@ function TasksPageContent() {
         );
     }
   };
+
   const showPagination = tasks.length > 0 && pagination.totalPages > 1;
 
   if (error) {
@@ -970,15 +974,15 @@ function TasksPageContent() {
 
   return (
     <div className="dashboard-container flex flex-col">
-      <SEO title="My Tasks" />
+      <SEO title={t("title")} />
       {/* Unified Sticky Header */}
       <div className="sticky top-0 z-50 bg-[var(--background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80 border-b border-[var(--border)]/10 -mx-4 px-4 pb-0 pt-4">
         {/* PageHeader */}
         <div className="pb-2">
           <PageHeader
             icon={<Clipboard className="size-20px" />}
-            title="My Tasks"
-            description="Manage and track all your assigned tasks in one place."
+            title={t("title")}
+            description={t("description")}
             actions={
               <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
                 <div className="flex items-center gap-2">
@@ -986,7 +990,7 @@ function TasksPageContent() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
                     <Input
                       type="text"
-                      placeholder="Search tasks..."
+                      placeholder={t("searchPlaceholder")}
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
                       className="pl-10 rounded-md border border-[var(--border)]"
@@ -1001,13 +1005,13 @@ function TasksPageContent() {
                     )}
                   </div>
                   {currentView === "list" && (
-                    <Tooltip content="Advanced Filters" position="top" color="primary">
+                    <Tooltip content={t("advancedFilters")} position="top" color="primary">
                       <FilterDropdown
                         sections={filterSections}
-                        title="Advanced Filters"
+                        title={t("advancedFilters")}
                         activeFiltersCount={totalActiveFilters}
                         onClearAllFilters={clearAllFilters}
-                        placeholder="Filter results..."
+                        placeholder={t("filterResults")}
                         dropdownWidth="w-56"
                         showApplyButton={false}
                         onOpen={handleFilterDropdownOpen}
@@ -1017,7 +1021,7 @@ function TasksPageContent() {
                 </div>
                 {userAccess?.role !== "VIEWER" && (
                   <ActionButton primary showPlusIcon onClick={() => setNewTaskModalOpen(true)}>
-                    Create Task
+                    {t("createTask")}
                   </ActionButton>
                 )}
               </div>
@@ -1047,7 +1051,7 @@ function TasksPageContent() {
                             : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
                           }`}
                       >
-                        {mode}
+                        {t(`views.${mode}`)}
                       </button>
                     ))}
                   </div>
@@ -1073,7 +1077,7 @@ function TasksPageContent() {
                       onClick={handleExport}
                       variant="outline"
                     >
-                      Export
+                      {t("export")}
                     </ActionButton>
                   </div>
                 )}

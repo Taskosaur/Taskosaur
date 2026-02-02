@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Table,
   TableHeader,
@@ -258,6 +259,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   showBulkActionBar = false,
   totalTask,
 }) => {
+  const { t } = useTranslation("tasks");
   const { createTask, getTaskById, currentTask, bulkDeleteTasks } = useTask();
   const { getTaskStatusByProject } = useProject();
   const { getProjectMembers } = useProject();
@@ -435,11 +437,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
       const now = moment();
       const diffDays = date.diff(now, "days");
 
-      if (diffDays === 0) return "Today";
-      if (diffDays === 1) return "Tomorrow";
-      if (diffDays === -1) return "Yesterday";
-      if (diffDays < -1) return `${Math.abs(diffDays)} days ago`;
-      if (diffDays > 1) return `In ${diffDays} days`;
+      if (diffDays === 0) return t("table.today");
+      if (diffDays === 1) return t("table.tomorrow");
+      if (diffDays === -1) return t("table.yesterday");
+      if (diffDays < -1) return t("table.daysAgo", { count: Math.abs(diffDays) });
+      if (diffDays > 1) return t("table.inDays", { count: diffDays });
 
       if (date.year() !== now.year()) {
         return date.format("MMM D, YYYY");
@@ -532,7 +534,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
       return (
         <div className="flex items-center gap-2">
           <User className="w-4 h-4" />
-          <span className="tasktable-assignee-unassigned">Unassigned</span>
+          <span className="tasktable-assignee-unassigned">{t("table.unassigned")}</span>
         </div>
       );
     }
@@ -616,7 +618,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
             {selectedAssignees.length === 0 ? (
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                <span className="text-sm text-gray-500">Select assignees...</span>
+                <span className="text-sm text-gray-500">{t("table.selectAssignees")}</span>
               </div>
             ) : (
               <div className="flex items-center gap-1">
@@ -662,9 +664,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
         </PopoverTrigger>
         <PopoverContent className="w-[300px] p-0 bg-[var(--card)] border-none" align="start">
           <Command>
-            <CommandInput placeholder="Search assignees..." />
+            <CommandInput placeholder={t("table.searchAssignees")} />
             <CommandList>
-              <CommandEmpty>No assignees found.</CommandEmpty>
+              <CommandEmpty>{t("table.noAssignees")}</CommandEmpty>
               <CommandGroup>
                 {availableMembers.map((member) => {
                   const memberId = member.user?.id || member.id;
@@ -754,7 +756,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         return (
           <div className="flex items-center gap-2">
             <User className="w-4 h-4" />
-            <span className="tasktable-assignee-unassigned">Unassigned</span>
+            <span className="tasktable-assignee-unassigned">{t("table.unassigned")}</span>
           </div>
         );
 
@@ -772,7 +774,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         return (
           <div className="tasktable-date-container">
             <CalendarDays className="tasktable-date-icon w-4 h-4 text-gray-500" />
-            <span className="tasktable-date-empty">No timeline</span>
+            <span className="tasktable-date-empty">{t("table.noTimeline")}</span>
           </div>
         );
 
@@ -877,9 +879,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
   if (tasks.length === 0) {
     return (
       <div className="tasktable-empty-state">
-        <h3 className="tasktable-empty-title">No tasks found</h3>
+        <h3 className="tasktable-empty-title">{t("table.empty.title")}</h3>
         <p className="tasktable-empty-description">
-          Create your first task to get started with project management
+          {t("table.empty.description")}
         </p>
       </div>
     );
@@ -1016,19 +1018,19 @@ const TaskTable: React.FC<TaskTableProps> = ({
                 }}
               />
             )}
-            <span>Task</span>
+            <span>{t("table.task")}</span>
           </div>
         );
       case "project":
-        return <span>Project</span>;
+        return <span>{t("table.project")}</span>;
       case "priority":
-        return <span>Priority</span>;
+        return <span>{t("table.priority")}</span>;
       case "status":
-        return <p className="ml-3">Status</p>;
+        return <p className="ml-3">{t("table.status")}</p>;
       case "assignees":
-        return <span>Assignees</span>;
+        return <span>{t("table.assignees")}</span>;
       case "dueDate":
-        return <span>Due Date</span>;
+        return <span>{t("table.dueDate")}</span>;
       default:
         const col = columns.find((c) => c.id === colId);
         return (
@@ -1068,7 +1070,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                   if (!titleTouched) setTitleTouched(true);
                 }}
                 onBlur={() => setTitleTouched(true)}
-                placeholder="Enter task title..."
+                placeholder={t("table.enterTaskTitle")}
                 className={`flex-1 border-none shadow-none focus-visible:ring-1 bg-transparent ${isTitleInvalid ? "ring-2 ring-red-500" : ""}`}
                 autoFocus
                 disabled={isSubmitting}
@@ -1123,7 +1125,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                 disabled={isSubmitting}
               >
                 <SelectTrigger className={`border-none shadow-none -ml-3 ${!newTaskData.projectId ? "ring-1 ring-red-300" : ""}`}>
-                  <SelectValue placeholder="Select project *" />
+                  <SelectValue placeholder={t("table.selectProject")} />
                 </SelectTrigger>
                 <SelectContent className="overflow-y-auto bg-[var(--card)] border-none text-[var(--foreground)]">
                   {Array.isArray(projectsOfCurrentWorkspace) && projectsOfCurrentWorkspace.length > 0 ? (
@@ -1134,7 +1136,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                     ))
                   ) : (
                     <SelectItem value="no-projects" disabled>
-                      No projects found
+                      {t("table.noProjects")}
                     </SelectItem>
                   )}
                 </SelectContent>
@@ -1197,7 +1199,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                 disabled={isSubmitting}
               >
                 <SelectTrigger className={`border-none shadow-none bg-transparent ${!newTaskData.statusId ? "ring-1 ring-red-300" : ""}`}>
-                  <SelectValue placeholder="Select status *" />
+                  <SelectValue placeholder={t("table.selectStatus")} />
                 </SelectTrigger>
                 <SelectContent className="bg-[var(--card)] border-none text-[var(--foreground)]">
                   {localAddTaskStatuses.length > 0 ? (
@@ -1208,13 +1210,13 @@ const TaskTable: React.FC<TaskTableProps> = ({
                     ))
                   ) : (
                     <SelectItem value="no-status" disabled>
-                      No statuses found
+                      {t("table.noStatuses")}
                     </SelectItem>
                   )}
                 </SelectContent>
               </Select>
             ) : (
-              <span className="text-sm text-gray-400">Select project first</span>
+              <span className="text-sm text-gray-400">{t("table.selectProjectFirst")}</span>
             )}
           </TableCell>
         );
@@ -1224,7 +1226,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
             {newTaskData.projectId || projectSlug || currentProject?.id ? (
               <MultiSelectAssignee />
             ) : (
-              <span className="text-sm text-gray-400">Select project first</span>
+              <span className="text-sm text-gray-400">{t("table.selectProjectFirst")}</span>
             )}
           </TableCell>
         );
@@ -1244,7 +1246,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                 min={getToday()}
                 className="border-none -ml-3 shadow-none focus-visible:ring-1 bg-transparent text-sm w-full pr-8 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                 disabled={isSubmitting}
-                placeholder="Select due date"
+                placeholder={t("table.dueDate")}
               />
               {newTaskData.dueDate && (
                 <button
@@ -1361,7 +1363,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
             ) : (
               <div className="tasktable-date-container">
                 <CalendarDays className="tasktable-date-icon w-4 h-4" />
-                <span className="tasktable-date-empty">No due date</span>
+                <span className="tasktable-date-empty">{t("table.noDueDate")}</span>
               </div>
             )}
           </TableCell>
@@ -1422,7 +1424,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                           className="flex items-center pl-4 justify-start gap-2 w-full  cursor-pointer"
                         >
                           <Plus className="w-4 h-4" />
-                          <span className="text-sm font-medium ">Add task</span>
+                          <span className="text-sm font-medium ">{t("table.addTask")}</span>
                         </button>
                       </TableCell>
                     </TableRow>
@@ -1446,9 +1448,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
             <TableCell colSpan={columnOrder.length + 1} className="tasktable-footer-cell">
               <div className="tasktable-pagination-container">
                 <div className="tasktable-pagination-info">
-                  Showing {(pagination.currentPage - 1) * pagination.pageSize + 1} to{" "}
-                  {Math.min(pagination.currentPage * pagination.pageSize, pagination.totalCount)} of{" "}
-                  {pagination.totalCount} tasks
+                  {t("table.showing", {
+                    start: (pagination.currentPage - 1) * pagination.pageSize + 1,
+                    end: Math.min(pagination.currentPage * pagination.pageSize, pagination.totalCount),
+                    total: pagination.totalCount
+                  })}
                 </div>
                 <Pagination>
                   <PaginationContent>

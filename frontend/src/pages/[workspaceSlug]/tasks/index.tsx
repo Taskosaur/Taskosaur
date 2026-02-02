@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { useProject } from "@/contexts/project-context";
@@ -60,6 +61,7 @@ interface Workspace {
 }
 
 function WorkspaceTasksContent() {
+  const { t } = useTranslation("tasks");
   const [addTaskStatuses, setAddTaskStatuses] = useState<any[]>([]);
   const router = useRouter();
   const { workspaceSlug } = router.query;
@@ -662,7 +664,7 @@ function WorkspaceTasksContent() {
     () => [
       createSection({
         id: "project",
-        title: "Projects",
+        title: t("filters.project"),
         icon: Folder,
         data: projectFilters,
         selectedIds: selectedProjects,
@@ -679,7 +681,7 @@ function WorkspaceTasksContent() {
       }),
       createSection({
         id: "status",
-        title: "Status",
+        title: t("filters.status"),
         icon: CheckSquare,
         data: statusFilters,
         selectedIds: selectedStatuses,
@@ -700,7 +702,7 @@ function WorkspaceTasksContent() {
       }),
       createSection({
         id: "priority",
-        title: "Priority",
+        title: t("filters.priority"),
         icon: Flame,
         data: priorityFilters,
         selectedIds: selectedPriorities,
@@ -721,7 +723,7 @@ function WorkspaceTasksContent() {
       }),
       createSection({
         id: "type",
-        title: "Type",
+        title: t("filters.type"),
         icon: Shapes,
         data: taskTypeFilters,
         selectedIds: selectedTaskTypes,
@@ -742,7 +744,7 @@ function WorkspaceTasksContent() {
       }),
       createSection({
         id: "assignee",
-        title: "Assignee",
+        title: t("filters.assignee"),
         icon: User,
         data: assigneeFilters,
         selectedIds: selectedAssignees,
@@ -753,7 +755,7 @@ function WorkspaceTasksContent() {
       }),
       createSection({
         id: "reporter",
-        title: "Reporter",
+        title: t("filters.reporter"),
         icon: Users,
         data: reporterFilters,
         selectedIds: selectedReporters,
@@ -780,6 +782,7 @@ function WorkspaceTasksContent() {
       toggleStatus,
       togglePriority,
       toggleTaskType,
+      t,
     ]
   );
 
@@ -804,23 +807,23 @@ function WorkspaceTasksContent() {
 
   const handleAddColumn = (columnId: string) => {
     const columnConfigs: Record<string, { label: string; type: ColumnConfig["type"] }> = {
-      description: { label: "Description", type: "text" },
-      taskNumber: { label: "Task Number", type: "number" },
-      timeline: { label: "Timeline", type: "dateRange" },
-      completedAt: { label: "Completed Date", type: "date" },
-      storyPoints: { label: "Story Points", type: "number" },
-      originalEstimate: { label: "Original Estimate", type: "number" },
-      remainingEstimate: { label: "Remaining Estimate", type: "number" },
-      reporter: { label: "Reporter", type: "user" },
-      updatedBy: { label: "Updated By", type: "user" },
-      createdAt: { label: "Created Date", type: "date" },
-      updatedAt: { label: "Updated Date", type: "date" },
-      sprint: { label: "Sprint", type: "text" },
-      parentTask: { label: "Parent Task", type: "text" },
-      childTasksCount: { label: "Child Tasks", type: "number" },
-      commentsCount: { label: "Comments", type: "number" },
-      attachmentsCount: { label: "Attachments", type: "number" },
-      timeEntries: { label: "Time Entries", type: "number" },
+      description: { label: t("columns.description"), type: "text" },
+      taskNumber: { label: t("columns.taskNumber"), type: "number" },
+      timeline: { label: t("columns.timeline"), type: "dateRange" },
+      completedAt: { label: t("columns.completedAt"), type: "date" },
+      storyPoints: { label: t("columns.storyPoints"), type: "number" },
+      originalEstimate: { label: t("columns.originalEstimate"), type: "number" },
+      remainingEstimate: { label: t("columns.remainingEstimate"), type: "number" },
+      reporter: { label: t("columns.reporter"), type: "user" },
+      updatedBy: { label: t("columns.updatedBy"), type: "user" },
+      createdAt: { label: t("columns.createdAt"), type: "date" },
+      updatedAt: { label: t("columns.updatedAt"), type: "date" },
+      sprint: { label: t("columns.sprint"), type: "text" },
+      parentTask: { label: t("columns.parentTask"), type: "text" },
+      childTasksCount: { label: t("columns.childTasksCount"), type: "number" },
+      commentsCount: { label: t("columns.commentsCount"), type: "number" },
+      attachmentsCount: { label: t("columns.attachmentsCount"), type: "number" },
+      timeEntries: { label: t("columns.timeEntries"), type: "number" },
     };
     const config = columnConfigs[columnId];
     if (!config) {
@@ -953,7 +956,7 @@ function WorkspaceTasksContent() {
         return (
           <div className="text-center py-12">
             <p className="text-[var(--muted-foreground)]">
-              Kanban is only available on Project level.
+              {t("kanbanRestriction")}
             </p>
           </div>
         );
@@ -1001,8 +1004,8 @@ function WorkspaceTasksContent() {
         {/* PageHeader */}
         <div className="pb-2">
           <PageHeader
-            title={workspace ? `${workspace.name} Tasks` : "Workspace Tasks"}
-            description="Manage and track all tasks across projects in this workspace."
+            title={workspace ? t("workspaceTasks", { name: workspace.name }) : t("defaultWorkspaceTasks")}
+            description={t("workspaceTasksDescription")}
             actions={
               <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
                 <div className="flex items-center gap-2">
@@ -1010,7 +1013,7 @@ function WorkspaceTasksContent() {
                     <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
                     <Input
                       type="text"
-                      placeholder="Search tasks..."
+                      placeholder={t("searchPlaceholder")}
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
                       className="pl-10 rounded-md border border-[var(--border)]"
@@ -1027,10 +1030,10 @@ function WorkspaceTasksContent() {
                   {currentView === "list" && (
                     <FilterDropdown
                       sections={filterSections}
-                      title="Advanced Filters"
+                      title={t("advancedFilters")}
                       activeFiltersCount={totalActiveFilters}
                       onClearAllFilters={clearAllFilters}
-                      placeholder="Filter results..."
+                      placeholder={t("filterResults")}
                       dropdownWidth="w-56"
                       showApplyButton={false}
                       onOpen={loadFilterData}
@@ -1057,7 +1060,7 @@ function WorkspaceTasksContent() {
                     }}
                     disabled={!workspace?.id}
                   >
-                    Create Task
+                    {t("createTask")}
                   </ActionButton>
                 )}
                 <NewTaskModal
@@ -1119,7 +1122,7 @@ function WorkspaceTasksContent() {
                           : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
                           }`}
                       >
-                        {mode}
+                        {t(`views.${mode}`)}
                       </button>
                     ))}
                   </div>
@@ -1145,7 +1148,7 @@ function WorkspaceTasksContent() {
                       onClick={handleExport}
                       variant="outline"
                     >
-                      Export
+                      {t("export")}
                     </ActionButton>
                   </div>
                 )}
