@@ -155,20 +155,20 @@ export default function TaskDetailClient({
   };
 
   const [editTaskData, setEditTaskData] = useState({
-    title: task.title,
-    description: task.description,
-    priority: typeof task.priority === "object" ? task.priority?.name : task.priority,
-    dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
-    startDate: task.startDate ? task.startDate.split("T")[0] : "",
-    taskType: task.type || task.taskType || "",
-    sprintId: task.sprintId || "",
+    title: task?.title || "",
+    description: task?.description || "",
+    priority: typeof task?.priority === "object" ? task?.priority?.name : task?.priority || "",
+    dueDate: task?.dueDate ? task.dueDate.split("T")[0] : "",
+    startDate: task?.startDate ? task.startDate.split("T")[0] : "",
+    taskType: task?.type || task?.taskType || "",
+    sprintId: task?.sprintId || "",
   });
 
   // Track if there are unsaved changes
   const hasUnsavedChanges =
-    editTaskData.title !== task.title ||
-    editTaskData.description !== task.description ||
-    editTaskData.dueDate !== (task.dueDate ? task.dueDate.split("T")[0] : "");
+    editTaskData.title !== (task?.title || "") ||
+    editTaskData.description !== (task?.description || "") ||
+    editTaskData.dueDate !== (task?.dueDate ? task.dueDate.split("T")[0] : "");
 
   const handleStartDateChange = (newStartDate: string) => {
     // Validate that start date is not after due date
@@ -201,19 +201,19 @@ export default function TaskDetailClient({
   };
 
   const [assignees, setAssignees] = useState<any[]>(
-    task.assignees || (task.assignee ? [task.assignee] : [])
+    task?.assignees || (task?.assignee ? [task.assignee] : [])
   );
   const [reporters, setReporters] = useState<any[]>(
-    task.reporters || (task.reporter ? [task.reporter] : [])
+    task?.reporters || (task?.reporter ? [task.reporter] : [])
   );
 
-  const [labels, setLabels] = useState(task.labels || task.tags || []);
+  const [labels, setLabels] = useState(task?.labels || task?.tags || []);
   const [availableLabels, setAvailableLabels] = useState<any[]>([]);
   const [statuses, setStatuses] = useState<any[]>([]);
   const [loadingStatuses, setLoadingStatuses] = useState(true);
   const [sprints, setSprints] = useState<any[]>([]);
   const [loadingSprints, setLoadingSprints] = useState(true);
-  const [currentStatus, setCurrentStatus] = useState(task.status);
+  const [currentStatus, setCurrentStatus] = useState(task?.status);
   const currentOrganization = TokenManager.getCurrentOrgId();
   const { getUserAccess } = useAuth();
   const authContext = useAuth();
@@ -230,7 +230,7 @@ export default function TaskDetailClient({
     taskType: false,
     sprint: false,
   });
-  const [allowEmailReplies, setAllowEmailReplies] = useState(task.allowEmailReplies || false);
+  const [allowEmailReplies, setAllowEmailReplies] = useState(task?.allowEmailReplies || false);
 
   const today = new Date().toISOString().split("T")[0];
   // Exception: Assignee or reporter has access to all actions except Assignment section
@@ -285,7 +285,7 @@ export default function TaskDetailClient({
   }, []);
 
   useEffect(() => {
-    const projectId = task.projectId || task.project?.id;
+    const projectId = task?.projectId || task?.project?.id;
     if (!projectId || !isAuth) return;
 
     const fetchProjectMembers = async () => {
@@ -321,10 +321,10 @@ export default function TaskDetailClient({
     };
 
     fetchProjectMembers();
-  }, [task.projectId, task.project?.id]);
+  }, [task?.projectId, task?.project?.id]);
 
   useEffect(() => {
-    const slug = projectSlug || task.project?.slug;
+    const slug = projectSlug || task?.project?.slug;
     if (!slug || !isAuth) return;
 
     const fetchSprints = async () => {
@@ -341,7 +341,7 @@ export default function TaskDetailClient({
     };
 
     fetchSprints();
-  }, [projectSlug, task.project?.slug, isAuth]);
+  }, [projectSlug, task?.project?.slug, isAuth]);
 
   const handleDueDateChange = (newDueDate: string) => {
     // Validate that due date is not before start date
@@ -493,7 +493,7 @@ export default function TaskDetailClient({
   }, [workspaceData?.id, projectData?.id]);
 
   useEffect(() => {
-    const projectId = task.projectId || task.project?.id;
+    const projectId = task?.projectId || task?.project?.id;
     if (!projectId || !isAuth) return;
 
     const fetchProjectLabels = async () => {
@@ -503,9 +503,9 @@ export default function TaskDetailClient({
         const labelsData = projectLabels || [];
         setAvailableLabels(labelsData);
 
-        if (task.labels && task.labels.length > 0) {
+        if (task?.labels && task.labels.length > 0) {
           setLabels(task.labels);
-        } else if (task.tags && task.tags.length > 0) {
+        } else if (task?.tags && task.tags.length > 0) {
           setLabels(task.tags);
         }
       } catch (error) {
@@ -517,7 +517,7 @@ export default function TaskDetailClient({
     };
 
     fetchProjectLabels();
-  }, [task.projectId, task.project?.id, task.labels, task.tags]);
+  }, [task?.projectId, task?.project?.id, task?.labels, task?.tags]);
 
   useEffect(() => {
     if (!taskId || !hasAccessLoaded) return;
@@ -540,7 +540,7 @@ export default function TaskDetailClient({
   }, [taskId, hasAccessLoaded]);
 
   useEffect(() => {
-    const projectId = task.projectId || task.project?.id;
+    const projectId = task?.projectId || task?.project?.id;
     if (!projectId || !isAuth) return;
 
     const fetchTaskStatuses = async () => {
@@ -558,7 +558,7 @@ export default function TaskDetailClient({
     };
 
     fetchTaskStatuses();
-  }, [task.projectId, task.project?.id]);
+  }, [task?.projectId, task?.project?.id]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -928,18 +928,22 @@ export default function TaskDetailClient({
     if (projectMembers.length > 0) {
       let updatedAssignee = assignees;
       let updatedReporter = reporters;
-      if (task.assigneeId) {
+      if (task?.assigneeId) {
         const foundAssignee = projectMembers.find((member) => member.id === task.assigneeId);
         if (foundAssignee) updatedAssignee = [foundAssignee];
       }
-      if (task.reporterId) {
+      if (task?.reporterId) {
         const foundReporter = projectMembers.find((member) => member.id === task.reporterId);
         if (foundReporter) updatedReporter = [foundReporter];
       }
       setAssignees(updatedAssignee);
       setReporters(updatedReporter);
     }
-  }, [projectMembers, task.assigneeId, task.reporterId]);
+  }, [projectMembers, task?.assigneeId, task?.reporterId]);
+
+  if (!task) {
+    return null;
+  }
 
   // Validate task.id before URL construction
   const detailUrl = (() => {

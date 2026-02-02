@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import moment from "moment";
 import {
   HiBuildingOffice2,
@@ -82,6 +83,7 @@ export function NewTaskModal({
   projectSlug,
   isAuth,
 }: NewTaskModalProps) {
+  const { t } = useTranslation("tasks");
   const pathname = usePathname();
 
   const { getWorkspacesByOrganization, getCurrentOrganizationId, getWorkspaceBySlug } =
@@ -210,7 +212,7 @@ export function NewTaskModal({
       }
     } catch (error) {
       if (requestIdRef.current === requestId) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to load initial data";
+        const errorMessage = error instanceof Error ? error.message : t("modal.errorLoadWorkspaces");
         setError(errorMessage);
         toast.error(errorMessage);
       }
@@ -250,7 +252,7 @@ export function NewTaskModal({
     try {
       const organizationId = getCurrentOrganizationId();
       if (!organizationId) {
-        throw new Error("No organization selected. Please select an organization first.");
+        throw new Error(t("modal.errorNoOrg"));
       }
 
       const workspace = await getWorkspaceBySlug(workspaceSlug, organizationId);
@@ -263,7 +265,7 @@ export function NewTaskModal({
         },
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load workspace";
+      const errorMessage = error instanceof Error ? error.message : t("modal.errorLoadWorkspace");
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -279,7 +281,7 @@ export function NewTaskModal({
     try {
       const organizationId = getCurrentOrganizationId();
       if (!organizationId) {
-        throw new Error("No organization selected. Please select an organization first.");
+        throw new Error(t("modal.errorNoOrg"));
       }
 
       const workspace = await getWorkspaceBySlug(workspaceSlug, organizationId);
@@ -288,7 +290,7 @@ export function NewTaskModal({
       const project = projectsData.find((p) => p.slug === projectSlug);
 
       if (!project) {
-        throw new Error(`Project "${projectSlug}" not found in workspace "${workspaceSlug}"`);
+        throw new Error(t("projectTasksDescription", { name: projectSlug }));
       }
 
       setFormData((prev) => ({
@@ -305,7 +307,7 @@ export function NewTaskModal({
         },
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load project";
+      const errorMessage = error instanceof Error ? error.message : t("modal.errorLoadProject");
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -321,13 +323,13 @@ export function NewTaskModal({
     try {
       const organizationId = getCurrentOrganizationId();
       if (!organizationId) {
-        throw new Error("No organization selected. Please select an organization first.");
+        throw new Error(t("modal.errorNoOrg"));
       }
 
       const workspacesData = await getWorkspacesByOrganization(organizationId);
       setWorkspaces(workspacesData || []);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load workspaces";
+      const errorMessage = error instanceof Error ? error.message : t("modal.errorLoadWorkspaces");
       setError(errorMessage);
       toast.error(errorMessage);
       console.error("Failed to load workspaces:", error);
@@ -344,7 +346,7 @@ export function NewTaskModal({
       const projectsData = await getProjectsByWorkspace(workspaceId);
       setProjects(projectsData || []);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load projects";
+      const errorMessage = error instanceof Error ? error.message : t("modal.errorLoadProjects");
       setError(errorMessage);
       toast.error(errorMessage);
       console.error("Failed to load projects:", error);
@@ -419,7 +421,7 @@ export function NewTaskModal({
           ) || taskStatuses[0];
 
         if (!defaultStatus) {
-          throw new Error("No task status available. Please contact your administrator.");
+          throw new Error(t("modal.errorNoStatus"));
         }
 
         const taskData = {
@@ -445,14 +447,14 @@ export function NewTaskModal({
             await onTaskCreated();
           } catch (refreshError) {
             console.error("Failed to refresh tasks:", refreshError);
-            toast.warning("Task created but failed to refresh list. Please refresh the page.");
+            toast.warning(t("modal.errorRefresh"));
           }
         }
 
-        toast.success("Task created successfully!");
+        toast.success(t("modal.success"));
         handleClose();
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to create task";
+        const errorMessage = error instanceof Error ? error.message : t("modal.errorCreate");
         setError(errorMessage);
         toast.error(errorMessage);
         console.error("Failed to create task:", error);
@@ -506,9 +508,9 @@ export function NewTaskModal({
               <HiClipboardList className="projects-modal-icon-content" />
             </div>
             <div className="projects-modal-info">
-              <DialogTitle className="projects-modal-title">Create new task</DialogTitle>
+              <DialogTitle className="projects-modal-title">{t("modal.createTitle")}</DialogTitle>
               <DialogDescription className="projects-modal-description">
-                Add a task to help organize your work and track progress
+                {t("modal.createDescription")}
               </DialogDescription>
             </div>
           </div>
@@ -529,7 +531,7 @@ export function NewTaskModal({
                   className="h-9 w-24 mt-2"
                   disabled={isSubmitting}
                 >
-                  Try Again
+                  {t("modal.tryAgain")}
                 </ActionButton>
               </AlertDescription>
             </Alert>
@@ -541,11 +543,11 @@ export function NewTaskModal({
                 className="projects-form-label-icon"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              Task title <span className="projects-form-label-required">*</span>
+              {t("modal.taskTitle")} <span className="projects-form-label-required">*</span>
             </Label>
             <Input
               id="title"
-              placeholder="Enter task title"
+              placeholder={t("modal.enterTaskTitle")}
               value={formData.title}
               onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
               className="projects-workspace-button border-none"
@@ -572,7 +574,7 @@ export function NewTaskModal({
                   className="projects-form-label-icon"
                   style={{ color: "hsl(var(--primary))" }}
                 />
-                Workspace <span className="projects-form-label-required">*</span>
+                {t("modal.workspace")} <span className="projects-form-label-required">*</span>
               </Label>
               <Popover open={workspaceOpen} onOpenChange={setWorkspaceOpen} modal={true}>
                 <PopoverTrigger asChild>
@@ -589,11 +591,11 @@ export function NewTaskModal({
                     }}
                   >
                     {loadingWorkspaces ? (
-                      <span className="projects-workspace-loading">Loading workspaces...</span>
+                      <span className="projects-workspace-loading">{t("modal.loadingWorkspaces")}</span>
                     ) : formData.workspace ? (
                       <span className="projects-workspace-selected">{formData.workspace.name}</span>
                     ) : (
-                      <span className="projects-workspace-placeholder">Select workspace</span>
+                      <span className="projects-workspace-placeholder">{t("modal.selectWorkspace")}</span>
                     )}
                     <HiChevronDown className="projects-workspace-dropdown-icon" />
                   </Button>
@@ -601,17 +603,17 @@ export function NewTaskModal({
                 <PopoverContent className="projects-workspace-popover border-none" align="start">
                   <Command className="projects-workspace-command border-none">
                     <CommandInput
-                      placeholder="Search workspaces..."
+                      placeholder={t("modal.searchWorkspaces")}
                       value={workspaceSearch}
                       onValueChange={setWorkspaceSearch}
                       className="projects-workspace-command-input"
                     />
                     <CommandEmpty className="projects-workspace-command-empty">
                       {loadingWorkspaces
-                        ? "Loading workspaces..."
+                        ? t("modal.loadingWorkspaces")
                         : filteredWorkspaces.length === 0 && workspaceSearch
-                          ? "No workspaces found."
-                          : "No workspaces available"}
+                          ? t("modal.noWorkspacesFound")
+                          : t("modal.noWorkspacesAvailable")}
                     </CommandEmpty>
                     <CommandGroup className="projects-workspace-command-group">
                       {filteredWorkspaces.map((workspace) => (
@@ -654,7 +656,7 @@ export function NewTaskModal({
                   className="projects-form-label-icon"
                   style={{ color: "hsl(var(--primary))" }}
                 />
-                Project <span className="projects-form-label-required">*</span>
+                {t("modal.project")} <span className="projects-form-label-required">*</span>
               </Label>
               <Popover open={projectOpen} onOpenChange={setProjectOpen} modal={true}>
                 <PopoverTrigger asChild>
@@ -671,13 +673,13 @@ export function NewTaskModal({
                     }}
                   >
                     {loadingProjects ? (
-                      <span className="projects-workspace-loading">Loading projects...</span>
+                      <span className="projects-workspace-loading">{t("modal.loadingProjects")}</span>
                     ) : formData.project ? (
                       <span className="projects-workspace-selected">{formData.project.name}</span>
                     ) : formData.workspace ? (
-                      <span className="projects-workspace-placeholder">Select project</span>
+                      <span className="projects-workspace-placeholder">{t("modal.selectProject")}</span>
                     ) : (
-                      <span className="projects-workspace-placeholder">Select workspace first</span>
+                      <span className="projects-workspace-placeholder">{t("modal.selectWorkspaceFirst")}</span>
                     )}
                     <HiChevronDown className="projects-workspace-dropdown-icon" />
                   </Button>
@@ -685,17 +687,17 @@ export function NewTaskModal({
                 <PopoverContent className="projects-workspace-popover border-none" align="start">
                   <Command className="projects-workspace-command border-none">
                     <CommandInput
-                      placeholder="Search projects..."
+                      placeholder={t("modal.searchProjects")}
                       value={projectSearch}
                       onValueChange={setProjectSearch}
                       className="projects-workspace-command-input"
                     />
                     <CommandEmpty className="projects-workspace-command-empty">
                       {loadingProjects
-                        ? "Loading projects..."
+                        ? t("modal.loadingProjects")
                         : filteredProjects.length === 0 && projectSearch
-                          ? "No projects found."
-                          : "No projects available"}
+                          ? t("modal.noProjectsFound")
+                          : t("modal.noProjectsAvailable")}
                     </CommandEmpty>
                     <CommandGroup className="projects-workspace-command-group">
                       {filteredProjects.map((project) => (
@@ -737,7 +739,7 @@ export function NewTaskModal({
                   className="projects-form-label-icon"
                   style={{ color: "hsl(var(--primary))" }}
                 />
-                Due date
+                {t("modal.dueDate")}
               </Label>
               <Input
                 id="dueDate"
@@ -762,7 +764,7 @@ export function NewTaskModal({
                   className="projects-form-label-icon"
                   style={{ color: "hsl(var(--primary))" }}
                 />
-                Priority <span className="projects-form-label-required">*</span>
+                {t("modal.priority")} <span className="projects-form-label-required">*</span>
               </Label>
               <Select
                 value={formData.priority}
@@ -778,7 +780,7 @@ export function NewTaskModal({
                     e.currentTarget.style.boxShadow = "none";
                   }}
                 >
-                  <SelectValue placeholder="Select priority" />
+                  <SelectValue placeholder={t("modal.selectPriority")} />
                 </SelectTrigger>
                 <SelectContent className="border-none bg-[var(--card)]">
                   {PRIORITY_OPTIONS.map((option) => (
@@ -800,7 +802,7 @@ export function NewTaskModal({
                   className="projects-form-label-icon"
                   style={{ color: "hsl(var(--primary))" }}
                 />
-                Type <span className="projects-form-label-required">*</span>
+                {t("modal.type")} <span className="projects-form-label-required">*</span>
               </Label>
               <Select
                 value={formData.type}
@@ -816,7 +818,7 @@ export function NewTaskModal({
                     e.currentTarget.style.boxShadow = "none";
                   }}
                 >
-                  <SelectValue placeholder="Select type" />
+                  <SelectValue placeholder={t("modal.selectType")} />
                 </SelectTrigger>
                 <SelectContent className="border-none bg-[var(--card)]">
                   {TASK_TYPE_OPTIONS.map((option) => {
@@ -841,7 +843,7 @@ export function NewTaskModal({
                 className="projects-form-label-icon"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              Sprint
+              {t("modal.sprint")}
             </Label>
             <Select
               value={formData.sprintId}
@@ -857,7 +859,7 @@ export function NewTaskModal({
                   e.currentTarget.style.boxShadow = "none";
                 }}
               >
-                <SelectValue placeholder={!formData.project ? "Select project first" : "Select sprint (optional)"} />
+                <SelectValue placeholder={!formData.project ? t("modal.selectProjectFirst") : t("modal.selectSprint")} />
               </SelectTrigger>
               <SelectContent className="border-none bg-[var(--card)]">
                 {sprints.map((sprint) => (
@@ -867,7 +869,7 @@ export function NewTaskModal({
                     className="hover:bg-[var(--hover-bg)]"
                   >
                     <div className="flex items-center gap-2">
-                      {sprint.name} {sprint.isDefault === true && '(Default)'}
+                      {sprint.name} {sprint.isDefault === true && `(${t("modal.default")})`}
                     </div>
                   </SelectItem>
                 ))}
@@ -877,16 +879,16 @@ export function NewTaskModal({
 
           <div className="projects-form-actions flex gap-2 justify-end mt-6">
             <ActionButton type="button" secondary onClick={handleClose} disabled={isSubmitting}>
-              Cancel
+              {t("modal.cancel")}
             </ActionButton>
             <ActionButton type="submit" primary disabled={!isValid || isSubmitting}>
               {isSubmitting ? (
                 <div className="flex items-center">
                   <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  Creating task...
+                  {t("modal.creating")}
                 </div>
               ) : (
-                "Create"
+                t("modal.create")
               )}
             </ActionButton>
           </div>

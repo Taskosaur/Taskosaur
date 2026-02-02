@@ -1,6 +1,7 @@
 import React, { ReactNode } from "react";
 import { HiListBullet, HiViewColumns, HiCalendarDays } from "react-icons/hi2";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface TaskViewTabsProps {
   currentView: "list" | "kanban" | "gantt";
@@ -17,10 +18,11 @@ export default function TabView({
   viewGantt = true,
   rightContent,
 }: TaskViewTabsProps) {
+  const { t } = useTranslation("tasks");
   const tabs = [
-    { id: "list" as const, label: "List", icon: HiListBullet },
-    ...(viewKanban ? [{ id: "kanban" as const, label: "Kanban", icon: HiViewColumns }] : []),
-    ...(viewGantt ? [{ id: "gantt" as const, label: "Gantt", icon: HiCalendarDays }] : []),
+    { id: "list" as const, label: t("views.list"), icon: HiListBullet },
+    ...(viewKanban ? [{ id: "kanban" as const, label: t("views.kanban"), icon: HiViewColumns }] : []),
+    ...(viewGantt ? [{ id: "gantt" as const, label: t("views.gantt"), icon: HiCalendarDays }] : []),
   ];
 
   return (
