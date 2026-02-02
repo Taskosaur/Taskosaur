@@ -170,23 +170,23 @@ export class TaskAttachmentsController {
   }
 
   @Get()
-  findAll(@Query('taskId') taskId?: string) {
-    return this.taskAttachmentsService.findAll(taskId);
+  findAll(@Query('taskId') taskId: string, @CurrentUser() user: any) {
+    return this.taskAttachmentsService.findAll(taskId, user.id as string);
   }
 
   @Get('stats')
-  getAttachmentStats(@Query('taskId') taskId?: string) {
-    return this.taskAttachmentsService.getAttachmentStats(taskId);
+  getAttachmentStats(@Query('taskId') taskId: string, @CurrentUser() user: any) {
+    return this.taskAttachmentsService.getAttachmentStats(taskId, user.id as string);
   }
 
   @Get('task/:taskId')
-  getTaskAttachments(@Param('taskId', ParseUUIDPipe) taskId: string) {
-    return this.taskAttachmentsService.getTaskAttachments(taskId);
+  getTaskAttachments(@Param('taskId', ParseUUIDPipe) taskId: string, @CurrentUser() user: any) {
+    return this.taskAttachmentsService.getTaskAttachments(taskId, user.id as string);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.taskAttachmentsService.findOne(id);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.taskAttachmentsService.findOne(id, user.id as string);
   }
 
   @Get(':id/download')
@@ -194,12 +194,16 @@ export class TaskAttachmentsController {
   @ApiParam({ name: 'id', description: 'Attachment ID' })
   @ApiResponse({ status: 200, description: 'File download' })
   @ApiResponse({ status: 404, description: 'Attachment not found' })
-  async downloadFile(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
+  async downloadFile(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+    @CurrentUser() user: any,
+  ) {
     try {
-      await this.taskAttachmentsService.streamFile(id, res, true);
+      await this.taskAttachmentsService.streamFile(id, user.id as string, res, true);
     } catch (error) {
       console.error(error);
-      if (error instanceof NotFoundException) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         throw error;
       }
       throw new InternalServerErrorException('Failed to download file');
@@ -212,12 +216,20 @@ export class TaskAttachmentsController {
   @ApiResponse({ status: 200, description: 'File stream' })
   @ApiResponse({ status: 400, description: 'File type not previewable' })
   @ApiResponse({ status: 404, description: 'Attachment not found' })
-  async previewFile(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
+  async previewFile(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+    @CurrentUser() user: any,
+  ) {
     try {
-      await this.taskAttachmentsService.streamFile(id, res, false);
+      await this.taskAttachmentsService.streamFile(id, user.id as string, res, false);
     } catch (error) {
       console.error(error);
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException ||
+        error instanceof ForbiddenException
+      ) {
         throw error;
       }
       throw new InternalServerErrorException('Failed to stream file');
@@ -233,11 +245,7 @@ export class TaskAttachmentsController {
     entityIdName: 'taskId',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    // TODO: Get requestUserId from JWT token when authentication is implemented
-    @Query('requestUserId') requestUserId: string,
-  ) {
-    return this.taskAttachmentsService.remove(id, requestUserId);
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.taskAttachmentsService.remove(id, user.id as string);
   }
 }

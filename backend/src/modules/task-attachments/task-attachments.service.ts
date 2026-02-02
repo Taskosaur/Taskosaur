@@ -29,7 +29,72 @@ export class TaskAttachmentsService {
     }
   }
 
+  private async checkAccess(userId: string, taskId: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      select: {
+        projectId: true,
+        project: {
+          select: {
+            workspaceId: true,
+            workspace: {
+              select: {
+                organizationId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        projectMembers: {
+          where: { projectId: task.projectId },
+          select: { role: true },
+        },
+        workspaceMembers: {
+          where: { workspaceId: task.project.workspaceId },
+          select: { role: true },
+        },
+        organizationMembers: {
+          where: {
+            organizationId: task.project.workspace.organizationId,
+          },
+          select: { role: true },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const hasAccess =
+      user.projectMembers.length > 0 ||
+      user.workspaceMembers.length > 0 ||
+      user.organizationMembers.length > 0;
+
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this task');
+    }
+
+    return {
+      projectRole: user.projectMembers[0]?.role,
+      workspaceRole: user.workspaceMembers[0]?.role,
+      organizationRole: user.organizationMembers[0]?.role,
+    };
+  }
+
   async create(file: Express.Multer.File, taskId: string, userId: string): Promise<TaskAttachment> {
+    await this.checkAccess(userId, taskId);
+
     // Verify task exists
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
@@ -102,7 +167,9 @@ export class TaskAttachmentsService {
     }
   }
 
-  async findAll(taskId?: string): Promise<any[]> {
+  async findAll(taskId: string, userId: string): Promise<any[]> {
+    await this.checkAccess(userId, taskId);
+
     const whereClause = taskId ? { taskId } : {};
 
     const attachments = await this.prisma.taskAttachment.findMany({
@@ -155,7 +222,7 @@ export class TaskAttachmentsService {
     return attachmentsWithUrls;
   }
 
-  async findOne(id: string): Promise<any> {
+  async findOne(id: string, userId: string): Promise<any> {
     const attachment = await this.prisma.taskAttachment.findUnique({
       where: { id },
       include: {
@@ -216,6 +283,8 @@ export class TaskAttachmentsService {
       throw new NotFoundException('Task attachment not found');
     }
 
+    await this.checkAccess(userId, attachment.taskId);
+
     // Generate presigned URL for viewing
     const viewUrl = attachment.url
       ? attachment.url
@@ -228,6 +297,7 @@ export class TaskAttachmentsService {
   }
   async streamFile(
     attachmentId: string,
+    userId: string,
     res: Response,
     isDownload: boolean = false,
   ): Promise<void> {
@@ -236,6 +306,7 @@ export class TaskAttachmentsService {
       where: { id: attachmentId },
       select: {
         id: true,
+        taskId: true,
         fileName: true,
         mimeType: true,
         fileSize: true,
@@ -246,6 +317,8 @@ export class TaskAttachmentsService {
     if (!attachment) {
       throw new NotFoundException('Attachment not found');
     }
+
+    await this.checkAccess(userId, attachment.taskId);
 
     // For preview, only allow certain file types
     if (!isDownload) {
@@ -302,7 +375,9 @@ export class TaskAttachmentsService {
     }
   }
 
-  async getTaskAttachments(taskId: string): Promise<any[]> {
+  async getTaskAttachments(taskId: string, userId: string): Promise<any[]> {
+    await this.checkAccess(userId, taskId);
+
     // Verify task exists
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
@@ -377,38 +452,18 @@ export class TaskAttachmentsService {
       throw new NotFoundException('Task attachment not found');
     }
 
-    // Check if user has permission to delete (project member, workspace member, or org member)
-    const user = await this.prisma.user.findUnique({
-      where: { id: requestUserId },
-      select: {
-        id: true,
-        projectMembers: {
-          where: { projectId: attachment.task.project.id },
-          select: { role: true },
-        },
-        workspaceMembers: {
-          where: { workspaceId: attachment.task.project.workspace.id },
-          select: { role: true },
-        },
-        organizationMembers: {
-          where: {
-            organizationId: attachment.task.project.workspace.organizationId,
-          },
-          select: { role: true },
-        },
-      },
-    });
+    // Check if user has permission to delete
+    const { projectRole, workspaceRole, organizationRole } = await this.checkAccess(
+      requestUserId,
+      attachment.taskId,
+    );
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    const isAdmin =
+      ['OWNER', 'MANAGER', 'SUPER_ADMIN'].includes(projectRole) ||
+      ['OWNER', 'MANAGER', 'SUPER_ADMIN'].includes(workspaceRole) ||
+      ['OWNER', 'MANAGER', 'SUPER_ADMIN'].includes(organizationRole);
 
-    const hasAccess =
-      user.projectMembers.length > 0 ||
-      user.workspaceMembers.length > 0 ||
-      user.organizationMembers.length > 0;
-
-    if (!hasAccess) {
+    if (attachment.createdBy !== requestUserId && !isAdmin) {
       throw new ForbiddenException('You do not have permission to delete this attachment');
     }
 
@@ -429,8 +484,10 @@ export class TaskAttachmentsService {
     return attachment;
   }
 
-  async getAttachmentStats(taskId?: string): Promise<any> {
-    const whereClause = taskId ? { taskId } : {};
+  async getAttachmentStats(taskId: string, userId: string): Promise<any> {
+    await this.checkAccess(userId, taskId);
+
+    const whereClause = { taskId };
 
     const [totalAttachments, totalSize, attachmentsByType, recentUploads] = await Promise.all([
       // Total attachments count
