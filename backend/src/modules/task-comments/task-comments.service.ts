@@ -77,6 +77,12 @@ export class TaskCommentsService {
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this task');
     }
+
+    return {
+      projectRole: user.projectMembers[0]?.role,
+      workspaceRole: user.workspaceMembers[0]?.role,
+      organizationRole: user.organizationMembers[0]?.role,
+    };
   }
 
   private async handleNotifications(
@@ -546,9 +552,17 @@ export class TaskCommentsService {
     }
 
     // Check if user has access to the project
-    await this.checkAccess(userId, comment.taskId);
+    const { projectRole, workspaceRole, organizationRole } = await this.checkAccess(
+      userId,
+      comment.taskId,
+    );
 
-    if (comment.authorId !== userId) {
+    const isAdmin =
+      ['OWNER', 'MANAGER', 'SUPER_ADMIN'].includes(projectRole) ||
+      ['OWNER', 'MANAGER', 'SUPER_ADMIN'].includes(workspaceRole) ||
+      ['OWNER', 'MANAGER', 'SUPER_ADMIN'].includes(organizationRole);
+
+    if (comment.authorId !== userId && !isAdmin) {
       throw new ForbiddenException('You can only delete your own comments');
     }
 
