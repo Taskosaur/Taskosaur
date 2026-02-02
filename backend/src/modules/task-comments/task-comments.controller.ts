@@ -41,17 +41,19 @@ export class TaskCommentsController {
 
   @Get()
   findAll(
-    @Query('taskId') taskId?: string,
+    @Query('taskId') taskId: string,
+    @CurrentUser() user: User,
     @Query('page') page = '1',
     @Query('limit') limit = '10',
     @Query('sort') sort: 'asc' | 'desc' = 'desc',
   ) {
-    return this.taskCommentsService.findAll(taskId, Number(page), Number(limit), sort);
+    return this.taskCommentsService.findAll(taskId, user.id, Number(page), Number(limit), sort);
   }
 
   @Get('middle-pagination')
   findWithMiddlePagination(
     @Query('taskId') taskId: string,
+    @CurrentUser() user: User,
     @Query('page') page = '1',
     @Query('limit') limit = '5',
     @Query('oldestCount') oldestCount = '2',
@@ -59,6 +61,7 @@ export class TaskCommentsController {
   ) {
     return this.taskCommentsService.findWithMiddlePagination(
       taskId,
+      user.id,
       Number(page),
       Number(limit),
       Number(oldestCount),
@@ -67,18 +70,18 @@ export class TaskCommentsController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.taskCommentsService.findOne(id);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+    return this.taskCommentsService.findOne(id, user.id);
   }
 
   @Get(':id/replies')
-  getReplies(@Param('id', ParseUUIDPipe) id: string) {
-    return this.taskCommentsService.getReplies(id);
+  getReplies(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+    return this.taskCommentsService.getReplies(id, user.id);
   }
 
   @Get('task/:taskId/tree')
-  getTaskCommentTree(@Param('taskId', ParseUUIDPipe) taskId: string) {
-    return this.taskCommentsService.getTaskCommentTree(taskId);
+  getTaskCommentTree(@Param('taskId', ParseUUIDPipe) taskId: string, @CurrentUser() user: User) {
+    return this.taskCommentsService.getTaskCommentTree(taskId, user.id);
   }
 
   @Patch(':id')

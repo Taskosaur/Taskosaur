@@ -22,27 +22,60 @@ export class TaskCommentsService {
     private usersService: UsersService,
   ) {}
 
-  private async checkProjectAccess(userId: string, taskId: string) {
+  private async checkAccess(userId: string, taskId: string) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
-      select: { projectId: true },
+      select: {
+        projectId: true,
+        project: {
+          select: {
+            workspaceId: true,
+            workspace: {
+              select: {
+                organizationId: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!task) {
       throw new NotFoundException('Task not found');
     }
 
-    const projectMember = await this.prisma.projectMember.findUnique({
-      where: {
-        userId_projectId: {
-          userId,
-          projectId: task.projectId,
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        projectMembers: {
+          where: { projectId: task.projectId },
+          select: { role: true },
+        },
+        workspaceMembers: {
+          where: { workspaceId: task.project.workspaceId },
+          select: { role: true },
+        },
+        organizationMembers: {
+          where: {
+            organizationId: task.project.workspace.organizationId,
+          },
+          select: { role: true },
         },
       },
     });
 
-    if (!projectMember) {
-      throw new ForbiddenException('You do not have access to this project');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const hasAccess =
+      user.projectMembers.length > 0 ||
+      user.workspaceMembers.length > 0 ||
+      user.organizationMembers.length > 0;
+
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this task');
     }
   }
 
@@ -130,7 +163,7 @@ export class TaskCommentsService {
     // Override authorId with the authenticated user's ID
     const authorId = userId;
 
-    await this.checkProjectAccess(userId, taskId);
+    await this.checkAccess(userId, taskId);
 
     // Verify task exists
     const task = await this.prisma.task.findUnique({
@@ -224,7 +257,8 @@ export class TaskCommentsService {
   }
 
   async findAll(
-    taskId?: string,
+    taskId: string,
+    userId: string,
     page: number = 1,
     limit: number = 10,
     sort: 'asc' | 'desc' = 'desc',
@@ -236,6 +270,8 @@ export class TaskCommentsService {
     totalPages: number;
     hasMore: boolean;
   }> {
+    await this.checkAccess(userId, taskId);
+
     const whereClause: any = {};
     if (taskId) {
       whereClause.taskId = taskId;
@@ -313,7 +349,7 @@ export class TaskCommentsService {
     };
   }
 
-  async findOne(id: string): Promise<TaskComment> {
+  async findOne(id: string, userId: string): Promise<TaskComment> {
     const comment = await this.prisma.taskComment.findUnique({
       where: { id },
       include: {
@@ -387,19 +423,23 @@ export class TaskCommentsService {
       throw new NotFoundException('Comment not found');
     }
 
+    await this.checkAccess(userId, comment.taskId);
+
     return comment;
   }
 
-  async getReplies(commentId: string): Promise<TaskComment[]> {
+  async getReplies(commentId: string, userId: string): Promise<TaskComment[]> {
     // Verify parent comment exists
     const parentComment = await this.prisma.taskComment.findUnique({
       where: { id: commentId },
-      select: { id: true },
+      select: { id: true, taskId: true },
     });
 
     if (!parentComment) {
       throw new NotFoundException('Comment not found');
     }
+
+    await this.checkAccess(userId, parentComment.taskId);
 
     return this.prisma.taskComment.findMany({
       where: { parentCommentId: commentId },
@@ -455,7 +495,7 @@ export class TaskCommentsService {
     }
 
     // Check if user has access to the project
-    await this.checkProjectAccess(userId, comment.taskId);
+    await this.checkAccess(userId, comment.taskId);
 
     if (comment.authorId !== userId) {
       throw new ForbiddenException('You can only edit your own comments');
@@ -506,7 +546,7 @@ export class TaskCommentsService {
     }
 
     // Check if user has access to the project
-    await this.checkProjectAccess(userId, comment.taskId);
+    await this.checkAccess(userId, comment.taskId);
 
     if (comment.authorId !== userId) {
       throw new ForbiddenException('You can only delete your own comments');
@@ -518,7 +558,9 @@ export class TaskCommentsService {
     });
   }
 
-  async getTaskCommentTree(taskId: string): Promise<TaskComment[]> {
+  async getTaskCommentTree(taskId: string, userId: string): Promise<TaskComment[]> {
+    await this.checkAccess(userId, taskId);
+
     // Verify task exists
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
@@ -591,6 +633,7 @@ export class TaskCommentsService {
    */
   async findWithMiddlePagination(
     taskId: string,
+    userId: string,
     page: number = 1,
     limit: number = 5,
     oldestCount: number = 2,
@@ -604,6 +647,8 @@ export class TaskCommentsService {
     hasMore: boolean;
     loadedCount: number; // How many middle comments have been loaded so far
   }> {
+    await this.checkAccess(userId, taskId);
+
     const whereClause: any = {
       taskId,
       parentCommentId: null, // Only top-level comments
