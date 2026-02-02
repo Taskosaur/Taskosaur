@@ -6,8 +6,8 @@ export const APP_GUIDE = `
 
 ## Key Actions
 - Create Sprint: Project → Sprints tab → Create Sprint → fill name/dates → Save
-- Create Task: /tasks or Project → Tasks tab → Create Task → fill title → Save
-- Create Project: Workspace → New Project → fill name → Create
+- Create Task: ONLY from /tasks page or /{ws}/tasks or /{ws}/{proj}/tasks page → Create Task button → fill title → Save. WARNING: The Create button on a workspace page (/{ws}) creates a PROJECT, NOT a task.
+- Create Project: Workspace page (/{ws})/project or /project → New Project → fill name → Create
 - Org Settings: /settings → click org card → edit → Save
 - Workspace Settings: /{ws}/settings → edit → Save
 - Project Settings: /{ws}/{proj}/settings → edit → Save
@@ -52,7 +52,7 @@ const workflows: Record<string, string> = {
   'create-sprint': `Sprint: Project → Sprints tab → Create Sprint → name, dates → Save`,
   'add-task-to-sprint': `Add to Sprint: Tasks tab → task → Add to Sprint OR drag to sprint`,
   'activate-sprint': `Activate: Sprints tab → find sprint → Start/Activate button`,
-  'create-task': `Task: /tasks or Project Tasks → Create Task → title → Save`,
+  'create-task': `Task: ONLY create tasks from /tasks page or /{ws}/{proj}/tasks page. NEVER use the Create/New Project button on a workspace page — that creates a PROJECT, not a task. If you are on a workspace page (/{ws}), you MUST first navigate to a project tasks page. If the user has not specified which project, ASK them.`,
   'create-project': `Project: Workspace → New Project → name → Create`,
   'organization-settings': `Org Settings: /settings → click org → edit → Save`,
   'workspace-settings': `Workspace Settings: /{ws}/settings → edit → Save`,
@@ -101,6 +101,9 @@ export function enhancePromptWithContext(userRequest: string, currentUrl: string
     else if (req.includes('add')) hint = getWorkflowGuide('add-task-to-sprint');
   } else if (req.includes('task') && req.includes('create')) {
     hint = getWorkflowGuide('create-task');
+    if (ctx.startsWith('Workspace:') || ctx === 'Dashboard' || ctx === 'Unknown page') {
+      hint += `\nWARNING: You are currently on "${ctx}" which is NOT a task creation page. The Create/New button here creates a PROJECT, not a task. You MUST ASK the user which project to use, then navigate to that project's tasks page before creating a task. Do NOT click any Create button on this page.`;
+    }
   } else if (req.includes('project') && req.includes('create')) {
     hint = getWorkflowGuide('create-project');
   } else if (req.includes('setting')) {
