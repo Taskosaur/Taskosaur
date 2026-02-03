@@ -5,6 +5,8 @@ import { EmailJobData, EmailTemplate } from './dto/email.dto';
 import { QueueProcessor } from '../queue/decorators/queue-processor.decorator';
 import { IJob } from '../queue/interfaces/job.interface';
 import { QueueService } from '../queue/services/queue.service';
+import { convertMarkdownToHtml } from '../../common/utils/markdown.util';
+import { sanitizeHtml } from '../../common/utils/sanitizer.util';
 
 @QueueProcessor('email')
 export class EmailProcessor implements OnModuleInit {
@@ -158,6 +160,11 @@ export class EmailProcessor implements OnModuleInit {
         p { margin: 12px 0; }
         .info-section { margin: 20px 0; padding: 20px; background: #f9fafb; border-radius: 6px; }
         .button-container { text-align: center; margin: 25px 0; color:#f9fafb }
+        /* Markdown Styles */
+        .markdown-content ul, .markdown-content ol { padding-left: 20px; margin: 10px 0; }
+        .markdown-content blockquote { border-left: 4px solid #e5e7eb; padding-left: 16px; color: #6b7280; font-style: italic; margin: 10px 0; }
+        .markdown-content code { background: #f3f4f6; padding: 2px 4px; border-radius: 4px; font-family: monospace; }
+        .markdown-content pre { background: #f3f4f6; padding: 12px; border-radius: 6px; overflow-x: auto; }
       </style>
     `;
     let bodyContent = '';
@@ -173,7 +180,7 @@ export class EmailProcessor implements OnModuleInit {
                 <p><strong>Project:</strong> ${data.project.name}</p>
                 <p><strong>Priority:</strong> ${data.task.priority}</p>
                 ${data.task.dueDate ? `<p><strong>Due Date:</strong> ${new Date(data.task.dueDate as string | number | Date).toLocaleDateString()}</p>` : ''}
-                ${data.task.description ? `<p><strong>Description:</strong> ${data.task.description}</p>` : ''}
+                ${data.task.description ? `<div class="markdown-content"><strong>Description:</strong> ${sanitizeHtml(convertMarkdownToHtml(String(data.task.description)))}</div>` : ''}
               </div>
               
               <div class="button-container">
@@ -464,7 +471,7 @@ export class EmailProcessor implements OnModuleInit {
                 <p><strong>Task:</strong> ${data.task.key} - ${data.task.title}</p>
                 <p><strong>Project:</strong> ${data.project.name}</p>
                 <p><strong>Comment by:</strong> ${data.commenter.name}</p>
-                <p><strong>Comment:</strong> ${data.comment.content}</p>
+                <div class="markdown-content"><strong>Comment:</strong><br/>${sanitizeHtml(convertMarkdownToHtml(String(data.comment.content)))}</div>
               </div>
               
               <div class="button-container">
@@ -486,7 +493,7 @@ export class EmailProcessor implements OnModuleInit {
               
               <div class="task-info">
                 <p><strong>Project:</strong> ${data.project.name}</p>
-                ${data.project.description ? `<p><strong>Description:</strong> ${data.project.description}</p>` : ''}
+                ${data.project.description ? `<div class="markdown-content"><strong>Description:</strong><br/>${sanitizeHtml(convertMarkdownToHtml(String(data.project.description)))}</div>` : ''}
                 <p><strong>Workspace:</strong> ${data.workspace.name}</p>
                 <p><strong>Organization:</strong> ${data.organization.name}</p>
                 <p><strong>Created by:</strong> ${data.creator.name}</p>
@@ -511,7 +518,7 @@ export class EmailProcessor implements OnModuleInit {
               
               <div class="task-info">
                 <p><strong>Project:</strong> ${data.project.name}</p>
-                ${data.project.description ? `<p><strong>Description:</strong> ${data.project.description}</p>` : ''}
+                ${data.project.description ? `<div class="markdown-content"><strong>Description:</strong><br/>${sanitizeHtml(convertMarkdownToHtml(String(data.project.description)))}</div>` : ''}
                 <p><strong>Workspace:</strong> ${data.workspace.name}</p>
                 <p><strong>Organization:</strong> ${data.organization.name}</p>
                 <p><strong>Updated by:</strong> ${data.updater.name}</p>
