@@ -10,6 +10,7 @@ import {
   EmailTemplate,
   EmailPriority,
 } from './dto/email.dto';
+import { sanitizeHtml } from '../../common/utils/sanitizer.util';
 
 @Injectable()
 export class EmailService {
@@ -109,48 +110,53 @@ export class EmailService {
       // Filter to only include the assignees that were just added (present in assigneeIds)
       const newAssignees = task.assignees.filter((assignee) => assigneeIds.includes(assignee.id));
 
-      // Send email to each NEW assignee
-      for (const assignee of newAssignees) {
-        if (!assignee.email) {
-          this.logger.warn(`No email found for assignee ${assignee.id}`);
-          continue;
-        }
+      // Send email to each NEW assignee concurrently
+      const emailPromises = newAssignees
+        .filter((assignee) => {
+          if (!assignee.email) {
+            this.logger.warn(`No email found for assignee ${assignee.id}`);
+            return false;
+          }
+          return true;
+        })
+        .map((assignee) =>
+          this.sendEmail({
+            to: assignee.email,
+            subject: `Task Assigned: ${sanitizeHtml(task.title)}`,
+            template: EmailTemplate.TASK_ASSIGNED,
+            data: {
+              task: {
+                id: task.id,
+                key: task.slug,
+                title: sanitizeHtml(task.title),
+                description: task.description ? sanitizeHtml(task.description) : undefined,
+                priority: task.priority,
+                dueDate: task.dueDate,
+              },
+              assignee: {
+                name: `${assignee.firstName} ${assignee.lastName}`,
+                email: assignee.email,
+              },
+              assignedBy: {
+                name: assignedByUser
+                  ? `${assignedByUser.firstName} ${assignedByUser.lastName}`
+                  : 'System',
+                email: assignedByUser?.email,
+              },
+              project: {
+                name: task.project.name,
+                key: task.project.slug,
+              },
+              organization: {
+                name: task.project.workspace.organization.name,
+              },
+              taskUrl: `${this.configService.getOrThrow('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`,
+            },
+            priority: EmailPriority.HIGH,
+          }),
+        );
 
-        await this.sendEmail({
-          to: assignee.email,
-          subject: `Task Assigned: ${task.title}`,
-          template: EmailTemplate.TASK_ASSIGNED,
-          data: {
-            task: {
-              id: task.id,
-              key: task.slug,
-              title: task.title,
-              description: task.description,
-              priority: task.priority,
-              dueDate: task.dueDate,
-            },
-            assignee: {
-              name: `${assignee.firstName} ${assignee.lastName}`,
-              email: assignee.email,
-            },
-            assignedBy: {
-              name: assignedByUser
-                ? `${assignedByUser.firstName} ${assignedByUser.lastName}`
-                : 'System',
-              email: assignedByUser?.email,
-            },
-            project: {
-              name: task.project.name,
-              key: task.project.slug,
-            },
-            organization: {
-              name: task.project.workspace.organization.name,
-            },
-            taskUrl: `${this.configService.getOrThrow('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`,
-          },
-          priority: EmailPriority.HIGH,
-        });
-      }
+      await Promise.all(emailPromises);
     } catch (error) {
       this.logger.error(`Failed to send task assigned email: ${error.message}`);
     }
@@ -186,14 +192,14 @@ export class EmailService {
         .map((assignee) =>
           this.sendEmail({
             to: assignee.email,
-            subject: `Task Due Soon: ${task.title}`,
+            subject: `Task Due Soon: ${sanitizeHtml(task.title)}`,
             template: EmailTemplate.DUE_DATE_REMINDER,
             data: {
               task: {
                 id: task.id,
                 key: task.slug,
-                title: task.title,
-                description: task.description,
+                title: sanitizeHtml(task.title),
+                description: task.description ? sanitizeHtml(task.description) : undefined,
                 priority: task.priority,
                 dueDate: task.dueDate,
                 hoursUntilDue,
@@ -227,8 +233,8 @@ export class EmailService {
       const task = await this.prisma.task.findUnique({
         where: { id: taskId },
         include: {
-          assignees: true, // Changed from assignee to assignees
-          reporters: true, // Changed from reporter to reporters
+          assignees: true,
+          reporters: true,
           status: true,
           project: {
             include: {
@@ -264,6 +270,10 @@ export class EmailService {
           };
         }
       } else {
+        this.logger.warn(
+          `sendTaskStatusChangedEmail called without oldStatusId for task ${taskId}. Falling back to activity log (unreliable under high concurrency).`,
+        );
+
         // Fetch the most recent status change activity log entry
         const recentActivity = await this.prisma.activityLog.findFirst({
           where: {
@@ -280,12 +290,12 @@ export class EmailService {
         }
 
         if (recentActivity?.oldValue) {
-          const oldValue = recentActivity.oldValue as any;
+          // FIX (Issue 2.3): Added safer type check for activity log oldValue
+          const oldValue = recentActivity.oldValue as Record<string, any>;
           let statusId: string | undefined;
-          if (oldValue.statusId) {
-            statusId = oldValue.statusId;
-          } else if (oldValue.status?.id) {
-            statusId = oldValue.status.id;
+
+          if (typeof oldValue === 'object' && oldValue !== null) {
+            statusId = oldValue.statusId || oldValue.status?.id;
           }
 
           if (statusId) {
@@ -340,14 +350,14 @@ export class EmailService {
 
       await this.sendBulkEmail({
         recipients: Array.from(recipients),
-        subject: `Task Status Changed: ${task.title}`,
+        subject: `Task Status Changed: ${sanitizeHtml(task.title)}`,
         template: EmailTemplate.TASK_STATUS_CHANGED,
         data: {
           task: {
             id: task.id,
             key: task.slug,
-            title: task.title,
-            description: task.description,
+            title: sanitizeHtml(task.title),
+            description: task.description ? sanitizeHtml(task.description) : undefined,
           },
           oldStatus: {
             name: oldStatus.name,
@@ -451,9 +461,9 @@ export class EmailService {
             totalTimeSpent: Math.round((totalTimeSpent._sum.timeSpent || 0) / 60), // Convert to hours
             overdueTasks: overdueTasks.map((task) => ({
               key: task.slug,
-              title: task.title,
+              title: sanitizeHtml(task.title),
               dueDate: task.dueDate,
-              project: task.project.name,
+              project: sanitizeHtml(task.project.name),
               url: `${this.configService.getOrThrow('FRONTEND_URL', 'http://localhost:3001')}/tasks/${task.id}`,
             })),
           },
@@ -517,7 +527,7 @@ export class EmailService {
         subject: 'Reset Your Password',
         template: EmailTemplate.PASSWORD_RESET, // Add this to your EmailTemplate enum if not exists
         data: {
-          userName: data.userName,
+          userName: sanitizeHtml(data.userName),
           resetToken: data.resetToken,
           resetUrl: data.resetUrl,
           expiresIn: '24 hours',
@@ -543,6 +553,7 @@ export class EmailService {
     try {
       const emailData = {
         ...data,
+        userName: sanitizeHtml(data.userName),
         supportEmail: this.configService.get('SUPPORT_EMAIL', 'support@taskosaur.com'),
         companyName: 'Taskosaur',
       };
@@ -573,6 +584,9 @@ export class EmailService {
     try {
       const emailData = {
         ...data,
+        inviterName: sanitizeHtml(data.inviterName),
+        entityName: sanitizeHtml(data.entityName),
+        role: sanitizeHtml(data.role),
         supportEmail: this.configService.get('SUPPORT_EMAIL', 'support@taskosaur.com'),
         companyName: 'Taskosaur',
       };
@@ -606,6 +620,10 @@ export class EmailService {
     try {
       const emailData = {
         ...data,
+        inviterName: sanitizeHtml(data.inviterName),
+        entityName: sanitizeHtml(data.entityName),
+        role: sanitizeHtml(data.role),
+        organizationName: data.organizationName ? sanitizeHtml(data.organizationName) : undefined,
         supportEmail: this.configService.get('SUPPORT_EMAIL', 'support@taskosaur.com'),
         companyName: 'Taskosaur',
       };
@@ -674,17 +692,17 @@ export class EmailService {
         .map((recipient) =>
           this.sendEmail({
             to: recipient.email,
-            subject: `New Comment on Task: ${comment.task.title}`,
+            subject: `New Comment on Task: ${sanitizeHtml(comment.task.title)}`,
             template: EmailTemplate.TASK_COMMENTED,
             data: {
               task: {
                 id: comment.task.id,
                 key: comment.task.slug,
-                title: comment.task.title,
+                title: sanitizeHtml(comment.task.title),
               },
               comment: {
                 id: comment.id,
-                content: comment.content,
+                content: sanitizeHtml(comment.content),
                 createdAt: comment.createdAt,
               },
               commenter: {
@@ -758,14 +776,14 @@ export class EmailService {
         .map((recipient) =>
           this.sendEmail({
             to: recipient.email,
-            subject: `New Project Created: ${project.name}`,
+            subject: `New Project Created: ${sanitizeHtml(project.name)}`,
             template: EmailTemplate.PROJECT_CREATED,
             data: {
               project: {
                 id: project.id,
-                name: project.name,
+                name: sanitizeHtml(project.name),
                 key: project.slug,
-                description: project.description,
+                description: project.description ? sanitizeHtml(project.description) : undefined,
               },
               creator: {
                 name: `${creator.firstName} ${creator.lastName}`,
@@ -843,9 +861,9 @@ export class EmailService {
             data: {
               project: {
                 id: project.id,
-                name: project.name,
+                name: sanitizeHtml(project.name),
                 key: project.slug,
-                description: project.description,
+                description: project.description ? sanitizeHtml(project.description) : undefined,
               },
               updater: {
                 name: `${updater.firstName} ${updater.lastName}`,
@@ -970,16 +988,19 @@ export class EmailService {
         template: EmailTemplate.MENTION,
         data: {
           mentioner: {
-            name: `${mentioner.firstName} ${mentioner.lastName}`,
+            name: `${mentioner.firstName} ${mentioner.lastName}`, // Names are usually safe but could be sanitized if we're paranoid.
             email: mentioner.email,
           },
           mentionedUser: {
             name: `${mentionedUser.firstName} ${mentionedUser.lastName}`,
           },
-          entity: entityData,
+          entity: {
+            ...entityData,
+            title: sanitizeHtml(String(entityData.title)),
+          },
           entityType: entityType.toLowerCase(),
           entityUrl,
-          entityName,
+          entityName: sanitizeHtml(entityName),
         },
         priority: EmailPriority.HIGH,
       });
@@ -1017,8 +1038,8 @@ export class EmailService {
             name: `${user.firstName} ${user.lastName}`,
           },
           notification: {
-            title: notificationData.title,
-            message: notificationData.message,
+            title: sanitizeHtml(notificationData.title),
+            message: sanitizeHtml(notificationData.message),
             actionUrl:
               notificationData.actionUrl ||
               `${this.configService.get('FRONTEND_URL', 'http://localhost:3001')}/`,
