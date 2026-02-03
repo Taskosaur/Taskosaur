@@ -169,6 +169,8 @@ TASK UPDATE RULES (VERY IMPORTANT - for updating priority, status, sprint, assig
         content: userMessage,
       });
 
+      const isGpt5Model = typeof model === 'string' && model.startsWith('gpt-5');
+
       // Prepare request based on provider
       let requestUrl = apiUrl;
       const requestHeaders: any = {
@@ -196,9 +198,15 @@ TASK UPDATE RULES (VERY IMPORTANT - for updating priority, status, sprint, assig
 
         case 'openai':
           requestUrl = `${apiUrl}/chat/completions`;
-          requestBody.top_p = 0.9;
-          requestBody.frequency_penalty = 0;
-          requestBody.presence_penalty = 0;
+          delete requestBody.max_tokens;
+          requestBody.max_completion_tokens = 500;
+          if (isGpt5Model) {
+            delete requestBody.temperature;
+          } else {
+            requestBody.top_p = 0.9;
+            requestBody.frequency_penalty = 0;
+            requestBody.presence_penalty = 0;
+          }
           break;
 
         case 'ollama':
@@ -427,6 +435,8 @@ TASK UPDATE RULES (VERY IMPORTANT - for updating priority, status, sprint, assig
         },
       ];
 
+      const isGpt5Model = typeof model === 'string' && model.startsWith('gpt-5');
+
       // Prepare request based on provider
       let requestUrl = validatedUrl;
       const requestHeaders: any = {
@@ -451,6 +461,11 @@ TASK UPDATE RULES (VERY IMPORTANT - for updating priority, status, sprint, assig
 
         case 'openai':
           requestUrl = `${validatedUrl}/chat/completions`;
+          delete requestBody.max_tokens;
+          requestBody.max_completion_tokens = 50;
+          if (isGpt5Model) {
+            delete requestBody.temperature;
+          }
           break;
 
         case 'ollama':
