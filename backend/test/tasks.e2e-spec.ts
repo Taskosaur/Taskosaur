@@ -517,6 +517,34 @@ describe('TasksController (e2e)', () => {
     });
   });
 
+  describe('/tasks/:id (DELETE)', () => {
+    it('should delete a task', async () => {
+      // Create a task specifically for deletion
+      const taskToDelete = await prismaService.task.create({
+        data: {
+          title: 'Task to Delete',
+          projectId,
+          statusId,
+          taskNumber: 999,
+          slug: `${projectSlug}-999`,
+        },
+      });
+
+      return request(app.getHttpServer())
+        .delete(`/api/tasks/${taskToDelete.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK);
+    });
+
+    it('should fail to delete a non-existent task', () => {
+      const fakeTaskId = '00000000-0000-0000-0000-000000000000';
+      return request(app.getHttpServer())
+        .delete(`/api/tasks/${fakeTaskId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.NOT_FOUND);
+    });
+  });
+
   describe('/tasks/create-task-attachment (POST)', () => {
     it('should create a task with attachments', () => {
       return request(app.getHttpServer())

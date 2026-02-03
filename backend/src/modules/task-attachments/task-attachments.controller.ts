@@ -15,6 +15,7 @@ import {
   UseGuards,
   NotFoundException,
   InternalServerErrorException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
