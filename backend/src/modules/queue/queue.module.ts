@@ -1,5 +1,5 @@
 import { BullModule } from '@nestjs/bullmq';
-import { DynamicModule, Module, Global, OnModuleInit, Logger } from '@nestjs/common';
+import { DynamicModule, Module, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { QueueConfigService } from './config/queue-config.service';
 import { QueueProviderFactory } from './providers/queue.provider';
@@ -8,10 +8,10 @@ import { QueueStartupLoggerService } from './services/queue-startup-logger.servi
 import { QueueService } from './services/queue.service';
 import { QueueMetricsService } from './services/queue-metrics.service';
 import { QueueHealthController } from './controllers/queue-health.controller';
+import { QueueUIController } from './controllers/queue-ui.controller';
 import { IQueueAdapter } from './interfaces/queue-adapter.interface';
 import { getQueueToken } from './decorators/inject-queue.decorator';
 
-@Global()
 @Module({
   imports: [
     ConfigModule,
@@ -45,7 +45,7 @@ import { getQueueToken } from './decorators/inject-queue.decorator';
       inject: [ConfigService],
     }),
   ],
-  controllers: [QueueHealthController],
+  controllers: [QueueHealthController, QueueUIController],
   providers: [
     QueueConfigService,
     RedisConnectionValidator,
