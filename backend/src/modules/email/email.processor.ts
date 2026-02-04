@@ -5,6 +5,7 @@ import { EmailJobData, EmailTemplate } from './dto/email.dto';
 import { QueueProcessor } from '../queue/decorators/queue-processor.decorator';
 import { IJob } from '../queue/interfaces/job.interface';
 import { QueueService } from '../queue/services/queue.service';
+import { QueueConfigService } from '../queue/config/queue-config.service';
 import { convertMarkdownToHtml } from '../../common/utils/markdown.util';
 import { sanitizeHtml } from '../../common/utils/sanitizer.util';
 
@@ -16,6 +17,7 @@ export class EmailProcessor implements OnModuleInit {
   constructor(
     private configService: ConfigService,
     private queueService: QueueService,
+    private queueConfigService: QueueConfigService,
   ) {
     this.initializeTransporter();
   }
@@ -35,18 +37,16 @@ export class EmailProcessor implements OnModuleInit {
         // Queue might already be registered, which is fine
       }
 
-      // Get the queue to extract its configuration
-      const queue = this.queueService.getQueue<EmailJobData>('email');
-      const underlyingQueue = (
-        queue as { getUnderlyingQueue?: () => { opts?: { prefix?: string; connection?: any } } }
-      ).getUnderlyingQueue?.();
+      // Get configuration from QueueConfigService to ensure worker matches queue settings
+      const bullMqConfig = this.queueConfigService.getBullMQConfig();
+      const queuePrefix = bullMqConfig?.prefix || 'taskosaur';
+      const queueConnection = bullMqConfig?.connection;
 
-      // Extract prefix and connection from queue to ensure worker matches
-      const queuePrefix = underlyingQueue?.opts?.prefix || 'default';
-      const queueConnection = underlyingQueue?.opts?.connection;
+      if (!queueConnection) {
+        this.logger.warn('No Redis connection configuration found for email worker');
+      }
 
-      // Create worker with the SAME connection and prefix as the queue
-      // This is the critical fix: worker must use same Redis prefix as queue
+      // Create worker with the configured connection and prefix
       const processor = async (job: IJob<EmailJobData>) => {
         return await this.process(job);
       };
@@ -57,6 +57,7 @@ export class EmailProcessor implements OnModuleInit {
       };
 
       adapter.createWorker('email', processor, workerConfig);
+      this.logger.log(`Email worker registered with prefix: ${queuePrefix}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(`Failed to register EmailProcessor as worker: ${errorMessage}`);
@@ -103,6 +104,8 @@ export class EmailProcessor implements OnModuleInit {
   async handleSendEmail(job: IJob<EmailJobData>) {
     const { to, subject, template, data } = job.data;
     const smtpFrom = this.configService.get<string>('SMTP_FROM', 'noreply@taskosaur.com');
+
+    this.logger.debug(`Processing email job for ${to} using template ${template}`);
 
     try {
       const html = this.generateEmailHTML(template, data);
