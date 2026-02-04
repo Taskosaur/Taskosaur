@@ -180,9 +180,10 @@ interface TaskContextType extends TaskState {
   ) => Promise<TaskComment[] | { data: TaskComment[]; total: number; page: number; limit: number; totalPages: number; hasMore: boolean; loadedCount?: number }>;
   updateTaskComment: (
     commentId: string,
+    userId: string,
     commentData: UpdateTaskCommentRequest
   ) => Promise<TaskComment>;
-  deleteTaskComment: (commentId: string) => Promise<void>;
+  deleteTaskComment: (commentId: string, userId: string) => Promise<void>;
 
   // Task attachment operations
   uploadAttachment: (taskId: string, file: File) => Promise<TaskAttachment>;

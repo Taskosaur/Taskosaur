@@ -730,6 +730,7 @@ export const taskApi = {
 
   updateTaskComment: async (
     commentId: string,
+    userId: string,
     commentData: UpdateTaskCommentRequest
   ): Promise<TaskComment> => {
     try {
@@ -747,7 +748,7 @@ export const taskApi = {
     }
   },
 
-  deleteTaskComment: async (commentId: string): Promise<void> => {
+  deleteTaskComment: async (commentId: string, userId?: string): Promise<void> => {
     try {
       if (!isValidUUID(commentId)) {
         throw new Error('Invalid comment ID format');
