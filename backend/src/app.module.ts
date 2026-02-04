@@ -40,6 +40,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { InboxModule } from './modules/inbox/inbox.module';
 import { EmailModule } from './modules/email/email.module';
+import { QueueModule } from './modules/queue/queue.module';
 
 import { PublicModule } from './modules/public/public.module';
 import { HealthModule } from './modules/health/health.module';
@@ -86,6 +87,7 @@ import { HealthModule } from './modules/health/health.module';
           InboxModule,
           PublicModule,
           HealthModule,
+          QueueModule,
         ],
       },
     ]),
@@ -124,7 +126,7 @@ import { HealthModule } from './modules/health/health.module';
     PublicModule,
     HealthModule,
     EmailModule,
-    // SchedulerModule,
+    QueueModule,
   ],
   controllers: [AppController],
   providers: [

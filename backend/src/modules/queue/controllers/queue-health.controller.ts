@@ -1,6 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { QueueService } from '../services/queue.service';
 import { QueueMetricsService } from '../services/queue-metrics.service';
+import { Public } from '../../auth/decorators/public.decorator';
 
 /**
  * Health check response structure
@@ -51,6 +52,7 @@ export interface QueueHealthResponse {
 /**
  * Controller for queue health checks
  */
+@Public()
 @Controller('health/queue')
 export class QueueHealthController {
   constructor(
