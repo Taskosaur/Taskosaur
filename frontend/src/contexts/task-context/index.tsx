@@ -54,6 +54,8 @@ interface TaskContextType extends TaskState {
       workspaceId?: string;
       projectId?: string;
       sprintId?: string;
+      parentTaskId?: string;
+      includeSubtasks?: boolean;
       priorities?: string;
       statuses?: string;
       search?: string;
@@ -482,6 +484,8 @@ export function TaskProvider({ children }: TaskProviderProps) {
           workspaceId?: string;
           projectId?: string;
           sprintId?: string;
+          parentTaskId?: string;
+          includeSubtasks?: boolean;
           priorities?: string;
           statuses?: string;
           search?: string;
@@ -496,7 +500,15 @@ export function TaskProvider({ children }: TaskProviderProps) {
           () => taskApi.getCalendarTask(organizationId, params),
           false
         );
-        return Array.isArray(result) ? result : [];
+        
+        const tasks = Array.isArray(result) ? result : [];
+        
+        setTaskState((prev) => ({
+          ...prev,
+          tasks: tasks,
+        }));
+        
+        return tasks;
       },
 
       getPublicCalendarTask: async (

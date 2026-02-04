@@ -354,7 +354,10 @@ const SprintTasksTable = () => {
       };
 
       if (isAuth && currentOrganizationId) {
-        await getCalendarTask(currentOrganizationId, params);
+        await getCalendarTask(currentOrganizationId, {
+          ...params,
+          includeSubtasks: true,
+        });
       } else {
         console.warn("Gantt view not available for public access");
       }

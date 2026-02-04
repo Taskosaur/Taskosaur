@@ -360,8 +360,10 @@ function TasksPageContent() {
     try {
       setGanttError(null);
       setGanttLoading(true);
-      // const data = await getCalendarTask(currentOrganizationId);
-      // setGanttTasks(data || []);
+      const data = await getCalendarTask(currentOrganizationId, {
+        includeSubtasks: true,
+      });
+      setGanttTasks(data || []);
     } catch (error) {
       setGanttError(error?.message ? error.message : "Failed to load Gantt data");
       setGanttTasks([]);
@@ -400,18 +402,21 @@ function TasksPageContent() {
     async (taskId: string, updates: any) => {
       try {
         await updateTask(taskId, updates);
-        // If we were using separate ganttTasks state, we'd need to update it here
+        // Refresh Gantt data if needed
+        if (currentView === "gantt") {
+          loadGanttData();
+        }
       } catch (error) {
         console.error("Failed to update task:", error);
       }
     },
-    [updateTask]
+    [updateTask, currentView, loadGanttData]
   );
 
   // Load Gantt data when Gantt tab is active
   useEffect(() => {
     if (currentView === "gantt" && currentOrganizationId) {
-      // loadGanttData();
+      loadGanttData();
     }
   }, [currentView, currentOrganizationId, loadGanttData]);
 

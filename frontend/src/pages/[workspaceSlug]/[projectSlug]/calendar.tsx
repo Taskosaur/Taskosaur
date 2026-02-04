@@ -79,6 +79,7 @@ function ProjectTasksCalendarPageContent() {
       if (projectData?.id) {
         const tasks = await taskContext.getCalendarTask(organizationId, {
           projectId: projectData.id,
+          includeSubtasks: true,
         });
         setProjectTasks(Array.isArray(tasks) ? tasks : []);
       }
@@ -124,6 +125,7 @@ function ProjectTasksCalendarPageContent() {
 
       const tasks = await taskContext.getCalendarTask(organizationId, {
         projectId: project.id,
+        includeSubtasks: true,
       });
       setProjectTasks(tasks || []);
 

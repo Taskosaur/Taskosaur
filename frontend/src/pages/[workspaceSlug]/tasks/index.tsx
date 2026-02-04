@@ -379,6 +379,7 @@ function WorkspaceTasksContent() {
     try {
       const data = await getCalendarTask(workspace.organizationId, {
         workspaceId: workspace.id,
+        includeSubtasks: true,
       });
       setGanttTasks(data || []);
       setIsInitialLoad(false);

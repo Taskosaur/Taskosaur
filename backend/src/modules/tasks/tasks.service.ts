@@ -782,7 +782,6 @@ export class TasksService {
 
     // Build base where clause
     const whereClause: any = {
-      parentTaskId: null,
       project: {
         workspace: { organizationId },
       },
@@ -803,8 +802,15 @@ export class TasksService {
     }
 
     if (parentTaskId !== undefined) {
-      whereClause.parentTaskId =
-        parentTaskId === 'null' || parentTaskId === '' ? null : parentTaskId;
+      if (parentTaskId === 'all') {
+        // Do not filter by parentTaskId to include both main tasks and subtasks
+      } else {
+        whereClause.parentTaskId =
+          parentTaskId === 'null' || parentTaskId === '' ? null : parentTaskId;
+      }
+    } else {
+      // Default to showing only main tasks (not subtasks) for backward compatibility
+      whereClause.parentTaskId = null;
     }
 
     if (priorities?.length) {

@@ -236,6 +236,7 @@ export const taskApi = {
       projectId?: string;
       sprintId?: string;
       parentTaskId?: string;
+      includeSubtasks?: boolean;
       priorities?: string;
       statuses?: string;
       search?: string;
@@ -253,7 +254,13 @@ export const taskApi = {
       if (params?.workspaceId) queryParams.append("workspaceId", params.workspaceId);
       if (params?.projectId) queryParams.append("projectId", params.projectId);
       if (params?.sprintId) queryParams.append("sprintId", params.sprintId);
-      if (params?.parentTaskId) queryParams.append("parentTaskId", params.parentTaskId);
+      
+      if (params?.includeSubtasks) {
+        queryParams.append("parentTaskId", "all");
+      } else if (params?.parentTaskId) {
+        queryParams.append("parentTaskId", params.parentTaskId);
+      }
+      
       if (params?.priorities) queryParams.append("priorities", params.priorities);
       if (params?.statuses) queryParams.append("statuses", params.statuses);
       if (params?.search) queryParams.append("search", params.search);

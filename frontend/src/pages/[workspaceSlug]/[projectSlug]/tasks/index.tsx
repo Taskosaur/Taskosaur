@@ -501,6 +501,7 @@ function ProjectTasksContent() {
       await getCalendarTask(currentOrganizationId, {
         projectId: project.id,
         workspaceId: workspace.id,
+        includeSubtasks: true,
       });
       setIsInitialLoad(false);
     } catch (error) {

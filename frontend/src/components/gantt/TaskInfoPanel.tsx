@@ -52,6 +52,11 @@ export const TaskInfoPanel: React.FC<TaskInfoPanelProps> = ({
             onClick={() => onFocus(task.id)}
           >
             <span className="line-clamp-1 break-words text-sm">
+              {task.parentTask?.title && (
+                <span className="text-[var(--muted-foreground)] mr-1">
+                  {task.parentTask.title} /
+                </span>
+              )}
               {task.title || "Untitled Task"}
             </span>
           </Link>
