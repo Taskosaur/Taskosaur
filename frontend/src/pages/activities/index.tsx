@@ -35,6 +35,7 @@ import { ActivityFilters, ActivityItem, ActivityResponse } from "@/types";
 import Tooltip from "@/components/common/ToolTip";
 import ErrorState from "@/components/common/ErrorState";
 import { SEO } from "@/components/common/SEO";
+import { useTranslation } from "react-i18next";
 
 type EntityTypeFilter = "Task" | "Project" | "Workspace" | "Organization" | "User" | "all";
 
@@ -44,6 +45,7 @@ interface ActivityPaginationProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   isLoading?: boolean;
+  t: any;
 }
 
 function ActivityPagination({
@@ -51,13 +53,14 @@ function ActivityPagination({
   totalPages,
   onPageChange,
   isLoading = false,
+  t,
 }: ActivityPaginationProps) {
   if (totalPages <= 1) return null;
 
   return (
     <div className="flex flex-col items-center gap-2 py-4">
       <div className="text-sm text-[var(--muted-foreground)]">
-        Page {currentPage} of {totalPages}
+        {t("pagination.page_info", { currentPage, totalPages })}
       </div>
 
       <Pagination>
@@ -72,6 +75,7 @@ function ActivityPagination({
                   onPageChange(currentPage - 1);
                 }
               }}
+              label={t("pagination.previous")}
               className={`${
                 currentPage === 1 || isLoading
                   ? "pointer-events-none opacity-50"
@@ -90,6 +94,7 @@ function ActivityPagination({
                   onPageChange(currentPage + 1);
                 }
               }}
+              label={t("pagination.next")}
               className={`${
                 currentPage === totalPages || isLoading
                   ? "pointer-events-none opacity-50"
@@ -104,6 +109,7 @@ function ActivityPagination({
 }
 
 function ActivityPageContent() {
+  const { t } = useTranslation("activities");
   const [activeFilter, setActiveFilter] = useState<EntityTypeFilter>("all");
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
@@ -124,31 +130,31 @@ function ActivityPageContent() {
   const filterOptions = [
     {
       value: "all" as EntityTypeFilter,
-      label: "All Activity",
+      label: t("filters.all"),
       icon: HiClock,
       color: "text-[var(--muted-foreground)]",
     },
     {
       value: "Task" as EntityTypeFilter,
-      label: "Tasks",
+      label: t("filters.tasks"),
       icon: HiClipboardDocumentCheck,
       color: "text-blue-600",
     },
     {
       value: "Project" as EntityTypeFilter,
-      label: "Projects",
+      label: t("filters.projects"),
       icon: HiDocumentText,
       color: "text-green-600",
     },
     {
       value: "Workspace" as EntityTypeFilter,
-      label: "Workspaces",
+      label: t("filters.workspaces"),
       icon: HiUserPlus,
       color: "text-purple-600",
     },
     {
       value: "User" as EntityTypeFilter,
-      label: "Users",
+      label: t("filters.users"),
       icon: HiUser,
       color: "text-orange-600",
     },
@@ -180,7 +186,7 @@ function ActivityPageContent() {
       setPagination(response.pagination);
     } catch (error) {
       console.error("Error loading organization activities:", error);
-      setActivityError(error?.message ? error.message : "Failed to load activities");
+      setActivityError(error?.message ? error.message : t("failed_to_load"));
     } finally {
       setIsLoadingActivity(false);
     }
@@ -204,7 +210,7 @@ function ActivityPageContent() {
         await loadActivities(pagination?.currentPage || 1, activeFilter);
       } catch (error) {
         console.error("Error refreshing activities:", error);
-        setActivityError(error?.message ? error.message : "Failed to refresh activities");
+        setActivityError(error?.message ? error.message : t("failed_to_refresh"));
       }
     }
   };
@@ -221,13 +227,13 @@ function ActivityPageContent() {
 
   return (
     <div className="min-h-screen bg-[var(--background)] p-4">
-      <SEO title="Activity Feed" />
+      <SEO title={t("title")} />
       <div className="">
         <div className="flex flex-col gap-4">
           <PageHeader
             icon={<HiCalendar className="w-5 h-5" />}
-            title="Activity Feed"
-            description="Manage and track all your activities in one place."
+            title={t("title")}
+            description={t("description")}
             actions={
               <div className="flex items-center gap-2">
                 {activeFilter !== "all" && (
@@ -240,7 +246,7 @@ function ActivityPageContent() {
                     <button
                       onClick={() => handleFilterChange("all")}
                       className="ml-1 hover:bg-[var(--primary)]/20 rounded-sm p-0.5"
-                      aria-label="Clear filter"
+                      aria-label={t("filters.clear_filter")}
                     >
                       <HiXMark className="w-3 h-3" />
                     </button>
@@ -248,13 +254,13 @@ function ActivityPageContent() {
                 )}
 
                 <DropdownMenu>
-                  <Tooltip content="Filter activities" position="top" color="primary">
+                  <Tooltip content={t("filters.filter_by_type")} position="top" color="primary">
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
                         size="sm"
                         className="relative border-none bg-[var(--accent)] hover:bg-[var(--accent)]/80"
-                        aria-label="Filter activities"
+                        aria-label={t("filters.filter_by_type")}
                       >
                         <SlidersHorizontal className="w-4 h-4" />
                         {activeFilter !== "all" && (
@@ -269,7 +275,7 @@ function ActivityPageContent() {
                   >
                     <div className="p-2 border-b border-[var(--border)]">
                       <DropdownMenuLabel className="text-sm font-medium text-[var(--foreground)]">
-                        Filter by Type
+                        {t("filters.filter_by_type")}
                       </DropdownMenuLabel>
                     </div>
                     <div className="p-1">
@@ -311,7 +317,7 @@ function ActivityPageContent() {
                           >
                             <HiXMark className="w-4 h-4 text-[var(--muted-foreground)]" />
                             <span className="text-sm text-[var(--muted-foreground)]">
-                              Clear Filter
+                              {t("filters.clear_filter")}
                             </span>
                           </DropdownMenuItem>
                         </>
@@ -325,7 +331,7 @@ function ActivityPageContent() {
 
           <div className="bg-[var(--card)] rounded-lg border border-[var(--border)] overflow-hidden">
             <ActivityFeedPanel
-              title="Recent Activity"
+              title={t("recent_activity")}
               activities={activities}
               isLoading={isLoadingActivity}
               error={activityError}
@@ -341,6 +347,7 @@ function ActivityPageContent() {
                   totalPages={pagination.totalPages}
                   onPageChange={handlePageChange}
                   isLoading={isLoadingActivity}
+                  t={t}
                 />
               </div>
             )}

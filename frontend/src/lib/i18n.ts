@@ -20,7 +20,7 @@ i18n
       order: ['querystring', 'cookie', 'localStorage', 'navigator', 'htmlTag'],
       caches: ['localStorage', 'cookie'],
     },
-    ns: ['common', 'projects', 'workspaces', 'workspace-home', 'tasks'],
+    ns: ['common', 'projects', 'workspaces', 'workspace-home', 'tasks', 'activities', 'settings'],
     defaultNS: 'common',
     load: 'languageOnly',
   });

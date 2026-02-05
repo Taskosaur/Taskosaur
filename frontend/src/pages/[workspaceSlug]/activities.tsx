@@ -39,12 +39,14 @@ import ErrorState from "@/components/common/ErrorState";
 import Tooltip from "@/components/common/ToolTip";
 import { InfoPanel } from "@/components/common/InfoPanel";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface WorkspacePaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
   isLoading?: boolean;
+  t: any;
 }
 
 function WorkspacePagination({
@@ -52,13 +54,14 @@ function WorkspacePagination({
   totalPages,
   onPageChange,
   isLoading = false,
+  t,
 }: WorkspacePaginationProps) {
   if (totalPages <= 1) return null;
 
   return (
     <div className="flex flex-col items-center gap-2 py-4 border-t border-[var(--border)]">
       <div className="text-sm text-[var(--muted-foreground)]">
-        Page {currentPage} of {totalPages}
+        {t("pagination.page_info", { currentPage, totalPages })}
       </div>
 
       <Pagination>
@@ -73,6 +76,7 @@ function WorkspacePagination({
                   onPageChange(currentPage - 1);
                 }
               }}
+              label={t("pagination.previous")}
               className={`${
                 currentPage === 1 || isLoading
                   ? "pointer-events-none opacity-50"
@@ -91,6 +95,7 @@ function WorkspacePagination({
                   onPageChange(currentPage + 1);
                 }
               }}
+              label={t("pagination.next")}
               className={`${
                 currentPage === totalPages || isLoading
                   ? "pointer-events-none opacity-50"
@@ -105,6 +110,7 @@ function WorkspacePagination({
 }
 
 function WorkspaceActivityContent() {
+  const { t } = useTranslation("activities");
   const router = useRouter();
   const { workspaceSlug } = router.query;
   const { getWorkspaceBySlug, getWorkspaceRecentActivity } = useWorkspace();
@@ -125,31 +131,31 @@ function WorkspaceActivityContent() {
   const filterOptions = [
     {
       value: "all",
-      label: "All Activity",
+      label: t("filters.all"),
       icon: HiClock,
       color: "bg-gray-500/10 text-gray-700",
     },
     {
       value: "comment",
-      label: "Comments",
+      label: t("filters.comments"),
       icon: HiChatBubbleLeft,
       color: "bg-blue-500/10 text-blue-700",
     },
     {
       value: "task",
-      label: "Tasks",
+      label: t("filters.tasks"),
       icon: HiClipboardDocumentCheck,
       color: "bg-green-500/10 text-green-700",
     },
     {
       value: "status",
-      label: "Status Changes",
+      label: t("filters.status_changes"),
       icon: HiDocumentText,
       color: "bg-orange-500/10 text-orange-700",
     },
     {
       value: "assignment",
-      label: "Assignments",
+      label: t("filters.assignments"),
       icon: HiUserPlus,
       color: "bg-purple-500/10 text-purple-700",
     },
@@ -181,7 +187,7 @@ function WorkspaceActivityContent() {
           setIsLoading(true);
           ws = await getWorkspaceBySlug(workspaceSlug as string);
           if (!ws) {
-            setError("Workspace not found");
+            setError(t("workspace_not_found"));
             setIsLoading(false);
             fetchingRef.current = false;
             return;
@@ -241,7 +247,7 @@ function WorkspaceActivityContent() {
           router.back();
           return;
         }
-        setError(e?.message ? e.message : "Failed to load workspace activity");
+        setError(e?.message ? e.message : t("failed_to_load_workspace"));
       } finally {
         setIsLoading(false);
         setIsLoadingActivity(false);
@@ -257,6 +263,7 @@ function WorkspaceActivityContent() {
       activityFilter,
       workspace,
       currentPage,
+      t,
     ]
   );
 
@@ -299,7 +306,7 @@ function WorkspaceActivityContent() {
 
   if (isLoading) {
     return (
-      <InfoPanel title={"Workspace Activity"} subtitle={""}>
+      <InfoPanel title={t("workspace_activity")} subtitle={""}>
         <div className="activity-loading-container">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="activity-loading-item">
@@ -322,7 +329,7 @@ function WorkspaceActivityContent() {
   if (!workspace) {
     return (
       <div className="min-h-screen bg-background transition-colors duration-200">
-        <EmptyState searchQuery="Workspace not found" priorityFilter="all" />
+        <EmptyState searchQuery={t("workspace_not_found")} priorityFilter="all" />
       </div>
     );
   }
@@ -331,8 +338,8 @@ function WorkspaceActivityContent() {
     <div className="dashboard-container flex flex-col gap-6">
       {/* Header (Modern Compact UI) */}
       <PageHeader
-        title="Activity Feed"
-        description={`Recent activity and updates in the "${workspace.name}" workspace`}
+        title={t("title")}
+        description={t("workspace_description", { workspaceName: workspace.name })}
         actions={
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3">
             {/* Active-filter badge */}
@@ -347,7 +354,7 @@ function WorkspaceActivityContent() {
                   <button
                     onClick={() => handleFilterChange("all")}
                     className="ml-1 hover:bg-current/20 rounded-full p-0.5 transition-colors"
-                    aria-label="Clear filter"
+                    aria-label={t("filters.clear_filter")}
                   >
                     <HiXMark className="w-3 h-3" />
                   </button>
@@ -357,13 +364,13 @@ function WorkspaceActivityContent() {
 
             {/* Filter dropdown trigger */}
             <DropdownMenu>
-              <Tooltip content="Filter activities" position="top" color="primary">
+              <Tooltip content={t("filters.filter_by_type")} position="top" color="primary">
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
                     className="w-9 h-9 p-0 border-[var(--border)] hover:bg-[var(--accent)] hover:border-[var(--primary)]/50 transition-all duration-200 relative"
-                    aria-label="Filter activities"
+                    aria-label={t("filters.filter_by_type")}
                   >
                     <SlidersHorizontal className="w-4 h-4" />
                     {activityFilter !== "all" && (
@@ -378,7 +385,7 @@ function WorkspaceActivityContent() {
                 className="w-56 border-[var(--border)] bg-[var(--background)]"
               >
                 <DropdownMenuLabel className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider px-3 py-2">
-                  Filter Activity
+                  {t("filters.filter_by_type")}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-[var(--border)]" />
 
@@ -418,7 +425,7 @@ function WorkspaceActivityContent() {
                       className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-[var(--accent)]/50 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all duration-200"
                     >
                       <HiXMark className="w-4 h-4" />
-                      <span>Clear Filter</span>
+                      <span>{t("filters.clear_filter")}</span>
                     </DropdownMenuItem>
                   </>
                 )}
@@ -431,7 +438,7 @@ function WorkspaceActivityContent() {
       {/* Activity Feed with Pagination */}
       <div className="bg-[var(--card)] rounded-lg border border-[var(--border)] overflow-hidden">
         <ActivityFeedPanel
-          title="Workspace Activity"
+          title={t("workspace_activity")}
           activities={filteredActivities}
           isLoading={isLoadingActivity}
           error={error}
@@ -439,8 +446,8 @@ function WorkspaceActivityContent() {
           onClearFilter={activityFilter !== "all" ? () => handleFilterChange("all") : undefined}
           emptyMessage={
             activityFilter === "all"
-              ? "No activity yet"
-              : `No ${currentFilter.label.toLowerCase()} found`
+              ? t("no_activity")
+              : t("no_filter_results", { filter: currentFilter.label.toLowerCase() })
           }
         />
 
@@ -450,6 +457,7 @@ function WorkspaceActivityContent() {
           totalPages={totalPages}
           onPageChange={handlePageChange}
           isLoading={isLoadingActivity}
+          t={t}
         />
       </div>
     </div>

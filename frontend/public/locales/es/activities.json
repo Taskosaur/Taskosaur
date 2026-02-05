@@ -1,0 +1,30 @@
+{
+  "title": "Registro de Actividad",
+  "description": "Administra y haz un seguimiento de todas tus actividades en un solo lugar.",
+  "workspace_description": "Actividad reciente y actualizaciones en el espacio de trabajo \"{{workspaceName}}\"",
+  "filters": {
+    "all": "Toda la actividad",
+    "tasks": "Tareas",
+    "projects": "Proyectos",
+    "workspaces": "Espacios de trabajo",
+    "users": "Usuarios",
+    "comments": "Comentarios",
+    "status_changes": "Cambios de estado",
+    "assignments": "Asignaciones",
+    "filter_by_type": "Filtrar por tipo",
+    "clear_filter": "Limpiar filtro"
+  },
+  "pagination": {
+    "page_info": "Página {{currentPage}} de {{totalPages}}",
+    "previous": "Anterior",
+    "next": "Siguiente"
+  },
+  "recent_activity": "Actividad reciente",
+  "workspace_activity": "Actividad del espacio de trabajo",
+  "failed_to_load": "Error al cargar las actividades",
+  "failed_to_refresh": "Error al actualizar las actividades",
+  "failed_to_load_workspace": "Error al cargar la actividad del espacio de trabajo",
+  "no_activity": "Aún no hay actividad",
+  "no_filter_results": "No se encontraron {{filter}}",
+  "workspace_not_found": "Espacio de trabajo no encontrado"
+}

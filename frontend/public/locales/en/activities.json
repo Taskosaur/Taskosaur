@@ -1,0 +1,30 @@
+{
+  "title": "Activity Feed",
+  "description": "Manage and track all your activities in one place.",
+  "workspace_description": "Recent activity and updates in the \"{{workspaceName}}\" workspace",
+  "filters": {
+    "all": "All Activity",
+    "tasks": "Tasks",
+    "projects": "Projects",
+    "workspaces": "Workspaces",
+    "users": "Users",
+    "comments": "Comments",
+    "status_changes": "Status Changes",
+    "assignments": "Assignments",
+    "filter_by_type": "Filter by Type",
+    "clear_filter": "Clear Filter"
+  },
+  "pagination": {
+    "page_info": "Page {{currentPage}} of {{totalPages}}",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "recent_activity": "Recent Activity",
+  "workspace_activity": "Workspace Activity",
+  "failed_to_load": "Failed to load activities",
+  "failed_to_refresh": "Failed to refresh activities",
+  "failed_to_load_workspace": "Failed to load workspace activity",
+  "no_activity": "No activity yet",
+  "no_filter_results": "No {{filter}} found",
+  "workspace_not_found": "Workspace not found"
+}
