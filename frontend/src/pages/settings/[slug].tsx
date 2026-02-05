@@ -21,6 +21,7 @@ import { ChartNoAxesGantt } from "lucide-react";
 import PendingInvitations, { PendingInvitationsRef } from "@/components/common/PendingInvitations";
 import OrganizationManageSkeleton from "@/components/skeletons/OrganizationManageSkeleton";
 import Pagination from "@/components/common/Pagination";
+import { useTranslation } from "react-i18next";
 
 // Define the access structure type
 interface UserAccess {
@@ -33,7 +34,7 @@ interface UserAccess {
   isSuperAdmin: boolean;
 }
 
-const AccessDenied = ({ onBack }: { onBack: () => void }) => (
+const AccessDenied = ({ onBack, t }: { onBack: () => void; t: any }) => (
   <div className="flex min-h-screen bg-[var(--background)]">
     <div className="flex-1 p-6">
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -43,17 +44,18 @@ const AccessDenied = ({ onBack }: { onBack: () => void }) => (
               <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-[var(--muted)] flex items-center justify-center">
                 <HiExclamationTriangle className="w-5 h-5 text-[var(--muted-foreground)]" />
               </div>
-              <h3 className="text-md font-semibold text-[var(--foreground)] mb-2">Access Denied</h3>
+              <h3 className="text-md font-semibold text-[var(--foreground)] mb-2">
+                {t("organization_details.access_denied_title")}
+              </h3>
               <p className="text-sm text-[var(--muted-foreground)] mb-4">
-                You don't have permission to manage this organization. Only users with management
-                access can view these settings.
+                {t("organization_details.access_denied_desc")}
               </p>
               <Button
                 onClick={onBack}
                 className="h-8 bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 hover:shadow-md transition-all duration-200 font-medium flex items-center gap-2 mx-auto"
               >
                 <HiArrowLeft className="w-4 h-4" />
-                Back to Organizations
+                {t("organization_details.back_to_organizations")}
               </Button>
             </div>
           </CardContent>
@@ -64,6 +66,7 @@ const AccessDenied = ({ onBack }: { onBack: () => void }) => (
 );
 
 function OrganizationManagePageContent() {
+  const { t } = useTranslation("settings");
   const router = useRouter();
   const { slug } = router.query;
 
@@ -127,7 +130,7 @@ function OrganizationManagePageContent() {
         return;
       }
       if (!Array.isArray(workflowData)) {
-        setWorkflowError("Invalid workflow data format received from server");
+        setWorkflowError(t("organization_details.workflow_management.failed_to_load"));
         setWorkflows([]);
         return;
       }
@@ -142,7 +145,8 @@ function OrganizationManagePageContent() {
       }));
       setWorkflows(validatedWorkflows);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to load workflows";
+      const errorMessage =
+        err instanceof Error ? err.message : t("organization_details.workflow_management.failed_to_load");
       setWorkflowError(errorMessage);
       setWorkflows([]);
     } finally {
@@ -157,13 +161,13 @@ function OrganizationManagePageContent() {
       setError(null);
 
       if (!slugToUse || typeof slugToUse !== "string") {
-        setError("Invalid organization slug");
+        setError(t("organization_details.failed_to_load"));
         return;
       }
 
       const orgData = await getOrganizationBySlug(slugToUse);
       if (!orgData) {
-        setError("Organization not found");
+        setError(t("organization_details.not_found"));
         return;
       }
 
@@ -313,7 +317,7 @@ function OrganizationManagePageContent() {
   if (error || !organization) {
     return (
       <ErrorState
-        error={error || "Organization not found"}
+        error={error || t("organization_details.not_found")}
         onRetry={error?.includes("Failed") ? loadData : undefined}
       />
     );
@@ -321,7 +325,7 @@ function OrganizationManagePageContent() {
 
   // Show access denied if user doesn't have permission
   if (!hasManagementAccess) {
-    return <AccessDenied onBack={handleBackToOrganizations} />;
+    return <AccessDenied onBack={handleBackToOrganizations} t={t} />;
   }
 
   return (
@@ -330,7 +334,7 @@ function OrganizationManagePageContent() {
         <PageHeader
           icon={<HiOfficeBuilding className="w-5 h-5" />}
           title={organization.name}
-          description="Manage organization settings, members, and workflows"
+          description={t("organization_details.description")}
         />
 
         <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
@@ -366,7 +370,9 @@ function OrganizationManagePageContent() {
 
               {/* Row 2: Role Badge */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[var(--muted-foreground)]">Your Role:</span>
+                <span className="text-xs text-[var(--muted-foreground)]">
+                  {t("organization_details.your_role")}
+                </span>
                 <Badge
                   className={`${getAccessBadgeColor()} text-xs px-2 py-1 rounded-md border-none`}
                 >
@@ -401,7 +407,9 @@ function OrganizationManagePageContent() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[var(--muted-foreground)]">Your Role:</span>
+                <span className="text-xs text-[var(--muted-foreground)]">
+                  {t("organization_details.your_role")}
+                </span>
                 <Badge
                   className={`${getAccessBadgeColor()} text-xs px-2 py-1 rounded-md border-none`}
                 >
@@ -434,7 +442,7 @@ function OrganizationManagePageContent() {
                 className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-transparent data-[state=active]:text-[var(--primary)] hover:text-[var(--foreground)] transition-colors bg-transparent rounded-none shadow-none cursor-pointer"
               >
                 <HiCog className="w-4 h-4" />
-                <span className="hidden sm:inline">Settings</span>
+                <span className="hidden sm:inline">{t("organization_details.tabs.settings")}</span>
               </TabsTrigger>
               <TabsTrigger
                 value="workflows"
@@ -444,7 +452,7 @@ function OrganizationManagePageContent() {
                 className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-transparent data-[state=active]:text-[var(--primary)] hover:text-[var(--foreground)] transition-colors bg-transparent rounded-none cursor-pointer"
               >
                 <HiViewGrid className="w-4 h-4" />
-                <span className="hidden sm:inline">Workflows</span>
+                <span className="hidden sm:inline">{t("organization_details.tabs.workflows")}</span>
               </TabsTrigger>
               <TabsTrigger
                 value="members"
@@ -454,7 +462,7 @@ function OrganizationManagePageContent() {
                 className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-transparent data-[state=active]:text-[var(--primary)] hover:text-[var(--foreground)] transition-colors bg-transparent rounded-none cursor-pointer"
               >
                 <HiUsers className="w-4 h-4" />
-                <span className="hidden sm:inline">Members</span>
+                <span className="hidden sm:inline">{t("organization_details.tabs.members")}</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -474,12 +482,11 @@ function OrganizationManagePageContent() {
                 <div className="flex items-center gap-2 mb-1">
                   <ChartNoAxesGantt className="w-5 h-5 text-[var(--primary)]" />
                   <CardTitle className="text-md font-semibold text-[var(--foreground)]">
-                    Workflow Management
+                    {t("organization_details.workflow_management.title")}
                   </CardTitle>
                 </div>
                 <p className="text-sm text-[var(--muted-foreground)]">
-                  Configure task statuses and workflow transitions for your organization. These
-                  workflows will be used as templates for new projects.
+                  {t("organization_details.workflow_management.description")}
                 </p>
               </CardHeader>
               <CardContent className="pt-0">
@@ -490,7 +497,7 @@ function OrganizationManagePageContent() {
                         <HiExclamationTriangle className="w-4 h-4 text-[var(--destructive)] flex-shrink-0" />
                         <div>
                           <h4 className="text-sm font-medium text-[var(--destructive)] mb-1">
-                            Failed to load workflows
+                            {t("organization_details.workflow_management.failed_to_load")}
                           </h4>
                           <p className="text-sm text-[var(--destructive)]/80">{workflowError}</p>
                         </div>
@@ -501,7 +508,7 @@ function OrganizationManagePageContent() {
                         onClick={() => loadWorkflows()}
                         className="h-8 border-none bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)] transition-all duration-200"
                       >
-                        Retry
+                        {t("common.retry")}
                       </Button>
                     </div>
                   </div>
@@ -581,26 +588,26 @@ function OrganizationManagePageContent() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
                       <HiOfficeBuilding className="w-5 h-5 text-[var(--muted-foreground)]" />
-                      Organization Info
+                      {t("organization_details.info_title")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="space-y-3">
                       <div>
                         <p className="text-sm font-medium text-[var(--foreground)]">
-                          {organization?.name || "Unknown Organization"}
+                          {organization?.name || t("organization_details.not_found")}
                         </p>
                         <p className="text-xs text-[var(--muted-foreground)]">
-                          {organization?.description || "No description available"}
+                          {organization?.description || t("organization_details.info_desc")}
                         </p>
                       </div>
                       <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
-                        <span>Members:</span>
+                        <span>{t("organization_management.members")}:</span>
                         <span className="font-medium text-[var(--foreground)]">{totalMembers}</span>
                       </div>
 
                       <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
-                        <span>Slug:</span>
+                        <span>{t("organization_details.slug")}</span>
                         <span className="font-medium text-[var(--foreground)] font-mono">
                           {organization?.slug || "N/A"}
                         </span>
@@ -615,7 +622,7 @@ function OrganizationManagePageContent() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
                       <HiCog className="w-5 h-5 text-[var(--muted-foreground)]" />
-                      Role Distribution
+                      {t("organization_details.role_distribution")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">

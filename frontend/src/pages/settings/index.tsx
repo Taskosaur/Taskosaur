@@ -19,8 +19,10 @@ import { toast } from "sonner";
 import { CardsSkeleton } from "@/components/skeletons/CardsSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 function OrganizationSettingsPageContent() {
+  const { t } = useTranslation("settings");
   const router = useRouter();
   const { getCurrentOrganizationId } = useWorkspaceContext();
   const { getUserAccess } = useAuth();
@@ -41,7 +43,7 @@ function OrganizationSettingsPageContent() {
       setError(null);
 
       if (!currentUser?.id) {
-        setError("User not authenticated");
+        setError(t("profile_page.auth_required_title"));
         return;
       }
 
@@ -50,7 +52,7 @@ function OrganizationSettingsPageContent() {
       setOrganizations(organizationsArray);
     } catch (err) {
       console.error("Error fetching organizations:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch organizations");
+      setError(err instanceof Error ? err.message : t("organization_management.failed_to_load"));
     } finally {
       setIsLoading(false);
     }
@@ -86,10 +88,10 @@ function OrganizationSettingsPageContent() {
     try {
       const updatedMember = await setDefaultOrganization(organizationId);
       await fetchOrganizations();
-      toast.success("Default organization updated successfully");
+      toast.success(t("organization_management.default_updated"));
     } catch (error) {
       console.error("Failed to set default organization:", error);
-      toast.error("Failed to set default organization. Please try again.");
+      toast.error(t("organization_management.default_update_failed"));
     }
   };
 
@@ -124,8 +126,8 @@ function OrganizationSettingsPageContent() {
         {/* Header */}
         <PageHeader
           icon={<HiCog className="w-5 h-5" />}
-          title="Organization Management"
-          description="Manage your organizations and switch between different tenants"
+          title={t("organization_management.title")}
+          description={t("organization_management.description")}
           actions={
             !showCreateForm &&
             hasAccess && (
@@ -136,7 +138,7 @@ function OrganizationSettingsPageContent() {
                   className="h-9 bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 transition-all duration-200 font-medium flex items-center gap-2 rounded-lg shadow-none border-none"
                 >
                   <HiPlus className="w-4 h-4" />
-                  Create Organization
+                  {t("organization_management.create_button")}
                 </Button>
               </div>
             )
@@ -197,8 +199,8 @@ function OrganizationSettingsPageContent() {
                       <Tooltip
                         content={
                           organization.isDefault
-                            ? "Current default organization"
-                            : "Set as default organization"
+                            ? t("organization_management.default_badge")
+                            : t("organization_management.set_default")
                         }
                         position="top"
                       >
@@ -214,8 +216,8 @@ function OrganizationSettingsPageContent() {
                           disabled={organization.isDefault}
                           aria-label={
                             organization.isDefault
-                              ? "Current default organization"
-                              : "Set as default organization"
+                              ? t("organization_management.default_badge")
+                              : t("organization_management.set_default")
                           }
                           className={cn(
                             "h-6 w-6 p-0 rounded-full transition-all duration-200 flex-shrink-0",
@@ -248,7 +250,7 @@ function OrganizationSettingsPageContent() {
                   }
                   description={
                     <p className="text-xs text-[var(--muted-foreground)] line-clamp-2 h-10 capitalize">
-                      {organization.description || "No description provided"}
+                      {organization.description || t("organization_management.no_description")}
                     </p>
                   }
                   footer={
@@ -258,13 +260,17 @@ function OrganizationSettingsPageContent() {
                         <span className="flex items-center gap-1 font-medium">
                           <ChartNoAxesGantt className="h-3.5 w-3.5 text-[var(--primary)]" />
                           <span className="text-[var(--foreground)]">
-                            {organization._count?.workspaces || 0}
+                            {t("organization_management.workspaces_count", {
+                              count: organization._count?.workspaces || 0,
+                            })}
                           </span>
                         </span>
                         <span className="flex items-center gap-1 font-medium">
                           <Users className="h-3.5 w-3.5 text-[var(--primary)]" />
                           <span className="text-[var(--foreground)]">
-                            {organization._count?.members || 0}
+                            {t("organization_management.members_count", {
+                              count: organization._count?.members || 0,
+                            })}
                           </span>
                         </span>
                       </div>
@@ -284,13 +290,10 @@ function OrganizationSettingsPageContent() {
             </div>
             <div>
               <h3 className="text-sm font-semibold text-[var(--foreground)] mb-1.5">
-                About Organizations
+                {t("organization_management.about_title")}
               </h3>
               <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">
-                Organizations are your top-level containers for workspaces, projects, and teams.
-                Click the checkbox icon to set an organization as your default. Click on any
-                organization card to manage its settings (requires owner or administrator
-                permissions).
+                {t("organization_management.about_description")}
               </p>
             </div>
           </div>

@@ -16,8 +16,10 @@ import { HiExclamationTriangle } from "react-icons/hi2";
 import { PageHeader } from "@/components/common/PageHeader";
 import ErrorState from "@/components/common/ErrorState";
 import { SEO } from "@/components/common/SEO";
+import { useTranslation } from "react-i18next";
 
 function WorkspaceSettingsContent() {
+  const { t } = useTranslation("settings");
   const router = useRouter();
   const workspaceSlug = router.query.workspaceSlug;
   const initialWorkspaceSlug =
@@ -42,7 +44,7 @@ function WorkspaceSettingsContent() {
     toast.info("Refreshing workspace data...");
     const fetchWorkspace = async () => {
       if (!initialWorkspaceSlug || !isAuthenticated()) {
-        setError("Authentication required");
+        setError(t("workspace_settings.auth_required"));
         setLoading(false);
         return;
       }
@@ -52,7 +54,7 @@ function WorkspaceSettingsContent() {
         const workspaceData = await getWorkspaceBySlug(initialWorkspaceSlug);
 
         if (!workspaceData) {
-          setError("Workspace not found");
+          setError(t("workspace_settings.not_found"));
           setLoading(false);
           return;
         }
@@ -64,7 +66,7 @@ function WorkspaceSettingsContent() {
           slug: workspaceData.slug || "",
         });
       } catch (err) {
-        setError(err?.message ? err.message : "Failed to load workspace");
+        setError(err?.message ? err.message : t("workspace_settings.failed_to_load"));
       } finally {
         setLoading(false);
       }
@@ -89,19 +91,19 @@ function WorkspaceSettingsContent() {
     {
       name: "archive",
       type: "archive" as const,
-      label: "Archive Workspace",
-      description: "Archive this workspace and make it read-only",
+      label: t("workspace_settings.danger_zone.archive_label"),
+      description: t("workspace_settings.danger_zone.archive_desc"),
       handler: async () => {
         try {
           const result = await archiveWorkspace(workspace.id);
           if (result.success) {
             await router.replace("/workspaces");
           } else {
-            toast.error("Failed to archive workspace");
+            toast.error(t("workspace_settings.danger_zone.archive_failed"));
           }
         } catch (error) {
           console.error("Archive error:", error);
-          toast.error("Failed to archive workspace");
+          toast.error(t("workspace_settings.danger_zone.archive_failed"));
           throw error;
         }
       },
@@ -110,15 +112,15 @@ function WorkspaceSettingsContent() {
     {
       name: "delete",
       type: "delete" as const,
-      label: "Delete Workspace",
-      description: "Permanently delete this workspace and all its data",
+      label: t("workspace_settings.danger_zone.delete_label"),
+      description: t("workspace_settings.danger_zone.delete_desc"),
       handler: async () => {
         try {
           await deleteWorkspace(workspace.id);
           await router.replace("/workspaces");
         } catch (error) {
           console.error("Delete error:", error);
-          toast.error("Failed to delete workspace");
+          toast.error(t("workspace_settings.danger_zone.delete_failed"));
           throw error;
         }
       },
@@ -130,7 +132,7 @@ function WorkspaceSettingsContent() {
     let isActive = true;
     const fetchWorkspace = async () => {
       if (!initialWorkspaceSlug || !isAuthenticated()) {
-        setError("Authentication required");
+        setError(t("workspace_settings.auth_required"));
         setLoading(false);
         router.push("/login");
         return;
@@ -143,14 +145,14 @@ function WorkspaceSettingsContent() {
         if (!isActive) return;
 
         if (!workspaceData) {
-          setError("Workspace not found");
+          setError(t("workspace_settings.not_found"));
           setLoading(false);
           router.replace("/workspaces");
           return;
         }
 
         if (!workspaceData.id) {
-          setError("You don't have access to this workspace");
+          setError(t("workspace_settings.access_denied"));
           setLoading(false);
           router.replace("/workspaces");
           return;
@@ -165,10 +167,10 @@ function WorkspaceSettingsContent() {
       } catch (err) {
         if (!isActive) return;
 
-        const errorMessage = err instanceof Error ? err.message : "Failed to load workspace";
+        const errorMessage = err instanceof Error ? err.message : t("workspace_settings.failed_to_load");
         setError(errorMessage);
 
-        if (errorMessage.includes("not found") || errorMessage.includes("404")) {
+        if (errorMessage.toLowerCase().includes("not found") || errorMessage.includes("404")) {
           router.replace("/workspaces");
         }
       } finally {
@@ -189,7 +191,7 @@ function WorkspaceSettingsContent() {
 
     // Validate slug format
     if (formData.slug && !/^[a-z0-9-]+$/.test(formData.slug)) {
-      toast.error("Workspace slug can only contain lowercase letters, numbers, and hyphens");
+      toast.error(t("workspace_settings.slug_error"));
       return;
     }
 
@@ -209,12 +211,11 @@ function WorkspaceSettingsContent() {
       if (updatedWorkspace.slug !== initialWorkspaceSlug) {
         await router.replace(`/${updatedWorkspace.slug}/settings`);
       }
-      toast.success("Workspace settings updated successfully!");
+      toast.success(t("workspace_settings.updated"));
     } catch (err) {
       // Handle Conflict and Error instances
-      const errorMessage = 
-        (err as any)?.message || 
-        (err instanceof Error ? err.message : "Failed to update workspace");
+      const errorMessage =
+        (err as any)?.message || (err instanceof Error ? err.message : t("workspace_settings.failed_to_update"));
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -272,11 +273,17 @@ function WorkspaceSettingsContent() {
 
   return (
     <>
-      <SEO title={workspace ? `${workspace.name} Settings` : "Workspace Settings"} />
+      <SEO
+        title={
+          workspace
+            ? `${workspace.name} ${t("workspace_settings.title")}`
+            : t("workspace_settings.title")
+        }
+      />
       <div className="dashboard-container pt-0 space-y-6">
         <PageHeader
-          title="Workspace Settings"
-          description="Manage your workspace configuration and preferences"
+          title={t("workspace_settings.title")}
+          description={t("workspace_settings.description")}
         />
 
         {success && (
@@ -296,41 +303,41 @@ function WorkspaceSettingsContent() {
 
         <Card className="border-none bg-[var(--card)]">
           <CardHeader>
-            <CardTitle>General Information</CardTitle>
+            <CardTitle>{t("workspace_settings.general_info")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Workspace Name</Label>
+              <Label htmlFor="name">{t("workspace_settings.name")}</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                placeholder="Enter workspace name"
+                placeholder={t("workspace_settings.name_placeholder")}
                 disabled={saving || !hasAccess}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="slug">Workspace Slug</Label>
+              <Label htmlFor="slug">{t("workspace_settings.slug")}</Label>
               <Input
                 id="slug"
                 value={formData.slug}
                 onChange={(e) => handleInputChange("slug", e.target.value)}
-                placeholder="workspace-slug"
+                placeholder={t("workspace_settings.slug_placeholder")}
                 disabled={saving || !hasAccess}
               />
               <p className="text-xs text-[var(--muted-foreground)]">
-                Used in URLs. Must be unique within this organization. Only lowercase letters, numbers, and hyphens are allowed.
+                {t("workspace_settings.slug_desc")}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{t("workspace_settings.description_label")}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}
-                placeholder="Describe your workspace..."
+                placeholder={t("workspace_settings.description_placeholder")}
                 rows={3}
                 disabled={saving || !hasAccess}
               />
@@ -342,7 +349,7 @@ function WorkspaceSettingsContent() {
                 disabled={saving || !formData.name.trim() || !hasAccess}
                 className="h-9 px-4 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] shadow-sm hover:shadow-md transition-all duration-200 font-medium cursor-pointer rounded-lg flex items-center gap-2"
               >
-                {saving ? "Saving..." : "Save Changes"}
+                {saving ? t("workspace_settings.saving") : t("workspace_settings.save_changes")}
               </Button>
             </div>
           </CardContent>
@@ -352,9 +359,11 @@ function WorkspaceSettingsContent() {
           <div className="flex items-start gap-3">
             <HiExclamationTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-1" />
             <div className="flex-1">
-              <h4 className="font-medium text-red-800 dark:text-red-400">Danger Zone</h4>
+              <h4 className="font-medium text-red-800 dark:text-red-400">
+                {t("workspace_settings.danger_zone.title")}
+              </h4>
               <p className="text-sm text-red-700 dark:text-red-500 mb-4">
-                These actions cannot be undone. Please proceed with caution.
+                {t("workspace_settings.danger_zone.description")}
               </p>
               <DangerZoneModal
                 entity={{
@@ -372,7 +381,7 @@ function WorkspaceSettingsContent() {
                   className="bg-red-600 hover:bg-red-700 text-white"
                 >
                   <HiExclamationTriangle className="w-4 h-4 mr-2" />
-                  Delete Workspace
+                  {t("workspace_settings.danger_zone.delete_label")}
                 </Button>
               </DangerZoneModal>
             </div>
