@@ -30,6 +30,8 @@ import { exportTasksToCSV } from "@/utils/exportUtils";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 import { KanbanColumnSkeleton } from "@/components/skeletons/KanbanColumnSkeleton";
 import { TaskTypeIcon } from "@/utils/data/taskData";
+import { useLayout } from "@/contexts/layout-context";
+import NotFound from "@/pages/404";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -1148,7 +1150,43 @@ function ProjectTasksContent() {
 
   const showPagination =
     currentView !== "kanban" && displayTasks.length > 0 && pagination.totalPages > 1;
-  if (error) return <ErrorState error={error} onRetry={handleRetry} />;
+
+  const { setShow404, show404 } = useLayout();
+
+  useEffect(() => {
+    if (error && !show404) {
+      const is404Error =
+        error.toLowerCase().includes("not found") ||
+        error.toLowerCase().includes("404") ||
+        error.toLowerCase().includes("project not found") ||
+        error.toLowerCase().includes("workspace not found") ||
+        error.toLowerCase().includes("not a member of this scope") ||
+        error.toLowerCase().includes("forbidden") ||
+        error.toLowerCase().includes("403") ||
+        error.toLowerCase().includes("unauthorized");
+
+      if (is404Error) {
+        setShow404(true);
+      }
+    }
+  }, [error, setShow404, show404]);
+
+  if (error) {
+    const is404Error =
+      error.toLowerCase().includes("not found") ||
+      error.toLowerCase().includes("404") ||
+      error.toLowerCase().includes("project not found") ||
+      error.toLowerCase().includes("workspace not found") ||
+      error.toLowerCase().includes("not a member of this scope") ||
+      error.toLowerCase().includes("forbidden") ||
+      error.toLowerCase().includes("403") ||
+      error.toLowerCase().includes("unauthorized");
+
+    if (is404Error) {
+      return <NotFound />;
+    }
+    return <ErrorState error={error} onRetry={handleRetry} />;
+  }
 
   return (
     <div className="dashboard-container flex flex-col">

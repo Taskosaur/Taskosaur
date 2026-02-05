@@ -25,6 +25,8 @@ import Pagination from "@/components/common/Pagination";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 import { KanbanColumnSkeleton } from "@/components/skeletons/KanbanColumnSkeleton";
 import ErrorState from "@/components/common/ErrorState";
+import { useLayout } from "@/contexts/layout-context";
+import NotFound from "@/pages/404";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -185,6 +187,7 @@ const SprintTasksTable = () => {
         }
       } catch (error) {
         console.error("Error fetching project data:", error);
+        setLocalError(error?.message || "Error fetching project data");
         setProject(null);
       }
     };
@@ -211,6 +214,26 @@ const SprintTasksTable = () => {
       setHasAccess(false);
     }
   }, [project?.id]);
+
+  const { setShow404, show404 } = useLayout();
+
+  useEffect(() => {
+    if (error && !show404) {
+      const is404Error =
+        error.toLowerCase().includes("not found") ||
+        error.toLowerCase().includes("404") ||
+        error.toLowerCase().includes("project not found") ||
+        error.toLowerCase().includes("workspace not found") ||
+        error.toLowerCase().includes("not a member of this scope") ||
+        error.toLowerCase().includes("forbidden") ||
+        error.toLowerCase().includes("403") ||
+        error.toLowerCase().includes("unauthorized");
+
+      if (is404Error) {
+        setShow404(true);
+      }
+    }
+  }, [error, setShow404, show404]);
 
   const loadTasks = useCallback(async () => {
     if (!sprintId) return;
@@ -733,6 +756,19 @@ const SprintTasksTable = () => {
     }
 
     if (error) {
+      const is404Error =
+        error.toLowerCase().includes("not found") ||
+        error.toLowerCase().includes("404") ||
+        error.toLowerCase().includes("project not found") ||
+        error.toLowerCase().includes("workspace not found") ||
+        error.toLowerCase().includes("not a member of this scope") ||
+        error.toLowerCase().includes("forbidden") ||
+        error.toLowerCase().includes("403") ||
+        error.toLowerCase().includes("unauthorized");
+
+      if (is404Error) {
+        return <NotFound />;
+      }
       return <ErrorState error={error} />;
     }
 

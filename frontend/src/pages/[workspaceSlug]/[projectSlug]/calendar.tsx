@@ -11,6 +11,8 @@ import ActionButton from "@/components/common/ActionButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { HiCalendarDays } from "react-icons/hi2";
 import ErrorState from "@/components/common/ErrorState";
+import { useLayout } from "@/contexts/layout-context";
+import NotFound from "@/pages/404";
 
 const LoadingSkeleton = () => (
   <div className="flex min-h-screen bg-[var(--background)]">
@@ -175,12 +177,45 @@ function ProjectTasksCalendarPageContent() {
     isFirstRenderRef.current = false;
   }, [workspaceSlug, projectSlug]);
 
-  if (loading || !dataLoaded) {
-    return <LoadingSkeleton />;
-  }
+  const { setShow404, show404 } = useLayout();
+
+  useEffect(() => {
+    if (error && !show404) {
+      const is404Error =
+        error.toLowerCase().includes("not found") ||
+        error.toLowerCase().includes("404") ||
+        error.toLowerCase().includes("project not found") ||
+        error.toLowerCase().includes("workspace not found") ||
+        error.toLowerCase().includes("not a member of this scope") ||
+        error.toLowerCase().includes("forbidden") ||
+        error.toLowerCase().includes("403") ||
+        error.toLowerCase().includes("unauthorized");
+
+      if (is404Error) {
+        setShow404(true);
+      }
+    }
+  }, [error, setShow404, show404]);
 
   if (error) {
+    const is404Error =
+      error.toLowerCase().includes("not found") ||
+      error.toLowerCase().includes("404") ||
+      error.toLowerCase().includes("project not found") ||
+      error.toLowerCase().includes("workspace not found") ||
+      error.toLowerCase().includes("not a member of this scope") ||
+      error.toLowerCase().includes("forbidden") ||
+      error.toLowerCase().includes("403") ||
+      error.toLowerCase().includes("unauthorized");
+
+    if (is404Error) {
+      return <NotFound />;
+    }
     return <ErrorState error={error} onRetry={loadData} />;
+  }
+
+  if (loading || !dataLoaded) {
+    return <LoadingSkeleton />;
   }
 
   if (!workspaceData || !projectData) {

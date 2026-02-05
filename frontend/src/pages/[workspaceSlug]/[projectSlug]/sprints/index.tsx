@@ -13,6 +13,8 @@ import { useWorkspaceContext } from "@/contexts/workspace-context";
 import { useProjectContext } from "@/contexts/project-context";
 import { CardsSkeleton } from "@/components/skeletons/CardsSkeleton";
 import ErrorState from "@/components/common/ErrorState";
+import { useLayout } from "@/contexts/layout-context";
+import NotFound from "@/pages/404";
 
 function SprintsPageContent() {
   const router = useRouter();
@@ -41,11 +43,14 @@ function SprintsPageContent() {
   const [hasAccess, setHasAccess] = useState(false);
   const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (projectSlug && workspaceSlug) {
       const isAuth = isAuthenticated();
-      listSprints({ slug: projectSlug as string }, isAuth, workspaceSlug as string);
+      listSprints({ slug: projectSlug as string }, isAuth, workspaceSlug as string).catch((err) => {
+        console.error("Error listing sprints:", err);
+      });
     }
   }, [projectSlug, workspaceSlug]);
 
@@ -59,6 +64,7 @@ function SprintsPageContent() {
 
   const loadData = async () => {
     try {
+      setLocalError(null);
       const isAuth = authContext.isAuthenticated();
 
       if (typeof workspaceSlug !== "string" || typeof projectSlug !== "string") {
@@ -68,6 +74,7 @@ function SprintsPageContent() {
       if (isAuth) {
         const workspace = await workspaceContext.getWorkspaceBySlug(workspaceSlug);
         if (!workspace) {
+          setLocalError("Workspace not found");
           return;
         }
 
@@ -75,6 +82,7 @@ function SprintsPageContent() {
         const project = findProjectBySlug(projects || [], projectSlug);
 
         if (!project) {
+          setLocalError("Project not found");
           return;
         }
         setProjectData(project);
@@ -84,10 +92,12 @@ function SprintsPageContent() {
           setProjectData(project);
         } catch (error) {
           console.error("Error loading public project data:", error);
+          setLocalError(error?.message || "Error loading project data");
         }
       }
     } catch (err) {
       console.error("Error loading page data:", err);
+      setLocalError(err?.message || "Error loading page data");
     }
   };
 
@@ -173,12 +183,47 @@ function SprintsPageContent() {
     }
   };
 
+  const { setShow404, show404 } = useLayout();
+  const activeError = error || localError;
+
+  useEffect(() => {
+    if (activeError && !show404) {
+      const is404Error =
+        activeError.toLowerCase().includes("not found") ||
+        activeError.toLowerCase().includes("404") ||
+        activeError.toLowerCase().includes("project not found") ||
+        activeError.toLowerCase().includes("workspace not found") ||
+        activeError.toLowerCase().includes("not a member of this scope") ||
+        activeError.toLowerCase().includes("forbidden") ||
+        activeError.toLowerCase().includes("403") ||
+        activeError.toLowerCase().includes("unauthorized");
+
+      if (is404Error) {
+        setShow404(true);
+      }
+    }
+  }, [activeError, setShow404, show404]);
+
   if (isLoading) {
     return <CardsSkeleton count={3} />;
   }
 
-  if (error) {
-    return <ErrorState error={error} />;
+  if (activeError) {
+    const is404Error =
+      activeError.toLowerCase().includes("not found") ||
+      activeError.toLowerCase().includes("404") ||
+      activeError.toLowerCase().includes("project not found") ||
+      activeError.toLowerCase().includes("workspace not found") ||
+      activeError.toLowerCase().includes("not a member of this scope") ||
+      activeError.toLowerCase().includes("forbidden") ||
+      activeError.toLowerCase().includes("403") ||
+      activeError.toLowerCase().includes("unauthorized");
+
+    if (is404Error) {
+      return <NotFound />;
+    }
+
+    return <ErrorState error={activeError} onRetry={loadData} />;
   }
 
   return (
