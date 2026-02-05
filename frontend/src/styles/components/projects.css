@@ -2,7 +2,7 @@
 
 /* ===== New Project Modal ===== */
 .projects-modal-container {
-  @apply sm:max-w-lg;
+  @apply sm:max-w-lg max-h-[100vh] overflow-y-auto;
 }
 
 .projects-modal-header {

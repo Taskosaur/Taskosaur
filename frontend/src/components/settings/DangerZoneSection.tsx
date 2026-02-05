@@ -6,8 +6,10 @@ import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
 import ConfirmationModal from "../modals/ConfirmationModal";
+import { useTranslation } from "react-i18next";
 
 export default function DangerZoneSection() {
+  const { t } = useTranslation("settings");
   const { getCurrentUser, deleteUser } = useAuth();
   const currentUser = getCurrentUser();
   const router = useRouter();
@@ -21,16 +23,16 @@ export default function DangerZoneSection() {
     setLoading(true);
     try {
       await deleteUser(currentUser.id);
-      toast.success("Account deleted successfully!");
+      toast.success(t("danger_zone_section.delete_success"));
       router.push("/login");
     } catch {
-      toast.error("Failed to delete account. Please try again.");
+      toast.error(t("danger_zone_section.delete_failed"));
     } finally {
       setLoading(false);
       setShowDeleteConfirm(false);
       fetchingRef.current = false;
     }
-  }, [currentUser, deleteUser, router]);
+  }, [currentUser, deleteUser, router, t]);
 
   return (
     <>
@@ -38,17 +40,17 @@ export default function DangerZoneSection() {
         <div className="p-4">
           <div className="mb-3">
             <CardTitle className="flex items-center gap-2 text-base font-semibold text-red-700">
-              <HiExclamationTriangle className="w-4 h-4" /> Delete Account
+              <HiExclamationTriangle className="w-4 h-4" /> {t("danger_zone_section.title")}
             </CardTitle>
             <CardDescription className="text-xs text-red-500">
-              Permanently delete the account and all associated data.
+              {t("danger_zone_section.description")}
             </CardDescription>
           </div>
           <CardContent className="p-0">
             <ul className="list-disc pl-4 text-xs text-red-600 space-y-0.5">
-              <li>All tasks and projects will be permanently deleted</li>
-              <li>Profile and settings will be removed</li>
-              <li>Immediate sign out</li>
+              <li>{t("danger_zone_section.item_tasks")}</li>
+              <li>{t("danger_zone_section.item_profile")}</li>
+              <li>{t("danger_zone_section.item_signout")}</li>
             </ul>
           </CardContent>
           <CardFooter className="mt-4 p-0">
@@ -58,7 +60,9 @@ export default function DangerZoneSection() {
               disabled={loading}
               className="rounded bg-red-500 hover:bg-red-600 text-white text-sm shadow-sm transition-all duration-200 border-none px-3 py-1.5"
             >
-              {loading ? "Processing..." : "Delete Account"}
+              {loading
+                ? t("danger_zone_section.processing")
+                : t("danger_zone_section.delete_button")}
             </Button>
           </CardFooter>
         </div>
@@ -69,10 +73,10 @@ export default function DangerZoneSection() {
           isOpen={showDeleteConfirm}
           onClose={() => setShowDeleteConfirm(false)}
           onConfirm={handleDeleteAccount}
-          title="Confirm Deletion"
-          message="This action is permanent and cannot be undone. All data will be lost."
-          confirmText="Delete Forever"
-          cancelText="Cancel"
+          title={t("danger_zone_section.confirm_title")}
+          message={t("danger_zone_section.confirm_message")}
+          confirmText={t("danger_zone_section.confirm_delete")}
+          cancelText={t("common.cancel")}
           type="danger"
         />
       )}

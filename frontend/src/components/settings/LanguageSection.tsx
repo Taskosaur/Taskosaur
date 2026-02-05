@@ -11,7 +11,7 @@ import {
 import { Label } from "@/components/ui/label";
 
 export default function LanguageSection() {
-  const { i18n } = useTranslation("common");
+  const { t, i18n } = useTranslation("settings");
 
   const changeLanguage = (value: string) => {
     i18n.changeLanguage(value);
@@ -29,22 +29,21 @@ export default function LanguageSection() {
           <HiGlobeAlt className="w-5 h-5 text-[var(--primary)]" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">Language & Region</h2>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">
+            {t("language_section.title")}
+          </h2>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Select your preferred language for the application interface.
+            {t("language_section.description")}
           </p>
         </div>
       </div>
 
       <div className="max-w-md space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="language-select">Display Language</Label>
-          <Select
-            value={i18n.language}
-            onValueChange={changeLanguage}
-          >
+          <Label htmlFor="language-select">{t("language_section.display_language")}</Label>
+          <Select value={i18n.language} onValueChange={changeLanguage}>
             <SelectTrigger id="language-select" className="w-full">
-              <SelectValue placeholder="Select a language" />
+              <SelectValue placeholder={t("language_section.select_placeholder")} />
             </SelectTrigger>
             <SelectContent>
               {languages.map((lang) => (

@@ -10,8 +10,10 @@ import { useState } from "react";
 import ActionButton from "@/components/common/ActionButton";
 import { PageHeader } from "@/components/common/PageHeader";
 import { SEO } from "@/components/common/SEO";
+import { useTranslation } from "react-i18next";
 
 export default function ProfilePage() {
+  const { t } = useTranslation("settings");
   const { getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -25,10 +27,10 @@ export default function ProfilePage() {
               <HiCog6Tooth className="w-5 h-5 text-[var(--primary)]" />
             </div>
             <h3 className="text-lg font-semibold text-[var(--foreground)] mb-2">
-              Authentication Required
+              {t("profile_page.auth_required_title")}
             </h3>
             <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
-              Please log in to access your account settings.
+              {t("profile_page.auth_required_desc")}
             </p>
           </div>
         </div>
@@ -38,21 +40,21 @@ export default function ProfilePage() {
 
   return (
     <>
-      <SEO title="Profile" />
+      <SEO title={t("profile_page.title")} />
       <div className="dashboard-container">
       <div>
         {/* Header */}
         <PageHeader
           icon={<HiCog6Tooth className="w-5 h-5 text-[var(--primary)]" />}
-          title="Profile Settings"
-          description="Manage your profile settings, preferences, and security options to customize your experience."
+          title={t("profile_page.title")}
+          description={t("profile_page.description")}
           actions={
             <ActionButton
               secondary
               leftIcon={<HiSparkles />}
               onClick={() => setIsAIModalOpen(true)}
             >
-              AI Settings
+              {t("profile_page.ai_settings")}
             </ActionButton>
           }
         />

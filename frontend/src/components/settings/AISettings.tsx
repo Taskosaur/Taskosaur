@@ -8,6 +8,7 @@ import { Label } from "../ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ActionButton from "../common/ActionButton";
 import { HiCog, HiEye } from "react-icons/hi";
+import { useTranslation } from "react-i18next";
 
 interface AISettingsModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface AISettingsModalProps {
 }
 
 export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
+  const { t } = useTranslation("settings");
   const [isEnabled, setIsEnabled] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("");
@@ -83,7 +85,7 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
       });
     } catch (error) {
       console.error("Failed to load settings:", error);
-      setMessage({ type: "error", text: "Failed to load AI settings" });
+      setMessage({ type: "error", text: t("ai_section.load_failed") });
     } finally {
       setIsLoading(false);
     }
@@ -133,12 +135,12 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
         })
       );
 
-      setMessage({ type: "success", text: "AI settings saved successfully!" });
-      toast.success("AI settings saved successfully!");
+      setMessage({ type: "success", text: t("ai_section.save_success") });
+      toast.success(t("ai_section.save_success"));
     } catch (error) {
       console.error("Failed to save settings:", error);
-      setMessage({ type: "error", text: "Failed to save AI settings" });
-      toast.error("Failed to save AI settings");
+      setMessage({ type: "error", text: t("ai_section.save_failed") });
+      toast.error(t("ai_section.save_failed"));
     } finally {
       setIsSaving(false);
     }
@@ -164,17 +166,17 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
     // API key is optional for localhost/private network (Ollama)
     const isLocalNetwork = isLocalOrPrivateUrl(apiUrl);
     if (!apiKey && !isLocalNetwork) {
-      setMessage({ type: "error", text: "Please enter an API key first" });
+      setMessage({ type: "error", text: t("ai_section.enter_api_key") });
       return;
     }
 
     if (!model) {
-      setMessage({ type: "error", text: "Please enter a model name first" });
+      setMessage({ type: "error", text: t("ai_section.enter_model") });
       return;
     }
 
     if (!apiUrl) {
-      setMessage({ type: "error", text: "Please enter an API URL first" });
+      setMessage({ type: "error", text: t("ai_section.enter_url") });
       return;
     }
 
@@ -190,10 +192,13 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
       });
 
       if (response.data.success) {
-        setMessage({ type: "success", text: response.data.message || "Connection test successful!" });
-        toast.success(response.data.message || "Connection test successful!");
+        setMessage({
+          type: "success",
+          text: response.data.message || t("ai_section.test_success"),
+        });
+        toast.success(response.data.message || t("ai_section.test_success"));
       } else {
-        const errorMsg = response.data.error || "Connection test failed";
+        const errorMsg = response.data.error || t("ai_section.test_failed");
         setMessage({
           type: "error",
           text: errorMsg,
@@ -202,7 +207,8 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
       }
     } catch (error: any) {
       console.error("Connection test failed:", error);
-      const errorMessage = error.response?.data?.error || error.message || "Connection test failed";
+      const errorMessage =
+        error.response?.data?.error || error.message || t("ai_section.test_failed");
       setMessage({ type: "error", text: errorMessage });
       toast.error(errorMessage);
     } finally {
@@ -231,10 +237,10 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
               <HiSparkles className="projects-modal-icon-content" />
             </div>
             <div className="projects-modal-info">
-              <DialogTitle className="projects-modal-title">AI Assistant Settings</DialogTitle>
-              <p className="projects-modal-description">
-                Configure your AI chat functionality and API settings
-              </p>
+              <DialogTitle className="projects-modal-title">
+                {t("ai_section.title")}
+              </DialogTitle>
+              <p className="projects-modal-description">{t("ai_section.description")}</p>
             </div>
           </div>
         </DialogHeader>
@@ -252,12 +258,14 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
                 className="projects-form-label-icon size-3"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              API Key{" "}
+              {t("ai_section.api_key")}{" "}
               {!isLocalOrPrivateUrl(apiUrl) && (
                 <span className="projects-form-label-required">*</span>
               )}
               {isLocalOrPrivateUrl(apiUrl) && (
-                <span className="text-xs text-muted-foreground">(optional for Ollama)</span>
+                <span className="text-xs text-muted-foreground">
+                  {t("ai_section.optional_ollama")}
+                </span>
               )}
             </Label>
 
@@ -267,7 +275,7 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
                 type={showApiKey ? "text" : "password"}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter your API key"
+                placeholder={t("ai_section.api_key_placeholder")}
                 disabled={isLoading || isSaving}
                 className="projects-form-input border-none pr-8"
                 style={{ borderColor: "var(--border)" }}
@@ -303,14 +311,15 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
                 className="projects-form-label-icon"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              Model <span className="projects-form-label-required">*</span>
+              {t("ai_section.model")}{" "}
+              <span className="projects-form-label-required">*</span>
             </Label>
             <Input
               id="model"
               type="text"
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              placeholder="e.g., deepseek/deepseek-chat-v3-0324:free"
+              placeholder={t("ai_section.model_placeholder")}
               disabled={isLoading || isSaving}
               className="projects-form-input border-none"
               style={{ borderColor: "var(--border)" }}
@@ -341,14 +350,15 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
                   }}
                 />
               </span>
-              API URL <span className="projects-form-label-required">*</span>
+              {t("ai_section.api_url")}{" "}
+              <span className="projects-form-label-required">*</span>
             </Label>
             <Input
               id="api-url"
               type="url"
               value={apiUrl}
               onChange={(e) => setApiUrl(e.target.value)}
-              placeholder="https://api.provider.com/v1"
+              placeholder={t("ai_section.api_url_placeholder")}
               disabled={isLoading || isSaving}
               className="projects-form-input border-none"
               style={{ borderColor: "var(--border)" }}
@@ -373,10 +383,10 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
                     className="projects-form-label-icon"
                     style={{ color: "hsl(var(--primary))" }}
                   />
-                  Enable AI Chat
+                  {t("ai_section.enable_chat")}
                 </Label>
                 <p className="projects-url-preview-label text-[13px] mt-1 ml-6">
-                  Fill all the fields to enable chat.
+                  {t("ai_section.enable_chat_desc")}
                 </p>
               </div>
 
@@ -410,7 +420,9 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
           {/* Setup Guide & Providers - Always visible */}
 
           <div className="mt-4 p-3 bg-[var(--border)] rounded-lg">
-            <h3 className="projects-url-preview-label mb-2 text-[14px]">Popular AI Providers:</h3>
+            <h3 className="projects-url-preview-label mb-2 text-[14px]">
+              {t("ai_section.popular_providers")}
+            </h3>
             <ul
               className="text-xs space-y-1 text-[var(--accent-foreground)]"
               style={{ fontSize: "13px" }}
@@ -435,9 +447,7 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
               </li>
             </ul>
             <p className="text-xs" style={{ fontSize: "13px" }}>
-              • API keys are encrypted and stored securely • Test connection after changes • The URL
-              determines which provider is used • HTTP is allowed for localhost/private network
-              addresses
+              {t("ai_section.footer_info")}
             </p>
           </div>
 
@@ -449,7 +459,7 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
               onClick={handleClose}
               disabled={isLoading || isSaving}
             >
-              Cancel
+              {t("common.cancel")}
             </ActionButton>
 
             <ActionButton
@@ -465,7 +475,7 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
               variant="outline"
               secondary
             >
-              {isLoading ? "Testing..." : "Test Connection"}
+              {isLoading ? t("ai_section.testing") : t("ai_section.test_connection")}
             </ActionButton>
 
             <ActionButton
@@ -477,10 +487,10 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
               {isSaving ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  Saving...
+                  {t("ai_section.saving")}
                 </div>
               ) : (
-                "Save Settings"
+                t("ai_section.save_settings")
               )}
             </ActionButton>
           </div>

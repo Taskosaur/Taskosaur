@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 function isValidPassword(password: string) {
   return true;
@@ -14,14 +15,15 @@ function isValidPassword(password: string) {
   // );
 }
 
-const extractErrorMessage = (response: any) => {
+const extractErrorMessage = (response: any, t: any) => {
   if (response?.message?.message) return response.message.message;
   if (typeof response?.message === "string") return response.message;
   if (Array.isArray(response?.message)) return response.message.join(", ");
-  return "Failed to change password. Please try again.";
+  return t("password_section.failed");
 };
 
 export default function ResetPasswordSection() {
+  const { t } = useTranslation("settings");
   const { changePassword } = useAuth();
   const [form, setForm] = useState({
     currentPassword: "",
@@ -46,8 +48,7 @@ export default function ResetPasswordSection() {
     if (!isValidPassword(form.newPassword)) {
       setErrors((prev) => ({
         ...prev,
-        newPassword:
-          "Password must be at least 8 characters and contain uppercase, lowercase, and a number.",
+        newPassword: t("password_section.requirement"),
       }));
       setLoading(false);
       return;
@@ -56,7 +57,7 @@ export default function ResetPasswordSection() {
     if (form.newPassword !== form.confirmPassword) {
       setErrors((prev) => ({
         ...prev,
-        confirmPassword: "Passwords do not match.",
+        confirmPassword: t("password_section.not_match"),
       }));
       setLoading(false);
       return;
@@ -70,10 +71,10 @@ export default function ResetPasswordSection() {
       });
 
       if (response.success) {
-        toast.success("Password changed successfully!");
+        toast.success(t("password_section.success"));
         setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       } else {
-        const errorMsg = extractErrorMessage(response);
+        const errorMsg = extractErrorMessage(response, t);
         if (errorMsg.toLowerCase().includes("current password")) {
           setErrors((prev) => ({ ...prev, currentPassword: errorMsg }));
         } else if (errorMsg.toLowerCase().includes("new password")) {
@@ -83,7 +84,7 @@ export default function ResetPasswordSection() {
         }
       }
     } catch {
-      toast.error("Failed to change password. Please try again.");
+      toast.error(t("password_section.failed"));
     } finally {
       setLoading(false);
     }
@@ -93,10 +94,10 @@ export default function ResetPasswordSection() {
     <Card className="border-none bg-[var(--card)] gap-2">
       <CardHeader>
         <CardTitle className="text-sm font-medium text-[var(--foreground)]">
-          Reset Password
+          {t("password_section.title")}
         </CardTitle>
         <CardDescription className="text-[13px] text-[var(--muted-foreground)] tracking-wide">
-          Change your account password to keep your account secure.
+          {t("password_section.description")}
         </CardDescription>
       </CardHeader>
 
@@ -106,14 +107,14 @@ export default function ResetPasswordSection() {
             {/* Current Password */}
             <div className="space-y-1">
               <Label className="text-sm font-medium text-[var(--foreground)]">
-                Current Password <span className="text-red-500">*</span>
+                {t("password_section.current")} <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <Input
                   type={showCurrentPassword ? "text" : "password"}
                   value={form.currentPassword}
                   onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
-                  placeholder="Enter current password"
+                  placeholder={t("password_section.current_placeholder")}
                   className={`h-8 text-xs bg-[var(--background)] border-[var(--border)] ${
                     errors.currentPassword ? "ring-2 ring-red-500" : ""
                   }`}
@@ -135,14 +136,14 @@ export default function ResetPasswordSection() {
             {/* New Password */}
             <div className="space-y-1">
               <Label className="text-sm font-medium text-[var(--foreground)]">
-                New Password <span className="text-red-500">*</span>
+                {t("password_section.new")} <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <Input
                   type={showNewPassword ? "text" : "password"}
                   value={form.newPassword}
                   onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
-                  placeholder="Enter new password"
+                  placeholder={t("password_section.new_placeholder")}
                   className={`h-8 text-xs bg-[var(--background)] border-[var(--border)] ${
                     errors.newPassword ? "ring-2 ring-red-500" : ""
                   }`}
@@ -160,7 +161,7 @@ export default function ResetPasswordSection() {
                 <p className="text-xs text-red-500">{errors.newPassword}</p>
               ) : (
                 <p className="text-[13px] ml-2 text-[var(--muted-foreground)]">
-                  Must be at least 8 characters with uppercase, lowercase, and number
+                  {t("password_section.requirement")}
                 </p>
               )}
             </div>
@@ -168,14 +169,14 @@ export default function ResetPasswordSection() {
             {/* Confirm Password */}
             <div className="space-y-1">
               <Label className="text-sm font-medium text-[var(--foreground)]">
-                Confirm Password <span className="text-red-500">*</span>
+                {t("password_section.confirm")} <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <Input
                   type={showConfirmPassword ? "text" : "password"}
                   value={form.confirmPassword}
                   onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                  placeholder="Confirm new password"
+                  placeholder={t("password_section.confirm_placeholder")}
                   className={`h-8 text-xs bg-[var(--background)] border-[var(--border)] ${
                     errors.confirmPassword ? "ring-2 ring-red-500" : ""
                   }`}
@@ -205,10 +206,10 @@ export default function ResetPasswordSection() {
               {loading ? (
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  Updating...
+                  {t("password_section.updating")}
                 </div>
               ) : (
-                "Update Password"
+                t("password_section.update_button")
               )}
             </ActionButton>
           </div>

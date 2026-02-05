@@ -10,8 +10,10 @@ import { toast } from "sonner";
 import { Button } from "../ui";
 import React from "react";
 import Tooltip from "../common/ToolTip";
+import { useTranslation } from "react-i18next";
 
 export default function ProfileSection() {
+  const { t } = useTranslation("settings");
   const [isEditing, setIsEditing] = useState(false);
   const { getCurrentUser, updateUser, uploadFileToS3, getUserById } = useAuth();
 
@@ -73,7 +75,7 @@ export default function ProfileSection() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select a valid image file.");
+      toast.error(t("profile_section.invalid_image"));
       e.target.value = "";
       return;
     }
@@ -87,18 +89,18 @@ export default function ProfileSection() {
     try {
       const uploadResult = await uploadFileToS3(selectedFile, "avatar");
       const updatedUser = await updateUser(currentUser.id, { avatar: uploadResult.key });
-      toast.success("Profile picture updated successfully!");
+      toast.success(t("profile_section.pic_updated"));
       setSelectedFile(null);
       setPreviewUrl(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       // Refresh user's avatar for immediate UI update
       setCurrentUser(updatedUser);
     } catch {
-      toast.error("Failed to upload profile picture. Please try again.");
+      toast.error(t("profile_section.pic_update_failed"));
     } finally {
       setUploadingProfilePic(false);
     }
-  }, [selectedFile, currentUser, uploadFileToS3, updateUser]);
+  }, [selectedFile, currentUser, uploadFileToS3, updateUser, t]);
 
   const handleProfileSubmit = async () => {
     if (!currentUser || fetchingRef.current) return;
@@ -113,12 +115,12 @@ export default function ProfileSection() {
         mobileNumber: profileData.mobileNumber,
         bio: profileData.bio,
       });
-      toast.success("Profile updated successfully!");
+      toast.success(t("profile_section.profile_updated"));
       setIsEditing(false);
       // Refresh UI with updated user profile
       setCurrentUser(updatedUser);
     } catch {
-      toast.error("Failed to update profile. Please try again.");
+      toast.error(t("profile_section.profile_update_failed"));
     } finally {
       setLoading(false);
       fetchingRef.current = false;
@@ -156,7 +158,7 @@ export default function ProfileSection() {
       {/* Header */}
       {!isEditing && (
         <div className="flex flex-row-reverse items-start">
-          <Tooltip content="Edit Profile" position="top" color="dark">
+          <Tooltip content={t("profile_section.edit_profile")} position="top" color="dark">
             <Button
               onClick={() => setIsEditing(true)}
               className="p-2 rounded-md hover:bg-[var(--accent)] transition-colors ml-auto shadow-none"
@@ -177,7 +179,8 @@ export default function ProfileSection() {
                 <AvatarImage
                   src={avatarSrc}
                   alt={
-                    `${profileData.firstName} ${profileData.lastName}`.trim() || "Profile Picture"
+                    `${profileData.firstName} ${profileData.lastName}`.trim() ||
+                    t("profile_section.update_pic")
                   }
                   className="object-cover"
                 />
@@ -201,7 +204,7 @@ export default function ProfileSection() {
           {/* Username */}
           <div className="text-center">
             <p className="text-sm text-[var(--muted-foreground)]">
-              @{profileData.username || "username"}
+              @{profileData.username || t("profile_section.username").toLowerCase()}
             </p>
           </div>
 
@@ -226,10 +229,10 @@ export default function ProfileSection() {
                   {uploadingProfilePic ? (
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Uploading...
+                      {t("profile_section.uploading")}
                     </div>
                   ) : (
-                    "Save Picture"
+                    t("profile_section.update_pic")
                   )}
                 </ActionButton>
               ) : (
@@ -240,7 +243,7 @@ export default function ProfileSection() {
                   disabled={uploadingProfilePic}
                   className="text-sm w-full"
                 >
-                  Upload Picture
+                  {t("profile_section.upload_pic")}
                 </ActionButton>
               )}
             </div>
@@ -255,7 +258,7 @@ export default function ProfileSection() {
               {/* First Name */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-[var(--foreground)]">
-                  First Name <span className="text-red-500">*</span>
+                  {t("profile_section.first_name")} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   type="text"
@@ -267,14 +270,14 @@ export default function ProfileSection() {
                     }))
                   }
                   className="bg-[var(--background)] border-[var(--border)] text-xs"
-                  placeholder="Enter your first name"
+                  placeholder={t("profile_section.first_name")}
                 />
               </div>
 
               {/* Last Name */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-[var(--foreground)]">
-                  Last Name <span className="text-red-500">*</span>
+                  {t("profile_section.last_name")} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   type="text"
@@ -286,14 +289,14 @@ export default function ProfileSection() {
                     }))
                   }
                   className="bg-[var(--background)] border-[var(--border)] text-xs"
-                  placeholder="Enter your last name"
+                  placeholder={t("profile_section.last_name")}
                 />
               </div>
 
               {/* Email */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-[var(--foreground)]">
-                  E-mail <span className="text-red-500">*</span>
+                  {t("profile_section.email")} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   type="email"
@@ -305,7 +308,7 @@ export default function ProfileSection() {
                     }))
                   }
                   className="bg-[var(--background)] border-[var(--border)] text-xs"
-                  placeholder="Enter your email address"
+                  placeholder={t("profile_section.email")}
                 />
                 <p className="text-xs text-[var(--muted-foreground)]">
                   We'll send a verification email if the address is changed.
@@ -315,7 +318,7 @@ export default function ProfileSection() {
               {/* Mobile Number */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-[var(--foreground)]">
-                  Mobile Number
+                  {t("profile_section.mobile")}
                 </Label>
                 <Input
                   type="tel"
@@ -327,19 +330,21 @@ export default function ProfileSection() {
                     }))
                   }
                   className="bg-[var(--background)] border-[var(--border)] text-xs"
-                  placeholder="Enter your mobile number"
+                  placeholder={t("profile_section.mobile")}
                 />
               </div>
 
               {/* Bio */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-[var(--foreground)]">Bio</Label>
+                <Label className="text-sm font-medium text-[var(--foreground)]">
+                  {t("profile_section.bio")}
+                </Label>
                 <textarea
                   value={profileData.bio}
                   onChange={(e) => setProfileData((prev) => ({ ...prev, bio: e.target.value }))}
                   rows={3}
                   className="w-full px-3 py-2 text-xs rounded-md resize-none bg-[var(--background)] border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
-                  placeholder="Tell us about yourself..."
+                  placeholder={t("profile_section.bio_placeholder")}
                 />
               </div>
 
@@ -351,7 +356,7 @@ export default function ProfileSection() {
                   disabled={loading}
                   className="border border-[var(--border)] bg-transparent hover:bg-[var(--muted)]"
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </ActionButton>
                 <ActionButton
                   onClick={handleProfileSubmit}
@@ -368,10 +373,10 @@ export default function ProfileSection() {
                   {loading ? (
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Updating...
+                      {t("profile_section.uploading")}
                     </div>
                   ) : (
-                    "Update Information"
+                    t("profile_section.save_changes")
                   )}
                 </ActionButton>
               </div>
@@ -380,23 +385,27 @@ export default function ProfileSection() {
             /* Display Mode - User Details as Paragraphs */
             <div className="space-y-2">
               <div>
-                <h4 className="text-sm font-medium text-[var(--muted-foreground)]">Full Name</h4>
+                <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
+                  {t("profile_section.full_name")}
+                </h4>
                 <p className="text-[var(--foreground)] text-sm">
-                  {`${profileData.firstName} ${profileData.lastName}`.trim() || "Not provided"}
+                  {`${profileData.firstName} ${profileData.lastName}`.trim() || t("common.no_data")}
                 </p>
               </div>
 
               <div>
-                <h4 className="text-sm font-medium text-[var(--muted-foreground)]">Email</h4>
+                <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
+                  {t("profile_section.email")}
+                </h4>
                 <p className="text-[var(--foreground)] text-sm">
-                  {profileData.email || "Not provided"}
+                  {profileData.email || t("common.no_data")}
                 </p>
               </div>
 
               {profileData.mobileNumber && (
                 <div>
                   <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
-                    Mobile Number
+                    {t("profile_section.mobile")}
                   </h4>
                   <p className="text-[var(--foreground)] text-sm">{profileData.mobileNumber}</p>
                 </div>
@@ -404,7 +413,9 @@ export default function ProfileSection() {
 
               {profileData.bio && (
                 <div>
-                  <h4 className="text-sm font-medium text-[var(--muted-foreground)]">Bio</h4>
+                  <h4 className="text-sm font-medium text-[var(--muted-foreground)]">
+                    {t("profile_section.bio")}
+                  </h4>
                   <p className="text-[var(--foreground)] leading-6 text-sm">{profileData.bio}</p>
                 </div>
               )}
