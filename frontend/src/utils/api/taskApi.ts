@@ -1221,7 +1221,8 @@ export const taskApi = {
   bulkDeleteTasks: async (
     taskIds: string[],
     projectId?: string,
-    allDelete?: boolean
+    allDelete?: boolean,
+    excludedIds?: string[]
   ): Promise<{
     deletedCount: number;
     failedTasks: Array<{ id: string; reason: string }>;
@@ -1233,7 +1234,7 @@ export const taskApi = {
       }>({
         url: `/tasks/bulk-delete`,
         method: "POST",
-        data: { taskIds, projectId, all: allDelete },
+        data: { taskIds, projectId, all: allDelete, excludedIds },
       });
 
       return response.data;

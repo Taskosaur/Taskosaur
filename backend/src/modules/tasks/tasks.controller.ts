@@ -122,6 +122,7 @@ export class TasksController {
       taskIds: bulkDeleteTasksDto.taskIds,
       projectId: bulkDeleteTasksDto.projectId,
       all: bulkDeleteTasksDto.all,
+      excludedIds: bulkDeleteTasksDto.excludedIds,
       userId: user.id,
     });
   }

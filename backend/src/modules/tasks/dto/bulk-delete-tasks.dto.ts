@@ -25,4 +25,14 @@ export class BulkDeleteTasksDto {
   @IsOptional()
   @IsBoolean()
   all?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Array of task IDs to exclude from deletion when "all" is true',
+    example: ['550e8400-e29b-41d4-a716-446655440002'],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true, message: 'Each excluded task ID must be a valid UUID' })
+  excludedIds?: string[];
 }

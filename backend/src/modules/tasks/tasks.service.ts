@@ -1996,12 +1996,13 @@ export class TasksService {
     taskIds?: string[];
     projectId?: string;
     all?: boolean;
+    excludedIds?: string[];
     userId: string;
   }): Promise<{
     deletedCount: number;
     failedTasks: Array<{ id: string; reason: string }>;
   }> {
-    const { taskIds, projectId, all, userId } = params;
+    const { taskIds, projectId, all, excludedIds, userId } = params;
 
     if ((!taskIds || taskIds.length === 0) && !all) {
       throw new BadRequestException('No task IDs provided and "all" flag not set');
@@ -2019,6 +2020,9 @@ export class TasksService {
     const taskFilter: any = {};
     if (all) {
       if (projectId) taskFilter.projectId = projectId;
+      if (excludedIds && excludedIds.length > 0) {
+        taskFilter.id = { notIn: excludedIds };
+      }
     } else {
       taskFilter.id = { in: taskIds };
     }
