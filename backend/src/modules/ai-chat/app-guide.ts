@@ -19,6 +19,13 @@ export const APP_GUIDE = `
 - Dropdowns: click to open, click option
 - Actions: look for ⋮ menu
 
+## Widget Rearrangement (Workspace Dashboard)
+- Each widget on the workspace dashboard has move-up and move-down buttons (visible on hover).
+- To move a widget: click the button with data-automation-id="widget-move-up-{widget-id}" or "widget-move-down-{widget-id}".
+- Widget IDs: kpi-metrics, project-status, task-priority, task-type, sprint-status, monthly-completion.
+- Example: To move "Task Priority" above "Project Status", click the move-up button for task-priority.
+- To show/hide widgets, use the Dashboard Settings button (data-automation-id="dashboard-settings-button").
+
 ## CRITICAL: Invite Button Disambiguation
 The header has a button with data-automation-id="header-pending-invitations" - this is ONLY for viewing invitations sent TO YOU (accept/decline). NEVER click this to invite new members.
 
@@ -126,6 +133,18 @@ export function enhancePromptWithContext(userRequest: string, currentUrl: string
     }
   } else if (req.includes('profile')) {
     hint = getWorkflowGuide('user-profile');
+  } else if (
+    req.includes('widget') ||
+    (req.includes('move') &&
+      (req.includes('left') ||
+        req.includes('right') ||
+        req.includes('up') ||
+        req.includes('down') ||
+        req.includes('first') ||
+        req.includes('top') ||
+        req.includes('bottom')))
+  ) {
+    hint = `WIDGET REARRANGEMENT: Each dashboard widget has move-up (data-automation-id="widget-move-up-{id}") and move-down (data-automation-id="widget-move-down-{id}") buttons. Click these to reorder widgets. Widget IDs: kpi-metrics, project-status, task-priority, task-type, sprint-status, monthly-completion. "Move left/up" = move-up button, "move right/down" = move-down button. Click multiple times to move several positions.`;
   } else if (req.includes('invite')) {
     const baseWarning = `CRITICAL: Do NOT click the header button (data-automation-id="header-pending-invitations") - that is for viewing YOUR incoming invitations, not for inviting others.`;
     if (req.includes('workspace')) {

@@ -33,6 +33,15 @@ export class DOMDetector {
     return this.clickableElements.get(index);
   }
 
+  public findIndexByElement(target: Element): number | null {
+    for (const [idx, el] of this.clickableElements.entries()) {
+      if (el === target || target.contains(el) || el.contains(target)) {
+        return idx;
+      }
+    }
+    return null;
+  }
+
   private traverseDOM(node: Node, detectedElements: DetectedElement[]): void {
     if (node.nodeType !== Node.ELEMENT_NODE) return;
 
@@ -91,6 +100,10 @@ export class DOMDetector {
           attributes[attr] = value;
         }
       }
+    }
+
+    if (element.hasAttribute('disabled') || (element as any).disabled === true || element.getAttribute('aria-disabled') === 'true') {
+      attributes['disabled'] = 'true';
     }
 
     const text = this.getElementText(element);

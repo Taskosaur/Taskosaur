@@ -18,6 +18,7 @@ import { TokenManager } from "@/lib/api";
 import { workspaceWidgets } from "@/utils/data/workspaceWidgets";
 import Tooltip from "../common/ToolTip";
 import { useTranslation } from "react-i18next";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 // DnD Imports
 import {
@@ -45,10 +46,20 @@ function SortableWidget({
   id,
   children,
   className,
+  widgetTitle,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
 }: {
   id: string;
   children: React.ReactNode;
   className?: string;
+  widgetTitle?: string;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -64,7 +75,41 @@ function SortableWidget({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={className}>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={`relative group ${className || ""}`}>
+      {(canMoveUp || canMoveDown) && (
+        <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {canMoveUp && (
+            <button
+              type="button"
+              data-automation-id={`widget-move-up-${id}`}
+              aria-label={`Move ${widgetTitle || id} up`}
+              className="p-1 rounded bg-background/80 border border-border shadow-sm hover:bg-muted"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveUp?.();
+              }}
+            >
+              <ChevronUp className="h-4 w-4" />
+            </button>
+          )}
+          {canMoveDown && (
+            <button
+              type="button"
+              data-automation-id={`widget-move-down-${id}`}
+              aria-label={`Move ${widgetTitle || id} down`}
+              className="p-1 rounded bg-background/80 border border-border shadow-sm hover:bg-muted"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveDown?.();
+              }}
+            >
+              <ChevronDown className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
       {children}
     </div>
   );
@@ -173,6 +218,40 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
       }
     }
   }, [workspaceSlug]);
+
+  // Move widget up or down by swapping priorities
+  const moveWidget = (widgetId: string, direction: "up" | "down") => {
+    setWidgets((prevWidgets) => {
+      const sorted = prevWidgets
+        .filter((w) => w.visible)
+        .sort((a, b) => a.priority - b.priority);
+
+      const currentIndex = sorted.findIndex((w) => w.id === widgetId);
+      if (currentIndex === -1) return prevWidgets;
+
+      const swapIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+      if (swapIndex < 0 || swapIndex >= sorted.length) return prevWidgets;
+
+      const reordered = arrayMove(sorted, currentIndex, swapIndex);
+
+      const priorityMap = new Map<string, number>();
+      reordered.forEach((w, index) => {
+        priorityMap.set(w.id, index);
+      });
+
+      const hiddenWidgets = prevWidgets
+        .filter((w) => !w.visible)
+        .sort((a, b) => a.priority - b.priority);
+      hiddenWidgets.forEach((w, index) => {
+        priorityMap.set(w.id, reordered.length + index);
+      });
+
+      return prevWidgets.map((w) => ({
+        ...w,
+        priority: priorityMap.get(w.id) ?? w.priority,
+      }));
+    });
+  };
 
   // DnD Handlers
   const handleDragStart = (event: DragStartEvent) => {
@@ -304,12 +383,21 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
             strategy={rectSortingStrategy}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {visibleWidgets.map((widget) => {
+              {visibleWidgets.map((widget, index) => {
                 const Component = widget.component;
                 const widgetData = analyticsData[widget.dataKey];
 
                 return (
-                  <SortableWidget key={widget.id} id={widget.id} className={widget.gridCols}>
+                  <SortableWidget
+                    key={widget.id}
+                    id={widget.id}
+                    className={widget.gridCols}
+                    widgetTitle={widget.title}
+                    onMoveUp={() => moveWidget(widget.id, "up")}
+                    onMoveDown={() => moveWidget(widget.id, "down")}
+                    canMoveUp={index > 0}
+                    canMoveDown={index < visibleWidgets.length - 1}
+                  >
                     <Component
                       data={widgetData}
                       workspaceId={currentWorkspace?.slug === workspaceSlug ? currentWorkspace?.id : undefined}

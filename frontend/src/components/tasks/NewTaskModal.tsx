@@ -581,6 +581,8 @@ export function NewTaskModal({
                   <Button
                     variant="outline"
                     role="combobox"
+                    aria-label="Select workspace"
+                    data-automation-id="select-workspace"
                     className="projects-workspace-button border-none"
                     disabled={loadingWorkspaces || isSubmitting}
                     onFocus={(e) => {
@@ -663,6 +665,8 @@ export function NewTaskModal({
                   <Button
                     variant="outline"
                     role="combobox"
+                    aria-label="Select project"
+                    data-automation-id="select-project"
                     className="projects-workspace-button border-none"
                     disabled={!formData.workspace || loadingProjects || isSubmitting}
                     onFocus={(e) => {
@@ -881,7 +885,7 @@ export function NewTaskModal({
             <ActionButton type="button" secondary onClick={handleClose} disabled={isSubmitting}>
               {t("modal.cancel")}
             </ActionButton>
-            <ActionButton type="submit" primary disabled={!isValid || isSubmitting}>
+            <ActionButton id="create-task-submit" type="submit" primary disabled={!isValid || isSubmitting}>
               {isSubmitting ? (
                 <div className="flex items-center">
                   <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />

@@ -196,30 +196,57 @@ export class BrowserAgent {
 
     // Check for ACTION: format
     const actionMatch = trimmed.match(/ACTION:\s*(\w+)\(([^)]*)\)/i);
-    if (!actionMatch) {
-      return null;
-    }
+    if (actionMatch) {
+      const actionType = actionMatch[1].toLowerCase();
+      const paramsStr = actionMatch[2].trim();
+      const params: any[] = [];
 
-    const actionType = actionMatch[1].toLowerCase();
-    const paramsStr = actionMatch[2].trim();
-
-    // Parse parameters
-    const params: any[] = [];
-
-    if (paramsStr) {
-      const paramMatches = paramsStr.match(/(?:[^,"]+|"[^"]*")+/g) || [];
-      for (const param of paramMatches) {
-        const trimmedParam = param.trim();
-        if (trimmedParam.startsWith('"') && trimmedParam.endsWith('"')) {
-          params.push(trimmedParam.slice(1, -1));
-        } else {
-          const num = parseInt(trimmedParam, 10);
-          params.push(isNaN(num) ? trimmedParam : num);
+      if (paramsStr) {
+        const paramMatches = paramsStr.match(/(?:[^,"]+|"[^"]*")+/g) || [];
+        for (const param of paramMatches) {
+          const trimmedParam = param.trim();
+          if (trimmedParam.startsWith('"') && trimmedParam.endsWith('"')) {
+            params.push(trimmedParam.slice(1, -1));
+          } else {
+            const num = parseInt(trimmedParam, 10);
+            params.push(isNaN(num) ? trimmedParam : num);
+          }
         }
       }
-    }
 
-    return { type: actionType, params };
+      return { type: actionType, params };
+    }
+    const cmdMatch = trimmed.match(/\[COMMAND:\s*(\w+)\]\s*(\{[\s\S]*?\})/i);
+    if (cmdMatch) {
+      const actionType = cmdMatch[1].toLowerCase();
+      try {
+        const json = JSON.parse(cmdMatch[2]);
+        const params: any[] = [];
+
+        if (json.selector) {
+          const el = document.querySelector(json.selector);
+          if (el) {
+            const idx = this.detector.findIndexByElement(el);
+            if (idx !== null) params.push(idx);
+          }
+        }
+
+        if (params.length === 0 && json.element !== undefined) params.push(json.element);
+        if (params.length === 0 && json.index !== undefined) params.push(json.index);
+
+        if (json.text !== undefined) params.push(json.text);
+        if (json.value !== undefined && json.text === undefined) params.push(json.value);
+        if (json.direction !== undefined) params.push(json.direction);
+        if (json.option !== undefined) params.push(json.option);
+
+        if (params.length > 0) {
+          return { type: actionType, params };
+        }
+      } catch {
+        console.warn("Failed to parse JSON in command action");
+      }
+    }
+    return null;
   }
 
 
