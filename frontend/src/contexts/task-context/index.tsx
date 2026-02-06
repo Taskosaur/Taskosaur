@@ -144,7 +144,8 @@ interface TaskContextType extends TaskState {
   bulkDeleteTasks: (
     taskIds: string[],
     projectId?: string,
-    allDelete?: boolean
+    allDelete?: boolean,
+    excludedIds?: string[]
   ) => Promise<{
     deletedCount: number;
     failedTasks: Array<{ id: string; reason: string }>;
@@ -658,13 +659,14 @@ export function TaskProvider({ children }: TaskProviderProps) {
       bulkDeleteTasks: async (
         taskIds: string[],
         projectId?: string,
-        allDelete?: boolean
+        allDelete?: boolean,
+        excludedIds?: string[]
       ): Promise<{
         deletedCount: number;
         failedTasks: Array<{ id: string; reason: string }>;
       }> => {
         const result = await handleApiOperation(
-          () => taskApi.bulkDeleteTasks(taskIds, projectId, allDelete),
+          () => taskApi.bulkDeleteTasks(taskIds, projectId, allDelete, excludedIds),
           false
         );
 

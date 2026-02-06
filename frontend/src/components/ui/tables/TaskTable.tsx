@@ -94,12 +94,11 @@ const SortableHeader = ({ id, children, className }: { id: string; children: Rea
     transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    cursor: "grab",
     zIndex: isDragging ? 1 : "auto", 
   };
 
   return (
-    <TableHead ref={setNodeRef} style={style} className={className} {...attributes} {...listeners}>
+    <TableHead ref={setNodeRef} style={style} className={cn("cursor-grab active:cursor-grabbing", className)} {...attributes} {...listeners}>
       {children}
     </TableHead>
   );
@@ -216,6 +215,7 @@ interface TaskTableProps {
   workspaceSlug?: string;
   projectSlug?: string;
   onTaskSelect?: (taskId: string) => void;
+  onTasksSelect?: (taskIds: string[], action: "add" | "remove" | "set") => void;
   selectedTasks?: string[];
   projects?: any[];
   projectsOfCurrentWorkspace?: any[];
@@ -245,6 +245,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   workspaceSlug,
   projectSlug,
   onTaskSelect,
+  onTasksSelect,
   selectedTasks = [],
   showProject = false,
   columns = [],
@@ -397,6 +398,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const [titleTouched, setTitleTouched] = useState(false);
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false); // For multi-select popover
   const [allDelete, setAllDelete] = useState<boolean>(false);
+  const [excludedTaskIds, setExcludedTaskIds] = useState<string[]>([]);
   const [localAddTaskStatuses, setLocalAddTaskStatuses] = useState<
     Array<{ id: string; name: string }>
   >([]);
@@ -457,21 +459,31 @@ const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   const handleAllDeleteSelect = () => {
-    setAllDelete(!allDelete);
+    const nextAllDelete = !allDelete;
+    setAllDelete(nextAllDelete);
+    setExcludedTaskIds([]);
   };
 
   const handleBulkDelete = async () => {
-    if (!selectedTasks || selectedTasks.length === 0) {
+    const finalSelectedCount = allDelete ? (totalTask ?? 0) - excludedTaskIds.length : selectedTasks.length;
+    if (finalSelectedCount === 0) {
       toast.warning("No tasks selected for deletion");
       return;
     }
 
     try {
+      const displayCount = finalSelectedCount;
       const loadingToast = toast.loading(
-        `Deleting ${selectedTasks.length} task${selectedTasks.length === 1 ? "" : "s"}...`
+        `Deleting ${displayCount} task${displayCount === 1 ? "" : "s"}...`
       );
 
-      const result = await bulkDeleteTasks(selectedTasks, currentProject?.id, allDelete);
+      // Note: Backend now supports exclusions for "all: true" via excludedIds.
+      const result = await bulkDeleteTasks(
+        selectedTasks,
+        currentProject?.id,
+        allDelete,
+        excludedTaskIds
+      );
 
       toast.dismiss(loadingToast);
 
@@ -526,6 +538,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
     if (onTaskSelect) {
       selectedTasks.forEach((taskId) => onTaskSelect(taskId));
     }
+    setAllDelete(false);
+    setExcludedTaskIds([]);
   };
 
   // Helper function to render multiple assignees
@@ -991,29 +1005,56 @@ const TaskTable: React.FC<TaskTableProps> = ({
     return hasTitle && hasStatus && hasProject;
   };
 
-  // Helper to render Header Cell based on ID
   const renderHeaderCell = (colId: string) => {
     switch (colId) {
       case "task":
         return (
-          <div className="flex items-center gap-4">
-            {!isOrgOrWorkspaceLevel && onTaskSelect && showBulkActionBar && (
+          <div
+            className="flex items-center gap-4"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {!isOrgOrWorkspaceLevel && (onTaskSelect || onTasksSelect) && showBulkActionBar && (
               <Checkbox
-                className="border-[var(--ring)]"
-                checked={selectedTasks.length === tasks.length && tasks.length > 0}
+                className="border-[var(--ring)] cursor-pointer"
+                checked={
+                  allDelete
+                    ? tasks.every((t) => !excludedTaskIds.includes(t.id))
+                    : selectedTasks.length === tasks.length && tasks.length > 0
+                }
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    tasks.forEach((task) => {
-                      if (!selectedTasks.includes(task.id)) {
-                        onTaskSelect(task.id);
+                    if (allDelete) {
+                      const currentPageIds = tasks.map((t) => t.id);
+                      setExcludedTaskIds((prev) => prev.filter((id) => !currentPageIds.includes(id)));
+                    } else {
+                      if (onTasksSelect) {
+                        onTasksSelect(
+                          tasks.map((t) => t.id),
+                          "add"
+                        );
+                      } else if (onTaskSelect) {
+                        tasks.forEach((task) => {
+                          if (!selectedTasks.includes(task.id)) {
+                            onTaskSelect(task.id);
+                          }
+                        });
                       }
-                    });
+                    }
                   } else {
-                    tasks.forEach((task) => {
-                      if (selectedTasks.includes(task.id)) {
-                        onTaskSelect(task.id);
-                      }
-                    });
+                    if (allDelete) setAllDelete(false);
+                    if (onTasksSelect) {
+                      onTasksSelect(
+                        tasks.map((t) => t.id),
+                        "remove"
+                      );
+                    } else if (onTaskSelect) {
+                      tasks.forEach((task) => {
+                        if (selectedTasks.includes(task.id)) {
+                          onTaskSelect(task.id);
+                        }
+                      });
+                    }
                   }
                 }}
               />
@@ -1049,7 +1090,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
       case "status": return "tasktable-header-cell-status";
       case "assignees": return "tasktable-header-cell-assignee w-32 text-center min-w-[120px] max-w-[180px]";
       case "dueDate": return "tasktable-header-cell-date";
-      default: return "tasktable-header-cell w-[8%] min-w-[80px] max-w-[120px]";
+      default: return "tasktable-header-cell w-[8%] min-w-[100px] max-w-[140px]";
     }
   };
 
@@ -1270,7 +1311,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         );
       default:
         return (
-          <TableCell key={colId} className="tasktable-cell">
+          <TableCell key={colId} className="tasktable-cell w-[8%] min-w-[100px] max-w-[140px]">
             <span className="text-sm text-gray-400">-</span>
           </TableCell>
         );
@@ -1283,12 +1324,20 @@ const TaskTable: React.FC<TaskTableProps> = ({
         return (
           <TableCell key={colId} className="tasktable-cell-task">
             <div className="flex items-start gap-3">
-              {!isOrgOrWorkspaceLevel && onTaskSelect && showBulkActionBar && (
+              {!isOrgOrWorkspaceLevel && (onTaskSelect || onTasksSelect) && showBulkActionBar && (
                 <div className="flex-shrink-0 mt-0.5">
                   <Checkbox
                     className="cursor-pointer border-[var(--ring)]"
-                    checked={selectedTasks.includes(task.id)}
-                    onCheckedChange={() => onTaskSelect(task.id)}
+                    checked={allDelete ? !excludedTaskIds.includes(task.id) : selectedTasks.includes(task.id)}
+                    onCheckedChange={(checked) => {
+                      if (allDelete) {
+                        setExcludedTaskIds((prev) =>
+                          checked ? prev.filter((id) => id !== task.id) : [...prev, task.id]
+                        );
+                      } else {
+                        if (onTaskSelect) onTaskSelect(task.id);
+                      }
+                    }}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
@@ -1373,7 +1422,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         return (
           <TableCell
             key={colId}
-            className="tasktable-cell"
+            className="tasktable-cell w-[8%] min-w-[100px] max-w-[140px]"
             onClick={(e) => e.stopPropagation()}
           >
             {column ? renderDynamicCellContent(task, column) : null}
@@ -1506,7 +1555,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
       </div>
 
       {/* BulkActionBar - appears as a toast/modal at bottom-center */}
-      {!isOrgOrWorkspaceLevel && onTaskSelect && showBulkActionBar && (
+      {!isOrgOrWorkspaceLevel && (onTaskSelect || onTasksSelect) && showBulkActionBar && (
         <BulkActionBar
           selectedCount={selectedTasks.length}
           onDelete={handleBulkDelete}
@@ -1515,6 +1564,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
           totalTask={totalTask}
           currentTaskCount={Array.isArray(tasks) ? tasks.length : 0}
           allDelete={allDelete}
+          excludedCount={excludedTaskIds.length}
         />
       )}
 

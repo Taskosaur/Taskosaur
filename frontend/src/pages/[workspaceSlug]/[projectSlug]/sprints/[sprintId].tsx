@@ -102,6 +102,28 @@ const SprintTasksTable = () => {
     }
   });
 
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+
+  const handleTaskSelect = useCallback((taskId: string) => {
+    setSelectedTasks((prev) =>
+      prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]
+    );
+  }, []);
+
+  const handleTasksSelect = useCallback((taskIds: string[], action: "add" | "remove" | "set") => {
+    setSelectedTasks((prev) => {
+      if (action === "set") return taskIds;
+      if (action === "add") {
+        const newIds = taskIds.filter((id) => !prev.includes(id));
+        return [...prev, ...newIds];
+      }
+      if (action === "remove") {
+        return prev.filter((id) => !taskIds.includes(id));
+      }
+      return prev;
+    });
+  }, []);
+
   const error = contextError || localError;
 
   const pagination = useMemo(() => {
@@ -792,6 +814,10 @@ const SprintTasksTable = () => {
           addTaskStatuses={availableTaskStatuses}
           onTaskRefetch={handleTaskRefetch}
           showAddTaskRow={false}
+          selectedTasks={selectedTasks}
+          onTaskSelect={handleTaskSelect}
+          onTasksSelect={handleTasksSelect}
+          totalTask={pagination.totalCount}
         />
       );
     }
@@ -843,6 +869,10 @@ const SprintTasksTable = () => {
             onTaskRefetch={handleTaskRefetch}
             showAddTaskRow={false}
             showBulkActionBar={hasAccess || userRole == "OWNER" || userRole === "MANAGER"}
+            selectedTasks={selectedTasks}
+            onTaskSelect={handleTaskSelect}
+            onTasksSelect={handleTasksSelect}
+            totalTask={pagination.totalCount}
           />
         );
     }

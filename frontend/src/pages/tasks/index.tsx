@@ -370,7 +370,7 @@ function TasksPageContent() {
     } finally {
       setGanttLoading(false);
     }
-  }, [currentOrganizationId, getCalendarTask]);
+  }, [currentOrganizationId]);
 
   // Load data on mount and when organization changes
   useEffect(() => {

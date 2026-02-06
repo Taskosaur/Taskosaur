@@ -132,6 +132,20 @@ function ProjectTasksContent() {
       prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]
     );
   };
+
+  const handleTasksSelect = useCallback((taskIds: string[], action: "add" | "remove" | "set") => {
+    setSelectedTasks((prev) => {
+      if (action === "set") return taskIds;
+      if (action === "add") {
+        const newIds = taskIds.filter((id) => !prev.includes(id));
+        return [...prev, ...newIds];
+      }
+      if (action === "remove") {
+        return prev.filter((id) => !taskIds.includes(id));
+      }
+      return prev;
+    });
+  }, []);
   const error = contextError || localError;
 
   const [sortField, setSortField] = useState<SortField>(() => {
@@ -1138,6 +1152,7 @@ function ProjectTasksContent() {
             projectMembers={projectMembers}
             showAddTaskRow={userAccess?.role !== "VIEWER" && isAuth}
             onTaskSelect={handleTaskSelect}
+            onTasksSelect={handleTasksSelect}
             selectedTasks={selectedTasks}
             showBulkActionBar={
               hasAccess || userAccess?.role === "OWNER" || userAccess?.role === "MANAGER"
