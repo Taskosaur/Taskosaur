@@ -49,12 +49,31 @@ describe('UsersController (e2e)', () => {
 
   afterAll(async () => {
     if (prismaService) {
-      // Cleanup all test users created in this spec
-      await prismaService.user.deleteMany({
+      // Find all test users
+      const testUsers = await prismaService.user.findMany({
         where: {
           email: { contains: '-test-' },
         },
+        select: { id: true },
       });
+
+      const userIds = testUsers.map((u) => u.id);
+
+      if (userIds.length > 0) {
+        // Delete organizations owned by these users first to avoid foreign key violations
+        await prismaService.organization.deleteMany({
+          where: {
+            ownerId: { in: userIds },
+          },
+        });
+
+        // Cleanup all test users created in this spec
+        await prismaService.user.deleteMany({
+          where: {
+            id: { in: userIds },
+          },
+        });
+      }
     }
     await app.close();
   });
