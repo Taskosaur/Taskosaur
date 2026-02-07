@@ -10,6 +10,7 @@ import {
   Legend,
 } from "recharts";
 import { ChartWrapper } from "../chart-wrapper";
+import { SprintVelocity } from "@/types/projects";
 
 const chartConfig = {
   velocity: { label: "Story Points", color: "#3B82F6" },
@@ -17,12 +18,7 @@ const chartConfig = {
 };
 
 interface SprintVelocityChartProps {
-  data: Array<{
-    id: string;
-    name: string;
-    createdAt: string;
-    tasks: Array<{ storyPoints: number | null }>;
-  }>;
+  data: SprintVelocity[];
 }
 
 // Custom tooltip component
@@ -59,8 +55,8 @@ const CustomizedAxisTick = ({ x, y, payload }: any) => {
 export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
   const chartData = data?.map((sprint) => ({
     sprint: sprint.name,
-    velocity: sprint.tasks.reduce((acc, task) => acc + (task.storyPoints || 0), 0),
-    date: new Date(sprint.createdAt).toLocaleDateString(),
+    velocity: sprint.velocity || 0,
+    date: sprint.startDate ? new Date(sprint.startDate).toLocaleDateString() : "N/A",
   }));
 
   // Calculate average velocity
@@ -82,49 +78,55 @@ export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
       config={chartConfig}
       className="border-[var(--border)]"
     >
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={chartDataWithAverage} margin={{ top: 5, right: 30, left: 20, bottom: 35 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis dataKey="sprint" tick={<CustomizedAxisTick />} interval={0} height={60} />
-          <YAxis
-            label={{
-              value: "Story Points",
-              angle: -90,
-              position: "insideLeft",
-              offset: -10,
-              style: { textAnchor: "middle" },
-            }}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            verticalAlign="top"
-            height={36}
-            formatter={(value) => (
-              <span className="text-sm text-gray-700">
-                {chartConfig[value as keyof typeof chartConfig]?.label || value}
-              </span>
-            )}
-          />
-          <Line
-            type="monotone"
-            dataKey="velocity"
-            name="velocity"
-            stroke={chartConfig.velocity.color}
-            strokeWidth={3}
-            dot={{ fill: chartConfig.velocity.color, strokeWidth: 2, r: 5 }}
-            activeDot={{ r: 7, fill: chartConfig.velocity.color }}
-          />
-          <Line
-            type="monotone"
-            dataKey="average"
-            name="average"
-            stroke={chartConfig.average.color}
-            strokeWidth={2}
-            strokeDasharray="5 5"
-            dot={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      {chartDataWithAverage && chartDataWithAverage.length > 0 ? (
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={chartDataWithAverage} margin={{ top: 5, right: 30, left: 20, bottom: 35 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="sprint" tick={<CustomizedAxisTick />} interval={0} height={60} />
+            <YAxis
+              label={{
+                value: "Story Points",
+                angle: -90,
+                position: "insideLeft",
+                offset: -10,
+                style: { textAnchor: "middle" },
+              }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+              verticalAlign="top"
+              height={36}
+              formatter={(value) => (
+                <span className="text-sm text-gray-700">
+                  {chartConfig[value as keyof typeof chartConfig]?.label || value}
+                </span>
+              )}
+            />
+            <Line
+              type="monotone"
+              dataKey="velocity"
+              name="velocity"
+              stroke={chartConfig.velocity.color}
+              strokeWidth={3}
+              dot={{ fill: chartConfig.velocity.color, strokeWidth: 2, r: 5 }}
+              activeDot={{ r: 7, fill: chartConfig.velocity.color }}
+            />
+            <Line
+              type="monotone"
+              dataKey="average"
+              name="average"
+              stroke={chartConfig.average.color}
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="flex items-center justify-center h-[300px] text-muted-foreground italic">
+          No completed sprints found for this project
+        </div>
+      )}
     </ChartWrapper>
   );
 }

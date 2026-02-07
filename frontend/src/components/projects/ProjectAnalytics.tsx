@@ -312,14 +312,18 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
     return <ErrorState error={error} onRetry={handleFetchData} />;
   }
 
-  {
-    !data && !loading && !error && (
-      <Alert>
-        <AlertDescription>No analytics data available for this organization.</AlertDescription>
-        <Button onClick={handleFetchData} variant="outline" size="sm" className="mt-2">
-          Load Data
-        </Button>
-      </Alert>
+  if (!data && !loading && !error) {
+    return (
+      <div className="p-6">
+        <Alert>
+          <AlertDescription className="flex flex-col items-start gap-2">
+            <span>No analytics data available for this project.</span>
+            <Button onClick={handleFetchData} variant="outline" size="sm">
+              Load Data
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 

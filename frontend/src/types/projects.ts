@@ -109,7 +109,7 @@ export interface TaskStatusFlow {
 export interface SprintVelocity {
   id: string;
   name: string;
-  startDate: Date | null;
-  endDate: Date | null;
+  startDate: string | null;
+  endDate: string | null;
   velocity: number;
 }
