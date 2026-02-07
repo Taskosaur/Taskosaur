@@ -535,7 +535,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   const handleClearSelection = () => {
-    if (onTaskSelect) {
+    if (onTasksSelect) {
+      onTasksSelect(selectedTasks, "remove");
+    } else if (onTaskSelect) {
       selectedTasks.forEach((taskId) => onTaskSelect(taskId));
     }
     setAllDelete(false);
@@ -1008,6 +1010,29 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const renderHeaderCell = (colId: string) => {
     switch (colId) {
       case "task":
+        const currentPageIds = tasks.map((t) => t.id);
+        const selectedOnPage = currentPageIds.filter((id) => selectedTasks.includes(id));
+        const excludedOnPage = currentPageIds.filter((id) => excludedTaskIds.includes(id));
+
+        let headerChecked: boolean | "indeterminate" = false;
+        if (allDelete) {
+          if (excludedOnPage.length === 0) {
+            headerChecked = true;
+          } else if (excludedOnPage.length === currentPageIds.length) {
+            headerChecked = false;
+          } else {
+            headerChecked = "indeterminate";
+          }
+        } else {
+          if (selectedOnPage.length === currentPageIds.length && currentPageIds.length > 0) {
+            headerChecked = true;
+          } else if (selectedOnPage.length > 0) {
+            headerChecked = "indeterminate";
+          } else {
+            headerChecked = false;
+          }
+        }
+
         return (
           <div
             className="flex items-center gap-4"
@@ -1017,22 +1042,14 @@ const TaskTable: React.FC<TaskTableProps> = ({
             {!isOrgOrWorkspaceLevel && (onTaskSelect || onTasksSelect) && showBulkActionBar && (
               <Checkbox
                 className="border-[var(--ring)] cursor-pointer"
-                checked={
-                  allDelete
-                    ? tasks.every((t) => !excludedTaskIds.includes(t.id))
-                    : selectedTasks.length === tasks.length && tasks.length > 0
-                }
+                checked={headerChecked}
                 onCheckedChange={(checked) => {
-                  if (checked) {
+                  if (checked === true || checked === "indeterminate") {
                     if (allDelete) {
-                      const currentPageIds = tasks.map((t) => t.id);
                       setExcludedTaskIds((prev) => prev.filter((id) => !currentPageIds.includes(id)));
                     } else {
                       if (onTasksSelect) {
-                        onTasksSelect(
-                          tasks.map((t) => t.id),
-                          "add"
-                        );
+                        onTasksSelect(currentPageIds, "add");
                       } else if (onTaskSelect) {
                         tasks.forEach((task) => {
                           if (!selectedTasks.includes(task.id)) {
@@ -1044,10 +1061,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                   } else {
                     if (allDelete) setAllDelete(false);
                     if (onTasksSelect) {
-                      onTasksSelect(
-                        tasks.map((t) => t.id),
-                        "remove"
-                      );
+                      onTasksSelect(currentPageIds, "remove");
                     } else if (onTaskSelect) {
                       tasks.forEach((task) => {
                         if (selectedTasks.includes(task.id)) {
