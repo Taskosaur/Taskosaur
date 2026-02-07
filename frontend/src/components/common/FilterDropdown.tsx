@@ -426,6 +426,18 @@ export function FilterDropdown({
             </Button>
           </div>
         )}
+
+        <div className="p-2 border-t border-[var(--border)] bg-[var(--muted)]/30 flex-shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setOpen(false)}
+            className="w-full h-7 text-xs"
+            aria-label="Close filter"
+          >
+            Done
+          </Button>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
