@@ -1,0 +1,42 @@
+{
+  "title": "{{name}} Calendar",
+  "description": "View and manage tasks for {{name}} project in calendar format.",
+  "createTask": "Create Task",
+  "noTasks": {
+    "title": "No tasks found",
+    "description": "Create your first task for {{name}} to see it on the calendar"
+  },
+  "errors": {
+    "invalidSlug": "Invalid workspace or project slug",
+    "workspaceNotFound": "Workspace not found",
+    "projectNotFound": "Project not found",
+    "failedLoadData": "Failed to load data",
+    "projectOrWorkspaceNotFound": "Project or workspace not found"
+  },
+  "view": {
+    "noTasksScheduled": "No tasks scheduled",
+    "noTasksScheduledDescription": "Tasks with due dates will appear on the calendar. Create tasks with specific due dates to visualize your schedule.",
+    "days": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "untitledTask": "Untitled Task",
+    "more": "more",
+    "time": "Time",
+    "weekOf": "Week of {{date}}",
+    "daysWithTasks": "{{count}} days with tasks this month",
+    "tasksThisWeek": "{{count}} tasks this week",
+    "month": "Month",
+    "week": "Week",
+    "today": "Today",
+    "noTasksThisDay": "No tasks scheduled for this day",
+    "noStatus": "No Status",
+    "overdue": "Overdue",
+    "assignee": "Assignee"
+  }
+}

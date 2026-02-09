@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 import TaskCalendarView from "@/components/tasks/views/TaskCalendarView";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
@@ -48,6 +49,7 @@ const LoadingSkeleton = () => (
 );
 
 function ProjectTasksCalendarPageContent() {
+  const { t } = useTranslation(["calendar", "common"]);
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
   const { getUserAccess } = useAuth();
@@ -102,14 +104,14 @@ function ProjectTasksCalendarPageContent() {
       }
 
       if (typeof workspaceSlug !== "string" || typeof projectSlug !== "string") {
-        setError("Invalid workspace or project slug");
+        setError(t("errors.invalidSlug"));
         setLoading(false);
         return;
       }
 
       const workspace = await workspaceContext.getWorkspaceBySlug(workspaceSlug);
       if (!workspace) {
-        setError("Workspace not found");
+        setError(t("errors.workspaceNotFound"));
         setLoading(false);
         return;
       }
@@ -119,7 +121,7 @@ function ProjectTasksCalendarPageContent() {
       const project = findProjectBySlug(projects || [], projectSlug);
 
       if (!project) {
-        setError("Project not found");
+        setError(t("errors.projectNotFound"));
         setLoading(false);
         return;
       }
@@ -134,7 +136,7 @@ function ProjectTasksCalendarPageContent() {
       setDataLoaded(true);
     } catch (err) {
       console.error("Error loading page data:", err);
-      setError(err?.message ? err.message : "Failed to load data");
+      setError(err?.message ? err.message : t("errors.failedLoadData"));
     } finally {
       setLoading(false);
     }
@@ -219,7 +221,7 @@ function ProjectTasksCalendarPageContent() {
   }
 
   if (!workspaceData || !projectData) {
-    return <ErrorState error="Project or workspace not found" onRetry={loadData} />;
+    return <ErrorState error={t("errors.projectOrWorkspaceNotFound")} onRetry={loadData} />;
   }
 
   return (
@@ -229,12 +231,12 @@ function ProjectTasksCalendarPageContent() {
           <div className="min-h-screen">
             <div className="flex flex-col gap-4">
               <PageHeader
-                title={`${projectData?.name} Calendar`}
-                description={`View and manage tasks for ${projectData?.name} project in calendar format.`}
+                title={t("title", { name: projectData?.name })}
+                description={t("description", { name: projectData?.name })}
                 actions={
                   userAccess?.role !== "VIEWER" && (
                     <ActionButton primary showPlusIcon onClick={() => setNewTaskModalOpen(true)}>
-                      Create Task
+                      {t("createTask")}
                     </ActionButton>
                   )
                 }
@@ -251,10 +253,10 @@ function ProjectTasksCalendarPageContent() {
                           <HiCalendarDays className="w-6 h-6 text-[var(--muted-foreground)]" />
                         </div>
                         <p className="text-sm font-medium text-[var(--foreground)] mb-1">
-                          No tasks found
+                          {t("noTasks.title")}
                         </p>
                         <p className="text-xs text-[var(--muted-foreground)] mb-4">
-                          Create your first task for {projectData?.name} to see it on the calendar
+                          {t("noTasks.description", { name: projectData?.name })}
                         </p>
                         {userAccess?.role !== "VIEWER" && (
                           <ActionButton
@@ -262,7 +264,7 @@ function ProjectTasksCalendarPageContent() {
                             showPlusIcon
                             onClick={() => setNewTaskModalOpen(true)}
                           >
-                            Create Task
+                            {t("createTask")}
                           </ActionButton>
                         )}
                       </div>

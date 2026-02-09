@@ -1,0 +1,42 @@
+{
+  "title": "Calendario de {{name}}",
+  "description": "Vea y administre tareas para el proyecto {{name}} en formato de calendario.",
+  "createTask": "Crear Tarea",
+  "noTasks": {
+    "title": "No se encontraron tareas",
+    "description": "Cree su primera tarea para {{name}} para verla en el calendario"
+  },
+  "errors": {
+    "invalidSlug": "Slug de espacio de trabajo o proyecto no válido",
+    "workspaceNotFound": "Espacio de trabajo no encontrado",
+    "projectNotFound": "Proyecto no encontrado",
+    "failedLoadData": "Error al cargar los datos",
+    "projectOrWorkspaceNotFound": "Proyecto o espacio de trabajo no encontrado"
+  },
+  "view": {
+    "noTasksScheduled": "No hay tareas programadas",
+    "noTasksScheduledDescription": "Las tareas con fechas de vencimiento aparecerán en el calendario. Cree tareas con fechas de vencimiento específicas para visualizar su agenda.",
+    "days": {
+      "sun": "Dom",
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mié",
+      "thu": "Jue",
+      "fri": "Vie",
+      "sat": "Sáb"
+    },
+    "untitledTask": "Tarea sin título",
+    "more": "más",
+    "time": "Hora",
+    "weekOf": "Semana del {{date}}",
+    "daysWithTasks": "{{count}} días con tareas este mes",
+    "tasksThisWeek": "{{count}} tareas esta semana",
+    "month": "Mes",
+    "week": "Semana",
+    "today": "Hoy",
+    "noTasksThisDay": "No hay tareas programadas para este día",
+    "noStatus": "Sin estado",
+    "overdue": "Vencida",
+    "assignee": "Asignado"
+  }
+}

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
 import { StatusBadge } from "@/components/ui";
 import { PriorityBadge } from "@/components/ui";
+import { useTranslation } from "react-i18next";
 import MDEditor from "@uiw/react-md-editor";
 import validator from "validator";
 
@@ -49,6 +50,7 @@ export default function TaskCalendarView({
   workspaceSlug,
   projectSlug,
 }: TaskCalendarViewProps) {
+  const { t } = useTranslation(["calendar"]);
   const filteredTasks = Array.isArray(tasks) ? tasks : [];
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
@@ -240,10 +242,9 @@ export default function TaskCalendarView({
           <div className="w-10 h-10 bg-[var(--primary)]/10 rounded-lg flex items-center justify-center mx-auto mb-3">
             <HiCalendarDays className="w-5 h-5 text-[var(--primary)]" />
           </div>
-          <p className="text-sm font-medium text-[var(--foreground)] mb-1">No tasks scheduled</p>
+          <p className="text-sm font-medium text-[var(--foreground)] mb-1">{t("view.noTasksScheduled")}</p>
           <p className="text-xs text-[var(--muted-foreground)] max-w-md mx-auto">
-            Tasks with due dates will appear on the calendar. Create tasks with specific due dates
-            to visualize your schedule.
+            {t("view.noTasksScheduledDescription")}
           </p>
         </div>
       </div>
@@ -254,7 +255,15 @@ export default function TaskCalendarView({
     <>
       {/* Day Headers */}
       <div className="grid grid-cols-7 border-b border-[var(--border)]">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+        {[
+          t("view.days.sun"),
+          t("view.days.mon"),
+          t("view.days.tue"),
+          t("view.days.wed"),
+          t("view.days.thu"),
+          t("view.days.fri"),
+          t("view.days.sat"),
+        ].map((day) => (
           <div
             key={day}
             className="py-2 text-center font-semibold text-xs text-[var(--muted-foreground)] border-r border-[var(--border)] last:border-r-0 bg-[var(--muted)]/10"
@@ -326,7 +335,7 @@ export default function TaskCalendarView({
                     >
                       <div className="flex items-center justify-between gap-1">
                         <p className="font-medium truncate flex-1">
-                          {task.title || "Untitled Task"}
+                          {task.title || t("view.untitledTask")}
                         </p>
                         {task.assignee && <UserAvatar user={task.assignee} size="xs" />}
                       </div>
@@ -336,7 +345,7 @@ export default function TaskCalendarView({
 
                 {day.tasks.length > 2 && (
                   <div className="text-xs text-[var(--muted-foreground)] text-center py-1">
-                    +{day.tasks.length - 2} more
+                    +{day.tasks.length - 2} {t("view.more")}
                   </div>
                 )}
               </div>
@@ -352,7 +361,7 @@ export default function TaskCalendarView({
       {/* Week Header */}
       <div className="flex border-b border-[var(--border)] bg-[var(--muted)]/10 sticky top-0 z-10">
         <div className="w-20 flex-shrink-0 py-2 px-2 text-center font-semibold text-xs text-[var(--muted-foreground)] border-r border-[var(--border)]">
-          Time
+          {t("view.time")}
         </div>
         <div className="flex-1 grid grid-cols-7">
           {weekDays.map((day, index) => (
@@ -490,14 +499,16 @@ export default function TaskCalendarView({
               <HiCalendarDays className="w-4 h-4 text-[var(--muted-foreground)]" />
               {viewMode === "month"
                 ? currentMonth
-                : `Week of ${weekDays[0]?.date.toLocaleDateString()}`}
+                : t("view.weekOf", { date: weekDays[0]?.date.toLocaleDateString() })}
             </h3>
             <p className="text-xs text-[var(--muted-foreground)]">
               {viewMode === "month"
-                ? `${
-                    calendarDays.filter((day) => day.isCurrentMonth && day.tasks.length > 0).length
-                  } days with tasks this month`
-                : `${weekDays.reduce((sum, day) => sum + day.tasks.length, 0)} tasks this week`}
+                ? t("view.daysWithTasks", {
+                    count: calendarDays.filter((day) => day.isCurrentMonth && day.tasks.length > 0).length,
+                  })
+                : t("view.tasksThisWeek", {
+                    count: weekDays.reduce((sum, day) => sum + day.tasks.length, 0),
+                  })}
             </p>
           </div>
 
@@ -512,7 +523,7 @@ export default function TaskCalendarView({
                     : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                 }`}
               >
-                Month
+                {t("view.month")}
               </button>
               <button
                 onClick={() => setViewMode("week")}
@@ -522,7 +533,7 @@ export default function TaskCalendarView({
                     : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                 }`}
               >
-                Week
+                {t("view.week")}
               </button>
             </div>
 
@@ -542,7 +553,7 @@ export default function TaskCalendarView({
                 onClick={goToToday}
                 className="h-7 px-2 text-xs font-medium bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)]"
               >
-                Today
+                {t("view.today")}
               </Button>
               <Button
                 variant="outline"
@@ -593,7 +604,7 @@ export default function TaskCalendarView({
               return (
                 <div className="text-center py-4">
                   <HiCalendarDays className="w-6 h-6 mx-auto mb-1 text-muted-foreground opacity-50" />
-                  <p className="text-xs text-muted-foreground">No tasks scheduled for this day</p>
+                  <p className="text-xs text-muted-foreground">{t("view.noTasksThisDay")}</p>
                 </div>
               );
             }
@@ -625,14 +636,14 @@ export default function TaskCalendarView({
                       <div className="flex items-start justify-between gap-3 ">
                         <div className="flex-1">
                           <h5 className="font-semibold text-xs mb-1 text-[var(--foreground)]">
-                            {task.title || "Untitled Task"}
+                            {task.title || t("view.untitledTask")}
                           </h5>
                           <div className="flex items-center gap-1 mb-1">
-                            <StatusBadge status={task.status?.name || "No Status"} />
+                            <StatusBadge status={task.status?.name || t("view.noStatus")} />
                             {task.priority && <PriorityBadge priority={task.priority} />}
                             {isOverdue && (
                               <span className="inline-block text-xs px-1.5 py-0 h-4 rounded bg-red-500 text-white dark:bg-red-700 dark:text-white">
-                                Overdue
+                                {t("view.overdue")}
                               </span>
                             )}
                           </div>
@@ -649,7 +660,7 @@ export default function TaskCalendarView({
                               <p className="text-xs font-medium text-foreground">
                                 {task.assignee.firstName} {task.assignee.lastName}
                               </p>
-                              <p className="text-[10px] text-muted-foreground">Assignee</p>
+                              <p className="text-[10px] text-muted-foreground">{t("view.assignee")}</p>
                             </div>
                           </div>
                         )}
