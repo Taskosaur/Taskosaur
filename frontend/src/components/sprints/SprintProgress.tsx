@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Task, Sprint } from "@/types";
+import { useTranslation } from "react-i18next";
 
 interface SprintProgressProps {
   selectedSprint?: string | null;
 }
 
 export default function SprintProgress({ selectedSprint }: SprintProgressProps) {
+  const { t } = useTranslation(["sprints"]);
   const [currentSprint, setCurrentSprint] = useState<Sprint | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -131,11 +133,11 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
 
   // Helper function for consistent date formatting to prevent hydration issues
   const formatDate = (dateString: string) => {
-    if (!currentDate) return "Loading...";
+    if (!currentDate) return t("board.loading");
     try {
       return new Date(dateString).toLocaleDateString();
     } catch {
-      return "Invalid date";
+      return t("board.invalidDate");
     }
   };
 
@@ -233,10 +235,10 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
       <div className="sprints-progress-empty">
         <div className="sprints-progress-empty-content">
           <h3 className="sprints-progress-empty-title sprints-progress-empty-title-dark">
-            No Sprint Selected
+            {t("board.noSprintSelected")}
           </h3>
           <p className="sprints-progress-empty-subtitle sprints-progress-empty-subtitle-dark">
-            Please select a sprint from the dropdown above to view progress.
+            {t("progress.noSprintSelectedSubtitle", { defaultValue: "Please select a sprint from the dropdown above to view progress." })}
           </p>
         </div>
       </div>
@@ -251,16 +253,16 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
 
   return (
     <div className="sprints-progress-container sprints-progress-container-dark">
-      <h3 className="sprints-progress-title sprints-progress-title-dark">Sprint Progress</h3>
+      <h3 className="sprints-progress-title sprints-progress-title-dark">{t("progress.title")}</h3>
 
       {/* Sprint Timeline */}
       <div className="sprints-progress-timeline">
         <div className="sprints-progress-timeline-header">
           <span className="sprints-progress-timeline-label sprints-progress-timeline-label-dark">
-            Sprint Timeline
+            {t("progress.timeline")}
           </span>
           <span className="sprints-progress-timeline-remaining sprints-progress-timeline-remaining-dark">
-            {daysRemaining > 0 ? `${daysRemaining} days remaining` : "Sprint ended"}
+            {daysRemaining > 0 ? t("progress.daysRemaining", { count: daysRemaining }) : t("progress.sprintEnded")}
           </span>
         </div>
         <div className="sprints-progress-bar-container sprints-progress-bar-container-dark">
@@ -283,7 +285,7 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
             {getCompletedStoryPoints()}/{getTotalStoryPoints()}
           </div>
           <div className="sprints-progress-stat-label sprints-progress-stat-label-dark">
-            Story Points
+            {t("progress.storyPoints", { defaultValue: "Story Points" })}
           </div>
           <div className="sprints-progress-bar-container sprints-progress-bar-container-dark">
             <div
@@ -292,7 +294,7 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
             />
           </div>
           <div className="sprints-progress-stat-meta sprints-progress-stat-meta-dark">
-            {Math.round(completionPercentage)}% complete
+            {Math.round(completionPercentage)}% {t("progress.complete")}
           </div>
         </div>
 
@@ -302,7 +304,7 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
             {formatTime(getTotalTimeSpent())}
           </div>
           <div className="sprints-progress-stat-label sprints-progress-stat-label-dark">
-            Time Spent
+            {t("progress.timeSpent")}
           </div>
           <div className="sprints-progress-bar-container sprints-progress-bar-container-dark">
             <div
@@ -315,7 +317,7 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
             />
           </div>
           <div className="sprints-progress-stat-meta sprints-progress-stat-meta-dark">
-            {formatTime(getTotalOriginalEstimate())} estimated
+            {formatTime(getTotalOriginalEstimate())} {t("progress.estimated")}
           </div>
         </div>
 
@@ -325,7 +327,7 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
             {statusCounts.DONE}/{tasks.length}
           </div>
           <div className="sprints-progress-stat-label sprints-progress-stat-label-dark">
-            Tasks Complete
+            {t("progress.tasksComplete")}
           </div>
           <div className="sprints-progress-bar-container sprints-progress-bar-container-dark">
             <div
@@ -336,7 +338,7 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
             />
           </div>
           <div className="sprints-progress-stat-meta sprints-progress-stat-meta-dark">
-            {statusCounts.IN_PROGRESS} in progress
+            {statusCounts.IN_PROGRESS} {t("progress.inProgress")}
           </div>
         </div>
 
@@ -346,13 +348,13 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
             {(currentSprint as any)?.velocity || 0}
           </div>
           <div className="sprints-progress-stat-label sprints-progress-stat-label-dark">
-            Velocity
+            {t("progress.velocity")}
           </div>
           <div className="sprints-progress-stat-meta sprints-progress-stat-meta-dark">
-            Story points per day
+            {t("progress.storyPointsPerDay")}
           </div>
           <div className="sprints-progress-stat-meta sprints-progress-stat-meta-dark">
-            Capacity: {(currentSprint as any)?.capacity || 0}h
+            {t("progress.capacity")}: {(currentSprint as any)?.capacity || 0}h
           </div>
         </div>
       </div>
@@ -360,7 +362,7 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
       {/* Burndown Chart Placeholder */}
       <div className="sprints-progress-burndown sprints-progress-burndown-dark">
         <h4 className="sprints-progress-burndown-title sprints-progress-burndown-title-dark">
-          Sprint Burndown
+          {t("progress.burndown")}
         </h4>
         <div className="sprints-progress-burndown-placeholder sprints-progress-burndown-placeholder-dark">
           <div className="sprints-progress-burndown-content">
@@ -378,7 +380,7 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
               />
             </svg>
             <p className="sprints-progress-burndown-text sprints-progress-burndown-text-dark">
-              Burndown chart will be implemented here
+              {t("progress.burndownPlaceholder")}
             </p>
           </div>
         </div>
@@ -388,17 +390,17 @@ export default function SprintProgress({ selectedSprint }: SprintProgressProps) 
       <div className="sprints-progress-actions sprints-progress-actions-dark">
         <div className="sprints-progress-actions-header">
           <h4 className="sprints-progress-actions-title sprints-progress-actions-title-dark">
-            Quick Actions
+            {t("progress.quickActions")}
           </h4>
           <div className="sprints-progress-actions-buttons">
             <button className="sprints-progress-action-button sprints-progress-action-button-dark">
-              View Sprint Report
+              {t("progress.viewReport")}
             </button>
             <span className="sprints-progress-actions-divider sprints-progress-actions-divider-dark">
               |
             </span>
             <button className="sprints-progress-action-button sprints-progress-action-button-dark">
-              Export Data
+              {t("progress.exportData")}
             </button>
           </div>
         </div>

@@ -1,0 +1,140 @@
+{
+  "title": "Sprint Management",
+  "description": "Organize your work into focused iterations and track progress effectively.",
+  "createSprint": "Create Sprint",
+  "noSprints": {
+    "title": "No sprints yet",
+    "description": "Create your first sprint to start organizing your work into focused iterations."
+  },
+  "deleteSprint": {
+    "title": "Delete Sprint",
+    "message": "Are you sure you want to delete the sprint \"{{name}}\"? This action cannot be undone.",
+    "confirm": "Delete",
+    "deleting": "Deleting...",
+    "cancel": "Cancel"
+  },
+  "errors": {
+    "workspaceNotFound": "Workspace not found",
+    "projectNotFound": "Project not found",
+    "loadingProjectError": "Error loading project data",
+    "loadingPageError": "Error loading page data",
+    "fetchingProjectError": "Error fetching project data",
+    "fetchTasksFailed": "Failed to fetch tasks"
+  },
+  "sprintTasks": {
+    "title": "Sprint Tasks",
+    "description": "Manage and track all tasks in this sprint. {{total}} total tasks",
+    "searchPlaceholder": "Search tasks..."
+  },
+  "card": {
+    "noDates": "No dates set",
+    "days": "{{count}} days",
+    "completeSprint": "Complete Sprint",
+    "editSprint": "Edit Sprint",
+    "deleteSprint": "Delete Sprint"
+  },
+  "form": {
+    "editTitle": "Edit Sprint",
+    "createTitle": "Create new sprint",
+    "editDescription": "Update sprint details and timeline",
+    "createDescription": "Create a new sprint to organize your work into focused iterations",
+    "nameLabel": "Sprint name",
+    "namePlaceholder": "Enter sprint name",
+    "goalLabel": "Sprint goal",
+    "goalPlaceholder": "Describe the main objective and outcomes for this sprint...",
+    "goalHint": "Help your team understand the sprint's focus and expected outcomes.",
+    "statusLabel": "Status",
+    "statusPlaceholder": "Select status",
+    "startDateLabel": "Start date",
+    "endDateLabel": "End date",
+    "cancel": "Cancel",
+    "update": "Update",
+    "create": "Create",
+    "updating": "Updating...",
+    "creating": "Creating sprint...",
+    "statuses": {
+      "planning": "Planning",
+      "active": "Active",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "validation": {
+      "nameRequired": "Sprint name is required",
+      "startDateRequired": "Start date is required",
+      "endDateRequired": "End date is required",
+      "endDateAfterStart": "End date must be after start date"
+    }
+  },
+  "board": {
+    "loading": "Loading...",
+    "invalidDate": "Invalid date",
+    "noSprintSelected": "No Sprint Selected",
+    "selectSprintToView": "Please select a sprint to view the board",
+    "noSprintSelectedSubtitle": "Please select a sprint from the dropdown above to view progress.",
+    "tasks": "tasks",
+    "points": "points",
+    "startSprint": "Start Sprint",
+    "completeSprint": "Complete Sprint",
+    "tasksCompleted": "Tasks Completed",
+    "storyPoints": "Story Points",
+    "completionRate": "Completion Rate",
+    "statuses": {
+      "sprintBacklog": "Sprint Backlog",
+      "inProgress": "In Progress",
+      "testing": "Testing",
+      "done": "Done"
+    }
+  },
+  "selector": {
+    "noActiveSprint": "No Active Sprint",
+    "noSprintsAvailable": "No sprints available",
+    "createFirstSprint": "Create your first sprint"
+  },
+  "progress": {
+    "title": "Sprint Progress",
+    "timeline": "Sprint Timeline",
+    "daysRemaining": "{{count}} days remaining",
+    "sprintEnded": "Sprint ended",
+    "complete": "complete",
+    "timeSpent": "Time Spent",
+    "estimated": "estimated",
+    "tasksComplete": "Tasks Complete",
+    "inProgress": "in progress",
+    "velocity": "Velocity",
+    "storyPointsPerDay": "Story points per day",
+    "capacity": "Capacity",
+    "burndown": "Sprint Burndown",
+    "burndownPlaceholder": "Burndown chart will be implemented here",
+    "quickActions": "Quick Actions",
+    "viewReport": "View Sprint Report",
+    "exportData": "Export Data"
+  },
+  "planning": {
+    "title": "Sprint Planning",
+    "selectSprint": "Select a sprint",
+    "selectSprintToPlan": "Please select a sprint from the dropdown above to start planning.",
+    "saveChanges": "Save Changes",
+    "startSprint": "Start Sprint",
+    "goal": "Sprint Goal",
+    "noGoal": "No goal set",
+    "duration": "Duration",
+    "noDates": "No dates set",
+    "capacity": "Capacity",
+    "hours": "hours",
+    "productBacklog": "Product Backlog",
+    "tasks": "tasks",
+    "sp": "SP",
+    "noTasksInBacklog": "No tasks in backlog",
+    "sprintBacklog": "Sprint Backlog",
+    "dragTasksHere": "Drag tasks here to add to sprint",
+    "clickToMove": "Click tasks to move them between backlog and sprint",
+    "summary": "Sprint Summary",
+    "estimatedTime": "Estimated Time"
+  },
+  "tasksPanel": {
+    "title": "Sprint Tasks",
+    "tasks": "tasks",
+    "errorNoOrg": "No organization selected. Please select an organization first.",
+    "fetchFailed": "Failed to fetch tasks"
+  }
+}

@@ -10,6 +10,7 @@ import {
 import { HiPlay, HiClock, HiCheck, HiChevronDown, HiCalendar } from "react-icons/hi2";
 import { HiLightningBolt } from "react-icons/hi";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 interface SprintSelectorProps {
   currentSprint: Sprint | null;
   sprints: Sprint[];
@@ -50,6 +51,7 @@ export default function SprintSelector({
   sprints,
   onSprintChange,
 }: SprintSelectorProps) {
+  const { t } = useTranslation(["sprints"]);
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString("en-US", {
@@ -57,7 +59,7 @@ export default function SprintSelector({
         day: "numeric",
       });
     } catch {
-      return "Invalid date";
+      return t("board.invalidDate");
     }
   };
 
@@ -78,7 +80,7 @@ export default function SprintSelector({
             </div>
             <div className="sprints-selector-content">
               <div className="sprints-selector-name">
-                {currentSprint?.name || "No Active Sprint"}
+                {currentSprint?.name || t("selector.noActiveSprint")}
               </div>
             </div>
             <HiChevronDown className="sprints-selector-chevron" />
@@ -91,8 +93,8 @@ export default function SprintSelector({
               <div className="sprints-selector-empty-icon-container">
                 <HiLightningBolt className="sprints-selector-empty-icon" />
               </div>
-              <p className="sprints-selector-empty-title">No sprints available</p>
-              <p className="sprints-selector-empty-subtitle">Create your first sprint</p>
+              <p className="sprints-selector-empty-title">{t("selector.noSprintsAvailable")}</p>
+              <p className="sprints-selector-empty-subtitle">{t("selector.createFirstSprint")}</p>
             </div>
           ) : (
             <div className="sprints-selector-list">

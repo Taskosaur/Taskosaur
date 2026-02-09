@@ -10,6 +10,7 @@ import {
 import { HiCalendarDays, HiEllipsisVertical } from "react-icons/hi2";
 import { HiCheck, HiPencil, HiTrash } from "react-icons/hi";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 
 export const SprintCard = ({
   sprint,
@@ -24,6 +25,7 @@ export const SprintCard = ({
   onStatusChange: (action: "start" | "complete") => void;
   hasAccess?: boolean;
 }) => {
+  const { t } = useTranslation(["sprints"]);
   const router = useRouter();
   const { projectSlug, workspaceSlug } = router.query;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -50,14 +52,14 @@ export const SprintCard = ({
   };
 
   const duration = useMemo(() => {
-    if (!sprint.startDate || !sprint.endDate) return "No dates set";
+    if (!sprint.startDate || !sprint.endDate) return t("card.noDates");
 
     const start = formatDate(sprint.startDate);
     const end = formatDate(sprint.endDate);
     const days = getDaysBetween(sprint.startDate, sprint.endDate);
 
-    return `${start} - ${end} (${days} days)`;
-  }, [sprint.startDate, sprint.endDate]);
+    return `${start} - ${end} (${t("card.days", { count: days })})`;
+  }, [sprint.startDate, sprint.endDate, t]);
 
   // Prevent dropdown menu clicks from triggering card click
   const handleCardClick = (e: React.MouseEvent) => {
@@ -116,7 +118,7 @@ export const SprintCard = ({
                   className="text-[var(--foreground)] hover:bg-[var(--accent)]"
                 >
                   <HiCheck className="w-4 h-4 mr-2" />
-                  Complete Sprint
+                  {t("card.completeSprint")}
                 </DropdownMenuItem>
               )}
               {hasAccess && (
@@ -129,7 +131,7 @@ export const SprintCard = ({
                   className="text-[var(--foreground)] hover:bg-[var(--accent)]"
                 >
                   <HiPencil className="w-4 h-4 mr-2" />
-                  Edit Sprint
+                  {t("card.editSprint")}
                 </DropdownMenuItem>
               )}
               {hasAccess && (
@@ -142,7 +144,7 @@ export const SprintCard = ({
                   className="text-[var(--destructive)] hover:bg-[var(--destructive)]/10"
                 >
                   <HiTrash className="w-4 h-4 mr-2" />
-                  Delete Sprint
+                  {t("card.deleteSprint")}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

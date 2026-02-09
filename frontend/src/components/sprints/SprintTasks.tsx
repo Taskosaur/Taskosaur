@@ -7,6 +7,7 @@ import TaskTable from "@/components/ui/tables/TaskTable";
 import type { Task } from "@/types/tasks";
 import { getCurrentOrganizationId } from "@/utils/hierarchyContext";
 import Loader from "../common/Loader";
+import { useTranslation } from "react-i18next";
 interface SprintTasksPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,6 +21,7 @@ export const SprintTasksPanel: React.FC<SprintTasksPanelProps> = ({
   sprintName = "Authentication & User Management",
   sprintId,
 }) => {
+  const { t } = useTranslation(["sprints"]);
   const { getTasksBySprint } = useTask();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
@@ -40,7 +42,7 @@ export const SprintTasksPanel: React.FC<SprintTasksPanelProps> = ({
       try {
         const organizationId = getCurrentOrganizationId();
         if (!organizationId) {
-          throw new Error("No organization selected. Please select an organization first.");
+          throw new Error(t("tasksPanel.errorNoOrg"));
         }
         const result = await getTasksBySprint(organizationId, sprintId);
         const mapped = (result || []).map((task: any) => ({
@@ -66,7 +68,7 @@ export const SprintTasksPanel: React.FC<SprintTasksPanelProps> = ({
         }));
         setTasks(mapped);
       } catch (err: any) {
-        setError(err?.message || "Failed to fetch tasks");
+        setError(err?.message || t("tasksPanel.fetchFailed"));
       } finally {
         setLoading(false);
       }
@@ -89,9 +91,9 @@ export const SprintTasksPanel: React.FC<SprintTasksPanelProps> = ({
                 <HiClipboardDocumentList className="sprints-tasks-header-icon-inner" />
               </div>
               <div>
-                <h2 className="sprints-tasks-header-title">Sprint Tasks</h2>
+                <h2 className="sprints-tasks-header-title">{t("tasksPanel.title")}</h2>
                 <p className="sprints-tasks-header-subtitle">
-                  {sprintName} • {tasks.length} tasks
+                  {sprintName} • {tasks.length} {t("tasksPanel.tasks")}
                 </p>
               </div>
             </div>

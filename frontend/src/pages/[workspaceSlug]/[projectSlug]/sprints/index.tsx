@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useSprint } from "@/contexts/sprint-context";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
+import { useTranslation } from "react-i18next";
 import { HiPlus, HiRocketLaunch } from "react-icons/hi2";
 import { Sprint } from "@/types";
 import { SprintCard } from "@/components/sprints/SprintCard";
@@ -17,6 +18,7 @@ import { useLayout } from "@/contexts/layout-context";
 import NotFound from "@/pages/404";
 
 function SprintsPageContent() {
+  const { t } = useTranslation(["sprints", "common"]);
   const router = useRouter();
   const { projectSlug, projectId, workspaceSlug } = router.query;
 
@@ -74,7 +76,7 @@ function SprintsPageContent() {
       if (isAuth) {
         const workspace = await workspaceContext.getWorkspaceBySlug(workspaceSlug);
         if (!workspace) {
-          setLocalError("Workspace not found");
+          setLocalError(t("errors.workspaceNotFound"));
           return;
         }
 
@@ -82,7 +84,7 @@ function SprintsPageContent() {
         const project = findProjectBySlug(projects || [], projectSlug);
 
         if (!project) {
-          setLocalError("Project not found");
+          setLocalError(t("errors.projectNotFound"));
           return;
         }
         setProjectData(project);
@@ -92,12 +94,12 @@ function SprintsPageContent() {
           setProjectData(project);
         } catch (error) {
           console.error("Error loading public project data:", error);
-          setLocalError(error?.message || "Error loading project data");
+          setLocalError(error?.message || t("errors.loadingProjectError"));
         }
       }
     } catch (err) {
       console.error("Error loading page data:", err);
-      setLocalError(err?.message || "Error loading page data");
+      setLocalError(err?.message || t("errors.loadingPageError"));
     }
   };
 
@@ -231,8 +233,8 @@ function SprintsPageContent() {
       <div className="space-y-6">
         {/* Header */}
         <PageHeader
-          title="Sprint Management"
-          description="Organize your work into focused iterations and track progress effectively."
+          title={t("title")}
+          description={t("description")}
           actions={
             hasAccess && (
               <Button
@@ -243,7 +245,7 @@ function SprintsPageContent() {
                 className="h-10 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] shadow-sm hover:shadow-md transition-all duration-200 font-medium flex items-center gap-2"
               >
                 <HiPlus className="w-4 h-4" />
-                Create Sprint
+                {t("createSprint")}
               </Button>
             )
           }
@@ -274,9 +276,9 @@ function SprintsPageContent() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-[var(--muted)] flex items-center justify-center">
               <HiRocketLaunch className="w-8 h-8 text-[var(--muted-foreground)]" />
             </div>
-            <h3 className="text-lg font-semibold text-[var(--foreground)] mb-2">No sprints yet</h3>
+            <h3 className="text-lg font-semibold text-[var(--foreground)] mb-2">{t("noSprints.title")}</h3>
             <p className="text-[var(--muted-foreground)] mb-6 max-w-md mx-auto">
-              Create your first sprint to start organizing your work into focused iterations.
+              {t("noSprints.description")}
             </p>
           </div>
         )}
@@ -300,10 +302,10 @@ function SprintsPageContent() {
             setDeletingSprint(null);
           }}
           onConfirm={handleDeleteSprint}
-          title="Delete Sprint"
-          message={`Are you sure you want to delete the sprint "${deletingSprint?.name || ""}"? This action cannot be undone.`}
-          confirmText={isDeleting ? "Deleting..." : "Delete"}
-          cancelText="Cancel"
+          title={t("deleteSprint.title")}
+          message={t("deleteSprint.message", { name: deletingSprint?.name || "" })}
+          confirmText={isDeleting ? t("deleteSprint.deleting") : t("deleteSprint.confirm")}
+          cancelText={t("deleteSprint.cancel")}
           type="danger"
         />
       </div>

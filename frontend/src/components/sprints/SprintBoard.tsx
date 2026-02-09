@@ -16,6 +16,7 @@ import {
 } from "react-icons/hi2";
 import { HiLightningBolt } from "react-icons/hi";
 import { Sprint, Task, TaskStatus } from "@/types";
+import { useTranslation } from "react-i18next";
 interface SprintBoardProps {
   projectId: string;
   sprintId?: string;
@@ -68,6 +69,7 @@ const getSprintStatusConfig = (status: string) => {
 };
 
 export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
+  const { t } = useTranslation(["sprints"]);
   const [currentSprint, setCurrentSprint] = useState<Sprint | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [statuses, setStatuses] = useState<TaskStatus[]>([]);
@@ -80,7 +82,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
   const mockStatuses: TaskStatus[] = [
     {
       id: "status-1",
-      name: "Sprint Backlog",
+      name: t("board.statuses.sprintBacklog", { defaultValue: "Sprint Backlog" }),
       description: "Tasks planned for this sprint",
       color: "#64748b",
       category: "TODO" as any,
@@ -90,7 +92,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
     },
     {
       id: "status-2",
-      name: "In Progress",
+      name: t("board.statuses.inProgress", { defaultValue: "In Progress" }),
       description: "Tasks currently being worked on",
       color: "#f59e0b",
       category: "IN_PROGRESS" as any,
@@ -100,7 +102,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
     },
     {
       id: "status-3",
-      name: "Testing",
+      name: t("board.statuses.testing", { defaultValue: "Testing" }),
       description: "Tasks being tested",
       color: "#3b82f6",
       category: "IN_PROGRESS" as any,
@@ -110,7 +112,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
     },
     {
       id: "status-4",
-      name: "Done",
+      name: t("board.statuses.done", { defaultValue: "Done" }),
       description: "Completed tasks",
       color: "#10b981",
       category: "DONE" as any,
@@ -315,7 +317,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
 
   // Helper function for consistent date formatting to prevent hydration issues
   const formatDate = (dateString: string) => {
-    if (!currentDate) return "Loading...";
+    if (!currentDate) return t("board.loading");
     try {
       return new Date(dateString).toLocaleDateString("en-US", {
         month: "short",
@@ -323,7 +325,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
         year: "numeric",
       });
     } catch {
-      return "Invalid date";
+      return t("board.invalidDate");
     }
   };
 
@@ -406,8 +408,8 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
         <div className="sprints-empty-icon-container">
           <HiLightningBolt className="sprints-empty-icon" />
         </div>
-        <h3 className="sprints-empty-title">No Sprint Selected</h3>
-        <p className="sprints-empty-description">Please select a sprint to view the board</p>
+        <h3 className="sprints-empty-title">{t("board.noSprintSelected")}</h3>
+        <p className="sprints-empty-description">{t("board.selectSprintToView")}</p>
       </div>
     );
   }
@@ -449,11 +451,11 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
                   </div>
                   <div className="sprints-header-meta-item">
                     <HiClipboardDocumentList className="sprints-header-meta-icon" />
-                    {completedTasks}/{tasks.length} tasks
+                    {completedTasks}/{tasks.length} {t("board.tasks")}
                   </div>
                   <div className="sprints-header-meta-item">
                     <HiFlag className="sprints-header-meta-icon" />
-                    {completedStoryPoints}/{totalStoryPoints} points
+                    {completedStoryPoints}/{totalStoryPoints} {t("board.points")}
                   </div>
                 </div>
               </div>
@@ -470,7 +472,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
               {currentSprint.status === "PLANNING" && (
                 <Button onClick={handleStartSprint} className="sprints-start-button">
                   <HiPlay className="sprints-button-icon" />
-                  Start Sprint
+                  {t("board.startSprint")}
                 </Button>
               )}
 
@@ -481,7 +483,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
                   className="sprints-complete-button"
                 >
                   <HiCheck className="sprints-button-icon" />
-                  Complete Sprint
+                  {t("board.completeSprint")}
                 </Button>
               )}
             </div>
@@ -521,7 +523,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
                 <p className="sprints-stats-value">
                   {completedTasks}/{tasks.length}
                 </p>
-                <p className="sprints-stats-label">Tasks Completed</p>
+                <p className="sprints-stats-label">{t("board.tasksCompleted")}</p>
               </div>
             </div>
           </CardContent>
@@ -537,7 +539,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
                 <p className="sprints-stats-value">
                   {completedStoryPoints}/{totalStoryPoints}
                 </p>
-                <p className="sprints-stats-label">Story Points</p>
+                <p className="sprints-stats-label">{t("board.storyPoints")}</p>
               </div>
             </div>
           </CardContent>
@@ -553,7 +555,7 @@ export default function SprintBoard({ projectId, sprintId }: SprintBoardProps) {
                 <p className="sprints-stats-value">
                   {tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0}%
                 </p>
-                <p className="sprints-stats-label">Completion Rate</p>
+                <p className="sprints-stats-label">{t("board.completionRate")}</p>
               </div>
             </div>
           </CardContent>

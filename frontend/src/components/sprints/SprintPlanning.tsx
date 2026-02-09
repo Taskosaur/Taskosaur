@@ -19,6 +19,7 @@ import {
 } from "react-icons/hi2";
 import { HiBugAnt } from "react-icons/hi2";
 import { FiTarget } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
 interface SprintPlanningProps {
   projectId: string;
   sprintId?: string | null;
@@ -70,6 +71,7 @@ const getPriorityConfig = (priority: TaskPriority) => {
 };
 
 export default function SprintPlanning({ projectId, sprintId }: SprintPlanningProps) {
+  const { t } = useTranslation(["sprints"]);
   const [backlogTasks, setBacklogTasks] = useState<Task[]>([]);
   const [sprintTasks, setSprintTasks] = useState<Task[]>([]);
   const [currentSprint, setCurrentSprint] = useState<Sprint | null>(null);
@@ -265,7 +267,7 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
 
   // Helper function for consistent date formatting to prevent hydration issues
   const formatDate = (dateString: string) => {
-    if (!currentDate) return "Loading...";
+    if (!currentDate) return t("board.loading");
     try {
       return new Date(dateString).toLocaleDateString("en-US", {
         month: "short",
@@ -273,7 +275,7 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
         year: "numeric",
       });
     } catch {
-      return "Invalid date";
+      return t("board.invalidDate");
     }
   };
 
@@ -414,9 +416,9 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
         <div className="sprints-empty-icon-container">
           <HiCalendar className="sprints-empty-icon" />
         </div>
-        <h3 className="sprints-empty-title">No Sprint Selected</h3>
+        <h3 className="sprints-empty-title">{t("board.noSprintSelected")}</h3>
         <p className="sprints-empty-description">
-          Please select a sprint from the dropdown above to start planning.
+          {t("planning.selectSprintToPlan", { defaultValue: "Please select a sprint from the dropdown above to start planning." })}
         </p>
       </div>
     );
@@ -429,18 +431,18 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
         <div>
           <h2 className="sprints-planning-title">
             <HiCalendar className="sprints-planning-title-icon" />
-            Sprint Planning
+            {t("planning.title")}
           </h2>
-          <p className="sprints-planning-subtitle">{currentSprint?.name || "Select a sprint"}</p>
+          <p className="sprints-planning-subtitle">{currentSprint?.name || t("planning.selectSprint")}</p>
         </div>
         <div className="sprints-planning-actions">
           <Button variant="outline" className="sprints-planning-save-button">
             <HiBookmark className="w-4 h-4 mr-2" />
-            Save Changes
+            {t("planning.saveChanges")}
           </Button>
           <Button className="sprints-planning-start-button">
             <HiPlay className="w-4 h-4 mr-2" />
-            Start Sprint
+            {t("planning.startSprint")}
           </Button>
         </div>
       </div>
@@ -452,30 +454,30 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
             <div>
               <h3 className="sprints-planning-info-section-title">
                 <FiTarget className="sprints-planning-info-section-icon" />
-                Sprint Goal
+                {t("planning.goal")}
               </h3>
               <p className="sprints-planning-info-section-text">
-                {currentSprint?.goal || "No goal set"}
+                {currentSprint?.goal || t("planning.noGoal")}
               </p>
             </div>
             <div>
               <h3 className="sprints-planning-info-section-title">
                 <HiCalendar className="sprints-planning-info-section-icon" />
-                Duration
+                {t("planning.duration")}
               </h3>
               <p className="sprints-planning-info-section-text">
                 {currentSprint
                   ? `${formatDate(currentSprint.startDate)} - ${formatDate(currentSprint.endDate)}`
-                  : "No dates set"}
+                  : t("planning.noDates")}
               </p>
             </div>
             <div>
               <h3 className="sprints-planning-info-section-title">
                 <HiUsers className="sprints-planning-info-section-icon" />
-                Capacity
+                {t("planning.capacity")}
               </h3>
               <p className="sprints-planning-info-section-text">
-                {(currentSprint as any)?.capacity || 0} hours
+                {(currentSprint as any)?.capacity || 0} {t("planning.hours")}
               </p>
             </div>
           </div>
@@ -490,11 +492,11 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
             <div className="sprints-planning-column-title-row">
               <CardTitle className="sprints-planning-column-title">
                 <HiClipboardDocumentList className="sprints-planning-column-icon" />
-                Product Backlog
+                {t("planning.productBacklog")}
               </CardTitle>
               <div className="sprints-planning-column-meta">
-                <span>{backlogTasks.length} tasks</span>
-                <span>{getTotalStoryPoints(backlogTasks)} SP</span>
+                <span>{backlogTasks.length} {t("planning.tasks")}</span>
+                <span>{getTotalStoryPoints(backlogTasks)} {t("planning.sp")}</span>
               </div>
             </div>
           </CardHeader>
@@ -510,7 +512,7 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
                   <div className="sprints-planning-empty-icon-container">
                     <HiClipboardDocumentList className="sprints-planning-empty-icon" />
                   </div>
-                  <p className="sprints-planning-empty-text">No tasks in backlog</p>
+                  <p className="sprints-planning-empty-text">{t("planning.noTasksInBacklog")}</p>
                 </div>
               )}
             </div>
@@ -523,11 +525,11 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
             <div className="sprints-planning-column-title-row">
               <CardTitle className="sprints-planning-column-title">
                 <HiFlag className="sprints-planning-column-icon-primary" />
-                Sprint Backlog
+                {t("planning.sprintBacklog")}
               </CardTitle>
               <div className="sprints-planning-column-meta">
-                <span>{sprintTasks.length} tasks</span>
-                <span>{getTotalStoryPoints(sprintTasks)} SP</span>
+                <span>{sprintTasks.length} {t("planning.tasks")}</span>
+                <span>{getTotalStoryPoints(sprintTasks)} {t("planning.sp")}</span>
               </div>
             </div>
           </CardHeader>
@@ -544,10 +546,10 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
                     <HiPlus className="sprints-planning-sprint-empty-icon" />
                   </div>
                   <p className="sprints-planning-sprint-empty-title">
-                    Drag tasks here to add to sprint
+                    {t("planning.dragTasksHere")}
                   </p>
                   <p className="sprints-planning-sprint-empty-subtitle">
-                    Click tasks to move them between backlog and sprint
+                    {t("planning.clickToMove")}
                   </p>
                 </div>
               )}
@@ -561,7 +563,7 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
         <CardHeader className="sprints-planning-summary-header">
           <CardTitle className="sprints-planning-summary-title">
             <HiChartBar className="sprints-planning-summary-title-icon" />
-            Sprint Summary
+            {t("planning.summary")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -571,7 +573,7 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
                 <HiClipboardDocumentList className="sprints-planning-summary-stat-icon-blue sprints-planning-summary-stat-icon-blue-dark" />
               </div>
               <div className="sprints-planning-summary-stat-value">{sprintTasks.length}</div>
-              <div className="sprints-planning-summary-stat-label">Tasks</div>
+              <div className="sprints-planning-summary-stat-label">{t("planning.tasks")}</div>
             </div>
             <div className="sprints-planning-summary-stat">
               <div className="sprints-planning-summary-stat-icon-container-green sprints-planning-summary-stat-icon-container-green-dark">
@@ -580,7 +582,7 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
               <div className="sprints-planning-summary-stat-value">
                 {getTotalStoryPoints(sprintTasks)}
               </div>
-              <div className="sprints-planning-summary-stat-label">Story Points</div>
+              <div className="sprints-planning-summary-stat-label">{t("board.storyPoints")}</div>
             </div>
             <div className="sprints-planning-summary-stat">
               <div className="sprints-planning-summary-stat-icon-container-purple sprints-planning-summary-stat-icon-container-purple-dark">
@@ -589,7 +591,7 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
               <div className="sprints-planning-summary-stat-value">
                 {formatTime(getTotalEstimate(sprintTasks))}
               </div>
-              <div className="sprints-planning-summary-stat-label">Estimated Time</div>
+              <div className="sprints-planning-summary-stat-label">{t("planning.estimatedTime")}</div>
             </div>
             <div className="sprints-planning-summary-stat">
               <div className="sprints-planning-summary-stat-icon-container-orange sprints-planning-summary-stat-icon-container-orange-dark">
@@ -598,7 +600,7 @@ export default function SprintPlanning({ projectId, sprintId }: SprintPlanningPr
               <div className="sprints-planning-summary-stat-value">
                 {(currentSprint as any)?.capacity || 0}h
               </div>
-              <div className="sprints-planning-summary-stat-label">Capacity</div>
+              <div className="sprints-planning-summary-stat-label">{t("planning.capacity")}</div>
             </div>
           </div>
         </CardContent>

@@ -4,6 +4,7 @@ import { HiXMark } from "react-icons/hi2";
 import { HiSearch } from "react-icons/hi";
 import type { ColumnConfig } from "@/types/tasks";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import TabView from "@/components/tasks/TabView";
 import TaskListView from "@/components/tasks/views/TaskListView";
 import TaskGanttView from "@/components/tasks/views/TaskGanttView";
@@ -40,6 +41,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 const SprintTasksTable = () => {
+  const { t } = useTranslation(["sprints", "tasks", "common"]);
   const router = useRouter();
   const { sprintId, projectSlug, workspaceSlug } = router.query;
 
@@ -209,7 +211,7 @@ const SprintTasksTable = () => {
         }
       } catch (error) {
         console.error("Error fetching project data:", error);
-        setLocalError(error?.message || "Error fetching project data");
+        setLocalError(error?.message || t("errors.fetchingProjectError"));
         setProject(null);
       }
     };
@@ -305,7 +307,7 @@ const SprintTasksTable = () => {
       );
       setAvailableStatuses(uniqueStatuses);
     } catch (err: any) {
-      setLocalError(err?.message || "Failed to fetch tasks");
+      setLocalError(err?.message || t("errors.fetchTasksFailed"));
     } finally {
       setIsInitialLoad(false);
     }
@@ -616,7 +618,7 @@ const SprintTasksTable = () => {
     () => [
       createSection({
         id: "status",
-        title: "Status",
+        title: t("tasks:filters.status"),
         icon: CheckSquare,
         data: statusFilters,
         selectedIds: selectedStatuses,
@@ -627,7 +629,7 @@ const SprintTasksTable = () => {
       }),
       createSection({
         id: "priority",
-        title: "Priority",
+        title: t("tasks:filters.priority"),
         icon: Flame,
         data: priorityFilters,
         selectedIds: selectedPriorities,
@@ -638,7 +640,7 @@ const SprintTasksTable = () => {
       }),
       createSection({
         id: "assignee",
-        title: "Assignee",
+        title: t("tasks:filters.assignee"),
         icon: User,
         data: assigneeFilters,
         selectedIds: selectedAssignees,
@@ -649,7 +651,7 @@ const SprintTasksTable = () => {
       }),
       createSection({
         id: "reporter",
-        title: "Reporter",
+        title: t("tasks:filters.reporter"),
         icon: Users,
         data: reporterFilters,
         selectedIds: selectedReporters,
@@ -843,7 +845,7 @@ const SprintTasksTable = () => {
         ) : (
           <div className="text-center py-12">
             <p className="text-muted-foreground">
-              No workflow found. Create workflow statuses to use the Kanban view.
+              {t("tasks:noWorkflow")}
             </p>
           </div>
         );
@@ -885,8 +887,8 @@ const SprintTasksTable = () => {
         {/* PageHeader */}
         <div className="pb-2">
           <PageHeader
-            title="Sprint Tasks"
-            description={`Manage and track all tasks in this sprint. ${pagination.totalCount} total tasks`}
+            title={t("sprintTasks.title")}
+            description={t("sprintTasks.description", { total: pagination.totalCount })}
             actions={
               <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
                 <div className="flex items-center gap-2">
@@ -894,7 +896,7 @@ const SprintTasksTable = () => {
                     <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
                     <Input
                       type="text"
-                      placeholder="Search tasks..."
+                      placeholder={t("sprintTasks.searchPlaceholder")}
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
                       className="pl-10 rounded-md border border-[var(--border)]"
@@ -911,10 +913,10 @@ const SprintTasksTable = () => {
                   {currentView === "list" && isAuth && (
                     <FilterDropdown
                       sections={filterSections}
-                      title="Advanced Filters"
+                      title={t("tasks:advancedFilters")}
                       activeFiltersCount={totalActiveFilters}
                       onClearAllFilters={clearAllFilters}
-                      placeholder="Filter results..."
+                      placeholder={t("tasks:filterResults")}
                       dropdownWidth="w-56"
                       showApplyButton={false}
                     />
@@ -947,7 +949,7 @@ const SprintTasksTable = () => {
                             : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
                         }`}
                       >
-                        {mode}
+                        {t(`tasks:views.${mode}`)}
                       </button>
                     ))}
                   </div>

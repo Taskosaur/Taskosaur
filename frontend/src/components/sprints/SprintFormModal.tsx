@@ -8,6 +8,7 @@ import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import ActionButton from "../common/ActionButton";
 import { getTodayDate } from "@/utils/handleDateChange";
+import { useTranslation } from "react-i18next";
 
 export const SprintFormModal = ({
   isOpen,
@@ -22,6 +23,7 @@ export const SprintFormModal = ({
   projectSlug: string;
   onSave: (data: any) => Promise<void>;
 }) => {
+  const { t } = useTranslation(["sprints"]);
   const [formData, setFormData] = useState({
     name: "",
     goal: "",
@@ -60,17 +62,17 @@ export const SprintFormModal = ({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.name.trim()) {
-      newErrors.name = "Sprint name is required";
+      newErrors.name = t("form.validation.nameRequired");
     }
     if (!formData.startDate) {
-      newErrors.startDate = "Start date is required";
+      newErrors.startDate = t("form.validation.startDateRequired");
     }
     if (!formData.endDate) {
-      newErrors.endDate = "End date is required";
+      newErrors.endDate = t("form.validation.endDateRequired");
     }
     if (formData.startDate && formData.endDate) {
       if (isDateAfter(formData.startDate, formData.endDate)) {
-        newErrors.endDate = "End date must be after start date";
+        newErrors.endDate = t("form.validation.endDateAfterStart");
       }
     }
     setErrors(newErrors);
@@ -126,12 +128,12 @@ export const SprintFormModal = ({
               </div>
               <div className="projects-modal-info">
                 <DialogTitle className="projects-modal-title">
-                  {sprint ? "Edit Sprint" : "Create new sprint"}
+                  {sprint ? t("form.editTitle") : t("form.createTitle")}
                 </DialogTitle>
                 <DialogDescription className="projects-modal-description">
                   {sprint
-                    ? "Update sprint details and timeline"
-                    : "Create a new sprint to organize your work into focused iterations"}
+                    ? t("form.editDescription")
+                    : t("form.createDescription")}
                 </DialogDescription>
               </div>
             </div>
@@ -145,11 +147,11 @@ export const SprintFormModal = ({
                   className="projects-form-label-icon"
                   style={{ color: "hsl(var(--primary))" }}
                 />
-                Sprint name <span className="projects-form-label-required">*</span>
+                {t("form.nameLabel")} <span className="projects-form-label-required">*</span>
               </Label>
               <Input
                 id="name"
-                placeholder="Enter sprint name"
+                placeholder={t("form.namePlaceholder")}
                 value={formData.name}
                 onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                 className="projects-form-input border-none"
@@ -179,11 +181,11 @@ export const SprintFormModal = ({
                   className="projects-form-label-icon"
                   style={{ color: "hsl(var(--primary))" }}
                 />
-                Sprint goal
+                {t("form.goalLabel")}
               </Label>
               <Textarea
                 id="goal"
-                placeholder="Describe the main objective and outcomes for this sprint..."
+                placeholder={t("form.goalPlaceholder")}
                 value={formData.goal}
                 onChange={(e) => setFormData((prev) => ({ ...prev, goal: e.target.value }))}
                 className="projects-form-textarea border-none"
@@ -201,7 +203,7 @@ export const SprintFormModal = ({
                   className="projects-form-hint-icon"
                   style={{ color: "hsl(var(--primary))" }}
                 />
-                Help your team understand the sprint's focus and expected outcomes.
+                {t("form.goalHint")}
               </p>
             </div>
 
@@ -212,7 +214,7 @@ export const SprintFormModal = ({
                   className="projects-form-label-icon"
                   style={{ color: "hsl(var(--primary))" }}
                 />
-                Status <span className="projects-form-label-required">*</span>
+                {t("form.statusLabel")} <span className="projects-form-label-required">*</span>
               </Label>
               <Select
                 value={formData.status}
@@ -233,20 +235,20 @@ export const SprintFormModal = ({
                     e.currentTarget.style.boxShadow = "none";
                   }}
                 >
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue placeholder={t("form.statusPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent className="border-none bg-[var(--card)]">
                   <SelectItem value="PLANNING" className="hover:bg-[var(--hover-bg)]">
-                    Planning
+                    {t("form.statuses.planning")}
                   </SelectItem>
                   <SelectItem value="ACTIVE" className="hover:bg-[var(--hover-bg)]">
-                    Active
+                    {t("form.statuses.active")}
                   </SelectItem>
                   <SelectItem value="COMPLETED" className="hover:bg-[var(--hover-bg)]">
-                    Completed
+                    {t("form.statuses.completed")}
                   </SelectItem>
                   <SelectItem value="CANCELLED" className="hover:bg-[var(--hover-bg)]">
-                    Cancelled
+                    {t("form.statuses.cancelled")}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -260,7 +262,7 @@ export const SprintFormModal = ({
                     className="projects-form-label-icon"
                     style={{ color: "hsl(var(--primary))" }}
                   />
-                  Start date <span className="projects-form-label-required">*</span>
+                  {t("form.startDateLabel")} <span className="projects-form-label-required">*</span>
                 </Label>
                 <Input
                   id="startDate"
@@ -293,7 +295,7 @@ export const SprintFormModal = ({
                     className="projects-form-label-icon"
                     style={{ color: "hsl(var(--primary))" }}
                   />
-                  End date <span className="projects-form-label-required">*</span>
+                  {t("form.endDateLabel")} <span className="projects-form-label-required">*</span>
                 </Label>
                 <Input
                   id="endDate"
@@ -319,18 +321,18 @@ export const SprintFormModal = ({
             {/* Submit Buttons */}
             <div className="projects-form-actions flex gap-2 justify-end mt-6">
               <ActionButton type="button" secondary onClick={handleClose} disabled={saving}>
-                Cancel
+                {t("form.cancel")}
               </ActionButton>
               <ActionButton type="submit" primary disabled={!isValid || saving}>
                 {saving ? (
                   <>
                     <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                    {sprint ? "Updating..." : "Creating sprint..."}
+                    {sprint ? t("form.updating") : t("form.creating")}
                   </>
                 ) : sprint ? (
-                  "Update"
+                  t("form.update")
                 ) : (
-                  "Create"
+                  t("form.create")
                 )}
               </ActionButton>
             </div>
