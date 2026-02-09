@@ -300,44 +300,33 @@ export class TaskDependenciesService {
   }
 
   async validateNoCycles(dependentTaskId: string, blockingTaskId: string): Promise<void> {
-    // Use DFS to detect cycles
+    // To check if adding dependentTaskId -> blockingTaskId creates a cycle,
+    // we check if blockingTaskId already depends on dependentTaskId (directly or indirectly).
     const visited = new Set<string>();
-    const recursionStack = new Set<string>();
 
-    const hasCycle = async (taskId: string): Promise<boolean> => {
-      visited.add(taskId);
-      recursionStack.add(taskId);
+    const existsPath = async (currentId: string, targetId: string): Promise<boolean> => {
+      if (currentId === targetId) return true;
 
-      // Get all tasks that this task depends on
+      visited.add(currentId);
+
+      // Get all tasks that currentId depends on
       const dependencies = await this.prisma.taskDependency.findMany({
-        where: { dependentTaskId: taskId },
+        where: { dependentTaskId: currentId },
         select: { blockingTaskId: true },
       });
 
       for (const dep of dependencies) {
-        const blockingId = dep.blockingTaskId;
-
-        // If we're adding the dependency we're checking, this would create a cycle
-        if (taskId === dependentTaskId && blockingId === blockingTaskId) {
-          continue; // Skip the dependency we're trying to add
-        }
-
-        if (!visited.has(blockingId)) {
-          if (await hasCycle(blockingId)) {
+        if (!visited.has(dep.blockingTaskId)) {
+          if (await existsPath(dep.blockingTaskId, targetId)) {
             return true;
           }
-        } else if (recursionStack.has(blockingId)) {
-          return true;
         }
       }
 
-      recursionStack.delete(taskId);
       return false;
     };
 
-    // Check if adding this dependency would create a cycle
-    // We need to check if blockingTaskId eventually depends on dependentTaskId
-    if (await hasCycle(blockingTaskId)) {
+    if (await existsPath(blockingTaskId, dependentTaskId)) {
       throw new BadRequestException(
         'Creating this dependency would result in a circular dependency',
       );
