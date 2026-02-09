@@ -56,6 +56,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
     status: "",
     priority: "MEDIUM",
     type: "TASK",
+    storyPoints: "",
     startDate: "",
     dueDate: "",
     sprintId: "",
@@ -242,6 +243,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
         description: formData.description.trim() || "",
         priority: formData.priority.toUpperCase() as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
         type: formData.type as "TASK" | "BUG" | "EPIC" | "STORY" | "SUBTASK",
+        storyPoints: formData.storyPoints ? parseInt(formData.storyPoints) : undefined,
         startDate: formData.startDate ? formatDateForApi(formData.startDate)
           : formatDateForApi(getTodayDate()),
         dueDate: formData.dueDate
@@ -533,6 +535,20 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="storyPoints">Story Points</Label>
+                <Input
+                  id="storyPoints"
+                  name="storyPoints"
+                  type="number"
+                  min="0"
+                  value={formData.storyPoints}
+                  onChange={(e) => handleFormDataChange("storyPoints", e.target.value)}
+                  placeholder="e.g. 5"
+                  className="w-full border-[var(--border)] bg-[var(--background)]"
+                />
               </div>
 
               <div className="space-y-2">

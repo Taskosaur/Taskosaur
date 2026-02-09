@@ -110,6 +110,7 @@
     "selectPriority": "Select priority",
     "type": "Type",
     "selectType": "Select type",
+    "storyPoints": "Story Points",
     "sprint": "Sprint",
     "selectSprint": "Select sprint (optional)",
     "selectProjectFirst": "Select project first",

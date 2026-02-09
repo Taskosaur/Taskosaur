@@ -63,6 +63,7 @@ interface FormData {
   dueDate: string;
   priority: string;
   type: string;
+  storyPoints: string;
   sprintId?: string;
 }
 
@@ -100,6 +101,7 @@ export function NewTaskModal({
     dueDate: "",
     priority: "MEDIUM",
     type: "TASK",
+    storyPoints: "",
     sprintId: "",
   });
 
@@ -431,6 +433,7 @@ export function NewTaskModal({
           type: ["TASK", "BUG", "EPIC", "STORY"].includes(formData.type)
             ? (formData.type as "TASK" | "BUG" | "EPIC" | "STORY")
             : "TASK",
+          storyPoints: formData.storyPoints ? parseInt(formData.storyPoints) : undefined,
           dueDate: formData.dueDate ? moment(formData.dueDate).toISOString() : undefined,
           projectId: formData.project!.id,
           statusId: defaultStatus.id,
@@ -473,6 +476,7 @@ export function NewTaskModal({
       dueDate: "",
       priority: "MEDIUM",
       type: "TASK",
+      storyPoints: "",
       sprintId: "",
     });
 
@@ -736,7 +740,7 @@ export function NewTaskModal({
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="projects-form-field">
               <Label htmlFor="dueDate" className="projects-form-label">
                 <HiCalendar
@@ -838,6 +842,37 @@ export function NewTaskModal({
                   })}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="projects-form-field">
+              <Label htmlFor="storyPoints" className="projects-form-label">
+                <HiSparkles
+                  className="projects-form-label-icon"
+                  style={{ color: "hsl(var(--primary))" }}
+                />
+                {t("modal.storyPoints")}
+              </Label>
+              <Input
+                id="storyPoints"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={formData.storyPoints}
+                onChange={(e) => setFormData((prev) => ({ ...prev, storyPoints: e.target.value }))}
+                className="projects-workspace-button border-none"
+                style={
+                  {
+                    "--tw-ring-color": "hsl(var(--primary) / 0.2)",
+                  } as any
+                }
+                onFocus={(e) => {
+                  e.target.style.boxShadow = "none";
+                }}
+                onBlur={(e) => {
+                  e.target.style.boxShadow = "none";
+                }}
+                disabled={isSubmitting}
+              />
             </div>
           </div>
 
