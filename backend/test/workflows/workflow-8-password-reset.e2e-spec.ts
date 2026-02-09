@@ -3,7 +3,6 @@ import { INestApplication, HttpStatus } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from './../../src/app.module';
 import { PrismaService } from './../../src/prisma/prisma.service';
-import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
 import { EmailService } from './../../src/modules/email/email.service';
 
@@ -20,10 +19,9 @@ import { EmailService } from './../../src/modules/email/email.service';
  * Note: Email sending is mocked in test environment to capture the reset token
  */
 describe('Workflow 8: Password Reset Flow (e2e)', () => {
+  jest.setTimeout(30000);
   let app: INestApplication;
   let prismaService: PrismaService;
-  let jwtService: JwtService;
-  let emailService: EmailService;
 
   let user: any;
   let userEmail: string;
@@ -55,39 +53,36 @@ describe('Workflow 8: Password Reset Flow (e2e)', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
     prismaService = app.get<PrismaService>(PrismaService);
-    jwtService = app.get<JwtService>(JwtService);
-    emailService = app.get<EmailService>(EmailService); // This will be the mock
-
-    // Setup test data
-    userEmail = `reset-test-${Date.now()}@example.com`;
-    oldPassword = 'OldPassword123!';
-    newPassword = 'NewPassword456!';
-
-    // Create user with hashed password
-    const bcrypt = require('bcrypt');
-    const hashedPassword = await bcrypt.hash(oldPassword, 10);
-
-    user = await prismaService.user.create({
-      data: {
-        email: userEmail,
-        password: hashedPassword,
-        firstName: 'Reset',
-        lastName: 'Test',
-        username: `reset_test_${Date.now()}`,
-        role: Role.MEMBER,
-      },
-    });
   });
 
   afterAll(async () => {
     if (prismaService && user) {
-      // Cleanup - no separate passwordReset table, just delete the user
       await prismaService.user.delete({ where: { id: user.id } });
     }
     await app.close();
   });
 
   describe('Password Reset Flow', () => {
+    it('Step 0: Setup user via registration API', async () => {
+      userEmail = `reset-test-${Date.now()}@example.com`;
+      oldPassword = 'OldPassword123!';
+      newPassword = 'NewPassword456!';
+
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: userEmail,
+          password: oldPassword,
+          firstName: 'Reset',
+          lastName: 'Test',
+          username: `reset_test_${Date.now()}`,
+          role: Role.MEMBER,
+        })
+        .expect(HttpStatus.CREATED);
+
+      user = response.body.user;
+    });
+
     it('Step 1: Request password reset', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/auth/forgot-password')

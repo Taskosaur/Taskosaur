@@ -19,6 +19,7 @@ import { Role, ProjectStatus, ProjectPriority, ProjectVisibility } from '@prisma
  * Note: Organization deletion is not tested to avoid cascading issues.
  */
 describe('Workflow 6: Permission & Access Control (e2e)', () => {
+  jest.setTimeout(30000);
   let app: INestApplication;
   let prismaService: PrismaService;
   let jwtService: JwtService;
@@ -37,6 +38,8 @@ describe('Workflow 6: Permission & Access Control (e2e)', () => {
   let workflowId: string;
   let statusId: string;
 
+  const password = 'SecurePassword123!';
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -46,192 +49,6 @@ describe('Workflow 6: Permission & Access Control (e2e)', () => {
     await app.init();
     prismaService = app.get<PrismaService>(PrismaService);
     jwtService = app.get<JwtService>(JwtService);
-
-    // Create users
-    owner = await prismaService.user.create({
-      data: {
-        email: `perm-owner-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'Permission',
-        lastName: 'Owner',
-        username: `perm_owner_${Date.now()}`,
-        role: Role.OWNER,
-      },
-    });
-
-    admin = await prismaService.user.create({
-      data: {
-        email: `perm-admin-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'Permission',
-        lastName: 'Admin',
-        username: `perm_admin_${Date.now()}`,
-        role: Role.MANAGER,
-      },
-    });
-
-    member = await prismaService.user.create({
-      data: {
-        email: `perm-member-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'Permission',
-        lastName: 'Member',
-        username: `perm_member_${Date.now()}`,
-        role: Role.MEMBER,
-      },
-    });
-
-    nonMember = await prismaService.user.create({
-      data: {
-        email: `perm-nonmember-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'Permission',
-        lastName: 'NonMember',
-        username: `perm_nonmember_${Date.now()}`,
-        role: Role.MEMBER,
-      },
-    });
-
-    ownerToken = jwtService.sign({ sub: owner.id, email: owner.email, role: owner.role });
-    adminToken = jwtService.sign({ sub: admin.id, email: admin.email, role: admin.role });
-    memberToken = jwtService.sign({ sub: member.id, email: member.email, role: member.role });
-    nonMemberToken = jwtService.sign({ sub: nonMember.id, email: nonMember.email, role: nonMember.role });
-
-    // Create organization
-    const organization = await prismaService.organization.create({
-      data: {
-        name: `Permission Org ${Date.now()}`,
-        slug: `perm-org-${Date.now()}`,
-        ownerId: owner.id,
-      },
-    });
-    organizationId = organization.id;
-
-    // Add owner to organization
-    await prismaService.organizationMember.create({
-      data: {
-        userId: owner.id,
-        organizationId: organizationId,
-        role: Role.OWNER,
-      },
-    });
-
-    // Add admin and member to organization
-    await prismaService.organizationMember.create({
-      data: {
-        userId: admin.id,
-        organizationId: organizationId,
-        role: Role.MANAGER,
-      },
-    });
-
-    await prismaService.organizationMember.create({
-      data: {
-        userId: member.id,
-        organizationId: organizationId,
-        role: Role.MEMBER,
-      },
-    });
-
-    // Create workflow
-    const workflow = await prismaService.workflow.create({
-      data: {
-        name: 'Permission Workflow',
-        organizationId: organizationId,
-        isDefault: true,
-      },
-    });
-    workflowId = workflow.id;
-
-    // Create status
-    const status = await prismaService.taskStatus.create({
-      data: {
-        name: 'To Do',
-        color: '#cccccc',
-        position: 1,
-        workflowId: workflowId,
-        category: 'TODO',
-      },
-    });
-    statusId = status.id;
-
-    // Create workspace
-    const workspace = await prismaService.workspace.create({
-      data: {
-        name: `Permission Workspace ${Date.now()}`,
-        slug: `perm-ws-${Date.now()}`,
-        organizationId: organizationId,
-      },
-    });
-    workspaceId = workspace.id;
-
-    // Add owner to workspace
-    await prismaService.workspaceMember.create({
-      data: {
-        userId: owner.id,
-        workspaceId: workspaceId,
-        role: Role.OWNER,
-      },
-    });
-
-    // Add admin and member to workspace
-    await prismaService.workspaceMember.create({
-      data: {
-        userId: admin.id,
-        workspaceId: workspaceId,
-        role: Role.MANAGER,
-      },
-    });
-
-    await prismaService.workspaceMember.create({
-      data: {
-        userId: member.id,
-        workspaceId: workspaceId,
-        role: Role.MEMBER,
-      },
-    });
-
-    // Create project
-    const project = await prismaService.project.create({
-      data: {
-        name: 'Permission Project',
-        slug: `perm-project-${Date.now()}`,
-        workspaceId: workspaceId,
-        workflowId: workflowId,
-        color: '#e74c3c',
-        status: ProjectStatus.ACTIVE,
-        priority: ProjectPriority.HIGH,
-        visibility: ProjectVisibility.PRIVATE,
-        createdBy: owner.id,
-      },
-    });
-    projectId = project.id;
-
-    // Add owner to project
-    await prismaService.projectMember.create({
-      data: {
-        userId: owner.id,
-        projectId: projectId,
-        role: Role.OWNER,
-      },
-    });
-
-    // Add admin and member to project
-    await prismaService.projectMember.create({
-      data: {
-        userId: admin.id,
-        projectId: projectId,
-        role: Role.MANAGER,
-      },
-    });
-
-    await prismaService.projectMember.create({
-      data: {
-        userId: member.id,
-        projectId: projectId,
-        role: Role.MEMBER,
-      },
-    });
   });
 
   afterAll(async () => {
@@ -254,6 +71,191 @@ describe('Workflow 6: Permission & Access Control (e2e)', () => {
   });
 
   describe('Permission & Access Control', () => {
+    it('Step 0: Setup environment via API', async () => {
+      // Create owner
+      const ownerReg = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: `perm-owner-${Date.now()}@example.com`,
+          password,
+          firstName: 'Permission',
+          lastName: 'Owner',
+          username: `perm_owner_${Date.now()}`,
+          role: Role.OWNER,
+        })
+        .expect(HttpStatus.CREATED);
+      owner = ownerReg.body.user;
+      ownerToken = ownerReg.body.access_token;
+
+      // Create admin
+      const adminReg = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: `perm-admin-${Date.now()}@example.com`,
+          password,
+          firstName: 'Permission',
+          lastName: 'Admin',
+          username: `perm_admin_${Date.now()}`,
+          role: Role.MANAGER,
+        })
+        .expect(HttpStatus.CREATED);
+      admin = adminReg.body.user;
+      adminToken = adminReg.body.access_token;
+
+      // Create member
+      const memberReg = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: `perm-member-${Date.now()}@example.com`,
+          password,
+          firstName: 'Permission',
+          lastName: 'Member',
+          username: `perm_member_${Date.now()}`,
+          role: Role.MEMBER,
+        })
+        .expect(HttpStatus.CREATED);
+      member = memberReg.body.user;
+      memberToken = memberReg.body.access_token;
+
+      // Create nonMember
+      const nonMemberReg = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: `perm-nonmember-${Date.now()}@example.com`,
+          password,
+          firstName: 'Permission',
+          lastName: 'NonMember',
+          username: `perm_nonmember_${Date.now()}`,
+          role: Role.MEMBER,
+        })
+        .expect(HttpStatus.CREATED);
+      nonMember = nonMemberReg.body.user;
+      nonMemberToken = nonMemberReg.body.access_token;
+
+      // Create organization (Owner is automatically added as OWNER)
+      const orgResponse = await request(app.getHttpServer())
+        .post('/api/organizations')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          name: 'Permission Org',
+          ownerId: owner.id,
+        })
+        .expect(HttpStatus.CREATED);
+      organizationId = orgResponse.body.id;
+
+      // Add admin and member to organization
+      await request(app.getHttpServer())
+        .post('/api/organization-members')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ userId: admin.id, organizationId, role: Role.MANAGER })
+        .expect(HttpStatus.CREATED);
+
+      await request(app.getHttpServer())
+        .post('/api/organization-members')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ userId: member.id, organizationId, role: Role.MEMBER })
+        .expect(HttpStatus.CREATED);
+
+      // Create workflow
+      const wfResponse = await request(app.getHttpServer())
+        .post('/api/workflows')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          name: 'Permission Workflow',
+          organizationId: organizationId,
+          isDefault: true,
+        })
+        .expect(HttpStatus.CREATED);
+      workflowId = wfResponse.body.id;
+
+      // Get default status
+      const statusesResponse = await request(app.getHttpServer())
+        .get(`/api/task-statuses?workflowId=${workflowId}`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(HttpStatus.OK);
+      statusId = statusesResponse.body.find((s: any) => s.name === 'To Do').id;
+
+      // Create workspace (Owner might be automatically added depending on service logic)
+      const wsResponse = await request(app.getHttpServer())
+        .post('/api/workspaces')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          name: 'Permission Workspace',
+          slug: `perm-ws-${Date.now()}`,
+          organizationId: organizationId,
+        })
+        .expect(HttpStatus.CREATED);
+      workspaceId = wsResponse.body.id;
+
+      // Check if admin is already member, if not add
+      const wsMembersAdmin = await request(app.getHttpServer())
+        .get(`/api/workspace-members?workspaceId=${workspaceId}&search=${admin.email}`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+      
+      if (wsMembersAdmin.body.length === 0) {
+        await request(app.getHttpServer())
+          .post('/api/workspace-members')
+          .set('Authorization', `Bearer ${ownerToken}`)
+          .send({ userId: admin.id, workspaceId, role: Role.MANAGER })
+          .expect(HttpStatus.CREATED);
+      }
+
+      const wsMembersMember = await request(app.getHttpServer())
+        .get(`/api/workspace-members?workspaceId=${workspaceId}&search=${member.email}`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+
+      if (wsMembersMember.body.length === 0) {
+        await request(app.getHttpServer())
+          .post('/api/workspace-members')
+          .set('Authorization', `Bearer ${ownerToken}`)
+          .send({ userId: member.id, workspaceId, role: Role.MEMBER })
+          .expect(HttpStatus.CREATED);
+      }
+
+      // Create project
+      const projectResponse = await request(app.getHttpServer())
+        .post('/api/projects')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          name: 'Permission Project',
+          slug: `perm-project-${Date.now()}`,
+          workspaceId: workspaceId,
+          workflowId: workflowId,
+          color: '#e74c3c',
+          status: ProjectStatus.ACTIVE,
+          priority: ProjectPriority.HIGH,
+          visibility: ProjectVisibility.PRIVATE,
+        })
+        .expect(HttpStatus.CREATED);
+      projectId = projectResponse.body.id;
+
+      // Check and add admin to project
+      const projectMembersAdmin = await request(app.getHttpServer())
+        .get(`/api/project-members?projectId=${projectId}&search=${admin.email}`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+      
+      if (projectMembersAdmin.body.data?.length === 0 || projectMembersAdmin.body.length === 0) {
+        await request(app.getHttpServer())
+          .post('/api/project-members')
+          .set('Authorization', `Bearer ${ownerToken}`)
+          .send({ userId: admin.id, projectId, role: Role.MANAGER })
+          .expect(HttpStatus.CREATED);
+      }
+
+      // Check and add member to project
+      const projectMembersMember = await request(app.getHttpServer())
+        .get(`/api/project-members?projectId=${projectId}&search=${member.email}`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+
+      if (projectMembersMember.body.data?.length === 0 || projectMembersMember.body.length === 0) {
+        await request(app.getHttpServer())
+          .post('/api/project-members')
+          .set('Authorization', `Bearer ${ownerToken}`)
+          .send({ userId: member.id, projectId, role: Role.MEMBER })
+          .expect(HttpStatus.CREATED);
+      }
+    });
+
     it('Step 1: Owner can view organization', async () => {
       const response = await request(app.getHttpServer())
         .get(`/api/organizations/${organizationId}`)

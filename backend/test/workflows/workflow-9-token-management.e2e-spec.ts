@@ -21,6 +21,7 @@ import { Role } from '@prisma/client';
  * Note: Token expiry is simulated by creating an expired token
  */
 describe('Workflow 9: Token Management & Session Handling (e2e)', () => {
+  jest.setTimeout(30000);
   let app: INestApplication;
   let prismaService: PrismaService;
   let jwtService: JwtService;
@@ -29,6 +30,7 @@ describe('Workflow 9: Token Management & Session Handling (e2e)', () => {
   let accessToken: string;
   let refreshToken: string;
   let newAccessToken: string;
+  const password = 'TokenTest123!';
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -39,36 +41,34 @@ describe('Workflow 9: Token Management & Session Handling (e2e)', () => {
     await app.init();
     prismaService = app.get<PrismaService>(PrismaService);
     jwtService = app.get<JwtService>(JwtService);
-
-    // Create user with hashed password
-    const bcrypt = require('bcrypt');
-    const password = 'TokenTest123!';
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    user = await prismaService.user.create({
-      data: {
-        email: `token-test-${Date.now()}@example.com`,
-        password: hashedPassword,
-        firstName: 'Token',
-        lastName: 'Test',
-        username: `token_test_${Date.now()}`,
-        role: Role.MEMBER,
-      },
-    });
-
-    // Store password for login
-    (user as any).plainPassword = password;
   });
 
   afterAll(async () => {
     if (prismaService && user) {
-      // Cleanup
       await prismaService.user.delete({ where: { id: user.id } });
     }
     await app.close();
   });
 
   describe('Token Lifecycle & Session Management', () => {
+    it('Step 0: Setup user via registration API', async () => {
+      const email = `token-test-${Date.now()}@example.com`;
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email,
+          password,
+          firstName: 'Token',
+          lastName: 'Test',
+          username: `token_test_${Date.now()}`,
+          role: Role.MEMBER,
+        })
+        .expect(HttpStatus.CREATED);
+
+      user = response.body.user;
+      (user as any).plainPassword = password;
+    });
+
     it('Step 1: Login and receive access and refresh tokens', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/auth/login')

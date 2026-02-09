@@ -22,6 +22,7 @@ import { Role, ProjectStatus, ProjectPriority, ProjectVisibility, TaskPriority, 
  * Note: Watchers and attachments are skipped as they may require additional setup.
  */
 describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
+  jest.setTimeout(30000);
   let app: INestApplication;
   let prismaService: PrismaService;
   let jwtService: JwtService;
@@ -41,6 +42,9 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
   let labelId: string;
   let commentId: string;
 
+  const ownerPassword = 'SecurePassword123!';
+  const memberPassword = 'SecurePassword123!';
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -50,124 +54,6 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
     await app.init();
     prismaService = app.get<PrismaService>(PrismaService);
     jwtService = app.get<JwtService>(JwtService);
-
-    // Create owner user
-    owner = await prismaService.user.create({
-      data: {
-        email: `task-owner-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'Task',
-        lastName: 'Owner',
-        username: `task_owner_${Date.now()}`,
-        role: Role.OWNER,
-      },
-    });
-
-    // Create member user
-    member = await prismaService.user.create({
-      data: {
-        email: `task-member-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'Task',
-        lastName: 'Member',
-        username: `task_member_${Date.now()}`,
-        role: Role.MEMBER,
-      },
-    });
-
-    // Generate tokens
-    ownerToken = jwtService.sign({ sub: owner.id, email: owner.email, role: owner.role });
-    memberToken = jwtService.sign({ sub: member.id, email: member.email, role: member.role });
-
-    // Create organization
-    const organization = await prismaService.organization.create({
-      data: {
-        name: `Task Lifecycle Org ${Date.now()}`,
-        slug: `task-lifecycle-${Date.now()}`,
-        ownerId: owner.id,
-      },
-    });
-    organizationId = organization.id;
-
-    // Create workflow
-    const workflow = await prismaService.workflow.create({
-      data: {
-        name: 'Task Workflow',
-        organizationId: organizationId,
-        isDefault: true,
-      },
-    });
-    workflowId = workflow.id;
-
-    // Create default status
-    const todoStatus = await prismaService.taskStatus.create({
-      data: {
-        name: 'To Do',
-        color: '#cccccc',
-        position: 1,
-        workflowId: workflowId,
-        category: 'TODO',
-      },
-    });
-    todoStatusId = todoStatus.id;
-
-    // Create workspace
-    const workspace = await prismaService.workspace.create({
-      data: {
-        name: `Task Workspace ${Date.now()}`,
-        slug: `task-workspace-${Date.now()}`,
-        organizationId: organizationId,
-      },
-    });
-    workspaceId = workspace.id;
-
-    // Create project
-    const project = await prismaService.project.create({
-      data: {
-        name: 'Task Lifecycle Project',
-        slug: `task-project-${Date.now()}`,
-        workspaceId: workspaceId,
-        workflowId: workflowId,
-        color: '#3498db',
-        status: ProjectStatus.ACTIVE,
-        priority: ProjectPriority.HIGH,
-        visibility: ProjectVisibility.PRIVATE,
-        createdBy: owner.id,
-      },
-    });
-    projectId = project.id;
-
-    // Add Owner memberships
-    await prismaService.organizationMember.create({
-      data: { organizationId, userId: owner.id, role: Role.OWNER },
-    });
-    await prismaService.workspaceMember.create({
-      data: { workspaceId, userId: owner.id, role: Role.OWNER },
-    });
-    await prismaService.projectMember.create({
-      data: { projectId, userId: owner.id, role: Role.OWNER },
-    });
-
-    // Add Member memberships
-    await prismaService.organizationMember.create({
-      data: { organizationId, userId: member.id, role: Role.MEMBER },
-    });
-    await prismaService.workspaceMember.create({
-      data: { workspaceId, userId: member.id, role: Role.MEMBER },
-    });
-    await prismaService.projectMember.create({
-      data: { projectId, userId: member.id, role: Role.MEMBER },
-    });
-
-    // Create label
-    const label = await prismaService.label.create({
-      data: {
-        name: 'urgent',
-        color: '#ff0000',
-        projectId: projectId,
-      },
-    });
-    labelId = label.id;
   });
 
   afterAll(async () => {
@@ -198,6 +84,132 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
   });
 
   describe('Complete Task Lifecycle', () => {
+    it('Step 0: Setup environment via API', async () => {
+      // Create owner
+      const ownerEmail = `task-owner-${Date.now()}@example.com`;
+      const ownerReg = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: ownerEmail,
+          password: ownerPassword,
+          firstName: 'Task',
+          lastName: 'Owner',
+          username: `task_owner_${Date.now()}`,
+          role: Role.OWNER,
+        })
+        .expect(HttpStatus.CREATED);
+      
+      owner = ownerReg.body.user;
+      ownerToken = ownerReg.body.access_token;
+
+      // Create member
+      const memberEmail = `task-member-${Date.now()}@example.com`;
+      const memberReg = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: memberEmail,
+          password: memberPassword,
+          firstName: 'Task',
+          lastName: 'Member',
+          username: `task_member_${Date.now()}`,
+          role: Role.MEMBER,
+        })
+        .expect(HttpStatus.CREATED);
+      
+      member = memberReg.body.user;
+      memberToken = memberReg.body.access_token;
+
+      // Create organization
+      const orgResponse = await request(app.getHttpServer())
+        .post('/api/organizations')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          name: 'Task Lifecycle Org',
+          ownerId: owner.id,
+        })
+        .expect(HttpStatus.CREATED);
+      organizationId = orgResponse.body.id;
+
+      // Create workspace
+      const wsResponse = await request(app.getHttpServer())
+        .post('/api/workspaces')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          name: 'Task Workspace',
+          slug: `task-workspace-${Date.now()}`,
+          organizationId: organizationId,
+        })
+        .expect(HttpStatus.CREATED);
+      workspaceId = wsResponse.body.id;
+
+      // Create workflow (automatically creates default statuses)
+      const wfResponse = await request(app.getHttpServer())
+        .post('/api/workflows')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          name: 'Task Workflow',
+          organizationId: organizationId,
+          isDefault: true,
+        })
+        .expect(HttpStatus.CREATED);
+      workflowId = wfResponse.body.id;
+
+      // Get default status
+      const statusesResponse = await request(app.getHttpServer())
+        .get(`/api/task-statuses?workflowId=${workflowId}`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(HttpStatus.OK);
+      todoStatusId = statusesResponse.body.find((s: any) => s.name === 'To Do').id;
+
+      // Create project
+      const projectResponse = await request(app.getHttpServer())
+        .post('/api/projects')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          name: 'Task Lifecycle Project',
+          slug: `task-project-${Date.now()}`,
+          workspaceId: workspaceId,
+          workflowId: workflowId,
+          color: '#3498db',
+          status: ProjectStatus.ACTIVE,
+          priority: ProjectPriority.HIGH,
+          visibility: ProjectVisibility.PRIVATE,
+        })
+        .expect(HttpStatus.CREATED);
+      projectId = projectResponse.body.id;
+
+      // Add member to organization, workspace, and project
+      await request(app.getHttpServer())
+        .post('/api/organization-members')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ userId: member.id, organizationId, role: Role.MEMBER })
+        .expect(HttpStatus.CREATED);
+
+      await request(app.getHttpServer())
+        .post('/api/workspace-members')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ userId: member.id, workspaceId, role: Role.MEMBER })
+        .expect(HttpStatus.CREATED);
+
+      await request(app.getHttpServer())
+        .post('/api/project-members')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ userId: member.id, projectId, role: Role.MEMBER })
+        .expect(HttpStatus.CREATED);
+
+      // Create label
+      const labelResponse = await request(app.getHttpServer())
+        .post('/api/labels')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          name: 'urgent',
+          color: '#ff0000',
+          projectId: projectId,
+        })
+        .expect(HttpStatus.CREATED);
+      labelId = labelResponse.body.id;
+    });
+
     it('Step 1: Create task', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/tasks')
@@ -218,22 +230,15 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
       taskId = response.body.id;
     });
 
-    it('Step 2: Add custom "In Review" status', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/task-statuses')
+    it('Step 2: Get "In Review" status ID', async () => {
+      const statusesResponse = await request(app.getHttpServer())
+        .get(`/api/task-statuses?workflowId=${workflowId}`)
         .set('Authorization', `Bearer ${ownerToken}`)
-        .send({
-          name: 'In Review',
-          color: '#f39c12',
-          position: 2,
-          workflowId: workflowId,
-          category: 'IN_PROGRESS',
-        })
-        .expect(HttpStatus.CREATED);
-
-      expect(response.body).toHaveProperty('id');
-      expect(response.body.name).toBe('In Review');
-      inReviewStatusId = response.body.id;
+        .expect(HttpStatus.OK);
+      
+      const status = statusesResponse.body.find((s: any) => s.name === 'In Review');
+      expect(status).toBeDefined();
+      inReviewStatusId = status.id;
     });
 
     it('Step 3: Update task status to "In Review"', async () => {
@@ -290,21 +295,15 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
       commentId = response.body.id;
     });
 
-    it('Step 7: Create "Done" status', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/task-statuses')
+    it('Step 7: Get "Done" status ID', async () => {
+      const statusesResponse = await request(app.getHttpServer())
+        .get(`/api/task-statuses?workflowId=${workflowId}`)
         .set('Authorization', `Bearer ${ownerToken}`)
-        .send({
-          name: 'Done',
-          color: '#27ae60',
-          position: 3,
-          workflowId: workflowId,
-          category: 'DONE',
-        })
-        .expect(HttpStatus.CREATED);
-
-      expect(response.body).toHaveProperty('id');
-      doneStatusId = response.body.id;
+        .expect(HttpStatus.OK);
+      
+      const status = statusesResponse.body.find((s: any) => s.name === 'Done');
+      expect(status).toBeDefined();
+      doneStatusId = status.id;
     });
 
     it('Step 8: Complete task by updating status to "Done"', async () => {

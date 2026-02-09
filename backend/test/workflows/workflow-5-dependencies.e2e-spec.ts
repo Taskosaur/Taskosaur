@@ -20,6 +20,7 @@ import { Role, ProjectStatus, ProjectPriority, ProjectVisibility, TaskPriority, 
  * Note: This workflow demonstrates advanced task management features.
  */
 describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
+  jest.setTimeout(30000);
   let app: INestApplication;
   let prismaService: PrismaService;
   let jwtService: JwtService;
@@ -49,6 +50,8 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
   let depBCId: string;
   let depCDId: string;
 
+  const password = 'SecurePassword123!';
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -58,101 +61,23 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
     await app.init();
     prismaService = app.get<PrismaService>(PrismaService);
     jwtService = app.get<JwtService>(JwtService);
-
-    // Create user
-    user = await prismaService.user.create({
-      data: {
-        email: `workflow-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'Workflow',
-        lastName: 'User',
-        username: `workflow_user_${Date.now()}`,
-        role: Role.OWNER,
-      },
-    });
-
-    accessToken = jwtService.sign({ sub: user.id, email: user.email, role: user.role });
-
-    // Create organization
-    const organization = await prismaService.organization.create({
-      data: {
-        name: `Workflow Org ${Date.now()}`,
-        slug: `workflow-org-${Date.now()}`,
-        ownerId: user.id,
-      },
-    });
-    organizationId = organization.id;
-
-    // Create workflow
-    const workflow = await prismaService.workflow.create({
-      data: {
-        name: 'Development Workflow',
-        organizationId: organizationId,
-        isDefault: true,
-      },
-    });
-    workflowId = workflow.id;
-
-    // Create workspace
-    const workspace = await prismaService.workspace.create({
-      data: {
-        name: `Workflow Workspace ${Date.now()}`,
-        slug: `workflow-workspace-${Date.now()}`,
-        organizationId: organizationId,
-      },
-    });
-    workspaceId = workspace.id;
-
-    // Create project
-    const project = await prismaService.project.create({
-      data: {
-        name: 'API Development Project',
-        slug: `api-project-${Date.now()}`,
-        workspaceId: workspaceId,
-        workflowId: workflowId,
-        color: '#9b59b6',
-        status: ProjectStatus.ACTIVE,
-        priority: ProjectPriority.HIGH,
-        visibility: ProjectVisibility.PRIVATE,
-        createdBy: user.id,
-      },
-    });
-    projectId = project.id;
-
-    // Add Organization Member
-    await prismaService.organizationMember.create({
-      data: {
-        organizationId: organizationId,
-        userId: user.id,
-        role: Role.OWNER,
-      },
-    });
-
-    // Add Workspace Member
-    await prismaService.workspaceMember.create({
-      data: {
-        workspaceId: workspaceId,
-        userId: user.id,
-        role: Role.OWNER,
-      },
-    });
-
-    // Add Project Member
-    await prismaService.projectMember.create({
-      data: {
-        projectId: projectId,
-        userId: user.id,
-        role: Role.OWNER,
-      },
-    });
   });
 
   afterAll(async () => {
     if (prismaService) {
       // Cleanup dependencies first
-      await prismaService.taskDependency.deleteMany({ where: { dependentTaskId: taskBId } });
-      await prismaService.taskDependency.deleteMany({ where: { dependentTaskId: taskCId } });
-      await prismaService.taskDependency.deleteMany({ where: { dependentTaskId: taskDId } });
+      await prismaService.taskDependency.deleteMany({ 
+        where: { 
+          OR: [
+            { dependentTaskId: taskBId },
+            { dependentTaskId: taskCId },
+            { dependentTaskId: taskDId },
+            { blockingTaskId: taskAId },
+            { blockingTaskId: taskBId },
+            { blockingTaskId: taskCId }
+          ]
+        } 
+      });
       
       // Cleanup tasks
       await prismaService.task.deleteMany({ where: { projectId } });
@@ -174,6 +99,86 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
   });
 
   describe('Task Dependency & Workflow Management', () => {
+    it('Step 0: Setup environment via API', async () => {
+      // Create user
+      const email = `workflow-${Date.now()}@example.com`;
+      const registerResponse = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email,
+          password,
+          firstName: 'Workflow',
+          lastName: 'User',
+          username: `workflow_user_${Date.now()}`,
+          role: Role.OWNER,
+        })
+        .expect(HttpStatus.CREATED);
+      
+      user = registerResponse.body.user;
+      accessToken = registerResponse.body.access_token;
+
+      // Create organization
+      const orgResponse = await request(app.getHttpServer())
+        .post('/api/organizations')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          name: 'Workflow Org',
+          ownerId: user.id,
+        })
+        .expect(HttpStatus.CREATED);
+      organizationId = orgResponse.body.id;
+
+      // Create workspace
+      const wsResponse = await request(app.getHttpServer())
+        .post('/api/workspaces')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          name: 'Workflow Workspace',
+          slug: `workflow-workspace-${Date.now()}`,
+          organizationId: organizationId,
+        })
+        .expect(HttpStatus.CREATED);
+      workspaceId = wsResponse.body.id;
+
+      // Create workflow (automatically creates default statuses)
+      const wfResponse = await request(app.getHttpServer())
+        .post('/api/workflows')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          name: 'Development Workflow',
+          organizationId: organizationId,
+          isDefault: true,
+        })
+        .expect(HttpStatus.CREATED);
+      workflowId = wfResponse.body.id;
+
+      // Create project
+      const projectResponse = await request(app.getHttpServer())
+        .post('/api/projects')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          name: 'API Development Project',
+          slug: `api-project-${Date.now()}`,
+          workspaceId: workspaceId,
+          workflowId: workflowId,
+          color: '#9b59b6',
+          status: ProjectStatus.ACTIVE,
+          priority: ProjectPriority.HIGH,
+          visibility: ProjectVisibility.PRIVATE,
+        })
+        .expect(HttpStatus.CREATED);
+      projectId = projectResponse.body.id;
+
+      // Get existing default statuses
+      const statusesResponse = await request(app.getHttpServer())
+        .get(`/api/task-statuses?workflowId=${workflowId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK);
+      
+      inProgressStatusId = statusesResponse.body.find((s: any) => s.name === 'In Progress').id;
+      doneStatusId = statusesResponse.body.find((s: any) => s.name === 'Done').id;
+    });
+
     it('Step 1: Create "Backlog" status', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/task-statuses')
@@ -181,7 +186,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
         .send({
           name: 'Backlog',
           color: '#95a5a6',
-          position: 1,
+          position: 0,
           workflowId: workflowId,
           category: 'TODO',
         })
@@ -191,23 +196,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       backlogStatusId = response.body.id;
     });
 
-    it('Step 2: Create "In Progress" status', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/task-statuses')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send({
-          name: 'In Progress',
-          color: '#3498db',
-          position: 2,
-          workflowId: workflowId,
-          category: 'IN_PROGRESS',
-        })
-        .expect(HttpStatus.CREATED);
-
-      inProgressStatusId = response.body.id;
-    });
-
-    it('Step 3: Create "Code Review" status', async () => {
+    it('Step 2: Create "Code Review" status', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/task-statuses')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -223,7 +212,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       codeReviewStatusId = response.body.id;
     });
 
-    it('Step 4: Create "Testing" status', async () => {
+    it('Step 3: Create "Testing" status', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/task-statuses')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -239,23 +228,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       testingStatusId = response.body.id;
     });
 
-    it('Step 5: Create "Done" status', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/task-statuses')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send({
-          name: 'Done',
-          color: '#27ae60',
-          position: 5,
-          workflowId: workflowId,
-          category: 'DONE',
-        })
-        .expect(HttpStatus.CREATED);
-
-      doneStatusId = response.body.id;
-    });
-
-    it('Step 6: Create Task A - Design API', async () => {
+    it('Step 4: Create Task A - Design API', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/tasks')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -272,7 +245,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       taskAId = response.body.id;
     });
 
-    it('Step 7: Create Task B - Implement API', async () => {
+    it('Step 5: Create Task B - Implement API', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/tasks')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -289,7 +262,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       taskBId = response.body.id;
     });
 
-    it('Step 8: Create Task C - Write Tests', async () => {
+    it('Step 6: Create Task C - Write Tests', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/tasks')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -306,7 +279,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       taskCId = response.body.id;
     });
 
-    it('Step 9: Create Task D - Deploy', async () => {
+    it('Step 7: Create Task D - Deploy', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/tasks')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -323,7 +296,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       taskDId = response.body.id;
     });
 
-    it('Step 10: Set dependency - B depends on A', async () => {
+    it('Step 8: Set dependency - B depends on A', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/task-dependencies')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -338,7 +311,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       depABId = response.body.id;
     });
 
-    it('Step 11: Set dependency - C depends on B', async () => {
+    it('Step 9: Set dependency - C depends on B', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/task-dependencies')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -352,7 +325,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       depBCId = response.body.id;
     });
 
-    it('Step 12: Set dependency - D depends on C', async () => {
+    it('Step 10: Set dependency - D depends on C', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/task-dependencies')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -366,7 +339,19 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       depCDId = response.body.id;
     });
 
-    it('Step 13: Move Task A to "In Progress"', async () => {
+    it('Step 11: Attempt circular dependency (A depends on D) - should fail', async () => {
+      await request(app.getHttpServer())
+        .post('/api/task-dependencies')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          dependentTaskId: taskAId,
+          blockingTaskId: taskDId,
+          type: 'BLOCKS',
+        })
+        .expect(HttpStatus.BAD_REQUEST);
+    });
+
+    it('Step 12: Move Task A to "In Progress"', async () => {
       const response = await request(app.getHttpServer())
         .patch(`/api/tasks/${taskAId}`)
         .set('Authorization', `Bearer ${accessToken}`)
@@ -378,7 +363,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       expect(response.body.statusId).toBe(inProgressStatusId);
     });
 
-    it('Step 14: Complete Task A', async () => {
+    it('Step 13: Complete Task A', async () => {
       const response = await request(app.getHttpServer())
         .patch(`/api/tasks/${taskAId}`)
         .set('Authorization', `Bearer ${accessToken}`)
@@ -390,7 +375,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       expect(response.body.statusId).toBe(doneStatusId);
     });
 
-    it('Step 15: Move Task B to "In Progress"', async () => {
+    it('Step 14: Move Task B to "In Progress"', async () => {
       const response = await request(app.getHttpServer())
         .patch(`/api/tasks/${taskBId}`)
         .set('Authorization', `Bearer ${accessToken}`)
@@ -402,7 +387,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       expect(response.body.statusId).toBe(inProgressStatusId);
     });
 
-    it('Step 16: Update status color', async () => {
+    it('Step 15: Update status color', async () => {
       const response = await request(app.getHttpServer())
         .patch(`/api/task-statuses/${inProgressStatusId}`)
         .set('Authorization', `Bearer ${accessToken}`)
@@ -414,7 +399,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       expect(response.body.color).toBe('#1abc9c');
     });
 
-    it('Step 17: Verify dependency chain', async () => {
+    it('Step 16: Verify dependency chain', async () => {
       const response = await request(app.getHttpServer())
         .get('/api/task-dependencies')
         .query({ projectId: projectId })

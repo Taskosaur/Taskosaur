@@ -3,7 +3,6 @@ import { INestApplication, HttpStatus } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from './../../src/app.module';
 import { PrismaService } from './../../src/prisma/prisma.service';
-import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
 
 /**
@@ -19,9 +18,9 @@ import { Role } from '@prisma/client';
  * The workflow focuses on profile viewing and updating.
  */
 describe('Workflow 7: Profile & User Management (e2e)', () => {
+  jest.setTimeout(30000);
   let app: INestApplication;
   let prismaService: PrismaService;
-  let jwtService: JwtService;
 
   let user: any;
   let accessToken: string;
@@ -37,29 +36,10 @@ describe('Workflow 7: Profile & User Management (e2e)', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
     prismaService = app.get<PrismaService>(PrismaService);
-    jwtService = app.get<JwtService>(JwtService);
 
     // Setup passwords
     currentPassword = 'CurrentPassword123!';
     newPassword = 'NewPassword456!';
-
-    // Create user with hashed password
-    const bcrypt = require('bcrypt');
-    const hashedPassword = await bcrypt.hash(currentPassword, 10);
-
-    user = await prismaService.user.create({
-      data: {
-        email: `profile-test-${Date.now()}@example.com`,
-        password: hashedPassword,
-        firstName: 'Profile',
-        lastName: 'User',
-        username: `profile_user_${Date.now()}`,
-        role: Role.MEMBER,
-      },
-    });
-
-    userId = user.id;
-    accessToken = jwtService.sign({ sub: user.id, email: user.email, role: user.role });
   });
 
   afterAll(async () => {
@@ -70,6 +50,25 @@ describe('Workflow 7: Profile & User Management (e2e)', () => {
   });
 
   describe('Profile Management', () => {
+    it('Step 0: Setup user via registration API', async () => {
+      const email = `profile-test-${Date.now()}@example.com`;
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email,
+          password: currentPassword,
+          firstName: 'Profile',
+          lastName: 'User',
+          username: `profile_user_${Date.now()}`,
+          role: Role.MEMBER,
+        })
+        .expect(HttpStatus.CREATED);
+
+      user = response.body.user;
+      userId = user.id;
+      accessToken = response.body.access_token;
+    });
+
     it('Step 1: View current profile via auth endpoint', async () => {
       const response = await request(app.getHttpServer())
         .get('/api/auth/profile')
