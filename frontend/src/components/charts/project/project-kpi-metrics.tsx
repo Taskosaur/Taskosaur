@@ -2,6 +2,7 @@ import { StatCard } from "@/components/common/StatCard";
 import { CheckCircle, AlertTriangle, TrendingUp, Bug, Zap, Clock } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import {
   DndContext,
   closestCenter,
@@ -79,6 +80,7 @@ function SortableStatCard({ id, label, value, icon, description, onClick }: Sort
 }
 
 export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) {
+  const { t } = useTranslation(["analytics"]);
   const router = useRouter();
 
   const { workspaceSlug, projectSlug } = router.query;
@@ -146,50 +148,53 @@ export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) 
         case "total-tasks":
           return {
             id,
-            title: "Total Tasks",
-            label: "Tasks",
+            title: t("kpi.total_tasks.title"),
+            label: t("kpi.total_tasks.label"),
             value: data?.totalTasks,
-            description: "All tasks in project",
+            description: t("kpi.total_tasks.description"),
             icon: <CheckCircle className="h-4 w-4" />,
             onClick: () => handleNavigate("/tasks"),
           };
         case "completed-tasks":
           return {
             id,
-            title: "Completed Tasks",
-            label: "Completed Tasks",
+            title: t("kpi.completed_tasks.title"),
+            label: t("kpi.completed_tasks.label"),
             value: data?.completedTasks,
-            description: "Successfully finished",
+            description: t("kpi.completed_tasks.description"),
             icon: <CheckCircle className="h-4 w-4" />,
             onClick: () => handleNavigate("/tasks", doneStatusIds ? { statuses: doneStatusIds } : {}),
           };
         case "active-sprints":
           return {
             id,
-            title: "Active Sprints",
-            label: "Active Sprints",
+            title: t("kpi.active_sprints.title"),
+            label: t("kpi.active_sprints.label"),
             value: data?.activeSprints,
-            description: "Currently running",
+            description: t("kpi.active_sprints.description"),
             icon: <Zap className="h-4 w-4" />,
             onClick: () => handleNavigate("/sprints"),
           };
         case "bug-resolution":
           return {
             id,
-            title: "Bug Resolution",
-            label: "Bug Resolution",
+            title: t("kpi.bug_resolution.title"),
+            label: t("kpi.bug_resolution.label"),
             value: `${data?.bugResolutionRate.toFixed(1)}%`,
-            description: `${data?.resolvedBugs}/${data?.totalBugs} bugs fixed`,
+            description: t("kpi.bug_resolution.description", {
+              resolved: data?.resolvedBugs,
+              total: data?.totalBugs,
+            }),
             icon: <Bug className="h-4 w-4" />,
             onClick: () => handleNavigate("/tasks",  doneStatusIds ? { statuses: doneStatusIds, types: "BUG" } : {}),
           };
         case "task-completion":
           return {
             id,
-            title: "Task Completion",
-            label: "Task Completion",
+            title: t("kpi.task_completion.title"),
+            label: t("kpi.task_completion.label"),
             value: `${data?.completionRate.toFixed(1)}%`,
-            description: "Overall progress",
+            description: t("kpi.task_completion.description"),
             icon:
               data?.completionRate > 75 ? (
                 <TrendingUp className="h-4 w-4" />
@@ -201,10 +206,10 @@ export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) 
         case "open-bugs":
           return {
             id,
-            title: "Open Bugs",
-            label: "Open Bugs",
+            title: t("kpi.open_bugs.title"),
+            label: t("kpi.open_bugs.label"),
             value: data?.totalBugs - data?.resolvedBugs,
-            description: "Requiring attention",
+            description: t("kpi.open_bugs.description"),
             icon:
               data?.totalBugs - data?.resolvedBugs === 0 ? (
                 <CheckCircle className="h-4 w-4" />

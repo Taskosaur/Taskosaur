@@ -1,0 +1,83 @@
+{
+  "project_analytics_title": "Project Analytics",
+  "project_analytics_description": "Insights into your project performance and team productivity",
+  "kpi_metrics": "KPI Metrics",
+  "chart_widgets": "Chart Widgets",
+  "dashboard_settings": "Dashboard Settings",
+  "customize_widgets": "Customize your dashboard widgets",
+  "no_widgets_title": "No widgets to display",
+  "no_widgets_description": "All widgets are currently hidden. Use the customize button to show widgets.",
+  "show_all_widgets": "Show All Widgets",
+  "no_data_available": "No analytics data available for this project.",
+  "load_data": "Load Data",
+  "unknown": "Unknown",
+  "na": "N/A",
+  "charts": {
+    "task_status_flow": {
+      "title": "Task Status Flow",
+      "description": "Current task distribution by status"
+    },
+    "task_type_distribution": {
+      "title": "Task Type Distribution",
+      "description": "Types of tasks in this project",
+      "types": {
+        "story": "Story",
+        "task": "Task",
+        "bug": "Bug",
+        "epic": "Epic",
+        "feature": "Feature"
+      }
+    },
+    "task_priority_distribution": {
+      "title": "Task Priority Distribution",
+      "description": "Priority breakdown of project tasks",
+      "count": "Count",
+      "priorities": {
+        "lowest": "Lowest",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "highest": "Highest"
+      }
+    },
+    "sprint_velocity_trend": {
+      "title": "Sprint Velocity Trend",
+      "description": "Story points completed per sprint",
+      "story_points": "Story Points",
+      "average_velocity": "Average Velocity",
+      "no_sprints": "No completed sprints found for this project"
+    }
+  },
+  "kpi": {
+    "total_tasks": {
+      "title": "Total Tasks",
+      "label": "Tasks",
+      "description": "All tasks in project"
+    },
+    "completed_tasks": {
+      "title": "Completed Tasks",
+      "label": "Completed Tasks",
+      "description": "Successfully finished"
+    },
+    "active_sprints": {
+      "title": "Active Sprints",
+      "label": "Active Sprints",
+      "description": "Currently running"
+    },
+    "bug_resolution": {
+      "title": "Bug Resolution",
+      "label": "Bug Resolution",
+      "description": "{{resolved}}/{{total}} bugs fixed"
+    },
+    "task_completion": {
+      "title": "Task Completion",
+      "label": "Task Completion",
+      "description": "Overall progress"
+    },
+    "open_bugs": {
+      "title": "Open Bugs",
+      "label": "Open Bugs",
+      "description": "Requiring attention"
+    }
+  }
+}

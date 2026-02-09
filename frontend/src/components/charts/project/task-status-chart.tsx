@@ -3,6 +3,7 @@ import { PieChart, Pie, ResponsiveContainer, Cell, Legend } from "recharts";
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 
 interface StatusInfo {
   id: string;
@@ -23,6 +24,7 @@ interface TaskStatusChartProps {
 }
 
 export function TaskStatusChart({ data }: TaskStatusChartProps) {
+  const { t } = useTranslation(["analytics"]);
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
 
@@ -35,7 +37,7 @@ export function TaskStatusChart({ data }: TaskStatusChartProps) {
   const chartData = sortedData?.map((item) => {
     const status = item.status;
     return {
-      name: status?.name || "Unknown",
+      name: status?.name || t("unknown"),
       value: item.count,
       color: status?.color || "#8B5CF6",
       id: item.statusId,
@@ -97,8 +99,8 @@ export function TaskStatusChart({ data }: TaskStatusChartProps) {
 
   return (
     <ChartWrapper
-      title="Task Status Flow"
-      description="Current task distribution by status"
+      title={t("charts.task_status_flow.title")}
+      description={t("charts.task_status_flow.description")}
       config={chartConfig}
       className="border-[var(--border)]"
     >

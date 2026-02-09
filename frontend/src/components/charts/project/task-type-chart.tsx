@@ -7,6 +7,7 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
+import { useTranslation } from "react-i18next";
 
 const chartConfig = {
   STORY: { label: "Story", color: "#10B981" },
@@ -21,11 +22,21 @@ interface TaskTypeChartProps {
 }
 
 export function TaskTypeChart({ data }: TaskTypeChartProps) {
+  const { t } = useTranslation(["analytics"]);
   const safeData = Array.isArray(data) ? data : [];
+  
+  const translatedConfig = {
+    STORY: { label: t("charts.task_type_distribution.types.story"), color: chartConfig.STORY.color },
+    TASK: { label: t("charts.task_type_distribution.types.task"), color: chartConfig.TASK.color },
+    BUG: { label: t("charts.task_type_distribution.types.bug"), color: chartConfig.BUG.color },
+    EPIC: { label: t("charts.task_type_distribution.types.epic"), color: chartConfig.EPIC.color },
+    FEATURE: { label: t("charts.task_type_distribution.types.feature"), color: chartConfig.FEATURE.color },
+  };
+
   const chartData = safeData.map((item) => ({
-    name: chartConfig[item.type as keyof typeof chartConfig]?.label || item.type,
+    name: translatedConfig[item.type as keyof typeof translatedConfig]?.label || item.type,
     value: item._count.type,
-    color: chartConfig[item.type as keyof typeof chartConfig]?.color || "#8B5CF6",
+    color: translatedConfig[item.type as keyof typeof translatedConfig]?.color || "#8B5CF6",
   }));
 
   const typeOrder = ["STORY", "TASK", "BUG", "FEATURE", "EPIC"];
@@ -37,9 +48,9 @@ export function TaskTypeChart({ data }: TaskTypeChartProps) {
 
   return (
     <ChartWrapper
-      title="Task Type Distribution"
-      description="Types of tasks in this project"
-      config={chartConfig}
+      title={t("charts.task_type_distribution.title")}
+      description={t("charts.task_type_distribution.description")}
+      config={translatedConfig}
       className="border-[var(--border)]"
     >
       <ResponsiveContainer width="100%" height={350}>

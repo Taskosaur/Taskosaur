@@ -43,6 +43,7 @@ import { useProject } from "@/contexts/project-context";
 import ErrorState from "../common/ErrorState";
 import Tooltip from "../common/ToolTip";
 import { useAuth } from "@/contexts/auth-context";
+import { useTranslation } from "react-i18next";
 
 interface ProjectAnalyticsProps {
   projectSlug: string;
@@ -97,6 +98,7 @@ function SortableWidget({
 }
 
 export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
+  const { t } = useTranslation(["analytics", "common"]);
   const { setShow404, show404 } = useLayout();
   const { createWidgetsSection } = useDashboardSettings();
   const {
@@ -114,7 +116,7 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
   const [widgets, setWidgets] = useState<Widget[]>([
     {
       id: "kpi-metrics",
-      title: "KPI Metrics",
+      title: t("kpi.total_tasks.title"),
       component: ProjectKPIMetrics,
       dataKey: "kpiMetrics",
       visible: true,
@@ -123,7 +125,7 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
     },
     {
       id: "task-status",
-      title: "Task Status Flow",
+      title: t("charts.task_status_flow.title"),
       component: TaskStatusChart,
       dataKey: "taskStatus",
       visible: true,
@@ -132,7 +134,7 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
     },
     {
       id: "task-type",
-      title: "Task Type Distribution",
+      title: t("charts.task_type_distribution.title"),
       component: TaskTypeChart,
       dataKey: "taskType",
       visible: true,
@@ -141,7 +143,7 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
     },
     {
       id: "task-priority",
-      title: "Task Priority Distribution",
+      title: t("charts.task_priority_distribution.title"),
       component: TaskPriorityChart,
       dataKey: "taskPriority",
       visible: true,
@@ -150,7 +152,7 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
     },
     {
       id: "sprint-velocity",
-      title: "Sprint Velocity Trend",
+      title: t("charts.sprint_velocity_trend.title"),
       component: SprintVelocityChart,
       dataKey: "sprintVelocity",
       visible: true,
@@ -317,9 +319,9 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
       <div className="p-6">
         <Alert>
           <AlertDescription className="flex flex-col items-start gap-2">
-            <span>No analytics data available for this project.</span>
+            <span>{t("no_data_available")}</span>
             <Button onClick={handleFetchData} variant="outline" size="sm">
-              Load Data
+              {t("load_data")}
             </Button>
           </AlertDescription>
         </Alert>
@@ -354,14 +356,14 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
     <div className="space-y-6" data-testid="project-content">
       {/* Header */}
       <PageHeader
-        title="Project Analytics"
-        description="Insights into your project performance and team productivity"
+        title={t("project_analytics_title")}
+        description={t("project_analytics_description")}
         actions={
           <div className="flex items-center gap-2">
-            <Tooltip content="Dashboard Settings" position="top" color="primary">
+            <Tooltip content={t("dashboard_settings")} position="top" color="primary">
               <DashboardSettingsDropdown
                 sections={settingSections}
-                description="Customize your dashboard widgets"
+                description={t("customize_widgets")}
               />
             </Tooltip>
           </div>
@@ -372,12 +374,12 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
       {visibleCount === 0 && (
         <Card className="p-8 text-center">
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">No widgets to display</h3>
+            <h3 className="text-lg font-semibold">{t("no_widgets_title")}</h3>
             <p className="text-muted-foreground">
-              All widgets are currently hidden. Use the customize button to show widgets.
+              {t("no_widgets_description")}
             </p>
             <Button onClick={resetWidgets} variant="outline" className="mt-4">
-              Show All Widgets
+              {t("show_all_widgets")}
             </Button>
           </div>
         </Card>

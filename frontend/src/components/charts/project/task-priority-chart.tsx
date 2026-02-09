@@ -1,6 +1,7 @@
 // components/charts/project/task-priority-chart.tsx
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { ChartWrapper } from "../chart-wrapper";
+import { useTranslation } from "react-i18next";
 
 const chartConfig = {
   LOWEST: { label: "Lowest", color: "#94A3B8" },
@@ -44,25 +45,35 @@ const renderCustomizedLabel = ({
   );
 };
 
-// Custom tooltip component
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-[var(--accent)] border-0 p-3 rounded-lg shadow-md">
-        <p className="font-semibold">{payload[0].name}</p>
-        <p className="text-sm">{`Count: ${payload[0].value}`}</p>
-      </div>
-    );
-  }
-  return null;
-};
-
 export function TaskPriorityChart({ data }: TaskPriorityChartProps) {
+  const { t } = useTranslation(["analytics"]);
+
+  // Custom tooltip component
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-[var(--accent)] border-0 p-3 rounded-lg shadow-md">
+          <p className="font-semibold">{payload[0].name}</p>
+          <p className="text-sm">{`${t("charts.task_priority_distribution.count")}: ${payload[0].value}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const translatedConfig = {
+    LOWEST: { label: t("charts.task_priority_distribution.priorities.lowest"), color: chartConfig.LOWEST.color },
+    LOW: { label: t("charts.task_priority_distribution.priorities.low"), color: chartConfig.LOW.color },
+    MEDIUM: { label: t("charts.task_priority_distribution.priorities.medium"), color: chartConfig.MEDIUM.color },
+    HIGH: { label: t("charts.task_priority_distribution.priorities.high"), color: chartConfig.HIGH.color },
+    HIGHEST: { label: t("charts.task_priority_distribution.priorities.highest"), color: chartConfig.HIGHEST.color },
+  };
+
   const chartData =
     data?.map((item) => ({
-      name: chartConfig[item.priority]?.label || item.priority,
+      name: translatedConfig[item.priority as keyof typeof translatedConfig]?.label || item.priority,
       value: item._count.priority,
-      fill: chartConfig[item.priority]?.color || "#8B5CF6",
+      fill: translatedConfig[item.priority as keyof typeof translatedConfig]?.color || "#8B5CF6",
     })) || [];
 
   // Calculate total for percentage display
@@ -70,9 +81,9 @@ export function TaskPriorityChart({ data }: TaskPriorityChartProps) {
 
   return (
     <ChartWrapper
-      title="Task Priority Distribution"
-      description="Priority breakdown of project tasks"
-      config={chartConfig}
+      title={t("charts.task_priority_distribution.title")}
+      description={t("charts.task_priority_distribution.description")}
+      config={translatedConfig}
       className="border-[var(--border)]"
     >
       <ResponsiveContainer width="100%" height={300}>

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Settings, Activity, BarChart3, CheckSquare, RefreshCw } from "lucide-react";
 import ActionButton from "./ActionButton";
+import { useTranslation } from "react-i18next";
 
 interface SettingsItem {
   id: string;
@@ -153,6 +154,7 @@ export function DashboardSettingsDropdown({
 
 // Convenience hook for creating sections
 export function useDashboardSettings() {
+  const { t } = useTranslation(["analytics"]);
   const createKPISection = (
     kpiCards: any[],
     toggleKPICard: (id: string) => void,
@@ -160,7 +162,7 @@ export function useDashboardSettings() {
     resetKPICards: () => void
   ): SettingsSection => ({
     id: "kpi-metrics",
-    title: "KPI Metrics",
+    title: t("kpi_metrics"),
     icon: Activity,
     items: kpiCards.map((card) => ({
       id: card.id,
@@ -180,7 +182,7 @@ export function useDashboardSettings() {
     resetToDefaults: () => void
   ): SettingsSection => ({
     id: "chart-widgets",
-    title: "Chart Widgets",
+    title: t("chart_widgets"),
     icon: BarChart3,
     items: widgets.map((widget) => ({
       id: widget.id,

@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { ChartWrapper } from "../chart-wrapper";
 import { SprintVelocity } from "@/types/projects";
+import { useTranslation } from "react-i18next";
 
 const chartConfig = {
   velocity: { label: "Story Points", color: "#3B82F6" },
@@ -20,26 +21,6 @@ const chartConfig = {
 interface SprintVelocityChartProps {
   data: SprintVelocity[];
 }
-
-// Custom tooltip component
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-[var(--accent)] border-0 p-3 rounded-lg shadow-md">
-        <p className="font-semibold text-gray-800">{label}</p>
-        <p className="text-sm text-blue-600">
-          {`${chartConfig.velocity.label}: ${payload[0].value}`}
-        </p>
-        {payload[1] && (
-          <p className="text-sm text-gray-500">
-            {`${chartConfig.average.label}: ${payload[1].value}`}
-          </p>
-        )}
-      </div>
-    );
-  }
-  return null;
-};
 
 // Customized axis tick component
 const CustomizedAxisTick = ({ x, y, payload }: any) => {
@@ -53,10 +34,37 @@ const CustomizedAxisTick = ({ x, y, payload }: any) => {
 };
 
 export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
+  const { t } = useTranslation(["analytics"]);
+
+  const translatedConfig = {
+    velocity: { label: t("charts.sprint_velocity_trend.story_points"), color: chartConfig.velocity.color },
+    average: { label: t("charts.sprint_velocity_trend.average_velocity"), color: chartConfig.average.color },
+  };
+
+  // Custom tooltip component
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-[var(--accent)] border-0 p-3 rounded-lg shadow-md">
+          <p className="font-semibold text-gray-800">{label}</p>
+          <p className="text-sm text-blue-600">
+            {`${translatedConfig.velocity.label}: ${payload[0].value}`}
+          </p>
+          {payload[1] && (
+            <p className="text-sm text-gray-500">
+              {`${translatedConfig.average.label}: ${payload[1].value}`}
+            </p>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
+
   const chartData = data?.map((sprint) => ({
     sprint: sprint.name,
     velocity: sprint.velocity || 0,
-    date: sprint.startDate ? new Date(sprint.startDate).toLocaleDateString() : "N/A",
+    date: sprint.startDate ? new Date(sprint.startDate).toLocaleDateString() : t("na"),
   }));
 
   // Calculate average velocity
@@ -73,9 +81,9 @@ export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
 
   return (
     <ChartWrapper
-      title="Sprint Velocity Trend"
-      description="Story points completed per sprint"
-      config={chartConfig}
+      title={t("charts.sprint_velocity_trend.title")}
+      description={t("charts.sprint_velocity_trend.description")}
+      config={translatedConfig}
       className="border-[var(--border)]"
     >
       {chartDataWithAverage && chartDataWithAverage.length > 0 ? (
@@ -85,7 +93,7 @@ export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
             <XAxis dataKey="sprint" tick={<CustomizedAxisTick />} interval={0} height={60} />
             <YAxis
               label={{
-                value: "Story Points",
+                value: t("charts.sprint_velocity_trend.story_points"),
                 angle: -90,
                 position: "insideLeft",
                 offset: -10,
@@ -98,7 +106,7 @@ export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
               height={36}
               formatter={(value) => (
                 <span className="text-sm text-gray-700">
-                  {chartConfig[value as keyof typeof chartConfig]?.label || value}
+                  {translatedConfig[value as keyof typeof translatedConfig]?.label || value}
                 </span>
               )}
             />
@@ -106,16 +114,16 @@ export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
               type="monotone"
               dataKey="velocity"
               name="velocity"
-              stroke={chartConfig.velocity.color}
+              stroke={translatedConfig.velocity.color}
               strokeWidth={3}
-              dot={{ fill: chartConfig.velocity.color, strokeWidth: 2, r: 5 }}
-              activeDot={{ r: 7, fill: chartConfig.velocity.color }}
+              dot={{ fill: translatedConfig.velocity.color, strokeWidth: 2, r: 5 }}
+              activeDot={{ r: 7, fill: translatedConfig.velocity.color }}
             />
             <Line
               type="monotone"
               dataKey="average"
               name="average"
-              stroke={chartConfig.average.color}
+              stroke={translatedConfig.average.color}
               strokeWidth={2}
               strokeDasharray="5 5"
               dot={false}
@@ -124,7 +132,7 @@ export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
         </ResponsiveContainer>
       ) : (
         <div className="flex items-center justify-center h-[300px] text-muted-foreground italic">
-          No completed sprints found for this project
+          {t("charts.sprint_velocity_trend.no_sprints")}
         </div>
       )}
     </ChartWrapper>
