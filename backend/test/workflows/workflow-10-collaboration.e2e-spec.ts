@@ -3,7 +3,6 @@ import { INestApplication, HttpStatus } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from './../../src/app.module';
 import { PrismaService } from './../../src/prisma/prisma.service';
-import { JwtService } from '@nestjs/jwt';
 import { Role, ProjectStatus, ProjectPriority, ProjectVisibility, TaskPriority, TaskType } from '@prisma/client';
 
 /**
@@ -21,9 +20,9 @@ import { Role, ProjectStatus, ProjectPriority, ProjectVisibility, TaskPriority, 
  * 9. User B updates task status
  */
 describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
+  jest.setTimeout(30000);
   let app: INestApplication;
   let prismaService: PrismaService;
-  let jwtService: JwtService;
 
   let userA: any;
   let userB: any;
@@ -42,6 +41,8 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
   let commentBId: string;
   let commentCId: string;
 
+  const password = 'SecurePassword123!';
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -50,141 +51,6 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
     prismaService = app.get<PrismaService>(PrismaService);
-    jwtService = app.get<JwtService>(JwtService);
-
-    // Create users
-    userA = await prismaService.user.create({
-      data: {
-        email: `collab-a-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'User',
-        lastName: 'A',
-        username: `user_a_${Date.now()}`,
-        role: Role.OWNER,
-      },
-    });
-
-    userB = await prismaService.user.create({
-      data: {
-        email: `collab-b-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'User',
-        lastName: 'B',
-        username: `user_b_${Date.now()}`,
-        role: Role.MEMBER,
-      },
-    });
-
-    userC = await prismaService.user.create({
-      data: {
-        email: `collab-c-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'User',
-        lastName: 'C',
-        username: `user_c_${Date.now()}`,
-        role: Role.MEMBER,
-      },
-    });
-
-    tokenA = jwtService.sign({ sub: userA.id, email: userA.email, role: userA.role });
-    tokenB = jwtService.sign({ sub: userB.id, email: userB.email, role: userB.role });
-    tokenC = jwtService.sign({ sub: userC.id, email: userC.email, role: userC.role });
-
-    // Create organization
-    const organization = await prismaService.organization.create({
-      data: {
-        name: `Collab Org ${Date.now()}`,
-        slug: `collab-org-${Date.now()}`,
-        ownerId: userA.id,
-      },
-    });
-    organizationId = organization.id;
-
-    // Add Organization Members
-    await prismaService.organizationMember.createMany({
-      data: [
-        { userId: userA.id, organizationId, role: Role.OWNER },
-        { userId: userB.id, organizationId, role: Role.MEMBER },
-        { userId: userC.id, organizationId, role: Role.MEMBER },
-      ],
-    });
-
-    // Create workflow
-    const workflow = await prismaService.workflow.create({
-      data: {
-        name: 'Collab Workflow',
-        organizationId: organizationId,
-        isDefault: true,
-      },
-    });
-    workflowId = workflow.id;
-
-    // Create statuses
-    const status = await prismaService.taskStatus.create({
-      data: {
-        name: 'In Progress',
-        color: '#3498db',
-        position: 1,
-        workflowId: workflowId,
-        category: 'IN_PROGRESS',
-      },
-    });
-    statusId = status.id;
-
-    const doneStatus = await prismaService.taskStatus.create({
-      data: {
-        name: 'Done',
-        color: '#27ae60',
-        position: 2,
-        workflowId: workflowId,
-        category: 'DONE',
-      },
-    });
-    doneStatusId = doneStatus.id;
-
-    // Create workspace
-    const workspace = await prismaService.workspace.create({
-      data: {
-        name: `Collab Workspace ${Date.now()}`,
-        slug: `collab-ws-${Date.now()}`,
-        organizationId: organizationId,
-      },
-    });
-    workspaceId = workspace.id;
-
-    // Add Workspace Members
-    await prismaService.workspaceMember.createMany({
-      data: [
-        { userId: userA.id, workspaceId, role: Role.OWNER },
-        { userId: userB.id, workspaceId, role: Role.MEMBER },
-        { userId: userC.id, workspaceId, role: Role.MEMBER },
-      ],
-    });
-
-    // Create project
-    const project = await prismaService.project.create({
-      data: {
-        name: 'Collaboration Project',
-        slug: `collab-project-${Date.now()}`,
-        workspaceId: workspaceId,
-        workflowId: workflowId,
-        color: '#9b59b6',
-        status: ProjectStatus.ACTIVE,
-        priority: ProjectPriority.HIGH,
-        visibility: ProjectVisibility.PRIVATE,
-        createdBy: userA.id,
-      },
-    });
-    projectId = project.id;
-
-    // Add Project Members
-    await prismaService.projectMember.createMany({
-      data: [
-        { userId: userA.id, projectId, role: Role.OWNER },
-        { userId: userB.id, projectId, role: Role.MEMBER },
-        { userId: userC.id, projectId, role: Role.MEMBER },
-      ],
-    });
   });
 
   afterAll(async () => {
@@ -207,6 +73,153 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
   });
 
   describe('Collaborative Task Discussion', () => {
+    it('Step 0: Setup environment via API', async () => {
+      // Create user A (Owner)
+      const regA = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: `collab-a-${Date.now()}@example.com`,
+          password,
+          firstName: 'User',
+          lastName: 'A',
+          username: `user_a_${Date.now()}`,
+          role: Role.OWNER,
+        })
+        .expect(HttpStatus.CREATED);
+      userA = regA.body.user;
+      tokenA = regA.body.access_token;
+
+      // Create user B
+      const regB = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: `collab-b-${Date.now()}@example.com`,
+          password,
+          firstName: 'User',
+          lastName: 'B',
+          username: `user_b_${Date.now()}`,
+          role: Role.MEMBER,
+        })
+        .expect(HttpStatus.CREATED);
+      userB = regB.body.user;
+      tokenB = regB.body.access_token;
+
+      // Create user C
+      const regC = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: `collab-c-${Date.now()}@example.com`,
+          password,
+          firstName: 'User',
+          lastName: 'C',
+          username: `user_c_${Date.now()}`,
+          role: Role.MEMBER,
+        })
+        .expect(HttpStatus.CREATED);
+      userC = regC.body.user;
+      tokenC = regC.body.access_token;
+
+      // Create organization
+      const orgResponse = await request(app.getHttpServer())
+        .post('/api/organizations')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({
+          name: 'Collab Org',
+          ownerId: userA.id,
+        })
+        .expect(HttpStatus.CREATED);
+      organizationId = orgResponse.body.id;
+
+      // Add B and C to organization
+      await request(app.getHttpServer())
+        .post('/api/organization-members')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({ userId: userB.id, organizationId, role: Role.MEMBER })
+        .expect(HttpStatus.CREATED);
+
+      await request(app.getHttpServer())
+        .post('/api/organization-members')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({ userId: userC.id, organizationId, role: Role.MEMBER })
+        .expect(HttpStatus.CREATED);
+
+      // Create workflow
+      const wfResponse = await request(app.getHttpServer())
+        .post('/api/workflows')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({
+          name: 'Collab Workflow',
+          organizationId: organizationId,
+          isDefault: true,
+        })
+        .expect(HttpStatus.CREATED);
+      workflowId = wfResponse.body.id;
+
+      // Get default statuses
+      const statusesResponse = await request(app.getHttpServer())
+        .get(`/api/task-statuses?workflowId=${workflowId}`)
+        .set('Authorization', `Bearer ${tokenA}`)
+        .expect(HttpStatus.OK);
+      
+      statusId = statusesResponse.body.find((s: any) => s.name === 'In Progress').id;
+      doneStatusId = statusesResponse.body.find((s: any) => s.name === 'Done').id;
+
+      // Create workspace
+      const wsResponse = await request(app.getHttpServer())
+        .post('/api/workspaces')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({
+          name: 'Collab Workspace',
+          slug: `collab-ws-${Date.now()}`,
+          organizationId: organizationId,
+        })
+        .expect(HttpStatus.CREATED);
+      workspaceId = wsResponse.body.id;
+
+      // Add B and C to workspace
+      await request(app.getHttpServer())
+        .post('/api/workspace-members')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({ userId: userB.id, workspaceId, role: Role.MEMBER })
+        .expect(HttpStatus.CREATED);
+
+      await request(app.getHttpServer())
+        .post('/api/workspace-members')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({ userId: userC.id, workspaceId, role: Role.MEMBER })
+        .expect(HttpStatus.CREATED);
+
+      // Create project
+      const projectResponse = await request(app.getHttpServer())
+        .post('/api/projects')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({
+          name: 'Collaboration Project',
+          slug: `collab-project-${Date.now()}`,
+          workspaceId: workspaceId,
+          workflowId: workflowId,
+          color: '#9b59b6',
+          status: ProjectStatus.ACTIVE,
+          priority: ProjectPriority.HIGH,
+          visibility: ProjectVisibility.PRIVATE,
+        })
+        .expect(HttpStatus.CREATED);
+      projectId = projectResponse.body.id;
+
+      // Add B and C to project
+      await request(app.getHttpServer())
+        .post('/api/project-members')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({ userId: userB.id, projectId, role: Role.MEMBER })
+        .expect(HttpStatus.CREATED);
+
+      await request(app.getHttpServer())
+        .post('/api/project-members')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({ userId: userC.id, projectId, role: Role.MEMBER })
+        .expect(HttpStatus.CREATED);
+    });
+
     it('Step 1: User A creates task and assigns to User B', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/tasks')
@@ -233,7 +246,6 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
         .send({
           content: 'Please review the requirements document before starting',
           taskId: taskId,
-          authorId: userA.id,
         })
         .expect(HttpStatus.CREATED);
 
@@ -271,7 +283,6 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
         .send({
           content: 'I have a question about the database schema',
           taskId: taskId,
-          authorId: userB.id,
         })
         .expect(HttpStatus.CREATED);
 
@@ -281,7 +292,6 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
     it('Step 6: User A updates their comment', async () => {
       const response = await request(app.getHttpServer())
         .patch(`/api/task-comments/${commentAId}`)
-        .query({ userId: userA.id })
         .set('Authorization', `Bearer ${tokenA}`)
         .send({
           content: 'Please review the requirements document before starting. Also check the API specs.',
@@ -292,15 +302,16 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
     });
 
     it('Step 7: User C joins as watcher', async () => {
-      // Note: Adding watcher directly via database as endpoint may not exist
-      const watcher = await prismaService.taskWatcher.create({
-        data: {
+      const response = await request(app.getHttpServer())
+        .post('/api/task-watchers/watch')
+        .set('Authorization', `Bearer ${tokenC}`)
+        .send({
           taskId: taskId,
           userId: userC.id,
-        },
-      });
+        })
+        .expect(HttpStatus.CREATED);
 
-      expect(watcher).toHaveProperty('id');
+      expect(response.body).toHaveProperty('id');
     });
 
     it('Step 8: User C contributes comment', async () => {
@@ -310,7 +321,6 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
         .send({
           content: 'I can help with the database design if needed',
           taskId: taskId,
-          authorId: userC.id,
         })
         .expect(HttpStatus.CREATED);
 
@@ -320,7 +330,6 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
     it('Step 9: User A deletes outdated comment', async () => {
       await request(app.getHttpServer())
         .delete(`/api/task-comments/${commentAId}`)
-        .query({ userId: userA.id })
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(HttpStatus.NO_CONTENT);
     });

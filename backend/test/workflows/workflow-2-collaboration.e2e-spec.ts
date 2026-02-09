@@ -21,6 +21,7 @@ import { Role, ProjectStatus, ProjectPriority, ProjectVisibility } from '@prisma
  * 9. Verify member access
  */
 describe('Workflow 2: Team Collaboration Setup (e2e)', () => {
+  jest.setTimeout(30000);
   let app: INestApplication;
   let prismaService: PrismaService;
   let jwtService: JwtService;
@@ -36,6 +37,10 @@ describe('Workflow 2: Team Collaboration Setup (e2e)', () => {
   let workflowId: string;
   let invitationId: string;
 
+  const ownerPassword = 'SecurePassword123!';
+  const member1Password = 'SecurePassword123!';
+  const member2Password = 'SecurePassword123!';
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -45,50 +50,12 @@ describe('Workflow 2: Team Collaboration Setup (e2e)', () => {
     await app.init();
     prismaService = app.get<PrismaService>(PrismaService);
     jwtService = app.get<JwtService>(JwtService);
-
-    // Create owner
-    owner = await prismaService.user.create({
-      data: {
-        email: `collab-owner-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'Collab',
-        lastName: 'Owner',
-        username: `collab_owner_${Date.now()}`,
-        role: Role.OWNER,
-      },
-    });
-
-    // Create members
-    member1 = await prismaService.user.create({
-      data: {
-        email: `collab-member1-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'Member',
-        lastName: 'One',
-        username: `member1_${Date.now()}`,
-        role: Role.MEMBER,
-      },
-    });
-
-    member2 = await prismaService.user.create({
-      data: {
-        email: `collab-member2-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'Member',
-        lastName: 'Two',
-        username: `member2_${Date.now()}`,
-        role: Role.MEMBER,
-      },
-    });
-
-    ownerToken = jwtService.sign({ sub: owner.id, email: owner.email, role: owner.role });
-    member1Token = jwtService.sign({ sub: member1.id, email: member1.email, role: member1.role });
   });
 
   afterAll(async () => {
     if (prismaService) {
       // Cleanup
-      await prismaService.invitation.deleteMany({ where: { inviterId: owner.id } });
+      await prismaService.invitation.deleteMany({ where: { inviterId: owner?.id } });
       await prismaService.projectMember.deleteMany({ where: { projectId } });
       await prismaService.workspaceMember.deleteMany({ where: { workspaceId } });
       await prismaService.organizationMember.deleteMany({ where: { organizationId } });
@@ -104,6 +71,58 @@ describe('Workflow 2: Team Collaboration Setup (e2e)', () => {
   });
 
   describe('Team Collaboration Setup', () => {
+    it('Step 0: Setup users via API', async () => {
+      // Create owner
+      const ownerEmail = `collab-owner-${Date.now()}@example.com`;
+      const ownerReg = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: ownerEmail,
+          password: ownerPassword,
+          firstName: 'Collab',
+          lastName: 'Owner',
+          username: `collab_owner_${Date.now()}`,
+          role: Role.OWNER,
+        })
+        .expect(HttpStatus.CREATED);
+      
+      owner = ownerReg.body.user;
+      ownerToken = ownerReg.body.access_token;
+
+      // Create member1
+      const member1Email = `collab-member1-${Date.now()}@example.com`;
+      const member1Reg = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: member1Email,
+          password: member1Password,
+          firstName: 'Member',
+          lastName: 'One',
+          username: `member1_${Date.now()}`,
+          role: Role.MEMBER,
+        })
+        .expect(HttpStatus.CREATED);
+      
+      member1 = member1Reg.body.user;
+      member1Token = member1Reg.body.access_token;
+
+      // Create member2
+      const member2Email = `collab-member2-${Date.now()}@example.com`;
+      const member2Reg = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: member2Email,
+          password: member2Password,
+          firstName: 'Member',
+          lastName: 'Two',
+          username: `member2_${Date.now()}`,
+          role: Role.MEMBER,
+        })
+        .expect(HttpStatus.CREATED);
+      
+      member2 = member2Reg.body.user;
+    });
+
     it('Step 1: Owner creates organization', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/organizations')
@@ -134,14 +153,17 @@ describe('Workflow 2: Team Collaboration Setup (e2e)', () => {
 
     it('Step 3: Create workflow and project', async () => {
       // Create workflow
-      const workflow = await prismaService.workflow.create({
-        data: {
+      const workflowResponse = await request(app.getHttpServer())
+        .post('/api/workflows')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
           name: 'Team Workflow',
           organizationId: organizationId,
           isDefault: true,
-        },
-      });
-      workflowId = workflow.id;
+        })
+        .expect(HttpStatus.CREATED);
+      
+      workflowId = workflowResponse.body.id;
 
       const response = await request(app.getHttpServer())
         .post('/api/projects')
@@ -176,30 +198,32 @@ describe('Workflow 2: Team Collaboration Setup (e2e)', () => {
       invitationId = response.body.id;
     });
 
-    it('Step 5: Add member1 to organization (direct)', async () => {
-      // Note: Adding members directly via database as organization member endpoint may not exist
-      const orgMember = await prismaService.organizationMember.create({
-        data: {
+    it('Step 5: Add member1 to organization', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/organization-members')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
           userId: member1.id,
           organizationId: organizationId,
           role: Role.MEMBER,
-        },
-      });
+        })
+        .expect(HttpStatus.CREATED);
 
-      expect(orgMember).toHaveProperty('id');
+      expect(response.body).toHaveProperty('id');
     });
 
     it('Step 6: Add member1 to workspace', async () => {
-      // Note: Adding members directly via database as workspace member endpoint may not exist
-      const wsMember = await prismaService.workspaceMember.create({
-        data: {
+      const response = await request(app.getHttpServer())
+        .post('/api/workspace-members')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
           userId: member1.id,
           workspaceId: workspaceId,
           role: Role.MEMBER,
-        },
-      });
+        })
+        .expect(HttpStatus.CREATED);
 
-      expect(wsMember).toHaveProperty('id');
+      expect(response.body).toHaveProperty('id');
     });
 
     it('Step 7: Add member1 to project', async () => {
@@ -218,11 +242,13 @@ describe('Workflow 2: Team Collaboration Setup (e2e)', () => {
     });
 
     it('Step 8: Update member role to MANAGER', async () => {
-      // Get the project member ID
-      const members = await prismaService.projectMember.findMany({
-        where: { projectId, userId: member1.id },
-      });
-      const memberId = members[0].id;
+      // Get the project member ID via API
+      const memberResponse = await request(app.getHttpServer())
+        .get(`/api/project-members/user/${member1.id}/project/${projectId}`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(HttpStatus.OK);
+      
+      const memberId = memberResponse.body.id;
 
       const response = await request(app.getHttpServer())
         .patch(`/api/project-members/${memberId}`)

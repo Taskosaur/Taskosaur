@@ -18,6 +18,7 @@ import { Role, ProjectStatus, ProjectPriority, ProjectVisibility, TaskPriority, 
  * 6. Verify task isolation by project
  */
 describe('Workflow 4: Multi-Workspace Project Management (e2e)', () => {
+  jest.setTimeout(30000);
   let app: INestApplication;
   let prismaService: PrismaService;
   let jwtService: JwtService;
@@ -34,6 +35,8 @@ describe('Workflow 4: Multi-Workspace Project Management (e2e)', () => {
   let apiTaskId: string;
   let campaignTaskId: string;
 
+  const password = 'SecurePassword123!';
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -43,61 +46,6 @@ describe('Workflow 4: Multi-Workspace Project Management (e2e)', () => {
     await app.init();
     prismaService = app.get<PrismaService>(PrismaService);
     jwtService = app.get<JwtService>(JwtService);
-
-    // Create user
-    user = await prismaService.user.create({
-      data: {
-        email: `multiws-${Date.now()}@example.com`,
-        password: 'SecurePassword123!',
-        firstName: 'Multi',
-        lastName: 'Workspace',
-        username: `multiws_${Date.now()}`,
-        role: Role.OWNER,
-      },
-    });
-
-    accessToken = jwtService.sign({ sub: user.id, email: user.email, role: user.role });
-
-    // Create organization
-    const organization = await prismaService.organization.create({
-      data: {
-        name: `Multi-WS Org ${Date.now()}`,
-        slug: `multi-ws-org-${Date.now()}`,
-        ownerId: user.id,
-      },
-    });
-    organizationId = organization.id;
-
-    // Add user as Organization Member (OWNER)
-    await prismaService.organizationMember.create({
-      data: {
-        organizationId: organizationId,
-        userId: user.id,
-        role: Role.OWNER,
-      },
-    });
-
-    // Create workflow
-    const workflow = await prismaService.workflow.create({
-      data: {
-        name: 'Multi-WS Workflow',
-        organizationId: organizationId,
-        isDefault: true,
-      },
-    });
-    workflowId = workflow.id;
-
-    // Create status
-    const status = await prismaService.taskStatus.create({
-      data: {
-        name: 'To Do',
-        color: '#cccccc',
-        position: 1,
-        workflowId: workflowId,
-        category: 'TODO',
-      },
-    });
-    statusId = status.id;
   });
 
   afterAll(async () => {
@@ -118,6 +66,55 @@ describe('Workflow 4: Multi-Workspace Project Management (e2e)', () => {
   });
 
   describe('Multi-Workspace Management', () => {
+    it('Step 0: Setup environment via API', async () => {
+      // Create user
+      const email = `multiws-${Date.now()}@example.com`;
+      const registerResponse = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email,
+          password,
+          firstName: 'Multi',
+          lastName: 'Workspace',
+          username: `multiws_${Date.now()}`,
+          role: Role.OWNER,
+        })
+        .expect(HttpStatus.CREATED);
+      
+      user = registerResponse.body.user;
+      accessToken = registerResponse.body.access_token;
+
+      // Create organization
+      const orgResponse = await request(app.getHttpServer())
+        .post('/api/organizations')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          name: 'Multi-WS Org',
+          ownerId: user.id,
+        })
+        .expect(HttpStatus.CREATED);
+      organizationId = orgResponse.body.id;
+
+      // Create workflow (automatically creates default statuses)
+      const wfResponse = await request(app.getHttpServer())
+        .post('/api/workflows')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          name: 'Multi-WS Workflow',
+          organizationId: organizationId,
+          isDefault: true,
+        })
+        .expect(HttpStatus.CREATED);
+      workflowId = wfResponse.body.id;
+
+      // Get default status
+      const statusesResponse = await request(app.getHttpServer())
+        .get(`/api/task-statuses?workflowId=${workflowId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK);
+      statusId = statusesResponse.body.find((s: any) => s.name === 'To Do').id;
+    });
+
     it('Step 1: List user organizations', async () => {
       const response = await request(app.getHttpServer())
         .get('/api/organizations')

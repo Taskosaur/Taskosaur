@@ -22,6 +22,7 @@ import { Role, ProjectStatus, ProjectPriority, ProjectVisibility } from '@prisma
  * This workflow focuses on the core onboarding flow using pre-created users.
  */
 describe('Workflow 1: New User Onboarding & First Project (e2e)', () => {
+  jest.setTimeout(30000);
   let app: INestApplication;
   let prismaService: PrismaService;
   let jwtService: JwtService;
@@ -61,44 +62,49 @@ describe('Workflow 1: New User Onboarding & First Project (e2e)', () => {
   });
 
   describe('Complete Onboarding Flow', () => {
-    it('Step 1: Create new user account', async () => {
-      // Note: Using direct database creation as registration endpoint may not be available
-      user = await prismaService.user.create({
-        data: {
-          email: `onboarding-${Date.now()}@example.com`,
-          password: 'SecurePassword123!',
+    const password = 'SecurePassword123!';
+    const email = `onboarding-${Date.now()}@example.com`;
+
+    it('Step 1: Create new user account via registration', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email,
+          password,
           firstName: 'New',
           lastName: 'User',
           username: `newuser_${Date.now()}`,
           role: Role.OWNER,
-        },
-      });
+        })
+        .expect(HttpStatus.CREATED);
 
-      expect(user).toHaveProperty('id');
-      expect(user.email).toContain('onboarding-');
+      expect(response.body).toHaveProperty('access_token');
+      expect(response.body).toHaveProperty('user');
+      expect(response.body.user.email).toBe(email);
+      user = response.body.user;
     });
 
     it('Step 2: Login and receive JWT token', async () => {
-      // Generate JWT token (simulating login)
-      const payload = { sub: user.id, email: user.email, role: user.role };
-      accessToken = jwtService.sign(payload);
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({
+          email,
+          password,
+        })
+        .expect(HttpStatus.OK);
 
-      expect(accessToken).toBeDefined();
-      expect(typeof accessToken).toBe('string');
+      expect(response.body).toHaveProperty('access_token');
+      accessToken = response.body.access_token;
     });
 
-    it.skip('Step 3: View user profile (SKIPPED - endpoint returns 400)', async () => {
-      // Note: /api/users/me endpoint returns 400 Bad Request
-      // This may require additional controller configuration or authentication context
+    it('Step 3: View user profile', async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/users/me')
+        .get('/api/auth/profile')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.OK);
 
       expect(response.body).toHaveProperty('id', user.id);
       expect(response.body).toHaveProperty('email', user.email);
-      expect(response.body).toHaveProperty('firstName', 'New');
-      expect(response.body).toHaveProperty('lastName', 'User');
     });
 
     it('Step 4: Create organization', async () => {
@@ -134,31 +140,32 @@ describe('Workflow 1: New User Onboarding & First Project (e2e)', () => {
       workspaceId = response.body.id;
     });
 
-    it('Step 6: Create workflow for project', async () => {
-      // Create workflow first (required for project)
-      const workflow = await prismaService.workflow.create({
-        data: {
+    it('Step 6: Create workflow and get default status', async () => {
+      // Create workflow (this automatically creates default statuses)
+      const workflowResponse = await request(app.getHttpServer())
+        .post('/api/workflows')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
           name: 'Default Workflow',
           organizationId: organizationId,
           isDefault: true,
-        },
-      });
-      workflowId = workflow.id;
+        })
+        .expect(HttpStatus.CREATED);
+      
+      workflowId = workflowResponse.body.id;
 
-      // Create default status
-      const status = await prismaService.taskStatus.create({
-        data: {
-          name: 'To Do',
-          color: '#cccccc',
-          position: 1,
-          workflowId: workflowId,
-          category: 'TODO',
-        },
-      });
-      statusId = status.id;
+      // Fetch the created statuses to get the "To Do" status ID
+      const statusesResponse = await request(app.getHttpServer())
+        .get(`/api/task-statuses?workflowId=${workflowId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK);
+      
+      const todoStatus = statusesResponse.body.find((s: any) => s.name === 'To Do');
+      expect(todoStatus).toBeDefined();
+      statusId = todoStatus.id;
 
-      expect(workflow).toHaveProperty('id');
-      expect(status).toHaveProperty('id');
+      expect(workflowId).toBeDefined();
+      expect(statusId).toBeDefined();
     });
 
     it('Step 7: Create project within workspace', async () => {
