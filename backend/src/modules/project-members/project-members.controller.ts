@@ -25,17 +25,24 @@ export class ProjectMembersController {
   constructor(private readonly projectMembersService: ProjectMembersService) {}
 
   @Post()
-  create(@Body() createProjectMemberDto: CreateProjectMemberDto) {
-    return this.projectMembersService.create(createProjectMemberDto);
+  create(
+    @Body() createProjectMemberDto: CreateProjectMemberDto,
+    @Query('requestUserId') requestUserId: string,
+  ) {
+    return this.projectMembersService.create(createProjectMemberDto, requestUserId);
   }
 
   @Post('invite')
-  inviteByEmail(@Body() inviteProjectMemberDto: InviteProjectMemberDto) {
-    return this.projectMembersService.inviteByEmail(inviteProjectMemberDto);
+  inviteByEmail(
+    @Body() inviteProjectMemberDto: InviteProjectMemberDto,
+    @Query('requestUserId') requestUserId: string,
+  ) {
+    return this.projectMembersService.inviteByEmail(inviteProjectMemberDto, requestUserId);
   }
 
   @Get()
   findAll(
+    @Query('requestUserId') requestUserId: string,
     @Query('projectId') projectId?: string,
     @Query('search') search?: string,
     @Query('page') page?: string,
@@ -43,22 +50,37 @@ export class ProjectMembersController {
   ) {
     const pageNumber = page ? parseInt(page, 10) : undefined;
     const limitNumber = limit ? parseInt(limit, 10) : undefined;
-    return this.projectMembersService.findAll(projectId, search, pageNumber, limitNumber);
+    return this.projectMembersService.findAll(
+      requestUserId,
+      projectId,
+      search,
+      pageNumber,
+      limitNumber,
+    );
   }
 
   @Get('workspace/:workspaceId')
-  findAllByWorkspace(@Param('workspaceId', ParseUUIDPipe) workspaceId: string) {
-    return this.projectMembersService.findAllByWorkspace(workspaceId);
+  findAllByWorkspace(
+    @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
+    @Query('requestUserId') requestUserId: string,
+  ) {
+    return this.projectMembersService.findAllByWorkspace(workspaceId, requestUserId);
   }
 
   @Get('user/:userId/projects')
-  getUserProjects(@Param('userId', ParseUUIDPipe) userId: string) {
-    return this.projectMembersService.getUserProjects(userId);
+  getUserProjects(
+    @Param('userId', ParseUUIDPipe) userId: string,
+    @Query('requestUserId') requestUserId: string,
+  ) {
+    return this.projectMembersService.getUserProjects(userId, requestUserId);
   }
 
   @Get('project/:projectId/stats')
-  getProjectStats(@Param('projectId', ParseUUIDPipe) projectId: string) {
-    return this.projectMembersService.getProjectStats(projectId);
+  getProjectStats(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Query('requestUserId') requestUserId: string,
+  ) {
+    return this.projectMembersService.getProjectStats(projectId, requestUserId);
   }
 
   @Get('user/:userId/project/:projectId')
@@ -70,8 +92,8 @@ export class ProjectMembersController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.projectMembersService.findOne(id);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @Query('requestUserId') requestUserId: string) {
+    return this.projectMembersService.findOne(id, requestUserId);
   }
 
   @Patch(':id')

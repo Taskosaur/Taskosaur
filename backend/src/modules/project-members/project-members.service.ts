@@ -4,6 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import {
   ProjectMember,
@@ -18,9 +19,14 @@ import { UpdateProjectMemberDto } from './dto/update-project-member.dto';
 
 @Injectable()
 export class ProjectMembersService {
+  private readonly logger = new Logger(ProjectMembersService.name);
+
   constructor(private prisma: PrismaService) {}
 
-  async create(createProjectMemberDto: CreateProjectMemberDto): Promise<ProjectMember> {
+  async create(
+    createProjectMemberDto: CreateProjectMemberDto,
+    requestUserId: string,
+  ): Promise<ProjectMember> {
     const { userId, projectId, role = ProjectRole.MEMBER } = createProjectMemberDto;
 
     // Verify project exists and get workspace/organization info
@@ -39,6 +45,7 @@ export class ProjectMembersService {
               select: {
                 id: true,
                 name: true,
+                ownerId: true,
               },
             },
           },
@@ -48,6 +55,39 @@ export class ProjectMembersService {
 
     if (!project) {
       throw new NotFoundException('Project not found');
+    }
+
+    // Authorization check: requester must be admin/owner of project, workspace, or org
+    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] =
+      await Promise.all([
+        this.findByUserAndProject(requestUserId, projectId),
+        this.prisma.workspaceMember.findUnique({
+          where: {
+            userId_workspaceId: {
+              userId: requestUserId,
+              workspaceId: project.workspaceId,
+            },
+          },
+        }),
+        this.prisma.organizationMember.findUnique({
+          where: {
+            userId_organizationId: {
+              userId: requestUserId,
+              organizationId: project.workspace.organizationId,
+            },
+          },
+        }),
+      ]);
+
+    const isOrgOwner = project.workspace.organization.ownerId === requestUserId;
+    const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
+    const isWorkspaceAdmin = requesterWorkspaceMember?.role === WorkspaceRole.OWNER;
+    const isProjectAdmin =
+      requesterProjectMember?.role === ProjectRole.OWNER ||
+      requesterProjectMember?.role === ProjectRole.MANAGER;
+
+    if (!isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin && !isProjectAdmin) {
+      throw new ForbiddenException('Only admins can add members to this project');
     }
 
     // Verify user exists and is a member of the workspace
@@ -85,6 +125,7 @@ export class ProjectMembersService {
           userId,
           projectId,
           role,
+          createdBy: requestUserId,
         },
         include: {
           user: {
@@ -123,7 +164,7 @@ export class ProjectMembersService {
         },
       });
     } catch (error) {
-      console.error(error);
+      this.logger.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('User is already a member of this project');
       }
@@ -131,7 +172,10 @@ export class ProjectMembersService {
     }
   }
 
-  async inviteByEmail(inviteProjectMemberDto: InviteProjectMemberDto): Promise<ProjectMember> {
+  async inviteByEmail(
+    inviteProjectMemberDto: InviteProjectMemberDto,
+    requestUserId: string,
+  ): Promise<ProjectMember> {
     const { email, projectId, role = ProjectRole.MEMBER } = inviteProjectMemberDto;
 
     // Find user by email
@@ -144,14 +188,18 @@ export class ProjectMembersService {
       throw new NotFoundException('User with this email not found');
     }
 
-    return this.create({
-      userId: user.id,
-      projectId,
-      role,
-    });
+    return this.create(
+      {
+        userId: user.id,
+        projectId,
+        role,
+      },
+      requestUserId,
+    );
   }
 
   async findAll(
+    requestUserId: string,
     projectId?: string,
     search?: string,
     page?: number,
@@ -162,6 +210,43 @@ export class ProjectMembersService {
     page?: number;
     limit?: number;
   }> {
+    // Authorization check
+    if (projectId) {
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { workspaceId: true, workspace: { select: { organizationId: true } } },
+      });
+
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+
+      const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] =
+        await Promise.all([
+          this.findByUserAndProject(requestUserId, projectId),
+          this.prisma.workspaceMember.findUnique({
+            where: {
+              userId_workspaceId: {
+                userId: requestUserId,
+                workspaceId: project.workspaceId,
+              },
+            },
+          }),
+          this.prisma.organizationMember.findUnique({
+            where: {
+              userId_organizationId: {
+                userId: requestUserId,
+                organizationId: project.workspace.organizationId,
+              },
+            },
+          }),
+        ]);
+
+      if (!requesterProjectMember && !requesterWorkspaceMember && !requesterOrgMember) {
+        throw new ForbiddenException('You are not authorized to view members of this project');
+      }
+    }
+
     const whereClause: any = {};
 
     if (projectId) {
@@ -232,84 +317,109 @@ export class ProjectMembersService {
     return { data, total, page, limit };
   }
 
-  async findAllByWorkspace(workspaceId: string): Promise<any[]> {
+  async findAllByWorkspace(workspaceId: string, requestUserId: string): Promise<any[]> {
     // Verify workspace exists
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: workspaceId },
-      select: { id: true, name: true },
+      select: { id: true, organizationId: true },
     });
 
     if (!workspace) {
       throw new NotFoundException('Workspace not found');
     }
 
-    // Get all projects under this workspace
-    const projects = await this.prisma.project.findMany({
-      where: { workspaceId },
-      select: { id: true },
-    });
+    // Authorization check
+    const [requesterWorkspaceMember, requesterOrgMember] = await Promise.all([
+      this.prisma.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId: requestUserId,
+            workspaceId,
+          },
+        },
+      }),
+      this.prisma.organizationMember.findUnique({
+        where: {
+          userId_organizationId: {
+            userId: requestUserId,
+            organizationId: workspace.organizationId,
+          },
+        },
+      }),
+    ]);
 
-    const projectIds = projects.map((project) => project.id);
-
-    if (projectIds.length === 0) {
-      return [];
+    if (!requesterWorkspaceMember && !requesterOrgMember) {
+      throw new ForbiddenException('You are not authorized to view members in this workspace');
     }
 
-    // Get all project members from these projects
-    const projectMembers = await this.prisma.projectMember.findMany({
+    const users = await this.prisma.user.findMany({
       where: {
-        projectId: {
-          in: projectIds,
+        projectMembers: {
+          some: {
+            project: {
+              workspaceId,
+            },
+          },
         },
       },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        avatar: true,
+        status: true,
+        lastLoginAt: true,
+        projectMembers: {
+          where: {
+            project: {
+              workspaceId,
+            },
+          },
+          select: {
+            id: true,
+            projectId: true,
+            role: true,
+            joinedAt: true,
+            project: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                avatar: true,
+                color: true,
+              },
+            },
+          },
+          orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
+          take: 1,
+        },
+      },
+    });
+
+    return users.map((user) => {
+      const member = user.projectMembers[0];
+      return {
+        id: member.id,
+        userId: user.id,
+        projectId: member.projectId,
+        role: member.role,
+        joinedAt: member.joinedAt,
         user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-            status: true,
-            lastLoginAt: true,
-          },
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          avatar: user.avatar,
+          status: user.status,
+          lastLoginAt: user.lastLoginAt,
         },
-        project: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            avatar: true,
-            color: true,
-          },
-        },
-      },
-      orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
+        project: member.project,
+      };
     });
-
-    // Remove duplicates by userId - keep first occurrence
-    const uniqueUsers = new Map();
-    const result: any[] = [];
-
-    projectMembers.forEach((member) => {
-      if (!uniqueUsers.has(member.userId)) {
-        uniqueUsers.set(member.userId, true);
-        result.push({
-          id: member.id,
-          userId: member.userId,
-          projectId: member.projectId,
-          role: member.role,
-          joinedAt: member.joinedAt,
-          user: member.user,
-          project: member.project,
-        });
-      }
-    });
-
-    return result;
   }
 
-  async findOne(id: string): Promise<ProjectMember> {
+  async findOne(id: string, requestUserId: string): Promise<ProjectMember> {
     const member = await this.prisma.projectMember.findUnique({
       where: { id },
       include: {
@@ -337,11 +447,13 @@ export class ProjectMembersService {
             color: true,
             status: true,
             priority: true,
+            workspaceId: true,
             workspace: {
               select: {
                 id: true,
                 name: true,
                 slug: true,
+                organizationId: true,
                 organization: {
                   select: {
                     id: true,
@@ -358,6 +470,32 @@ export class ProjectMembersService {
 
     if (!member) {
       throw new NotFoundException('Project member not found');
+    }
+
+    // Authorization check
+    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] =
+      await Promise.all([
+        this.findByUserAndProject(requestUserId, member.projectId),
+        this.prisma.workspaceMember.findUnique({
+          where: {
+            userId_workspaceId: {
+              userId: requestUserId,
+              workspaceId: member.project.workspaceId,
+            },
+          },
+        }),
+        this.prisma.organizationMember.findUnique({
+          where: {
+            userId_organizationId: {
+              userId: requestUserId,
+              organizationId: (member.project.workspace as any).organizationId,
+            },
+          },
+        }),
+      ]);
+
+    if (!requesterProjectMember && !requesterWorkspaceMember && !requesterOrgMember) {
+      throw new ForbiddenException('You are not authorized to view this project member');
     }
 
     return member;
@@ -562,7 +700,14 @@ export class ProjectMembersService {
     });
   }
 
-  getUserProjects(userId: string): Promise<ProjectMember[]> {
+  async getUserProjects(userId: string, requestUserId: string): Promise<ProjectMember[]> {
+    // Users can view their own projects, or admins might view others (for now restrict to self)
+    if (userId !== requestUserId) {
+      // Potentially allow org owners/admins to see other user's projects if they share an org
+      // For simplicity and maximum security, we'll restrict to self for now.
+      throw new ForbiddenException('You can only view your own projects');
+    }
+
     return this.prisma.projectMember.findMany({
       where: { userId },
       include: {
@@ -606,14 +751,48 @@ export class ProjectMembersService {
     });
   }
 
-  async getProjectStats(projectId: string): Promise<any> {
+  async getProjectStats(projectId: string, requestUserId: string): Promise<any> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
-      select: { id: true },
+      select: {
+        id: true,
+        workspaceId: true,
+        workspace: {
+          select: {
+            organizationId: true,
+          },
+        },
+      },
     });
 
     if (!project) {
       throw new NotFoundException('Project not found');
+    }
+
+    // Authorization check
+    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] =
+      await Promise.all([
+        this.findByUserAndProject(requestUserId, projectId),
+        this.prisma.workspaceMember.findUnique({
+          where: {
+            userId_workspaceId: {
+              userId: requestUserId,
+              workspaceId: project.workspaceId,
+            },
+          },
+        }),
+        this.prisma.organizationMember.findUnique({
+          where: {
+            userId_organizationId: {
+              userId: requestUserId,
+              organizationId: project.workspace.organizationId,
+            },
+          },
+        }),
+      ]);
+
+    if (!requesterProjectMember && !requesterWorkspaceMember && !requesterOrgMember) {
+      throw new ForbiddenException('You are not authorized to view statistics for this project');
     }
 
     const [totalMembers, roleStats, recentJoins] = await Promise.all([
