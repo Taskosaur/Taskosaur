@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useCallback } from "react";
 import { projectApi } from "@/utils/api/projectApi";
+import { useAuth } from "@/contexts/auth-context";
 
 import { taskStatusApi } from "@/utils/api/taskStatusApi";
 import {
@@ -139,6 +140,9 @@ interface ProjectProviderProps {
 }
 
 export function ProjectProvider({ children }: ProjectProviderProps) {
+  const { getCurrentUser } = useAuth();
+  const currentUser = getCurrentUser();
+
   const [projectState, setProjectState] = useState<ProjectState>({
     projects: [],
     currentProject: null,
@@ -375,12 +379,15 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       },
 
       getProjectsByUserId: (userId: string): Promise<Project[]> =>
-        handleApiOperation(() => projectApi.getProjectsByUserId(userId), false),
+        handleApiOperation(
+          () => projectApi.getProjectsByUserId(userId, currentUser?.id || ""),
+          false
+        ),
 
       // Project member methods
       inviteMemberToProject: async (inviteData: InviteMemberData): Promise<ProjectMember> => {
         const result = await handleApiOperation(
-          () => projectApi.inviteMemberToProject(inviteData),
+          () => projectApi.inviteMemberToProject(inviteData, currentUser?.id || ""),
           false
         );
 
@@ -400,7 +407,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
       addMemberToProject: async (memberData: AddMemberData): Promise<ProjectMember> => {
         const result = await handleApiOperation(
-          () => projectApi.addMemberToProject(memberData),
+          () => projectApi.addMemberToProject(memberData, currentUser?.id || ""),
           false
         );
 
@@ -420,7 +427,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
       getProjectMembers: async (projectId: string, search?: string): Promise<ProjectMember[]> => {
         const result = await handleApiOperation(
-          () => projectApi.getProjectMembers(projectId, search),
+          () => projectApi.getProjectMembers(projectId, currentUser?.id || "", search),
           false
         );
 
@@ -438,7 +445,14 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         limit?: number
       ): Promise<{ data: ProjectMember[]; total: number; page: number }> => {
         const result = await handleApiOperation(
-          () => projectApi.getProjectMembersPagination(projectId, search, page, limit),
+          () =>
+            projectApi.getProjectMembersPagination(
+              projectId,
+              currentUser?.id || "",
+              search,
+              page,
+              limit
+            ),
           false
         );
 
@@ -467,7 +481,10 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       },
 
       getProjectMembersByWorkspace: (workspaceId: string): Promise<ProjectMember[]> =>
-        handleApiOperation(() => projectApi.getProjectMembersByWorkspace(workspaceId), false),
+        handleApiOperation(
+          () => projectApi.getProjectMembersByWorkspace(workspaceId, currentUser?.id || ""),
+          false
+        ),
 
       updateProjectMemberRole: async (
         memberId: string,
@@ -510,7 +527,10 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
       // Stats and utility methods
       getProjectStats: async (projectId: string): Promise<ProjectStats> => {
-        const result = await handleApiOperation(() => projectApi.getProjectStats(projectId), false);
+        const result = await handleApiOperation(
+          () => projectApi.getProjectStats(projectId, currentUser?.id || ""),
+          false
+        );
 
         setProjectState((prev) => ({
           ...prev,
@@ -589,7 +609,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         });
       },
     }),
-    [projectState, handleApiOperation, fetchAnalyticsData]
+    [projectState, handleApiOperation, fetchAnalyticsData, currentUser]
   );
 
   return <ProjectContext.Provider value={contextValue}>{children}</ProjectContext.Provider>;

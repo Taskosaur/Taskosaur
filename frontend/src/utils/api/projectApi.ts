@@ -172,9 +172,11 @@ export const projectApi = {
     }
   },
 
-  getProjectsByUserId: async (userId: string): Promise<Project[]> => {
+  getProjectsByUserId: async (userId: string, requestUserId: string): Promise<Project[]> => {
     try {
-      const response = await api.get<Project[]>(`/project-members/user/${userId}/projects`);
+      const response = await api.get<Project[]>(
+        `/project-members/user/${userId}/projects?requestUserId=${requestUserId}`
+      );
       return response.data;
     } catch (error) {
       console.error("Get projects by user ID error:", error);
@@ -183,9 +185,15 @@ export const projectApi = {
   },
 
   // Project member operations
-  inviteMemberToProject: async (inviteData: InviteMemberData): Promise<ProjectMember> => {
+  inviteMemberToProject: async (
+    inviteData: InviteMemberData,
+    requestUserId: string
+  ): Promise<ProjectMember> => {
     try {
-      const response = await api.post<ProjectMember>("/project-members/invite", inviteData);
+      const response = await api.post<ProjectMember>(
+        `/project-members/invite?requestUserId=${requestUserId}`,
+        inviteData
+      );
       return response.data;
     } catch (error) {
       console.error("Invite member to project error:", error);
@@ -193,9 +201,15 @@ export const projectApi = {
     }
   },
 
-  addMemberToProject: async (memberData: AddMemberData): Promise<ProjectMember> => {
+  addMemberToProject: async (
+    memberData: AddMemberData,
+    requestUserId: string
+  ): Promise<ProjectMember> => {
     try {
-      const response = await api.post<ProjectMember>("/project-members", memberData);
+      const response = await api.post<ProjectMember>(
+        `/project-members?requestUserId=${requestUserId}`,
+        memberData
+      );
       return response.data;
     } catch (error) {
       console.error("Add member to project error:", error);
@@ -203,10 +217,14 @@ export const projectApi = {
     }
   },
 
-  getProjectMembers: async (projectId: string, search?: string): Promise<ProjectMember[]> => {
+  getProjectMembers: async (
+    projectId: string,
+    requestUserId: string,
+    search?: string
+  ): Promise<ProjectMember[]> => {
     try {
       const response = await api.get<{ data: ProjectMember[]; total: number }>(
-        `/project-members?projectId=${projectId}${
+        `/project-members?projectId=${projectId}&requestUserId=${requestUserId}${
           search ? `&search=${encodeURIComponent(search)}` : ""
         }`
       );
@@ -218,6 +236,7 @@ export const projectApi = {
   },
   getProjectMembersPagination: async (
     projectId: string,
+    requestUserId: string,
     search?: string,
     page?: number,
     limit?: number
@@ -225,6 +244,7 @@ export const projectApi = {
     try {
       const params = new URLSearchParams();
       if (projectId) params.append("projectId", projectId);
+      if (requestUserId) params.append("requestUserId", requestUserId);
       if (search) params.append("search", search);
       if (page) params.append("page", page.toString());
       if (limit) params.append("limit", limit.toString());
@@ -256,9 +276,14 @@ export const projectApi = {
     }
   },
 
-  getProjectMembersByWorkspace: async (workspaceId: string): Promise<ProjectMember[]> => {
+  getProjectMembersByWorkspace: async (
+    workspaceId: string,
+    requestUserId: string
+  ): Promise<ProjectMember[]> => {
     try {
-      const response = await api.get<ProjectMember[]>(`/project-members/workspace/${workspaceId}`);
+      const response = await api.get<ProjectMember[]>(
+        `/project-members/workspace/${workspaceId}?requestUserId=${requestUserId}`
+      );
       return response.data;
     } catch (error) {
       console.error("Get project members by workspace error:", error);
@@ -355,9 +380,11 @@ export const projectApi = {
       throw error;
     }
   },
-  getProjectStats: async (projectId: string): Promise<ProjectStats> => {
+  getProjectStats: async (projectId: string, requestUserId: string): Promise<ProjectStats> => {
     try {
-      const response = await api.get<ProjectStats>(`/project-members/project/${projectId}/stats`);
+      const response = await api.get<ProjectStats>(
+        `/project-members/project/${projectId}/stats?requestUserId=${requestUserId}`
+      );
       return response.data;
     } catch (error) {
       console.error("Get project stats error:", error);

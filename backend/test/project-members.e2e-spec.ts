@@ -148,6 +148,7 @@ describe('ProjectMembersController (e2e)', () => {
 
       return request(app.getHttpServer())
         .post('/api/project-members')
+        .query({ requestUserId: owner.id })
         .set('Authorization', `Bearer ${accessToken}`)
         .send(createDto)
         .expect(HttpStatus.CREATED)
@@ -164,7 +165,7 @@ describe('ProjectMembersController (e2e)', () => {
     it('should list project members', () => {
       return request(app.getHttpServer())
         .get('/api/project-members')
-        .query({ projectId })
+        .query({ projectId, requestUserId: owner.id })
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.OK)
         .expect((res) => {
@@ -197,6 +198,96 @@ describe('ProjectMembersController (e2e)', () => {
         .query({ requestUserId: owner.id }) // Passing requestUserId as per controller requirement
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.NO_CONTENT);
+    });
+  });
+
+  describe('/project-members/workspace/:workspaceId (GET)', () => {
+    it('should list all project members in a workspace', async () => {
+      // First add the member back (since it was deleted in previous test)
+      const createDto: CreateProjectMemberDto = {
+        userId: member.id,
+        projectId: projectId,
+        role: Role.MEMBER,
+      };
+      const createRes = await request(app.getHttpServer())
+        .post('/api/project-members')
+        .query({ requestUserId: owner.id })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto);
+      
+      membershipId = createRes.body.id;
+
+      return request(app.getHttpServer())
+        .get(`/api/project-members/workspace/${workspaceId}`)
+        .query({ requestUserId: owner.id })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.length).toBeGreaterThan(0);
+          const mem = res.body.find((m: any) => m.userId === member.id);
+          expect(mem).toBeDefined();
+          expect(mem.user).toBeDefined();
+          expect(mem.project).toBeDefined();
+        });
+    });
+  });
+
+  describe('/project-members/invite (POST)', () => {
+    it('should invite a member by email', async () => {
+      // Clean up previous membership if exists
+      await prismaService.projectMember.deleteMany({
+        where: { userId: member.id, projectId: projectId }
+      });
+
+      const inviteDto = {
+        email: member.email,
+        projectId: projectId,
+        role: Role.VIEWER,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/project-members/invite')
+        .query({ requestUserId: owner.id })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(inviteDto)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('id');
+          expect(res.body.userId).toBe(member.id);
+          expect(res.body.role).toBe(Role.VIEWER);
+        });
+    });
+  });
+
+  describe('/project-members/user/:userId/projects (GET)', () => {
+    it('should list all projects for a user', () => {
+      return request(app.getHttpServer())
+        .get(`/api/project-members/user/${member.id}/projects`)
+        .query({ requestUserId: member.id })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.length).toBeGreaterThan(0);
+          expect(res.body[0].projectId).toBe(projectId);
+        });
+    });
+  });
+
+  describe('/project-members/project/:projectId/stats (GET)', () => {
+    it('should get project member statistics', () => {
+      return request(app.getHttpServer())
+        .get(`/api/project-members/project/${projectId}/stats`)
+        .query({ requestUserId: owner.id })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('totalMembers');
+          expect(res.body).toHaveProperty('roleDistribution');
+          expect(res.body).toHaveProperty('recentJoins');
+          expect(res.body.totalMembers).toBeGreaterThan(0);
+        });
     });
   });
 });
