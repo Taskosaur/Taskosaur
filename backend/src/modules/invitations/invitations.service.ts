@@ -4,6 +4,7 @@ import {
   BadRequestException,
   NotFoundException,
   ServiceUnavailableException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EmailService } from '../email/email.service';
@@ -16,6 +17,8 @@ import { OrganizationMembersService } from '../organization-members/organization
 
 @Injectable()
 export class InvitationsService {
+  private readonly logger = new Logger(InvitationsService.name);
+
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
@@ -134,9 +137,11 @@ export class InvitationsService {
       await this.sendInvitationEmail(invitation);
       emailSent = true;
     } catch (error) {
-      console.error('Failed to send invitation email:', error);
+      this.logger.error(`Failed to send invitation email to ${dto.inviteeEmail}:`, error);
       // Continue execution - the invitation was created successfully
     }
+
+    this.logger.log(`Created invitation for ${dto.inviteeEmail} (ID: ${invitation.id})`);
 
     return { ...invitation, emailSent };
   }
@@ -220,11 +225,13 @@ export class InvitationsService {
             organizationName: organization?.name,
           });
         } catch (error: unknown) {
-          console.error(
-            'Failed to send direct add notification email:',
+          this.logger.error(
+            `Failed to send direct add notification email to ${user.email}:`,
             error instanceof Error ? error.message : String(error),
           );
         }
+
+        this.logger.log(`Added user ${user.email} directly to workspace ${workspace.id}`);
 
         return {
           type: 'direct_add',
@@ -291,11 +298,13 @@ export class InvitationsService {
             organizationName: organization?.name,
           });
         } catch (error: unknown) {
-          console.error(
-            'Failed to send direct add notification email:',
+          this.logger.error(
+            `Failed to send direct add notification email to ${user.email}:`,
             error instanceof Error ? error.message : String(error),
           );
         }
+
+        this.logger.log(`Added user ${user.email} directly to project ${project.id}`);
 
         return {
           type: 'direct_add',
@@ -457,6 +466,8 @@ export class InvitationsService {
       data: { status: 'ACCEPTED' },
     });
 
+    this.logger.log(`Invitation ${invitation.id} accepted by user ${userId}`);
+
     return {
       message: 'Invitation accepted successfully',
       invitation: {
@@ -489,6 +500,8 @@ export class InvitationsService {
       where: { id: invitation.id },
       data: { status: 'DECLINED' },
     });
+
+    this.logger.log(`Invitation ${invitation.id} declined`);
 
     return { message: 'Invitation declined successfully' };
   }
@@ -724,10 +737,15 @@ export class InvitationsService {
       emailSent = true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Failed to resend invitation email:', errorMessage);
+      this.logger.error(
+        `Failed to resend invitation email to ${updatedInvitation.inviteeEmail}:`,
+        errorMessage,
+      );
       emailError = errorMessage;
       // Continue execution - the invitation was updated successfully
     }
+
+    this.logger.log(`Resent invitation ${invitationId} to ${updatedInvitation.inviteeEmail}`);
 
     return {
       message: emailSent
@@ -835,12 +853,11 @@ export class InvitationsService {
         inviteeExists,
       };
     } catch (error) {
-      console.error(error);
       if (error instanceof NotFoundException) {
         throw error;
       }
 
-      console.error('Verify invitation error:', error);
+      this.logger.error('Verify invitation error:', error);
       throw new BadRequestException('Failed to verify invitation');
     }
   }

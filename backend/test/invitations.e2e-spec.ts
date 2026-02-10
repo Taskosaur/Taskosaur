@@ -279,4 +279,39 @@ describe('InvitationsController (e2e)', () => {
         .expect(HttpStatus.OK);
     });
   });
+
+  describe('/invitations/:token/accept (PATCH)', () => {
+    let acceptToken: string;
+
+    beforeEach(async () => {
+      // Create a specific invitation for the invitee user to accept
+      const createDto: CreateInvitationDto = {
+        inviteeEmail: invitee.email,
+        workspaceId: workspaceId,
+        role: 'MEMBER',
+      };
+
+      const res = await request(app.getHttpServer())
+        .post('/api/invitations')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto);
+      
+      acceptToken = res.body.token;
+    });
+
+    it('should accept an invitation', async () => {
+      // Generate token for invitee
+      const inviteePayload = { sub: invitee.id, email: invitee.email, role: invitee.role };
+      const inviteeAccessToken = jwtService.sign(inviteePayload);
+
+      return request(app.getHttpServer())
+        .patch(`/api/invitations/${acceptToken}/accept`)
+        .set('Authorization', `Bearer ${inviteeAccessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('message');
+          expect(res.body.message).toContain('successfully');
+        });
+    });
+  });
 });
