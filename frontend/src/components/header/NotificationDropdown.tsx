@@ -226,10 +226,7 @@ export default function NotificationDropdown({
                     <div className="header-notifications-item-content">
                       <div className="header-notifications-item-header">
                         <div className="header-notifications-item-title">
-                          {/* ✅ Show entity name if available, else title */}
-                          {notification.entity?.name
-                            ? `${notification.title}: ${notification.entity.name}`
-                            : notification.title}
+                          {notification?.title}
                         </div>
 
                         {(notification.priority === "HIGH" ||
@@ -243,10 +240,7 @@ export default function NotificationDropdown({
                       </div>
 
                       <div className="header-notifications-item-message">
-                        {/* ✅ Optionally include entity name in message too */}
-                        {notification.entity?.name
-                          ? `${notification.message} (${notification.entity.name})`
-                          : notification.message}
+                        {notification?.message}
                       </div>
 
                       <div className="header-notifications-item-time">

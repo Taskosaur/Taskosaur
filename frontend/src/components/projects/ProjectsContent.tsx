@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { EntityCard } from "@/components/common/EntityCard";
 import ActionButton from "@/components/common/ActionButton";
 import { HiFolder, HiClipboardDocumentList, HiCalendarDays, HiXMark } from "react-icons/hi2";
-import { HiSearch, HiChevronDown, HiViewBoards } from "react-icons/hi";
+import { HiSearch, HiViewBoards } from "react-icons/hi";
 import { DynamicBadge } from "@/components/common/DynamicBadge";
 import { NewProjectModal } from "@/components/projects/NewProjectModal";
 import { availableStatuses, availablePriorities } from "@/utils/data/projectFilters";
@@ -444,7 +444,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
       isInitializedRef.current = false;
       setIsInitialLoad(true);
       setWorkspace(null);
-      
+
       // Only reset filters if we are switching from one valid context to another
       // This preserves filters passed via URL on mount even as workspaceSlug resolves
       if (!isInitialContextLoad) {
@@ -452,7 +452,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
         setSelectedPriorities([]);
         setSearchInput("");
       }
-      
+
       setCurrentPage(1);
       currentContextRef.current = contextKey;
     }
@@ -469,12 +469,12 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     }
   }, [contextId, contextType, selectedStatuses, selectedPriorities, debouncedSearchQuery]);
 
-  // Effect for pagination
+  // Effect for pagination (page changes after initial load)
   useEffect(() => {
-    if (enablePagination && currentPage > 1 && !isInitialLoad) {
-      fetchData(currentPage, false);
+    if (enablePagination && !isInitialLoad && isInitializedRef.current) {
+      fetchData(currentPage, true);
     }
-  }, [currentPage, enablePagination, isInitialLoad]);
+  }, [currentPage]);
 
   // Cleanup effect
   useEffect(() => {
@@ -531,9 +531,9 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     }
   }, [refreshProjects, t]);
 
-  const loadMore = () => {
-    if (hasMore && !isFetching && enablePagination) {
-      setCurrentPage((prev) => prev + 1);
+  const goToPage = (page: number) => {
+    if (!isFetching && enablePagination && page >= 1) {
+      setCurrentPage(page);
     }
   };
 
@@ -709,35 +709,38 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                   })}
                 </div>
 
-                {/* Load More Button (for pagination) */}
-                {enablePagination && hasMore && (
-                  <div className="flex justify-center">
-                    <Button
-                      onClick={loadMore}
-                      disabled={isFetching}
-                      variant="outline"
-                      className="group relative min-w-[140px] h-10 border-[var(--border)] bg-[var(--background)] hover:bg-[var(--muted)] transition-all duration-200 disabled:opacity-50"
-                    >
-                      <div className="flex items-center gap-2">
-                        {isFetching ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-                            <span>{t("loading")}</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>{t("load_more")}</span>
-                            <HiChevronDown className="w-4 h-4 transition-transform group-hover:translate-y-0.5" />
-                          </>
-                        )}
-                      </div>
-                    </Button>
-                  </div>
-                )}
-
-                {/* Footer Counter */}
+                {/* Fixed Bottom Bar: Pagination + Counter */}
                 {projects.length > 0 && (
-                  <div className="fixed bottom-0 left-[50%] md:left-[55%] -translate-x-1/2 w-full min-h-[48px] flex items-center justify-center pb-4 pointer-events-none">
+                  <div className="fixed bottom-0 left-[50%] md:left-[55%] -translate-x-1/2 w-full flex flex-col items-center pb-4 pointer-events-none z-10">
+                    {enablePagination && (currentPage > 1 || hasMore) && (
+                      <div className="flex items-center gap-3 pointer-events-auto mb-2">
+                        <Button
+                          onClick={() => goToPage(currentPage - 1)}
+                          disabled={currentPage <= 1 || isFetching}
+                          variant="outline"
+                          size="sm"
+                          className="border-[var(--border)] bg-[var(--background)] hover:bg-[var(--muted)] transition-all duration-200 disabled:opacity-50"
+                        >
+                          {t("previous", "Previous")}
+                        </Button>
+                        <span className="text-sm text-[var(--muted-foreground)] tabular-nums">
+                          {t("page_info", { page: currentPage, defaultValue: `Page ${currentPage}` })}
+                        </span>
+                        <Button
+                          onClick={() => goToPage(currentPage + 1)}
+                          disabled={!hasMore || isFetching}
+                          variant="outline"
+                          size="sm"
+                          className="border-[var(--border)] bg-[var(--background)] hover:bg-[var(--muted)] transition-all duration-200 disabled:opacity-50"
+                        >
+                          {isFetching ? (
+                            <div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            t("next", "Next")
+                          )}
+                        </Button>
+                      </div>
+                    )}
                     <p className="text-sm text-[var(--muted-foreground)] pointer-events-auto">
                       {t("showing_projects", { count: projects.length })}
                       {searchInput && t("matching", { query: searchInput })}
