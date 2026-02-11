@@ -19,22 +19,32 @@ export class EmailProcessor implements OnModuleInit {
     private queueService: QueueService,
     private queueConfigService: QueueConfigService,
   ) {
-    this.initializeTransporter();
+    // initializeTransporter is now async and called in onModuleInit
   }
 
-  onModuleInit() {
+  async onModuleInit() {
     try {
+      this.logger.log('Initializing EmailProcessor worker and SMTP transporter...');
+
+      // Initialize SMTP first
+      await this.initializeTransporter();
+
       const adapter = this.queueService.getAdapter();
       if (!adapter) {
-        this.logger.error('Queue adapter not available. Email jobs will not be processed.');
+        this.logger.error(
+          'CRITICAL: Queue adapter not available. Email jobs will not be processed.',
+        );
         return;
       }
 
       // Ensure the queue is registered
       try {
         this.queueService.registerQueue('email');
-      } catch {
-        // Queue might already be registered, which is fine
+        this.logger.log('Queue "email" registered/verified successfully.');
+      } catch (error) {
+        this.logger.warn(
+          `Notice: Queue "email" registration status: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
 
       // Get configuration from QueueConfigService to ensure worker matches queue settings
@@ -43,7 +53,7 @@ export class EmailProcessor implements OnModuleInit {
       const queueConnection = bullMqConfig?.connection;
 
       if (!queueConnection) {
-        this.logger.warn('No Redis connection configuration found for email worker');
+        this.logger.error('CRITICAL: No Redis connection configuration found for email worker');
       }
 
       // Create worker with the configured connection and prefix
@@ -57,14 +67,18 @@ export class EmailProcessor implements OnModuleInit {
       };
 
       adapter.createWorker('email', processor, workerConfig);
-      this.logger.log(`Email worker registered with prefix: ${queuePrefix}`);
+      this.logger.log(
+        `SUCCESS: Email worker registered and listening on queue "${queuePrefix}:email"`,
+      );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to register EmailProcessor as worker: ${errorMessage}`);
+      this.logger.error(
+        `CRITICAL FAILURE: Failed to register EmailProcessor as worker. JOBS WILL NOT BE PROCESSED: ${errorMessage}`,
+      );
     }
   }
 
-  private initializeTransporter() {
+  private async initializeTransporter() {
     const smtpHost = this.configService.get<string>('SMTP_HOST');
     const smtpPort = Number(this.configService.get<number>('SMTP_PORT', 587));
     const smtpUser = this.configService.get<string>('SMTP_USER');
@@ -89,15 +103,30 @@ export class EmailProcessor implements OnModuleInit {
           rejectUnauthorized: this.configService.get('NODE_ENV') !== 'development',
         },
       });
-    } catch (error) {
-      this.logger.error('Failed to initialize SMTP transporter:', error);
-      this.transporter = null as any;
-    }
 
-    // Note: SMTP connection will be verified only when sending emails
+      // Verify connection configuration
+      await this.transporter.verify();
+      this.logger.log(
+        `SMTP transporter initialized and VERIFIED successfully for ${smtpHost}:${smtpPort}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        'CRITICAL: Failed to initialize SMTP transporter. Check your SMTP credentials and network connectivity:',
+        error,
+      );
+      this.transporter = null;
+    }
   }
 
   async process(job: IJob<EmailJobData>) {
+    if (!this.transporter) {
+      const smtpHost = this.configService.get<string>('SMTP_HOST');
+      if (smtpHost) {
+        this.logger.warn(
+          `Email job ${job.id} started but SMTP transporter is not initialized. Verification failed at startup.`,
+        );
+      }
+    }
     return await this.handleSendEmail(job);
   }
 
@@ -123,7 +152,8 @@ export class EmailProcessor implements OnModuleInit {
         this.logger.log(`Email sent successfully to ${to} using template ${template}`);
         return { success: true, messageId: result.messageId };
       } else {
-        // Simulate email sending for development
+        // Log explicitly why it is being simulated
+        this.logger.warn(`📧 EMAIL SIMULATION: Transporter not available. Check startup logs.`);
         this.logger.log(
           `📧 EMAIL SIMULATION - To: ${to}, Subject: ${subject}, Template: ${template}`,
         );
