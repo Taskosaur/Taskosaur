@@ -152,7 +152,12 @@ export class WorkspacesService {
               select: { role: true },
             }
           : false,
-        _count: { select: { members: true, projects: true } },
+        _count: {
+          select: {
+            members: true,
+            projects: userId ? { where: { archive: false, members: { some: { userId } } } } : true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -205,7 +210,12 @@ export class WorkspacesService {
               select: { role: true },
             }
           : false,
-        _count: { select: { members: true, projects: true } },
+        _count: {
+          select: {
+            members: true,
+            projects: userId ? { where: { archive: false, members: { some: { userId } } } } : true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       skip,
@@ -263,7 +273,12 @@ export class WorkspacesService {
             _count: { select: { tasks: true, members: true } },
           },
         },
-        _count: { select: { members: true, projects: true } },
+        _count: {
+          select: {
+            members: true,
+            projects: { where: { archive: false, members: { some: { userId } } } },
+          },
+        },
       },
     });
 
@@ -288,7 +303,12 @@ export class WorkspacesService {
               select: { role: true },
             }
           : false,
-        _count: { select: { members: true, projects: true } },
+        _count: {
+          select: {
+            members: true,
+            projects: userId ? { where: { archive: false, members: { some: { userId } } } } : true,
+          },
+        },
       },
     });
 
