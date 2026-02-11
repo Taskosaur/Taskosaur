@@ -11,9 +11,10 @@ import { EmailService } from '../email/email.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import * as crypto from 'crypto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { InvitationStatus, Role } from '@prisma/client';
+import { InvitationStatus, NotificationPriority, NotificationType, Role } from '@prisma/client';
 import { WorkspaceMembersService } from '../workspace-members/workspace-members.service';
 import { OrganizationMembersService } from '../organization-members/organization-members.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class InvitationsService {
@@ -25,6 +26,7 @@ export class InvitationsService {
     private workspaceMemberService: WorkspaceMembersService,
     private organizationMemberService: OrganizationMembersService,
     private configService: ConfigService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async createInvitation(dto: CreateInvitationDto, inviterId: string) {
@@ -141,6 +143,38 @@ export class InvitationsService {
       // Continue execution - the invitation was created successfully
     }
 
+    // If user exists, also send a site notification
+    if (user) {
+      try {
+        const inviterName = `${invitation.inviter.firstName} ${invitation.inviter.lastName}`;
+        const entityName =
+          invitation.organization?.name ||
+          invitation.workspace?.name ||
+          invitation.project?.name ||
+          'Unknown';
+        const entityType = invitation.organization
+          ? 'organization'
+          : invitation.workspace
+            ? 'workspace'
+            : 'project';
+
+        await this.notificationsService.createNotification({
+          title: `New Invitation: ${entityName}`,
+          message: `${inviterName} has invited you to join the ${entityType} "${entityName}"`,
+          type: NotificationType.SYSTEM,
+          userId: user.id,
+          organizationId: owningOrgId,
+          entityType: 'Invitation',
+          entityId: invitation.id,
+          actionUrl: `/settings/invitations`, // Where user can see invitations
+          createdBy: inviterId,
+          priority: NotificationPriority.HIGH,
+        });
+      } catch (error) {
+        this.logger.error(`Failed to create site notification for ${dto.inviteeEmail}:`, error);
+      }
+    }
+
     this.logger.log(`Created invitation for ${dto.inviteeEmail} (ID: ${invitation.id})`);
 
     return { ...invitation, emailSent };
@@ -215,6 +249,25 @@ export class InvitationsService {
           role: dto.role as any,
           createdBy: inviterId,
         });
+
+        // Send site notification
+        try {
+          await this.notificationsService.createNotification({
+            title: `Added to Workspace: ${workspace.name}`,
+            message: `${inviterName} has added you directly to the workspace "${workspace.name}"`,
+            type: NotificationType.SYSTEM,
+            userId,
+            organizationId,
+            entityType: 'Workspace',
+            entityId: workspace.id,
+            actionUrl: `/workspaces/${workspace.slug}`,
+            createdBy: inviterId,
+            priority: NotificationPriority.MEDIUM,
+          });
+        } catch (error) {
+          this.logger.error(`Failed to create site notification for ${user.email}:`, error);
+        }
+
         try {
           await this.emailService.sendDirectAddNotificationEmail(user.email, {
             inviterName,
@@ -287,6 +340,24 @@ export class InvitationsService {
             createdBy: inviterId,
           },
         });
+
+        // Send site notification
+        try {
+          await this.notificationsService.createNotification({
+            title: `Added to Project: ${project.name}`,
+            message: `${inviterName} has added you directly to the project "${project.name}"`,
+            type: NotificationType.SYSTEM,
+            userId,
+            organizationId,
+            entityType: 'Project',
+            entityId: project.id,
+            actionUrl: `/projects/${project.slug}`,
+            createdBy: inviterId,
+            priority: NotificationPriority.MEDIUM,
+          });
+        } catch (error) {
+          this.logger.error(`Failed to create site notification for ${user.email}:`, error);
+        }
 
         try {
           await this.emailService.sendDirectAddNotificationEmail(user.email, {
