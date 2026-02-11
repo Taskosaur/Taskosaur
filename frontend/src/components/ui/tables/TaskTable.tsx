@@ -1104,6 +1104,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
       case "status": return "tasktable-header-cell-status";
       case "assignees": return "tasktable-header-cell-assignee w-32 text-center min-w-[120px] max-w-[180px]";
       case "dueDate": return "tasktable-header-cell-date";
+      case "timeline": return "tasktable-header-cell w-[14%] min-w-[200px] max-w-[260px]";
       default: return "tasktable-header-cell w-[8%] min-w-[100px] max-w-[140px]";
     }
   };
@@ -1433,10 +1434,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
         );
       default:
         const column = columns.find(c => c.id === colId);
+        const isTimeline = colId === "timeline";
         return (
           <TableCell
             key={colId}
-            className="tasktable-cell w-[8%] min-w-[100px] max-w-[140px]"
+            className={isTimeline ? "tasktable-cell w-[14%] min-w-[200px] max-w-[260px]" : "tasktable-cell w-[8%] min-w-[100px] max-w-[140px]"}
             onClick={(e) => e.stopPropagation()}
           >
             {column ? renderDynamicCellContent(task, column) : null}
