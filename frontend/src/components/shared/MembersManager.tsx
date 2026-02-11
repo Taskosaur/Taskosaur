@@ -134,10 +134,38 @@ const MembersManagerComponent = memo(function MembersManager({
 
   const roles = type === "workspace" ? workspaceRoles : projectRoles;
 
+  const currentUser = getCurrentUser();
+  const currentUserMember = members.find((m) => m.userId === currentUser?.id);
+  const currentUserRole = currentUserMember?.role;
+
   const getRoleLabel = (role: string) => {
     const roleConfig = roles.find((r) => r.value === role);
     return roleConfig?.label || role;
   };
+
+  const canManageMember = useCallback(
+    (targetMember: Member) => {
+      if (!currentUserRole) return false;
+      if (type !== "project") return true; // Keep existing behavior for workspace for now
+
+      // Role hierarchy: SUPER_ADMIN/OWNER > MANAGER > DEVELOPER/MEMBER/VIEWER
+      const isOwner = (role: string) => role === "SUPER_ADMIN" || role === "OWNER";
+      const isManager = (role: string) => role === "MANAGER";
+
+      if (isOwner(currentUserRole)) {
+        // Owner can manage everyone except other owners
+        return !isOwner(targetMember.role);
+      }
+
+      if (isManager(currentUserRole)) {
+        // Manager can manage everyone except owners and other managers
+        return !isOwner(targetMember.role) && !isManager(targetMember.role);
+      }
+
+      return false; // Other roles cannot manage anyone
+    },
+    [currentUserRole, type]
+  );
 
   const fetchMembers = useCallback(async () => {
     const fetchKey = `${type}-${entityId}-${organizationId}`;
@@ -717,38 +745,46 @@ const MembersManagerComponent = memo(function MembersManager({
                   </div>
                 </div>
                 <div className="members-manager-member-actions">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="members-manager-role-button">
-                        {getRoleLabel(member.role)}
-                        <HiChevronDown className="size-2" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="members-manager-role-dropdown">
-                      {roles.map((role) => (
+                  {canManageMember(member) ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="members-manager-role-button">
+                          {getRoleLabel(member.role)}
+                          <HiChevronDown className="size-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="members-manager-role-dropdown">
+                        {roles.map((role) => (
+                          <DropdownMenuItem
+                            key={role.value}
+                            onClick={() => handleUpdateRole(member.id, role.value)}
+                            className="members-manager-role-dropdown-item"
+                          >
+                            <div className="members-manager-role-dropdown-item-content">
+                              {role.label}
+                              {member.role === role.value && (
+                                <HiCheck className="members-manager-role-dropdown-check" />
+                              )}
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          key={role.value}
-                          onClick={() => handleUpdateRole(member.id, role.value)}
-                          className="members-manager-role-dropdown-item"
+                          onClick={() => handleRemoveMember(member.id)}
+                          className="members-manager-role-dropdown-remove"
                         >
-                          <div className="members-manager-role-dropdown-item-content">
-                            {role.label}
-                            {member.role === role.value && (
-                              <HiCheck className="members-manager-role-dropdown-check" />
-                            )}
-                          </div>
+                          <HiTrash className="members-manager-role-dropdown-remove-icon" />
+                          Remove member
                         </DropdownMenuItem>
-                      ))}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => handleRemoveMember(member.id)}
-                        className="members-manager-role-dropdown-remove"
-                      >
-                        <HiTrash className="members-manager-role-dropdown-remove-icon" />
-                        Remove member
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <div className="members-manager-role-static">
+                      <span className="members-manager-role-badge">
+                        {getRoleLabel(member.role)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))

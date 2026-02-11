@@ -352,3 +352,8 @@
 .members-manager-role-dropdown-remove-icon {
   @apply size-3;
 }
+
+.members-manager-role-badge {
+  @apply inline-flex items-center justify-center h-9 px-3 rounded-md bg-[var(--primary)]/5 text-[var(--foreground)] text-xs font-medium border-none whitespace-nowrap;
+}
+
