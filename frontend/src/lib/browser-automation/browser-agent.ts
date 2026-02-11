@@ -159,23 +159,25 @@ export class BrowserAgent {
         userMessage = `Current URL: ${currentUrl}\n\nAvailable elements:\n${elementsHtml}`;
       }
 
-      // Add to conversation history
       this.conversationHistory.push({
         role: "user",
         content: userMessage,
       });
 
+      const cleanHistory = this.conversationHistory
+        .slice(0, -1)
+        .filter((entry) => entry.content && entry.content.trim() !== "");
+
       const response = await api.post("/ai-chat/chat", {
         message: userMessage,
-        history: this.conversationHistory.slice(0, -1),
+        history: cleanHistory,
       });
 
       const llmResponse = response.data.message || "";
 
-      // Add LLM response to history
       this.conversationHistory.push({
         role: "assistant",
-        content: llmResponse,
+        content: llmResponse.trim() || "[empty response]",
       });
 
       return llmResponse;
@@ -320,7 +322,7 @@ export class BrowserAgent {
     this.conversationHistory = [];
     this.aborted = false;
   }
-      public stop(): void {
+  public stop(): void {
     this.aborted = true;
   }
 }
