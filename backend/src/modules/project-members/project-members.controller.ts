@@ -17,6 +17,16 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ProjectMembersService } from './project-members.service';
 import { CreateProjectMemberDto, InviteProjectMemberDto } from './dto/create-project-member.dto';
 import { UpdateProjectMemberDto } from './dto/update-project-member.dto';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+
+interface AuthenticatedUser {
+  id: string;
+  email: string;
+  role: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+}
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
@@ -27,22 +37,22 @@ export class ProjectMembersController {
   @Post()
   create(
     @Body() createProjectMemberDto: CreateProjectMemberDto,
-    @Query('requestUserId') requestUserId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.projectMembersService.create(createProjectMemberDto, requestUserId);
+    return this.projectMembersService.create(createProjectMemberDto, user.id);
   }
 
   @Post('invite')
   inviteByEmail(
     @Body() inviteProjectMemberDto: InviteProjectMemberDto,
-    @Query('requestUserId') requestUserId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.projectMembersService.inviteByEmail(inviteProjectMemberDto, requestUserId);
+    return this.projectMembersService.inviteByEmail(inviteProjectMemberDto, user.id);
   }
 
   @Get()
   findAll(
-    @Query('requestUserId') requestUserId: string,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('projectId') projectId?: string,
     @Query('search') search?: string,
     @Query('page') page?: string,
@@ -50,37 +60,31 @@ export class ProjectMembersController {
   ) {
     const pageNumber = page ? parseInt(page, 10) : undefined;
     const limitNumber = limit ? parseInt(limit, 10) : undefined;
-    return this.projectMembersService.findAll(
-      requestUserId,
-      projectId,
-      search,
-      pageNumber,
-      limitNumber,
-    );
+    return this.projectMembersService.findAll(user.id, projectId, search, pageNumber, limitNumber);
   }
 
   @Get('workspace/:workspaceId')
   findAllByWorkspace(
     @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
-    @Query('requestUserId') requestUserId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.projectMembersService.findAllByWorkspace(workspaceId, requestUserId);
+    return this.projectMembersService.findAllByWorkspace(workspaceId, user.id);
   }
 
   @Get('user/:userId/projects')
   getUserProjects(
     @Param('userId', ParseUUIDPipe) userId: string,
-    @Query('requestUserId') requestUserId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.projectMembersService.getUserProjects(userId, requestUserId);
+    return this.projectMembersService.getUserProjects(userId, user.id);
   }
 
   @Get('project/:projectId/stats')
   getProjectStats(
     @Param('projectId', ParseUUIDPipe) projectId: string,
-    @Query('requestUserId') requestUserId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.projectMembersService.getProjectStats(projectId, requestUserId);
+    return this.projectMembersService.getProjectStats(projectId, user.id);
   }
 
   @Get('user/:userId/project/:projectId')
@@ -92,27 +96,22 @@ export class ProjectMembersController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string, @Query('requestUserId') requestUserId: string) {
-    return this.projectMembersService.findOne(id, requestUserId);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.projectMembersService.findOne(id, user.id);
   }
 
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateProjectMemberDto: UpdateProjectMemberDto,
-    // TODO: Get requestUserId from JWT token when authentication is implemented
-    @Query('requestUserId') requestUserId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.projectMembersService.update(id, updateProjectMemberDto, requestUserId);
+    return this.projectMembersService.update(id, updateProjectMemberDto, user.id);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    // TODO: Get requestUserId from JWT token when authentication is implemented
-    @Query('requestUserId') requestUserId: string,
-  ) {
-    return this.projectMembersService.remove(id, requestUserId);
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.projectMembersService.remove(id, user.id);
   }
 }

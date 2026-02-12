@@ -92,12 +92,10 @@ interface ProjectContextType extends ProjectState {
   getProjectMembersByWorkspace: (workspaceId: string) => Promise<ProjectMember[]>;
   updateProjectMemberRole: (
     memberId: string,
-    requestUserId: string,
     role: string
   ) => Promise<ProjectMember>;
   removeProjectMember: (
-    memberId: string,
-    requestUserId: string
+    memberId: string
   ) => Promise<{ success: boolean; message: string }>;
 
   // Stats and utility methods
@@ -140,9 +138,6 @@ interface ProjectProviderProps {
 }
 
 export function ProjectProvider({ children }: ProjectProviderProps) {
-  const { getCurrentUser } = useAuth();
-  const currentUser = getCurrentUser();
-
   const [projectState, setProjectState] = useState<ProjectState>({
     projects: [],
     currentProject: null,
@@ -380,14 +375,14 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
       getProjectsByUserId: (userId: string): Promise<Project[]> =>
         handleApiOperation(
-          () => projectApi.getProjectsByUserId(userId, currentUser?.id || ""),
+          () => projectApi.getProjectsByUserId(userId),
           false
         ),
 
       // Project member methods
       inviteMemberToProject: async (inviteData: InviteMemberData): Promise<ProjectMember> => {
         const result = await handleApiOperation(
-          () => projectApi.inviteMemberToProject(inviteData, currentUser?.id || ""),
+          () => projectApi.inviteMemberToProject(inviteData),
           false
         );
 
@@ -407,7 +402,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
       addMemberToProject: async (memberData: AddMemberData): Promise<ProjectMember> => {
         const result = await handleApiOperation(
-          () => projectApi.addMemberToProject(memberData, currentUser?.id || ""),
+          () => projectApi.addMemberToProject(memberData),
           false
         );
 
@@ -427,7 +422,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
       getProjectMembers: async (projectId: string, search?: string): Promise<ProjectMember[]> => {
         const result = await handleApiOperation(
-          () => projectApi.getProjectMembers(projectId, currentUser?.id || "", search),
+          () => projectApi.getProjectMembers(projectId, search),
           false
         );
 
@@ -448,7 +443,6 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
           () =>
             projectApi.getProjectMembersPagination(
               projectId,
-              currentUser?.id || "",
               search,
               page,
               limit
@@ -482,17 +476,16 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
       getProjectMembersByWorkspace: (workspaceId: string): Promise<ProjectMember[]> =>
         handleApiOperation(
-          () => projectApi.getProjectMembersByWorkspace(workspaceId, currentUser?.id || ""),
+          () => projectApi.getProjectMembersByWorkspace(workspaceId),
           false
         ),
 
       updateProjectMemberRole: async (
         memberId: string,
-        requestUserId: string,
         role: string
       ): Promise<ProjectMember> => {
         const result = await handleApiOperation(
-          () => projectApi.updateProjectMemberRole(memberId, requestUserId, role),
+          () => projectApi.updateProjectMemberRole(memberId, role),
           false
         );
 
@@ -508,11 +501,10 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       },
 
       removeProjectMember: async (
-        memberId: string,
-        requestUserId: string
+        memberId: string
       ): Promise<{ success: boolean; message: string }> => {
         const result = await handleApiOperation(
-          () => projectApi.removeProjectMember(memberId, requestUserId),
+          () => projectApi.removeProjectMember(memberId),
           false
         );
 
@@ -528,7 +520,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       // Stats and utility methods
       getProjectStats: async (projectId: string): Promise<ProjectStats> => {
         const result = await handleApiOperation(
-          () => projectApi.getProjectStats(projectId, currentUser?.id || ""),
+          () => projectApi.getProjectStats(projectId),
           false
         );
 
@@ -609,7 +601,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         });
       },
     }),
-    [projectState, handleApiOperation, fetchAnalyticsData, currentUser]
+    [projectState, handleApiOperation, fetchAnalyticsData]
   );
 
   return <ProjectContext.Provider value={contextValue}>{children}</ProjectContext.Provider>;

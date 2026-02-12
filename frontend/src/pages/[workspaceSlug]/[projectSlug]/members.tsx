@@ -458,7 +458,7 @@ function ProjectMembersContent() {
 
     try {
       setUpdatingMember(memberId);
-      await updateProjectMemberRole(memberId, currentUser.id, newRole);
+      await updateProjectMemberRole(memberId, newRole);
       updateLocalStorageUser(newRole);
       await refreshMembers();
       toast.success("Member role updated successfully");
@@ -479,7 +479,7 @@ function ProjectMembersContent() {
 
     try {
       setRemovingMember(member?.id);
-      await removeProjectMember(member?.id, currentUser.id);
+      await removeProjectMember(member?.id);
       await refreshMembers();
       setMemberToRemove(null);
 

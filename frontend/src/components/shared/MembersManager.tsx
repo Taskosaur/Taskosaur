@@ -417,7 +417,7 @@ const MembersManagerComponent = memo(function MembersManager({
       if (type === "workspace") {
         await workspaceContext.removeMemberFromWorkspace?.(memberId, currentUser.id);
       } else {
-        await projectContext.removeProjectMember(memberId, currentUser.id);
+        await projectContext.removeProjectMember(memberId);
       }
 
       await fetchMembers();
@@ -439,7 +439,7 @@ const MembersManagerComponent = memo(function MembersManager({
           currentUser.id
         );
       } else {
-        await projectContext.updateProjectMemberRole(memberId, currentUser.id, newRole);
+        await projectContext.updateProjectMemberRole(memberId, newRole);
       }
 
       await fetchMembers();

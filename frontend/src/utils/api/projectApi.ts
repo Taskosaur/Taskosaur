@@ -172,10 +172,10 @@ export const projectApi = {
     }
   },
 
-  getProjectsByUserId: async (userId: string, requestUserId: string): Promise<Project[]> => {
+  getProjectsByUserId: async (userId: string): Promise<Project[]> => {
     try {
       const response = await api.get<Project[]>(
-        `/project-members/user/${userId}/projects?requestUserId=${requestUserId}`
+        `/project-members/user/${userId}/projects`
       );
       return response.data;
     } catch (error) {
@@ -186,12 +186,11 @@ export const projectApi = {
 
   // Project member operations
   inviteMemberToProject: async (
-    inviteData: InviteMemberData,
-    requestUserId: string
+    inviteData: InviteMemberData
   ): Promise<ProjectMember> => {
     try {
       const response = await api.post<ProjectMember>(
-        `/project-members/invite?requestUserId=${requestUserId}`,
+        "/project-members/invite",
         inviteData
       );
       return response.data;
@@ -202,12 +201,11 @@ export const projectApi = {
   },
 
   addMemberToProject: async (
-    memberData: AddMemberData,
-    requestUserId: string
+    memberData: AddMemberData
   ): Promise<ProjectMember> => {
     try {
       const response = await api.post<ProjectMember>(
-        `/project-members?requestUserId=${requestUserId}`,
+        "/project-members",
         memberData
       );
       return response.data;
@@ -219,12 +217,11 @@ export const projectApi = {
 
   getProjectMembers: async (
     projectId: string,
-    requestUserId: string,
     search?: string
   ): Promise<ProjectMember[]> => {
     try {
       const response = await api.get<{ data: ProjectMember[]; total: number }>(
-        `/project-members?projectId=${projectId}&requestUserId=${requestUserId}${
+        `/project-members?projectId=${projectId}${
           search ? `&search=${encodeURIComponent(search)}` : ""
         }`
       );
@@ -236,7 +233,6 @@ export const projectApi = {
   },
   getProjectMembersPagination: async (
     projectId: string,
-    requestUserId: string,
     search?: string,
     page?: number,
     limit?: number
@@ -244,7 +240,6 @@ export const projectApi = {
     try {
       const params = new URLSearchParams();
       if (projectId) params.append("projectId", projectId);
-      if (requestUserId) params.append("requestUserId", requestUserId);
       if (search) params.append("search", search);
       if (page) params.append("page", page.toString());
       if (limit) params.append("limit", limit.toString());
@@ -277,12 +272,11 @@ export const projectApi = {
   },
 
   getProjectMembersByWorkspace: async (
-    workspaceId: string,
-    requestUserId: string
+    workspaceId: string
   ): Promise<ProjectMember[]> => {
     try {
       const response = await api.get<ProjectMember[]>(
-        `/project-members/workspace/${workspaceId}?requestUserId=${requestUserId}`
+        `/project-members/workspace/${workspaceId}`
       );
       return response.data;
     } catch (error) {
@@ -293,12 +287,11 @@ export const projectApi = {
 
   updateProjectMemberRole: async (
     memberId: string,
-    requestUserId: string,
     role: string
   ): Promise<ProjectMember> => {
     try {
       const response = await api.patch<ProjectMember>(
-        `/project-members/${memberId}?requestUserId=${requestUserId}`,
+        `/project-members/${memberId}`,
         { role }
       );
       return response.data;
@@ -309,12 +302,11 @@ export const projectApi = {
   },
 
   removeProjectMember: async (
-    memberId: string,
-    requestUserId: string
+    memberId: string
   ): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await api.delete(
-        `/project-members/${memberId}?requestUserId=${requestUserId}`
+        `/project-members/${memberId}`
       );
 
       // Handle different response types
@@ -380,10 +372,10 @@ export const projectApi = {
       throw error;
     }
   },
-  getProjectStats: async (projectId: string, requestUserId: string): Promise<ProjectStats> => {
+  getProjectStats: async (projectId: string): Promise<ProjectStats> => {
     try {
       const response = await api.get<ProjectStats>(
-        `/project-members/project/${projectId}/stats?requestUserId=${requestUserId}`
+        `/project-members/project/${projectId}/stats`
       );
       return response.data;
     } catch (error) {

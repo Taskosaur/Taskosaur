@@ -373,7 +373,6 @@ export class SprintsService {
 
       return sprint;
     } catch (error) {
-      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Sprint not found');
       }
@@ -456,7 +455,6 @@ export class SprintsService {
         where: { id },
       });
     } catch (error) {
-      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Sprint not found');
       }
@@ -470,7 +468,6 @@ export class SprintsService {
         data: { archive: true },
       });
     } catch (error) {
-      console.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Sprint not found');
       }
