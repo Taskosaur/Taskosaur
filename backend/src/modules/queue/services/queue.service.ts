@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { IQueue } from '../interfaces/queue.interface';
 import { QueueProviderFactory } from '../providers/queue.provider';
 import { IQueueAdapter } from '../interfaces/queue-adapter.interface';
@@ -20,7 +20,7 @@ export interface AggregatedStats {
  * Main service for queue management
  */
 @Injectable()
-export class QueueService {
+export class QueueService implements OnModuleDestroy {
   private readonly logger = new Logger(QueueService.name);
   private readonly queues = new Map<string, IQueue>();
   private adapter: IQueueAdapter | null = null;
@@ -32,6 +32,13 @@ export class QueueService {
    */
   async initialize(): Promise<void> {
     this.adapter = await this.providerFactory.createAdapter();
+  }
+
+  /**
+   * Handle module destruction
+   */
+  async onModuleDestroy(): Promise<void> {
+    await this.closeAll();
   }
 
   /**

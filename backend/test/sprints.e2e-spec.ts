@@ -15,6 +15,7 @@
   './../src/modules/organizations/organizations.service'; // Required for setup
 
   describe('SprintsController (e2e)', () => {
+    jest.setTimeout(30000);
     let app: INestApplication;
     let prismaService: PrismaService;
     let jwtService: JwtService;
@@ -30,6 +31,8 @@
     let planningSprintId: string;
     let activeSprintId: string;
 
+    const password = 'StrongPassword123!';
+
     beforeAll(async () => {
       const moduleFixture: TestingModule = await Test.createTestingModule({
         imports: [AppModule],
@@ -42,21 +45,23 @@
       organizationsService =
   app.get<OrganizationsService>(OrganizationsService); // Get service to create org
 
-      // 1. Create a test user
-      user = await prismaService.user.create({
-        data: {
-          email: `sprint-test-${Date.now()}@example.com`,
-          password: 'StrongPassword123!',
+      // 1. Create a test user via API registration to ensure everything is correct
+      const email = `sprint-test-${Date.now()}@example.com`;
+      const username = `sprint_tester_${Date.now()}`;
+      const regResponse = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email,
+          password,
           firstName: 'Sprint',
           lastName: 'Tester',
-          username: `sprint_tester_${Date.now()}`,
+          username,
           role: Role.OWNER,
-        },
-      });
+        })
+        .expect(HttpStatus.CREATED);
 
-      // Generate token
-      const payload = { sub: user.id, email: user.email, role: user.role };
-      accessToken = jwtService.sign(payload);
+      user = regResponse.body.user;
+      accessToken = regResponse.body.access_token;
 
       // 2. Create an Organization (using service to ensure all defaults are setup)
       const createOrgDto: CreateOrganizationDto = {

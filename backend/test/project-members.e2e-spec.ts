@@ -14,12 +14,15 @@ describe('ProjectMembersController (e2e)', () => {
 
   let owner: any;
   let member: any;
-  let accessToken: string;
+  let ownerAccessToken: string;
+  let memberAccessToken: string;
   let organizationId: string;
   let workspaceId: string;
   let projectId: string;
   let workflowId: string;
   let membershipId: string;
+
+  const password = 'StrongPassword123!';
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -31,33 +34,37 @@ describe('ProjectMembersController (e2e)', () => {
     prismaService = app.get<PrismaService>(PrismaService);
     jwtService = app.get<JwtService>(JwtService);
 
-    // Create owner
-    owner = await prismaService.user.create({
-      data: {
+    // Create owner via registration API
+    const ownerReg = await request(app.getHttpServer())
+      .post('/api/auth/register')
+      .send({
         email: `pm-owner-${Date.now()}@example.com`,
-        password: 'StrongPassword123!',
+        password,
         firstName: 'PM',
         lastName: 'Owner',
         username: `pm_owner_${Date.now()}`,
         role: Role.OWNER,
-      },
-    });
+      })
+      .expect(HttpStatus.CREATED);
+    
+    owner = ownerReg.body.user;
+    ownerAccessToken = ownerReg.body.access_token;
 
-    // Create member user
-    member = await prismaService.user.create({
-      data: {
+    // Create member user via registration API
+    const memberReg = await request(app.getHttpServer())
+      .post('/api/auth/register')
+      .send({
         email: `pm-member-${Date.now()}@example.com`,
-        password: 'StrongPassword123!',
+        password,
         firstName: 'PM',
         lastName: 'Member',
         username: `pm_member_${Date.now()}`,
         role: Role.MEMBER,
-      },
-    });
-
-    // Generate token for owner
-    const payload = { sub: owner.id, email: owner.email, role: owner.role };
-    accessToken = jwtService.sign(payload);
+      })
+      .expect(HttpStatus.CREATED);
+    
+    member = memberReg.body.user;
+    memberAccessToken = memberReg.body.access_token;
 
     // Create Organization
     const organization = await prismaService.organization.create({
@@ -148,8 +155,7 @@ describe('ProjectMembersController (e2e)', () => {
 
       return request(app.getHttpServer())
         .post('/api/project-members')
-        .query({ requestUserId: owner.id })
-        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
         .send(createDto)
         .expect(HttpStatus.CREATED)
         .expect((res) => {
@@ -165,8 +171,8 @@ describe('ProjectMembersController (e2e)', () => {
     it('should list project members', () => {
       return request(app.getHttpServer())
         .get('/api/project-members')
-        .query({ projectId, requestUserId: owner.id })
-        .set('Authorization', `Bearer ${accessToken}`)
+        .query({ projectId })
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
         .expect(HttpStatus.OK)
         .expect((res) => {
           expect(Array.isArray(res.body.data)).toBe(true);
@@ -181,8 +187,7 @@ describe('ProjectMembersController (e2e)', () => {
       const updateDto = { role: Role.MANAGER };
       return request(app.getHttpServer())
         .patch(`/api/project-members/${membershipId}`)
-        .query({ requestUserId: owner.id }) // Passing requestUserId as per controller requirement
-        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
         .send(updateDto)
         .expect(HttpStatus.OK)
         .expect((res) => {
@@ -195,8 +200,7 @@ describe('ProjectMembersController (e2e)', () => {
     it('should remove a member from the project', () => {
       return request(app.getHttpServer())
         .delete(`/api/project-members/${membershipId}`)
-        .query({ requestUserId: owner.id }) // Passing requestUserId as per controller requirement
-        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
         .expect(HttpStatus.NO_CONTENT);
     });
   });
@@ -211,16 +215,14 @@ describe('ProjectMembersController (e2e)', () => {
       };
       const createRes = await request(app.getHttpServer())
         .post('/api/project-members')
-        .query({ requestUserId: owner.id })
-        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
         .send(createDto);
       
       membershipId = createRes.body.id;
 
       return request(app.getHttpServer())
         .get(`/api/project-members/workspace/${workspaceId}`)
-        .query({ requestUserId: owner.id })
-        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
         .expect(HttpStatus.OK)
         .expect((res) => {
           expect(Array.isArray(res.body)).toBe(true);
@@ -248,8 +250,7 @@ describe('ProjectMembersController (e2e)', () => {
 
       return request(app.getHttpServer())
         .post('/api/project-members/invite')
-        .query({ requestUserId: owner.id })
-        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
         .send(inviteDto)
         .expect(HttpStatus.CREATED)
         .expect((res) => {
@@ -264,8 +265,7 @@ describe('ProjectMembersController (e2e)', () => {
     it('should list all projects for a user', () => {
       return request(app.getHttpServer())
         .get(`/api/project-members/user/${member.id}/projects`)
-        .query({ requestUserId: member.id })
-        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Authorization', `Bearer ${memberAccessToken}`)
         .expect(HttpStatus.OK)
         .expect((res) => {
           expect(Array.isArray(res.body)).toBe(true);
@@ -279,8 +279,7 @@ describe('ProjectMembersController (e2e)', () => {
     it('should get project member statistics', () => {
       return request(app.getHttpServer())
         .get(`/api/project-members/project/${projectId}/stats`)
-        .query({ requestUserId: owner.id })
-        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
         .expect(HttpStatus.OK)
         .expect((res) => {
           expect(res.body).toHaveProperty('totalMembers');
