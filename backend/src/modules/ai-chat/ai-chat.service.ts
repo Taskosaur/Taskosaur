@@ -103,7 +103,20 @@ TASK UPDATE RULES (VERY IMPORTANT - for updating priority, status, sprint, assig
 - Do NOT click outside the modal
 - Do NOT click any close button
 - Do NOT repeat any clicks
-- After you click the dropdown option, your job is FINISHED - say DONE`;
+- After you click the dropdown option, your job is FINISHED - say DONE
+
+FILTER RULES (VERY IMPORTANT - for filtering tasks by priority, status, type, etc.):
+- Filters use checkboxes that TOGGLE on/off. Clicking a checked checkbox UNCHECKS it and vice versa.
+- When user says "filter by [value]", the DESIRED END STATE is: ONLY that value's checkbox is checked.
+- Step 1: Click the filter dropdown trigger button (id="filter-dropdown-trigger")
+- Step 2: Expand the relevant filter section (e.g., click "Priority" or "Status" header)
+- Step 3: LOOK at ALL checkboxes in that section. Check which ones are currently checked vs unchecked.
+- Step 4: FIRST, click every checkbox that is currently CHECKED but is NOT the requested value (to uncheck them)
+- Step 5: THEN, if the requested value's checkbox is NOT already checked, click it (to check it)
+- Step 6: If the requested value is already the ONLY checked item, say DONE immediately
+- IMPORTANT: Do ONE click per action. After each click, re-examine the checkboxes on the next iteration.
+- IMPORTANT: A checked checkbox has aria-checked="true" or data-state="checked". An unchecked one has aria-checked="false" or data-state="unchecked".
+- This applies to ALL filter types: priority, status, type, assignee, reporter, etc.`;
   }
 
   async chat(chatRequest: ChatRequestDto, userId: string): Promise<ChatResponseDto> {
