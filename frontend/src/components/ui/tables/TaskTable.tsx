@@ -1439,7 +1439,6 @@ const TaskTable: React.FC<TaskTableProps> = ({
           <TableCell
             key={colId}
             className={isTimeline ? "tasktable-cell w-[14%] min-w-[200px] max-w-[260px]" : "tasktable-cell w-[8%] min-w-[100px] max-w-[140px]"}
-            onClick={(e) => e.stopPropagation()}
           >
             {column ? renderDynamicCellContent(task, column) : null}
           </TableCell>

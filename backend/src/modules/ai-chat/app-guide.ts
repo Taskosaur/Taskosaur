@@ -157,8 +157,15 @@ export function enhancePromptWithContext(userRequest: string, currentUrl: string
       hint = `${baseWarning}\nTo invite someone: first navigate to the workspace/project/org members page, then click the Invite button in the main content area.`;
     }
   } else if (
-    req.match(/(filter|show|display|get).*(priority|status|type|assignee|reporter)/) ||
-    req.match(/(priority|status|type).*(filter)/)
+    (req.includes('filter') ||
+      req.includes('show') ||
+      req.includes('display') ||
+      req.includes('get')) &&
+    (req.includes('priority') ||
+      req.includes('status') ||
+      req.includes('type') ||
+      req.includes('assignee') ||
+      req.includes('reporter'))
   ) {
     hint = `FILTER BEHAVIOR: The filter dropdown uses checkboxes that TOGGLE. When the user says "filter by [value]", ensure ONLY that value ends up checked. First UNCHECK any other checked items in the same filter section, then CHECK the target value if not already checked. Look at data-state="checked" vs data-state="unchecked" on checkboxes to determine current state.`;
   }
