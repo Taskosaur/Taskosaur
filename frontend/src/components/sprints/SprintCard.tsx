@@ -11,6 +11,7 @@ import { HiCalendarDays, HiEllipsisVertical } from "react-icons/hi2";
 import { HiCheck, HiPencil, HiTrash } from "react-icons/hi";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
+import { DynamicBadge } from "../common/DynamicBadge";
 
 export const SprintCard = ({
   sprint,
@@ -60,6 +61,41 @@ export const SprintCard = ({
 
     return `${start} - ${end} (${t("card.days", { count: days })})`;
   }, [sprint.startDate, sprint.endDate, t]);
+
+  // Status text formatting helper
+  const formatStatus = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case "ACTIVE":
+        return t("form.statuses.active");
+      case "PLANNING":
+        return t("form.statuses.planning");
+      case "ON_HOLD":
+        return "On Hold";
+      case "COMPLETED":
+        return t("form.statuses.completed");
+      case "CANCELLED":
+        return t("form.statuses.cancelled");
+      default:
+        return t("form.statuses.active");
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case "ACTIVE":
+        return "#10b981";
+      case "PLANNING":
+        return "#f59e0b";
+      case "ON_HOLD":
+        return "#6b7280";
+      case "COMPLETED":
+        return "#3b82f6";
+      case "CANCELLED":
+        return "#ef4444";
+      default:
+        return "#10b981";
+    }
+  };
 
   // Prevent dropdown menu clicks from triggering card click
   const handleCardClick = (e: React.MouseEvent) => {
@@ -154,10 +190,19 @@ export const SprintCard = ({
 
       <CardContent className="pt-0">
         <div className="space-y-4">
-          {/* Timeline */}
-          <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
-            <HiCalendarDays className="w-4 h-4" />
-            <span>{duration}</span>
+          <div className="flex items-center justify-between">
+            {/* Timeline */}
+            <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+              <HiCalendarDays className="w-4 h-4" />
+              <span>{duration}</span>
+            </div>
+
+            {/* Status Badge */}
+            <DynamicBadge
+              label={formatStatus(sprint.status)}
+              bgColor={getStatusColor(sprint.status)}
+              size="sm"
+            />
           </div>
         </div>
       </CardContent>

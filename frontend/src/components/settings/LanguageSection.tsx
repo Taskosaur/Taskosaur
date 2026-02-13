@@ -45,7 +45,7 @@ export default function LanguageSection() {
             <SelectTrigger id="language-select" className="w-full">
               <SelectValue placeholder={t("language_section.select_placeholder")} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-[var(--popover)] border-[var(--border)]">
               {languages.map((lang) => (
                 <SelectItem key={lang.code} value={lang.code}>
                   {lang.name}

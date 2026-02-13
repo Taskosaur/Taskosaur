@@ -131,7 +131,6 @@ function SprintsPageContent() {
         const payload = {
           ...data,
           projectId: projectId || data.projectId,
-          status: "PLANNING",
         };
         await createSprint(payload);
       }
