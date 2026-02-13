@@ -1,4 +1,5 @@
 import { Controller, Get, All, Req, Res, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
@@ -13,11 +14,18 @@ export class QueueUIController {
   private readonly logger = new Logger(QueueUIController.name);
   private boardInitialized = false;
   private readonly serverAdapter: ExpressAdapter;
+  private readonly bullBoardEmail: string;
+  private readonly bullBoardPassword: string;
 
-  constructor(private readonly queueService: QueueService) {
+  constructor(
+    private readonly queueService: QueueService,
+    private readonly configService: ConfigService,
+  ) {
     this.logger.log('QueueUIController instantiated');
     this.serverAdapter = new ExpressAdapter();
     this.serverAdapter.setBasePath('/api/queues');
+    this.bullBoardEmail = this.configService.get<string>('BULL_BOARD_EMAIL', '');
+    this.bullBoardPassword = this.configService.get<string>('BULL_BOARD_PASSWORD', '');
   }
 
   @Get('test')
@@ -27,6 +35,22 @@ export class QueueUIController {
 
   @All(['/', '/*'])
   handle(@Req() req: Request, @Res() res: Response) {
+    if (this.bullBoardEmail && this.bullBoardPassword) {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Basic ')) {
+        res.setHeader('WWW-Authenticate', 'Basic realm="Bull Board"');
+        res.status(401).send('Authentication required');
+        return;
+      }
+      const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
+      const [username, password] = decoded.split(':');
+      if (username !== this.bullBoardEmail || password !== this.bullBoardPassword) {
+        res.setHeader('WWW-Authenticate', 'Basic realm="Bull Board"');
+        res.status(401).send('Invalid credentials');
+        return;
+      }
+    }
+
     this.logger.debug(`QueueUI handle request: ${req.method} ${req.url}`);
 
     // Always check for new queues if we're on the main dashboard page
