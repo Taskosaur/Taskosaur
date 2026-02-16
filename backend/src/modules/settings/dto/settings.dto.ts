@@ -21,7 +21,6 @@ export class SetSettingDto {
     description: 'Setting value',
   })
   @IsString()
-  @IsNotEmpty()
   value: string;
 
   @ApiPropertyOptional({
@@ -84,6 +83,11 @@ export class SettingResponseDto {
     description: 'Setting category',
   })
   category: string;
+
+  @ApiProperty({
+    description: 'Whether the value is encrypted',
+  })
+  isEncrypted: boolean;
 }
 
 export class BulkSetSettingsDto {

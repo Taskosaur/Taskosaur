@@ -5,6 +5,7 @@ export interface Setting {
   value: string | null;
   description: string | null;
   category: string;
+  isEncrypted: boolean;
 }
 
 export interface SetSettingData {

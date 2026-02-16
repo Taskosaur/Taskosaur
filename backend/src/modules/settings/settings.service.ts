@@ -38,7 +38,7 @@ export class SettingsService {
       },
     });
 
-    return globalSetting?.value || defaultValue || null;
+    return globalSetting?.value ?? defaultValue ?? null;
   }
 
   /**
