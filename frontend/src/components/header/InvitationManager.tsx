@@ -73,6 +73,11 @@ export default function InvitationManager({ userId, className = "" }: Invitation
 
   // Handle invitation token from URL params or localStorage
   useEffect(() => {
+    // Don't auto-open modal if we're already on the invite page
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/invite")) {
+      return;
+    }
+
     const tokenFromParam = searchParams.get("token");
     const tokenFromLS =
       typeof window !== "undefined" ? localStorage.getItem("pendingInvitation") : null;

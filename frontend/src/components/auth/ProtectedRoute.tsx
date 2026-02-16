@@ -24,7 +24,9 @@ export default function ProtectedRoute({
     "/terms-of-service",
     "/privacy-policy",
     "/setup",
-    "/public/task/[token]"
+    "/public/task/[token]",
+    "/invite",
+    "/invite/invalid"
   ],
 }: ProtectedRouteProps) {
   const {
