@@ -1,11 +1,14 @@
 // pages/invite/invalid.tsx
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { HiExclamationTriangle, HiArrowLeft } from "react-icons/hi2";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  LogOut,
+  Home
+} from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { HiOutlineLogout } from "react-icons/hi";
+import { motion } from "framer-motion";
 
 export default function InvalidInvitePage() {
   const router = useRouter();
@@ -20,67 +23,87 @@ export default function InvalidInvitePage() {
   };
 
   return (
-    <div className="py-8 px-4">
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader className="text-center">
-          <div className="mx-auto h-16 w-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4">
-            <HiExclamationTriangle className="h-8 w-8 text-red-600" />
-          </div>
-          <CardTitle className="text-xl font-bold">Invalid Invitation</CardTitle>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          <Alert variant="destructive">
-            <HiExclamationTriangle className="h-4 w-4" />
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-
-          <div className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
-            <p>This could happen if:</p>
-            <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>The invitation was sent to a different email address</li>
-              <li>The invitation link has expired</li>
-              <li>The invitation has already been used or cancelled</li>
-            </ul>
+    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-[var(--background)]">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="w-full max-w-[420px] space-y-8"
+      >
+        {/* Icon & Title */}
+        <div className="flex flex-col items-center text-center space-y-4">
+          <div className="h-12 w-12 bg-red-50 dark:bg-red-900/10 rounded-full flex items-center justify-center">
+            <AlertTriangle className="h-6 w-6 text-[var(--destructive)]" />
           </div>
 
-          <div className="space-y-3">
-            {isAuthenticated() ? (
-              <Button
-                onClick={handleLogout}
-                variant="destructive"
-                className="w-full"
-              >
-                <HiOutlineLogout className="h-4 w-4 mr-2" />
-                Logout and Switch Account
-              </Button>
-            ) : (
-              <Button
-                onClick={() => router.push("/login")}
-                variant="outline"
-                className="w-full"
-              >
-                <HiArrowLeft className="h-4 w-4 mr-2" />
-                Back to Login
-              </Button>
-            )}
-
-            <Button
-              onClick={() => router.push("/dashboard")}
-              variant="ghost"
-              className="w-full"
-            >
-              Go to Home
-            </Button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-xs text-gray-500">
-              Need help? Contact your administrator or the person who sent you the invitation.
+          <div className="space-y-2">
+            <h1 className="text-2xl font-semibold text-[var(--foreground)] tracking-tight">
+              Invitation invalid
+            </h1>
+            <p className="text-[var(--muted-foreground)] leading-relaxed">
+              {errorMessage}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Separator / Divider */}
+        <div className="h-px w-full bg-[var(--border)]" />
+
+        {/* Explanation */}
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-[var(--foreground)]">
+            Why did this happen?
+          </p>
+          <ul className="space-y-2">
+            {[
+              "The invitation link may have expired",
+              "It might have been sent to a different email",
+              "The invitation was already used or revoked"
+            ].map((item, index) => (
+              <li
+                key={index}
+                className="text-sm text-[var(--muted-foreground)] flex items-start gap-2"
+              >
+                <span className="w-1 h-1 rounded-full bg-[var(--muted-foreground)] mt-2 shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Actions */}
+        <div className="space-y-3 pt-2">
+          {isAuthenticated() ? (
+            <Button
+              onClick={handleLogout}
+              className="w-full h-10 font-medium"
+              variant="default"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout and Switch Account
+            </Button>
+          ) : (
+            <Button
+              onClick={() => router.push("/login")}
+              className="w-full h-10 font-medium"
+              variant="default"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to login
+            </Button>
+          )}
+
+          <Button
+            onClick={() => router.push("/dashboard")}
+            variant="outline"
+            className="w-full h-10 font-medium bg-transparent border-[var(--border)] hover:bg-[var(--muted)]"
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Return home
+          </Button>
+        </div>
+      </motion.div>
+
     </div>
   );
 }
