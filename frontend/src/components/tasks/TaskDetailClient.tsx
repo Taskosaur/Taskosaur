@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import TaskComments from "./TaskComments";
 import Subtasks from "./Subtasks";
 import DropdownAction from "@/components/common/DropdownAction";
@@ -78,6 +79,7 @@ export default function TaskDetailClient({
   onTaskRefetch,
   onClose,
 }: TaskDetailClientProps) {
+  const { t } = useTranslation(["tasks", "common"]);
   const {
     updateTask,
     deleteTask,
@@ -176,7 +178,7 @@ export default function TaskDetailClient({
       const startDate = new Date(newStartDate + "T00:00:00");
       const dueDate = new Date(editTaskData.dueDate + "T00:00:00");
       if (startDate > dueDate) {
-        toast.error("Start date cannot be after due date.");
+        toast.error(t("detail.startDateError"));
         return;
       }
     }
@@ -192,9 +194,9 @@ export default function TaskDetailClient({
       };
       await updateTask(taskId, updateData);
       onTaskRefetch && onTaskRefetch();
-      toast.success("Task start date updated successfully.");
+      toast.success(t("detail.updateStartDateSuccess"));
     } catch (error) {
-      toast.error("Failed to update task start date.");
+      toast.error(t("detail.updateStartDateError"));
       // Revert on error
       handleTaskFieldChange("startDate", task.startDate ? task.startDate.split("T")[0] : "");
     }
@@ -249,10 +251,10 @@ export default function TaskDetailClient({
       // Update the task object's status
       task.status = item;
       if (!isAIActive()) { onTaskRefetch && onTaskRefetch(); }
-      toast.success("Task status updated successfully.");
+      toast.success(t("detail.updateStatusSuccess"));
       handleAIAutoClose();
     } catch (error) {
-      toast.error("Failed to update task status. Please try again.");
+      toast.error(t("detail.updateStatusError"));
     }
   };
 
@@ -314,7 +316,7 @@ export default function TaskDetailClient({
         }
       } catch (error) {
         setProjectMembers([]);
-        toast.error("Failed to fetch project members");
+        toast.error(t("detail.fetchMembersError"));
       } finally {
         setLoadingMembers(false);
       }
@@ -349,7 +351,7 @@ export default function TaskDetailClient({
       const dueDate = new Date(newDueDate + "T00:00:00");
       const startDate = new Date(editTaskData.startDate + "T00:00:00");
       if (dueDate < startDate) {
-        toast.error("Due date cannot be before start date.");
+        toast.error(t("detail.dueDateError"));
         return;
       }
     }
@@ -366,9 +368,9 @@ export default function TaskDetailClient({
 
       await updateTask(taskId, updateData);
       onTaskRefetch && onTaskRefetch();
-      toast.success("Task due date updated successfully.");
+      toast.success(t("detail.updateDueDateSuccess"));
     } catch (error) {
-      toast.error("Failed to update task due date.");
+      toast.error(t("detail.updateDueDateError"));
       // Revert on error
       handleTaskFieldChange("dueDate", task.dueDate ? task.dueDate.split("T")[0] : "");
     }
@@ -510,7 +512,7 @@ export default function TaskDetailClient({
         }
       } catch (error) {
         setAvailableLabels([]);
-        toast.error("Failed to fetch project labels");
+        toast.error(t("detail.fetchLabelsError"));
       } finally {
         setLoadingLabels(false);
       }
@@ -530,7 +532,7 @@ export default function TaskDetailClient({
         setAttachments(attachmentsData);
       } catch (error) {
         setAttachments([]);
-        toast.error("Failed to fetch task attachments");
+        toast.error(t("detail.fetchAttachmentsError"));
       } finally {
         setLoadingAttachments(false);
       }
@@ -551,7 +553,7 @@ export default function TaskDetailClient({
           setStatuses(allStatuses);
         }
       } catch (error) {
-        toast.error("Failed to fetch task statuses");
+        toast.error(t("detail.fetchStatusesError"));
       } finally {
         setLoadingStatuses(false);
       }
@@ -597,11 +599,11 @@ export default function TaskDetailClient({
 
       const validFiles = Array.from(files).filter((file) => {
         if (file.size > maxFileSize) {
-          toast.error(`File "${file.name}" is too large. Maximum size is 10MB.`);
+          toast.error(t("detail.fileTooLarge", { name: file.name }));
           return false;
         }
         if (!allowedTypes.includes(file.type)) {
-          toast.error(`File "${file.name}" has an unsupported format.`);
+          toast.error(t("detail.unsupportedFormat", { name: file.name }));
           return false;
         }
         return true;
@@ -618,7 +620,7 @@ export default function TaskDetailClient({
           const uploadedAttachment = await uploadAttachment(taskId, file);
           return uploadedAttachment;
         } catch (error) {
-          toast.error(`Failed to upload "${file.name}". Please try again.`);
+          toast.error(t("detail.uploadFailed", { name: file.name }));
           return null;
         }
       });
@@ -629,10 +631,10 @@ export default function TaskDetailClient({
       if (successfulUploads.length > 0) {
         const updatedAttachments = await getTaskAttachments(taskId, isAuth);
         setAttachments(updatedAttachments || []);
-        toast.success(`${successfulUploads.length} file(s) uploaded successfully.`);
+        toast.success(t("detail.uploadSuccess", { count: successfulUploads.length }));
       }
     } catch (error) {
-      toast.error("Failed to upload one or more files. Please try again.");
+      toast.error(t("detail.uploadError"));
     } finally {
       setIsUploading(false);
       event.target.value = "";
@@ -646,9 +648,11 @@ export default function TaskDetailClient({
       });
       setAllowEmailReplies(enabled);
       task.allowEmailReplies = enabled;
-      toast.success(`Email replies ${enabled ? "enabled" : "disabled"} successfully.`);
+      toast.success(
+        enabled ? t("detail.emailRepliesEnabled") : t("detail.emailRepliesDisabled")
+      );
     } catch (error) {
-      toast.error("Failed to update email replies setting.");
+      toast.error(t("detail.emailRepliesError"));
       // Revert the state if the update failed
       setAllowEmailReplies(!enabled);
     }
@@ -667,9 +671,9 @@ export default function TaskDetailClient({
 
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      toast.success("File downloaded successfully.");
+      toast.success(t("detail.downloadSuccess"));
     } catch (error) {
-      toast.error("Failed to download attachment. Please try again.");
+      toast.error(t("detail.downloadError"));
     }
   };
 
@@ -677,7 +681,7 @@ export default function TaskDetailClient({
     try {
       const projectId = task.projectId || task.project?.id;
       if (!projectId) {
-        toast.error("Project ID not found. Cannot create label.");
+        toast.error(t("detail.labelIdNotFound"));
         return;
       }
 
@@ -697,10 +701,10 @@ export default function TaskDetailClient({
       });
 
       setLabels([...labels, newLabel]);
-      toast.success("Label created and assigned to task successfully.");
+      toast.success(t("detail.labelCreatedSuccess"));
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to add label. Please try again."
+        error instanceof Error ? error.message : t("detail.labelAssignError")
       );
     }
   };
@@ -715,9 +719,9 @@ export default function TaskDetailClient({
       );
 
       onTaskRefetch && onTaskRefetch();
-      toast.success("Label removed from task successfully.");
+      toast.success(t("detail.labelRemoveSuccess"));
     } catch (error) {
-      toast.error("Failed to remove label. Please try again.");
+      toast.error(t("detail.labelRemoveError"));
     }
   };
 
@@ -733,33 +737,33 @@ export default function TaskDetailClient({
 
       onTaskRefetch && onTaskRefetch();
 
-      toast.success("Label assigned to task successfully.");
+      toast.success(t("detail.labelAssignSuccess"));
     } catch (error) {
-      toast.error("Failed to assign label. Please try again.");
+      toast.error(t("detail.labelAssignError"));
     }
   };
 
   const handleDeleteAttachment = (attachmentId: string): Promise<void> => {
     return new Promise((resolve) => {
       if (!currentUser?.id) {
-        toast.error("You must be logged in to delete attachments.");
+        toast.error(t("detail.loginToDelete"));
         resolve();
         return;
       }
 
       setConfirmModal({
         isOpen: true,
-        title: "Delete Attachment",
-        message: "Are you sure you want to delete this attachment? This action cannot be undone.",
+        title: t("detail.deleteAttachment"),
+        message: t("detail.deleteAttachmentMessage"),
         type: "danger",
         onConfirm: async () => {
           try {
             await deleteAttachment(attachmentId, currentUser.id);
             const updatedAttachments = await getTaskAttachments(taskId, isAuth);
             setAttachments(updatedAttachments || []);
-            toast.success("Attachment deleted successfully.");
+            toast.success(t("detail.deleteAttachmentSuccess"));
           } catch (error) {
-            toast.error("Failed to delete attachment. Please try again.");
+            toast.error(t("detail.deleteAttachmentError"));
           }
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
           resolve();
@@ -788,7 +792,7 @@ export default function TaskDetailClient({
     const descriptionToSave = updatedDescription || editTaskData.description;
 
     if (!editTaskData?.title?.trim()) {
-      toast.error("Task title cannot be empty.");
+      toast.error(t("detail.noTitleError"));
       return;
     }
 
@@ -824,9 +828,9 @@ export default function TaskDetailClient({
         sprint: false,
       });
       onTaskRefetch && onTaskRefetch();
-      toast.success("Task updated successfully.");
+      toast.success(t("detail.updateTaskSuccess"));
     } catch (error) {
-      toast.error("Failed to update the task. Please try again.");
+      toast.error(t("detail.updateTaskError"));
     }
   };
 
@@ -844,8 +848,8 @@ export default function TaskDetailClient({
     if (hasChanges) {
       setConfirmModal({
         isOpen: true,
-        title: "Discard Changes",
-        message: "Are you sure you want to discard your changes?",
+        title: t("detail.discardChanges"),
+        message: t("detail.discardChangesMessage"),
         type: "info",
         onConfirm: () => {
           setEditTaskData({
@@ -902,13 +906,13 @@ export default function TaskDetailClient({
   const handleDeleteTask = () => {
     setConfirmModal({
       isOpen: true,
-      title: "Delete Task",
-      message: "Are you sure you want to delete this task? This action cannot be undone.",
+      title: t("detail.deleteTask"),
+      message: t("detail.deleteTaskMessage"),
       type: "danger",
       onConfirm: async () => {
         try {
           await deleteTask(taskId);
-          toast.success("Task deleted successfully.");
+          toast.success(t("detail.deleteTaskSuccess"));
 
           onTaskRefetch && onTaskRefetch();
           if (open === "modal") {
@@ -917,7 +921,7 @@ export default function TaskDetailClient({
             router.back();
           }
         } catch (error) {
-          toast.error("Failed to delete the task. Please try again.");
+          toast.error(t("detail.deleteTaskError"));
         }
         setConfirmModal((prev) => ({ ...prev, isOpen: false }));
       },
@@ -1000,7 +1004,7 @@ export default function TaskDetailClient({
                 {open === "modal" && (
                   <div className="absolute -top-[25px] right-11 z-50">
                     {isAuth && (
-                      <Tooltip content="Expand to full screen" position="left">
+                      <Tooltip content={t("detail.expandToFullScreen")} position="left">
                         <div onClick={() => {
                           if (isValidInternalPath(detailUrl)) {
                             router.push(detailUrl);
@@ -1020,14 +1024,14 @@ export default function TaskDetailClient({
             {/* Created By Info */}
             <span className="text-sm text-[var(--muted-foreground)]">
               {task.createdByUser
-                ? `Created by ${task.createdByUser.firstName} ${task.createdByUser.lastName}`
+                ? t("detail.createdBy", { name: `${task.createdByUser.firstName} ${task.createdByUser.lastName}` })
                 : task.emailThreadId
-                  ? "Created from mail"
+                  ? t("detail.createdFromMail")
                   : ""}
             </span>
             {task.parentTask && (
               <div className="text-sm text-[var(--muted-foreground)] mt-1">
-                Parent:{" "}
+                {t("detail.parent")}{" "}
                 <Link
                   href={isValidInternalPath(parentDetailUrl) ? parentDetailUrl : "/"}
                   className="text-[var(--primary)] cursor-pointer hover:underline"
@@ -1041,7 +1045,7 @@ export default function TaskDetailClient({
           {(hasAccess || task.createdBy === currentUser?.id) && (
             <div className=" flex gap-2">
               {!task.emailThreadId && (
-                <Tooltip content="Edit task" position="left">
+                <Tooltip content={t("detail.editTask")} position="left">
                   <ActionButton
                     onClick={handleEditTask}
                     variant="outline"
@@ -1052,7 +1056,7 @@ export default function TaskDetailClient({
                   </ActionButton>
                 </Tooltip>
               )}
-              <Tooltip content="Share to web" position="left">
+              <Tooltip content={t("detail.shareToWeb")} position="left">
                 <ActionButton
                   onClick={() => setIsShareDialogOpen(true)}
                   variant="outline"
@@ -1062,7 +1066,7 @@ export default function TaskDetailClient({
                   <HiShare className="w-4 h-4" />
                 </ActionButton>
               </Tooltip>
-              <Tooltip content="Delete task" position="left">
+              <Tooltip content={t("detail.deleteTask")} position="left">
                 <ActionButton
                   id="delete-task-button"
                   onClick={handleDeleteTask}
@@ -1084,7 +1088,7 @@ export default function TaskDetailClient({
                   <Input
                     value={editTaskData.title}
                     onChange={(e) => handleTaskFieldChange("title", e.target.value)}
-                    placeholder="Task title"
+                    placeholder={t("detail.placeholderTaskTitle")}
                     className="text-xs bg-[var(--background)] border-[var(--border)]"
                   />
                   <TaskDescription
@@ -1100,14 +1104,14 @@ export default function TaskDetailClient({
                       disabled={!hasUnsavedChanges}
                       className="justify-center bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--primary)]"
                     >
-                      Save Changes
+                      {t("detail.saveChanges")}
                     </ActionButton>
                     <ActionButton
                       onClick={handleCancelTaskEdit}
                       secondary
                       className="justify-center"
                     >
-                      Cancel
+                      {t("detail.cancel")}
                     </ActionButton>
                   </div>
                 </div>
@@ -1175,12 +1179,12 @@ export default function TaskDetailClient({
                 {task.showEmailReply && (
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <Label className="text-sm">Email Replies</Label>
+                      <Label className="text-sm">{t("detail.emailReplies")}</Label>
                       <ToggleSwitch
                         checked={allowEmailReplies}
                         onChange={handleEmailRepliesToggle}
                         disabled={!hasAccess}
-                        label="Allow email replies"
+                        label={t("detail.emailReplies")}
                         size="sm"
                       />
                     </div>
@@ -1190,7 +1194,7 @@ export default function TaskDetailClient({
                 {/* Task Type */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <Label className="text-sm">Task Type</Label>
+                    <Label className="text-sm">{t("detail.taskType")}</Label>
                     {hasAccess && (
                       <button
                         type="button"
@@ -1206,10 +1210,10 @@ export default function TaskDetailClient({
                           }));
                         }}
                         tabIndex={0}
-                        aria-label="Edit Task Type"
+                        aria-label={t("detail.edit")}
                         style={{ lineHeight: 0 }}
                       >
-                        Edit
+                        {t("detail.edit")}
                       </button>
                     )}
                   </div>
@@ -1225,12 +1229,12 @@ export default function TaskDetailClient({
                               name:
                                 TASK_TYPE_OPTIONS.find(
                                   (type) => type.value === editTaskData.taskType
-                                )?.label || "Task",
+                                )?.label || t("detail.taskType"),
                               color: "#6B7280",
                             }
                             : {
                               id: "",
-                              name: "Select task type",
+                              name: t("detail.placeholderSelectTaskType"),
                               color: "#6B7280",
                             }
                         }
@@ -1271,13 +1275,13 @@ export default function TaskDetailClient({
                               taskType: false,
                             }));
                             if (!isAIActive()) { onTaskRefetch && onTaskRefetch(); }
-                            toast.success("Task type updated successfully.");
+                            toast.success(t("detail.updateTypeSuccess"));
                             handleAIAutoClose();
                           } catch (error) {
-                            toast.error("Failed to update task type.");
+                            toast.error(t("detail.updateTypeError"));
                           }
                         }}
-                        placeholder="Select task type..."
+                        placeholder={t("detail.placeholderSelectTaskType")}
                         showUnassign={false}
                         hideAvatar={true}
                         hideSubtext={true}
@@ -1302,7 +1306,7 @@ export default function TaskDetailClient({
                         <DynamicBadge
                           label={
                             TASK_TYPE_OPTIONS.find((type) => type.value === editTaskData.taskType)
-                              ?.label || "Task"
+                              ?.label || t("detail.taskType")
                           }
                           bgColor={getTaskTypeHexColor(
                             editTaskData.taskType as keyof typeof TaskTypeIcon
@@ -1318,7 +1322,7 @@ export default function TaskDetailClient({
                         variant="outline"
                         className="text-[13px] h-5 min-h-0 px-1.5 py-0.5 bg-[var(--muted)] border-[var(--border)] flex-shrink-0"
                       >
-                        No task type
+                        {t("detail.noTaskType")}
                       </Badge>
                     )}
                   </div>
@@ -1327,7 +1331,7 @@ export default function TaskDetailClient({
                 {/* Sprint */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <Label className="text-sm">Sprint</Label>
+                    <Label className="text-sm">{t("detail.sprint")}</Label>
                     {hasAccess && (
                       <button
                         type="button"
@@ -1343,10 +1347,10 @@ export default function TaskDetailClient({
                           }));
                         }}
                         tabIndex={0}
-                        aria-label="Edit Sprint"
+                        aria-label={t("detail.edit")}
                         style={{ lineHeight: 0 }}
                       >
-                        Edit
+                        {t("detail.edit")}
                       </button>
                     )}
                   </div>
@@ -1367,12 +1371,12 @@ export default function TaskDetailClient({
                               }
                             : {
                                 id: "",
-                                name: "Backlog",
+                                name: t("detail.backlog"),
                                 color: "#6B7280",
                               }
                         }
                         availableItems={[
-                          { id: "", name: "Backlog", color: "#6B7280" },
+                          { id: "", name: t("detail.backlog"), color: "#6B7280" },
                           ...sprints.map((s) => ({
                             id: s.id,
                             name: s.name,
@@ -1411,13 +1415,13 @@ export default function TaskDetailClient({
                               sprint: false,
                             }));
                             if (!isAIActive()) { onTaskRefetch && onTaskRefetch(); }
-                            toast.success("Task sprint updated successfully.");
+                            toast.success(t("detail.updateSprintSuccess"));
                             handleAIAutoClose();
                           } catch (error) {
-                            toast.error("Failed to update task sprint.");
+                            toast.error(t("detail.updateSprintError"));
                           }
                         }}
-                        placeholder="Select sprint..."
+                        placeholder={t("detail.placeholderSelectSprint")}
                         showUnassign={false}
                         hideAvatar={true}
                         hideSubtext={true}
@@ -1431,7 +1435,7 @@ export default function TaskDetailClient({
                                 const projectSprints = await getSprintsByProject(slug);
                                 setSprints(projectSprints || []);
                               } catch (error) {
-                                toast.error("Failed to fetch sprints");
+                                toast.error(t("detail.fetchSprintsError"));
                               } finally {
                                 setLoadingSprints(false);
                               }
@@ -1461,7 +1465,7 @@ export default function TaskDetailClient({
                               ? sprints.find((s) => s.id === editTaskData.sprintId)?.name ||
                               task.sprint?.name ||
                               "Current Sprint"
-                              : "Backlog"
+                              : t("detail.backlog")
                           }
                           bgColor={editTaskData.sprintId ? "#6366F1" : "#6B7280"}
                           textColor="#FFFFFF"
@@ -1477,7 +1481,7 @@ export default function TaskDetailClient({
                 {/* Priority */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <Label className="text-sm">Priority</Label>
+                    <Label className="text-sm">{t("detail.priority")}</Label>
                     {hasAccess && (
                       <button
                         type="button"
@@ -1493,10 +1497,10 @@ export default function TaskDetailClient({
                           }));
                         }}
                         tabIndex={0}
-                        aria-label="Edit Priority"
+                        aria-label={t("detail.edit")}
                         style={{ lineHeight: 0 }}
                       >
-                        Edit
+                        {t("detail.edit")}
                       </button>
                     )}
                   </div>
@@ -1547,13 +1551,13 @@ export default function TaskDetailClient({
                               priority: false,
                             }));
                             if (!isAIActive()) { onTaskRefetch && onTaskRefetch(); }
-                            toast.success("Task priority updated successfully.");
+                            toast.success(t("detail.updatePrioritySuccess"));
                             handleAIAutoClose();
                           } catch (error) {
-                            toast.error("Failed to update task priority.");
+                            toast.error(t("detail.updatePriorityError"));
                           }
                         }}
-                        placeholder="Select priority..."
+                        placeholder={t("detail.placeholderSelectPriority")}
                         showUnassign={false}
                         hideAvatar={true}
                         hideSubtext={true}
@@ -1581,7 +1585,7 @@ export default function TaskDetailClient({
                 {/* Status */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <Label className="text-sm">Status</Label>
+                    <Label className="text-sm">{t("detail.status")}</Label>
                     {hasAccess && (
                       <button
                         type="button"
@@ -1597,10 +1601,10 @@ export default function TaskDetailClient({
                           }));
                         }}
                         tabIndex={0}
-                        aria-label="Edit Status"
+                        aria-label={t("detail.edit")}
                         style={{ lineHeight: 0 }}
                       >
-                        Edit
+                        {t("detail.edit")}
                       </button>
                     )}
                   </div>
@@ -1636,7 +1640,7 @@ export default function TaskDetailClient({
                             status: false,
                           }));
                         }}
-                        placeholder="Select status..."
+                        placeholder={t("detail.placeholderSelectStatus")}
                         showUnassign={false}
                         hideAvatar={true}
                         hideSubtext={true}
@@ -1649,7 +1653,7 @@ export default function TaskDetailClient({
                                 const allStatuses = await getTaskStatusByProject(projectId);
                                 setStatuses(allStatuses || []);
                               } catch (error) {
-                                toast.error("Failed to fetch task statuses");
+                                toast.error(t("detail.fetchStatusesError"));
                               }
                             }
                           }
@@ -1673,7 +1677,7 @@ export default function TaskDetailClient({
                 {/* Date Range Section */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <Label className="text-sm">Date Range</Label>
+                    <Label className="text-sm">{t("detail.dateRange")}</Label>
                     {hasAccess && (
                       <button
                         type="button"
@@ -1686,10 +1690,10 @@ export default function TaskDetailClient({
                           }))
                         }
                         tabIndex={0}
-                        aria-label="Edit Dates"
+                        aria-label={t("detail.edit")}
                         style={{ lineHeight: 0 }}
                       >
-                        {isEditingTask.startDate ? "Done" : "Edit"}
+                        {isEditingTask.startDate ? t("detail.done") : t("detail.edit")}
                       </button>
                     )}
                   </div>
@@ -1697,7 +1701,7 @@ export default function TaskDetailClient({
                   {/* Start Date */}
                   <div className="mb-3">
                     <Label className="text-xs text-[var(--muted-foreground)] mb-1.5 block">
-                      Start Date
+                      {t("detail.startDate")}
                     </Label>
                     {isEditingTask.startDate ? (
                       <div className="relative">
@@ -1717,7 +1721,7 @@ export default function TaskDetailClient({
                             }
                           }}
                           className="text-xs bg-[var(--background)] border-[var(--border)] w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                          placeholder="Select start date..."
+                          placeholder={t("detail.placeholderSelectStartDate")}
                         />
                         {editTaskData.startDate && (
                           <button
@@ -1728,7 +1732,7 @@ export default function TaskDetailClient({
                               saveStartDate("");
                             }}
                             className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs z-10"
-                            title="Clear start date"
+                            title={t("detail.placeholderSelectStartDate")}
                           >
                             ✕
                           </button>
@@ -1748,7 +1752,7 @@ export default function TaskDetailClient({
                       >
                         {editTaskData.startDate
                           ? new Date(editTaskData.startDate).toLocaleDateString()
-                          : "No start date"}
+                          : t("detail.noStartDate")}
                       </Badge>
                     )}
                   </div>
@@ -1756,7 +1760,7 @@ export default function TaskDetailClient({
                   {/* Due Date */}
                   <div>
                     <Label className="text-xs text-[var(--muted-foreground)] mb-1.5 block">
-                      Due Date
+                      {t("detail.dueDate")}
                     </Label>
                     {isEditingTask.dueDate ? (
                       <div className="relative">
@@ -1775,7 +1779,7 @@ export default function TaskDetailClient({
                             }
                           }}
                           className="text-xs bg-[var(--background)] border-[var(--border)] w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                          placeholder="Select due date..."
+                          placeholder={t("detail.placeholderSelectDueDate")}
                         />
                         {editTaskData.dueDate && (
                           <button
@@ -1786,7 +1790,7 @@ export default function TaskDetailClient({
                               saveDueDate("");
                             }}
                             className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-xs z-10"
-                            title="Clear due date"
+                            title={t("detail.placeholderSelectDueDate")}
                           >
                             ✕
                           </button>
@@ -1806,7 +1810,7 @@ export default function TaskDetailClient({
                       >
                         {editTaskData.dueDate
                           ? new Date(editTaskData.dueDate).toLocaleDateString()
-                          : "No due date"}
+                          : t("detail.noDueDate")}
                       </Badge>
                     )}
                   </div>
@@ -1817,7 +1821,7 @@ export default function TaskDetailClient({
             {/* Recurring Details */}
             {task.isRecurring && task.recurringConfig && (
               <>
-                <Divider label="Recurrence" />
+                <Divider label={t("detail.recurrence")} />
                 <div className="space-y-4">
                   {isEditingTask.recurrence ? (
                     <div className="space-y-4">
@@ -1843,17 +1847,17 @@ export default function TaskDetailClient({
                               await updateRecurrence(taskId, updatePayload);
                               task.recurringConfig = { ...task.recurringConfig, ...editRecurrenceConfig };
                               setIsEditingTask((prev) => ({ ...prev, recurrence: false }));
-                              toast.success("Recurrence updated successfully.");
+                              toast.success(t("detail.updateRecurrenceSuccess"));
                               if (onTaskRefetch) onTaskRefetch();
                             } catch (error) {
-                              toast.error("Failed to update recurrence.");
+                              toast.error(t("detail.updateRecurrenceError"));
                             }
                           }}
                           variant="outline"
                           primary
                           className="justify-center bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90"
                         >
-                          Save Changes
+                          {t("detail.saveChanges")}
                         </ActionButton>
                         <ActionButton
                           onClick={() => {
@@ -1863,7 +1867,7 @@ export default function TaskDetailClient({
                           secondary
                           className="justify-center"
                         >
-                          Cancel
+                          {t("detail.cancel")}
                         </ActionButton>
                       </div>
                     </div>
@@ -1882,28 +1886,28 @@ export default function TaskDetailClient({
                               setIsEditingTask((prev) => ({ ...prev, recurrence: true }));
                             }}
                             tabIndex={0}
-                            aria-label="Edit Recurrence"
+                            aria-label={t("detail.edit")}
                             style={{ lineHeight: 0 }}
                           >
-                            Edit
+                            {t("detail.edit")}
                           </button>
                         )}
                       </div>
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between items-center">
-                          <span className="text-[var(--muted-foreground)]">Pattern:</span>
+                          <span className="text-[var(--muted-foreground)]">{t("detail.pattern")}</span>
                           <span className="font-medium">
-                            {task.recurringConfig.recurrenceType === "DAILY" && `Every ${task.recurringConfig.interval} day(s)`}
-                            {task.recurringConfig.recurrenceType === "WEEKLY" && `Every ${task.recurringConfig.interval} week(s)`}
-                            {task.recurringConfig.recurrenceType === "MONTHLY" && `Every ${task.recurringConfig.interval} month(s)`}
-                            {task.recurringConfig.recurrenceType === "QUARTERLY" && `Every ${task.recurringConfig.interval} quarter(s)`}
-                            {task.recurringConfig.recurrenceType === "YEARLY" && `Every ${task.recurringConfig.interval} year(s)`}
-                            {task.recurringConfig.recurrenceType === "CUSTOM" && `Every ${task.recurringConfig.interval} day(s)`}
+                            {task.recurringConfig.recurrenceType === "DAILY" && t("detail.everyDay", { count: task.recurringConfig.interval })}
+                            {task.recurringConfig.recurrenceType === "WEEKLY" && t("detail.everyWeek", { count: task.recurringConfig.interval })}
+                            {task.recurringConfig.recurrenceType === "MONTHLY" && t("detail.everyMonth", { count: task.recurringConfig.interval })}
+                            {task.recurringConfig.recurrenceType === "QUARTERLY" && t("detail.everyQuarter", { count: task.recurringConfig.interval })}
+                            {task.recurringConfig.recurrenceType === "YEARLY" && t("detail.everyYear", { count: task.recurringConfig.interval })}
+                            {task.recurringConfig.recurrenceType === "CUSTOM" && t("detail.everyDay", { count: task.recurringConfig.interval })}
                           </span>
                         </div>
                         {task.recurringConfig.nextOccurrence && (
                           <div className="flex justify-between items-center">
-                            <span className="text-[var(--muted-foreground)]">Next Due:</span>
+                            <span className="text-[var(--muted-foreground)]">{t("detail.nextDue")}</span>
                             <span className="font-medium">
                               {new Date(task.recurringConfig.nextOccurrence).toLocaleDateString()}
                             </span>
@@ -1911,28 +1915,28 @@ export default function TaskDetailClient({
                         )}
                         {task.recurringConfig.endType !== "NEVER" && (
                           <div className="flex justify-between items-center">
-                            <span className="text-[var(--muted-foreground)]">Ends:</span>
+                            <span className="text-[var(--muted-foreground)]">{t("detail.ends")}</span>
                             <span className="font-medium">
                               {task.recurringConfig.endType === "ON_DATE" && task.recurringConfig.endDate
                                 ? new Date(task.recurringConfig.endDate).toLocaleDateString()
-                                : `After ${task.recurringConfig.occurrenceCount} occurrences`}
+                                : t("detail.afterOccurrences", { count: task.recurringConfig.occurrenceCount })}
                             </span>
                           </div>
                         )}
                         <div className="flex justify-between items-center">
-                          <span className="text-[var(--muted-foreground)]">Occurrence:</span>
+                          <span className="text-[var(--muted-foreground)]">{t("detail.occurrence")}</span>
                           <span className="font-medium">
                             {task.recurringConfig.currentOccurrence}
                             {task.recurringConfig.occurrenceCount && ` / ${task.recurringConfig.occurrenceCount}`}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-[var(--muted-foreground)]">Status:</span>
+                          <span className="text-[var(--muted-foreground)]">{t("detail.status")}</span>
                           <Badge
                             variant="outline"
                             className={`text-xs ${task.recurringConfig.isActive ? "border-green-500 text-green-500" : "border-gray-500 text-gray-500"}`}
                           >
-                            {task.recurringConfig.isActive ? "Active" : "Inactive"}
+                            {task.recurringConfig.isActive ? t("detail.active") : t("detail.inactive")}
                           </Badge>
                         </div>
                       </div>
@@ -1941,17 +1945,17 @@ export default function TaskDetailClient({
                           <ActionButton
                             onClick={() => {
                               showConfirmModal(
-                                "Stop Recurrence",
-                                "Are you sure you want to stop the recurrence for this task? This action cannot be undone.",
+                                t("detail.stopRecurrenceTitle"),
+                                t("detail.stopRecurrenceMessage"),
                                 async () => {
                                   try {
                                     await stopRecurrence(taskId);
                                     task.isRecurring = false;
                                     task.recurringConfig = null;
-                                    toast.success("Recurrence stopped successfully.");
+                                    toast.success(t("detail.stopRecurrenceSuccess"));
                                     if (onTaskRefetch) onTaskRefetch();
                                   } catch (error) {
-                                    toast.error("Failed to stop recurrence.");
+                                    toast.error(t("detail.stopRecurrenceError"));
                                   }
                                 },
                                 "danger"
@@ -1960,7 +1964,7 @@ export default function TaskDetailClient({
                             variant="outline"
                             className="w-full justify-center border-[var(--destructive)] text-[var(--destructive)] hover:bg-[var(--destructive)]/10"
                           >
-                            Stop Recurrence
+                            {t("detail.stopRecurrence")}
                           </ActionButton>
                         </div>
                       )}
@@ -1973,7 +1977,7 @@ export default function TaskDetailClient({
             {/* Add Recurrence for non-recurring tasks */}
             {!task.isRecurring && hasAccess && (
               <>
-                <Divider label="Recurrence" />
+                <Divider label={t("detail.recurrence")} />
                 <div className="space-y-4">
                   {isEditingTask.recurrence ? (
                     <div className="space-y-4">
@@ -1999,10 +2003,10 @@ export default function TaskDetailClient({
                               task.isRecurring = true;
                               task.recurringConfig = editRecurrenceConfig;
                               setIsEditingTask((prev) => ({ ...prev, recurrence: false }));
-                              toast.success("Recurrence added successfully.");
+                              toast.success(t("detail.addRecurrenceSuccess"));
                               if (onTaskRefetch) onTaskRefetch();
                             } catch (error) {
-                              toast.error("Failed to add recurrence.");
+                              toast.error(t("detail.addRecurrenceError"));
                             }
                           }}
                           variant="outline"
@@ -2010,7 +2014,7 @@ export default function TaskDetailClient({
                           showPlusIcon
                           className="flex items-center justify-center bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90"
                         >
-                          Add
+                          {t("detail.add")}
                         </ActionButton>
                         <ActionButton
                           onClick={() => {
@@ -2020,13 +2024,13 @@ export default function TaskDetailClient({
                           secondary
                           className="justify-center"
                         >
-                          Cancel
+                          {t("detail.cancel")}
                         </ActionButton>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm">Recurring</Label>
+                      <Label className="text-sm">{t("detail.recurring")}</Label>
                       <ToggleSwitch
                         checked={false}
                         onChange={() => {
@@ -2037,7 +2041,7 @@ export default function TaskDetailClient({
                           });
                           setIsEditingTask((prev) => ({ ...prev, recurrence: true }));
                         }}
-                        label="Toggle recurrence"
+                        label={t("detail.recurring")}
                         size="sm"
                       />
                     </div>
@@ -2046,12 +2050,12 @@ export default function TaskDetailClient({
               </>
             )}
 
-            <Divider label="Assignment" />
+            <Divider label={t("detail.assignment")} />
             {/* Assignment Section */}
             <div className="space-y-4">
               <div>
                 <MemberSelect
-                  label="Assignees"
+                  label={t("detail.assignees")}
                   editMode={isAuth && hasAccess}
                   selectedMembers={assignees}
                   projectId={task.projectId || task.project?.id}
@@ -2063,20 +2067,20 @@ export default function TaskDetailClient({
                         newAssignees.map((a) => a.id)
                       );
                       if (!isAIActive()) { onTaskRefetch && onTaskRefetch(); }
-                      toast.success("Assignees updated successfully.");
+                      toast.success(t("detail.updateAssigneesSuccess"));
                       handleAIAutoClose();
                     } catch {
-                      toast.error("Failed to update assignees.");
+                      toast.error(t("detail.updateAssigneesError"));
                     }
                   }}
                   members={projectMembers}
                   disabled={!hasAccess}
-                  placeholder={projectMembers.length === 0 ? "No members" : "Select assignees..."}
+                  placeholder={projectMembers.length === 0 ? t("detail.noMembers") : t("detail.selectAssignees")}
                 />
               </div>
               <div>
                 <MemberSelect
-                  label="Reporters"
+                  label={t("detail.reporters")}
                   selectedMembers={reporters}
                   editMode={isAuth && hasAccess}
                   projectId={task.projectId || task.project?.id}
@@ -2087,18 +2091,18 @@ export default function TaskDetailClient({
                         reporterIds: newReporters.map((r) => r.id),
                       });
                       onTaskRefetch && onTaskRefetch();
-                      toast.success("Reporters updated successfully.");
+                      toast.success(t("detail.updateReportersSuccess"));
                     } catch {
-                      toast.error("Failed to update reporters.");
+                      toast.error(t("detail.updateReportersError"));
                     }
                   }}
                   members={projectMembers}
                   disabled={!hasAccess}
-                  placeholder={projectMembers.length === 0 ? "No members" : "Select reporters..."}
+                  placeholder={projectMembers.length === 0 ? t("detail.noMembers") : t("detail.selectReporters")}
                 />
               </div>
             </div>
-            <Divider label="Labels" />
+            <Divider label={t("detail.labels")} />
             {/* Labels Section */}
             <TaskLabels
               labels={labels}
@@ -2109,7 +2113,7 @@ export default function TaskDetailClient({
               hasAccess={hasAccess}
               setLoading={setLoadingLabels}
             />
-            <Divider label="Activities" />
+            <Divider label={t("detail.activities")} />
 
             <TaskActivities taskId={taskId} setLoading={setLoadingActivities} />
           </div>
@@ -2124,12 +2128,12 @@ export default function TaskDetailClient({
         type={confirmModal.type}
         confirmText={
           confirmModal.type === "danger"
-            ? "Delete"
+            ? t("common:delete")
             : confirmModal.type === "warning"
-              ? "Continue"
-              : "Confirm"
+              ? t("common:continue")
+              : t("common:confirm")
         }
-        cancelText="Cancel"
+        cancelText={t("common:cancel")}
       />
       <div className="relative">
 
