@@ -1,6 +1,9 @@
 {
   "save": "Guardar",
   "cancel": "Cancelar",
+  "delete": "Eliminar",
+  "continue": "Continuar",
+  "confirm": "Confirmar",
   "error": "Error",
   "success": "Éxito",
   "priorities": {
