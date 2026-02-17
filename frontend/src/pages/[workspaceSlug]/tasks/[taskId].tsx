@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import { useTask } from "@/contexts/task-context";
 import { useAuth } from "@/contexts/auth-context";
 import TaskDetailClient from "@/components/tasks/TaskDetailClient";
@@ -9,6 +10,7 @@ import NotFound from "@/pages/404";
 import { extractUuid } from "@/utils/slugUtils";
 
 function TaskDetailContent() {
+  const { t } = useTranslation(["tasks", "common"]);
   const router = useRouter();
   const { workspaceSlug, projectSlug, taskId } = router.query;
   const cleanTaskId = useMemo(() => extractUuid(taskId as string), [taskId]);
@@ -103,16 +105,22 @@ function TaskDetailContent() {
 
   return (
     <div className="">
-      <TaskDetailClient
-        task={task}
-        workspaceSlug={workspaceSlug as string}
-        projectSlug={projectSlug as string}
-        taskId={cleanTaskId as string}
-      />
+      <Suspense fallback={<div className="p-4"><div className="animate-pulse h-96 bg-[var(--muted)] rounded"></div></div>}>
+        <TaskDetailClient
+          task={task}
+          workspaceSlug={workspaceSlug as string}
+          projectSlug={projectSlug as string}
+          taskId={cleanTaskId as string}
+        />
+      </Suspense>
     </div>
   );
 }
 
 export default function TaskDetailPage() {
-  return <TaskDetailContent />;
+  return (
+    <Suspense fallback={null}>
+      <TaskDetailContent />
+    </Suspense>
+  );
 }

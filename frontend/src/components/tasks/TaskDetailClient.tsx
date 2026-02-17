@@ -79,7 +79,7 @@ export default function TaskDetailClient({
   onTaskRefetch,
   onClose,
 }: TaskDetailClientProps) {
-  const { t } = useTranslation(["tasks", "common"]);
+  const { t } = useTranslation("tasks");
   const {
     updateTask,
     deleteTask,

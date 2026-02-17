@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import { useTask } from "@/contexts/task-context";
 import TaskDetailClient from "@/components/tasks/TaskDetailClient";
 import { useRouter } from "next/router";
@@ -7,6 +8,7 @@ import TaskDetailsSkeleton from "@/components/skeletons/TaskDetailsSkeleton";
 import ErrorState from "@/components/common/ErrorState";
 import { extractUuid } from "@/utils/slugUtils";
 function TaskDetailContent() {
+  const { t } = useTranslation(["tasks", "common"]);
   const [task, setTask] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,9 +85,17 @@ function TaskDetailContent() {
     return <ErrorState error={error} />;
   }
 
-  return <TaskDetailClient task={task} taskId={cleanTaskId as string} />;
+  return (
+    <Suspense fallback={<div className="p-4"><div className="animate-pulse h-96 bg-[var(--muted)] rounded"></div></div>}>
+      <TaskDetailClient task={task} taskId={cleanTaskId as string} />
+    </Suspense>
+  );
 }
 
 export default function TaskDetailPage() {
-  return <TaskDetailContent />;
+  return (
+    <Suspense fallback={null}>
+      <TaskDetailContent />
+    </Suspense>
+  );
 }
