@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useRouter } from "next/router";
 import TaskDetailClient from "./TaskDetailClient";
 import { useTask } from "../../contexts/task-context";
@@ -133,6 +134,7 @@ export default function Subtasks({
   isAssignOrRepoter,
   setLoading,
 }: SubtasksProps) {
+  const { t } = useTranslation(["tasks", "common"]);
   const {
     getSubtasksByParent,
     createSubtask,
@@ -380,8 +382,8 @@ export default function Subtasks({
 
     if (showConfirmModal) {
       showConfirmModal(
-        "Delete Subtask",
-        "Are you sure you want to delete this subtask? This action cannot be undone.",
+        t("subtasks.deleteTitle"),
+        t("subtasks.deleteConfirmation"),
         confirmDelete,
         "danger"
       );
@@ -461,9 +463,8 @@ export default function Subtasks({
       <div className="space-y-4">
         <SectionHeader
           icon={HiListBullet}
-          title={`Subtasks (${completedCount}/${
-            subtaskPagination?.total || Array.isArray(subtTask) ? subtTask.length : 0
-          })`}
+          title={`${t("subtasks.title")} (${completedCount}/${subtaskPagination?.total || Array.isArray(subtTask) ? subtTask.length : 0
+            })`}
         />
 
         {/* Subtasks List */}
@@ -520,7 +521,7 @@ export default function Subtasks({
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setEditingTitle(e.target.value)
                         }
-                        placeholder="Enter subtask title..."
+                        placeholder={t("subtasks.enterTitle")}
                         className="h-9 border-input bg-background text-[var(--foreground)] focus:ring-2 focus:ring-[var(--primary)]/20"
                         autoFocus
                         onKeyDown={(e) => {
@@ -535,7 +536,7 @@ export default function Subtasks({
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2">
                           <Label htmlFor="edit-priority" className="text-xs font-medium">
-                            Priority
+                            {t("subtasks.priority")}
                           </Label>
                           <Select
                             value={subtaskPriority}
@@ -543,7 +544,7 @@ export default function Subtasks({
                             disabled={isLoading}
                           >
                             <SelectTrigger className="w-full h-8 text-xs  border-[var(--border)] bg-[var(--background)]">
-                              <SelectValue placeholder="Select priority" />
+                              <SelectValue placeholder={t("subtasks.selectPriority")} />
                             </SelectTrigger>
                             <SelectContent className="border-none bg-[var(--card)]">
                               {PRIORITY_OPTIONS.map((option) => (
@@ -560,7 +561,7 @@ export default function Subtasks({
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="edit-type" className="text-xs font-medium">
-                            Type
+                            {t("subtasks.type")}
                           </Label>
                           <Select
                             value={subtaskType}
@@ -568,7 +569,7 @@ export default function Subtasks({
                             disabled={isLoading}
                           >
                             <SelectTrigger className="w-full h-8 text-xs  border-[var(--border)] bg-[var(--background)]">
-                              <SelectValue placeholder="Select type" />
+                              <SelectValue placeholder={t("subtasks.selectType")} />
                             </SelectTrigger>
                             <SelectContent className="border-none bg-[var(--card)]">
                               {TASK_TYPE_OPTIONS.map((option) => (
@@ -592,7 +593,7 @@ export default function Subtasks({
                           primary
                           className="h-8 px-3 cursor-pointer"
                         >
-                          Save
+                          {t("common:save")}
                         </ActionButton>
                         <ActionButton
                           onClick={handleCancelEdit}
@@ -600,7 +601,7 @@ export default function Subtasks({
                           secondary
                           className="h-8 px-3 cursor-pointer"
                         >
-                          Cancel
+                          {t("subtasks.cancel")}
                         </ActionButton>
                       </div>
                     </div>
@@ -628,11 +629,10 @@ export default function Subtasks({
                           </div>
                           <div
                             onClick={(e) => handleToggleSubtaskStatus(subtask.id, e)}
-                            className={`text-sm font-medium cursor-pointer line-clamp-2 ${
-                              isSubtaskCompleted(subtask)
-                                ? "text-[var(--muted-foreground)] line-through"
-                                : "text-[var(--foreground)]"
-                            }`}
+                            className={`text-sm font-medium cursor-pointer line-clamp-2 ${isSubtaskCompleted(subtask)
+                              ? "text-[var(--muted-foreground)] line-through"
+                              : "text-[var(--foreground)]"
+                              }`}
                           >
                             {subtask.title}
                           </div>
@@ -640,7 +640,7 @@ export default function Subtasks({
 
                         {isAuth && (
                           <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity flex-shrink-0">
-                            <Tooltip content="Edit" position="top" color="primary">
+                            <Tooltip content={t("subtasks.edit")} position="top" color="primary">
                               <ActionButton
                                 onClick={(e) =>
                                   handleEditSubtask(
@@ -658,7 +658,7 @@ export default function Subtasks({
                                 <HiPencilSquare className="w-4 h-4" />
                               </ActionButton>
                             </Tooltip>
-                            <Tooltip content="Delete" position="top" color="primary">
+                            <Tooltip content={t("subtasks.delete")} position="top" color="primary">
                               <ActionButton
                                 onClick={(e) => handleDeleteSubtask(subtask.id, e)}
                                 variant="ghost"
@@ -696,7 +696,7 @@ export default function Subtasks({
                           className="px-1.5 py-0.5 text-[10px] h-5 min-h-0"
                         />
                         {subtask.dueDate && (
-                          <Tooltip content="Due Date" position="top" color="primary">
+                          <Tooltip content={t("subtasks.dueDate")} position="top" color="primary">
                             <span className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
                               <HiCalendar className="w-3 h-3" />
                               {new Date(subtask.dueDate).toLocaleDateString("en-US", {
@@ -729,9 +729,9 @@ export default function Subtasks({
         {!isLoading && Array.isArray(subtTask) && subtTask.length === 0 && (
           <div className="text-center py-8 bg-[var(--muted)]/30 rounded-lg border border-[var(--border)]">
             <HiListBullet className="w-8 h-8 mx-auto mb-3 text-[var(--muted-foreground)]" />
-            <p className="text-sm font-medium text-[var(--foreground)] mb-2">No subtasks yet</p>
+            <p className="text-sm font-medium text-[var(--foreground)] mb-2">{t("subtasks.noSubtasks")}</p>
             <p className="text-xs text-[var(--muted-foreground)]">
-              Add subtasks to break down this task into smaller, manageable pieces
+              {t("subtasks.addSubtaskDescription")}
             </p>
           </div>
         )}
@@ -748,7 +748,7 @@ export default function Subtasks({
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setNewSubtaskTitle(e.target.value)
               }
-              placeholder="Enter subtask title..."
+              placeholder={t("subtasks.enterTitle")}
               className="h-9 border-input bg-background text-[var(--foreground)]"
               autoFocus
               disabled={isLoading}
@@ -757,7 +757,7 @@ export default function Subtasks({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="subtask-priority" className="text-xs font-medium">
-                  Priority
+                  {t("subtasks.priority")}
                 </Label>
                 <Select
                   value={subtaskPriority}
@@ -765,7 +765,7 @@ export default function Subtasks({
                   disabled={isLoading}
                 >
                   <SelectTrigger className="w-full h-8 text-xs  border-[var(--border)] bg-[var(--background)]">
-                    <SelectValue placeholder="Select priority" />
+                    <SelectValue placeholder={t("subtasks.selectPriority")} />
                   </SelectTrigger>
                   <SelectContent className="border-none bg-[var(--card)]">
                     {PRIORITY_OPTIONS.map((option) => (
@@ -783,14 +783,14 @@ export default function Subtasks({
 
               <div className="space-y-2">
                 <Label htmlFor="subtask-type" className="text-xs font-medium">
-                  Type
+                  {t("subtasks.type")}
                 </Label>
                 <Select value={subtaskType} onValueChange={setSubtaskType} disabled={isLoading}>
                   <SelectTrigger className="w-full h-8 text-xs  border-[var(--border)] bg-[var(--background)]">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent className="border-none bg-[var(--card)]">
-                    {TASK_TYPE_OPTIONS.filter(option => option.value !='TASK').map((option) => (
+                    {TASK_TYPE_OPTIONS.filter(option => option.value != 'TASK').map((option) => (
                       <SelectItem
                         key={option.value}
                         value={option.value}
@@ -813,7 +813,7 @@ export default function Subtasks({
                     primary
                     showPlusIcon
                   >
-                    {isLoading ? "Adding..." : "Add Subtask"}
+                    {isLoading ? t("subtasks.adding") : t("subtasks.add")}
                   </ActionButton>
                 </div>
               )}
@@ -840,7 +840,7 @@ export default function Subtasks({
               primary
               className="min-w-[193.56px]"
             >
-              Add Subtask
+              {t("subtasks.add")}
             </ActionButton>
           </div>
         ) : null}
