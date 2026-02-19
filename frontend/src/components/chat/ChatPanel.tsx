@@ -288,6 +288,10 @@ export default function ChatPanel() {
         cleanMessage = cleanMessage.substring(5).trim() || "Done!";
       } else if (cleanMessage.startsWith("ASK:")) {
         cleanMessage = cleanMessage.substring(4).trim();
+      } else if (cleanMessage.startsWith("Error: LLM API error: ")) {
+        cleanMessage = cleanMessage.replace("Error: LLM API error: ", "").trim();
+      } else if (cleanMessage.startsWith("Error: ")) {
+        cleanMessage = cleanMessage.substring(7).trim();
       }
 
       const resultMessage: Message = {
@@ -298,9 +302,10 @@ export default function ChatPanel() {
 
       setMessages((prev) => [...prev, resultMessage]);
     } catch (error: any) {
+      const rawMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || "Failed to process request";
       const errorMessage: Message = {
         role: "assistant",
-        content: `Browser automation error: ${error.message}`,
+        content: rawMessage,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
