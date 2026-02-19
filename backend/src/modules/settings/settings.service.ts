@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CryptoService } from '../../common/crypto.service';
 
 @Injectable()
 export class SettingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private crypto: CryptoService,
+  ) {}
 
   /**
    * Get a setting value, prioritizing user-specific settings over global ones
@@ -25,7 +29,9 @@ export class SettingsService {
       });
 
       if (userSetting) {
-        return userSetting.value;
+        return userSetting.isEncrypted && userSetting.value
+          ? this.crypto.decrypt(userSetting.value)
+          : userSetting.value;
       }
     }
 
@@ -38,7 +44,13 @@ export class SettingsService {
       },
     });
 
-    return globalSetting?.value ?? defaultValue ?? null;
+    const finalValue = globalSetting?.value ?? defaultValue ?? null;
+
+    if (globalSetting?.isEncrypted && finalValue) {
+      return this.crypto.decrypt(finalValue);
+    }
+
+    return finalValue;
   }
 
   /**
@@ -58,6 +70,8 @@ export class SettingsService {
     category?: string,
     isEncrypted?: boolean,
   ): Promise<void> {
+    const finalValue = isEncrypted ? this.crypto.encrypt(value) : value;
+
     if (userId) {
       // User-specific setting
       await this.prisma.settings.upsert({
@@ -68,7 +82,7 @@ export class SettingsService {
           },
         },
         update: {
-          value,
+          value: finalValue,
           description: description || undefined,
           category: category || 'general',
           isEncrypted: isEncrypted || false,
@@ -76,7 +90,7 @@ export class SettingsService {
         },
         create: {
           key,
-          value,
+          value: finalValue,
           userId,
           description: description || undefined,
           category: category || 'general',
@@ -100,7 +114,7 @@ export class SettingsService {
             id: existingGlobal.id,
           },
           data: {
-            value,
+            value: finalValue,
             description: description || undefined,
             category: category || 'general',
             isEncrypted: isEncrypted || false,
@@ -112,7 +126,7 @@ export class SettingsService {
         await this.prisma.settings.create({
           data: {
             key,
-            value,
+            value: finalValue,
             userId: null, // Global setting
             description: description || undefined,
             category: category || 'general',
@@ -138,6 +152,7 @@ export class SettingsService {
       description: string | null;
       category: string;
       isUserSpecific: boolean; // Indicates if this is a user-specific setting
+      isEncrypted: boolean;
     }>
   > {
     // First get user-specific settings
@@ -152,6 +167,7 @@ export class SettingsService {
             value: true,
             description: true,
             category: true,
+            isEncrypted: true,
           },
           orderBy: {
             key: 'asc',
@@ -159,9 +175,11 @@ export class SettingsService {
         })
       : [];
 
-    // Convert user settings to the proper format with isUserSpecific flag
+    // Convert user settings to the proper format with isUserSpecific flag and decryption
     const userSettingsWithFlag = userSettings.map((setting) => ({
       ...setting,
+      value:
+        setting.isEncrypted && setting.value ? this.crypto.decrypt(setting.value) : setting.value,
       isUserSpecific: true,
     }));
 
@@ -180,6 +198,7 @@ export class SettingsService {
         value: true,
         description: true,
         category: true,
+        isEncrypted: true,
       },
       orderBy: {
         key: 'asc',
@@ -191,9 +210,11 @@ export class SettingsService {
       (setting) => !userSettingKeys.has(setting.key),
     );
 
-    // Convert global settings to the proper format with isUserSpecific flag
+    // Convert global settings to the proper format with isUserSpecific flag and decryption
     const globalSettingsWithFlag = filteredGlobalSettings.map((setting) => ({
       ...setting,
+      value:
+        setting.isEncrypted && setting.value ? this.crypto.decrypt(setting.value) : setting.value,
       isUserSpecific: false,
     }));
 
@@ -266,6 +287,7 @@ export class SettingsService {
       value: string | null;
       description: string | null;
       category: string;
+      isEncrypted: boolean;
     }>
   > {
     const settings = await this.prisma.settings.findMany({
@@ -278,13 +300,18 @@ export class SettingsService {
         value: true,
         description: true,
         category: true,
+        isEncrypted: true,
       },
       orderBy: {
         key: 'asc',
       },
     });
 
-    return settings;
+    return settings.map((setting) => ({
+      ...setting,
+      value:
+        setting.isEncrypted && setting.value ? this.crypto.decrypt(setting.value) : setting.value,
+    }));
   }
 
   /**
@@ -304,8 +331,10 @@ export class SettingsService {
   ): Promise<void> {
     // Use a transaction to ensure all settings are saved atomically
     await this.prisma.$transaction(
-      settings.map((setting) =>
-        this.prisma.settings.upsert({
+      settings.map((setting) => {
+        const finalValue = setting.isEncrypted ? this.crypto.encrypt(setting.value) : setting.value;
+
+        return this.prisma.settings.upsert({
           where: {
             userId_key: {
               userId,
@@ -313,7 +342,7 @@ export class SettingsService {
             },
           },
           update: {
-            value: setting.value,
+            value: finalValue,
             description: setting.description || undefined,
             category: setting.category || 'general',
             isEncrypted: setting.isEncrypted || false,
@@ -321,14 +350,14 @@ export class SettingsService {
           },
           create: {
             key: setting.key,
-            value: setting.value,
+            value: finalValue,
             userId,
             description: setting.description || undefined,
             category: setting.category || 'general',
             isEncrypted: setting.isEncrypted || false,
           },
-        }),
-      ),
+        });
+      }),
     );
   }
 }

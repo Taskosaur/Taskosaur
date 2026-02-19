@@ -44,7 +44,7 @@ export class CryptoService {
     try {
       const parts = encryptedText.split(':');
       if (parts.length !== 3) {
-        throw new Error('Invalid encrypted text format');
+        return encryptedText;
       }
 
       const [ivHex, authTagHex, encrypted] = parts;
@@ -59,8 +59,9 @@ export class CryptoService {
 
       return decrypted;
     } catch (error) {
-      console.error(error);
-      throw new Error(`Decryption failed: ${error.message}`);
+      console.error('Decryption failed:', error);
+      // Return the original text if decryption fails (fallback for non-encrypted or corrupted data)
+      return encryptedText;
     }
   }
 
