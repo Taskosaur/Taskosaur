@@ -65,6 +65,7 @@ interface FormData {
   type: string;
   storyPoints: string;
   sprintId?: string;
+  parentTaskId?: string;
 }
 
 interface NewTaskModalProps {
@@ -103,6 +104,7 @@ export function NewTaskModal({
     type: "TASK",
     storyPoints: "",
     sprintId: "",
+    parentTaskId: "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,6 +122,9 @@ export function NewTaskModal({
 
   const [sprints, setSprints] = useState<any[]>([]);
   const [loadingSprints, setLoadingSprints] = useState(false);
+
+  const [parentTasks, setParentTasks] = useState<any[]>([]);
+  const [loadingParentTasks, setLoadingParentTasks] = useState(false);
 
   const [taskStatuses, setTaskStatuses] = useState<any[]>([]);
 
@@ -171,6 +176,7 @@ export function NewTaskModal({
     setWorkspaces([]);
     setProjects([]);
     setSprints([]);
+    setParentTasks([]);
     setTaskStatuses([]);
     setError(null);
     setLoadingWorkspaces(true);
@@ -235,8 +241,20 @@ export function NewTaskModal({
     if (formData.project?.id) {
       loadTaskStatuses();
       loadSprints();
+      if (formData.type === "SUBTASK") {
+        loadParentTasks();
+      }
     }
   }, [formData.project?.id]);
+
+  useEffect(() => {
+    if (formData.type === "SUBTASK" && formData.project?.id) {
+      loadParentTasks();
+    } else {
+      setParentTasks([]);
+      setFormData((prev) => ({ ...prev, parentTaskId: "" }));
+    }
+  }, [formData.type]);
 
   useEffect(() => {
     if (formData.workspace?.id && urlContext.type !== "project") {
@@ -378,7 +396,7 @@ export function NewTaskModal({
         getActiveSprint(formData.project.id),
       ]);
       setSprints(projectSprints || []);
-      
+
       if (activeSprint) {
         setFormData(prev => ({ ...prev, sprintId: activeSprint.id }));
       } else if (projectSprints && projectSprints.length > 0) {
@@ -391,6 +409,23 @@ export function NewTaskModal({
       console.error("Failed to load sprints:", error);
     } finally {
       setLoadingSprints(false);
+    }
+  };
+
+  const loadParentTasks = async () => {
+    if (!formData.project?.id) return;
+    setLoadingParentTasks(true);
+    try {
+      const organizationId = getCurrentOrganizationId();
+      if (!organizationId) return;
+      const response = await import("@/lib/api").then((m) => m.default.get(`/tasks?organizationId=${organizationId}&projectId=${formData.project!.id}&parentTaskId=null`));
+      const tasks = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setParentTasks(tasks);
+    } catch (error) {
+      console.error("Failed to load parent tasks:", error);
+      setParentTasks([]);
+    } finally {
+      setLoadingParentTasks(false);
     }
   };
 
@@ -426,19 +461,21 @@ export function NewTaskModal({
           throw new Error(t("modal.errorNoStatus"));
         }
 
-        const taskData = {
+        const taskData: any = {
           title: formData.title.trim(),
           description: "",
           priority: formData.priority as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
-          type: ["TASK", "BUG", "EPIC", "STORY"].includes(formData.type)
-            ? (formData.type as "TASK" | "BUG" | "EPIC" | "STORY")
+          type: ["TASK", "BUG", "EPIC", "STORY", "SUBTASK"].includes(formData.type)
+            ? formData.type
             : "TASK",
           storyPoints: formData.storyPoints ? parseInt(formData.storyPoints) : undefined,
           dueDate: formData.dueDate ? moment(formData.dueDate).toISOString() : undefined,
           projectId: formData.project!.id,
-          statusId: defaultStatus.id,
-          sprintId: formData.sprintId || undefined,
+          statusId: defaultStatus?.id,
         };
+
+        if (formData.sprintId) taskData.sprintId = formData.sprintId;
+        if (formData.type === "SUBTASK" && formData.parentTaskId) taskData.parentTaskId = formData.parentTaskId;
         await createTask(taskData);
 
         if (projectSlug && workspaceSlug) {
@@ -478,10 +515,12 @@ export function NewTaskModal({
       type: "TASK",
       storyPoints: "",
       sprintId: "",
+      parentTaskId: "",
     });
 
     setWorkspaces([]);
     setProjects([]);
+    setParentTasks([]);
     setWorkspaceSearch("");
     setProjectSearch("");
     setWorkspaceOpen(false);
@@ -492,7 +531,7 @@ export function NewTaskModal({
     onClose();
   }, [onClose]);
 
-  const isValid = formData.title.trim().length > 0 && formData.project && formData.priority;
+  const isValid = formData.title.trim().length > 0 && formData.project && formData.priority && (formData.type !== "SUBTASK" || formData.parentTaskId);
 
   const getToday = () => {
     return moment().format("YYYY-MM-DD");
@@ -609,6 +648,7 @@ export function NewTaskModal({
                 <PopoverContent className="projects-workspace-popover border-none" align="start">
                   <Command className="projects-workspace-command border-none">
                     <CommandInput
+                      data-automation-id="search-workspace-input"
                       placeholder={t("modal.searchWorkspaces")}
                       value={workspaceSearch}
                       onValueChange={setWorkspaceSearch}
@@ -695,6 +735,7 @@ export function NewTaskModal({
                 <PopoverContent className="projects-workspace-popover border-none" align="start">
                   <Command className="projects-workspace-command border-none">
                     <CommandInput
+                      data-automation-id="search-project-input"
                       placeholder={t("modal.searchProjects")}
                       value={projectSearch}
                       onValueChange={setProjectSearch}
@@ -844,6 +885,44 @@ export function NewTaskModal({
               </Select>
             </div>
 
+            {formData.type === "SUBTASK" && (
+              <div className="projects-form-field col-span-2 md:col-span-4">
+                <Label className="projects-form-label">
+                  <HiClipboardList
+                    className="projects-form-label-icon"
+                    style={{ color: "hsl(var(--primary))" }}
+                  />
+                  {t("modal.parentTask", "Parent Task")} <span className="projects-form-label-required">*</span>
+                </Label>
+                <Select
+                  value={formData.parentTaskId}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, parentTaskId: value }))}
+                  disabled={isSubmitting || !formData.project || loadingParentTasks}
+                >
+                  <SelectTrigger
+                    className="projects-workspace-button border-none"
+                    onFocus={(e) => { e.currentTarget.style.boxShadow = "none"; }}
+                    onBlur={(e) => { e.currentTarget.style.boxShadow = "none"; }}
+                  >
+                    <SelectValue placeholder={!formData.project ? t("modal.selectProjectFirst", "Select project first") : loadingParentTasks ? t("modal.loading", "Loading...") : t("modal.selectParentTask", "Select parent task")} />
+                  </SelectTrigger>
+                  <SelectContent className="border-none bg-[var(--card)]">
+                    {parentTasks.map((task) => (
+                      <SelectItem
+                        key={task.id}
+                        value={task.id}
+                        className="hover:bg-[var(--hover-bg)]"
+                      >
+                        <div className="flex items-center gap-2">
+                          {task.taskNumber ? `${task.taskNumber} - ` : ""}{task.title}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="projects-form-field">
               <Label htmlFor="storyPoints" className="projects-form-label">
                 <HiSparkles
@@ -878,7 +957,7 @@ export function NewTaskModal({
 
           <div className="projects-form-field mt-4">
             <Label className="projects-form-label">
-              <HiBolt 
+              <HiBolt
                 className="projects-form-label-icon"
                 style={{ color: "hsl(var(--primary))" }}
               />
@@ -912,7 +991,7 @@ export function NewTaskModal({
                     </div>
                   </SelectItem>
                 ))}
-            </SelectContent>
+              </SelectContent>
             </Select>
           </div>
 
@@ -920,7 +999,7 @@ export function NewTaskModal({
             <ActionButton type="button" secondary onClick={handleClose} disabled={isSubmitting}>
               {t("modal.cancel")}
             </ActionButton>
-            <ActionButton id="create-task-submit" type="submit" primary disabled={!isValid || isSubmitting}>
+            <ActionButton id="create-task-submit" data-automation-id="create-task-submit" type="submit" primary disabled={!isValid || isSubmitting}>
               {isSubmitting ? (
                 <div className="flex items-center">
                   <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />

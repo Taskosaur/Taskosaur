@@ -226,7 +226,9 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
     setLoadingParentTasks(true);
     try {
       const api = (await import("@/lib/api")).default;
-      const response = await api.get(`/tasks?projectId=${projectId}&parentTaskId=null`);
+      const organizationId = localStorage.getItem("currentOrganizationId");
+      if (!organizationId) return;
+      const response = await api.get(`/tasks?organizationId=${organizationId}&projectId=${projectId}&parentTaskId=null`);
       const tasks = Array.isArray(response.data) ? response.data : (response.data?.data || []);
       setParentTasks(tasks);
     } catch (error) {
@@ -276,10 +278,10 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
           ? formatDateForApi(formData.dueDate)
           : formatDateForApi(getTodayDate()),
         projectId: selectedProject.id,
-        statusId: formData.status || defaultStatus.id,
-        sprintId: formData.sprintId || undefined,
-        parentTaskId: formData.type === "SUBTASK" && formData.parentTaskId ? formData.parentTaskId : undefined,
+        statusId: formData.status || defaultStatus?.id,
       };
+      if (formData.sprintId) taskData.sprintId = formData.sprintId;
+      if (formData.type === "SUBTASK" && formData.parentTaskId) taskData.parentTaskId = formData.parentTaskId;
 
       if (assignees.length > 0) taskData.assigneeIds = assignees.map((a) => a.id);
       if (reporters.length > 0) taskData.reporterIds = reporters.map((r) => r.id);

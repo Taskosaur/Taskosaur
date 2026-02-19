@@ -461,7 +461,10 @@ export const taskApi = {
       if (projectId && !isValidUUID(projectId)) {
         throw new Error('Invalid project ID format');
       }
-      const query = projectId ? `?projectId=${projectId}&parentTaskId=null` : "?parentTaskId=null";
+      const organizationId = typeof window !== 'undefined' ? localStorage.getItem("currentOrganizationId") : null;
+      let query = organizationId ? `?organizationId=${organizationId}` : "?";
+      if (projectId) query += `&projectId=${projectId}`;
+      query += `&parentTaskId=null`;
       const response = await api.get<Task[]>(`/tasks${query}`);
       return response.data;
     } catch (error) {
