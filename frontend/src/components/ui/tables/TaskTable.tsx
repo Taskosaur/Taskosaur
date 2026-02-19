@@ -431,6 +431,25 @@ const TaskTable: React.FC<TaskTableProps> = ({
     fetchProjectMeta();
   }, [newTaskData.projectId, projectSlug]);
 
+  const loadTaskCreationData = () => {
+    if (localAddTaskStatuses && localAddTaskStatuses.length > 0) {
+      const defaultStatus =
+        localAddTaskStatuses.find(
+          (s) => s.name.toLowerCase() === "todo" || s.name.toLowerCase() === "to do"
+        ) || localAddTaskStatuses[0];
+
+      if (defaultStatus) {
+        setNewTaskData((prev) => ({ ...prev, statusId: defaultStatus.id }));
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (isCreatingTask && localAddTaskStatuses.length > 0 && !newTaskData.statusId) {
+      loadTaskCreationData();
+    }
+  }, [localAddTaskStatuses, isCreatingTask]);
+
   const today = moment().format("YYYY-MM-DD");
 
   const formatDate = (dateString: string) => {
@@ -905,18 +924,6 @@ const TaskTable: React.FC<TaskTableProps> = ({
 
   const visibleColumns = columns.filter((col) => col.visible);
 
-  const loadTaskCreationData = () => {
-    if (localAddTaskStatuses && localAddTaskStatuses.length > 0) {
-      const defaultStatus =
-        localAddTaskStatuses.find(
-          (s) => s.name.toLowerCase() === "todo" || s.name.toLowerCase() === "to do"
-        ) || localAddTaskStatuses[0];
-
-      if (defaultStatus) {
-        setNewTaskData((prev) => ({ ...prev, statusId: defaultStatus.id }));
-      }
-    }
-  };
 
   const handleStartCreating = () => {
     setIsCreatingTask(true);

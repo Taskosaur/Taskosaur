@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useTask } from "../../contexts/task-context";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
@@ -89,6 +90,7 @@ const CommentItem = React.memo(
     formatTimestamp,
     colorMode,
     isAuth,
+    t,
   }: {
     comment: CommentWithAuthor;
     currentUser: User;
@@ -106,6 +108,7 @@ const CommentItem = React.memo(
     };
     colorMode: "light" | "dark";
     isAuth: boolean;
+    t: any;
   }) => {
     const [isHovered, setIsHovered] = useState(false);
     const timestamp = useMemo(
@@ -185,21 +188,20 @@ const CommentItem = React.memo(
 
                 {canEdit && (
                   <div
-                    className={`flex items-center  transition-opacity ${
-                      isHovered ? "opacity-100" : "opacity-0"
-                    }`}
+                    className={`flex items-center  transition-opacity ${isHovered ? "opacity-100" : "opacity-0"
+                      }`}
                   >
                     <button
                       onClick={() => onEdit(comment.id, comment.content)}
                       className="p-1 text-[var(--muted-foreground)] cursor-pointer hover:text-[var(--foreground)] hover:bg-[var(--muted)]/30 rounded transition-colors"
-                      title="Edit comment"
+                      title={t("comments.editTooltip")}
                     >
                       <HiPencil className="size-3" />
                     </button>
                     <button
                       onClick={() => onDelete(comment.id)}
                       className="p-1 text-[var(--muted-foreground)] cursor-pointer hover:text-[var(--destructive)] hover:bg-[var(--muted)]/30 rounded transition-colors"
-                      title="Delete comment"
+                      title={t("comments.deleteTooltip")}
                     >
                       <HiTrash className="size-3" />
                     </button>
@@ -223,19 +225,18 @@ const CommentItem = React.memo(
                     title="From email"
                   >
                     <HiEnvelope className="size-2.5" />
-                    <span>via email</span>
+                    <span>{t("comments.viaEmail")}</span>
                   </div>
                 )}
 
                 {comment.sentAsEmail && (
                   <div
                     className="flex items-center gap-1 text-green-600 dark:text-green-400"
-                    title={`Sent as email to: ${
-                      comment.emailRecipients?.join(", ") || "recipients"
-                    }`}
+                    title={`Sent as email to: ${comment.emailRecipients?.join(", ") || "recipients"
+                      }`}
                   >
                     <HiCheckCircle className="size-2.5" />
-                    <span>sent as email</span>
+                    <span>{t("comments.sentAsEmail")}</span>
                   </div>
                 )}
               </div>
@@ -260,10 +261,10 @@ const CommentItem = React.memo(
                 <button
                   onClick={() => onSendAsEmail(comment.id)}
                   className="text-xs px-2 py-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex items-center gap-1"
-                  title="Send as email reply"
+                  title={t("comments.sendAsEmailReply")}
                 >
                   <HiEnvelope className="w-3 h-3" />
-                  <span>Send as email</span>
+                  <span>{t("comments.sendAsEmail")}</span>
                 </button>
               </div>
             )}
@@ -290,15 +291,16 @@ export default function TaskComments({
   const { isAuthenticated } = useAuth();
   const isAuth = isAuthenticated();
   const [colorMode, setColorMode] = useState<"light" | "dark">("light");
-  
+
   // Pagination configuration
   const OLDEST_COUNT = 2; // Number of oldest comments to always show
   const NEWEST_COUNT = 2; // Number of newest comments to always show
   const LOAD_MORE_BATCH_SIZE = 5; // Number of comments to load per "View more" click
-  
+
   // Track how many middle comments are currently visible
   const [visibleMiddleCount, setVisibleMiddleCount] = useState(0);
 
+  const { t } = useTranslation(["tasks", "common"]);
   const { getTaskComments, createTaskComment, updateTaskComment, deleteTaskComment } = useTask();
   const { resolvedTheme } = useTheme();
 
@@ -355,14 +357,14 @@ export default function TaskComments({
       setLoadingComments(true);
       try {
         // Fetch with 'middle' pagination
-        const result = await getTaskComments(taskId, isAuth, { 
-          page: 1, 
+        const result = await getTaskComments(taskId, isAuth, {
+          page: 1,
           paginationType: 'middle',
           limit: LOAD_MORE_BATCH_SIZE, // Not used for page 1 logic in backend for counts, but good to pass
           oldestCount: OLDEST_COUNT,
           newestCount: NEWEST_COUNT
         });
-        
+
         // Type guard to check if result is paginated response
         if (typeof result === 'object' && 'data' in result) {
           setComments(result.data || []);
@@ -370,7 +372,7 @@ export default function TaskComments({
           setTotalPages(result.totalPages);
           setHasMore(result.hasMore);
           setTotalComments(result.total);
-          
+
           // initial split index
           const initialCount = result.data.length;
           if (result.total <= OLDEST_COUNT + NEWEST_COUNT) {
@@ -387,7 +389,7 @@ export default function TaskComments({
           setComments(result || []);
           setSplitIndex((result || []).length);
         }
-        
+
         setVisibleMiddleCount(0);
       } catch (error) {
         console.error("Failed to fetch comments:", error);
@@ -396,7 +398,7 @@ export default function TaskComments({
       }
     };
     fetchComments();
-  }, [taskId, isAuth]); 
+  }, [taskId, isAuth]);
 
   useEffect(() => {
     if (setLoading) {
@@ -440,21 +442,21 @@ export default function TaskComments({
           oldestCount: OLDEST_COUNT,
           newestCount: NEWEST_COUNT
         });
-        
+
         if (typeof firstPage === 'object' && 'data' in firstPage) {
           let allComments = [...firstPage.data];
           let currentSplitIndex = OLDEST_COUNT;
-          
+
           // Fetch all middle pages that were previously loaded
           for (let page = 2; page <= currentPage; page++) {
-            const middlePage = await getTaskComments(taskId, isAuth, { 
-              page, 
+            const middlePage = await getTaskComments(taskId, isAuth, {
+              page,
               paginationType: 'middle',
               limit: LOAD_MORE_BATCH_SIZE,
               oldestCount: OLDEST_COUNT,
               newestCount: NEWEST_COUNT
             });
-            
+
             if (typeof middlePage === 'object' && 'data' in middlePage) {
               // Insert at split index
               const before = allComments.slice(0, currentSplitIndex);
@@ -463,7 +465,7 @@ export default function TaskComments({
               currentSplitIndex += middlePage.data.length;
             }
           }
-          
+
           setComments(allComments);
           setSplitIndex(currentSplitIndex);
           setTotalPages(firstPage.totalPages);
@@ -472,7 +474,7 @@ export default function TaskComments({
           setAmountRemaining(Math.max(0, firstPage.total - (OLDEST_COUNT + NEWEST_COUNT) - (currentPage - 1) * LOAD_MORE_BATCH_SIZE));
         }
       }
-      
+
       if (onTaskRefetch) {
         onTaskRefetch();
       }
@@ -483,17 +485,17 @@ export default function TaskComments({
 
   const loadMoreComments = useCallback(async () => {
     if (!hasMore || isLoadingMore) return;
-    
+
     setIsLoadingMore(true);
     try {
-      const result = await getTaskComments(taskId, isAuth, { 
-        page: currentPage + 1, 
+      const result = await getTaskComments(taskId, isAuth, {
+        page: currentPage + 1,
         limit: LOAD_MORE_BATCH_SIZE,
         paginationType: 'middle',
         oldestCount: OLDEST_COUNT,
         newestCount: NEWEST_COUNT
       });
-      
+
       // Type guard to check if result is paginated response
       if (typeof result === 'object' && 'data' in result) {
         // Insert new middle comments at splitIndex
@@ -502,23 +504,23 @@ export default function TaskComments({
           const after = prev.slice(splitIndex);
           return [...before, ...result.data, ...after];
         });
-        
+
         // Update split index to include the newly added middle comments
         setSplitIndex(prev => prev + result.data.length);
-        
+
         // Update pagination tracking
         setCurrentPage(result.page);
         setTotalPages(result.totalPages);
         setHasMore(result.hasMore);
         setTotalComments(result.total);
-        
+
         // Update remaining count
         // We loaded `result.data.length`.
-         setAmountRemaining(prev => Math.max(0, prev - result.data.length));
+        setAmountRemaining(prev => Math.max(0, prev - result.data.length));
       }
     } catch (error) {
       console.error("Failed to load more comments:", error);
-      toast.error("Failed to load more comments");
+      toast.error(t("comments.loadMoreError"));
     } finally {
       setIsLoadingMore(false);
     }
@@ -529,21 +531,21 @@ export default function TaskComments({
 
     const trimmedContent = commentContent.trim();
     if (!trimmedContent) return;
-    
+
     // Sanitize content before sending to backend
     const sanitizedContent = sanitizeEditorContent(trimmedContent);
     if (!sanitizedContent) {
-      toast.error('Comment content is invalid or contains unsafe markup');
+      toast.error(t("comments.invalidContent"));
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       if (editingCommentId) {
         // Find original comment to compare content
         const originalComment = comments.find(c => c.id === editingCommentId);
         if (originalComment && originalComment.content === sanitizedContent) {
-          toast.info("No changes made");
+          toast.info(t("comments.noChanges"));
           setCommentContent("");
           setEditingCommentId(null);
           setIsSubmitting(false);
@@ -553,35 +555,35 @@ export default function TaskComments({
         const updatedComment = await updateTaskComment(editingCommentId, currentUser.id, {
           content: sanitizedContent,
         });
-        
+
         // Update comment in place without refreshing
-        setComments(prev => prev.map(c => 
-          c.id === editingCommentId 
+        setComments(prev => prev.map(c =>
+          c.id === editingCommentId
             ? { ...c, content: sanitizedContent, updatedAt: updatedComment.updatedAt }
             : c
         ));
-        
-        toast.success("Comment updated successfully");
+
+        toast.success(t("comments.updatedSuccess"));
         onCommentUpdated?.(editingCommentId, sanitizedContent);
       } else {
         const createdComment = await createTaskComment({
           taskId,
           content: sanitizedContent,
         });
-        
+
         // Append new comment to the end (newest position)
         setComments(prev => [...prev, createdComment]);
         setTotalComments(prev => prev + 1);
-        
+
         // Recalculate amountRemaining if we're in paginated mode
         if (totalComments > OLDEST_COUNT + NEWEST_COUNT) {
           setAmountRemaining(prev => prev + 1);
         }
-        
-        toast.success("Comment added successfully");
+
+        toast.success(t("comments.addedSuccess"));
         onCommentAdded?.(createdComment);
       }
-      
+
       // Trigger parent refetch if needed (for task comment count, etc.)
       if (onTaskRefetch) {
         onTaskRefetch();
@@ -589,7 +591,7 @@ export default function TaskComments({
       setCommentContent("");
       setEditingCommentId(null);
     } catch {
-      toast.error("Failed to save comment");
+      toast.error(t("comments.saveError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -617,19 +619,19 @@ export default function TaskComments({
     if (!commentToDelete || !currentUser) return;
     try {
       await deleteTaskComment(commentToDelete, currentUser.id);
-      
+
       // Find the index of deleted comment to adjust splitIndex if needed
       const deletedIndex = comments.findIndex(c => c.id === commentToDelete);
-      
+
       // Remove comment from array
       setComments(prev => prev.filter(c => c.id !== commentToDelete));
       setTotalComments(prev => prev - 1);
-      
+
       // Adjust splitIndex if the deleted comment was in the top section
       if (deletedIndex !== -1 && deletedIndex < splitIndex) {
         setSplitIndex(prev => Math.max(0, prev - 1));
       }
-      
+
       // Adjust amountRemaining if we're in paginated mode
       if (totalComments > OLDEST_COUNT + NEWEST_COUNT) {
         // If deleted from middle section (not yet loaded), decrease remaining
@@ -637,10 +639,10 @@ export default function TaskComments({
           setAmountRemaining(prev => Math.max(0, prev - 1));
         }
       }
-      
-      toast.success("Comment deleted");
+
+      toast.success(t("comments.deletedSuccess"));
       onCommentDeleted?.(commentToDelete);
-      
+
       // Trigger parent refetch if needed
       if (onTaskRefetch) {
         onTaskRefetch();
@@ -659,10 +661,10 @@ export default function TaskComments({
       try {
         await inboxApi.sendCommentAsEmail(taskId, commentId);
         await refreshComments();
-        toast.success("Comment sent as email successfully");
+        toast.success(t("comments.emailSentSuccess"));
       } catch (error) {
         console.error("Failed to send comment as email:", error);
-        toast.error("Failed to send comment as email");
+        toast.error(t("comments.emailSentError"));
       } finally {
         setSendingEmailCommentId(null);
       }
@@ -680,7 +682,7 @@ export default function TaskComments({
     }
 
     // No need to reverse, comments are maintained in correct order (oldest -> newest) in the state
-    
+
     const topComments = comments.slice(0, splitIndex);
     const bottomComments = comments.slice(splitIndex);
 
@@ -698,6 +700,7 @@ export default function TaskComments({
             formatTimestamp={formatTimestamp}
             colorMode={colorMode}
             isAuth
+            t={t}
           />
         ))}
 
@@ -710,11 +713,18 @@ export default function TaskComments({
               disabled={isLoadingMore}
             >
               {isLoadingMore ? (
-                <span>Loading...</span>
+                <span>{t("common:loading")}...</span>
               ) : (
                 <>
-                  <span>View {Math.min(LOAD_MORE_BATCH_SIZE, amountRemaining)} more comment{Math.min(LOAD_MORE_BATCH_SIZE, amountRemaining) > 1 ? 's' : ''}</span>
-                  <span className="text-xs text-[var(--muted-foreground)]">({amountRemaining} remaining)</span>
+                  <span>
+                    {t("comments.viewMore", {
+                      count: Math.min(LOAD_MORE_BATCH_SIZE, amountRemaining),
+                      text: Math.min(LOAD_MORE_BATCH_SIZE, amountRemaining) > 1 ? t("comments.plural") : t("comments.singular")
+                    })}
+                  </span>
+                  <span className="text-xs text-[var(--muted-foreground)]">
+                    {t("comments.remaining", { count: amountRemaining })}
+                  </span>
                 </>
               )}
             </button>
@@ -733,6 +743,7 @@ export default function TaskComments({
             formatTimestamp={formatTimestamp}
             colorMode={colorMode}
             isAuth
+            t={t}
           />
         ))}
       </div>
@@ -775,18 +786,18 @@ export default function TaskComments({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-[20px] font-semibold text-[var(--foreground)]">Comments</h3>
+                <h3 className="text-[20px] font-semibold text-[var(--foreground)]">{t("comments.title")}</h3>
                 {allowEmailReplies && (
                   <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">
                     <HiEnvelope className="w-3 h-3" />
-                    <span>Email enabled</span>
+                    <span>{t("comments.emailEnabled")}</span>
                   </div>
                 )}
               </div>
               <p className="text-xs text-[var(--muted-foreground)]">
                 {comments.length === 0
-                  ? "No comments"
-                  : `${totalComments} ${comments.length === 1 ? "comment" : "comments"}`}
+                  ? t("comments.noComments")
+                  : `${totalComments} ${comments.length === 1 ? t("comments.singular") : t("comments.plural")}`}
               </p>
             </div>
           </div>
@@ -803,7 +814,7 @@ export default function TaskComments({
             <DualModeEditor
               value={commentContent}
               onChange={(val) => setCommentContent(val || "")}
-              placeholder={editingCommentId ? "Edit your comment..." : "Add a comment..."}
+              placeholder={editingCommentId ? t("comments.editPlaceholder") : t("comments.addPlaceholder")}
               height={200}
               colorMode={colorMode}
               disabled={isSubmitting}
@@ -816,7 +827,7 @@ export default function TaskComments({
                   onClick={handleCancelEdit}
                   disabled={isSubmitting}
                 >
-                  Cancel
+                  {t("comments.cancel")}
                 </ActionButton>
               )}
               <ActionButton
@@ -826,7 +837,7 @@ export default function TaskComments({
                 disabled={isSubmitting || isEditorEmpty}
                 className="min-w-[193.56px]"
               >
-                {isSubmitting ? "Saving..." : editingCommentId ? "Update" : "Add Comment"}
+                {isSubmitting ? t("comments.saving") : editingCommentId ? t("comments.update") : t("comments.add")}
               </ActionButton>
             </div>
           </div>
@@ -837,10 +848,10 @@ export default function TaskComments({
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={confirmDeleteComment}
-        title="Delete Comment"
-        message="Are you sure you want to delete this comment? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t("comments.deleteTitle")}
+        message={t("comments.deleteWarning")}
+        confirmText={t("comments.delete")}
+        cancelText={t("comments.cancel")}
         type="danger"
       />
     </>

@@ -29,6 +29,7 @@ import PendingInvitations, { PendingInvitationsRef } from "@/components/common/P
 import WorkspaceMembersSkeleton from "@/components/skeletons/WorkspaceMembersSkeleton";
 import Pagination from "@/components/common/Pagination";
 import { SEO } from "@/components/common/SEO";
+import { useTranslation } from "react-i18next";
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -83,6 +84,7 @@ const EmptyState = ({
 function WorkspaceMembersContent() {
   const router = useRouter();
   const { workspaceSlug } = router.query;
+  const { t, i18n } = useTranslation(["members", "common"]);
 
   const { getWorkspaceBySlug, getWorkspaceMembers, updateMemberRole, removeMemberFromWorkspace } =
     useWorkspace();
@@ -159,9 +161,7 @@ function WorkspaceMembersContent() {
   };
 
   const getRoleLabel = (role: string) => {
-    if (!Array.isArray(roles)) return role;
-    const roleConfig = roles.find((r) => r.name === role);
-    return roleConfig?.name || role;
+    return t(`roles.${role.toLowerCase()}`, { defaultValue: role });
   };
 
   const getCurrentUserId = () => getCurrentUser()?.id;
@@ -249,7 +249,7 @@ function WorkspaceMembersContent() {
       currentSlugRef.current = pageKey;
 
       if (!workspaceSlug || !contextFunctionsRef.current.isAuthenticated()) {
-        setError("Authentication required");
+        setError(t("auth_required"));
         setLoading(false);
         setSearchLoading(false);
         return;
@@ -276,7 +276,7 @@ function WorkspaceMembersContent() {
         }
 
         if (!workspaceData) {
-          setError("Workspace not found");
+          setError(t("workspace_not_found"));
           setLoading(false);
           setSearchLoading(false);
           return;
@@ -305,7 +305,7 @@ function WorkspaceMembersContent() {
           userId: member.userId,
           name:
             `${member.user?.firstName || ""} ${member.user?.lastName || ""}`.trim() ||
-            "Unknown User",
+            t("unknown_user"),
           email: member.user?.email || "",
           role: member.role || "Member",
           status: member.user?.status || "Active",
@@ -330,7 +330,7 @@ function WorkspaceMembersContent() {
         }
       }
     },
-    [workspaceSlug, workspace, pageSize]
+    [workspaceSlug, workspace, pageSize, t]
   );
 
   useEffect(() => {
@@ -395,7 +395,8 @@ function WorkspaceMembersContent() {
         id: member.id,
         userId: member.userId,
         name:
-          `${member.user?.firstName || ""} ${member.user?.lastName || ""}`.trim() || "Unknown User",
+          `${member.user?.firstName || ""} ${member.user?.lastName || ""}`.trim() ||
+          t("unknown_user"),
         email: member.user?.email || "",
         role: member.role || "Member",
         status: member.user?.status || "Active",
@@ -407,7 +408,7 @@ function WorkspaceMembersContent() {
       setTotalMembers(response.total || 0);
       setError(null);
     } catch (err) {
-      setError(err?.message ? err.message : "Failed to load members");
+      setError(err?.message ? err.message : t("error_loading"));
     }
   };
 
@@ -438,7 +439,7 @@ function WorkspaceMembersContent() {
   const handleRoleUpdate = async (memberId: string, newRole: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      toast.error("User not authenticated");
+      toast.error(t("user_not_authenticated"));
       return;
     }
 
@@ -447,7 +448,7 @@ function WorkspaceMembersContent() {
       await updateMemberRole(memberId, { role: newRole as any });
       await refreshMembers();
       updateLocalStorageUser(newRole);
-      toast.success("Member role updated successfully");
+      toast.success(t("role_updated_success"));
     } catch (err) {
       const errorMessage = err.message || "Failed to update role";
       toast.error(errorMessage);
@@ -459,7 +460,7 @@ function WorkspaceMembersContent() {
   const handleRemoveMember = async (member: ProjectMember) => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      setError("User not authenticated");
+      setError(t("user_not_authenticated"));
       return;
     }
 
@@ -471,12 +472,12 @@ function WorkspaceMembersContent() {
 
       // If user removed themselves, redirect to workspaces page
       if (member.userId === currentUser.id) {
-        toast.success("You have left the workspace");
+        toast.success(t("left_workspace_success"));
         router.push("/workspaces");
         return;
       }
 
-      toast.success("Member removed successfully");
+      toast.success(t("member_removed_success"));
     } catch (err) {
       const errorMessage = err.message ? err.message : "Failed to remove member";
       setError(errorMessage);
@@ -489,7 +490,7 @@ function WorkspaceMembersContent() {
 
   const handleInvite = async (email: string, role: string) => {
     if (!workspace) {
-      toast.error("Workspace not found");
+      toast.error(t("workspace_not_found"));
       throw new Error("Workspace not found");
     }
 
@@ -511,7 +512,7 @@ function WorkspaceMembersContent() {
         role: role,
       });
 
-      toast.success(`Invitation sent to ${email}`);
+      toast.success(t("invitation_sent", { email }));
 
       if (pendingInvitationsRef.current) {
         await pendingInvitationsRef.current.refreshInvitations();
@@ -535,7 +536,7 @@ function WorkspaceMembersContent() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString(i18n.language || "en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -549,7 +550,7 @@ function WorkspaceMembersContent() {
   if (error && !members.length) {
     return (
       <div className="min-h-screen bg-[var(--background)]">
-        <ErrorState error="Error loading workspace members" onRetry={retryFetch} />
+        <ErrorState error={t("error_loading")} onRetry={retryFetch} />
       </div>
     );
   }
@@ -558,7 +559,7 @@ function WorkspaceMembersContent() {
     return (
       <div className="dashboard-container px-[1rem]">
         <div className="text-center py-12">
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">Workspace not found</h2>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">{t("workspace_not_found")}</h2>
         </div>
       </div>
     );
@@ -566,11 +567,11 @@ function WorkspaceMembersContent() {
 
   return (
     <div className="dashboard-container pt-0">
-      <SEO title={workspace ? `${workspace.name} Members` : "Workspace Members"} />
+      <SEO title={workspace ? t("members_with_name", { name: workspace.name }) : t("title")} />
       {/* Header - Compact */}
       <PageHeader
-        title={workspace ? `${workspace.name} Members` : "Workspace Members"}
-        description="Manage members and their permissions in this workspace."
+        title={workspace ? t("members_with_name", { name: workspace.name }) : t("title")}
+        description={t("manage_members_description")}
         actions={
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             {hasAccess && (
@@ -584,7 +585,7 @@ function WorkspaceMembersContent() {
                 ) : (
                   <HiPlus className="size-4" />
                 )}
-                Invite Member
+                {t("invite_member")}
               </Button>
             )}
           </div>
@@ -598,7 +599,7 @@ function WorkspaceMembersContent() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
                   <HiUsers className="w-5 h-5 text-[var(--muted-foreground)]" />
-                  Members ({activeMembers.length})
+                  {t("members")} ({activeMembers.length})
                 </CardTitle>
                 <div className="relative w-full sm:w-auto">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -609,7 +610,7 @@ function WorkspaceMembersContent() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 h-9 w-full sm:w-64 border-input bg-background text-[var(--foreground)]"
-                    placeholder="Search members..."
+                    placeholder={t("search_placeholder")}
                   />
                   {searchLoading && (
                     <div className="absolute inset-y-0 right-10 pr-3 flex items-center">
@@ -632,11 +633,11 @@ function WorkspaceMembersContent() {
               {/* Table Header - Desktop Only */}
               <div className="hidden lg:block px-4 py-3 bg-[var(--muted)]/30 border-b border-[var(--border)]">
                 <div className="grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
-                  <div className="col-span-4">Member</div>
-                  <div className="col-span-2">Status</div>
-                  <div className="col-span-2">Joined</div>
-                  <div className="col-span-2">Role</div>
-                  <div className="col-span-2">Action</div>
+                  <div className="col-span-4">{t("member")}</div>
+                  <div className="col-span-2">{t("status")}</div>
+                  <div className="col-span-2">{t("joined")}</div>
+                  <div className="col-span-2">{t("role")}</div>
+                  <div className="col-span-2">{t("action")}</div>
                 </div>
               </div>
 
@@ -646,13 +647,13 @@ function WorkspaceMembersContent() {
                   icon={HiUsers}
                   title={
                     searchTerm
-                      ? "No members found matching your search"
-                      : "No members found in this workspace"
+                      ? t("no_members_match")
+                      : t("no_members_found")
                   }
                   description={
                     searchTerm
-                      ? "Try adjusting your search terms"
-                      : "Start by inviting team members to collaborate on this workspace"
+                      ? t("try_adjusting_search")
+                      : t("start_by_inviting")
                   }
                 />
               ) : (
@@ -701,10 +702,10 @@ function WorkspaceMembersContent() {
                                 <Tooltip
                                   content={
                                     isCurrentUser
-                                      ? "Leave Workspace"
+                                      ? t("leave_workspace")
                                       : userAccess?.role === "MANAGER" && member.role === "MANAGER"
-                                        ? "Cannot remove other managers"
-                                        : "Remove Member"
+                                        ? t("cannot_remove_manager")
+                                        : t("remove_member")
                                   }
                                   position="top"
                                   color="danger"
@@ -740,7 +741,7 @@ function WorkspaceMembersContent() {
                                         value={role.name}
                                         className="hover:bg-[var(--hover-bg)]"
                                       >
-                                        {role.name.charAt(0) + role.name.slice(1).toLowerCase()}
+                                        {getRoleLabel(role.name)}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -751,7 +752,7 @@ function WorkspaceMembersContent() {
                                     member.role
                                   )}`}
                                 >
-                                  {member.role}
+                                  {getRoleLabel(member.role)}
                                 </Badge>
                               )}
                             </div>
@@ -822,7 +823,7 @@ function WorkspaceMembersContent() {
                                         value={role.name}
                                         className="hover:bg-[var(--hover-bg)]"
                                       >
-                                        {role.name.charAt(0) + role.name.slice(1).toLowerCase()}
+                                        {getRoleLabel(role.name)}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -833,7 +834,7 @@ function WorkspaceMembersContent() {
                                     member.role
                                   )}`}
                                 >
-                                  {member.role}
+                                  {getRoleLabel(member.role)}
                                 </Badge>
                               )}
                             </div>
@@ -844,10 +845,10 @@ function WorkspaceMembersContent() {
                                 <Tooltip
                                   content={
                                     isCurrentUser
-                                      ? "Leave Workspace"
+                                      ? t("leave_workspace")
                                       : userAccess?.role === "MANAGER" && member.role === "MANAGER"
-                                        ? "Cannot remove other managers"
-                                        : "Remove Member"
+                                        ? t("cannot_remove_manager")
+                                        : t("remove_member")
                                   }
                                   position="top"
                                   color="danger"
@@ -884,6 +885,7 @@ function WorkspaceMembersContent() {
                           setCurrentPage(page);
                           await fetchMembers(debouncedSearchTerm, page);
                         }}
+                        itemType={t("members").toLowerCase()}
                       />
                     )}
                   </div>
@@ -899,25 +901,25 @@ function WorkspaceMembersContent() {
             <CardHeader className="pb-2">
               <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
                 <HiUsers className="w-5 h-5 text-[var(--muted-foreground)]" />
-                Workspace Info
+                {t("workspace_info")}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-medium text-[var(--foreground)]">
-                    {workspace?.name || "Unknown Workspace"}
+                    {workspace?.name || t("unknown_workspace")}
                   </p>
                   <p className="text-xs text-[var(--muted-foreground)]">
-                    {workspace?.description || "No description available"}
+                    {workspace?.description || t("no_description")}
                   </p>
                 </div>
                 <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
-                  <span>Members:</span>
+                  <span>{t("members")}:</span>
                   <span className="font-medium text-[var(--foreground)]">{members.length}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
-                  <span>Active Members:</span>
+                  <span>{t("active_members")}:</span>
                   <span className="font-medium text-[var(--foreground)]">
                     {members.filter((m) => m.status === "ACTIVE").length}
                   </span>
@@ -930,7 +932,7 @@ function WorkspaceMembersContent() {
             <CardHeader className="pb-2">
               <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
                 <HiCog className="w-5 h-5 text-[var(--muted-foreground)]" />
-                Role Distribution
+                {t("role_distribution")}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -943,7 +945,7 @@ function WorkspaceMembersContent() {
 
                   return (
                     <div key={role.id} className="flex items-center justify-between text-xs">
-                      <span className="text-[var(--muted-foreground)]">{role.name}</span>
+                      <span className="text-[var(--muted-foreground)]">{getRoleLabel(role.name)}</span>
                       <Badge
                         variant={role.variant}
                         className="h-5 px-2 text-xs border-none bg-[var(--primary)]/10 text-[var(--primary)]"
@@ -980,14 +982,14 @@ function WorkspaceMembersContent() {
           isOpen={true}
           onClose={() => setMemberToRemove(null)}
           onConfirm={() => handleRemoveMember(memberToRemove)}
-          title={memberToRemove.userId === getCurrentUserId() ? "Leave Workspace" : "Remove Member"}
+          title={memberToRemove.userId === getCurrentUserId() ? t("leave_workspace_confirm_title") : t("remove_member_confirm_title")}
           message={
             memberToRemove.userId === getCurrentUserId()
-              ? "Are you sure you want to leave this workspace? You will lose access to all workspace resources."
-              : "Are you sure you want to remove this member from the Workspace?"
+              ? t("leave_workspace_confirm_message")
+              : t("remove_member_confirm_message")
           }
-          confirmText={memberToRemove.userId === getCurrentUserId() ? "Leave" : "Remove"}
-          cancelText="Cancel"
+          confirmText={memberToRemove.userId === getCurrentUserId() ? t("confirm_leave") : t("confirm_remove")}
+          cancelText={t("common:cancel")}
         />
       )}
     </div>
