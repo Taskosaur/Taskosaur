@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import RecurrenceSelector, { RecurrenceConfig } from "./RecurrenceSelector";
-import { HiDocumentText, HiCog, HiUsers, HiPaperClip, HiTrash } from "react-icons/hi2";
+import { HiDocumentText, HiCog, HiUsers, HiPaperClip, HiTrash, HiLink } from "react-icons/hi2";
 
 import TaskDescription from "@/components/tasks/views/TaskDescription";
 import { useTask } from "@/contexts/task-context";
@@ -60,6 +60,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
     startDate: "",
     dueDate: "",
     sprintId: "",
+    parentTaskId: "",
   });
   const [assignees, setAssignees] = useState<any[]>([]);
   const [reporters, setReporters] = useState<any[]>([]);
@@ -67,14 +68,15 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recurrenceConfig, setRecurrenceConfig] = useState<RecurrenceConfig | null>(null);
+  const [parentTasks, setParentTasks] = useState<any[]>([]);
+  const [loadingParentTasks, setLoadingParentTasks] = useState(false);
 
   const isFormValid = (): boolean => {
     const hasTitle = formData.title.trim().length > 0;
     const hasProject = selectedProject?.id;
-    // const hasStatus = formData.status.length > 0;
     const hasPriority = formData.priority.length > 0;
-    // const hasAssignment = assignees.length > 0 || reporters.length > 0;
-    return hasTitle && hasProject && hasPriority;
+    const hasParent = formData.type !== "SUBTASK" || formData.parentTaskId;
+    return hasTitle && hasProject && hasPriority && !!hasParent;
   };
 
   const handleFormDataChange = (field: string, value: string) => {
@@ -212,6 +214,30 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
   }, [selectedProject?.id]);
 
   useEffect(() => {
+    if (formData.type === "SUBTASK" && selectedProject?.id) {
+      loadParentTasks(selectedProject.id);
+    } else {
+      setParentTasks([]);
+      setFormData((prev) => ({ ...prev, parentTaskId: "" }));
+    }
+  }, [formData.type, selectedProject?.id]);
+
+  const loadParentTasks = async (projectId: string) => {
+    setLoadingParentTasks(true);
+    try {
+      const api = (await import("@/lib/api")).default;
+      const response = await api.get(`/tasks?projectId=${projectId}&parentTaskId=null`);
+      const tasks = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setParentTasks(tasks);
+    } catch (error) {
+      console.error("Failed to load parent tasks:", error);
+      setParentTasks([]);
+    } finally {
+      setLoadingParentTasks(false);
+    }
+  };
+
+  useEffect(() => {
     if (projectSlug && projects.length > 0) {
       const project = projects.find((p) => p.slug === projectSlug);
       if (project && selectedProject?.id !== project.id) {
@@ -252,6 +278,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
         projectId: selectedProject.id,
         statusId: formData.status || defaultStatus.id,
         sprintId: formData.sprintId || undefined,
+        parentTaskId: formData.type === "SUBTASK" && formData.parentTaskId ? formData.parentTaskId : undefined,
       };
 
       if (assignees.length > 0) taskData.assigneeIds = assignees.map((a) => a.id);
@@ -395,6 +422,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                 </Label>
                 <Input
                   id="workspace"
+                  data-automation-id="task-workspace-input"
                   value={
                     workspace && typeof workspace === "object" && workspace !== null
                       ? (workspace.name ?? "")
@@ -420,7 +448,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                   />
                 ) : (
                   <Select value={selectedProject?.id || ""} onValueChange={handleProjectChange}>
-                    <SelectTrigger className="w-full border-[var(--border)] bg-[var(--background)]">
+                    <SelectTrigger data-automation-id="task-project-select" className="w-full border-[var(--border)] bg-[var(--background)]">
                       <SelectValue placeholder="Select a project" />
                     </SelectTrigger>
                     <SelectContent className="border-[var(--border)] bg-[var(--popover)]">
@@ -536,6 +564,42 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                   </SelectContent>
                 </Select>
               </div>
+
+              {formData.type === "SUBTASK" && (
+                <div className="space-y-2">
+                  <Label htmlFor="parentTask">
+                    Parent Task <span className="projects-form-label-required">*</span>
+                  </Label>
+                  <Select
+                    value={formData.parentTaskId}
+                    onValueChange={(value) => handleFormDataChange("parentTaskId", value)}
+                    disabled={!selectedProject?.id || loadingParentTasks}
+                  >
+                    <SelectTrigger className="w-full border-[var(--border)] bg-[var(--background)]">
+                      <SelectValue
+                        placeholder={
+                          !selectedProject?.id
+                            ? "Select project first"
+                            : loadingParentTasks
+                              ? "Loading..."
+                              : "Select parent task"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent className="border-[var(--border)] bg-[var(--popover)]">
+                      {parentTasks.map((task) => (
+                        <SelectItem
+                          className="hover:bg-[var(--hover-bg)]"
+                          key={task.id}
+                          value={task.id}
+                        >
+                          {task.taskNumber ? `${task.taskNumber} - ` : ""}{task.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="storyPoints">Story Points</Label>
@@ -687,10 +751,12 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
             >
               Cancel
             </ActionButton>
-            <ActionButton 
-              onClick={handleSubmit} 
+            <ActionButton
+              id="create-task-submit"
+              data-automation-id="create-task-submit"
+              onClick={handleSubmit}
               type="submit"
-              disabled={!isFormValid() || isSubmitting} 
+              disabled={!isFormValid() || isSubmitting}
               primary
             >
               {isSubmitting ? (
