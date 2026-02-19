@@ -1,5 +1,6 @@
 // pages/invite/invalid.tsx
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   AlertTriangle,
@@ -12,10 +13,11 @@ import { motion } from "framer-motion";
 
 export default function InvalidInvitePage() {
   const router = useRouter();
+  const { t } = useTranslation("common");
   const { msg } = router.query;
   const { isAuthenticated, logout } = useAuth();
 
-  const errorMessage = (msg as string) || "Invalid or expired invitation link";
+  const errorMessage = (msg as string) || t("invite.invalidMessage");
 
   const handleLogout = async () => {
     await logout();
@@ -38,7 +40,7 @@ export default function InvalidInvitePage() {
 
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold text-[var(--foreground)] tracking-tight">
-              Invitation invalid
+              {t("invite.invalidTitle")}
             </h1>
             <p className="text-[var(--muted-foreground)] leading-relaxed">
               {errorMessage}
@@ -52,13 +54,13 @@ export default function InvalidInvitePage() {
         {/* Explanation */}
         <div className="space-y-3">
           <p className="text-sm font-medium text-[var(--foreground)]">
-            Why did this happen?
+            {t("invite.whyHappened")}
           </p>
           <ul className="space-y-2">
             {[
-              "The invitation link may have expired",
-              "It might have been sent to a different email",
-              "The invitation was already used or revoked"
+              t("invite.reasonExpired"),
+              t("invite.reasonEmail"),
+              t("invite.reasonUsed")
             ].map((item, index) => (
               <li
                 key={index}
@@ -80,7 +82,7 @@ export default function InvalidInvitePage() {
               variant="default"
             >
               <LogOut className="h-4 w-4 mr-2" />
-              Logout and Switch Account
+              {t("invite.logout")}
             </Button>
           ) : (
             <Button
@@ -89,7 +91,7 @@ export default function InvalidInvitePage() {
               variant="default"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to login
+              {t("invite.login")}
             </Button>
           )}
 
@@ -99,7 +101,7 @@ export default function InvalidInvitePage() {
             className="w-full h-10 font-medium bg-transparent border-[var(--border)] hover:bg-[var(--muted)]"
           >
             <Home className="h-4 w-4 mr-2" />
-            Return home
+            {t("invite.home")}
           </Button>
         </div>
       </motion.div>
