@@ -93,6 +93,45 @@ CRITICAL RULES:
 12. Do NOT explain your thinking - just respond
 13. NEVER click outside a modal to close it - the app will auto-close modals when needed
 
+TASK CREATION RULES (VERY IMPORTANT):
+- If the user specifies which workspace and project (in the CURRENT message OR in any PREVIOUS message in the conversation), select EXACTLY that workspace and project — NEVER pick randomly
+- ONLY ask for workspace/project if the user has NEVER mentioned them in the entire conversation. If you already asked and the user replied with a name, THAT IS THE ANSWER — proceed immediately with it. Do NOT ask again.
+- Do NOT skip the project selection. Do NOT skip clicking Create Task. Do NOT select a random project
+- If the specified project is not found, report it — do NOT guess
+- CRITICAL: Once the user has told you the workspace and project, TAKE ACTION immediately. Do NOT re-ask.
+
+ON THE /tasks PAGE (global tasks — Create Task modal with searchable combobox dropdowns):
+- Step 1: Click the "Create Task" button to open the modal
+- Step 2: Type the task title in the title input
+- Step 3: Click the workspace dropdown (data-automation-id="select-workspace") to open it
+- Step 4: Type the EXACT workspace name in the search input (data-automation-id="search-workspace-input") to filter results
+- Step 5: Click the matching workspace from the filtered list
+- Step 6: Click the project dropdown (data-automation-id="select-project") to open it
+- Step 7: Type the EXACT project name in the search input (data-automation-id="search-project-input") to filter results
+- Step 8: Click the matching project from the filtered list
+- Step 9: Click "Create Task" button (data-automation-id="create-task-submit") to submit
+- CRITICAL: You MUST type in the search input to find the correct workspace/project. Do NOT just click the first item in the list.
+
+ON THE /{ws}/tasks PAGE (workspace tasks — use Add Task inline row):
+- Do NOT open the Create Task modal. Use the "Add Task" row at the top of the task table instead.
+- Step 1: Click the "Add Task" button/row at the top of the table to expand the inline form
+- Step 2: Type the task title in the inline title input field
+- Step 3: Select the project from the Project dropdown in the inline row. If user specified a project, select EXACTLY that project. If not specified, ASK which project.
+- Step 4: WAIT a moment after selecting the project — the Status field will auto-fill with a default status. Verify the status dropdown shows a value (e.g. "Todo").
+- Step 5: Press Enter or click the check (✓) button to create the task
+- IMPORTANT: The status auto-fills AFTER project selection. If status is empty, the task creation will FAIL.
+
+ON THE /{ws}/{proj}/tasks PAGE (project tasks — use Add Task inline row):
+- Do NOT open the Create Task modal. Use the "Add Task" row at the top of the task table instead.
+- Step 1: Click the "Add Task" button/row at the top of the table to expand the inline form
+- Step 2: Type the task title in the inline title input field
+- Step 3: The project and status are already determined — do NOT change them.
+- Step 4: Press Enter or click the check (✓) button to create the task
+
+ON THE /{ws}/tasks/new PAGE:
+- Workspace is pre-filled (read-only). Use the project dropdown (data-automation-id="task-project-select") to select the correct project by name
+- After filling title and selecting project, click "Create Task" button (data-automation-id="create-task-submit")
+
 TASK UPDATE RULES (VERY IMPORTANT - for updating priority, status, sprint, assignee, etc.):
 - Step 1: Click on the task to open task detail modal
 - Step 2: Click on the field you want to change (e.g., priority badge shows "Medium")
@@ -333,14 +372,14 @@ FILTER RULES (VERY IMPORTANT - for filtering tasks by priority, status, type, et
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage?.includes('Failed to fetch') || errorMessage?.includes('NetworkError')) {
         return {
-          message: '',
+          message: 'Network error. Please check your internet connection.',
           success: false,
           error: 'Network error. Please check your internet connection.',
         };
       }
 
       return {
-        message: '',
+        message: errorMessage || 'Failed to process chat request',
         success: false,
         error: errorMessage || 'Failed to process chat request',
       };

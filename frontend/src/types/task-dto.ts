@@ -3,7 +3,7 @@ import { Task } from "./tasks";
 export interface CreateTaskRequest {
   title: string;
   description?: string;
-  type?: "TASK" | "STORY" | "BUG" | "EPIC";
+  type?: "TASK" | "STORY" | "BUG" | "EPIC" | "SUBTASK";
   priority?: "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
   startDate?: string;
   dueDate?: string;

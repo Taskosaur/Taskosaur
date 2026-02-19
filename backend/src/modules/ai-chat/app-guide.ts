@@ -2,11 +2,12 @@ export const APP_GUIDE = `
 ## Routes
 /settings → Org list | /settings/{org} → Org detail (tabs: Settings, Workflows, Members)
 /{ws} → Workspace | /{ws}/settings | /{ws}/members
+/{ws}/tasks/new → Task creation page (workspace pre-filled, select project from dropdown)
 /{ws}/{proj} → Project | /{ws}/{proj}/settings | /{ws}/{proj}/members | /{ws}/{proj}/tasks
 
 ## Key Actions
 - Create Sprint: Project → Sprints tab → Create Sprint → fill name/dates → Save
-- Create Task: ONLY from /tasks page or /{ws}/tasks or /{ws}/{proj}/tasks page → Create Task button → fill title → Save. WARNING: The Create button on a workspace page (/{ws}) creates a PROJECT, NOT a task.
+- Create Task: From /{ws}/tasks/new page → fill title → select project (data-automation-id="task-project-select") → click Create Task (data-automation-id="create-task-submit"). WARNING: The Create button on a workspace page (/{ws}) creates a PROJECT, NOT a task.
 - Create Project: Workspace page (/{ws})/project or /project → New Project → fill name → Create
 - Org Settings: /settings → click org card → edit → Save
 - Workspace Settings: /{ws}/settings → edit → Save
@@ -59,7 +60,20 @@ const workflows: Record<string, string> = {
   'create-sprint': `Sprint: Project → Sprints tab → Create Sprint → name, dates → Save`,
   'add-task-to-sprint': `Add to Sprint: Tasks tab → task → Add to Sprint OR drag to sprint`,
   'activate-sprint': `Activate: Sprints tab → find sprint → Start/Activate button`,
-  'create-task': `Task: ONLY create tasks from /tasks page or /{ws}/{proj}/tasks page. NEVER use the Create/New Project button on a workspace page — that creates a PROJECT, not a task. If you are on a workspace page (/{ws}), you MUST first navigate to a project tasks page. If the user has not specified which project, ASK them.`,
+  'create-task': `Task: ONLY create tasks from /tasks page, /{ws}/tasks page, /{ws}/tasks/new page, or /{ws}/{proj}/tasks page. NEVER use the Create/New Project button on a workspace page — that creates a PROJECT, not a task.
+If the user has NOT specified which workspace AND project, ASK them BEFORE taking any action.
+If the user HAS specified the workspace and project, you MUST select EXACTLY that workspace and project — do NOT pick randomly.
+
+ON THE /{ws}/tasks PAGE or /{ws}/{proj}/tasks PAGE:
+- Use the "Add Task" inline row at the top of the task table — do NOT open the Create Task modal.
+- Click the "Add Task" row to expand it, type the title, select project if on workspace-level, then press Enter or click the check button.
+- If user specified a project, select it from the Project dropdown in the inline row.
+
+ON THE /{ws}/tasks/new PAGE:
+- The workspace is already pre-filled (read-only).
+- Select the correct project from the dropdown (data-automation-id="task-project-select").
+- After filling title and selecting project, click "Create Task" (data-automation-id="create-task-submit").
+- Do NOT skip project selection. Do NOT select a random project.`,
   'create-project': `Project: Workspace → New Project → name → Create`,
   'organization-settings': `Org Settings: /settings → click org → edit → Save`,
   'workspace-settings': `Workspace Settings: /{ws}/settings → edit → Save`,
@@ -79,11 +93,18 @@ export function getCurrentPageContext(url: string): string {
   if (url.includes('/settings/profile')) return 'Profile settings';
   if (url.includes('/settings')) return 'Org list page - click org card to manage';
   if (url.match(/\/([^/]+)\/([^/]+)\/settings/)) return 'Project settings page';
+  // Check tasks/new BEFORE the broad /tasks pattern
+  if (url.match(/\/([^/]+)\/([^/]+)\/tasks\/new/))
+    return 'Task creation page (/{ws}/{proj}/tasks/new)';
+  if (url.match(/\/([^/]+)\/tasks\/new/)) return 'Task creation page (/{ws}/tasks/new)';
   if (url.match(/\/([^/]+)\/([^/]+)\/tasks/)) return 'Project tasks page';
   if (url.match(/\/([^/]+)\/([^/]+)\/members/)) return 'Project members page';
   if (url.match(/\/([^/]+)\/settings$/)) return 'Workspace settings page';
   if (url.match(/\/([^/]+)\/members$/)) return 'Workspace members page';
+  if (url.match(/\/([^/]+)\/tasks$/) || url.match(/\/([^/]+)\/tasks\?/))
+    return 'Workspace tasks page';
   if (url.includes('/dashboard')) return 'Dashboard';
+  if (url.match(/^https?:\/\/[^/]+\/tasks/) || url === '/tasks') return 'Global tasks page';
   if (url.includes('/tasks')) return 'Global tasks page';
   if (url.includes('/calendar')) return 'Calendar page';
 
@@ -108,7 +129,20 @@ export function enhancePromptWithContext(userRequest: string, currentUrl: string
     else if (req.includes('add')) hint = getWorkflowGuide('add-task-to-sprint');
   } else if (req.includes('task') && req.includes('create')) {
     hint = getWorkflowGuide('create-task');
-    if (ctx.startsWith('Workspace:') || ctx === 'Dashboard' || ctx === 'Unknown page') {
+    if (ctx.includes('Task creation page')) {
+      const isProjectTaskNew = ctx.includes('{proj}');
+      if (isProjectTaskNew) {
+        hint += `\nYou are on the TASK CREATION page (/{ws}/{proj}/tasks/new). if the project is already selected.\nSteps:\n1. Type the task title in the title input field\n2. You MUST scroll down and then click the "Create Task" button (data-automation-id="create-task-submit") to submit. This is NOT auto-saved — you MUST click the button.\nDo NOT skip clicking the Create Task button.`;
+      } else {
+        hint += `\nYou are on the TASK CREATION page (/{ws}/tasks/new).\nSteps:\n1. Type the task title in the title input field\n2. Select the CORRECT project using the project dropdown (data-automation-id="task-project-select")\n3. You MUST click the "Create Task" button (data-automation-id="create-task-submit") to submit. This is NOT auto-saved — you MUST click the button.\nDo NOT skip any step. Do NOT skip clicking Create Task. Do NOT select a random project.`;
+      }
+    } else if (ctx === 'Workspace tasks page') {
+      hint += `\nYou are on the WORKSPACE TASKS page. Use the "Add Task" inline row at the top of the task table — do NOT open the Create Task modal.\nSteps:\n1. Click the "Add Task" button/row at the top of the table to expand the inline form\n2. Type the task title in the inline title input field\n3. Select the project from the Project dropdown — use the project the user specified in this conversation. If they NEVER mentioned a project at all, ask ONCE only.\n4. WAIT a moment after selecting the project — the Status will auto-fill. Verify status shows a value.\n5. Press Enter or click the check (✓) button to create the task\nIMPORTANT: Status auto-fills AFTER project selection. If status is empty, task creation will FAIL.\nCRITICAL: If the user already told you the project name in a previous message, USE IT. Do NOT ask again.`;
+    } else if (ctx === 'Project tasks page') {
+      hint += `\nYou are on the PROJECT TASKS page. Use the "Add Task" inline row at the top of the task table — do NOT open the Create Task modal.\nSteps:\n1. Click the "Add Task" button/row at the top of the table to expand the inline form\n2. Type the task title in the inline title input field\n3. The project and status are already set — do NOT change them.\n4. Press Enter or click the check (✓) button to create the task`;
+    } else if (ctx === 'Global tasks page') {
+      hint += `\nYou are on the GLOBAL TASKS page. The Create Task modal uses SEARCHABLE combobox dropdowns for workspace and project. Steps:\n1. Click "Create Task" button to open the modal\n2. Type the task title\n3. Click the workspace dropdown (data-automation-id="select-workspace"), then TYPE the workspace name in the search input (data-automation-id="search-workspace-input") to filter, then click the correct match\n4. Click the project dropdown (data-automation-id="select-project"), then TYPE the project name in the search input (data-automation-id="search-project-input") to filter, then click the correct match\n5. Click "Create Task" button (data-automation-id="create-task-submit") to submit\nCRITICAL: You MUST type in the search inputs to find the correct workspace/project. Do NOT just click the first item.`;
+    } else if (ctx.startsWith('Workspace:') || ctx === 'Dashboard' || ctx === 'Unknown page') {
       hint += `\nWARNING: You are currently on "${ctx}" which is NOT a task creation page. The Create/New button here creates a PROJECT, not a task. You MUST ASK the user which project to use, then navigate to that project's tasks page before creating a task. Do NOT click any Create button on this page.`;
     }
   } else if (req.includes('project') && req.includes('create')) {

@@ -173,7 +173,14 @@ export class BrowserAgent {
         history: cleanHistory,
       });
 
-      const llmResponse = response.data.message || "";
+      const data = response.data;
+      // Check for API-level errors (e.g. invalid API key, rate limit)
+      if (data?.success === false || (data?.error && !data?.message)) {
+        const errMsg = data?.error || data?.message || "Chat request failed";
+        console.error("AI Chat API error:", errMsg);
+        throw new Error(errMsg);
+      }
+      const llmResponse = data?.message || "";
 
       this.conversationHistory.push({
         role: "assistant",
@@ -182,7 +189,8 @@ export class BrowserAgent {
 
       return llmResponse;
     } catch (error: any) {
-      throw new Error(`LLM API error: ${error.response?.data?.message || error.message}`);
+      const msg = error?.message || error?.error || "Unknown error";
+      throw new Error(msg);
     }
   }
 
