@@ -22,6 +22,14 @@
     "reasonUsed": "La invitación ya fue utilizada o revocada",
     "logout": "Cerrar sesión y cambiar de cuenta",
     "login": "Volver al inicio de sesión",
-    "home": "Volver al inicio"
-  }
-}
+        "home": "Volver al inicio"
+      },
+      "pagination": {
+        "showing": "Mostrando",
+        "to": "a",
+        "of": "de",
+        "page": "Página",
+        "items": "ítems"
+      }
+    }
+    

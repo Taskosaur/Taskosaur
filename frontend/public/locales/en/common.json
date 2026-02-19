@@ -23,5 +23,12 @@
     "logout": "Logout and Switch Account",
     "login": "Back to login",
     "home": "Return home"
+  },
+  "pagination": {
+    "showing": "Showing",
+    "to": "to",
+    "of": "of",
+    "page": "Page",
+    "items": "items"
   }
 }
