@@ -28,6 +28,7 @@ import ConfirmationModal from "../modals/ConfirmationModal";
 import WorkFlowSkeleton from "../skeletons/WorkFlowSkeleton";
 import { taskStatusApi } from "@/utils/api/taskStatusApi";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface WorkflowManagerProps {
   organizationId?: string;
@@ -99,6 +100,7 @@ export default function WorkflowManager({
   const { getCurrentUser } = useAuth();
   const { currentOrganization } = useOrganization();
   const currentUser = getCurrentUser();
+  const { t } = useTranslation("settings");
 
   const workflows = React.useMemo(() => {
     if (!Array.isArray(rawWorkflows)) {
@@ -293,9 +295,9 @@ export default function WorkflowManager({
         };
 
         setSelectedWorkflow(updatedWorkflow as Workflow);
-        toast.success("Status deleted successfully");
+        toast.success(t("workflow_manager.status_deleted"));
       } catch (err: any) {
-        let errorMessage = "Failed to delete status";
+        let errorMessage = t("workflow_manager.status_delete_failed");
         if (err instanceof Error) errorMessage = err.message;
         else if (err?.response?.data?.message) errorMessage = err.response.data.message;
         toast.error(errorMessage);
@@ -319,9 +321,9 @@ export default function WorkflowManager({
   }, [workflows]);
 
   const tabs = [
-    { id: "overview", label: "Overview", icon: HiEye },
-    { id: "editor", label: "Editor", icon: HiPencil },
-    { id: "statuses", label: "Statuses", icon: HiCog },
+    { id: "overview", label: t("workflow_manager.tab_overview"), icon: HiEye },
+    { id: "editor", label: t("workflow_manager.tab_editor"), icon: HiPencil },
+    { id: "statuses", label: t("workflow_manager.tab_statuses"), icon: HiCog },
   ];
 
   if (isLoading) {
@@ -335,7 +337,7 @@ export default function WorkflowManager({
           <HiExclamationTriangle className="w-5 h-5 text-[var(--destructive)] flex-shrink-0" />
           <div className="flex-1">
             <h4 className="text-sm font-medium text-[var(--destructive)] mb-1">
-              Error loading workflows
+              {t("workflow_manager.error_loading")}
             </h4>
             <p className="text-sm text-[var(--destructive)]/80">{error}</p>
           </div>
@@ -347,7 +349,7 @@ export default function WorkflowManager({
               className="h-8 border-none bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)] transition-all duration-200"
             >
               <HiArrowPath className="w-4 h-4 mr-2" />
-              Retry
+              {t("workflow_manager.retry")}
             </Button>
           )}
         </div>
@@ -362,7 +364,7 @@ export default function WorkflowManager({
           <HiExclamationTriangle className="w-5 h-5 text-[var(--destructive)] flex-shrink-0 mt-0.5" />
           <div>
             <h4 className="text-sm font-medium text-[var(--destructive)] mb-2">
-              Workflow Data Issues
+              {t("workflow_manager.data_issues")}
             </h4>
             <ul className="text-sm text-[var(--destructive)]/80 space-y-1">
               {validationErrors.map((error, index) => (
@@ -381,11 +383,11 @@ export default function WorkflowManager({
         <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-[var(--muted)] flex items-center justify-center">
           <HiViewGrid className="w-6 h-6 text-[var(--muted-foreground)]" />
         </div>
-        <h3 className="text-md font-semibold text-[var(--foreground)] mb-2">No workflows found</h3>
+        <h3 className="text-md font-semibold text-[var(--foreground)] mb-2">{t("workflow_manager.no_workflows")}</h3>
         <p className="text-sm text-[var(--muted-foreground)] mb-6">
           {isProjectLevel
-            ? "Create your first workflow for this project."
-            : "Create your first workflow template."}
+            ? t("workflow_manager.create_first_project")
+            : t("workflow_manager.create_first_template")}
         </p>
         <Button
           onClick={() => setShowCreateForm(true)}
@@ -397,7 +399,7 @@ export default function WorkflowManager({
           ) : (
             <HiPlus className="w-4 h-4 mr-2" />
           )}
-          Create Workflow
+          {t("workflow_manager.create_workflow")}
         </Button>
       </div>
     );
@@ -416,7 +418,7 @@ export default function WorkflowManager({
           ) : (
             <HiPlus className="w-4 h-4" />
           )}
-          Create
+          {t("workflow_manager.create")}
         </Button>
       </div>
 
@@ -426,7 +428,7 @@ export default function WorkflowManager({
             <HiExclamationTriangle className="w-4 h-4 text-[var(--muted-foreground)] flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-[var(--foreground)] mb-1">
-                Some workflows have data issues:
+                {t("workflow_manager.some_issues")}
               </p>
               <ul className="text-xs text-[var(--muted-foreground)] space-y-0.5">
                 {validationErrors.slice(0, 3).map((error, index) => (
@@ -446,7 +448,7 @@ export default function WorkflowManager({
           <Card className="bg-[var(--sidebar)]  border-none shadow-sm">
             <CardHeader className="">
               <CardTitle className="text-sm font-semibold text-[var(--foreground)]">
-                Workflows ({workflows.length})
+                {t("workflow_manager.workflows_count", { count: workflows.length })}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -458,28 +460,27 @@ export default function WorkflowManager({
                   return (
                     <div
                       key={workflow.id}
-                      className={`p-3 rounded-lg border-none cursor-pointer transition-all duration-200 ${
-                        selectedWorkflow?.id === workflow.id
-                          ? "border-[var(--primary)] bg-[var(--primary)]/5"
-                          : "border-[var(--border)] hover:bg-[var(--accent)]"
-                      }`}
+                      className={`p-3 rounded-lg border-none cursor-pointer transition-all duration-200 ${selectedWorkflow?.id === workflow.id
+                        ? "border-[var(--primary)] bg-[var(--primary)]/5"
+                        : "border-[var(--border)] hover:bg-[var(--accent)]"
+                        }`}
                       onClick={() => {
                         setSelectedWorkflow(workflow);
                       }}
                     >
                       <div className="flex items-center justify-between mb-2 gap-2">
                         <h4 className="text-sm font-medium text-[var(--foreground)] truncate">
-                          {workflow.name || "Unnamed Workflow"}
+                          {workflow.name || t("workflow_manager.unnamed_workflow")}
                         </h4>
                         {workflow.isDefault && (
                           <Badge className="bg-[var(--primary)]/10  text-[var(--primary)] border-none text-xs flex items-center gap-1">
                             <HiCheck className="w-3 h-3" />
-                            Default
+                            {t("workflow_manager.default")}
                           </Badge>
                         )}
                       </div>
                       <p className="text-xs text-[var(--muted-foreground)]">
-                        {statusCount} statuses • {transitionCount} transitions
+                        {t("workflow_manager.statuses_transitions", { statuses: statusCount, transitions: transitionCount })}
                       </p>
                       {workflow.description && (
                         <p className="text-xs text-[var(--muted-foreground)] mt-2 line-clamp-2">
@@ -507,11 +508,10 @@ export default function WorkflowManager({
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex cursor-pointer items-center gap-2 px-3 py-2 border-b-2 text-sm font-medium transition-all duration-200 ease-in-out ${
-                          isActive
-                            ? "border-b-[var(--primary)] text-[var(--primary)]"
-                            : "border-b-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                        }`}
+                        className={`flex cursor-pointer items-center gap-2 px-3 py-2 border-b-2 text-sm font-medium transition-all duration-200 ease-in-out ${isActive
+                          ? "border-b-[var(--primary)] text-[var(--primary)]"
+                          : "border-b-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                          }`}
                       >
                         <IconComponent className="size-3.5" />
                         {tab.label}
@@ -529,23 +529,23 @@ export default function WorkflowManager({
                         <div className="flex justify-between  items-start">
                           <div>
                             <h3 className="text-md font-semibold text-[var(--foreground)] mb-2">
-                              {selectedWorkflow.name || "Unnamed Workflow"}
+                              {selectedWorkflow.name || t("workflow_manager.unnamed_workflow")}
                             </h3>
                             <p className="text-sm text-[var(--muted-foreground)] mb-3">
-                              {selectedWorkflow.description || "No description provided"}
+                              {selectedWorkflow.description || t("workflow_manager.no_description")}
                             </p>
                             <div className="flex items-center gap-4 text-xs text-[var(--muted-foreground)]">
                               <span>
-                                Created:{" "}
+                                {t("workflow_manager.created")}{" "}
                                 {selectedWorkflow.createdAt
                                   ? new Date(selectedWorkflow.createdAt).toLocaleDateString()
-                                  : "Unknown"}
+                                  : t("workflow_manager.unknown_date")}
                               </span>
                               <span>
-                                Updated:{" "}
+                                {t("workflow_manager.updated")}{" "}
                                 {selectedWorkflow.updatedAt
                                   ? new Date(selectedWorkflow.updatedAt).toLocaleDateString()
-                                  : "Unknown"}
+                                  : t("workflow_manager.unknown_date")}
                               </span>
                             </div>
                           </div>
@@ -559,11 +559,11 @@ export default function WorkflowManager({
                                 className="h-8 border-none bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)] transition-all duration-200"
                               >
                                 <Check className="w-3 h-3" />
-                                Set as Default
+                                {t("workflow_manager.set_as_default")}
                               </Button>
                             )}
                             {!selectedWorkflow.isDefault && (
-                              <Tooltip content="Delete workflow" position="top" color="primary">
+                              <Tooltip content={t("workflow_manager.delete_workflow_tooltip")} position="top" color="primary">
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -583,7 +583,7 @@ export default function WorkflowManager({
                     <Card className="bg-[var(--sidebar)]  border-none shadow-sm">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-md font-semibold text-[var(--foreground)]">
-                          Status Flow
+                          {t("workflow_manager.status_flow")}
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="pt-0">
@@ -602,7 +602,7 @@ export default function WorkflowManager({
                                     />
                                     <div>
                                       <div className="text-sm font-medium text-[var(--foreground)]">
-                                        {status.name || "Unnamed Status"}
+                                        {status.name || t("workflow_manager.unnamed_status")}
                                       </div>
                                     </div>
                                   </div>
@@ -615,7 +615,7 @@ export default function WorkflowManager({
                           </div>
                         ) : (
                           <p className="text-sm text-[var(--muted-foreground)]">
-                            No statuses configured for this workflow.
+                            {t("workflow_manager.no_statuses")}
                           </p>
                         )}
                       </CardContent>
@@ -674,10 +674,10 @@ export default function WorkflowManager({
         isOpen={!!workflowToDelete}
         onClose={() => setWorkflowToDelete(null)}
         onConfirm={() => handleDeleteWorkflow(workflowToDelete!)}
-        title="Delete Workflow"
-        message="Are you sure you want to delete this workflow? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t("workflow_manager.delete_workflow_title")}
+        message={t("workflow_manager.delete_workflow_message")}
+        confirmText={t("workflow_manager.delete")}
+        cancelText={t("workflow_manager.cancel")}
       />
     </div>
   );

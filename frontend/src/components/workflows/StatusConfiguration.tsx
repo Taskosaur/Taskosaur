@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface StatusConfigurationProps {
   workflow: Workflow;
@@ -22,6 +23,7 @@ export default function StatusConfiguration({
   onDeleteStatus,
 }: StatusConfigurationProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const { t } = useTranslation("settings");
   const [showUpdateModal, setShowUpdateModal] = useState<TaskStatus | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<TaskStatus | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -90,9 +92,9 @@ export default function StatusConfiguration({
       setShowCreateModal(false);
       resetForm();
 
-      toast.success("Status created successfully");
+      toast.success(t("status_config.create_success"));
     } catch (error: any) {
-      let errorMessage = "Failed to create status";
+      let errorMessage = t("status_config.create_failed");
       if (error instanceof Error) {
         errorMessage = error.message;
       } else if (
@@ -115,17 +117,17 @@ export default function StatusConfiguration({
       delete updatedStatus.description;
       // Call the API to update the status
       const updated = await taskStatusApi.updateTaskStatus(statusId, updatedStatus);
-      
+
       // Update the parent component's state
       if (onUpdateStatus) {
         onUpdateStatus(statusId, updatedStatus);
       }
-      
+
       setShowUpdateModal(null);
       resetForm();
-      toast.success("Status updated successfully");
+      toast.success(t("status_config.update_success"));
     } catch (error: any) {
-      let errorMessage = "Failed to update status";
+      let errorMessage = t("status_config.update_failed");
       if (error instanceof Error) {
         errorMessage = error.message;
       } else if (
@@ -185,9 +187,9 @@ export default function StatusConfiguration({
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-md font-semibold text-[var(--foreground)]">Status Configuration</h3>
+          <h3 className="text-md font-semibold text-[var(--foreground)]">{t("status_config.title")}</h3>
           <p className="text-[var(--muted-foreground)] text-sm">
-            Manage individual statuses for {workflow.name}
+            {t("status_config.manage_for", { name: workflow.name })}
           </p>
         </div>
         <Button
@@ -195,7 +197,7 @@ export default function StatusConfiguration({
           className="h-8 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] shadow-sm hover:shadow-md transition-all duration-200 font-medium flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          <p className="hidden md:flex">Add Status</p>
+          <p className="hidden md:flex">{t("status_config.add_status")}</p>
         </Button>
       </div>
 
@@ -204,11 +206,11 @@ export default function StatusConfiguration({
         <div className="min-w-max">
           {/* Header */}
           <div className="grid grid-cols-12 gap-4 p-4 border-b border-[var(--border)] bg-[var(--muted)] text-sm font-medium">
-            <div className="col-span-3">Status</div>
-            <div className="col-span-2">Category</div>
-            <div className="col-span-1">Order</div>
-            <div className="col-span-4">Description</div>
-            <div className="col-span-2">Actions</div>
+            <div className="col-span-3">{t("status_config.col_status")}</div>
+            <div className="col-span-2">{t("status_config.col_category")}</div>
+            <div className="col-span-1">{t("status_config.col_order")}</div>
+            <div className="col-span-4">{t("status_config.col_description")}</div>
+            <div className="col-span-2">{t("status_config.col_actions")}</div>
           </div>
           {/* Body */}
           <div className="divide-y divide-[var(--border)]">
@@ -226,7 +228,7 @@ export default function StatusConfiguration({
                           {status.name}
                           {status.isDefault && (
                             <span className="text-xs ml-2 bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)] p-1 px-2 rounded-lg">
-                              Default
+                              {t("status_config.default")}
                             </span>
                           )}
                         </div>
@@ -253,14 +255,14 @@ export default function StatusConfiguration({
                   <div className="col-span-4">
                     <p className="text-sm text-[var(--foreground)] line-clamp-2">
                       {typeof (status as any).description === "string" &&
-                      (status as any).description.trim()
+                        (status as any).description.trim()
                         ? (status as any).description
-                        : "No description"}
+                        : t("status_config.no_description")}
                     </p>
                   </div>
                   <div className="col-span-2">
                     <div className="flex items-center space-x-2">
-                      <Tooltip content="Edit" position="top">
+                      <Tooltip content={t("status_config.edit")} position="top">
                         <button onClick={() => setShowUpdateModal(toTaskStatus(status))}>
                           <svg
                             className="w-4 h-4 text-blue hover:text-gray  dark:hover:bg-gray transition-colors cursor-pointer"
@@ -278,7 +280,7 @@ export default function StatusConfiguration({
                         </button>
                       </Tooltip>
                       {!status.isDefault && (
-                        <Tooltip content="Delete" position="top" color="danger">
+                        <Tooltip content={t("status_config.delete_tooltip")} position="top" color="danger">
                           <button
                             onClick={() => setShowDeleteModal(toTaskStatus(status))}
                             className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
@@ -319,21 +321,21 @@ export default function StatusConfiguration({
         >
           <DialogContent className="w-full max-w-[90vw] sm:max-w-[600px] bg-[var(--card)] border-none shadow-lg">
             <DialogHeader>
-              <DialogTitle>Create New Status</DialogTitle>
+              <DialogTitle>{t("status_config.create_title")}</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4">
               {/* Name */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-[var(--foreground)]">
-                  Name <span className="text-red-500">*</span>
+                  {t("status_config.name_label")} <span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                   className="h-10 border-input bg-background text-[var(--foreground)]"
-                  placeholder="Status name"
+                  placeholder={t("status_config.name_placeholder")}
                   disabled={isCreating}
                 />
               </div>
@@ -341,7 +343,7 @@ export default function StatusConfiguration({
               {/* Description */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-[var(--foreground)]">
-                  Description
+                  {t("status_config.desc_label")}
                 </label>
                 <Textarea
                   value={formData.description}
@@ -353,7 +355,7 @@ export default function StatusConfiguration({
                   }
                   rows={3}
                   className="border-input bg-background text-[var(--foreground)]"
-                  placeholder="Status description"
+                  placeholder={t("status_config.desc_placeholder")}
                   disabled={isCreating}
                 />
               </div>
@@ -361,7 +363,7 @@ export default function StatusConfiguration({
               {/* Category */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-[var(--foreground)]">
-                  Category <span className="text-red-500">*</span>
+                  {t("status_config.category_label")} <span className="text-red-500">*</span>
                 </label>
                 <Select
                   value={formData.category}
@@ -374,19 +376,19 @@ export default function StatusConfiguration({
                   disabled={isCreating}
                 >
                   <SelectTrigger className="w-full px-3 border border-[var(--border)] input-selection dark-input-background focus-ring">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder={t("status_config.select_category")} />
                   </SelectTrigger>
                   <SelectContent className="bg-[var(--card)] border border-[var(--border)]">
-                    <SelectItem value={StatusCategory.TODO}>To Do</SelectItem>
-                    <SelectItem value={StatusCategory.IN_PROGRESS}>In Progress</SelectItem>
-                    <SelectItem value={StatusCategory.DONE}>Done</SelectItem>
+                    <SelectItem value={StatusCategory.TODO}>{t("status_config.todo")}</SelectItem>
+                    <SelectItem value={StatusCategory.IN_PROGRESS}>{t("status_config.in_progress")}</SelectItem>
+                    <SelectItem value={StatusCategory.DONE}>{t("status_config.done")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
-                  Color <span className="text-red-500">*</span>
+                  {t("status_config.color_label")} <span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center space-x-3">
                   <input
@@ -406,11 +408,10 @@ export default function StatusConfiguration({
                       <button
                         key={color}
                         onClick={() => !isCreating && setFormData((prev) => ({ ...prev, color }))}
-                        className={`w-6 h-6 rounded-full border-2 ${
-                          formData.color === color
+                        className={`w-6 h-6 rounded-full border-2 ${formData.color === color
                             ? "border-gray-900 dark:border-white"
                             : "border-gray-300 dark:border-gray-600"
-                        } ${isCreating ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                          } ${isCreating ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
                         style={{ backgroundColor: color }}
                         disabled={isCreating}
                       />
@@ -429,7 +430,7 @@ export default function StatusConfiguration({
                 }}
                 disabled={isCreating}
               >
-                Cancel
+                {t("status_config.cancel")}
               </Button>
               <Button
                 variant="default"
@@ -458,10 +459,10 @@ export default function StatusConfiguration({
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    Creating...
+                    {t("status_config.creating")}
                   </>
                 ) : (
-                  "Create Status"
+                  t("status_config.create_status")
                 )}
               </Button>
             </DialogFooter>
@@ -481,21 +482,21 @@ export default function StatusConfiguration({
         >
           <DialogContent className="w-full max-w-[90vw] sm:max-w-[600px] bg-[var(--card)] border-none shadow-lg">
             <DialogHeader>
-              <DialogTitle>Edit Status</DialogTitle>
+              <DialogTitle>{t("status_config.edit_title")}</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4">
               {/* Name */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-[var(--foreground)]">
-                  Name <span className="text-red-500">*</span>
+                  {t("status_config.name_label")} <span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                   className="h-10 border-input bg-background text-[var(--foreground)]"
-                  placeholder="Status name"
+                  placeholder={t("status_config.name_placeholder")}
                   disabled={isUpdating}
                 />
               </div>
@@ -503,7 +504,7 @@ export default function StatusConfiguration({
               {/* Category */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-[var(--foreground)]">
-                  Category <span className="text-red-500">*</span>
+                  {t("status_config.category_label")} <span className="text-red-500">*</span>
                 </label>
                 <Select
                   value={formData.category}
@@ -516,12 +517,12 @@ export default function StatusConfiguration({
                   disabled={isUpdating}
                 >
                   <SelectTrigger className="w-full px-3 border border-[var(--border)] input-selection dark-input-background focus-ring">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder={t("status_config.select_category")} />
                   </SelectTrigger>
                   <SelectContent className="bg-[var(--card)] border border-[var(--border)]">
-                    <SelectItem value={StatusCategory.TODO}>To Do</SelectItem>
-                    <SelectItem value={StatusCategory.IN_PROGRESS}>In Progress</SelectItem>
-                    <SelectItem value={StatusCategory.DONE}>Done</SelectItem>
+                    <SelectItem value={StatusCategory.TODO}>{t("status_config.todo")}</SelectItem>
+                    <SelectItem value={StatusCategory.IN_PROGRESS}>{t("status_config.in_progress")}</SelectItem>
+                    <SelectItem value={StatusCategory.DONE}>{t("status_config.done")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -529,7 +530,7 @@ export default function StatusConfiguration({
               {/* Color */}
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
-                  Color <span className="text-red-500">*</span>
+                  {t("status_config.color_label")} <span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center space-x-3">
                   <input
@@ -549,11 +550,10 @@ export default function StatusConfiguration({
                       <button
                         key={color}
                         onClick={() => !isUpdating && setFormData((prev) => ({ ...prev, color }))}
-                        className={`w-6 h-6 rounded-full border-2 ${
-                          formData.color === color
+                        className={`w-6 h-6 rounded-full border-2 ${formData.color === color
                             ? "border-gray-900 dark:border-white"
                             : "border-gray-300 dark:border-gray-600"
-                        } ${isUpdating ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                          } ${isUpdating ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
                         style={{ backgroundColor: color }}
                         disabled={isUpdating}
                       />
@@ -572,7 +572,7 @@ export default function StatusConfiguration({
                 }}
                 disabled={isUpdating}
               >
-                Cancel
+                {t("status_config.cancel")}
               </Button>
 
               <Button
@@ -611,10 +611,10 @@ export default function StatusConfiguration({
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    Updating...
+                    {t("status_config.updating")}
                   </>
                 ) : (
-                  "Update Status"
+                  t("status_config.update_status")
                 )}
               </Button>
             </DialogFooter>
@@ -628,10 +628,10 @@ export default function StatusConfiguration({
           isOpen={true}
           onClose={() => setShowDeleteModal(null)}
           onConfirm={() => handleDelete(showDeleteModal)}
-          title="Delete Status"
-          message={`Are you sure you want to delete the status "${showDeleteModal.name}"? This action cannot be undone.`}
-          confirmText="Delete"
-          cancelText="Cancel"
+          title={t("status_config.delete_title")}
+          message={t("status_config.delete_message", { name: showDeleteModal.name })}
+          confirmText={t("status_config.delete_confirm")}
+          cancelText={t("status_config.cancel")}
           type="danger"
         />
       )}

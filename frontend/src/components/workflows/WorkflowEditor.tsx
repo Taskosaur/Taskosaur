@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { StatusCategory, TaskStatus, Workflow } from "@/types";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import Tooltip from "../common/ToolTip";
 interface WorkflowEditorProps {
@@ -41,6 +42,7 @@ export default function WorkflowEditor({
   onUpdate,
   isUpdating = false,
 }: WorkflowEditorProps) {
+  const { t } = useTranslation("settings");
   const { updateWorkflow, updateTaskStatusPositions } = useOrganization();
   const [draggedStatus, setDraggedStatus] = useState<TaskStatus | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -166,9 +168,9 @@ export default function WorkflowEditor({
 
       onUpdate(updatedWorkflow);
       setHasStatusChanges(false);
-      toast.success("Status order updated successfully!");
+      toast.success(t("workflow_editor.status_order_success"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save status order");
+      toast.error(error instanceof Error ? error.message : t("workflow_editor.status_order_failed"));
     } finally {
       setIsSavingStatuses(false);
     }
@@ -178,15 +180,15 @@ export default function WorkflowEditor({
     const errors: Record<string, string> = {};
 
     if (!detailsFormData.name.trim()) {
-      errors.name = "Workflow name is required";
+      errors.name = t("workflow_editor.name_required");
     } else if (detailsFormData.name.trim().length < 3) {
-      errors.name = "Workflow name must be at least 3 characters";
+      errors.name = t("workflow_editor.name_min");
     } else if (detailsFormData.name.trim().length > 50) {
-      errors.name = "Workflow name must be less than 50 characters";
+      errors.name = t("workflow_editor.name_max");
     }
 
     if (detailsFormData.description && detailsFormData.description.length > 200) {
-      errors.description = "Description must be less than 200 characters";
+      errors.description = t("workflow_editor.desc_max");
     }
 
     setDetailsErrors(errors);
@@ -212,9 +214,9 @@ export default function WorkflowEditor({
       onUpdate({ ...updatedWorkflow, statuses: workflow.statuses || [] });
       setIsEditingDetails(false);
 
-      toast.success("Workflow details updated successfully");
+      toast.success(t("workflow_editor.details_success"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update workflow details");
+      toast.error(error instanceof Error ? error.message : t("workflow_editor.details_failed"));
       console.error("Failed to update workflow details:", error);
     } finally {
       setIsSavingDetails(false);
@@ -241,10 +243,10 @@ export default function WorkflowEditor({
       <Card className="bg-[var(--sidebar)] border-none">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-md font-semibold text-[var(--foreground)]">
-            Workflow Details
+            {t("workflow_editor.details_title")}
           </CardTitle>
           {!isEditingDetails && (
-            <Tooltip content="Edit details" position="top" color="primary">
+            <Tooltip content={t("workflow_editor.edit_details")} position="top" color="primary">
               <Button
                 variant="outline"
                 size="sm"
@@ -262,7 +264,7 @@ export default function WorkflowEditor({
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-[var(--foreground)]">
-                  Workflow Name <span className="text-red-500">*</span>
+                  {t("workflow_editor.workflow_name")} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="name"
@@ -273,7 +275,7 @@ export default function WorkflowEditor({
                       name: e.target.value,
                     })
                   }
-                  placeholder="Enter workflow name"
+                  placeholder={t("workflow_editor.enter_name")}
                   disabled={isSavingDetails}
                   className="bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
                 />
@@ -284,7 +286,7 @@ export default function WorkflowEditor({
 
               <div className="space-y-2">
                 <Label htmlFor="description" className="text-[var(--foreground)]">
-                  Description
+                  {t("workflow_editor.description")}
                 </Label>
                 <Textarea
                   id="description"
@@ -295,7 +297,7 @@ export default function WorkflowEditor({
                       description: e.target.value,
                     })
                   }
-                  placeholder="Enter workflow description"
+                  placeholder={t("workflow_editor.enter_description")}
                   disabled={isSavingDetails}
                   className="bg-[var(--background)] border-[var(--border)] text-[var(--foreground)] min-h-[80px]"
                   rows={3}
@@ -320,7 +322,7 @@ export default function WorkflowEditor({
                   className="border-[var(--border)] cursor-pointer"
                 />
                 <Label htmlFor="isDefault" className="text-[var(--foreground)] cursor-pointer">
-                  Set as default workflow
+                  {t("workflow_editor.set_default")}
                 </Label>
               </div>
 
@@ -334,12 +336,12 @@ export default function WorkflowEditor({
                   {isSavingDetails ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Saving...
+                      {t("workflow_editor.saving")}
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      Save Details
+                      {t("workflow_editor.save_details")}
                     </>
                   )}
                 </Button>
@@ -350,7 +352,7 @@ export default function WorkflowEditor({
                   className="bg-[var(--card)] border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--accent)]"
                 >
                   <X className="w-4 h-4" />
-                  Cancel
+                  {t("workflow_editor.cancel")}
                 </Button>
               </div>
             </div>
@@ -364,19 +366,19 @@ export default function WorkflowEditor({
                       variant="default"
                       className="bg-[var(--primary)] text-[var(--primary-foreground)]"
                     >
-                      Default
+                      {t("workflow_editor.default")}
                     </Badge>
                   )}
                 </div>
                 <p className="text-[var(--muted-foreground)] text-sm">
-                  {workflow.description || "No description provided"}
+                  {workflow.description || t("workflow_editor.no_description")}
                 </p>
               </div>
 
               <div className="flex items-center gap-4 text-xs text-[var(--muted-foreground)]">
-                <span>Created: {new Date(workflow.createdAt).toLocaleDateString()}</span>
-                <span>Updated: {new Date(workflow.updatedAt).toLocaleDateString()}</span>
-                <span>Statuses: {workflow.statuses ? workflow.statuses.length : 0}</span>
+                <span>{t("workflow_editor.created")} {new Date(workflow.createdAt).toLocaleDateString()}</span>
+                <span>{t("workflow_editor.updated")} {new Date(workflow.updatedAt).toLocaleDateString()}</span>
+                <span>{t("workflow_editor.statuses")} {workflow.statuses ? workflow.statuses.length : 0}</span>
               </div>
             </div>
           )}
@@ -388,7 +390,7 @@ export default function WorkflowEditor({
         <Alert className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
           <AlertTriangle className="h-4 w-4 text-yellow-800" />
           <AlertDescription className="text-yellow-600">
-            You have unsaved changes to the status order. Don't forget to save your changes.
+            {t("workflow_editor.unsaved_changes")}
           </AlertDescription>
         </Alert>
       )}
@@ -400,20 +402,20 @@ export default function WorkflowEditor({
               <Play className="w-8 h-8 text-[var(--muted-foreground)]" />
             </div>
             <h3 className="text-lg font-semibold text-[var(--foreground)] mb-2">
-              No Statuses Configured
+              {t("workflow_editor.no_statuses")}
             </h3>
             <p className="text-sm text-[var(--muted-foreground)]">
-              Add statuses to this workflow to create a visual flow.
+              {t("workflow_editor.add_statuses_hint")}
             </p>
           </div>
         ) : (
           <div>
             <div className="block mb-2 md:flex items-center gap-2 justify-between ">
               <h3 className="text-md font-semibold text-[var(--foreground)]">
-                Visual Status Flow Editor
+                {t("workflow_editor.visual_editor")}
               </h3>
               <div className="flex gap-2">
-                <Tooltip content="Reset to Default" position="top" color="primary">
+                <Tooltip content={t("workflow_editor.reset_to_default")} position="top" color="primary">
                   <Button
                     variant="outline"
                     size="sm"
@@ -439,12 +441,12 @@ export default function WorkflowEditor({
                     {isSavingStatuses ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Saving...
+                        {t("workflow_editor.saving_order")}
                       </>
                     ) : (
                       <>
                         <Save className="w-4 h-4" />
-                        Save Order
+                        {t("workflow_editor.save_order")}
                       </>
                     )}
                   </Button>
@@ -452,8 +454,7 @@ export default function WorkflowEditor({
               </div>
             </div>
             <p className="text-[var(--muted-foreground)] text-sm mb-4">
-              Drag and drop statuses to reorder them. The order defines the typical flow of tasks
-              through your workflow.
+              {t("workflow_editor.drag_hint")}
             </p>
             <div className="overflow-x-auto">
               <div className="flex gap-4 pb-4 min-w-max">
@@ -472,13 +473,11 @@ export default function WorkflowEditor({
                   return (
                     <React.Fragment key={status.id}>
                       <div
-                        className={`flex-shrink-0 w-48 sm:w-56 md:w-64 p-4 border-2 border-dashed rounded-lg cursor-move transition-all ${
-                          dragOverIndex === index
+                        className={`flex-shrink-0 w-48 sm:w-56 md:w-64 p-4 border-2 border-dashed rounded-lg cursor-move transition-all ${dragOverIndex === index
                             ? "border-[var(--primary)] bg-[var(--primary)]/10"
                             : "border-[var(--border)] hover:border-[var(--primary)]/50 hover:bg-[var(--accent)]"
-                        } ${
-                          draggedStatus?.id === status.id ? "opacity-50 rotate-1 scale-105" : ""
-                        }`}
+                          } ${draggedStatus?.id === status.id ? "opacity-50 rotate-1 scale-105" : ""
+                          }`}
                         draggable
                         onDragStart={(e) => handleDragStart(e, safeStatus)}
                         onDragEnd={handleDragEnd}
@@ -508,11 +507,11 @@ export default function WorkflowEditor({
                         {/* Status Details */}
                         <div className="space-y-2 pt-6">
                           <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
-                            <span>{status.isDefault ? "Default" : "Custom"}</span>
+                            <span>{status.isDefault ? t("workflow_editor.default") : t("workflow_editor.custom")}</span>
                             <div className="hidden sm:flex items-center space-x-1">
                               <GripVertical className="w-3 h-3" />
-                              <span className="hidden md:inline">Drag to reorder</span>
-                              <span className="md:hidden">Drag</span>
+                              <span className="hidden md:inline">{t("workflow_editor.drag_to_reorder")}</span>
+                              <span className="md:hidden">{t("workflow_editor.drag")}</span>
                             </div>
                           </div>
                         </div>
@@ -535,25 +534,25 @@ export default function WorkflowEditor({
 
       {/* Workflow Rules */}
       <Card className="bg-[var(--sidebar)] border-none p-6">
-        <h3 className="text-md font-semibold text-[var(--foreground)] mb-4">Workflow Rules</h3>
+        <h3 className="text-md font-semibold text-[var(--foreground)] mb-4">{t("workflow_editor.rules_title")}</h3>
         <div className="space-y-4">
           <div className="p-4 bg-[var(--category-blue-10)] rounded-lg border-none">
-            <h4 className="font-medium text-[var(--category-blue)] mb-2">Transition Rules</h4>
+            <h4 className="font-medium text-[var(--category-blue)] mb-2">{t("workflow_editor.transition_rules")}</h4>
             <ul className="text-sm text-[var(--category-blue-light)] space-y-1">
-              <li>• Tasks can move forward to any subsequent status</li>
-              <li>• Tasks can move backward to previous statuses</li>
-              <li>• Some transitions may require specific permissions</li>
-              <li>• Automated transitions can be configured for certain conditions</li>
+              <li>• {t("workflow_editor.rule_forward")}</li>
+              <li>• {t("workflow_editor.rule_backward")}</li>
+              <li>• {t("workflow_editor.rule_permissions")}</li>
+              <li>• {t("workflow_editor.rule_automated")}</li>
             </ul>
           </div>
 
           <div className="p-4 bg-[var(--category-lime-10)] rounded-lg border-none">
-            <h4 className="font-medium text-[var(--category-lime)] mb-2">Status Requirements</h4>
+            <h4 className="font-medium text-[var(--category-lime)] mb-2">{t("workflow_editor.status_requirements")}</h4>
             <ul className="text-sm text-[var(--category-lime-light)] space-y-1">
-              <li>• At least one status must be marked as default</li>
-              <li>• Each workflow must have at least one status in each category</li>
-              <li>• Status names must be unique within a workflow</li>
-              <li>• Default status cannot be deleted</li>
+              <li>• {t("workflow_editor.req_default")}</li>
+              <li>• {t("workflow_editor.req_each_category")}</li>
+              <li>• {t("workflow_editor.req_unique_names")}</li>
+              <li>• {t("workflow_editor.req_no_delete_default")}</li>
             </ul>
           </div>
         </div>
@@ -563,10 +562,10 @@ export default function WorkflowEditor({
         isOpen={resetToDefaultConfirmation}
         onClose={() => setResetToDefaultConfirmation(false)}
         onConfirm={() => handleResetToDefault()}
-        title="Reset to default"
-        message="Are you sure you want to reset the workflow to default order? This will undo any custom ordering."
-        confirmText="Reset to default"
-        cancelText="Cancel"
+        title={t("workflow_editor.reset_title")}
+        message={t("workflow_editor.reset_message")}
+        confirmText={t("workflow_editor.reset_confirm")}
+        cancelText={t("workflow_editor.cancel")}
       />
     </div>
   );
