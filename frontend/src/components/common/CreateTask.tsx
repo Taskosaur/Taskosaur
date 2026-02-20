@@ -10,7 +10,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import RecurrenceSelector, { RecurrenceConfig } from "./RecurrenceSelector";
-import { HiDocumentText, HiCog, HiUsers, HiPaperClip, HiTrash, HiLink } from "react-icons/hi2";
+import { HiDocumentText, HiCog, HiUsers, HiPaperClip, HiTrash, HiLink, HiCheck, HiChevronDown } from "react-icons/hi2";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import TaskDescription from "@/components/tasks/views/TaskDescription";
 import { useTask } from "@/contexts/task-context";
@@ -70,6 +73,19 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
   const [recurrenceConfig, setRecurrenceConfig] = useState<RecurrenceConfig | null>(null);
   const [parentTasks, setParentTasks] = useState<any[]>([]);
   const [loadingParentTasks, setLoadingParentTasks] = useState(false);
+
+  const [openParentTask, setOpenParentTask] = useState(false);
+  const [parentTaskSearch, setParentTaskSearch] = useState("");
+
+  const filteredParentTasks = parentTasks
+    .filter((task) => {
+      const searchLower = parentTaskSearch.toLowerCase();
+      return (
+        task.title.toLowerCase().includes(searchLower) ||
+        (task.taskNumber && task.taskNumber.toString().toLowerCase().includes(searchLower))
+      );
+    })
+    .slice(0, 5);
 
   const isFormValid = (): boolean => {
     const hasTitle = formData.title.trim().length > 0;
@@ -189,7 +205,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
           getActiveSprint(projectId),
         ]);
         setSprints(projectSprints || []);
-        
+
         if (activeSprint) {
           setFormData(prev => ({ ...prev, sprintId: activeSprint.id }));
         }
@@ -256,7 +272,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
 
     setIsSubmitting(true);
     try {
-      
+
       const defaultStatus =
         availableStatuses.find(
           (status) =>
@@ -572,34 +588,62 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                   <Label htmlFor="parentTask">
                     Parent Task <span className="projects-form-label-required">*</span>
                   </Label>
-                  <Select
-                    value={formData.parentTaskId}
-                    onValueChange={(value) => handleFormDataChange("parentTaskId", value)}
-                    disabled={!selectedProject?.id || loadingParentTasks}
-                  >
-                    <SelectTrigger className="w-full border-[var(--border)] bg-[var(--background)]">
-                      <SelectValue
-                        placeholder={
-                          !selectedProject?.id
-                            ? "Select project first"
-                            : loadingParentTasks
-                              ? "Loading..."
-                              : "Select parent task"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent className="border-[var(--border)] bg-[var(--popover)]">
-                      {parentTasks.map((task) => (
-                        <SelectItem
-                          className="hover:bg-[var(--hover-bg)]"
-                          key={task.id}
-                          value={task.id}
-                        >
-                          {task.taskNumber ? `${task.taskNumber} - ` : ""}{task.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={openParentTask} onOpenChange={setOpenParentTask}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openParentTask}
+                        className="w-full justify-between bg-[var(--background)] border-[var(--border)] font-normal px-3"
+                        disabled={!selectedProject?.id || loadingParentTasks}
+                      >
+                        <span className="truncate">
+                          {formData.parentTaskId
+                            ? parentTasks.find((task) => task.id === formData.parentTaskId)?.title || formData.parentTaskId
+                            : !selectedProject?.id
+                              ? "Select project first"
+                              : loadingParentTasks
+                                ? "Loading..."
+                                : "Select parent task"}
+                        </span>
+                        <HiChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0 border-[var(--border)] bg-[var(--popover)]" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Search parent task..."
+                          value={parentTaskSearch}
+                          onValueChange={setParentTaskSearch}
+                        />
+                        <CommandList>
+                          <CommandEmpty>No parent task found.</CommandEmpty>
+                          <CommandGroup>
+                            {filteredParentTasks.map((task) => (
+                              <CommandItem
+                                key={task.id}
+                                value={task.id}
+                                onSelect={() => {
+                                  handleFormDataChange("parentTaskId", task.id === formData.parentTaskId ? "" : task.id);
+                                  setOpenParentTask(false);
+                                }}
+                                className="cursor-pointer hover:bg-[var(--hover-bg)] aria-selected:bg-[var(--hover-bg)]"
+                              >
+                                <HiCheck
+                                  className={`mr-2 h-4 w-4 ${formData.parentTaskId === task.id ? "opacity-100" : "opacity-0"
+                                    }`}
+                                />
+                                <span className="truncate">
+                                  {task.taskNumber ? `${task.taskNumber} - ` : ""}
+                                  {task.title}
+                                </span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               )}
 

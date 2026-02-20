@@ -28,6 +28,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -125,6 +126,19 @@ export function NewTaskModal({
 
   const [parentTasks, setParentTasks] = useState<any[]>([]);
   const [loadingParentTasks, setLoadingParentTasks] = useState(false);
+
+  const [openParentTask, setOpenParentTask] = useState(false);
+  const [parentTaskSearch, setParentTaskSearch] = useState("");
+
+  const filteredParentTasks = parentTasks
+    .filter((task) => {
+      const searchLower = parentTaskSearch.toLowerCase();
+      return (
+        task.title.toLowerCase().includes(searchLower) ||
+        (task.taskNumber && task.taskNumber.toString().toLowerCase().includes(searchLower))
+      );
+    })
+    .slice(0, 5);
 
   const [taskStatuses, setTaskStatuses] = useState<any[]>([]);
 
@@ -894,32 +908,65 @@ export function NewTaskModal({
                   />
                   {t("modal.parentTask", "Parent Task")} <span className="projects-form-label-required">*</span>
                 </Label>
-                <Select
-                  value={formData.parentTaskId}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, parentTaskId: value }))}
-                  disabled={isSubmitting || !formData.project || loadingParentTasks}
-                >
-                  <SelectTrigger
-                    className="projects-workspace-button border-none"
-                    onFocus={(e) => { e.currentTarget.style.boxShadow = "none"; }}
-                    onBlur={(e) => { e.currentTarget.style.boxShadow = "none"; }}
-                  >
-                    <SelectValue placeholder={!formData.project ? t("modal.selectProjectFirst", "Select project first") : loadingParentTasks ? t("modal.loading", "Loading...") : t("modal.selectParentTask", "Select parent task")} />
-                  </SelectTrigger>
-                  <SelectContent className="border-none bg-[var(--card)]">
-                    {parentTasks.map((task) => (
-                      <SelectItem
-                        key={task.id}
-                        value={task.id}
-                        className="hover:bg-[var(--hover-bg)]"
-                      >
-                        <div className="flex items-center gap-2">
-                          {task.taskNumber ? `${task.taskNumber} - ` : ""}{task.title}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={openParentTask} onOpenChange={setOpenParentTask}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openParentTask}
+                      className="w-full justify-between projects-workspace-button border-none font-normal px-3"
+                      disabled={isSubmitting || !formData.project || loadingParentTasks}
+                    >
+                      <span className="truncate">
+                        {formData.parentTaskId
+                          ? parentTasks.find((task) => task.id === formData.parentTaskId)?.title || formData.parentTaskId
+                          : !formData.project
+                            ? t("modal.selectProjectFirst", "Select project first")
+                            : loadingParentTasks
+                              ? t("modal.loading", "Loading...")
+                              : t("modal.selectParentTask", "Select parent task")}
+                      </span>
+                      <HiChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0 border-[var(--border)] bg-[var(--popover)]" align="start">
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder={t("modal.searchParentTask", "Search parent task...")}
+                        value={parentTaskSearch}
+                        onValueChange={setParentTaskSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>{t("modal.noParentTaskFound", "No parent task found.")}</CommandEmpty>
+                        <CommandGroup>
+                          {filteredParentTasks.map((task) => (
+                            <CommandItem
+                              key={task.id}
+                              value={task.id}
+                              onSelect={() => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  parentTaskId: task.id === formData.parentTaskId ? "" : task.id,
+                                }));
+                                setOpenParentTask(false);
+                              }}
+                              className="cursor-pointer hover:bg-[var(--hover-bg)] aria-selected:bg-[var(--hover-bg)]"
+                            >
+                              <HiCheck
+                                className={`mr-2 h-4 w-4 ${formData.parentTaskId === task.id ? "opacity-100" : "opacity-0"
+                                  }`}
+                              />
+                              <span className="truncate">
+                                {task.taskNumber ? `${task.taskNumber} - ` : ""}
+                                {task.title}
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             )}
 
