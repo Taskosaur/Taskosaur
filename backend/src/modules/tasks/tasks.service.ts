@@ -2115,11 +2115,23 @@ export class TasksService {
     // Check if recurrence is complete
     if (this.recurrenceService.isRecurrenceComplete(recurringConfig)) {
       // Just mark this task as complete without generating next
-      return this.update(taskId, { completedAt: new Date().toISOString() }, userId);
+      const completedTask = await this.update(
+        taskId,
+        { completedAt: new Date().toISOString() },
+        userId,
+      );
+      return {
+        completedTask,
+        nextTask: null,
+      };
     }
 
     // Mark current task as complete
-    await this.update(taskId, { completedAt: new Date().toISOString() }, userId);
+    const completedTask = await this.update(
+      taskId,
+      { completedAt: new Date().toISOString() },
+      userId,
+    );
 
     // Calculate next occurrence
     const nextOccurrence = this.recurrenceService.calculateNextOccurrence(
@@ -2155,7 +2167,7 @@ export class TasksService {
     });
 
     return {
-      completedTask: task,
+      completedTask,
       nextTask,
     };
   }

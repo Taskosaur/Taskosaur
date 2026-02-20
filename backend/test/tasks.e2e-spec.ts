@@ -668,4 +668,98 @@ describe('TasksController (e2e)', () => {
         });
     });
   });
+
+  describe('Recurring Tasks', () => {
+    let recurringTaskId: string;
+
+    it('should add recurrence to an existing task (POST /tasks/:id/recurrence)', async () => {
+      const task = await prismaService.task.create({
+        data: {
+          title: 'Recurring Task Base',
+          projectId,
+          statusId,
+          taskNumber: 300,
+          slug: `${projectSlug}-300`,
+          dueDate: new Date(Date.now() + 86400000).toISOString(),
+        },
+      });
+      recurringTaskId = task.id;
+
+      const recurrenceConfig = {
+        recurrenceType: 'WEEKLY',
+        interval: 1,
+        daysOfWeek: [1, 3, 5],
+        endType: 'NEVER',
+      };
+
+      return request(app.getHttpServer())
+        .post(`/api/tasks/${recurringTaskId}/recurrence`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(recurrenceConfig)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body.recurrenceType).toBe('WEEKLY');
+          expect(res.body.interval).toBe(1);
+          expect(res.body.isActive).toBe(true);
+        });
+    });
+
+    it('should update recurrence configuration (PATCH /tasks/:id/recurrence)', () => {
+      const updateConfig = {
+        recurrenceType: 'MONTHLY',
+        interval: 2,
+        dayOfMonth: 15,
+        endType: 'AFTER_OCCURRENCES',
+        occurrenceCount: 10,
+      };
+
+      return request(app.getHttpServer())
+        .patch(`/api/tasks/${recurringTaskId}/recurrence`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(updateConfig)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.recurrenceType).toBe('MONTHLY');
+          expect(res.body.interval).toBe(2);
+          expect(res.body.occurrenceCount).toBe(10);
+        });
+    });
+
+    it('should get recurring tasks for a project (GET /tasks/recurring/project/:projectId)', () => {
+      return request(app.getHttpServer())
+        .get(`/api/tasks/recurring/project/${projectId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.some((t: any) => t.id === recurringTaskId)).toBe(true);
+        });
+    });
+
+    it('should complete occurrence and generate next task (POST /tasks/:id/complete-occurrence)', async () => {
+      return request(app.getHttpServer())
+        .post(`/api/tasks/${recurringTaskId}/complete-occurrence`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.CREATED) // TasksService.create returns the created task, and completeOccurrenceAndGenerateNext returns {completedTask, nextTask}
+        // Wait, completeOccurrenceAndGenerateNext calls this.create which uses tx.task.create.
+        // But the controller doesn't specify HttpCode(201) for this, and it's a POST, so default is 201.
+        .expect((res) => {
+          expect(res.body).toHaveProperty('completedTask');
+          expect(res.body).toHaveProperty('nextTask');
+          expect(res.body.completedTask.id).toBe(recurringTaskId);
+          expect(res.body.completedTask.completedAt).not.toBeNull();
+          expect(res.body.nextTask.title).toBe(res.body.completedTask.title);
+        });
+    });
+
+    it('should stop recurrence (DELETE /tasks/:id/recurrence)', () => {
+      return request(app.getHttpServer())
+        .delete(`/api/tasks/${recurringTaskId}/recurrence`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.isRecurring).toBe(false);
+        });
+    });
+  });
 });

@@ -409,7 +409,7 @@ export class TasksController {
     description: 'Created new task',
     includeNewValue: true,
   })
-  async creatcreateWithAttachmentse(
+  async createWithAttachments(
     @Body() createTaskDto: CreateTaskDto,
     @UploadedFiles() files: Express.Multer.File[],
     @Req() req: Request,
