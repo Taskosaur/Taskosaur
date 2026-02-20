@@ -31,6 +31,7 @@ import { X } from "lucide-react";
 import { useOrganization } from "@/contexts/organization-context";
 import { useAuth } from "@/contexts/auth-context";
 import { PendingInvitationsRef } from "@/components/common/PendingInvitations";
+import { useTranslation } from "react-i18next";
 
 interface OrganizationMembersProps {
   organizationId: string;
@@ -53,6 +54,7 @@ export default function OrganizationMembers({
   searchQuery,
   onSearchChange,
 }: OrganizationMembersProps) {
+  const { t } = useTranslation("settings");
   const { updatedOrganizationMemberRole, removeOrganizationMember } = useOrganization();
   const { getCurrentUser } = useAuth();
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -70,22 +72,22 @@ export default function OrganizationMembers({
     {
       id: "viewer",
       name: OrganizationRole.VIEWER,
-      description: "Can view organization content",
+      description: t("org_members.role_desc_viewer"),
     },
     {
       id: "member",
       name: OrganizationRole.MEMBER,
-      description: "Can contribute to projects",
+      description: t("org_members.role_desc_member"),
     },
     {
       id: "manager",
       name: OrganizationRole.MANAGER,
-      description: "Can manage projects and members",
+      description: t("org_members.role_desc_manager"),
     },
     {
       id: "owner",
       name: OrganizationRole.OWNER,
-      description: "Can manage all aspects of the organization",
+      description: t("org_members.role_desc_owner"),
     },
   ];
   const getCurrentUserId = () => getCurrentUser()?.id;
@@ -180,16 +182,16 @@ export default function OrganizationMembers({
   const handleRoleChange = async (memberId: string, newRole: OrganizationRole) => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      toast.error("User not authenticated");
+      toast.error(t("org_members.user_not_authenticated"));
       return;
     }
     try {
       await updatedOrganizationMemberRole(memberId, { role: newRole as any }, currentUser.id);
       setIsLoading(true);
-      toast.success("Member role updated successfully");
+      toast.success(t("org_members.role_updated"));
       onMembersChange();
     } catch (error) {
-      toast.error("Failed to update member role");
+      toast.error(t("org_members.role_update_failed"));
       console.error("Role update error:", error);
     } finally {
       setIsLoading(false);
@@ -199,17 +201,17 @@ export default function OrganizationMembers({
   const handleRemoveMember = async (member: OrganizationMember) => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      toast.error("User not authenticated");
+      toast.error(t("org_members.user_not_authenticated"));
       return;
     }
     try {
       await removeOrganizationMember(member.id, currentUser.id);
       setIsLoading(true);
-      toast.success("Member removed successfully");
+      toast.success(t("org_members.member_removed"));
       setMemberToRemove(null);
       onMembersChange();
     } catch (error) {
-      toast.error("Failed to remove member");
+      toast.error(t("org_members.member_remove_failed"));
       console.error("Remove member error:", error);
     } finally {
       setIsLoading(false);
@@ -239,7 +241,7 @@ export default function OrganizationMembers({
         role: inviteData.role,
       });
 
-      toast.success(`Invitation sent to ${inviteData.email}`);
+      toast.success(t("org_members.invitation_sent", { email: inviteData.email }));
       setInviteData({ email: "", role: OrganizationRole.MEMBER, message: "" });
       setShowInviteModal(false);
 
@@ -248,7 +250,7 @@ export default function OrganizationMembers({
       }
     } catch (error: any) {
       console.log(error);
-      const errorMessage = error?.message || "Failed to send invitation";
+      const errorMessage = error?.message || t("org_members.invitation_failed");
       toast.error(errorMessage);
       console.error("Invite member error:", error);
     } finally {
@@ -271,10 +273,10 @@ export default function OrganizationMembers({
           <div className="organizations-members-header-info">
             <CardTitle className="flex gap-2 text-md">
               <HiUsers className="organizations-members-title-icon" />
-              Members
+              {t("org_members.title")}
             </CardTitle>
             <p className="organizations-members-subtitle">
-              Manage organization members and their roles
+              {t("org_members.description")}
             </p>
             {/* Invite button below subtitle for small screens */}
             {canManageMembers && (
@@ -284,7 +286,7 @@ export default function OrganizationMembers({
                   className="organizations-members-invite-button"
                 >
                   <HiPlus className="w-4 h-4" />
-                  Invite Member
+                  {t("org_members.invite_member")}
                 </Button>
               </div>
             )}
@@ -303,7 +305,7 @@ export default function OrganizationMembers({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder="Search members..."
+                  placeholder={t("org_members.search_placeholder")}
                   className="pl-9 pr-9 h-9 w-full border-input bg-background text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus-visible:ring-[var(--primary)]"
                 />
 
@@ -331,7 +333,7 @@ export default function OrganizationMembers({
                   className="organizations-members-invite-button"
                 >
                   <HiPlus className="w-4 h-4" />
-                  Invite Member
+                  {t("org_members.invite_member")}
                 </Button>
               </div>
             </div>
@@ -342,11 +344,11 @@ export default function OrganizationMembers({
       <div className="organizations-members-table overflow-x-auto">
         <div className="organizations-members-table-header">
           <div className="organizations-members-table-header-grid">
-            <div className="col-span-4">Member</div>
-            <div className="col-span-2">Status</div>
-            <div className="col-span-2">Joined</div>
-            <div className="col-span-2">Role</div>
-            <div className="col-span-2">Actions</div>
+            <div className="col-span-4">{t("org_members.table_member")}</div>
+            <div className="col-span-2">{t("org_members.table_status")}</div>
+            <div className="col-span-2">{t("org_members.table_joined")}</div>
+            <div className="col-span-2">{t("org_members.table_role")}</div>
+            <div className="col-span-2">{t("org_members.table_actions")}</div>
           </div>
         </div>
         <div className="organizations-members-table-body">
@@ -373,10 +375,10 @@ export default function OrganizationMembers({
                         <p className="organizations-member-name">
                           {member.user?.firstName && member.user?.lastName
                             ? `${member.user.firstName} ${member.user.lastName}`
-                            : member.user?.username || "Unknown Member"}
+                            : member.user?.username || t("org_members.unknown_member")}
                         </p>
                         <p className="organizations-member-email">
-                          {member.user?.email || "(No email)"}
+                          {member.user?.email || t("org_members.no_email")}
                         </p>
                       </div>
                     </div>
@@ -442,11 +444,11 @@ export default function OrganizationMembers({
                       <Tooltip
                         content={
                           isCurrentUser
-                            ? "Leave Organization"
+                            ? t("org_members.leave_organization")
                             : currentUserRole === OrganizationRole.MANAGER &&
-                                member.role === OrganizationRole.MANAGER
-                              ? "Cannot remove other managers"
-                              : "Remove Member"
+                              member.role === OrganizationRole.MANAGER
+                              ? t("org_members.cannot_remove_managers")
+                              : t("org_members.remove_member")
                         }
                         position="top"
                         color="danger"
@@ -473,9 +475,9 @@ export default function OrganizationMembers({
               <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-[var(--muted)] flex items-center justify-center">
                 <HiUsers className="w-6 h-6 text-[var(--muted-foreground)]" />
               </div>
-              <h3 className="organizations-members-empty-title">No members found</h3>
+              <h3 className="organizations-members-empty-title">{t("org_members.no_members_found")}</h3>
               <p className="text-sm text-[var(--muted-foreground)] mb-4">
-                Start by inviting team members to your organization.
+                {t("org_members.no_members_desc")}
               </p>
               {canManageMembers && (
                 <Button
@@ -483,7 +485,7 @@ export default function OrganizationMembers({
                   className="h-8 bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 hover:shadow-md transition-all duration-200 font-medium flex items-center gap-2"
                 >
                   <HiPlus className="w-4 h-4" />
-                  Invite Member
+                  {t("org_members.invite_member")}
                 </Button>
               )}
             </div>
@@ -497,7 +499,7 @@ export default function OrganizationMembers({
           <DialogHeader>
             <DialogTitle className="text-[var(--foreground)] flex items-center gap-2">
               <HiMail className="w-5 h-5 text-[var(--primary)]" />
-              Invite Member
+              {t("org_members.invite_modal_title")}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleInviteMember} className="space-y-4">
@@ -506,7 +508,7 @@ export default function OrganizationMembers({
                 htmlFor="invite-email"
                 className="text-sm font-medium text-[var(--foreground)]"
               >
-                Email Address
+                {t("org_members.email_label")}
               </Label>
               <Input
                 id="invite-email"
@@ -514,18 +516,18 @@ export default function OrganizationMembers({
                 value={inviteData.email}
                 onChange={(e) => setInviteData((prev) => ({ ...prev, email: e.target.value }))}
                 className="mt-1 border-none bg-background text-[var(--foreground)]"
-                placeholder="Enter email address"
+                placeholder={t("org_members.email_placeholder")}
                 required
               />
               {inviteData.email && !invitationApi.validateEmail(inviteData.email) && (
                 <p className="text-xs text-[var(--destructive)] mt-1">
-                  Please enter a valid email address
+                  {t("org_members.email_invalid")}
                 </p>
               )}
             </div>
 
             <div>
-              <Label className="text-sm font-medium text-[var(--foreground)]">Role</Label>
+              <Label className="text-sm font-medium text-[var(--foreground)]">{t("org_members.role_label")}</Label>
               <Select
                 value={inviteData.role}
                 onValueChange={(value) =>
@@ -544,7 +546,7 @@ export default function OrganizationMembers({
                     e.currentTarget.style.boxShadow = "none";
                   }}
                 >
-                  <SelectValue placeholder="Select a role">
+                  <SelectValue placeholder={t("org_members.role_placeholder")}>
                     {inviteData.role && (
                       <span className="text-[var(--foreground)]">{inviteData.role}</span>
                     )}
@@ -576,7 +578,7 @@ export default function OrganizationMembers({
               </Select>
               {!inviteData.role && (
                 <p className="text-xs text-[var(--muted-foreground)] mt-1">
-                  Please select a role for the member
+                  {t("org_members.role_hint")}
                 </p>
               )}
             </div>
@@ -587,7 +589,7 @@ export default function OrganizationMembers({
                 htmlFor="invite-message"
                 className="text-sm font-medium text-[var(--foreground)]"
               >
-                Message (Optional)
+                {t("org_members.message_label")}
               </Label>
               <Textarea
                 id="invite-message"
@@ -600,12 +602,12 @@ export default function OrganizationMembers({
                 }
                 rows={3}
                 className="mt-1 border-none bg-background text-[var(--foreground)]"
-                placeholder="Personal message for the invitation..."
+                placeholder={t("org_members.message_placeholder")}
                 maxLength={500}
               />
               <div className="flex justify-between items-center mt-1">
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  Note: Custom messages are not supported yet
+                  {t("org_members.message_note")}
                 </p>
                 <span className="text-xs text-[var(--muted-foreground)]">
                   {inviteData.message.length}/500
@@ -628,7 +630,7 @@ export default function OrganizationMembers({
                 disabled={isLoading}
                 className="h-8 border-none bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)] transition-all duration-200"
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 type="submit"
@@ -640,10 +642,10 @@ export default function OrganizationMembers({
                 {isLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-[var(--primary-foreground)] border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Sending...
+                    {t("org_members.sending")}
                   </>
                 ) : (
-                  "Send Invitation"
+                  t("org_members.send_invitation")
                 )}
               </Button>
             </DialogFooter>
@@ -658,19 +660,19 @@ export default function OrganizationMembers({
           onClose={() => setMemberToRemove(null)}
           onConfirm={() => handleRemoveMember(memberToRemove)}
           title={
-            memberToRemove.userId === getCurrentUserId() ? "Leave Organization" : "Remove Member"
+            memberToRemove.userId === getCurrentUserId() ? t("org_members.leave_confirm_title") : t("org_members.remove_confirm_title")
           }
           message={
             memberToRemove.userId === getCurrentUserId()
-              ? "Are you sure you want to leave this organization? You will lose access to all organization resources."
-              : `Are you sure you want to remove ${
-                  memberToRemove.user?.firstName && memberToRemove.user?.lastName
-                    ? `${memberToRemove.user.firstName} ${memberToRemove.user.lastName}`
-                    : memberToRemove.user?.username || "this member"
-                } from the organization?`
+              ? t("org_members.leave_confirm_message")
+              : t("org_members.remove_confirm_message", {
+                name: memberToRemove.user?.firstName && memberToRemove.user?.lastName
+                  ? `${memberToRemove.user.firstName} ${memberToRemove.user.lastName}`
+                  : memberToRemove.user?.username || t("org_members.unknown_member")
+              })
           }
-          confirmText={memberToRemove.userId === getCurrentUserId() ? "Leave" : "Remove"}
-          cancelText="Cancel"
+          confirmText={memberToRemove.userId === getCurrentUserId() ? t("org_members.confirm_leave") : t("org_members.confirm_remove")}
+          cancelText={t("common.cancel")}
         />
       )}
     </div>

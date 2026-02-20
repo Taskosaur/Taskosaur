@@ -209,7 +209,7 @@ function OrganizationManagePageContent() {
       setRoleCounts(membersData.roleCounts);
       loadWorkflows(slugToUse);
     } catch (err) {
-      setError("Failed to load organization data");
+      setError(t("organization_details.failed_to_load"));
       setUserAccess(null);
     } finally {
       setIsLoading(false);
@@ -428,9 +428,8 @@ function OrganizationManagePageContent() {
                 className="absolute bottom-0 h-0.5 bg-[var(--primary)] transition-all duration-300 ease-in-out"
                 style={{
                   width: "33.33%",
-                  transform: `translateX(${
-                    activeTab === "settings" ? "0%" : activeTab === "workflows" ? "100%" : "200%"
-                  })`,
+                  transform: `translateX(${activeTab === "settings" ? "0%" : activeTab === "workflows" ? "100%" : "200%"
+                    })`,
                 }}
               />
 

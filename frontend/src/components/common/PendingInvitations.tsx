@@ -15,6 +15,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import Tooltip from "./ToolTip";
+import { useTranslation } from "react-i18next";
 
 interface Invitation {
   id: string;
@@ -79,6 +80,7 @@ const formatDate = (dateString?: string) => {
 
 const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsProps>(
   ({ entity, entityType, members }, ref) => {
+    const { t } = useTranslation("settings");
     const { showPendingInvitations } = useOrganization();
     const [invitations, setInvitations] = useState<Invitation[]>([]);
     const [loading, setLoading] = useState(false);
@@ -112,17 +114,17 @@ const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsP
         const result = await invitationApi.resendInvitation(inviteId);
 
         if (result.emailSent) {
-          toast.success("Invitation resent successfully - email sent");
+          toast.success(t("invitations.resend_success"));
         } else {
           toast.warning(
-            "Invitation updated but email failed to send. The invitee can still use the updated invitation link."
+            t("invitations.resend_warning")
           );
           console.warn("Email delivery failed:", result.emailError);
         }
 
         await fetchInvites(); // Refresh the list
       } catch (error: any) {
-        const errorMessage = error?.message || "Failed to resend invitation";
+        const errorMessage = error?.message || t("invitations.resend_failed");
         toast.error(errorMessage);
       } finally {
         setResendingId(null);
@@ -132,10 +134,10 @@ const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsP
     const handleDeleteInvite = async (inviteId: string) => {
       try {
         await invitationApi.deleteInvitation(inviteId);
-        toast.success("Invitation deleted successfully");
+        toast.success(t("invitations.delete_success"));
         await fetchInvites();
       } catch (error: any) {
-        toast.error(error?.message || "Failed to delete invitation");
+        toast.error(error?.message || t("invitations.delete_failed"));
       }
     };
 
@@ -150,14 +152,14 @@ const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsP
         <CardHeader className="px-4 py-0 flex-shrink-0">
           <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
             <HiEnvelope className="w-5 h-5 text-[var(--muted-foreground)]" />
-            Invitations
+            {t("invitations.title")}
           </CardTitle>
         </CardHeader>
 
         <CardContent className="p-0 overflow-y-auto flex-1">
           {loading ? (
             <div className="p-6 text-sm text-center text-[var(--muted-foreground)]">
-              Loading invitations...
+              {t("invitations.loading")}
             </div>
           ) : totalInvites === 0 ? (
             <div className="p-4 text-center py-8">
@@ -165,11 +167,10 @@ const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsP
                 <HiEnvelope className="w-6 h-6 text-[var(--muted-foreground)]" />
               </div>
               <h3 className="text-sm font-medium text-[var(--foreground)] mb-1">
-                No pending or declined invitations
+                {t("invitations.no_invitations")}
               </h3>
               <p className="text-xs text-[var(--muted-foreground)]">
-                Invitations to this {entityType} will appear here until they’re accepted or
-                declined.
+                {t("invitations.no_invitations_desc", { entityType })}
               </p>
             </div>
           ) : (
@@ -195,10 +196,10 @@ const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsP
                             </div>
 
                             <div className="text-[14px] text-[var(--muted-foreground)] truncate">
-                              Invited by{" "}
+                              {t("invitations.invited_by")}{" "}
                               {invite.inviter?.firstName
                                 ? `${invite.inviter.firstName} ${invite.inviter.lastName || ""}`
-                                : "Unknown"}
+                                : t("invitations.unknown")}
                             </div>
 
                             {/* Date + Status */}
@@ -223,7 +224,7 @@ const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsP
                       <div className="col-span-2 flex justify-end">
                         {invite.status !== "DECLINED" && (
                           <DropdownMenu>
-                            <Tooltip content="All Actions">
+                            <Tooltip content={t("invitations.all_actions")}>
                               <DropdownMenuTrigger asChild className="bg-[var(--card)]">
                                 <Button
                                   variant="ghost"
@@ -245,11 +246,10 @@ const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsP
                                 className="flex text-xs items-center gap-2 cursor-pointer hover:bg-[var(--accent)]"
                               >
                                 <HiArrowPath
-                                  className={`w-4 h-4 ${
-                                    resendingId === invite.id ? "animate-spin" : ""
-                                  }`}
+                                  className={`w-4 h-4 ${resendingId === invite.id ? "animate-spin" : ""
+                                    }`}
                                 />
-                                Resend Invitation
+                                {t("invitations.resend")}
                               </DropdownMenuItem>
 
                               {/* DELETE for PENDING + EXPIRED */}
@@ -258,7 +258,7 @@ const PendingInvitations = forwardRef<PendingInvitationsRef, PendingInvitationsP
                                 className="flex text-xs items-center gap-2 cursor-pointer text-red-600 hover:bg-[var(--accent)]"
                               >
                                 <RxReset className="w-3 h-3" />
-                                Delete Invitation
+                                {t("invitations.delete")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

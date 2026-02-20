@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { HiCog, HiSparkles, HiDocumentText, HiExclamationTriangle } from "react-icons/hi2";
 import ActionButton from "@/components/common/ActionButton";
 import { CreateWorkflowData, Workflow } from "@/types";
+import { useTranslation } from "react-i18next";
 
 interface CreateWorkflowFormProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export default function CreateWorkflowForm({
   isProjectLevel = false,
   isLoading = false,
 }: CreateWorkflowFormProps) {
+  const { t } = useTranslation("settings");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -45,18 +47,18 @@ export default function CreateWorkflowForm({
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "Workflow name is required";
+      newErrors.name = t("create_workflow.name_required");
     } else if (formData.name.trim().length < 3) {
-      newErrors.name = "Workflow name must be at least 3 characters";
+      newErrors.name = t("create_workflow.name_min");
     } else if (formData.name.trim().length > 50) {
-      newErrors.name = "Workflow name must be less than 50 characters";
+      newErrors.name = t("create_workflow.name_max");
     } else if (!/^[a-zA-Z0-9\s\-_]+$/.test(formData.name.trim())) {
       newErrors.name =
-        "Workflow name can only contain letters, numbers, spaces, hyphens, and underscores";
+        t("create_workflow.name_chars");
     }
 
     if (formData.description && formData.description.length > 200) {
-      newErrors.description = "Description must be less than 200 characters";
+      newErrors.description = t("create_workflow.desc_max");
     }
 
     setErrors(newErrors);
@@ -72,7 +74,7 @@ export default function CreateWorkflowForm({
       setError(null);
 
       if (!organizationId) {
-        throw new Error("Organization ID is required");
+        throw new Error(t("create_workflow.org_id_required"));
       }
 
       const workflowData: CreateWorkflowData = {
@@ -86,7 +88,7 @@ export default function CreateWorkflowForm({
       handleClose();
     } catch (err) {
       console.error("Failed to create workflow:", err);
-      setError(err instanceof Error ? err.message : "Failed to create workflow");
+      setError(err instanceof Error ? err.message : t("create_workflow.create_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -117,12 +119,12 @@ export default function CreateWorkflowForm({
             </div>
             <div className="projects-modal-info">
               <DialogTitle className="projects-modal-title">
-                Create {isProjectLevel ? "project" : ""} workflow
+                {t("create_workflow.title", { level: isProjectLevel ? "project" : "" })}
               </DialogTitle>
               <DialogDescription className="projects-modal-description">
                 {isProjectLevel
-                  ? "Create a new workflow for this project to define task statuses and flow"
-                  : "Create a new workflow template for use across multiple projects"}
+                  ? t("create_workflow.desc_project")
+                  : t("create_workflow.desc_org")}
               </DialogDescription>
             </div>
           </div>
@@ -147,11 +149,11 @@ export default function CreateWorkflowForm({
                 className="projects-form-label-icon"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              Workflow name <span className="projects-form-label-required">*</span>
+              {t("create_workflow.name_label")} <span className="projects-form-label-required">*</span>
             </Label>
             <Input
               id="name"
-              placeholder="e.g., Development Workflow, Bug Triage Process"
+              placeholder={t("create_workflow.name_placeholder")}
               value={formData.name}
               onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
               className="projects-form-input border-none"
@@ -174,7 +176,7 @@ export default function CreateWorkflowForm({
                 className="projects-form-hint-icon"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              Choose a clear, descriptive name for your workflow.
+              {t("create_workflow.name_hint")}
             </p>
             {errors.name && <p className="text-sm text-[var(--destructive)] mt-1">{errors.name}</p>}
           </div>
@@ -186,11 +188,11 @@ export default function CreateWorkflowForm({
                 className="projects-form-label-icon"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              Description
+              {t("create_workflow.desc_label")}
             </Label>
             <Textarea
               id="description"
-              placeholder="Describe the purpose and usage of this workflow..."
+              placeholder={t("create_workflow.desc_placeholder")}
               value={formData.description}
               onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
               className="projects-form-textarea border-none"
@@ -208,7 +210,7 @@ export default function CreateWorkflowForm({
                 className="projects-form-hint-icon"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              Provide context about when and how this workflow should be used.
+              {t("create_workflow.desc_hint")}
             </p>
             {errors.description && (
               <p className="text-sm text-[var(--destructive)] mt-1">{errors.description}</p>
@@ -232,12 +234,12 @@ export default function CreateWorkflowForm({
                   htmlFor="isDefault"
                   className="text-[var(--foreground)] font-medium cursor-pointer"
                 >
-                  Set as default workflow
+                  {t("create_workflow.set_default_label")}
                 </Label>
                 <p className="text-sm text-[var(--muted-foreground)]">
                   {isProjectLevel
-                    ? "This workflow will be used by default for new tasks in this project"
-                    : "This workflow will be used by default for new projects in your organization"}
+                    ? t("create_workflow.set_default_project")
+                    : t("create_workflow.set_default_org")}
                 </p>
               </div>
             </div>
@@ -251,16 +253,16 @@ export default function CreateWorkflowForm({
               onClick={handleClose}
               disabled={isSubmitting || isLoading}
             >
-              Cancel
+              {t("create_workflow.cancel")}
             </ActionButton>
             <ActionButton type="submit" primary disabled={!isValid || isSubmitting || isLoading}>
               {isSubmitting || isLoading ? (
                 <>
                   <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  Creating...
+                  {t("create_workflow.creating")}
                 </>
               ) : (
-                "Create"
+                t("create_workflow.create")
               )}
             </ActionButton>
           </div>

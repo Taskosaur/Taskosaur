@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { HiCog, HiExclamationTriangle, HiArrowPath } from "react-icons/hi2";
 import { useOrganization } from "@/contexts/organization-context";
 import { useAuth } from "@/contexts/auth-context";
+import { useTranslation } from "react-i18next";
 
 interface OrganizationSettingsProps {
   organization: Organization;
@@ -22,6 +23,7 @@ export default function OrganizationSettingsComponent({
   organization,
   onUpdate,
 }: OrganizationSettingsProps) {
+  const { t } = useTranslation("settings");
   const router = useRouter();
   const { user } = useAuth();
   const { updateOrganization, deleteOrganization } = useOrganization();
@@ -176,13 +178,13 @@ export default function OrganizationSettingsComponent({
     {
       name: "delete",
       type: "delete" as const,
-      label: "Delete Organization",
-      description: "Permanently delete this organization and all its data",
+      label: t("organization_details.delete_org_label"),
+      description: t("organization_details.delete_org_description"),
       handler: async () => {
         try {
           await deleteOrganization(organization.id);
         } catch (error: any) {
-          let errorMsg = "Failed to delete organization";
+          let errorMsg = t("organization_details.delete_org_failed");
 
           // Extract detailed API error safely
           const apiErr =
@@ -194,9 +196,8 @@ export default function OrganizationSettingsComponent({
             } else if (apiErr.message) {
               errorMsg = apiErr.message;
               if (apiErr.error || apiErr.statusCode) {
-                errorMsg += ` (${apiErr.error || ""}${
-                  apiErr.statusCode ? `, ${apiErr.statusCode}` : ""
-                })`;
+                errorMsg += ` (${apiErr.error || ""}${apiErr.statusCode ? `, ${apiErr.statusCode}` : ""
+                  })`;
               }
             } else {
               errorMsg = JSON.stringify(apiErr);
@@ -216,7 +217,7 @@ export default function OrganizationSettingsComponent({
 
   const handleSave = async () => {
     if (!isFormValid()) {
-      toast.error("Please fix the errors before saving");
+      toast.error(t("organization_details.fix_errors"));
       return;
     }
 
@@ -253,14 +254,14 @@ export default function OrganizationSettingsComponent({
       onUpdate(mappedOrg);
       setHasUnsavedChanges(false);
       setIsSlugManuallyEdited(false); // Reset manual edit flag after save
-      toast.success("Organization settings updated successfully!");
+      toast.success(t("organization_details.save_success"));
 
       // Redirect to new URL if slug changed
       if (slugChanged && updatedOrg.slug !== organization.slug) {
         router.replace(`/settings/${updatedOrg.slug}`);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update organization");
+      toast.error(error instanceof Error ? error.message : t("organization_details.save_failed"));
     } finally {
       setIsLoading(false);
     }
@@ -272,10 +273,10 @@ export default function OrganizationSettingsComponent({
       <CardHeader className="px-0">
         <CardTitle className="text-md flex gap-2 items-center font-semibold text-[var(--foreground)]">
           <HiCog size={25} />
-          Organization Settings
+          {t("organization_details.settings_title")}
         </CardTitle>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Configure your organization preferences and settings
+          {t("organization_details.settings_description")}
         </p>
       </CardHeader>
 
@@ -286,7 +287,7 @@ export default function OrganizationSettingsComponent({
             {/* Organization Name */}
             <div className="space-y-2">
               <Label htmlFor="org-name" className="text-sm font-medium text-[var(--foreground)]">
-                Organization Name <span className="text-red-500">*</span>
+                {t("organization_details.org_name_label")} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="org-name"
@@ -299,19 +300,19 @@ export default function OrganizationSettingsComponent({
                   }))
                 }
                 className="border-[var(--border)] bg-[var(--background)] text-[var(--foreground)]"
-                placeholder="Enter organization name"
+                placeholder={t("organization_details.org_name_placeholder")}
                 required
                 disabled={!hasEditAccess}
               />
               {settings.general.name.trim().length === 0 && (
-                <p className="text-xs text-red-500">Organization name is required</p>
+                <p className="text-xs text-red-500">{t("organization_details.org_name_required")}</p>
               )}
             </div>
 
             {/* Organization Slug (Editable) */}
             <div className="space-y-2">
               <Label htmlFor="org-slug" className="text-sm font-medium text-[var(--foreground)]">
-                Organization Slug
+                {t("organization_details.org_slug_label")}
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -320,7 +321,7 @@ export default function OrganizationSettingsComponent({
                   value={slug}
                   onChange={(e) => handleSlugChange(e.target.value)}
                   className="border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] font-mono flex-1"
-                  placeholder="organization-slug"
+                  placeholder={t("organization_details.org_slug_placeholder")}
                   disabled={!hasEditAccess}
                 />
                 {isSlugManuallyEdited && hasEditAccess && (
@@ -330,7 +331,7 @@ export default function OrganizationSettingsComponent({
                     size="icon"
                     onClick={resetSlugToAuto}
                     className="h-9 w-9 flex-shrink-0"
-                    title="Reset to auto-generated slug"
+                    title={t("organization_details.reset_slug_title")}
                   >
                     <HiArrowPath className="h-4 w-4" />
                   </Button>
@@ -338,22 +339,22 @@ export default function OrganizationSettingsComponent({
               </div>
               {!isValidSlug(slug) && slug.length > 0 && (
                 <p className="text-xs text-red-500">
-                  Slug must contain only lowercase letters, numbers, and hyphens
+                  {t("organization_details.slug_invalid")}
                 </p>
               )}
               {slug.length === 0 && (
-                <p className="text-xs text-red-500">Slug is required</p>
+                <p className="text-xs text-red-500">{t("organization_details.slug_required")}</p>
               )}
               {slug !== organization.slug && isValidSlug(slug) && (
                 <p className="text-xs text-amber-600 dark:text-amber-400">
-                  Slug will be updated from "{organization.slug}" to "{slug}"
+                  {t("organization_details.slug_updated", { oldSlug: organization.slug, newSlug: slug })}
                 </p>
               )}
               {slug === organization.slug && (
                 <p className="text-xs text-[var(--muted-foreground)]">
                   {isSlugManuallyEdited
-                    ? "You can edit the slug or click the reset icon to auto-generate from name"
-                    : "Slug is auto-generated from the organization name"}
+                    ? t("organization_details.slug_manual_hint")
+                    : t("organization_details.slug_auto_hint")}
                 </p>
               )}
             </div>
@@ -364,7 +365,7 @@ export default function OrganizationSettingsComponent({
                 htmlFor="org-description"
                 className="text-sm font-medium text-[var(--foreground)]"
               >
-                Description
+                {t("organization_details.description_label")}
               </Label>
               <Textarea
                 id="org-description"
@@ -377,18 +378,18 @@ export default function OrganizationSettingsComponent({
                 }
                 rows={4}
                 className="border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] resize-none"
-                placeholder="Describe your organization..."
+                placeholder={t("organization_details.description_placeholder")}
                 disabled={!hasEditAccess}
               />
               <p className="text-xs text-[var(--muted-foreground)]">
-                {settings.general.description.length}/500 characters
+                {t("organization_details.characters_count", { count: settings.general.description.length })}
               </p>
             </div>
 
             {/* Website */}
             <div className="space-y-2">
               <Label htmlFor="org-website" className="text-sm font-medium text-[var(--foreground)]">
-                Website
+                {t("organization_details.website_label")}
               </Label>
               <Input
                 id="org-website"
@@ -406,7 +407,7 @@ export default function OrganizationSettingsComponent({
               />
               {settings.general.website && !isValidUrl(settings.general.website) && (
                 <p className="text-xs text-red-500">
-                  Please enter a valid URL (e.g., https://example.com)
+                  {t("organization_details.website_invalid")}
                 </p>
               )}
             </div>
@@ -423,10 +424,10 @@ export default function OrganizationSettingsComponent({
             {isLoading ? (
               <>
                 <div className="w-4 h-4 border-2 border-[var(--primary-foreground)] border-t-transparent rounded-full animate-spin mr-2"></div>
-                Saving...
+                {t("organization_details.saving")}
               </>
             ) : (
-              "Save Changes"
+              t("organization_details.save_changes")
             )}
           </Button>
         </div>
@@ -439,12 +440,12 @@ export default function OrganizationSettingsComponent({
             <div className="flex items-start gap-3">
               <HiExclamationTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-1" />
               <div className="flex-1">
-                <h4 className="font-medium text-red-800 dark:text-red-400">Danger Zone</h4>
+                <h4 className="font-medium text-red-800 dark:text-red-400">{t("organization_details.danger_zone_title")}</h4>
                 <p className="text-sm text-red-700 dark:text-red-500 mb-4">
-                  These actions cannot be undone. Please proceed with caution.
+                  {t("organization_details.danger_zone_description")}
                 </p>
                 <DangerZoneModal
-                  triggerText="Delete Organization"
+                  triggerText={t("organization_details.delete_org_label")}
                   triggerVariant="destructive"
                   entity={{
                     type: "organization",
