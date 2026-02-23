@@ -19,7 +19,8 @@ import {
 import { SearchService, SearchResponse } from './search.service';
 import { GlobalSearchDto, AdvancedSearchDto } from './dto/search.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '@prisma/client';
 @ApiTags('Search')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
@@ -76,8 +77,11 @@ export class SearchController {
     },
   })
   @ApiResponse({ status: 400, description: 'Invalid search parameters' })
-  globalSearch(@Body() globalSearchDto: GlobalSearchDto): Promise<SearchResponse> {
-    return this.searchService.globalSearch(globalSearchDto);
+  globalSearch(
+    @CurrentUser() user: User,
+    @Body() globalSearchDto: GlobalSearchDto,
+  ): Promise<SearchResponse> {
+    return this.searchService.globalSearch(globalSearchDto, user.id);
   }
 
   @Post('advanced')
@@ -137,8 +141,11 @@ export class SearchController {
     },
   })
   @ApiResponse({ status: 400, description: 'Invalid search filters' })
-  advancedSearch(@Body() advancedSearchDto: AdvancedSearchDto): Promise<SearchResponse> {
-    return this.searchService.advancedSearch(advancedSearchDto);
+  advancedSearch(
+    @CurrentUser() user: User,
+    @Body() advancedSearchDto: AdvancedSearchDto,
+  ): Promise<SearchResponse> {
+    return this.searchService.advancedSearch(advancedSearchDto, user.id);
   }
 
   @Get('suggestions')
@@ -227,6 +234,7 @@ export class SearchController {
     description: 'Quick search results',
   })
   quickSearch(
+    @CurrentUser() user: User,
     @Query('q') query: string,
     @Query('type') entityType?: string,
     @Query('organizationId') organizationId?: string,
@@ -245,6 +253,6 @@ export class SearchController {
       limit: limit ? parseInt(limit, 10) : undefined,
     };
 
-    return this.searchService.globalSearch(searchDto);
+    return this.searchService.globalSearch(searchDto, user.id);
   }
 }

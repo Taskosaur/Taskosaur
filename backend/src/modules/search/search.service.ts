@@ -32,58 +32,85 @@ export interface SearchResponse {
   searchTime: number;
 }
 
+interface AccessibleScopes {
+  organizationIds: string[];
+  workspaceIds: string[];
+  projectIds: string[];
+}
+
 @Injectable()
 export class SearchService {
   constructor(private prisma: PrismaService) {}
 
-  async globalSearch(searchDto: GlobalSearchDto): Promise<SearchResponse> {
+  private async getUserAccessibleScopeIds(userId: string): Promise<AccessibleScopes> {
+    const userMemberships = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        organizationMembers: { select: { organizationId: true } },
+        workspaceMembers: { select: { workspaceId: true } },
+        projectMembers: { select: { projectId: true } },
+      },
+    });
+
+    return {
+      organizationIds: userMemberships?.organizationMembers.map((om) => om.organizationId) || [],
+      workspaceIds: userMemberships?.workspaceMembers.map((wm) => wm.workspaceId) || [],
+      projectIds: userMemberships?.projectMembers.map((pm) => pm.projectId) || [],
+    };
+  }
+
+  async globalSearch(searchDto: GlobalSearchDto, userId: string): Promise<SearchResponse> {
     const startTime = Date.now();
     const { query, entityType = SearchEntityType.ALL, page = 1, limit = 20 } = searchDto;
     const offset = (page - 1) * limit;
 
-    let results: SearchResult[] = [];
-    let total = 0;
+    const accessibleScopes = await this.getUserAccessibleScopeIds(userId);
+    if (
+      accessibleScopes.organizationIds.length === 0 &&
+      accessibleScopes.workspaceIds.length === 0 &&
+      accessibleScopes.projectIds.length === 0
+    ) {
+      return { results: [], total: 0, page, limit, totalPages: 0, searchTime: 0 };
+    }
+
+    const searchPromises: Promise<SearchResult[]>[] = [];
 
     // Search based on entity type
     if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.TASKS) {
-      const taskResults = await this.searchTasks(query, searchDto, offset, limit);
-      results.push(...taskResults);
+      searchPromises.push(this.searchTasks(query, searchDto, offset, limit, accessibleScopes));
     }
 
     if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.PROJECTS) {
-      const projectResults = await this.searchProjects(query, searchDto, offset, limit);
-      results.push(...projectResults);
+      searchPromises.push(this.searchProjects(query, searchDto, offset, limit, accessibleScopes));
     }
 
     if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.USERS) {
-      const userResults = await this.searchUsers(query, searchDto, offset, limit);
-      results.push(...userResults);
+      searchPromises.push(this.searchUsers(query, searchDto, offset, limit, accessibleScopes));
     }
 
     if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.COMMENTS) {
-      const commentResults = await this.searchComments(query, searchDto, offset, limit);
-      results.push(...commentResults);
+      searchPromises.push(this.searchComments(query, searchDto, offset, limit, accessibleScopes));
     }
 
     if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.ATTACHMENTS) {
-      const attachmentResults = await this.searchAttachments(query, searchDto, offset, limit);
-      results.push(...attachmentResults);
+      searchPromises.push(
+        this.searchAttachments(query, searchDto, offset, limit, accessibleScopes),
+      );
     }
 
     if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.SPRINTS) {
-      const sprintResults = await this.searchSprints(query, searchDto, offset, limit);
-      results.push(...sprintResults);
+      searchPromises.push(this.searchSprints(query, searchDto, offset, limit, accessibleScopes));
     }
+
+    let results = (await Promise.all(searchPromises)).flat();
 
     // Sort results by relevance score or specified criteria
     results = this.sortResults(results, searchDto.sortBy, searchDto.sortOrder);
 
-    // Apply pagination if searching all entities
+    const total = results.length;
+    // Apply pagination for global search
     if (entityType === SearchEntityType.ALL) {
-      total = results.length;
       results = results.slice(offset, offset + limit);
-    } else {
-      total = results.length;
     }
 
     const searchTime = Date.now() - startTime;
@@ -98,32 +125,25 @@ export class SearchService {
     };
   }
 
-  async advancedSearch(searchDto: AdvancedSearchDto): Promise<SearchResponse> {
+  async advancedSearch(searchDto: AdvancedSearchDto, userId: string): Promise<SearchResponse> {
     const startTime = Date.now();
     const { page = 1, limit = 20 } = searchDto;
     const offset = (page - 1) * limit;
 
-    // Build complex where clause
+    const accessibleScopes = await this.getUserAccessibleScopeIds(userId);
+    if (
+      accessibleScopes.organizationIds.length === 0 &&
+      accessibleScopes.workspaceIds.length === 0 &&
+      accessibleScopes.projectIds.length === 0
+    ) {
+      return { results: [], total: 0, page, limit, totalPages: 0, searchTime: 0 };
+    }
+
     const where: any = {};
+    this.addScopeFilters(where, searchDto, accessibleScopes, 'Task');
 
-    // Add organization/workspace/project filters
-    if (searchDto.organizationId) {
-      where.project = {
-        workspace: {
-          organizationId: searchDto.organizationId,
-        },
-      };
-    }
-
-    if (searchDto.workspaceId) {
-      where.project = {
-        ...where.project,
-        workspaceId: searchDto.workspaceId,
-      };
-    }
-
-    if (searchDto.projectId) {
-      where.projectId = searchDto.projectId;
+    if (where.impossibleToMatch) {
+      return { results: [], total: 0, page, limit, totalPages: 0, searchTime: 0 };
     }
 
     // Add text search
@@ -145,11 +165,11 @@ export class SearchService {
     }
 
     if (searchDto.assigneeIds?.length) {
-      where.assigneeId = { in: searchDto.assigneeIds };
+      where.assignees = { some: { id: { in: searchDto.assigneeIds } } };
     }
 
     if (searchDto.reporterIds?.length) {
-      where.reporterId = { in: searchDto.reporterIds };
+      where.reporters = { some: { id: { in: searchDto.reporterIds } } };
     }
 
     if (searchDto.statusIds?.length) {
@@ -276,6 +296,7 @@ export class SearchService {
     searchDto: GlobalSearchDto,
     offset: number,
     limit: number,
+    accessibleScopes: AccessibleScopes,
   ): Promise<SearchResult[]> {
     const where: any = {
       OR: [
@@ -285,8 +306,8 @@ export class SearchService {
       ],
     };
 
-    // Add scope filters
-    this.addScopeFilters(where, searchDto);
+    this.addScopeFilters(where, searchDto, accessibleScopes, 'Task');
+    if (where.impossibleToMatch) return [];
 
     const tasks = await this.prisma.task.findMany({
       where,
@@ -328,6 +349,7 @@ export class SearchService {
     searchDto: GlobalSearchDto,
     offset: number,
     limit: number,
+    accessibleScopes: AccessibleScopes,
   ): Promise<SearchResult[]> {
     const where: any = {
       OR: [
@@ -337,13 +359,8 @@ export class SearchService {
       ],
     };
 
-    if (searchDto.organizationId) {
-      where.workspace = { organizationId: searchDto.organizationId };
-    }
-
-    if (searchDto.workspaceId) {
-      where.workspaceId = searchDto.workspaceId;
-    }
+    this.addScopeFilters(where, searchDto, accessibleScopes, 'Project');
+    if (where.impossibleToMatch) return [];
 
     const projects = await this.prisma.project.findMany({
       where,
@@ -378,6 +395,7 @@ export class SearchService {
     searchDto: GlobalSearchDto,
     offset: number,
     limit: number,
+    accessibleScopes: AccessibleScopes,
   ): Promise<SearchResult[]> {
     const where: any = {
       OR: [
@@ -388,10 +406,16 @@ export class SearchService {
       ],
     };
 
-    // Filter by organization membership if specified
     if (searchDto.organizationId) {
+      if (!accessibleScopes.organizationIds.includes(searchDto.organizationId)) {
+        return [];
+      }
       where.organizationMembers = {
         some: { organizationId: searchDto.organizationId },
+      };
+    } else {
+      where.organizationMembers = {
+        some: { organizationId: { in: accessibleScopes.organizationIds } },
       };
     }
 
@@ -438,21 +462,14 @@ export class SearchService {
     searchDto: GlobalSearchDto,
     offset: number,
     limit: number,
+    accessibleScopes: AccessibleScopes,
   ): Promise<SearchResult[]> {
     const where: any = {
       content: { contains: query, mode: 'insensitive' },
     };
 
-    // Add scope filters through task relationship
-    if (searchDto.projectId) {
-      where.task = { projectId: searchDto.projectId };
-    } else if (searchDto.workspaceId) {
-      where.task = { project: { workspaceId: searchDto.workspaceId } };
-    } else if (searchDto.organizationId) {
-      where.task = {
-        project: { workspace: { organizationId: searchDto.organizationId } },
-      };
-    }
+    this.addScopeFilters(where, searchDto, accessibleScopes, 'TaskComment');
+    if (where.impossibleToMatch) return [];
 
     const comments = await this.prisma.taskComment.findMany({
       where,
@@ -502,13 +519,14 @@ export class SearchService {
     searchDto: GlobalSearchDto,
     offset: number,
     limit: number,
+    accessibleScopes: AccessibleScopes,
   ): Promise<SearchResult[]> {
     const where: any = {
       fileName: { contains: query, mode: 'insensitive' },
     };
 
-    // Add scope filters through task relationship
-    this.addScopeFilters(where, searchDto, 'task.');
+    this.addScopeFilters(where, searchDto, accessibleScopes, 'TaskAttachment');
+    if (where.impossibleToMatch) return [];
 
     const attachments = await this.prisma.taskAttachment.findMany({
       where,
@@ -556,6 +574,7 @@ export class SearchService {
     searchDto: GlobalSearchDto,
     offset: number,
     limit: number,
+    accessibleScopes: AccessibleScopes,
   ): Promise<SearchResult[]> {
     const where: any = {
       OR: [
@@ -564,15 +583,8 @@ export class SearchService {
       ],
     };
 
-    if (searchDto.projectId) {
-      where.projectId = searchDto.projectId;
-    } else if (searchDto.workspaceId) {
-      where.project = { workspaceId: searchDto.workspaceId };
-    } else if (searchDto.organizationId) {
-      where.project = {
-        workspace: { organizationId: searchDto.organizationId },
-      };
-    }
+    this.addScopeFilters(where, searchDto, accessibleScopes, 'Sprint');
+    if (where.impossibleToMatch) return [];
 
     const sprints = await this.prisma.sprint.findMany({
       where,
@@ -609,35 +621,94 @@ export class SearchService {
     }));
   }
 
-  private addScopeFilters(where: any, searchDto: GlobalSearchDto, prefix: string = '') {
+  private addScopeFilters(
+    where: any,
+    searchDto: GlobalSearchDto | AdvancedSearchDto,
+    accessibleScopes: AccessibleScopes,
+    modelName: 'Task' | 'Project' | 'TaskComment' | 'TaskAttachment' | 'Sprint',
+  ) {
+    const applyOrgFilter = (filter: any) => {
+      switch (modelName) {
+        case 'Task':
+          where.project = { ...where.project, workspace: { organizationId: filter } };
+          break;
+        case 'Project':
+          where.workspace = { organizationId: filter };
+          break;
+        case 'TaskComment':
+        case 'TaskAttachment':
+          where.task = { ...where.task, project: { workspace: { organizationId: filter } } };
+          break;
+        case 'Sprint':
+          where.project = { ...where.project, workspace: { organizationId: filter } };
+          break;
+      }
+    };
+
+    if (searchDto.organizationId) {
+      if (!accessibleScopes.organizationIds.includes(searchDto.organizationId)) {
+        where.impossibleToMatch = true;
+        return;
+      }
+      applyOrgFilter(searchDto.organizationId);
+    } else {
+      applyOrgFilter({ in: accessibleScopes.organizationIds });
+    }
+
+    const applyWorkspaceFilter = (filter: any) => {
+      switch (modelName) {
+        case 'Task':
+          where.project = { ...where.project, workspaceId: filter };
+          break;
+        case 'Project':
+          where.workspaceId = filter;
+          break;
+        case 'TaskComment':
+        case 'TaskAttachment':
+          where.task = { ...where.task, project: { workspaceId: filter } };
+          break;
+        case 'Sprint':
+          where.project = { ...where.project, workspaceId: filter };
+          break;
+      }
+    };
+
+    if (searchDto.workspaceId) {
+      if (!accessibleScopes.workspaceIds.includes(searchDto.workspaceId)) {
+        where.impossibleToMatch = true;
+        return;
+      }
+      applyWorkspaceFilter(searchDto.workspaceId);
+    } else if (!searchDto.organizationId) {
+      applyWorkspaceFilter({ in: accessibleScopes.workspaceIds });
+    }
+
+    const applyProjectFilter = (filter: any) => {
+      switch (modelName) {
+        case 'Task':
+          where.projectId = filter;
+          break;
+        case 'Project':
+          where.id = filter;
+          break;
+        case 'TaskComment':
+        case 'TaskAttachment':
+          where.task = { ...where.task, projectId: filter };
+          break;
+        case 'Sprint':
+          where.projectId = filter;
+          break;
+      }
+    };
+
     if (searchDto.projectId) {
-      if (prefix === 'task.') {
-        where.task = { ...where.task, projectId: searchDto.projectId };
-      } else {
-        where.projectId = searchDto.projectId;
+      if (!accessibleScopes.projectIds.includes(searchDto.projectId)) {
+        where.impossibleToMatch = true;
+        return;
       }
-    } else if (searchDto.workspaceId) {
-      if (prefix === 'task.') {
-        where.task = {
-          ...where.task,
-          project: { workspaceId: searchDto.workspaceId },
-        };
-      } else {
-        where.project = { workspaceId: searchDto.workspaceId };
-      }
-    } else if (searchDto.organizationId) {
-      if (prefix === 'task.') {
-        where.task = {
-          ...where.task,
-          project: {
-            workspace: { organizationId: searchDto.organizationId },
-          },
-        };
-      } else {
-        where.project = {
-          workspace: { organizationId: searchDto.organizationId },
-        };
-      }
+      applyProjectFilter(searchDto.projectId);
+    } else if (!searchDto.organizationId && !searchDto.workspaceId) {
+      applyProjectFilter({ in: accessibleScopes.projectIds });
     }
   }
 
