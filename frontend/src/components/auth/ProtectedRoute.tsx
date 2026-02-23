@@ -41,13 +41,17 @@ export default function ProtectedRoute({
   const [isInitializing, setIsInitializing] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const isPublicRoute = publicRoutes.includes(router.pathname) || router.pathname.startsWith("/public/task/");
+  const isPublicRoute = 
+    publicRoutes.includes(router.pathname) || 
+    router.pathname.startsWith("/public/task/") ||
+    (typeof window !== "undefined" && window.location.pathname.startsWith("/public/"));
 
   //For Public
-  const isProjectRoute = router.pathname.includes("/[workspaceSlug]/[projectSlug]");
+  const isProjectRoute = router.pathname.includes("/[workspaceSlug]/[projectSlug]") ||
+    (typeof window !== "undefined" && /\/[^\/]+\/[^\/]+/.test(window.location.pathname) && !window.location.pathname.startsWith("/public/"));
   const is404 = router.pathname === "/404";
   // Check the actual path to exclude settings and members routes
-  const actualPath = router.asPath.split("?")[0]; // Remove query params
+  const actualPath = typeof window !== "undefined" ? window.location.pathname : router.asPath.split("?")[0];
   const isSettingsOrMembersRoute =
     actualPath.endsWith("/settings") || actualPath.endsWith("/members");
   const isPublicProjectRoute = isProjectRoute && !isSettingsOrMembersRoute;
@@ -57,11 +61,12 @@ export default function ProtectedRoute({
     redirectPath?: string;
     isOrg: boolean;
   }> => {
+    if (!router.isReady) return { isAuth: false, isOrg: false };
     try {
       const accessToken = TokenManager.getAccessToken();
       const currentOrgId = TokenManager.getCurrentOrgId();
       const currentUser = getCurrentUser();
-      const contextAuth = contextIsAuthenticated;
+      const contextAuth = typeof contextIsAuthenticated === "function" ? contextIsAuthenticated() : contextIsAuthenticated;
 
       const isAuth = !!(accessToken && currentUser && contextAuth);
       if (!isAuth) {

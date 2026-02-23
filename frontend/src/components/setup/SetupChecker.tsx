@@ -13,6 +13,11 @@ export default function SetupChecker({ children }: { children: React.ReactNode }
       const publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/terms-of-service", "/privacy-policy", "/public/"];
       const isPublicRoute = publicRoutes.some(route => router.pathname.startsWith(route));
 
+      if (isPublicRoute) {
+        setIsChecking(false);
+        return;
+      }
+
       try {
         // Check if any users exist in the system
         const { exists } = await authApi.checkUsersExist();
