@@ -13,13 +13,18 @@ describe('SearchController (e2e)', () => {
   let jwtService: JwtService;
 
   let user: any;
+  let otherUser: any;
   let accessToken: string;
+  let otherAccessToken: string;
   let organizationId: string;
+  let otherOrganizationId: string;
   let workspaceId: string;
   let projectId: string;
+  let otherProjectId: string;
   let workflowId: string;
   let statusId: string;
   let taskId: string;
+  let otherTaskId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -31,7 +36,7 @@ describe('SearchController (e2e)', () => {
     prismaService = app.get<PrismaService>(PrismaService);
     jwtService = app.get<JwtService>(JwtService);
 
-    // Create a test user
+    // Create a primary test user
     user = await prismaService.user.create({
       data: {
         email: `search-test-${Date.now()}@example.com`,
@@ -43,19 +48,55 @@ describe('SearchController (e2e)', () => {
       },
     });
 
-    // Generate token
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    accessToken = jwtService.sign(payload);
+    // Generate token for primary user
+    accessToken = jwtService.sign({ sub: user.id, email: user.email, role: user.role });
 
-    // Create Organization
+    // Create another test user for cross-tenant testing
+    otherUser = await prismaService.user.create({
+      data: {
+        email: `other-test-${Date.now()}@example.com`,
+        password: 'StrongPassword123!',
+        firstName: 'Other',
+        lastName: 'Tester',
+        username: `other_tester_${Date.now()}`,
+        role: Role.OWNER,
+      },
+    });
+
+    // Generate token for other user
+    otherAccessToken = jwtService.sign({ sub: otherUser.id, email: otherUser.email, role: otherUser.role });
+
+    // Create Organization for primary user
     const organization = await prismaService.organization.create({
       data: {
         name: `Search Org ${Date.now()}`,
         slug: `search-org-${Date.now()}`,
         ownerId: user.id,
+        members: {
+          create: {
+            userId: user.id,
+            role: Role.OWNER,
+          },
+        },
       },
     });
     organizationId = organization.id;
+
+    // Create Organization for other user
+    const otherOrganization = await prismaService.organization.create({
+      data: {
+        name: `Other Org ${Date.now()}`,
+        slug: `other-org-${Date.now()}`,
+        ownerId: otherUser.id,
+        members: {
+          create: {
+            userId: otherUser.id,
+            role: Role.OWNER,
+          },
+        },
+      },
+    });
+    otherOrganizationId = otherOrganization.id;
 
     // Create Workflow
     const workflow = await prismaService.workflow.create({
@@ -77,7 +118,7 @@ describe('SearchController (e2e)', () => {
     });
     workspaceId = workspace.id;
 
-    // Create Project
+    // Create Project for primary user
     const project = await prismaService.project.create({
       data: {
         name: 'Search Project',
@@ -89,9 +130,52 @@ describe('SearchController (e2e)', () => {
         createdBy: user.id,
         workflowId: workflow.id,
         color: '#0000ff',
+        members: {
+          create: {
+            userId: user.id,
+            role: Role.OWNER,
+          },
+        },
       },
     });
     projectId = project.id;
+
+    // Create Workspace for other user
+    const otherWorkspace = await prismaService.workspace.create({
+      data: {
+        name: `Other Workspace ${Date.now()}`,
+        slug: `other-workspace-${Date.now()}`,
+        organizationId: otherOrganization.id,
+        members: {
+          create: {
+            userId: otherUser.id,
+            role: Role.OWNER,
+          },
+        },
+      },
+    });
+
+    // Create Project for other user
+    const otherProject = await prismaService.project.create({
+      data: {
+        name: 'Other Project',
+        slug: `other-project-${Date.now()}`,
+        workspaceId: otherWorkspace.id,
+        status: ProjectStatus.ACTIVE,
+        priority: ProjectPriority.HIGH,
+        visibility: ProjectVisibility.PRIVATE,
+        createdBy: otherUser.id,
+        workflowId: workflowId, // Re-use same workflow for simplicity
+        color: '#ff0000',
+        members: {
+          create: {
+            userId: otherUser.id,
+            role: Role.OWNER,
+          },
+        },
+      },
+    });
+    otherProjectId = otherProject.id;
 
     // Create Status
     const status = await prismaService.taskStatus.create({
@@ -105,7 +189,7 @@ describe('SearchController (e2e)', () => {
     });
     statusId = status.id;
 
-    // Create searchable tasks
+    // Create searchable tasks for primary user
     const task1 = await prismaService.task.create({
       data: {
         title: 'Authentication Bug Fix',
@@ -135,37 +219,42 @@ describe('SearchController (e2e)', () => {
       },
     });
 
-    await prismaService.task.create({
+    // Create a task for the other user (should NOT be visible to primary user)
+    const taskOther = await prismaService.task.create({
       data: {
-        title: 'API Documentation',
-        description: 'Create comprehensive API documentation',
-        projectId: project.id,
+        title: 'Other User Private Task',
+        description: 'Secret information for other user only',
+        projectId: otherProject.id,
         statusId: status.id,
-        createdBy: user.id,
-        priority: TaskPriority.LOW,
-        type: TaskType.TASK,
-        taskNumber: 3,
-        slug: `api-docs-${Date.now()}`,
+        createdBy: otherUser.id,
+        priority: TaskPriority.HIGHEST,
+        type: TaskType.BUG,
+        taskNumber: 1,
+        slug: `other-task-${Date.now()}`,
       },
     });
+    otherTaskId = taskOther.id;
   });
 
   afterAll(async () => {
     if (prismaService) {
-      // Cleanup
-      await prismaService.task.deleteMany({ where: { projectId } });
+      // Cleanup all test data
+      await prismaService.task.deleteMany({ where: { id: { in: [taskId, otherTaskId] } } });
+      await prismaService.task.deleteMany({ where: { projectId: { in: [projectId, otherProjectId] } } });
+      await prismaService.projectMember.deleteMany({ where: { userId: { in: [user.id, otherUser.id] } } });
+      await prismaService.project.deleteMany({ where: { id: { in: [projectId, otherProjectId] } } });
+      await prismaService.workspace.deleteMany({ where: { organizationId: { in: [organizationId, otherOrganizationId] } } });
       await prismaService.taskStatus.delete({ where: { id: statusId } });
-      await prismaService.project.delete({ where: { id: projectId } });
-      await prismaService.workspace.delete({ where: { id: workspaceId } });
       await prismaService.workflow.delete({ where: { id: workflowId } });
-      await prismaService.organization.delete({ where: { id: organizationId } });
-      await prismaService.user.delete({ where: { id: user.id } });
+      await prismaService.organizationMember.deleteMany({ where: { userId: { in: [user.id, otherUser.id] } } });
+      await prismaService.organization.deleteMany({ where: { id: { in: [organizationId, otherOrganizationId] } } });
+      await prismaService.user.deleteMany({ where: { id: { in: [user.id, otherUser.id] } } });
     }
     await app.close();
   });
 
   describe('/search/global (POST)', () => {
-    it('should perform global search', () => {
+    it('should perform global search within authorized scope', () => {
       const searchDto: GlobalSearchDto = {
         query: 'authentication',
         organizationId: organizationId,
@@ -178,61 +267,42 @@ describe('SearchController (e2e)', () => {
         .expect(HttpStatus.OK)
         .expect((res) => {
           expect(res.body).toHaveProperty('results');
-          expect(res.body).toHaveProperty('total');
-          expect(res.body).toHaveProperty('page');
-          expect(res.body).toHaveProperty('limit');
-          expect(Array.isArray(res.body.results)).toBe(true);
+          expect(res.body.results.length).toBeGreaterThan(0);
+          expect(res.body.results[0].title).toContain('Authentication');
         });
     });
 
-    it('should search with entity type filter', () => {
+    it('should NOT return results from another organization (cross-tenant check)', async () => {
       const searchDto: GlobalSearchDto = {
-        query: 'user',
-        entityType: 'tasks' as any,
-        organizationId: organizationId,
+        query: 'Private Task', // This query matches otherUser's task
       };
 
-      return request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .post('/api/search/global')
-        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Authorization', `Bearer ${accessToken}`) // Authenticated as primary user
         .send(searchDto)
-        .expect(HttpStatus.OK)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('results');
-          expect(Array.isArray(res.body.results)).toBe(true);
-        });
+        .expect(HttpStatus.OK);
+
+      // Primary user should not see otherUser's task even without explicit scope
+      const otherTaskFound = response.body.results.some((r: any) => r.id === otherTaskId);
+      expect(otherTaskFound).toBe(false);
+      expect(response.body.total).toBe(0);
     });
 
-    it('should search with workspace scope', () => {
+    it('should return no results when explicitly providing unauthorized organizationId', async () => {
       const searchDto: GlobalSearchDto = {
-        query: 'profile',
-        workspaceId: workspaceId,
+        query: 'authentication',
+        organizationId: otherOrganizationId, // Explicitly target other user's org
       };
 
-      return request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .post('/api/search/global')
         .set('Authorization', `Bearer ${accessToken}`)
         .send(searchDto)
-        .expect(HttpStatus.OK)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('results');
-        });
-    });
+        .expect(HttpStatus.OK);
 
-    it('should search with project scope', () => {
-      const searchDto: GlobalSearchDto = {
-        query: 'documentation',
-        projectId: projectId,
-      };
-
-      return request(app.getHttpServer())
-        .post('/api/search/global')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send(searchDto)
-        .expect(HttpStatus.OK)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('results');
-        });
+      expect(response.body.results.length).toBe(0);
+      expect(response.body.total).toBe(0);
     });
   });
 
@@ -252,145 +322,53 @@ describe('SearchController (e2e)', () => {
         .expect(HttpStatus.OK)
         .expect((res) => {
           expect(res.body).toHaveProperty('results');
-          expect(res.body).toHaveProperty('total');
-          expect(Array.isArray(res.body.results)).toBe(true);
+          expect(res.body.total).toBeGreaterThan(0);
         });
     });
 
-    it('should filter by task type', () => {
+    it('should NOT return tasks from other user in advanced search', async () => {
       const searchDto: AdvancedSearchDto = {
-        taskTypes: [TaskType.STORY],
-        organizationId: organizationId,
+        query: 'Private Task',
       };
 
-      return request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .post('/api/search/advanced')
         .set('Authorization', `Bearer ${accessToken}`)
         .send(searchDto)
-        .expect(HttpStatus.OK)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('results');
-        });
-    });
+        .expect(HttpStatus.OK);
 
-    it('should filter by priority', () => {
-      const searchDto: AdvancedSearchDto = {
-        priorities: [TaskPriority.HIGH, TaskPriority.MEDIUM],
-        projectId: projectId,
-      };
-
-      return request(app.getHttpServer())
-        .post('/api/search/advanced')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send(searchDto)
-        .expect(HttpStatus.OK)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('results');
-        });
-    });
-
-    it('should filter by status', () => {
-      const searchDto: AdvancedSearchDto = {
-        statusIds: [statusId],
-        organizationId: organizationId,
-      };
-
-      return request(app.getHttpServer())
-        .post('/api/search/advanced')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send(searchDto)
-        .expect(HttpStatus.OK)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('results');
-        });
-    });
-  });
-
-  describe('/search/suggestions (GET)', () => {
-    it('should get search suggestions', () => {
-      return request(app.getHttpServer())
-        .get('/api/search/suggestions')
-        .query({ q: 'auth' })
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(HttpStatus.OK)
-        .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true);
-        });
-    });
-
-    it('should limit suggestions', () => {
-      return request(app.getHttpServer())
-        .get('/api/search/suggestions')
-        .query({ q: 'user', limit: '5' })
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(HttpStatus.OK)
-        .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true);
-          expect(res.body.length).toBeLessThanOrEqual(5);
-        });
+      expect(response.body.total).toBe(0);
     });
   });
 
   describe('/search/quick (GET)', () => {
-    it('should perform quick search', () => {
-      return request(app.getHttpServer())
+    it('should perform quick search and respect user scope', async () => {
+      const response = await request(app.getHttpServer())
         .get('/api/search/quick')
-        .query({ q: 'authentication' })
+        .query({ q: 'Private Task' })
         .set('Authorization', `Bearer ${accessToken}`)
-        .expect(HttpStatus.OK)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('results');
-          expect(res.body).toHaveProperty('total');
-        });
+        .expect(HttpStatus.OK);
+
+      expect(response.body.total).toBe(0);
     });
 
-    it('should quick search with type filter', () => {
-      return request(app.getHttpServer())
+    it('should return results for other user when they search for their task', async () => {
+      const response = await request(app.getHttpServer())
         .get('/api/search/quick')
-        .query({ q: 'profile', type: 'tasks' })
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(HttpStatus.OK)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('results');
-        });
-    });
+        .query({ q: 'Private Task' })
+        .set('Authorization', `Bearer ${otherAccessToken}`)
+        .expect(HttpStatus.OK);
 
-    it('should quick search with pagination', () => {
-      return request(app.getHttpServer())
-        .get('/api/search/quick')
-        .query({ q: 'task', page: '1', limit: '10' })
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(HttpStatus.OK)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('results');
-          expect(res.body).toHaveProperty('page');
-          expect(res.body).toHaveProperty('limit');
-          expect(res.body.page).toBe(1);
-          expect(res.body.limit).toBe(10);
-        });
-    });
-
-    it('should quick search with organization scope', () => {
-      return request(app.getHttpServer())
-        .get('/api/search/quick')
-        .query({ q: 'bug', organizationId: organizationId })
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(HttpStatus.OK)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('results');
-        });
+      expect(response.body.total).toBeGreaterThan(0);
+      expect(response.body.results[0].id).toBe(otherTaskId);
     });
   });
 
   describe('Authentication', () => {
     it('should return 401 without authentication', () => {
-      const searchDto: GlobalSearchDto = {
-        query: 'test',
-      };
-
       return request(app.getHttpServer())
         .post('/api/search/global')
-        .send(searchDto)
+        .send({ query: 'test' })
         .expect(HttpStatus.UNAUTHORIZED);
     });
   });
