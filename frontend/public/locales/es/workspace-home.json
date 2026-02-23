@@ -1,26 +1,31 @@
 {
   "analytics_title": "Análisis del Espacio de Trabajo",
   "analytics_description": "Información sobre el rendimiento y las métricas de su espacio de trabajo",
-  "dashboard_settings": "Configuración del Panel",
-  "customize_widgets": "Personalice sus widgets del panel",
+  "dashboard_settings": "Configuración del Tablero",
+  "customize_widgets": "Personaliza los widgets de tu tablero",
   "no_widgets_title": "No hay widgets para mostrar",
-  "no_widgets_description": "Todos los widgets están actualmente ocultos. Use el botón de personalizar para mostrar los widgets.",
-  "show_all_widgets": "Mostrar todos los widgets",
-  "no_data": "No hay datos analíticos disponibles para esta organización.",
+  "no_widgets_description": "Todos los widgets están ocultos actualmente. Utilice el botón de personalizar para mostrar widgets.",
+  "show_all_widgets": "Mostrar Todos los Widgets",
+  "no_data": "No hay datos de análisis disponibles para esta organización.",
   "load_data": "Cargar Datos",
-  "error_loading": "Error al cargar las analíticas de la organización:",
+  "error_loading": "Error al cargar los análisis de la organización:",
   "widgets": {
-    "kpi_metrics": "Métricas KPI",
+    "kpi_metrics": "Métricas Clave de Rendimiento (KPI)",
     "project_status": "Distribución del Estado del Proyecto",
     "task_priority": "Desglose de Prioridad de Tareas",
-    "task_type": "Distribución del Tipo de Tarea",
+    "task_type": "Distribución por Tipo de Tarea",
     "sprint_status": "Resumen del Estado del Sprint",
-    "monthly_completion": "Finalización Mensual de Tareas"
+    "monthly_completion": "Finalización Mensual de Tareas",
+    "team_utilization": "Distribución de Roles del Equipo",
+    "quality_metrics": "Calidad de Resolución de Errores",
+    "workspace_projects": "Proyectos por Espacio de Trabajo",
+    "member_workload": "Distribución de Carga de Trabajo de Miembros",
+    "resource_allocation": "Asignación de Recursos"
   },
   "charts": {
     "project_status_description": "Desglose del estado actual de todos los proyectos",
-    "task_priority_description": "Resumen de tareas por sus niveles de prioridad",
-    "task_type_description": "Distribución de tareas por su tipo",
+    "task_priority_description": "Resumen de las tareas por sus niveles de prioridad",
+    "task_type_description": "Distribución de las tareas por su tipo",
     "sprint_status_description": "Estado actual de todos los sprints en este espacio de trabajo",
     "kpi_metrics_description": "Indicadores clave de rendimiento para su espacio de trabajo",
     "monthly_completion_description": "Número de tareas completadas cada mes"
@@ -34,9 +39,48 @@
     "task_health": "Salud de las Tareas",
     "excellent": "Excelente",
     "good": "Bueno",
-    "needs_focus": "Necesita Enfoque",
+    "needs_focus": "Necesita Foco",
     "perfect": "Perfecto",
     "critical": "Crítico",
     "monitor": "Monitorear"
+  },
+  "header": {
+    "ready_to_tackle": "¿Listo para alcanzar tus metas?",
+    "todays_agenda": "Agenda de Hoy",
+    "new_task": "Nueva Tarea"
+  },
+  "analytics": {
+    "failed_to_fetch_today_task_data": "Error al obtener los datos de las tareas de hoy",
+    "error_loading_organization_analytics": "Error al cargar el análisis de la organización:",
+    "today_agenda_tooltip": "Agenda de Hoy",
+    "dashboard_settings_tooltip": "Configuración del Panel",
+    "dashboard_title": "Panel",
+    "dashboard_description": "Información completa sobre el rendimiento y la salud de su organización",
+    "no_analytics_data": "No hay datos analíticos disponibles para esta organización.",
+    "load_data_button": "Cargar Datos",
+    "no_widgets_title": "No hay widgets para mostrar",
+    "no_widgets_description": "Todos los widgets están actualmente ocultos. Utilice el botón de personalizar para mostrar los widgets.",
+    "show_all_widgets_button": "Mostrar Todos los Widgets",
+    "failed_to_load_widget_data": "Error al cargar datos para {{widgetTitle}}",
+    "retry_button": "Reintentar",
+    "kpi_cards": {
+      "workspaces": "Espacios de Trabajo Totales",
+      "projects": "Proyectos Totales",
+      "members": "Miembros del Equipo",
+      "task_completion": "Completado de Tareas",
+      "bug_resolution": "Resolución de Errores",
+      "overdue_tasks": "Tareas Atrasadas",
+      "active_sprints": "Sprints Activos",
+      "productivity": "Productividad General",
+      "descriptions": {
+        "active_status": "{{count}} activos",
+        "organization_members": "Miembros de la organización",
+        "tasks_count": "{{completed}} / {{total}} tareas",
+        "resolved_count": "{{resolved}} / {{total}} resueltos",
+        "require_attention": "Requiere atención",
+        "currently_running": "Actualmente en ejecución",
+        "task_completion_rate": "Tasa de finalización de tareas"
+      }
+    }
   }
 }

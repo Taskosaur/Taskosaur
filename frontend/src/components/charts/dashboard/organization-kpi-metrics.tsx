@@ -16,9 +16,11 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
-  rectSortingStrategy,
-} from "@dnd-kit/sortable";
+} from "@dnd-kit/sortable"; // rectSortingStrategy belongs to @dnd-kit/sortable
+import { rectSortingStrategy } from "@dnd-kit/sortable"; // Explicitly import rectSortingStrategy from @dnd-kit/sortable
+
 import { CSS } from "@dnd-kit/utilities";
+import { useTranslation } from "react-i18next";
 
 interface OrganizationKPIMetricsProps {
   data: {
@@ -52,25 +54,25 @@ interface OrganizationKPIMetricsProps {
 
 interface KPICardConfig {
   id: string;
-  defaultLabel: string;
+  defaultLabelKey: string; // Changed to key
   icon: React.ReactNode;
 }
 
 const STATIC_CARD_CONFIG: KPICardConfig[] = [
-  { id: "workspaces", defaultLabel: "Total Workspaces", icon: <Building2 className="h-4 w-4" /> },
-  { id: "projects", defaultLabel: "Total Projects", icon: <FolderOpen className="h-4 w-4" /> },
-  { id: "members", defaultLabel: "Team Members", icon: <Users className="h-4 w-4" /> },
+  { id: "workspaces", defaultLabelKey: "workspaces", icon: <Building2 className="h-4 w-4" /> },
+  { id: "projects", defaultLabelKey: "projects", icon: <FolderOpen className="h-4 w-4" /> },
+  { id: "members", defaultLabelKey: "members", icon: <Users className="h-4 w-4" /> },
   {
     id: "task-completion",
-    defaultLabel: "Task Completion",
+    defaultLabelKey: "task_completion",
     icon: <CheckCircle className="h-4 w-4" />,
   },
-  { id: "bug-resolution", defaultLabel: "Bug Resolution", icon: <Bug className="h-4 w-4" /> },
-  { id: "overdue-tasks", defaultLabel: "Overdue Tasks", icon: <Clock className="h-4 w-4" /> },
-  { id: "active-sprints", defaultLabel: "Active Sprints", icon: <Zap className="h-4 w-4" /> },
+  { id: "bug-resolution", defaultLabelKey: "bug_resolution", icon: <Bug className="h-4 w-4" /> },
+  { id: "overdue-tasks", defaultLabelKey: "overdue_tasks", icon: <Clock className="h-4 w-4" /> },
+  { id: "active-sprints", defaultLabelKey: "active_sprints", icon: <Zap className="h-4 w-4" /> },
   {
     id: "productivity",
-    defaultLabel: "Overall Productivity",
+    defaultLabelKey: "productivity",
     icon: <CheckCircle className="h-4 w-4" />,
   },
 ];
@@ -107,7 +109,7 @@ function SortableStatCard({ id, label, value, icon, description, link }: Sortabl
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={handleClick}>
-      <StatCard label={label} value={value} icon={icon} className={link ? "cursor-pointer" : ""} />
+      <StatCard label={label} value={value} icon={icon} description={description} className={link ? "cursor-pointer" : ""} />
     </div>
   );
 }
@@ -118,6 +120,7 @@ export function OrganizationKPIMetrics({
   onOrderChange,
   taskStatuses = [],
 }: OrganizationKPIMetricsProps) {
+  const { t } = useTranslation("workspace-home");
   // Initialize orderedIds based on visibleCards prop or default static config
   const [orderedIds, setOrderedIds] = useState<string[]>(() => {
     if (visibleCards.length > 0) {
@@ -188,27 +191,27 @@ export function OrganizationKPIMetrics({
         switch (id) {
           case "workspaces":
             value = data?.totalWorkspaces ?? 0;
-            description = `${data?.activeWorkspaces ?? 0} active`;
+            description = t("analytics.kpi_cards.descriptions.active_status", { count: data?.activeWorkspaces ?? 0 });
             break;
           case "projects":
             value = data?.totalProjects ?? 0;
-            description = `${data?.activeProjects ?? 0} active`;
+            description = t("analytics.kpi_cards.descriptions.active_status", { count: data?.activeProjects ?? 0 });
             break;
           case "members":
             value = data?.totalMembers ?? 0;
-            description = "Organization members";
+            description = t("analytics.kpi_cards.descriptions.organization_members");
             break;
           case "task-completion":
             value = `${(data?.taskCompletionRate ?? 0).toFixed(1)}%`;
-            description = `${data?.completedTasks ?? 0}/${data?.totalTasks ?? 0} tasks`;
+            description = t("analytics.kpi_cards.descriptions.tasks_count", { completed: data?.completedTasks ?? 0, total: data?.totalTasks ?? 0 });
             break;
           case "bug-resolution":
             value = `${(data?.bugResolutionRate ?? 0).toFixed(1)}%`;
-            description = `${data?.resolvedBugs ?? 0}/${data?.totalBugs ?? 0} resolved`;
+            description = t("analytics.kpi_cards.descriptions.resolved_count", { resolved: data?.resolvedBugs ?? 0, total: data?.totalBugs ?? 0 });
             break;
           case "overdue-tasks":
             value = data?.overdueTasks ?? 0;
-            description = "Require attention";
+            description = t("analytics.kpi_cards.descriptions.require_attention");
             // Conditional icon for overdue tasks
             if (data?.overdueTasks === 0) {
               icon = <CheckCircle className="h-4 w-4" />;
@@ -218,11 +221,11 @@ export function OrganizationKPIMetrics({
             break;
           case "active-sprints":
             value = data?.activeSprints ?? 0;
-            description = "Currently running";
+            description = t("analytics.kpi_cards.descriptions.currently_running");
             break;
           case "productivity":
             value = `${data?.overallProductivity?.toFixed(1) || 0}%`;
-            description = "Task completion rate";
+            description = t("analytics.kpi_cards.descriptions.task_completion_rate");
             break;
           default:
             break;
@@ -230,7 +233,7 @@ export function OrganizationKPIMetrics({
 
         return {
           id,
-          label: config.defaultLabel,
+          label: t(`analytics.kpi_cards.${config.defaultLabelKey}`),
           value,
           description,
           icon,
@@ -242,7 +245,7 @@ export function OrganizationKPIMetrics({
         };
       })
       .filter((card): card is NonNullable<typeof card> => card !== null);
-  }, [orderedIds, data]);
+  }, [orderedIds, data, t, doneStatusIds, visibleCards]);
 
   const visibleCount = displayCards.length;
 

@@ -8,6 +8,7 @@ import { WorkspaceProjectChart } from "@/components/charts/dashboard/workspace-p
 import { MemberWorkloadChart } from "@/components/charts/dashboard/member-workload-chart";
 import { ResourceAllocationChart } from "@/components/charts/dashboard/resource-allocation-chart";
 import { TaskTypeChart } from "@/components/charts/dashboard/task-type-chart";
+import i18n from '@/lib/i18n'; // Import the i18n instance
 
 export interface KPICard {
   id: string;
@@ -24,7 +25,7 @@ export interface AnalyticsData {
   taskDistribution: any[];
   taskType: any[];
   sprintMetrics: any[];
-  qualityMetrics: any;
+  qualityMetrics: any[];
   workspaceProjectCount: any[];
   memberWorkload: any[];
   resourceAllocation: any[];
@@ -41,10 +42,13 @@ export interface Widget {
   link?: string;
 }
 
+// Helper function to get translation
+const t = i18n.t.bind(i18n);
+
 export const organizationAnalyticsWidgets: Widget[] = [
   {
     id: "kpi-metrics",
-    title: "Organization KPIs",
+    title: t("workspace-home:widgets.kpi_metrics"),
     component: OrganizationKPIMetrics,
     dataKey: "kpiMetrics",
     visible: true,
@@ -53,7 +57,7 @@ export const organizationAnalyticsWidgets: Widget[] = [
   },
   {
     id: "project-portfolio",
-    title: "Project Portfolio Status",
+    title: t("workspace-home:widgets.project_status"),
     component: ProjectPortfolioChart,
     dataKey: "projectPortfolio",
     visible: true,
@@ -63,7 +67,7 @@ export const organizationAnalyticsWidgets: Widget[] = [
   },
   {
     id: "team-utilization",
-    title: "Team Role Distribution",
+    title: t("workspace-home:widgets.team_utilization"), // Assuming a new key for this
     component: TeamUtilizationChart,
     dataKey: "teamUtilization",
     visible: true,
@@ -72,7 +76,7 @@ export const organizationAnalyticsWidgets: Widget[] = [
   },
   {
     id: "task-distribution",
-    title: "Task Priority Distribution",
+    title: t("workspace-home:widgets.task_priority"),
     component: TaskDistributionChart,
     dataKey: "taskDistribution",
     visible: true,
@@ -82,7 +86,7 @@ export const organizationAnalyticsWidgets: Widget[] = [
   },
   {
     id: "task-type",
-    title: "Task Type Distribution",
+    title: t("workspace-home:widgets.task_type"),
     component: TaskTypeChart,
     dataKey: "taskType",
     visible: false,
@@ -91,7 +95,7 @@ export const organizationAnalyticsWidgets: Widget[] = [
   },
   {
     id: "sprint-metrics",
-    title: "Sprint Status Overview",
+    title: t("workspace-home:widgets.sprint_status"),
     component: SprintMetricsChart,
     dataKey: "sprintMetrics",
     visible: false,
@@ -100,7 +104,7 @@ export const organizationAnalyticsWidgets: Widget[] = [
   },
   {
     id: "quality-metrics",
-    title: "Bug Resolution Quality",
+    title: t("workspace-home:widgets.quality_metrics"), // Assuming new key
     component: QualityMetricsChart,
     dataKey: "qualityMetrics",
     visible: false,
@@ -109,7 +113,7 @@ export const organizationAnalyticsWidgets: Widget[] = [
   },
   {
     id: "workspace-projects",
-    title: "Projects per Workspace",
+    title: t("workspace-home:widgets.workspace_projects"), // Assuming new key
     component: WorkspaceProjectChart,
     dataKey: "workspaceProjectCount",
     visible: false,
@@ -118,7 +122,7 @@ export const organizationAnalyticsWidgets: Widget[] = [
   },
   {
     id: "member-workload",
-    title: "Member Workload Distribution",
+    title: t("workspace-home:widgets.member_workload"), // Assuming new key
     component: MemberWorkloadChart,
     dataKey: "memberWorkload",
     visible: true,
@@ -127,7 +131,7 @@ export const organizationAnalyticsWidgets: Widget[] = [
   },
   {
     id: "resource-allocation",
-    title: "Resource Allocation",
+    title: t("workspace-home:widgets.resource_allocation"), // Assuming new key
     component: ResourceAllocationChart,
     dataKey: "resourceAllocation",
     visible: false,
@@ -139,53 +143,53 @@ export const organizationAnalyticsWidgets: Widget[] = [
 export const organizationKPICards: KPICard[] = [
   {
     id: "workspaces",
-    label: "Total Workspaces",
+    label: t("workspace-home:analytics.kpi_cards.workspaces"),
     visible: true,
     isDefault: true,
     link: "/workspaces",
   },
   {
     id: "projects",
-    label: "Total Projects",
+    label: t("workspace-home:analytics.kpi_cards.projects"),
     visible: true,
     isDefault: true,
     link: "/projects",
   },
   {
     id: "members",
-    label: "Team Members",
+    label: t("workspace-home:analytics.kpi_cards.members"),
     visible: true,
     isDefault: true,
     link: "/organization",
   },
   {
     id: "task-completion",
-    label: "Task Completion",
+    label: t("workspace-home:analytics.kpi_cards.task_completion"),
     visible: true,
     isDefault: true,
   },
   {
     id: "bug-resolution",
-    label: "Bug Resolution",
+    label: t("workspace-home:analytics.kpi_cards.bug_resolution"),
     visible: false,
     isDefault: false,
   },
   {
     id: "overdue-tasks",
-    label: "Overdue Tasks",
+    label: t("workspace-home:analytics.kpi_cards.overdue_tasks"),
     visible: false,
     isDefault: false,
     link: "/tasks",
   },
   {
     id: "active-sprints",
-    label: "Active Sprints",
+    label: t("workspace-home:analytics.kpi_cards.active_sprints"),
     visible: false,
     isDefault: false,
   },
   {
     id: "productivity",
-    label: "Overall Productivity",
+    label: t("workspace-home:analytics.kpi_cards.productivity"),
     visible: false,
     isDefault: false,
   },

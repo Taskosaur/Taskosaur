@@ -15,7 +15,12 @@
     "task_priority": "Task Priority Breakdown",
     "task_type": "Task Type Distribution",
     "sprint_status": "Sprint Status Overview",
-    "monthly_completion": "Monthly Task Completion"
+    "monthly_completion": "Monthly Task Completion",
+    "team_utilization": "Team Role Distribution",
+    "quality_metrics": "Bug Resolution Quality",
+    "workspace_projects": "Projects per Workspace",
+    "member_workload": "Member Workload Distribution",
+    "resource_allocation": "Resource Allocation"
   },
   "charts": {
     "project_status_description": "Current status breakdown of all projects",
@@ -38,5 +43,44 @@
     "perfect": "Perfect",
     "critical": "Critical",
     "monitor": "Monitor"
+  },
+  "header": {
+    "ready_to_tackle": "Ready to tackle your goals?",
+    "todays_agenda": "Today's Agenda",
+    "new_task": "New Task"
+  },
+  "analytics": {
+    "failed_to_fetch_today_task_data": "Failed to fetch today task data",
+    "error_loading_organization_analytics": "Error loading organization analytics:",
+    "today_agenda_tooltip": "Today Agenda",
+    "dashboard_settings_tooltip": "Dashboard Settings",
+    "dashboard_title": "Dashboard",
+    "dashboard_description": "Comprehensive insights into your organization's performance and health",
+    "no_analytics_data": "No analytics data available for this organization.",
+    "load_data_button": "Load Data",
+    "no_widgets_title": "No widgets to display",
+    "no_widgets_description": "All widgets are currently hidden. Use the customize button to show widgets.",
+    "show_all_widgets_button": "Show All Widgets",
+    "failed_to_load_widget_data": "Failed to load data for {{widgetTitle}}",
+    "retry_button": "Retry",
+    "kpi_cards": {
+      "workspaces": "Total Workspaces",
+      "projects": "Total Projects",
+      "members": "Team Members",
+      "task_completion": "Task Completion",
+      "bug_resolution": "Bug Resolution",
+      "overdue_tasks": "Overdue Tasks",
+      "active_sprints": "Active Sprints",
+      "productivity": "Overall Productivity",
+      "descriptions": {
+        "active_status": "{{count}} active",
+        "organization_members": "Organization members",
+        "tasks_count": "{{completed}} / {{total}} tasks",
+        "resolved_count": "{{resolved}} / {{total}} resolved",
+        "require_attention": "Require attention",
+        "currently_running": "Currently running",
+        "task_completion_rate": "Task completion rate"
+      }
+    }
   }
 }

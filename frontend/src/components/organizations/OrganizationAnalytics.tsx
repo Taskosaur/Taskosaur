@@ -48,6 +48,7 @@ import ActionButton from "../common/ActionButton";
 import { TodayAgendaDialog } from "./TodayAgendaDialog";
 import ErrorState from "../common/ErrorState";
 import { HiHome } from "react-icons/hi";
+import { useTranslation } from "react-i18next";
 
 interface OrganizationAnalyticsProps {
   organizationId: string;
@@ -84,6 +85,7 @@ function SortableWidget({
 }
 
 export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsProps) {
+  const { t } = useTranslation("workspace-home");
   const {
     analyticsData: data,
     analyticsLoading: loading,
@@ -132,7 +134,7 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
       setShowTodayAgenda(true);
     } catch (error) {
       console.error(error);
-      toast.error("Faild to fetch today task data");
+      toast.error(t("analytics.failed_to_fetch_today_task_data"));
     }
   };
 
@@ -213,7 +215,7 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
         // Hidden widgets keep their relative order after visible ones
         const hiddenWidgets = prevWidgets
           .filter((w) => !w.visible)
-          .sort((a, b) => a.priority - b.priority);
+          .sort((a, b) => b.priority - a.priority); // Sort descending to maintain original order when adding back
 
         hiddenWidgets.forEach((w, index) => {
           priorityMap.set(w.id, reorderedVisibleWidgets.length + index);
@@ -424,9 +426,9 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
       return (
         <Card className="p-4 h-full flex items-center justify-center">
           <div className="text-center text-muted-foreground">
-            <p>Failed to load data for {widget.title}</p>
+            <p>{t("analytics.failed_to_load_widget_data", { widgetTitle: widget.title })}</p>
             <Button variant="outline" size="sm" onClick={handleFetchData} className="mt-2">
-              Retry
+              {t("analytics.retry_button")}
             </Button>
           </div>
         </Card>
@@ -444,7 +446,7 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
 
   if (error) {
     return (
-      <ErrorState error="Error loading organization analytics:" onRetry={handleFetchData} />
+      <ErrorState error={t("analytics.error_loading_organization_analytics")} onRetry={handleFetchData} />
     );
   }
 
@@ -458,12 +460,12 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
         upcomingTasks={todayTask?.tasks || []}
       />
       <PageHeader
-        title="Dashboard"
-        description="Comprehensive insights into your organization's performance and health"
+        title={t("analytics.dashboard_title")}
+        description={t("analytics.dashboard_description")}
         icon={<HiHome className="size-5" />}
         actions={
           <div className="flex items-center gap-2">
-            <Tooltip content="Today Agenda" position="top" color="primary">
+            <Tooltip content={t("analytics.today_agenda_tooltip")} position="top" color="primary">
               <ActionButton
                 variant="outline"
                 onClick={() => handleTodayTaskFetch()}
@@ -473,7 +475,7 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
                 <Calendar className="h-4 w-4" />
               </ActionButton>
             </Tooltip>
-            <Tooltip content="Dashboard Settings" position="left" color="primary">
+            <Tooltip content={t("analytics.dashboard_settings_tooltip")} position="left" color="primary">
               <DashboardSettingsDropdown sections={settingSections} />
             </Tooltip>
           </div>
@@ -483,9 +485,9 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
       {/* No Data Message */}
       {!data && !loading && !error && (
         <Alert>
-          <AlertDescription>No analytics data available for this organization.</AlertDescription>
+          <AlertDescription>{t("analytics.no_analytics_data")}</AlertDescription>
           <Button onClick={handleFetchData} variant="outline" size="sm" className="mt-2">
-            Load Data
+            {t("analytics.load_data_button")}
           </Button>
         </Alert>
       )}
@@ -494,12 +496,12 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
       {data && visibleCount === 0 && (
         <Card className="p-8 text-center">
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">No widgets to display</h3>
+            <h3 className="text-lg font-semibold">{t("analytics.no_widgets_title")}</h3>
             <p className="text-muted-foreground">
-              All widgets are currently hidden. Use the customize button to show widgets.
+              {t("analytics.no_widgets_description")}
             </p>
             <Button onClick={resetWidgets} variant="outline" className="mt-4">
-              Show All Widgets
+              {t("analytics.show_all_widgets_button")}
             </Button>
           </div>
         </Card>
