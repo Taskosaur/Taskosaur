@@ -24,31 +24,35 @@ function TaskDetailContent() {
 
   useEffect(() => {
     const fetchTask = async () => {
+      if (!router.isReady) return;
+
       if (!cleanTaskId) {
-        if (router.isReady && isAuthenticated()) {
-           setError("Task ID required");
-           setLoading(false);
-        }
+        setError("Task ID required");
+        setLoading(false);
         return;
-      }
-      
-      if (!isAuthenticated()) {
-         return;
       }
 
       try {
         const taskData = await getTaskById(cleanTaskId as string, isAuthenticated());
 
         if (!taskData) {
+          if (!isAuthenticated()) {
+            router.push(`/login?redirect=${encodeURIComponent(router.asPath)}`);
+            return;
+          }
           setError("Task not found");
           setLoading(false);
           return;
         }
 
         setTask(taskData);
+        setLoading(false);
       } catch (err) {
+        if (!isAuthenticated()) {
+          router.push(`/login?redirect=${encodeURIComponent(router.asPath)}`);
+          return;
+        }
         setError(err?.message ? err.message : "Failed to load task");
-      } finally {
         setLoading(false);
       }
     };
