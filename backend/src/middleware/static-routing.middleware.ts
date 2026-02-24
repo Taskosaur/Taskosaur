@@ -95,7 +95,14 @@ export class StaticRoutingMiddleware {
     }
 
     // Try with dynamic segment placeholders
-    const dynamicPatterns = ['[workspaceSlug]', '[projectSlug]', '[taskId]', '[slug]'];
+    const dynamicPatterns = [
+      '[workspaceSlug]',
+      '[projectSlug]',
+      '[taskId]',
+      '[slug]',
+      '[token]',
+      '[sprintId]',
+    ];
 
     for (const pattern of dynamicPatterns) {
       for (const remaining of remainingPaths) {
