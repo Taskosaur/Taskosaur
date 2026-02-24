@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { HiLink } from 'react-icons/hi';
-
+import ActionButton from '@/components/common/ActionButton';
 interface ShareTaskDialogProps {
   taskId: string;
   isOpen: boolean;
@@ -120,7 +120,7 @@ export default function ShareTaskDialog({ taskId, isOpen, onClose }: ShareTaskDi
               <Label htmlFor="expiry">Link expires in</Label>
               <div className="flex gap-2">
                 <Select value={expiryDays} onValueChange={setExpiryDays}>
-                  <SelectTrigger id="expiry" className="w-[180px]">
+                  <SelectTrigger id="expiry" className="w-[180px] h-9 border-none bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)] transition-all duration-200">
                     <SelectValue placeholder="Select expiry" />
                   </SelectTrigger>
                   <SelectContent className='bg-[var(--card)]'>
@@ -131,13 +131,14 @@ export default function ShareTaskDialog({ taskId, isOpen, onClose }: ShareTaskDi
                     <SelectItem value="30">30 days</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button 
-                  onClick={handleCreateShare} 
+                <ActionButton 
+                  onClick={handleCreateShare}
                   disabled={creating}
                   className="flex-1"
+                  secondary
                 >
                   {creating ? 'Creating...' : 'Create Public Link'}
-                </Button>
+                </ActionButton>
               </div>
             </div>
           </div>
@@ -201,9 +202,9 @@ export default function ShareTaskDialog({ taskId, isOpen, onClose }: ShareTaskDi
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <ActionButton secondary onClick={onClose}>
             Done
-          </Button>
+          </ActionButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
