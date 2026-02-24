@@ -109,7 +109,7 @@ function SortableStatCard({ id, label, value, icon, description, link }: Sortabl
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={handleClick}>
-      <StatCard label={label} value={value} icon={icon} description={description} className={link ? "cursor-pointer" : ""} />
+      <StatCard label={label} value={value} icon={icon} className={link ? "cursor-pointer" : ""} />
     </div>
   );
 }
