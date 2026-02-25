@@ -62,6 +62,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
     });
 
@@ -110,6 +111,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
     });
 
@@ -134,7 +136,9 @@ export class AuthService {
 
   async refreshToken(refreshToken: string): Promise<AuthResponseDto> {
     try {
-      const decoded = this.jwtService.verify(refreshToken);
+      const decoded = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      });
 
       // Type guard to ensure decoded payload has required properties
       if (!decoded || typeof decoded !== 'object' || !('sub' in decoded)) {
@@ -156,6 +160,7 @@ export class AuthService {
 
       const newAccessToken = this.jwtService.sign(newPayload);
       const newRefreshToken = this.jwtService.sign(newPayload, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
         expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
       });
 

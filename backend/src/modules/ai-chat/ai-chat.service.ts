@@ -656,8 +656,39 @@ FILTER RULES (VERY IMPORTANT - for filtering tasks by priority, status, type, et
       console.error('Test connection failed:', error);
 
       const errorMessage = error instanceof Error ? error.message : String(error);
+      const causeCode = error instanceof Error && (error as any).cause?.code;
 
-      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+      if (causeCode === 'ECONNREFUSED' || errorMessage.includes('ECONNREFUSED')) {
+        return {
+          success: false,
+          error:
+            'Connection refused. The AI service is not running or not reachable at the specified URL.',
+        };
+      }
+
+      if (causeCode === 'ENOTFOUND' || errorMessage.includes('ENOTFOUND')) {
+        return {
+          success: false,
+          error: 'Host not found. Please check your API URL.',
+        };
+      }
+
+      if (
+        causeCode === 'ETIMEDOUT' ||
+        errorMessage.includes('ETIMEDOUT') ||
+        errorMessage.includes('timeout')
+      ) {
+        return {
+          success: false,
+          error: 'Connection timed out. The AI service is not responding.',
+        };
+      }
+
+      if (
+        errorMessage.includes('fetch failed') ||
+        errorMessage.includes('Failed to fetch') ||
+        errorMessage.includes('NetworkError')
+      ) {
         return {
           success: false,
           error: 'Network error. Please check your internet connection and API URL.',
@@ -666,7 +697,7 @@ FILTER RULES (VERY IMPORTANT - for filtering tasks by priority, status, type, et
 
       return {
         success: false,
-        error: errorMessage || 'Connection test failed. Please check your configuration.',
+        error: 'Connection test failed. Please check your configuration.',
       };
     }
   }
