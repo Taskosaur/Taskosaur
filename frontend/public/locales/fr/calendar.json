@@ -1,0 +1,42 @@
+{
+  "title": "Calendrier {{name}}",
+  "description": "Visualisez et gérez les tâches du projet {{name}} au format calendrier.",
+  "createTask": "Créer une tâche",
+  "noTasks": {
+    "title": "Aucune tâche trouvée",
+    "description": "Créez votre première tâche pour {{name}} pour la voir sur le calendrier"
+  },
+  "errors": {
+    "invalidSlug": "Slug d'espace de travail ou de projet invalide",
+    "workspaceNotFound": "Espace de travail non trouvé",
+    "projectNotFound": "Projet non trouvé",
+    "failedLoadData": "Échec du chargement des données",
+    "projectOrWorkspaceNotFound": "Projet ou espace de travail non trouvé"
+  },
+  "view": {
+    "noTasksScheduled": "Aucune tâche planifiée",
+    "noTasksScheduledDescription": "Les tâches avec des dates d'échéance apparaîtront sur le calendrier. Créez des tâches avec des dates spécifiques pour visualiser votre emploi du temps.",
+    "days": {
+      "sun": "Dim",
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mer",
+      "thu": "Jeu",
+      "fri": "Ven",
+      "sat": "Sam"
+    },
+    "untitledTask": "Tâche sans titre",
+    "more": "plus",
+    "time": "Heure",
+    "weekOf": "Semaine du {{date}}",
+    "daysWithTasks": "{{count}} jours avec des tâches ce mois-ci",
+    "tasksThisWeek": "{{count}} tâches cette semaine",
+    "month": "Mois",
+    "week": "Semaine",
+    "today": "Aujourd'hui",
+    "noTasksThisDay": "Aucune tâche planifiée pour ce jour",
+    "noStatus": "Aucun statut",
+    "overdue": "En retard",
+    "assignee": "Assigné"
+  }
+}

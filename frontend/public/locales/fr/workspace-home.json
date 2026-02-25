@@ -1,0 +1,86 @@
+{
+  "analytics_title": "Analyses de l'espace de travail",
+  "analytics_description": "Aperçu des performances et des indicateurs de votre espace de travail",
+  "dashboard_settings": "Paramètres du tableau de bord",
+  "customize_widgets": "Personnalisez les widgets de votre tableau de bord",
+  "no_widgets_title": "Aucun widget à afficher",
+  "no_widgets_description": "Tous les widgets sont actuellement masqués. Utilisez le bouton de personnalisation pour les afficher.",
+  "show_all_widgets": "Afficher tous les widgets",
+  "no_data": "Aucune donnée analytique disponible pour cette organisation.",
+  "load_data": "Charger les données",
+  "error_loading": "Erreur lors du chargement des analyses de l'organisation :",
+  "widgets": {
+    "kpi_metrics": "Indicateurs clés (KPI)",
+    "project_status": "Répartition des statuts de projet",
+    "task_priority": "Répartition des priorités de tâche",
+    "task_type": "Répartition des types de tâche",
+    "sprint_status": "Aperçu des statuts de sprint",
+    "monthly_completion": "Achèvement mensuel des tâches",
+    "team_utilization": "Répartition des rôles de l'équipe",
+    "quality_metrics": "Qualité de résolution des bugs",
+    "workspace_projects": "Projets par espace de travail",
+    "member_workload": "Répartition de la charge de travail des membres",
+    "resource_allocation": "Allocation des ressources"
+  },
+  "charts": {
+    "project_status_description": "Répartition des statuts actuels de tous les projets",
+    "task_priority_description": "Aperçu des tâches par niveau de priorité",
+    "task_type_description": "Répartition des tâches par type",
+    "sprint_status_description": "Statut actuel de tous les sprints de cet espace de travail",
+    "kpi_metrics_description": "Indicateurs clés de performance pour votre espace de travail",
+    "monthly_completion_description": "Nombre de tâches terminées chaque mois"
+  },
+  "kpi": {
+    "total_projects": "Total des projets",
+    "active_projects": "Projets actifs",
+    "completion_rate": "Taux d'achèvement",
+    "total_tasks": "Total des tâches",
+    "overdue_tasks": "Tâches en retard",
+    "task_health": "Santé des tâches",
+    "excellent": "Excellent",
+    "good": "Bon",
+    "needs_focus": "Nécessite de l'attention",
+    "perfect": "Parfait",
+    "critical": "Critique",
+    "monitor": "À surveiller"
+  },
+  "header": {
+    "ready_to_tackle": "Prêt à relever vos défis ?",
+    "todays_agenda": "Agenda du jour",
+    "new_task": "Nouvelle tâche"
+  },
+  "analytics": {
+    "failed_to_fetch_today_task_data": "Échec de la récupération des données de tâches du jour",
+    "error_loading_organization_analytics": "Erreur lors du chargement des analyses de l'organisation :",
+    "today_agenda_tooltip": "Agenda du jour",
+    "dashboard_settings_tooltip": "Paramètres du tableau de bord",
+    "dashboard_title": "Tableau de bord",
+    "dashboard_description": "Aperçu complet des performances et de la santé de votre organisation",
+    "no_analytics_data": "Aucune donnée analytique disponible pour cette organisation.",
+    "load_data_button": "Charger les données",
+    "no_widgets_title": "Aucun widget à afficher",
+    "no_widgets_description": "Tous les widgets sont actuellement masqués. Utilisez le bouton de personnalisation pour les afficher.",
+    "show_all_widgets_button": "Afficher tous les widgets",
+    "failed_to_load_widget_data": "Échec du chargement des données pour {{widgetTitle}}",
+    "retry_button": "Réessayer",
+    "kpi_cards": {
+      "workspaces": "Total des espaces de travail",
+      "projects": "Total des projets",
+      "members": "Membres de l'équipe",
+      "task_completion": "Achèvement des tâches",
+      "bug_resolution": "Résolution de bugs",
+      "overdue_tasks": "Tâches en retard",
+      "active_sprints": "Sprints actifs",
+      "productivity": "Productivité globale",
+      "descriptions": {
+        "active_status": "{{count}} actifs",
+        "organization_members": "Membres de l'organisation",
+        "tasks_count": "{{completed}} / {{total}} tâches",
+        "resolved_count": "{{resolved}} / {{total}} résolus",
+        "require_attention": "Nécessitent une attention",
+        "currently_running": "En cours d'exécution",
+        "task_completion_rate": "Taux d'achèvement des tâches"
+      }
+    }
+  }
+}

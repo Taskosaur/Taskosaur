@@ -1,0 +1,30 @@
+{
+  "title": "Flux d'activité",
+  "description": "Gérez et suivez toutes vos activités en un seul endroit.",
+  "workspace_description": "Activité récente et mises à jour dans l'espace de travail \"{{workspaceName}}\"",
+  "filters": {
+    "all": "Toute l'activité",
+    "tasks": "Tâches",
+    "projects": "Projets",
+    "workspaces": "Espaces de travail",
+    "users": "Utilisateurs",
+    "comments": "Commentaires",
+    "status_changes": "Changements de statut",
+    "assignments": "Assignations",
+    "filter_by_type": "Filtrer par type",
+    "clear_filter": "Effacer le filtre"
+  },
+  "pagination": {
+    "page_info": "Page {{currentPage}} sur {{totalPages}}",
+    "previous": "Précédent",
+    "next": "Suivant"
+  },
+  "recent_activity": "Activité récente",
+  "workspace_activity": "Activité de l'espace de travail",
+  "failed_to_load": "Échec du chargement des activités",
+  "failed_to_refresh": "Échec de l'actualisation des activités",
+  "failed_to_load_workspace": "Échec du chargement de l'activité de l'espace de travail",
+  "no_activity": "Aucune activité pour le moment",
+  "no_filter_results": "Aucun {{filter}} trouvé",
+  "workspace_not_found": "Espace de travail non trouvé"
+}

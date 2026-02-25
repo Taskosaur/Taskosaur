@@ -1,0 +1,34 @@
+{
+  "save": "Enregistrer",
+  "cancel": "Annuler",
+  "delete": "Supprimer",
+  "continue": "Continuer",
+  "confirm": "Confirmer",
+  "error": "Erreur",
+  "success": "Succès",
+  "priorities": {
+    "lowest": "Très basse",
+    "low": "Basse",
+    "medium": "Moyenne",
+    "high": "Haute",
+    "highest": "Très haute"
+  },
+  "invite": {
+    "invalidTitle": "Invitation invalide",
+    "invalidMessage": "Lien d'invitation invalide ou expiré",
+    "whyHappened": "Pourquoi est-ce arrivé ?",
+    "reasonExpired": "Le lien d'invitation a peut-être expiré",
+    "reasonEmail": "Il a peut-être été envoyé à une adresse e-mail différente",
+    "reasonUsed": "L'invitation a déjà été utilisée ou révoquée",
+    "logout": "Se déconnecter et changer de compte",
+    "login": "Retour à la connexion",
+    "home": "Retour à l'accueil"
+  },
+  "pagination": {
+    "showing": "Affichage de",
+    "to": "à",
+    "of": "sur",
+    "page": "Page",
+    "items": "éléments"
+  }
+}
