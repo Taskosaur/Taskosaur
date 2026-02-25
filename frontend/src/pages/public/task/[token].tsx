@@ -10,7 +10,7 @@ import Link from 'next/link';
 export default function PublicTaskPage() {
   const router = useRouter();
   const { token } = router.query;
-  
+
   const [task, setTask] = useState<PublicSharedTask | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,16 +40,16 @@ export default function PublicTaskPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--primary)]"></div>
       </div>
     );
   }
 
   if (error || !task) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-4 font-sans">
-        <div className="max-w-md w-full bg-white dark:bg-gray-950 p-8 rounded-xl shadow-lg text-center space-y-6">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--background)] p-4 font-sans">
+        <div className="max-w-md w-full bg-[var(--background)] border border-[var(--border)] p-8 rounded-xl shadow-lg text-center space-y-6">
           <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
             {error?.toLowerCase().includes('expire') ? (
               <HiClock className="w-8 h-8 text-red-600 dark:text-red-400" />
@@ -57,12 +57,12 @@ export default function PublicTaskPage() {
               <HiExclamationTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
             )}
           </div>
-          
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">
             {error?.toLowerCase().includes('expire') ? 'Link Expired' : 'Access Denied'}
           </h1>
-          
-          <p className="text-gray-500 dark:text-gray-400">
+
+          <p className="text-[var(--muted-foreground)]">
             {error || 'This shared link is invalid or has been revoked.'}
           </p>
 
