@@ -1,0 +1,30 @@
+{
+  "title": "Fluxo de Atividade",
+  "description": "Gerencie e acompanhe todas as suas atividades em um só lugar.",
+  "workspace_description": "Atividade recente e atualizações no espaço de trabalho \"{{workspaceName}}\"",
+  "filters": {
+    "all": "Toda a Atividade",
+    "tasks": "Tarefas",
+    "projects": "Projetos",
+    "workspaces": "Espaços de Trabalho",
+    "users": "Usuários",
+    "comments": "Comentários",
+    "status_changes": "Mudanças de Status",
+    "assignments": "Atribuições",
+    "filter_by_type": "Filtrar por Tipo",
+    "clear_filter": "Limpar Filtro"
+  },
+  "pagination": {
+    "page_info": "Página {{currentPage}} de {{totalPages}}",
+    "previous": "Anterior",
+    "next": "Próximo"
+  },
+  "recent_activity": "Atividade Recente",
+  "workspace_activity": "Atividade do Espaço de Trabalho",
+  "failed_to_load": "Falha ao carregar atividades",
+  "failed_to_refresh": "Falha ao atualizar atividades",
+  "failed_to_load_workspace": "Falha ao carregar atividade do espaço de trabalho",
+  "no_activity": "Nenhuma atividade ainda",
+  "no_filter_results": "Nenhum {{filter}} encontrado",
+  "workspace_not_found": "Espaço de trabalho não encontrado"
+}

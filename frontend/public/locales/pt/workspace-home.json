@@ -1,0 +1,86 @@
+{
+  "analytics_title": "Análise do Espaço de Trabalho",
+  "analytics_description": "Informações sobre o desempenho e as métricas do seu espaço de trabalho",
+  "dashboard_settings": "Configurações do Painel",
+  "customize_widgets": "Personalize os widgets do seu painel",
+  "no_widgets_title": "Nenhum widget para exibir",
+  "no_widgets_description": "Todos os widgets estão ocultos no momento. Use o botão de personalização para mostrar os widgets.",
+  "show_all_widgets": "Mostrar Todos os Widgets",
+  "no_data": "Nenhum dado analítico disponível para esta organização.",
+  "load_data": "Carregar Dados",
+  "error_loading": "Erro ao carregar análise da organização:",
+  "widgets": {
+    "kpi_metrics": "Métricas KPI",
+    "project_status": "Distribuição de Status do Projeto",
+    "task_priority": "Detalhamento de Prioridade de Tarefa",
+    "task_type": "Distribuição por Tipo de Tarefa",
+    "sprint_status": "Visão Geral do Status da Sprint",
+    "monthly_completion": "Conclusão Mensal de Tarefas",
+    "team_utilization": "Distribuição de Funções da Equipe",
+    "quality_metrics": "Qualidade da Resolução de Erros",
+    "workspace_projects": "Projetos por Espaço de Trabalho",
+    "member_workload": "Distribuição de Carga de Trabalho dos Membros",
+    "resource_allocation": "Alocação de Recursos"
+  },
+  "charts": {
+    "project_status_description": "Detalhamento do status atual de todos os projetos",
+    "task_priority_description": "Visão geral das tarefas por seus níveis de prioridade",
+    "task_type_description": "Distribuição das tarefas por seu tipo",
+    "sprint_status_description": "Status atual de todas as sprints neste espaço de trabalho",
+    "kpi_metrics_description": "Principais indicadores de desempenho para seu espaço de trabalho",
+    "monthly_completion_description": "Número de tarefas concluídas a cada mês"
+  },
+  "kpi": {
+    "total_projects": "Total de Projetos",
+    "active_projects": "Projetos Ativos",
+    "completion_rate": "Taxa de Conclusão",
+    "total_tasks": "Total de Tarefas",
+    "overdue_tasks": "Tarefas Atrasadas",
+    "task_health": "Saúde das Tarefas",
+    "excellent": "Excelente",
+    "good": "Bom",
+    "needs_focus": "Precisa de Foco",
+    "perfect": "Perfeito",
+    "critical": "Crítico",
+    "monitor": "Monitorar"
+  },
+  "header": {
+    "ready_to_tackle": "Pronto para enfrentar seus objetivos?",
+    "todays_agenda": "Agenda de Hoje",
+    "new_task": "Nova Tarefa"
+  },
+  "analytics": {
+    "failed_to_fetch_today_task_data": "Falha ao buscar dados das tarefas de hoje",
+    "error_loading_organization_analytics": "Erro ao carregar análise da organização:",
+    "today_agenda_tooltip": "Agenda de Hoje",
+    "dashboard_settings_tooltip": "Configurações do Painel",
+    "dashboard_title": "Painel",
+    "dashboard_description": "Informações abrangentes sobre o desempenho e a saúde de sua organização",
+    "no_analytics_data": "Nenhum dado analítico disponível para esta organização.",
+    "load_data_button": "Carregar Dados",
+    "no_widgets_title": "Nenhum widget para exibir",
+    "no_widgets_description": "Todos os widgets estão ocultos no momento. Use o botão de personalização para mostrar os widgets.",
+    "show_all_widgets_button": "Mostrar Todos os Widgets",
+    "failed_to_load_widget_data": "Falha ao carregar dados para {{widgetTitle}}",
+    "retry_button": "Tentar Novamente",
+    "kpi_cards": {
+      "workspaces": "Total de Espaços de Trabalho",
+      "projects": "Total de Projetos",
+      "members": "Membros da Equipe",
+      "task_completion": "Conclusão de Tarefas",
+      "bug_resolution": "Resolução de Erros",
+      "overdue_tasks": "Tarefas Atrasadas",
+      "active_sprints": "Sprints Ativas",
+      "productivity": "Produtividade Geral",
+      "descriptions": {
+        "active_status": "{{count}} ativos",
+        "organization_members": "Membros da organização",
+        "tasks_count": "{{completed}} / {{total}} tarefas",
+        "resolved_count": "{{resolved}} / {{total}} resolvidos",
+        "require_attention": "Exigem atenção",
+        "currently_running": "Atualmente em execução",
+        "task_completion_rate": "Taxa de conclusão de tarefas"
+      }
+    }
+  }
+}

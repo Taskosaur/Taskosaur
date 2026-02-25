@@ -1,0 +1,140 @@
+{
+  "title": "Gestão de Sprints",
+  "description": "Organize seu trabalho em iterações focadas e acompanhe o progresso de forma eficaz.",
+  "createSprint": "Criar Sprint",
+  "noSprints": {
+    "title": "Nenhuma sprint ainda",
+    "description": "Crie sua primeira sprint para começar a organizar seu trabalho em iterações focadas."
+  },
+  "deleteSprint": {
+    "title": "Excluir Sprint",
+    "message": "Tem certeza de que deseja excluir a sprint \"{{name}}\"? Esta ação não pode ser desfeita.",
+    "confirm": "Excluir",
+    "deleting": "Excluindo...",
+    "cancel": "Cancelar"
+  },
+  "errors": {
+    "workspaceNotFound": "Espaço de trabalho não encontrado",
+    "projectNotFound": "Projeto não encontrado",
+    "loadingProjectError": "Erro ao carregar dados do projeto",
+    "loadingPageError": "Erro ao carregar dados da página",
+    "fetchingProjectError": "Erro ao buscar dados do projeto",
+    "fetchTasksFailed": "Falha ao buscar tarefas"
+  },
+  "sprintTasks": {
+    "title": "Tarefas da Sprint",
+    "description": "Gerencie e acompanhe todas as tarefas nesta sprint. {{total}} tarefas no total",
+    "searchPlaceholder": "Pesquisar tarefas..."
+  },
+  "card": {
+    "noDates": "Sem datas definidas",
+    "days": "{{count}} dias",
+    "completeSprint": "Concluir Sprint",
+    "editSprint": "Editar Sprint",
+    "deleteSprint": "Excluir Sprint"
+  },
+  "form": {
+    "editTitle": "Editar Sprint",
+    "createTitle": "Criar nova sprint",
+    "editDescription": "Atualizar detalhes e cronograma da sprint",
+    "createDescription": "Crie uma nova sprint para organizar seu trabalho em iterações focadas",
+    "nameLabel": "Nome da sprint",
+    "namePlaceholder": "Digite o nome da sprint",
+    "goalLabel": "Objetivo da sprint",
+    "goalPlaceholder": "Descreva o objetivo principal e os resultados esperados para esta sprint...",
+    "goalHint": "Ajude sua equipe a entender o foco da sprint e os resultados esperados.",
+    "statusLabel": "Status",
+    "statusPlaceholder": "Selecionar status",
+    "startDateLabel": "Data de início",
+    "endDateLabel": "Data de término",
+    "cancel": "Cancelar",
+    "update": "Atualizar",
+    "create": "Criar",
+    "updating": "Atualizando...",
+    "creating": "Criando sprint...",
+    "statuses": {
+      "planning": "Planejamento",
+      "active": "Ativa",
+      "completed": "Concluída",
+      "cancelled": "Cancelada"
+    },
+    "validation": {
+      "nameRequired": "O nome da sprint é obrigatório",
+      "startDateRequired": "A data de início é obrigatória",
+      "endDateRequired": "A data de término é obrigatória",
+      "endDateAfterStart": "A data de término deve ser após a data de início"
+    }
+  },
+  "board": {
+    "loading": "Carregando...",
+    "invalidDate": "Data inválida",
+    "noSprintSelected": "Nenhuma Sprint Selecionada",
+    "selectSprintToView": "Selecione uma sprint para ver o quadro",
+    "noSprintSelectedSubtitle": "Selecione uma sprint no menu suspenso acima para ver o progresso.",
+    "tasks": "tarefas",
+    "points": "pontos",
+    "startSprint": "Iniciar Sprint",
+    "completeSprint": "Concluir Sprint",
+    "tasksCompleted": "Tarefas Concluídas",
+    "storyPoints": "Pontos de História",
+    "completionRate": "Taxa de Conclusão",
+    "statuses": {
+      "sprintBacklog": "Backlog da Sprint",
+      "inProgress": "Em Progresso",
+      "testing": "Testando",
+      "done": "Concluído"
+    }
+  },
+  "selector": {
+    "noActiveSprint": "Nenhuma Sprint Ativa",
+    "noSprintsAvailable": "Nenhuma sprint disponível",
+    "createFirstSprint": "Crie sua primeira sprint"
+  },
+  "progress": {
+    "title": "Progresso da Sprint",
+    "timeline": "Cronograma da Sprint",
+    "daysRemaining": "{{count}} dias restantes",
+    "sprintEnded": "Sprint encerrada",
+    "complete": "concluído",
+    "timeSpent": "Tempo Gasto",
+    "estimated": "estimado",
+    "tasksComplete": "Tarefas Concluídas",
+    "inProgress": "em progresso",
+    "velocity": "Velocidade",
+    "storyPointsPerDay": "Pontos de história por dia",
+    "capacity": "Capacidade",
+    "burndown": "Burndown da Sprint",
+    "burndownPlaceholder": "O gráfico de burndown será implementado aqui",
+    "quickActions": "Ações Rápidas",
+    "viewReport": "Ver Relatório da Sprint",
+    "exportData": "Exportar Dados"
+  },
+  "planning": {
+    "title": "Planejamento da Sprint",
+    "selectSprint": "Selecionar uma sprint",
+    "selectSprintToPlan": "Selecione uma sprint no menu suspenso acima para iniciar o planejamento.",
+    "saveChanges": "Salvar Alterações",
+    "startSprint": "Iniciar Sprint",
+    "goal": "Objetivo da Sprint",
+    "noGoal": "Sem objetivo definido",
+    "duration": "Duração",
+    "noDates": "Sem datas definidas",
+    "capacity": "Capacidade",
+    "hours": "horas",
+    "productBacklog": "Backlog do Produto",
+    "tasks": "tarefas",
+    "sp": "SP",
+    "noTasksInBacklog": "Nenhuma tarefa no backlog",
+    "sprintBacklog": "Backlog da Sprint",
+    "dragTasksHere": "Arraste as tarefas aqui para adicionar à sprint",
+    "clickToMove": "Clique nas tarefas para movê-las entre o backlog e a sprint",
+    "summary": "Resumo da Sprint",
+    "estimatedTime": "Tempo Estimado"
+  },
+  "tasksPanel": {
+    "title": "Tarefas da Sprint",
+    "tasks": "tarefas",
+    "errorNoOrg": "Nenhuma organização selecionada. Selecione uma organização primeiro.",
+    "fetchFailed": "Falha ao buscar tarefas"
+  }
+}

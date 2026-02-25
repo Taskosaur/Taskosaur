@@ -1,0 +1,34 @@
+{
+  "save": "Salvar",
+  "cancel": "Cancelar",
+  "delete": "Excluir",
+  "continue": "Continuar",
+  "confirm": "Confirmar",
+  "error": "Erro",
+  "success": "Sucesso",
+  "priorities": {
+    "lowest": "Muito Baixa",
+    "low": "Baixa",
+    "medium": "Média",
+    "high": "Alta",
+    "highest": "Muito Alta"
+  },
+  "invite": {
+    "invalidTitle": "Convite inválido",
+    "invalidMessage": "Link de convite inválido ou expirado",
+    "whyHappened": "Por que isso aconteceu?",
+    "reasonExpired": "O link do convite pode ter expirado",
+    "reasonEmail": "Pode ter sido enviado para um e-mail diferente",
+    "reasonUsed": "O convite já foi usado ou revogado",
+    "logout": "Sair e Trocar de Conta",
+    "login": "Voltar para o login",
+    "home": "Voltar para o início"
+  },
+  "pagination": {
+    "showing": "Mostrando",
+    "to": "a",
+    "of": "de",
+    "page": "Página",
+    "items": "itens"
+  }
+}

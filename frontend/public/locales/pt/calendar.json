@@ -1,0 +1,42 @@
+{
+  "title": "Calendário de {{name}}",
+  "description": "Visualize e gerencie as tarefas do projeto {{name}} no formato de calendário.",
+  "createTask": "Criar Tarefa",
+  "noTasks": {
+    "title": "Nenhuma tarefa encontrada",
+    "description": "Crie sua primeira tarefa para {{name}} para vê-la no calendário"
+  },
+  "errors": {
+    "invalidSlug": "Slug de espaço de trabalho ou projeto inválido",
+    "workspaceNotFound": "Espaço de trabalho não encontrado",
+    "projectNotFound": "Projeto não encontrado",
+    "failedLoadData": "Falha ao carregar dados",
+    "projectOrWorkspaceNotFound": "Projeto ou espaço de trabalho não encontrado"
+  },
+  "view": {
+    "noTasksScheduled": "Nenhuma tarefa agendada",
+    "noTasksScheduledDescription": "Tarefas com datas de entrega aparecerão no calendário. Crie tarefas com datas específicas para visualizar seu cronograma.",
+    "days": {
+      "sun": "Dom",
+      "mon": "Seg",
+      "tue": "Ter",
+      "wed": "Qua",
+      "thu": "Qui",
+      "fri": "Sex",
+      "sat": "Sáb"
+    },
+    "untitledTask": "Tarefa sem Título",
+    "more": "mais",
+    "time": "Hora",
+    "weekOf": "Semana de {{date}}",
+    "daysWithTasks": "{{count}} dias com tarefas este mês",
+    "tasksThisWeek": "{{count}} tarefas esta semana",
+    "month": "Mês",
+    "week": "Semana",
+    "today": "Hoje",
+    "noTasksThisDay": "Nenhuma tarefa agendada para este dia",
+    "noStatus": "Sem Status",
+    "overdue": "Atrasada",
+    "assignee": "Responsável"
+  }
+}
