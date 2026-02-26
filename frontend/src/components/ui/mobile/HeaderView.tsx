@@ -11,6 +11,7 @@ import OrganizationSelector from "@/components/header/OrganizationSelector";
 import NotificationDropdown from "@/components/header/NotificationDropdown";
 import InvitationManager from "@/components/header/InvitationManager";
 import { ModeToggle } from "@/components/header/ModeToggle";
+import { LanguageToggle } from "@/components/header/LanguageToggle";
 import SearchManager from "@/components/header/SearchManager";
 
 interface HeaderViewProps {
@@ -76,6 +77,11 @@ export default function HeaderView({
                 {/* Mode Toggle */}
                 <div className="flex items-center justify-center py-2">
                   <ModeToggle />
+                </div>
+
+                {/* Language Toggle */}
+                <div className="flex items-center justify-center py-2">
+                  <LanguageToggle />
                 </div>
 
                 {/* Search Manager */}

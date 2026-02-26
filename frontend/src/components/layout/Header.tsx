@@ -6,6 +6,7 @@ import InvitationManager from "../header/InvitationManager";
 import UserProfileMenu from "../header/UserProfileMenu";
 import NotificationDropdown from "../header/NotificationDropdown";
 import { ModeToggle } from "../header/ModeToggle";
+import { LanguageToggle } from "../header/LanguageToggle";
 import { useAuth } from "@/contexts/auth-context";
 import { useChatContext } from "@/contexts/chat-context";
 import { useRouter } from "next/router";
@@ -242,6 +243,7 @@ export default function Header() {
     {
       component: <InvitationManager userId={currentUser?.id} />,
     },
+    { component: <LanguageToggle /> },
     { component: <ModeToggle /> },
     {
       component: (
@@ -260,6 +262,7 @@ export default function Header() {
           {/* Right Section - Login button only */}
           <div className="justify-end w-full flex items-center space-x-4">
             <LoginButton />
+            <LanguageToggle />
             <ModeToggle />
           </div>
         </div>
