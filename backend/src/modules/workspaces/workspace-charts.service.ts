@@ -2,6 +2,7 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { AccessControlService } from 'src/common/access-control.utils';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ProjectVisibility } from '@prisma/client';
 import {
   MonthlyTaskCompletion,
   WorkspaceChartDataResponse,
@@ -150,7 +151,15 @@ export class WorkspaceChartsService {
     const projectWhere = {
       workspace: { slug: workspaceSlug, archive: false },
       archive: false,
-      ...(isElevated ? {} : { members: { some: { userId } } }),
+      ...(isElevated
+        ? {}
+        : {
+            OR: [
+              { visibility: ProjectVisibility.PUBLIC },
+              { visibility: ProjectVisibility.INTERNAL },
+              { members: { some: { userId } } },
+            ],
+          }),
     };
 
     return this.prisma.project.groupBy({
@@ -174,7 +183,15 @@ export class WorkspaceChartsService {
       where: {
         workspace: { slug: workspaceSlug, archive: false },
         archive: false,
-        ...(isElevated ? {} : { members: { some: { userId } } }),
+        ...(isElevated
+          ? {}
+          : {
+              OR: [
+                { visibility: ProjectVisibility.PUBLIC },
+                { visibility: ProjectVisibility.INTERNAL },
+                { members: { some: { userId } } },
+              ],
+            }),
       },
       select: { id: true },
     });
@@ -222,14 +239,30 @@ export class WorkspaceChartsService {
     const projectBase = {
       workspaceId: workspace.id,
       archive: false,
-      ...(isElevated ? {} : { members: { some: { userId } } }),
+      ...(isElevated
+        ? {}
+        : {
+            OR: [
+              { visibility: ProjectVisibility.PUBLIC },
+              { visibility: ProjectVisibility.INTERNAL },
+              { members: { some: { userId } } },
+            ],
+          }),
     };
 
     const taskBase = {
       project: {
         workspaceId: workspace.id,
         archive: false,
-        ...(isElevated ? {} : { members: { some: { userId } } }),
+        ...(isElevated
+          ? {}
+          : {
+              OR: [
+                { visibility: ProjectVisibility.PUBLIC },
+                { visibility: ProjectVisibility.INTERNAL },
+                { members: { some: { userId } } },
+              ],
+            }),
       },
       ...(isElevated
         ? {}
@@ -277,7 +310,15 @@ export class WorkspaceChartsService {
       project: {
         workspace: { slug: workspaceSlug, archive: false },
         archive: false,
-        ...(isElevated ? {} : { members: { some: { userId } } }),
+        ...(isElevated
+          ? {}
+          : {
+              OR: [
+                { visibility: ProjectVisibility.PUBLIC },
+                { visibility: ProjectVisibility.INTERNAL },
+                { members: { some: { userId } } },
+              ],
+            }),
       },
       ...(isElevated
         ? {}
@@ -307,7 +348,15 @@ export class WorkspaceChartsService {
       where: {
         workspace: { slug: workspaceSlug, archive: false },
         archive: false,
-        ...(isElevated ? {} : { members: { some: { userId } } }),
+        ...(isElevated
+          ? {}
+          : {
+              OR: [
+                { visibility: ProjectVisibility.PUBLIC },
+                { visibility: ProjectVisibility.INTERNAL },
+                { members: { some: { userId } } },
+              ],
+            }),
       },
       select: { id: true },
     });
@@ -338,7 +387,15 @@ export class WorkspaceChartsService {
       project: {
         workspace: { slug: workspaceSlug, archive: false },
         archive: false,
-        ...(isElevated ? {} : { members: { some: { userId } } }),
+        ...(isElevated
+          ? {}
+          : {
+              OR: [
+                { visibility: ProjectVisibility.PUBLIC },
+                { visibility: ProjectVisibility.INTERNAL },
+                { members: { some: { userId } } },
+              ],
+            }),
       },
       completedAt: { not: null },
       ...(isElevated

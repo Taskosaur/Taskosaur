@@ -29,24 +29,20 @@ export default function PublicTaskView({ task, token }: PublicTaskViewProps) {
     });
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
-  };
-
   const handleDownload = async (attachment: { id: string, fileName: string }) => {
     try {
       const fileUrl = await shareApi.getAttachmentUrl(token, attachment.id);
       if (!fileUrl) throw new Error('Attachment URL not found');
 
       const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-      
+
       const fullUrl = fileUrl.startsWith('http')
-        ? fileUrl 
+        ? fileUrl
         : `${apiUrl}/uploads${fileUrl}`;
 
       const response = await fetch(fullUrl);
       if (!response.ok) throw new Error('Failed to fetch file');
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -183,7 +179,23 @@ export default function PublicTaskView({ task, token }: PublicTaskViewProps) {
                 <span>{formatDate(task.dueDate)}</span>
               </div>
             </div>
-
+            {task.createdBy && (
+              <div>
+                <Label className="text-sm text-[var(--foreground)] block mb-2">Created By</Label>
+                <div className="flex items-center gap-3 mt-2">
+                  <UserAvatar
+                    user={{
+                      ...task.createdBy,
+                      avatar: (task.createdBy as any).avatarUrl || (task.createdBy as any).avatar || "/default-avatar.png",
+                    }}
+                    size="sm"
+                  />
+                  <span className="text-sm text-[var(--foreground)]">
+                    {task.createdBy.firstName} {task.createdBy.lastName}
+                  </span>
+                </div>
+              </div>
+            )}
             {/* Assignees */}
             {task.assignees && task.assignees.length > 0 && (
               <div>
