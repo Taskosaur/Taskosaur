@@ -28,6 +28,7 @@ export default function TaskHierarchy({
     assigneeId: "",
     priority: "MEDIUM",
     dueDate: "",
+    type: "SUBTASK",
   });
   const [taskToPromote, setTaskToPromote] = useState<Task | null>(null);
   const subtasks = allTasks.filter((t) => t.parentTaskId === task.id);
@@ -53,6 +54,7 @@ export default function TaskHierarchy({
         assigneeId: "",
         priority: "MEDIUM",
         dueDate: "",
+        type: "SUBTASK",
       });
       setShowCreateSubtask(false);
     }

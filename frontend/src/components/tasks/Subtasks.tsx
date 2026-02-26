@@ -158,7 +158,7 @@ export default function Subtasks({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(5);
   const [subtaskPriority, setSubtaskPriority] = useState("MEDIUM");
-  const [subtaskType, setSubtaskType] = useState("TASK");
+  const [subtaskType, setSubtaskType] = useState("SUBTASK");
 
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
@@ -257,9 +257,7 @@ export default function Subtasks({
         title: newSubtaskTitle.trim(),
         description: `Subtask for parent task`,
         priority: subtaskPriority as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
-        type: ["TASK", "BUG", "EPIC", "STORY"].includes(subtaskType)
-          ? (subtaskType as "TASK" | "BUG" | "EPIC" | "STORY")
-          : "TASK",
+        type: "SUBTASK" as const,
         startDate: new Date().toISOString(),
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         projectId,
@@ -272,7 +270,7 @@ export default function Subtasks({
 
       setNewSubtaskTitle("");
       setSubtaskPriority("MEDIUM");
-      setSubtaskType("TASK");
+      setSubtaskType("SUBTASK");
       setIsAddingSubtask(false);
 
       if (currentPage > 1 && subtTask.length >= pageSize) {
@@ -335,9 +333,7 @@ export default function Subtasks({
       const updateData = {
         title: editingTitle.trim(),
         priority: subtaskPriority as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
-        type: ["TASK", "BUG", "EPIC", "STORY"].includes(subtaskType)
-          ? (subtaskType as "TASK" | "BUG" | "EPIC" | "STORY")
-          : "TASK",
+        type: "SUBTASK" as const,
       };
 
       await updateSubtask(subtaskId, updateData);
@@ -345,7 +341,7 @@ export default function Subtasks({
       setEditingSubtaskId(null);
       setEditingTitle("");
       setSubtaskPriority("MEDIUM");
-      setSubtaskType("TASK");
+      setSubtaskType("SUBTASK");
 
       onSubtaskUpdated?.(subtaskId, updateData);
     } catch (error) {
@@ -357,7 +353,7 @@ export default function Subtasks({
     setEditingSubtaskId(null);
     setEditingTitle("");
     setSubtaskPriority("MEDIUM");
-    setSubtaskType("TASK");
+    setSubtaskType("SUBTASK");
   };
 
   const handleDeleteSubtask = async (subtaskId: string, e?: React.MouseEvent) => {
@@ -396,7 +392,7 @@ export default function Subtasks({
     setIsAddingSubtask(false);
     setNewSubtaskTitle("");
     setSubtaskPriority("MEDIUM");
-    setSubtaskType("TASK");
+    setSubtaskType("SUBTASK");
   };
 
   // Helper function to check if subtask is completed
@@ -533,7 +529,7 @@ export default function Subtasks({
                         }}
                       />
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3">
                         <div className="space-y-2">
                           <Label htmlFor="edit-priority" className="text-xs font-medium">
                             {t("subtasks.priority")}
@@ -548,31 +544,6 @@ export default function Subtasks({
                             </SelectTrigger>
                             <SelectContent className="border-none bg-[var(--card)]">
                               {PRIORITY_OPTIONS.map((option) => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                  className="hover:bg-[var(--hover-bg)] text-xs"
-                                >
-                                  <div className="flex items-center gap-2">{option.label}</div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-type" className="text-xs font-medium">
-                            {t("subtasks.type")}
-                          </Label>
-                          <Select
-                            value={subtaskType}
-                            onValueChange={setSubtaskType}
-                            disabled={isLoading}
-                          >
-                            <SelectTrigger className="w-full h-8 text-xs  border-[var(--border)] bg-[var(--background)]">
-                              <SelectValue placeholder={t("subtasks.selectType")} />
-                            </SelectTrigger>
-                            <SelectContent className="border-none bg-[var(--card)]">
-                              {TASK_TYPE_OPTIONS.map((option) => (
                                 <SelectItem
                                   key={option.value}
                                   value={option.value}
@@ -754,7 +725,7 @@ export default function Subtasks({
               disabled={isLoading}
             />
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="subtask-priority" className="text-xs font-medium">
                   {t("subtasks.priority")}
@@ -769,28 +740,6 @@ export default function Subtasks({
                   </SelectTrigger>
                   <SelectContent className="border-none bg-[var(--card)]">
                     {PRIORITY_OPTIONS.map((option) => (
-                      <SelectItem
-                        key={option.value}
-                        value={option.value}
-                        className="hover:bg-[var(--hover-bg)] text-xs"
-                      >
-                        <div className="flex items-center gap-2">{option.label}</div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="subtask-type" className="text-xs font-medium">
-                  {t("subtasks.type")}
-                </Label>
-                <Select value={subtaskType} onValueChange={setSubtaskType} disabled={isLoading}>
-                  <SelectTrigger className="w-full h-8 text-xs  border-[var(--border)] bg-[var(--background)]">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent className="border-none bg-[var(--card)]">
-                    {TASK_TYPE_OPTIONS.filter(option => option.value != 'TASK').map((option) => (
                       <SelectItem
                         key={option.value}
                         value={option.value}
