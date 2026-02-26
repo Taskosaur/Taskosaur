@@ -20,7 +20,7 @@ export class PublicSharedTasksService {
     private prisma: PrismaService,
     private configService: ConfigService,
     private storageService: StorageService,
-  ) {}
+  ) { }
 
   /**
    * Create a new public share link for a task
@@ -110,6 +110,9 @@ export class PublicSharedTasksService {
             assignees: {
               select: { firstName: true, lastName: true },
             },
+            createdByUser: {
+              select: { firstName: true, lastName: true, avatar: true },
+            },
             attachments: {
               select: {
                 id: true,
@@ -151,6 +154,11 @@ export class PublicSharedTasksService {
         firstName: a.firstName,
         lastName: a.lastName,
       })),
+      createdBy: share.task.createdByUser ? {
+        firstName: share.task.createdByUser.firstName,
+        lastName: share.task.createdByUser.lastName,
+        avatar: share.task.createdByUser.avatar ?? undefined,
+      } : undefined,
       attachments: share.task.attachments.map((a) => ({
         id: a.id,
         fileName: a.fileName,

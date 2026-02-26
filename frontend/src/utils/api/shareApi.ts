@@ -19,7 +19,8 @@ export interface PublicSharedTask {
   status: { name: string; color: string };
   priority: string;
   dueDate?: string;
-  assignees: Array<{ firstName: string; lastName: string }>;
+  assignees: Array<{ firstName: string; lastName: string; avatarUrl?: string; avatar?: string }>;
+  createdBy?: { firstName: string; lastName: string; avatar?: string };
   attachments: Array<{
     id: string;
     fileName: string;

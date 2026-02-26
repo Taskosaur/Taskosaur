@@ -59,6 +59,13 @@ export class PublicSharedTaskDto {
     lastName: string;
   }>;
 
+  @ApiProperty({ required: false })
+  createdBy?: {
+    firstName: string;
+    lastName: string;
+    avatar?: string;
+  };
+
   @ApiProperty({ type: 'array' })
   attachments: Array<{
     id: string;
