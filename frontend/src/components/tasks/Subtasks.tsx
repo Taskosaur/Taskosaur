@@ -46,6 +46,8 @@ interface SubtasksProps {
   ) => void;
   isAssignOrRepoter: boolean;
   setLoading?: (loading: boolean) => void;
+  parentSprintId?: string | null;
+  parentStatusId?: string | null;
 }
 
 interface PaginationInfo {
@@ -133,6 +135,8 @@ export default function Subtasks({
   showConfirmModal,
   isAssignOrRepoter,
   setLoading,
+  parentSprintId,
+  parentStatusId,
 }: SubtasksProps) {
   const { t } = useTranslation(["tasks", "common"]);
   const {
@@ -246,14 +250,16 @@ export default function Subtasks({
     if (!newSubtaskTitle.trim() || !currentUser) return;
 
     try {
-      const defaultStatus = taskStatuses.find((s) => s.category === "TODO") || taskStatuses[0];
+      const defaultStatus = (parentStatusId
+        ? taskStatuses.find((s) => s.id === parentStatusId)
+        : null) || taskStatuses.find((s) => s.category === "TODO") || taskStatuses[0];
 
       if (!defaultStatus) {
         console.error("No task statuses available");
         return;
       }
 
-      const subtaskData = {
+      const subtaskData: any = {
         title: newSubtaskTitle.trim(),
         description: `Subtask for parent task`,
         priority: subtaskPriority as "LOW" | "MEDIUM" | "HIGH" | "HIGHEST",
@@ -265,6 +271,10 @@ export default function Subtasks({
         statusId: defaultStatus.id,
         parentTaskId: taskId,
       };
+
+      if (parentSprintId) {
+        subtaskData.sprintId = parentSprintId;
+      }
 
       await createSubtask(subtaskData);
 

@@ -1148,6 +1148,8 @@ export default function TaskDetailClient({
                   showConfirmModal={showConfirmModal}
                   isAssignOrRepoter={hasAccess}
                   setLoading={setLoadingSubtasks}
+                  parentSprintId={task.sprintId || task.sprint?.id}
+                  parentStatusId={task.statusId || task.status?.id}
                 />
               </div>
             )}

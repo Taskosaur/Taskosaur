@@ -160,10 +160,15 @@ export function NewTaskModal({
         )
       ) {
         const projectSlug = pathParts[1];
+        let sprintId: string | undefined;
+        if (pathParts.length >= 4 && pathParts[2] === "sprints" && pathParts[3]) {
+          sprintId = pathParts[3];
+        }
         return {
           type: "project",
           workspaceSlug,
           projectSlug,
+          sprintId,
         };
       }
 
@@ -411,7 +416,9 @@ export function NewTaskModal({
       ]);
       setSprints(projectSprints || []);
 
-      if (activeSprint) {
+      if (urlContext.sprintId && projectSprints?.some((s: any) => s.id === urlContext.sprintId)) {
+        setFormData(prev => ({ ...prev, sprintId: urlContext.sprintId }));
+      } else if (activeSprint) {
         setFormData(prev => ({ ...prev, sprintId: activeSprint.id }));
       } else if (projectSprints && projectSprints.length > 0) {
         const defaultSprint = projectSprints.find((s: any) => s.isDefault);
@@ -1002,45 +1009,47 @@ export function NewTaskModal({
             </div>
           </div>
 
-          <div className="projects-form-field mt-4">
-            <Label className="projects-form-label">
-              <HiBolt
-                className="projects-form-label-icon"
-                style={{ color: "hsl(var(--primary))" }}
-              />
-              {t("modal.sprint")}
-            </Label>
-            <Select
-              value={formData.sprintId}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, sprintId: value }))}
-              disabled={isSubmitting || !formData.project || loadingSprints}
-            >
-              <SelectTrigger
-                className="projects-workspace-button border-none"
-                onFocus={(e) => {
-                  e.currentTarget.style.boxShadow = "none";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.boxShadow = "none";
-                }}
+          {!urlContext.sprintId && (
+            <div className="projects-form-field mt-4">
+              <Label className="projects-form-label">
+                <HiBolt
+                  className="projects-form-label-icon"
+                  style={{ color: "hsl(var(--primary))" }}
+                />
+                {t("modal.sprint")}
+              </Label>
+              <Select
+                value={formData.sprintId}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, sprintId: value }))}
+                disabled={isSubmitting || !formData.project || loadingSprints}
               >
-                <SelectValue placeholder={!formData.project ? t("modal.selectProjectFirst") : t("modal.selectSprint")} />
-              </SelectTrigger>
-              <SelectContent className="border-none bg-[var(--card)]">
-                {sprints.map((sprint) => (
-                  <SelectItem
-                    key={sprint.id}
-                    value={sprint.id}
-                    className="hover:bg-[var(--hover-bg)]"
-                  >
-                    <div className="flex items-center gap-2">
-                      {sprint.name} {sprint.isDefault === true && `(${t("modal.default")})`}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                <SelectTrigger
+                  className="projects-workspace-button border-none"
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  <SelectValue placeholder={!formData.project ? t("modal.selectProjectFirst") : t("modal.selectSprint")} />
+                </SelectTrigger>
+                <SelectContent className="border-none bg-[var(--card)]">
+                  {sprints.map((sprint) => (
+                    <SelectItem
+                      key={sprint.id}
+                      value={sprint.id}
+                      className="hover:bg-[var(--hover-bg)]"
+                    >
+                      <div className="flex items-center gap-2">
+                        {sprint.name} {sprint.isDefault === true && `(${t("modal.default")})`}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="projects-form-actions flex gap-2 justify-end mt-6">
             <ActionButton type="button" secondary onClick={handleClose} disabled={isSubmitting}>
