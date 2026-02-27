@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AccessControlService } from 'src/common/access-control.utils';
 import { ChartDataResponse, ChartType } from './dto/get-charts-query.dto';
-import { UserSource } from '@prisma/client';
+import { UserSource, ProjectVisibility } from '@prisma/client';
 
 export interface KPIMetrics {
   totalWorkspaces: number;
@@ -92,7 +92,7 @@ export class OrganizationChartsService {
       });
 
       this.logger.log(`Successfully fetched chart data for ${chartTypes.length} chart types`);
-
+      console.log(results);
       return results;
     } catch (error) {
       this.logger.error(
@@ -157,15 +157,36 @@ export class OrganizationChartsService {
       workspaceForUser: {
         organizationId: orgId,
         archive: false,
-        members: { some: { userId } },
+        OR: [
+          { members: { some: { userId } } },
+          { projects: { some: { visibility: ProjectVisibility.PUBLIC } } },
+        ],
       },
       projectForUser: {
         archive: false,
         workspace: { organizationId: orgId, archive: false },
-        members: { some: { userId } },
+        OR: [
+          { members: { some: { userId } } },
+          { visibility: ProjectVisibility.PUBLIC },
+          {
+            visibility: ProjectVisibility.INTERNAL,
+            workspace: { members: { some: { userId } } },
+          },
+        ],
       },
       taskForUser: {
-        project: { workspace: { organizationId: orgId }, archive: false },
+        project: {
+          workspace: { organizationId: orgId },
+          archive: false,
+          OR: [
+            { members: { some: { userId } } },
+            { visibility: ProjectVisibility.PUBLIC },
+            {
+              visibility: ProjectVisibility.INTERNAL,
+              workspace: { members: { some: { userId } } },
+            },
+          ],
+        },
         OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
       },
       sprintForUser: {
@@ -173,7 +194,14 @@ export class OrganizationChartsService {
         project: {
           archive: false,
           workspace: { organizationId: orgId, archive: false },
-          members: { some: { userId } },
+          OR: [
+            { members: { some: { userId } } },
+            { visibility: ProjectVisibility.PUBLIC },
+            {
+              visibility: ProjectVisibility.INTERNAL,
+              workspace: { members: { some: { userId } } },
+            },
+          ],
         },
       },
     };
@@ -365,8 +393,9 @@ export class OrganizationChartsService {
    */
   async organizationProjectPortfolio(orgId: string, userId: string) {
     const { isElevated } = await this.accessControl.getOrgAccess(orgId, userId);
-    const base = { workspace: { organizationId: orgId }, archive: false };
-    const where = isElevated ? base : { ...base, members: { some: { userId } } };
+    const where = isElevated
+      ? { workspace: { organizationId: orgId }, archive: false }
+      : this.userScopedWhere(orgId, userId).projectForUser;
 
     return this.prisma.project.groupBy({
       by: ['status'],
@@ -463,16 +492,18 @@ export class OrganizationChartsService {
    */
   async organizationSprintMetrics(orgId: string, userId: string) {
     const { isElevated } = await this.accessControl.getOrgAccess(orgId, userId);
+    const where = isElevated
+      ? {
+          archive: false,
+          project: {
+            workspace: { organizationId: orgId },
+            archive: false,
+          },
+        }
+      : this.userScopedWhere(orgId, userId).sprintForUser;
 
     const sprints = await this.prisma.sprint.findMany({
-      where: {
-        archive: false,
-        project: {
-          workspace: { organizationId: orgId },
-          archive: false,
-          ...(isElevated ? {} : { members: { some: { userId } } }),
-        },
-      },
+      where,
       select: { id: true, status: true },
     });
 
@@ -536,21 +567,33 @@ export class OrganizationChartsService {
     userId: string,
   ): Promise<WorkspaceProjectCount[]> {
     const { isElevated } = await this.accessControl.getOrgAccess(orgId, userId);
-    const workspaceWhere = isElevated
-      ? { organizationId: orgId, archive: false }
-      : {
-          organizationId: orgId,
-          archive: false,
-          members: { some: { userId } },
-        };
+    const scoped = isElevated ? null : this.userScopedWhere(orgId, userId);
 
     const workspaces = await this.prisma.workspace.findMany({
-      where: workspaceWhere,
+      where: isElevated ? { organizationId: orgId, archive: false } : scoped?.workspaceForUser,
       select: {
         id: true,
         name: true,
         slug: true,
-        _count: { select: { projects: { where: { archive: false } } } },
+        _count: {
+          select: {
+            projects: {
+              where: isElevated
+                ? { archive: false }
+                : {
+                    archive: false,
+                    OR: [
+                      { members: { some: { userId } } },
+                      { visibility: ProjectVisibility.PUBLIC },
+                      {
+                        visibility: ProjectVisibility.INTERNAL,
+                        workspace: { members: { some: { userId } } },
+                      },
+                    ],
+                  },
+            },
+          },
+        },
       },
       orderBy: { projects: { _count: 'desc' } },
     });
