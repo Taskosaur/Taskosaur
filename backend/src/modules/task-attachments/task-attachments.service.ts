@@ -3,29 +3,35 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { TaskAttachment } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import * as fs from 'fs';
+import { promises as fs, existsSync } from 'fs';
 import * as path from 'path';
 import { StorageService } from '../storage/storage.service';
 import { Response } from 'express';
+import { isUUID } from 'class-validator';
 
 @Injectable()
-export class TaskAttachmentsService {
+export class TaskAttachmentsService implements OnModuleInit {
   private readonly uploadPath = process.env.UPLOAD_DEST || '../uploads';
 
   constructor(
     private prisma: PrismaService,
     private storageService: StorageService,
-  ) {
+  ) {}
+
+  async onModuleInit() {
     // Ensure upload directory exists
-    this.ensureUploadDirectory();
+    await this.ensureUploadDirectory();
   }
 
-  private ensureUploadDirectory() {
-    if (!fs.existsSync(this.uploadPath)) {
-      fs.mkdirSync(this.uploadPath, { recursive: true });
+  private async ensureUploadDirectory() {
+    try {
+      await fs.mkdir(this.uploadPath, { recursive: true });
+    } catch (error) {
+      console.error('Error creating upload directory:', error);
     }
   }
 
@@ -468,13 +474,15 @@ export class TaskAttachmentsService {
     }
 
     // Delete the file from filesystem
-    try {
-      if (fs.existsSync(attachment.filePath || '')) {
-        fs.unlinkSync(attachment.filePath || '');
+    if (attachment.filePath) {
+      try {
+        if (existsSync(attachment.filePath)) {
+          await fs.unlink(attachment.filePath);
+        }
+      } catch (error) {
+        console.error('Error deleting file from filesystem:', error);
+        // Continue with database deletion even if file deletion fails
       }
-    } catch (error) {
-      console.error('Error deleting file from filesystem:', error);
-      // Continue with database deletion even if file deletion fails
     }
 
     // Delete from database
@@ -565,7 +573,12 @@ export class TaskAttachmentsService {
   }
 
   // Helper method to generate safe file path
-  generateFilePath(originalName: string, taskId: string): string {
+  async generateFilePath(originalName: string, taskId: string): Promise<string> {
+    // Validate taskId is a valid UUID to prevent path traversal
+    if (!isUUID(taskId)) {
+      throw new BadRequestException('Invalid taskId format');
+    }
+
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
     // const _fileExtension = path.extname(originalName);
@@ -574,8 +587,8 @@ export class TaskAttachmentsService {
 
     // Create task-specific directory
     const taskDir = path.join(this.uploadPath, taskId);
-    if (!fs.existsSync(taskDir)) {
-      fs.mkdirSync(taskDir, { recursive: true });
+    if (!existsSync(taskDir)) {
+      await fs.mkdir(taskDir, { recursive: true });
     }
 
     return path.join(taskDir, fileName);
