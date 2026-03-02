@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
   OnModuleInit,
+  Logger,
 } from '@nestjs/common';
 import { TaskAttachment } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -15,6 +16,7 @@ import { isUUID } from 'class-validator';
 
 @Injectable()
 export class TaskAttachmentsService implements OnModuleInit {
+  private readonly logger = new Logger(TaskAttachmentsService.name);
   private readonly uploadPath = process.env.UPLOAD_DEST || '../uploads';
 
   constructor(
@@ -31,7 +33,7 @@ export class TaskAttachmentsService implements OnModuleInit {
     try {
       await fs.mkdir(this.uploadPath, { recursive: true });
     } catch (error) {
-      console.error('Error creating upload directory:', error);
+      this.logger.error('Error creating upload directory:', error);
     }
   }
 
@@ -168,7 +170,7 @@ export class TaskAttachmentsService implements OnModuleInit {
 
       return attachment;
     } catch (error) {
-      console.error(error);
+      this.logger.error(error);
       throw new BadRequestException(`Failed to upload file: ${error.message}`);
     }
   }
@@ -480,7 +482,7 @@ export class TaskAttachmentsService implements OnModuleInit {
           await fs.unlink(attachment.filePath);
         }
       } catch (error) {
-        console.error('Error deleting file from filesystem:', error);
+        this.logger.error('Error deleting file from filesystem:', error);
         // Continue with database deletion even if file deletion fails
       }
     }

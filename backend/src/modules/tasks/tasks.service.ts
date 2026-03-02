@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   InternalServerErrorException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { Task, TaskPriority, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -18,6 +19,8 @@ import { RecurrenceConfigDto } from './dto/recurrence-config.dto';
 
 @Injectable()
 export class TasksService {
+  private readonly logger = new Logger(TasksService.name);
+
   constructor(
     private prisma: PrismaService,
     private accessControl: AccessControlService,
@@ -1244,7 +1247,7 @@ export class TasksService {
 
       return updatedTask;
     } catch (error: any) {
-      console.error(error);
+      this.logger.error('Failed to update the task');
       if (error.code === 'P2025') {
         throw new NotFoundException('Task not found');
       }
@@ -1277,7 +1280,7 @@ export class TasksService {
         where: { id },
       });
     } catch (error: any) {
-      console.error(error);
+      this.logger.error('Failed to delete the task');
       if (error.code === 'P2025') {
         throw new NotFoundException('Task not found');
       }
@@ -1832,7 +1835,7 @@ export class TasksService {
 
       return results;
     } catch (error) {
-      console.error('Error fetching tasks grouped by status:', error);
+      this.logger.error('Error fetching tasks grouped by status:');
       if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         throw error;
       }
@@ -2078,7 +2081,7 @@ export class TasksService {
         });
         deletedCount = result.count;
       } catch (error) {
-        console.error(error);
+        this.logger.error('Failed to bulk delete tasks');
         throw new InternalServerErrorException('Failed to delete tasks: ' + error.message);
       }
     }

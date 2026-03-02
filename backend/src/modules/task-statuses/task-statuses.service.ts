@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { TaskStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskStatusDto, CreateTaskStatusFromProjectDto } from './dto/create-task-status.dto';
@@ -6,6 +6,8 @@ import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 
 @Injectable()
 export class TaskStatusesService {
+  private readonly logger = new Logger(TaskStatusesService.name);
+
   findDefaultWorkflowByOrganizationId(organizationId: string) {
     return this.prisma.workflow.findFirst({
       where: {
@@ -97,7 +99,7 @@ export class TaskStatusesService {
         },
       });
     } catch (error) {
-      console.error(error);
+      this.logger.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Status with this name already exists in this workflow');
       }
@@ -247,7 +249,7 @@ export class TaskStatusesService {
 
       return taskStatus;
     } catch (error) {
-      console.error(error);
+      this.logger.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Status with this name already exists in this workflow');
       }
@@ -314,7 +316,7 @@ export class TaskStatusesService {
 
       return updatedStatuses;
     } catch (error) {
-      console.error(error);
+      this.logger.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('One or more task statuses not found');
       }
@@ -368,7 +370,7 @@ export class TaskStatusesService {
         });
       });
     } catch (error) {
-      console.error(error);
+      this.logger.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Task status not found');
       }
@@ -525,7 +527,7 @@ export class TaskStatusesService {
 
       return restoredStatus;
     } catch (error) {
-      console.error(error);
+      this.logger.error(error);
       if (error.code === 'P2025') {
         throw new NotFoundException('Task status not found');
       }
@@ -604,7 +606,7 @@ export class TaskStatusesService {
         },
       });
     } catch (error) {
-      console.error(error);
+      this.logger.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('Status with this name already exists in this workflow');
       }

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { TaskWatcher } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -10,6 +11,8 @@ import { CreateTaskWatcherDto, WatchTaskDto, UnwatchTaskDto } from './dto/create
 
 @Injectable()
 export class TaskWatchersService {
+  private readonly logger = new Logger(TaskWatchersService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async create(createTaskWatcherDto: CreateTaskWatcherDto): Promise<TaskWatcher> {
@@ -110,7 +113,7 @@ export class TaskWatchersService {
         },
       });
     } catch (error) {
-      console.error(error);
+      this.logger.error(error);
       if (error.code === 'P2002') {
         throw new ConflictException('User is already watching this task');
       }

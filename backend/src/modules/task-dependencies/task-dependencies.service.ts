@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
@@ -14,6 +15,8 @@ import { TaskDependency, DependencyType } from '@prisma/client';
 
 @Injectable()
 export class TaskDependenciesService {
+  private readonly logger = new Logger(TaskDependenciesService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async create(createTaskDependencyDto: CreateTaskDependencyDto): Promise<TaskDependency> {
@@ -94,9 +97,9 @@ export class TaskDependenciesService {
         const dependency = await this.create(dependencyDto);
         results.push(dependency);
       } catch (error) {
-        console.error(error);
+        this.logger.error(error);
         // Continue with other dependencies if one fails
-        console.error(`Failed to create dependency: ${error.message}`);
+        this.logger.error(`Failed to create dependency: ${error.message}`);
       }
     }
 

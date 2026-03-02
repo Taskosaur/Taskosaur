@@ -16,6 +16,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -38,6 +39,8 @@ import { LogActivity } from 'src/common/decorator/log-activity.decorator';
 @UseGuards(JwtAuthGuard)
 @Controller('task-attachments')
 export class TaskAttachmentsController {
+  private readonly logger = new Logger(TaskAttachmentsController.name);
+
   constructor(private readonly taskAttachmentsService: TaskAttachmentsService) {}
 
   // @Post()
@@ -203,7 +206,7 @@ export class TaskAttachmentsController {
     try {
       await this.taskAttachmentsService.streamFile(id, user.id as string, res, true);
     } catch (error) {
-      console.error(error);
+      this.logger.error(error);
       if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         throw error;
       }
@@ -225,7 +228,7 @@ export class TaskAttachmentsController {
     try {
       await this.taskAttachmentsService.streamFile(id, user.id as string, res, false);
     } catch (error) {
-      console.error(error);
+      this.logger.error(error);
       if (
         error instanceof NotFoundException ||
         error instanceof BadRequestException ||
