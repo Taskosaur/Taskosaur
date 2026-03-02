@@ -8,6 +8,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import { useLayout } from "@/contexts/layout-context";
+import { NotificationProvider } from "@/contexts/notification-context";
 
 interface CommonProvidersProps {
   children: ReactNode;
@@ -24,6 +25,7 @@ export default function PublicProviders({ children }: CommonProvidersProps) {
   return (
     <>
       <OrganizationProvider>
+      <NotificationProvider>
         <WorkspaceProvider>
           <ProjectProvider>
             <SprintProvider>
@@ -60,6 +62,7 @@ export default function PublicProviders({ children }: CommonProvidersProps) {
             </SprintProvider>
           </ProjectProvider>
         </WorkspaceProvider>
+        </NotificationProvider>
       </OrganizationProvider>
     </>
   );
