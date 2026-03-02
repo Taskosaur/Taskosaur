@@ -31,11 +31,6 @@ export class WorkspacesService {
         id: true,
         ownerId: true,
         members: {
-          where: {
-            role: {
-              in: [Role.OWNER, Role.MANAGER],
-            },
-          },
           select: { userId: true, role: true },
         },
       },

@@ -62,11 +62,11 @@ describe('WorkspacesController (e2e)', () => {
 
     // Create Organization
     const organization = await prismaService.organization.create({
-        data: {
-            name: `Workspace Org ${Date.now()}`,
-            slug: `workspace-org-${Date.now()}`,
-            ownerId: user.id,
-        }
+      data: {
+        name: `Workspace Org ${Date.now()}`,
+        slug: `workspace-org-${Date.now()}`,
+        ownerId: user.id,
+      },
     });
     organizationId = organization.id;
 
@@ -81,23 +81,35 @@ describe('WorkspacesController (e2e)', () => {
 
     // Add user2 as Organization Member (MEMBER)
     await prismaService.organizationMember.create({
-        data: {
-          organizationId: organizationId,
-          userId: user2.id,
-          role: Role.MEMBER,
-        },
-      });
-  },10000);
+      data: {
+        organizationId: organizationId,
+        userId: user2.id,
+        role: Role.MEMBER,
+      },
+    });
+  }, 10000);
 
   afterAll(async () => {
     if (prismaService) {
-      // Cleanup
-      await prismaService.workspace.deleteMany({ where: { organizationId } });
-      await prismaService.organization.delete({ where: { id: organizationId } });
+      // Cleanup - get all orgs created in this test to clean up their workspaces
+      const testOrgs = await prismaService.organization.findMany({
+        where: {
+          OR: [{ id: organizationId }, { name: 'Org 2' }],
+        },
+        select: { id: true },
+      });
+      const orgIds = testOrgs.map((o) => o.id);
+
+      await prismaService.workspace.deleteMany({
+        where: { organizationId: { in: orgIds } },
+      });
+      await prismaService.organization.deleteMany({
+        where: { id: { in: orgIds } },
+      });
       await prismaService.user.deleteMany({ where: { id: { in: [user.id, user2.id] } } });
     }
     await app.close();
-  },10000);
+  }, 10000);
 
   const createDto: CreateWorkspaceDto = {
     name: 'E2E Workspace',
@@ -123,16 +135,83 @@ describe('WorkspacesController (e2e)', () => {
     });
 
     it('should handle slug collision by appending counter', () => {
-        return request(app.getHttpServer())
-          .post('/api/workspaces')
-          .set('Authorization', `Bearer ${accessToken}`)
-          .send(createDto)
-          .expect(HttpStatus.CREATED)
-          .expect((res) => {
-            expect(res.body.slug).not.toBe(createDto.slug);
-            expect(res.body.slug).toMatch(new RegExp(`^${createDto.slug}-\\d+$`));
-          });
+      return request(app.getHttpServer())
+        .post('/api/workspaces')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body.slug).not.toBe(createDto.slug);
+          expect(res.body.slug).toMatch(new RegExp(`^${createDto.slug}-\\d+$`));
+        });
+    });
+
+    it('should prevent a non-elevated user (MEMBER) from creating a workspace', () => {
+      return request(app.getHttpServer())
+        .post('/api/workspaces')
+        .set('Authorization', `Bearer ${memberAccessToken}`)
+        .send({ ...createDto, name: 'Member Workspace', slug: 'member-ws' })
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('should automatically add organization members to the new workspace', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/workspaces')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          ...createDto,
+          name: 'Inheritance Test',
+          slug: `inheritance-test-${Date.now()}`,
+        });
+
+      const newWorkspaceId = res.body.id;
+      const members = await prismaService.workspaceMember.findMany({
+        where: { workspaceId: newWorkspaceId },
       });
+
+      // Verify at least the creator and org member are added
+      expect(members.some((m) => m.userId === user.id)).toBe(true);
+      expect(members.some((m) => m.userId === user2.id)).toBe(true);
+    });
+
+    it('should allow identical slugs in different organizations', async () => {
+      // Create a second organization
+      const org2 = await prismaService.organization.create({
+        data: {
+          name: 'Org 2',
+          slug: `org-2-${Date.now()}`,
+          ownerId: user.id,
+        },
+      });
+
+      // MUST add user as Org 2 Member (OWNER) to have permission to create workspace there
+      await prismaService.organizationMember.create({
+        data: {
+          organizationId: org2.id,
+          userId: user.id,
+          role: Role.OWNER,
+        },
+      });
+
+      const sharedSlug = `shared-slug-${Date.now()}`;
+
+      // Create in Org 1
+      await request(app.getHttpServer())
+        .post('/api/workspaces')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ ...createDto, organizationId, slug: sharedSlug })
+        .expect(HttpStatus.CREATED);
+
+      // Create in Org 2 - should NOT append counter
+      await request(app.getHttpServer())
+        .post('/api/workspaces')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ ...createDto, organizationId: org2.id, slug: sharedSlug })
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body.slug).toBe(sharedSlug);
+        });
+    });
   });
 
   describe('/workspaces (GET)', () => {
@@ -179,6 +258,43 @@ describe('WorkspacesController (e2e)', () => {
     });
   });
 
+  describe('Access Control', () => {
+    it('should prevent access to workspace via slug without membership', async () => {
+      // Create a user who is not a member of ANY organization or workspace
+      const nonMember = await prismaService.user.create({
+        data: {
+          email: `non-member-${Date.now()}@example.com`,
+          password: 'StrongPassword123!',
+          firstName: 'Non',
+          lastName: 'Member',
+          username: `non_member_${Date.now()}`,
+          role: Role.MEMBER,
+        },
+      });
+
+      const nonMemberToken = jwtService.sign({
+        sub: nonMember.id,
+        email: nonMember.email,
+        role: nonMember.role,
+      });
+
+      // Get workspace slug
+      const ws = await prismaService.workspace.findUnique({
+        where: { id: workspaceId },
+        select: { slug: true },
+      });
+
+      try {
+        await request(app.getHttpServer())
+          .get(`/api/workspaces/organization/${organizationId}/slug/${ws?.slug}`)
+          .set('Authorization', `Bearer ${nonMemberToken}`)
+          .expect(HttpStatus.FORBIDDEN);
+      } finally {
+        await prismaService.user.delete({ where: { id: nonMember.id } });
+      }
+    });
+  });
+
   describe('/workspaces/:id (PATCH)', () => {
     it('should update a workspace', () => {
       const updateDto = { name: 'Updated Workspace' };
@@ -191,28 +307,38 @@ describe('WorkspacesController (e2e)', () => {
           expect(res.body.name).toBe(updateDto.name);
         });
     });
+
+    it('should prevent updating with a duplicate slug in the same org', async () => {
+      const ws2 = await request(app.getHttpServer())
+        .post('/api/workspaces')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ ...createDto, name: 'Workspace 2', slug: 'ws-2' });
+
+      return request(app.getHttpServer())
+        .patch(`/api/workspaces/${workspaceId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ slug: 'ws-2' })
+        .expect(HttpStatus.CONFLICT);
+    });
   });
 
   describe('Charts & Analytics', () => {
     it('should get workspace charts', () => {
-      // Use the workspace created in the POST test (workspaceId is set there)
-      // We need to fetch the slug again because createDto.slug might have been modified 
-      // if we ran the conflict test first, but here we assume sequential execution.
-      // Ideally, we should fetch the workspace by ID to get the correct slug.
-      
       return request(app.getHttpServer())
         .get(`/api/workspaces/${workspaceId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .then((wsRes) => {
-            const currentSlug = wsRes.body.slug;
-            return request(app.getHttpServer())
-                .get(`/api/workspaces/organization/${organizationId}/workspace/${currentSlug}/charts`)
-                .query({ types: 'kpi-metrics' })
-                .set('Authorization', `Bearer ${accessToken}`)
-                .expect(HttpStatus.OK)
-                .expect((res) => {
-                    expect(res.body).toHaveProperty('kpi-metrics');
-                });
+          const currentSlug = wsRes.body.slug;
+          return request(app.getHttpServer())
+            .get(
+              `/api/workspaces/organization/${organizationId}/workspace/${currentSlug}/charts`,
+            )
+            .query({ types: 'kpi-metrics' })
+            .set('Authorization', `Bearer ${accessToken}`)
+            .expect(HttpStatus.OK)
+            .expect((res) => {
+              expect(res.body).toHaveProperty('kpi-metrics');
+            });
         });
     });
   });
@@ -221,43 +347,43 @@ describe('WorkspacesController (e2e)', () => {
     let archiveWorkspaceId: string;
 
     beforeAll(async () => {
-        const res = await request(app.getHttpServer())
-            .post('/api/workspaces')
-            .set('Authorization', `Bearer ${accessToken}`)
-            .send({ ...createDto, slug: `archive-ws-${Date.now()}` });
-        archiveWorkspaceId = res.body.id;
+      const res = await request(app.getHttpServer())
+        .post('/api/workspaces')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ ...createDto, slug: `archive-ws-${Date.now()}` });
+      archiveWorkspaceId = res.body.id;
     });
 
     it('should prevent non-owners from archiving', () => {
-        return request(app.getHttpServer())
-            .patch(`/api/workspaces/archive/${archiveWorkspaceId}`)
-            .set('Authorization', `Bearer ${memberAccessToken}`)
-            .expect(HttpStatus.FORBIDDEN);
+      return request(app.getHttpServer())
+        .patch(`/api/workspaces/archive/${archiveWorkspaceId}`)
+        .set('Authorization', `Bearer ${memberAccessToken}`)
+        .expect(HttpStatus.FORBIDDEN);
     });
 
     it('should archive workspace', () => {
-        return request(app.getHttpServer())
-            .patch(`/api/workspaces/archive/${archiveWorkspaceId}`)
-            .set('Authorization', `Bearer ${accessToken}`)
-            .expect(HttpStatus.NO_CONTENT);
+      return request(app.getHttpServer())
+        .patch(`/api/workspaces/archive/${archiveWorkspaceId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.NO_CONTENT);
     });
 
     it('should verify workspace is archived', async () => {
-        const res = await request(app.getHttpServer())
-            .get(`/api/workspaces/${archiveWorkspaceId}`)
-            .set('Authorization', `Bearer ${accessToken}`)
-            .expect(HttpStatus.OK);
-        expect(res.body.archive).toBe(true);
+      const res = await request(app.getHttpServer())
+        .get(`/api/workspaces/${archiveWorkspaceId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK);
+      expect(res.body.archive).toBe(true);
     });
   });
 
   describe('/workspaces/:id (DELETE)', () => {
     it('should prevent non-owners from deleting', () => {
-        return request(app.getHttpServer())
-          .delete(`/api/workspaces/${workspaceId}`)
-          .set('Authorization', `Bearer ${memberAccessToken}`)
-          .expect(HttpStatus.FORBIDDEN);
-      });
+      return request(app.getHttpServer())
+        .delete(`/api/workspaces/${workspaceId}`)
+        .set('Authorization', `Bearer ${memberAccessToken}`)
+        .expect(HttpStatus.FORBIDDEN);
+    });
 
     it('should delete a workspace', () => {
       return request(app.getHttpServer())
