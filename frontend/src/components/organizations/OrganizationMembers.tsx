@@ -248,6 +248,7 @@ export default function OrganizationMembers({
       if (pendingInvitationsRef?.current) {
         await pendingInvitationsRef.current.refreshInvitations();
       }
+      onMembersChange();
     } catch (error: any) {
       console.log(error);
       const errorMessage = error?.message || t("org_members.invitation_failed");

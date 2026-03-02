@@ -129,8 +129,7 @@ function OrganizationSettingsPageContent() {
           title={t("organization_management.title")}
           description={t("organization_management.description")}
           actions={
-            !showCreateForm &&
-            hasAccess && (
+            !showCreateForm && (
               <div className="flex items-center gap-2">
                 {/* Create Organization Button */}
                 <Button
@@ -173,7 +172,7 @@ function OrganizationSettingsPageContent() {
                     }
                   }}
                   className={`${
-                    hasAccess
+                    access
                       ? "hover:border-[var(--primary)]/30 transition-colors duration-200"
                       : "cursor-default"
                   }`}

@@ -517,6 +517,7 @@ function WorkspaceMembersContent() {
       if (pendingInvitationsRef.current) {
         await pendingInvitationsRef.current.refreshInvitations();
       }
+      await refreshMembers();
     } catch (error: any) {
       const errorMessage =
         error?.response?.data?.message || error?.message || "Failed to send invitation";

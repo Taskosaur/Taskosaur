@@ -356,6 +356,8 @@ const MembersManagerComponent = memo(function MembersManager({
         await projectContext.addMemberToProject(memberData);
       }
 
+      const fetchKey = `${type}-${entityId}-${organizationId}`;
+      reset(fetchKey);
       await fetchMembers();
       setShowAddModal(false);
       setSelectedRole(type === "workspace" ? "MEMBER" : "DEVELOPER");
@@ -395,6 +397,8 @@ const MembersManagerComponent = memo(function MembersManager({
         setInviteMessage(null);
       }, 2000);
 
+      const fetchKey = `${type}-${entityId}-${organizationId}`;
+      reset(fetchKey);
       await fetchMembers();
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error?.message;
@@ -420,6 +424,8 @@ const MembersManagerComponent = memo(function MembersManager({
         await projectContext.removeProjectMember(memberId);
       }
 
+      const fetchKey = `${type}-${entityId}-${organizationId}`;
+      reset(fetchKey);
       await fetchMembers();
       setError(null);
     } catch (error: any) {
@@ -442,6 +448,8 @@ const MembersManagerComponent = memo(function MembersManager({
         await projectContext.updateProjectMemberRole(memberId, newRole);
       }
 
+      const fetchKey = `${type}-${entityId}-${organizationId}`;
+      reset(fetchKey);
       await fetchMembers();
       setError(null);
     } catch (error: any) {
@@ -548,11 +556,10 @@ const MembersManagerComponent = memo(function MembersManager({
                   {/* Show invite message */}
                   {inviteMessage && (
                     <div
-                      className={`members-manager-invite-message ${
-                        inviteMessage.includes("❌")
+                      className={`members-manager-invite-message ${inviteMessage.includes("❌")
                           ? "members-manager-invite-message-error"
                           : "members-manager-invite-message-success"
-                      }`}
+                        }`}
                     >
                       {inviteMessage}
                     </div>
