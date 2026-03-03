@@ -26,6 +26,7 @@ import { TaskPriorities, TaskTypeIcon } from "@/utils/data/taskData";
 import Tooltip from "@/components/common/ToolTip";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 import { exportTasksToCSV } from "@/utils/exportUtils";
+import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -273,6 +274,8 @@ function WorkspaceTasksContent() {
     }
   }, [workspace?.id]);
 
+  const { handleSlugNotFound } = useSlugRedirect();
+
   const loadInitialData = useCallback(async () => {
     if (!hasValidAuth) return;
     try {
@@ -287,13 +290,22 @@ function WorkspaceTasksContent() {
       if (!ws) {
         throw new Error(`Workspace "${workspaceSlug}" not found`);
       }
+      cacheSlugId("workspace", workspaceSlug as string, ws.id);
       setWorkspace(ws);
       return { ws };
     } catch (error) {
       console.error("LoadInitialData error:", error);
-      setLocalError(error instanceof Error ? error.message : "Failed to load initial data");
+      const redirected = await handleSlugNotFound(
+        error,
+        workspaceSlug as string,
+        undefined,
+        workspace?.id
+      );
+      if (!redirected) {
+        setLocalError(error instanceof Error ? error.message : "Failed to load initial data");
+      }
     }
-  }, [isAuthenticated, workspaceSlug, router]);
+  }, [isAuthenticated, workspaceSlug, router, handleSlugNotFound, workspace?.id]);
 
   const loadFilterData = useCallback(async () => {
     if (!workspace?.id) return;
@@ -886,7 +898,7 @@ function WorkspaceTasksContent() {
     const sorted = [...tasks].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
-      
+
       if (sortField === "dueIn") {
         const now = Date.now();
         if (!a.dueDate && !b.dueDate) return 0;
@@ -902,11 +914,11 @@ function WorkspaceTasksContent() {
       if (["createdAt", "updatedAt", "completedAt", "dueDate", "timeline"].includes(sortField)) {
         const aVal = a[sortField];
         const bVal = b[sortField];
-        
+
         if (!aVal && !bVal) return 0;
         if (!aVal) return 1;
         if (!bVal) return -1;
-        
+
         const aTime = new Date(aVal).getTime();
         const bTime = new Date(bVal).getTime();
         return sortOrder === "asc" ? aTime - bTime : bTime - aTime;

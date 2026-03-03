@@ -28,6 +28,7 @@ import { KanbanColumnSkeleton } from "@/components/skeletons/KanbanColumnSkeleto
 import ErrorState from "@/components/common/ErrorState";
 import { useLayout } from "@/contexts/layout-context";
 import NotFound from "@/pages/404";
+import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -183,6 +184,7 @@ const SprintTasksTable = () => {
   const [workspace, setWorkspace] = useState<any>(null);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [selectedReporters, setSelectedReporters] = useState<string[]>([]);
+  const { handleSlugNotFound } = useSlugRedirect();
 
   useEffect(() => {
     if (!workspaceSlug || !projectSlug || project) return;
@@ -196,8 +198,12 @@ const SprintTasksTable = () => {
           setWorkspace(ws);
 
           if (ws) {
+            cacheSlugId("workspace", workspaceSlug as string, ws.id);
             const projects = await projectApi.getProjectsByWorkspace(ws.id);
             const proj = projects.find((p: any) => p.slug === projectSlug);
+            if (proj) {
+              cacheSlugId("project", projectSlug as string, proj.id);
+            }
             setProject(proj || null);
           }
         } else {
@@ -211,8 +217,17 @@ const SprintTasksTable = () => {
         }
       } catch (error) {
         console.error("Error fetching project data:", error);
-        setLocalError(error?.message || t("errors.fetchingProjectError"));
-        setProject(null);
+        const redirected = await handleSlugNotFound(
+          error,
+          workspaceSlug as string,
+          projectSlug as string,
+          workspace?.id,
+          project?.id
+        );
+        if (!redirected) {
+          setLocalError(error?.message || t("errors.fetchingProjectError"));
+          setProject(null);
+        }
       }
     };
     fetchData();
@@ -737,13 +752,13 @@ const SprintTasksTable = () => {
     const sorted = [...tasks].sort((a, b) => {
       const aValue = a[sortField];
       const bValue = b[sortField];
-      
+
       if (sortField === "dueIn") {
         const now = Date.now();
         if (!a.dueDate && !b.dueDate) return 0;
         if (!a.dueDate) return 1;
         if (!b.dueDate) return -1;
-        
+
         const aDue = new Date(a.dueDate).getTime() - now;
         const bDue = new Date(b.dueDate).getTime() - now;
         return sortOrder === "asc" ? aDue - bDue : bDue - aDue;
@@ -752,11 +767,11 @@ const SprintTasksTable = () => {
       if (["createdAt", "updatedAt", "completedAt", "dueDate", "timeline"].includes(sortField)) {
         const aVal = a[sortField];
         const bVal = b[sortField];
-        
+
         if (!aVal && !bVal) return 0;
         if (!aVal) return 1;
         if (!bVal) return -1;
-        
+
         const aTime = new Date(aVal).getTime();
         const bTime = new Date(bVal).getTime();
         return sortOrder === "asc" ? aTime - bTime : bTime - aTime;

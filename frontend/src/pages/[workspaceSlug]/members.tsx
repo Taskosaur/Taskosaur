@@ -30,6 +30,7 @@ import WorkspaceMembersSkeleton from "@/components/skeletons/WorkspaceMembersSke
 import Pagination from "@/components/common/Pagination";
 import { SEO } from "@/components/common/SEO";
 import { useTranslation } from "react-i18next";
+import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -89,6 +90,7 @@ function WorkspaceMembersContent() {
   const { getWorkspaceBySlug, getWorkspaceMembers, updateMemberRole, removeMemberFromWorkspace } =
     useWorkspace();
   const { isAuthenticated, getCurrentUser, getUserAccess } = useAuth();
+  const { handleSlugNotFound } = useSlugRedirect();
   const [hasAccess, setHasAccess] = useState(false);
   const [userAccess, setUserAccess] = useState(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -284,6 +286,8 @@ function WorkspaceMembersContent() {
 
         if (!workspace) {
           setWorkspace(workspaceData);
+          // Cache slug→ID so redirect works even if slug changes later
+          cacheSlugId("workspace", workspaceSlug as string, workspaceData.id);
         }
 
         // Updated API call with pagination
@@ -320,8 +324,17 @@ function WorkspaceMembersContent() {
         isInitializedRef.current = true;
       } catch (err) {
         if (requestIdRef.current === requestId && isMountedRef.current) {
-          setError(err?.message ? err.message : "An error occurred");
-          isInitializedRef.current = false;
+          // Try to redirect if workspace slug changed
+          const redirected = await handleSlugNotFound(
+            err,
+            workspaceSlug as string,
+            undefined,
+            workspace?.id
+          );
+          if (!redirected) {
+            setError(err?.message ? err.message : "An error occurred");
+            isInitializedRef.current = false;
+          }
         }
       } finally {
         if (requestIdRef.current === requestId && isMountedRef.current) {

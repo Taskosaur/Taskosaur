@@ -17,6 +17,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import ErrorState from "@/components/common/ErrorState";
 import { SEO } from "@/components/common/SEO";
 import { useTranslation } from "react-i18next";
+import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 
 function WorkspaceSettingsContent() {
   const { t } = useTranslation("settings");
@@ -33,6 +34,7 @@ function WorkspaceSettingsContent() {
   const [success, setSuccess] = useState<string | null>(null);
   const { getUserAccess } = useAuth();
   const [hasAccess, setHasAccess] = useState(false);
+  const { handleSlugNotFound } = useSlugRedirect();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -159,6 +161,8 @@ function WorkspaceSettingsContent() {
         }
 
         setWorkspace(workspaceData);
+        // Cache slug→ID so redirect works even if slug changes later
+        cacheSlugId("workspace", initialWorkspaceSlug, workspaceData.id);
         setFormData({
           name: workspaceData.name || "",
           description: workspaceData.description || "",
@@ -168,10 +172,21 @@ function WorkspaceSettingsContent() {
         if (!isActive) return;
 
         const errorMessage = err instanceof Error ? err.message : t("workspace_settings.failed_to_load");
-        setError(errorMessage);
 
-        if (errorMessage.toLowerCase().includes("not found") || errorMessage.includes("404")) {
-          router.replace("/workspaces");
+        // Try to redirect if slug changed
+        const redirected = await handleSlugNotFound(
+          err,
+          initialWorkspaceSlug as string,
+          undefined,
+          workspace?.id
+        );
+
+        if (!redirected) {
+          setError(errorMessage);
+
+          if (errorMessage.toLowerCase().includes("not found") || errorMessage.includes("404")) {
+            router.replace("/workspaces");
+          }
         }
       } finally {
         if (isActive) {
@@ -207,6 +222,7 @@ function WorkspaceSettingsContent() {
       });
 
       setWorkspace(updatedWorkspace);
+      cacheSlugId("workspace", updatedWorkspace.slug, updatedWorkspace.id);
 
       if (updatedWorkspace.slug !== initialWorkspaceSlug) {
         await router.replace(`/${updatedWorkspace.slug}/settings`);

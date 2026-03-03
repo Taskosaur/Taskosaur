@@ -14,6 +14,7 @@ import { HiCalendarDays } from "react-icons/hi2";
 import ErrorState from "@/components/common/ErrorState";
 import { useLayout } from "@/contexts/layout-context";
 import NotFound from "@/pages/404";
+import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 
 const LoadingSkeleton = () => (
   <div className="flex min-h-screen bg-[var(--background)]">
@@ -60,6 +61,7 @@ function ProjectTasksCalendarPageContent() {
   const workspaceContext = useWorkspaceContext();
   const projectContext = useProjectContext();
   const taskContext = useTask();
+  const { handleSlugNotFound } = useSlugRedirect();
 
   const [workspaceData, setWorkspaceData] = useState<any>(null);
   const [projectData, setProjectData] = useState<any>(null);
@@ -116,6 +118,7 @@ function ProjectTasksCalendarPageContent() {
         return;
       }
       setWorkspaceData(workspace);
+      cacheSlugId("workspace", workspaceSlug, workspace.id);
 
       const projects = await projectContext.getProjectsByWorkspace(workspace.id);
       const project = findProjectBySlug(projects || [], projectSlug);
@@ -126,6 +129,7 @@ function ProjectTasksCalendarPageContent() {
         return;
       }
       setProjectData(project);
+      cacheSlugId("project", projectSlug, project.id);
 
       const tasks = await taskContext.getCalendarTask(organizationId, {
         projectId: project.id,
@@ -136,7 +140,16 @@ function ProjectTasksCalendarPageContent() {
       setDataLoaded(true);
     } catch (err) {
       console.error("Error loading page data:", err);
-      setError(err?.message ? err.message : t("errors.failedLoadData"));
+      const redirected = await handleSlugNotFound(
+        err,
+        workspaceSlug as string,
+        projectSlug as string,
+        workspaceData?.id,
+        projectData?.id
+      );
+      if (!redirected) {
+        setError(err?.message ? err.message : t("errors.failedLoadData"));
+      }
     } finally {
       setLoading(false);
     }

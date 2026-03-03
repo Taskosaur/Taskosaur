@@ -40,6 +40,7 @@ import Tooltip from "@/components/common/ToolTip";
 import { InfoPanel } from "@/components/common/InfoPanel";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 
 interface WorkspacePaginationProps {
   currentPage: number;
@@ -100,7 +101,7 @@ function WorkspacePagination({
                 currentPage === totalPages || isLoading
                   ? "pointer-events-none opacity-50"
                   : "cursor-pointer hover:bg-[var(--accent)]"
-              }`}
+            }`}
             />
           </PaginationItem>
         </PaginationContent>
@@ -115,6 +116,7 @@ function WorkspaceActivityContent() {
   const { workspaceSlug } = router.query;
   const { getWorkspaceBySlug, getWorkspaceRecentActivity } = useWorkspace();
   const { isAuthenticated } = useAuth();
+  const { handleSlugNotFound } = useSlugRedirect();
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
@@ -193,6 +195,7 @@ function WorkspaceActivityContent() {
             return;
           }
           setWorkspace(ws);
+          cacheSlugId("workspace", workspaceSlug as string, ws.id);
           setIsLoading(false);
         }
 
@@ -247,7 +250,15 @@ function WorkspaceActivityContent() {
           router.back();
           return;
         }
-        setError(e?.message ? e.message : t("failed_to_load_workspace"));
+        const redirected = await handleSlugNotFound(
+          e,
+          workspaceSlug as string,
+          undefined,
+          workspace?.id
+        );
+        if (!redirected) {
+          setError(e?.message ? e.message : t("failed_to_load_workspace"));
+        }
       } finally {
         setIsLoading(false);
         setIsLoadingActivity(false);

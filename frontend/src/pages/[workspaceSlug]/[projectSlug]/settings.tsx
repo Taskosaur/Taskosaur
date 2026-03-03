@@ -22,6 +22,7 @@ import { IoWarning } from "react-icons/io5";
 import ActionButton from "@/components/common/ActionButton";
 import ErrorState from "@/components/common/ErrorState";
 import { SEO } from "@/components/common/SEO";
+import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 
 // Helper function to validate internal paths and prevent open redirect vulnerabilities
 function isValidInternalPath(path: string): boolean {
@@ -47,6 +48,7 @@ function ProjectSettingsContent() {
   const { getWorkspaceBySlug } = useWorkspace();
   const { isAuthenticated, getUserAccess } = useAuth();
   const [hasAccess, setHasAccess] = useState(false);
+  const { handleSlugNotFound } = useSlugRedirect();
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -227,6 +229,10 @@ function ProjectSettingsContent() {
           return;
         }
 
+        // Cache slug→ID mappings
+        cacheSlugId("workspace", workspaceSlug as string, workspaceData.id);
+        cacheSlugId("project", projectSlug as string, projectData.id);
+
         setProject(projectData);
         setFormData({
           name: projectData.name || "",
@@ -239,8 +245,17 @@ function ProjectSettingsContent() {
         if (!isActive) return;
 
         const errorMessage = err?.message ? err.message : "Failed to load project";
-        setError(errorMessage);
 
+        const redirected = await handleSlugNotFound(
+          err,
+          workspaceSlug as string,
+          projectSlug as string,
+          undefined,
+          project?.id
+        );
+
+        if (!redirected) {
+        setError(errorMessage);
         if (errorMessage.includes("not found") || errorMessage.includes("404")) {
           const safeSlug = sanitizeSlug(workspaceSlug);
           if (!safeSlug) {
@@ -254,6 +269,7 @@ function ProjectSettingsContent() {
           } else {
             router.replace('/');
           }
+        }
         }
       } finally {
         if (isActive) {

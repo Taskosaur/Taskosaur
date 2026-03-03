@@ -32,6 +32,7 @@ import { KanbanColumnSkeleton } from "@/components/skeletons/KanbanColumnSkeleto
 import { TaskTypeIcon } from "@/utils/data/taskData";
 import { useLayout } from "@/contexts/layout-context";
 import NotFound from "@/pages/404";
+import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -289,18 +290,13 @@ function ProjectTasksContent() {
     return true;
   }, [workspace?.id, currentOrganizationId, project?.id, isAuth]);
 
+  const { handleSlugNotFound } = useSlugRedirect();
+
   const loadInitialData = useCallback(async () => {
     try {
       setLocalError(null);
 
       const ws: Workspace | null = null;
-      // if (hasValidAuth) {
-      //   ws = await workspaceApi.getWorkspaceBySlug(workspaceSlug as string);
-      //   if (!ws) {
-      //     throw new Error(`Workspace "${workspaceSlug}" not found`);
-      //   }
-      //   setWorkspace(ws);
-      // }
 
       const proj = await projectApi.getProjectBySlug(
         projectSlug as string,
@@ -315,12 +311,27 @@ function ProjectTasksContent() {
       setWorkspace((proj.workspace as Workspace) || null);
       setProject(proj);
 
+      cacheSlugId("project", projectSlug as string, proj.id);
+      if (proj.workspace?.id) {
+        cacheSlugId("workspace", workspaceSlug as string, proj.workspace.id);
+      }
+
       return { ws, proj };
     } catch (error) {
       console.error("LoadInitialData error:", error);
-      setLocalError(error instanceof Error ? error.message : "Failed to load initial data");
+
+      const redirected = await handleSlugNotFound(
+        error,
+        workspaceSlug as string,
+        projectSlug as string,
+        workspace?.id,
+        project?.id
+      );
+      if (!redirected) {
+        setLocalError(error instanceof Error ? error.message : "Failed to load initial data");
+      }
     }
-  }, [hasValidAuth, workspaceSlug, projectSlug, workspaceApi, projectApi, isAuth]);
+  }, [hasValidAuth, workspaceSlug, projectSlug, workspaceApi, projectApi, isAuth, handleSlugNotFound, workspace?.id, project?.id]);
 
   const loadStatusData = useCallback(async () => {
     if (!project?.id || statusesLoaded || !isAuth) return;
@@ -627,7 +638,7 @@ function ProjectTasksContent() {
     const sorted = [...displayTasks].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
-      
+
       if (sortField === "dueIn") {
         const now = Date.now();
         if (!a.dueDate && !b.dueDate) return 0;
@@ -643,11 +654,11 @@ function ProjectTasksContent() {
       if (["createdAt", "updatedAt", "completedAt", "dueDate", "timeline"].includes(sortField)) {
         const aVal = a[sortField];
         const bVal = b[sortField];
-        
+
         if (!aVal && !bVal) return 0;
         if (!aVal) return 1;
         if (!bVal) return -1;
-        
+
         const aTime = new Date(aVal).getTime();
         const bTime = new Date(bVal).getTime();
         return sortOrder === "asc" ? aTime - bTime : bTime - aTime;
@@ -671,7 +682,7 @@ function ProjectTasksContent() {
         aValue = a.status?.name || "";
         bValue = b.status?.name || "";
       }
-      
+
       // Handle commentsCount field (stored in _count.comments)
       if (sortField === "commentsCount") {
         aValue = a._count?.comments || 0;
@@ -685,7 +696,7 @@ function ProjectTasksContent() {
       if (typeof aValue === "number" && typeof bValue === "number") {
         return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
       }
-      
+
       return 0;
     });
     return sorted;

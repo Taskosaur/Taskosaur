@@ -16,6 +16,7 @@ import { CardsSkeleton } from "@/components/skeletons/CardsSkeleton";
 import ErrorState from "@/components/common/ErrorState";
 import { useLayout } from "@/contexts/layout-context";
 import NotFound from "@/pages/404";
+import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 
 function SprintsPageContent() {
   const { t } = useTranslation(["sprints", "common"]);
@@ -46,6 +47,7 @@ function SprintsPageContent() {
   const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const { handleSlugNotFound } = useSlugRedirect();
 
   useEffect(() => {
     if (projectSlug && workspaceSlug) {
@@ -88,6 +90,8 @@ function SprintsPageContent() {
           return;
         }
         setProjectData(project);
+        cacheSlugId("workspace", workspaceSlug, workspace.id);
+        cacheSlugId("project", projectSlug, project.id);
       } else {
         try {
           const project = await projectContext.getProjectBySlug(projectSlug, false, workspaceSlug);
@@ -99,7 +103,16 @@ function SprintsPageContent() {
       }
     } catch (err) {
       console.error("Error loading page data:", err);
-      setLocalError(err?.message || t("errors.loadingPageError"));
+      const redirected = await handleSlugNotFound(
+        err,
+        workspaceSlug as string,
+        projectSlug as string,
+        undefined,
+        projectData?.id
+      );
+      if (!redirected) {
+        setLocalError(err?.message || t("errors.loadingPageError"));
+      }
     }
   };
 

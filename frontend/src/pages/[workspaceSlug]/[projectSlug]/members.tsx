@@ -26,6 +26,7 @@ import { useWorkspaceContext } from "@/contexts/workspace-context";
 import { useProjectContext } from "@/contexts/project-context";
 import { useAuth } from "@/contexts/auth-context";
 import { useGlobalFetchPrevention } from "@/hooks/useGlobalFetchPrevention";
+import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 
 import { Member, Project, ProjectMember, Workspace } from "@/types";
 import { Button } from "@/components/ui";
@@ -116,6 +117,7 @@ function ProjectMembersContent() {
     getProjectMembersPagination,
   } = useProjectContext();
   const { isAuthenticated, getCurrentUser, getUserAccess } = useAuth();
+  const { handleSlugNotFound } = useSlugRedirect();
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [project, setProject] = useState<Project | null>(null);
@@ -271,6 +273,8 @@ function ProjectMembersContent() {
           return;
         }
         setWorkspace(workspaceData);
+        // Cache slug→ID mappings
+        cacheSlugId("workspace", workspaceSlug, workspaceData.id);
         const projectsData = await getProjectsByWorkspace(workspaceData.id);
         const foundProject = projectsData?.find((p: any) => p.slug === projectSlug);
         if (!foundProject) {
@@ -278,6 +282,7 @@ function ProjectMembersContent() {
           setLoading(false);
           return;
         }
+        cacheSlugId("project", projectSlug, foundProject.id);
         setProject({
           ...foundProject,
           description: foundProject.description || "",
@@ -329,9 +334,18 @@ function ProjectMembersContent() {
         isInitializedRef.current = true;
       } catch (err) {
         if (requestIdRef.current === requestId && isMountedRef.current) {
-          setError(err?.message ? err.message : "Failed to load data");
-          setMembers([]);
-          isInitializedRef.current = false;
+          const redirected = await handleSlugNotFound(
+            err,
+            workspaceSlug,
+            projectSlug,
+            workspace?.id,
+            project?.id
+          );
+          if (!redirected) {
+            setError(err?.message ? err.message : "Failed to load data");
+            setMembers([]);
+            isInitializedRef.current = false;
+          }
         }
       } finally {
         if (requestIdRef.current === requestId && isMountedRef.current) {
@@ -339,7 +353,7 @@ function ProjectMembersContent() {
         }
       }
     },
-    [workspaceSlug, workspace]
+    [workspaceSlug, workspace, handleSlugNotFound]
   );
 
   useEffect(() => {
@@ -701,7 +715,7 @@ function ProjectMembersContent() {
                                       : isOwner
                                         ? "Project owner cannot be removed"
                                         : userAccess?.role === "MANAGER" &&
-                                            member.role === "MANAGER"
+                                          member.role === "MANAGER"
                                           ? "Cannot remove other managers"
                                           : "Remove Member"
                                   }
@@ -849,7 +863,7 @@ function ProjectMembersContent() {
                                       : isOwner
                                         ? "Project owner cannot be removed"
                                         : userAccess?.role === "MANAGER" &&
-                                            member.role === "MANAGER"
+                                          member.role === "MANAGER"
                                           ? "Cannot remove other managers"
                                           : "Remove Member"
                                   }
