@@ -8,6 +8,7 @@ import { useWorkspace } from "@/contexts/workspace-context";
 import { useProject } from "@/contexts/project-context";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/router";
+import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 
 function NewTaskPageContent() {
   const router = useRouter();
@@ -17,6 +18,7 @@ function NewTaskPageContent() {
   const { getWorkspaceBySlug } = useWorkspace();
   const { getProjectsByWorkspace } = useProject();
   const { isAuthenticated } = useAuth();
+  const { handleSlugNotFound } = useSlugRedirect();
 
   const [workspace, setWorkspace] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
@@ -27,20 +29,37 @@ function NewTaskPageContent() {
     const fetchWorkspaceData = async () => {
       if (!isAuthenticated() || !workspaceSlug || isInitializedRef.current) return;
       try {
-        const ws = await getWorkspaceBySlug(
+        const slugStr =
           typeof workspaceSlug === "string"
             ? workspaceSlug
             : Array.isArray(workspaceSlug)
               ? workspaceSlug[0]
-              : ""
-        );
+              : "";
+
+        const ws = await getWorkspaceBySlug(slugStr);
         setWorkspace(ws);
+        if (ws?.id) {
+          cacheSlugId("workspace", slugStr, ws.id);
+        }
         const projs = ws?.id ? await getProjectsByWorkspace(ws.id) : [];
         setProjects(projs);
 
         isInitializedRef.current = true;
       } catch (error) {
         console.error("Error initializing workspace data:", error);
+        const slugStr =
+          typeof workspaceSlug === "string"
+            ? workspaceSlug
+            : Array.isArray(workspaceSlug)
+              ? workspaceSlug[0]
+              : "";
+
+        await handleSlugNotFound(
+          error,
+          slugStr,
+          undefined,
+          workspace?.id
+        );
       }
     };
     fetchWorkspaceData();

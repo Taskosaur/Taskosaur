@@ -9,6 +9,7 @@ import { useProject } from "@/contexts/project-context";
 
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/router";
+import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 
 function NewTaskPageContent() {
   const router = useRouter();
@@ -18,6 +19,7 @@ function NewTaskPageContent() {
   const { getProjectBySlug } = useProject();
 
   const { isAuthenticated } = useAuth();
+  const { handleSlugNotFound } = useSlugRedirect();
 
   const [workspace, setWorkspace] = useState<any>(null);
   const [project, setProject] = useState<any>(null);
@@ -27,28 +29,45 @@ function NewTaskPageContent() {
   useEffect(() => {
     const fetchData = async () => {
       if (!isAuthenticated() || !workspaceSlug || !projectSlug || isInitializedRef.current) return;
+
+      const wsSlug =
+        typeof workspaceSlug === "string"
+          ? workspaceSlug
+          : Array.isArray(workspaceSlug)
+            ? workspaceSlug[0]
+            : "";
+
+      const projSlug =
+        typeof projectSlug === "string"
+          ? projectSlug
+          : Array.isArray(projectSlug)
+            ? projectSlug[0]
+            : "";
+
       try {
-        const ws = await getWorkspaceBySlug(
-          typeof workspaceSlug === "string"
-            ? workspaceSlug
-            : Array.isArray(workspaceSlug)
-              ? workspaceSlug[0]
-              : ""
-        );
+        const ws = await getWorkspaceBySlug(wsSlug);
         setWorkspace(ws);
-        const proj = await getProjectBySlug(
-          typeof projectSlug === "string"
-            ? projectSlug
-            : Array.isArray(projectSlug)
-              ? projectSlug[0]
-              : "",
-          isAuthenticated()
-        );
+        if (ws?.id) {
+          cacheSlugId("workspace", wsSlug, ws.id);
+        }
+
+        const proj = await getProjectBySlug(projSlug, isAuthenticated());
         setProject(proj);
+        if (proj?.id) {
+          cacheSlugId("project", projSlug, proj.id);
+        }
 
         isInitializedRef.current = true;
       } catch (error) {
         console.error("Error initializing data:", error);
+
+        await handleSlugNotFound(
+          error,
+          wsSlug,
+          projSlug,
+          workspace?.id,
+          project?.id
+        );
       }
     };
     fetchData();
