@@ -176,19 +176,6 @@ describe('Workflow 10: Collaborative Task Discussion (e2e)', () => {
         .expect(HttpStatus.CREATED);
       workspaceId = wsResponse.body.id;
 
-      // Add B and C to workspace
-      await request(app.getHttpServer())
-        .post('/api/workspace-members')
-        .set('Authorization', `Bearer ${tokenA}`)
-        .send({ userId: userB.id, workspaceId, role: Role.MEMBER })
-        .expect(HttpStatus.CREATED);
-
-      await request(app.getHttpServer())
-        .post('/api/workspace-members')
-        .set('Authorization', `Bearer ${tokenA}`)
-        .send({ userId: userC.id, workspaceId, role: Role.MEMBER })
-        .expect(HttpStatus.CREATED);
-
       // Create project
       const projectResponse = await request(app.getHttpServer())
         .post('/api/projects')
