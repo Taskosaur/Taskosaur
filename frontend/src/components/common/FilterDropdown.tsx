@@ -186,14 +186,20 @@ export function FilterDropdown({
               setOpen((prev) => !prev);
             }
           }}
-          className={`relative ${triggerClassName} transition-all duration-200 h-9`}
+          className={`relative ${triggerClassName} transition-all duration-200 h-9 ${
+            activeFiltersCount > 0 ? "border-[var(--primary)] ring-1 ring-[var(--primary)]/20 shadow-sm" : ""
+          }`}
         >
-          <SlidersHorizontal className="h-5 w-5" />
+          <SlidersHorizontal
+            className={`h-5 w-5 transition-colors duration-200 ${
+              activeFiltersCount > 0 ? "text-[var(--primary)]" : ""
+            }`}
+          />
 
-          {showCounts && activeFiltersCount > 0 && (
+          {activeFiltersCount > 0 && (
             <Badge
               variant="secondary"
-              className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-[var(--accent-foreground)] text-[var(--accent)] text-xs border-2 border-white rounded-full"
+              className="absolute -top-2 -right-2 h-5 min-w-[1.25rem] px-1.5 flex items-center justify-center bg-[var(--primary)] text-white text-[10px] font-bold border-2 border-[var(--background)] rounded-full shadow-md transition-all duration-300 scale-110"
             >
               {activeFiltersCount}
             </Badge>
