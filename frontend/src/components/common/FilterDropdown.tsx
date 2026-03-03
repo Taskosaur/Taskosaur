@@ -199,7 +199,7 @@ export function FilterDropdown({
           {activeFiltersCount > 0 && (
             <Badge
               variant="secondary"
-              className="absolute -top-2 -right-2 h-5 min-w-[1.25rem] px-1.5 flex items-center justify-center bg-[var(--primary)] text-white text-[10px] font-bold border-2 border-[var(--background)] rounded-full shadow-md transition-all duration-300 scale-110"
+              className="absolute -top-2 -right-2 h-5 min-w-[1.25rem] px-1.5 flex items-center justify-center bg-[var(--primary)] text-[var(--primary-foreground)] text-[10px] font-bold border-2 border-[var(--background)] rounded-full shadow-md transition-all duration-300 scale-110"
             >
               {activeFiltersCount}
             </Badge>
@@ -424,7 +424,7 @@ export function FilterDropdown({
               {activeFiltersCount > 0 && (
                 <Badge
                   variant="secondary"
-                  className="ml-1.5 bg-white/20 text-white border-white/20 h-4 text-[10px] px-1.5"
+                  className="ml-1.5 bg-[var(--primary-foreground)]/20 text-[var(--primary-foreground)] border-[var(--primary-foreground)]/20 h-4 text-[10px] px-1.5"
                 >
                   {activeFiltersCount}
                 </Badge>
