@@ -11,6 +11,7 @@ import {
 import { PageHeaderSkeleton } from "../common/PageHeaderSkeleton";
 import { useWorkspace } from "@/contexts/workspace-context";
 import ErrorState from "../common/ErrorState";
+import { cacheSlugId } from "@/hooks/useSlugRedirect";
 
 import { Widget, WorkspaceAnalyticsProps } from "@/types/analytics";
 
@@ -139,7 +140,11 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
 
   useEffect(() => {
     if (workspaceSlug && (!currentWorkspace || currentWorkspace.slug !== workspaceSlug)) {
-      getWorkspaceBySlug(workspaceSlug);
+      getWorkspaceBySlug(workspaceSlug).then((ws) => {
+        if (ws?.id) cacheSlugId("workspace", workspaceSlug, ws.id);
+      }).catch(() => { });
+    } else if (currentWorkspace?.id && workspaceSlug) {
+      cacheSlugId("workspace", workspaceSlug, currentWorkspace.id);
     }
   }, [workspaceSlug, currentWorkspace?.slug]);
 

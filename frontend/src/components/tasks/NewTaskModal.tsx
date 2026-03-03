@@ -500,7 +500,11 @@ export function NewTaskModal({
         await createTask(taskData);
 
         if (projectSlug && workspaceSlug) {
-          await fetchAnalyticsData(projectSlug, isAuth);
+          try {
+            await fetchAnalyticsData(projectSlug, isAuth);
+          } catch (analyticsError) {
+            console.error("Failed to refresh analytics silently:", analyticsError);
+          }
         }
 
         if (onTaskCreated) {
