@@ -61,15 +61,12 @@ export default function OrganizationSelector({
 
         let selectedOrg: Organization | undefined;
 
-        // First try to find the org with isDefault = true
-        selectedOrg = orgs.find((org) => org.isDefault);
-
-        // If no default org, check localStorage
+        const savedOrgId = localStorage.getItem("currentOrganizationId");
+        if (savedOrgId) {
+          selectedOrg = orgs.find((org) => org.id === savedOrgId);
+        }
         if (!selectedOrg) {
-          const savedOrgId = localStorage.getItem("currentOrganizationId");
-          if (savedOrgId) {
-            selectedOrg = orgs.find((org) => org.id === savedOrgId);
-          }
+          selectedOrg = orgs.find((org) => org.isDefault);
         }
 
         // If still no selection, pick the first org
