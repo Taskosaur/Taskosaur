@@ -48,6 +48,7 @@ import { useProject } from "@/contexts/project-context";
 import { useTask } from "@/contexts/task-context";
 import { useSprint } from "@/contexts/sprint-context";
 import { toast } from "sonner";
+import { formatDateForApi } from "@/utils/handleDateChange";
 import { PRIORITY_OPTIONS, TASK_TYPE_OPTIONS } from "@/utils/data/taskData";
 interface FormData {
   title: string;
@@ -490,7 +491,7 @@ export function NewTaskModal({
             ? formData.type
             : "TASK",
           storyPoints: formData.storyPoints ? parseInt(formData.storyPoints) : undefined,
-          dueDate: formData.dueDate ? moment(formData.dueDate).toISOString() : undefined,
+          dueDate: formData.dueDate ? (formatDateForApi(formData.dueDate) ?? undefined) : undefined,
           projectId: formData.project!.id,
           statusId: defaultStatus?.id,
         };

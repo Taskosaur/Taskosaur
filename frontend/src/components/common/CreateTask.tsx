@@ -194,7 +194,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
 
     const fetchProjectSprints = async (projectId: string) => {
       if (!projectId || !getSprintsByProject) return;
-      
+
       const project = projects.find(p => p.id === projectId);
       if (!project) return;
 
@@ -702,7 +702,14 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                   name="startDate"
                   type="date"
                   value={formData.startDate}
-                  onChange={(e) => handleFormDataChange("startDate", e.target.value)}
+                  onChange={(e) => {
+                    const newStart = e.target.value;
+                    handleFormDataChange("startDate", newStart);
+                    if (formData.dueDate && newStart && newStart > formData.dueDate) {
+                      handleFormDataChange("dueDate", "");
+                    }
+                  }}
+                  max={formData.dueDate || undefined}
                   onClick={(e) => {
                     const target = e.target as HTMLInputElement;
                     target.showPicker?.();
@@ -721,6 +728,7 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                   name="dueDate"
                   type="date"
                   value={formData.dueDate}
+                  min={formData.startDate || undefined}
                   onChange={(e) => handleFormDataChange("dueDate", e.target.value)}
                   onClick={(e) => {
                     const target = e.target as HTMLInputElement;

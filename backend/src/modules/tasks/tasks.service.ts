@@ -110,6 +110,13 @@ export class TasksService {
       }
     }
 
+    // Validate that startDate is before dueDate
+    if (createTaskDto.startDate && createTaskDto.dueDate) {
+      if (new Date(createTaskDto.startDate) > new Date(createTaskDto.dueDate)) {
+        throw new BadRequestException('Start date must be before the due date');
+      }
+    }
+
     let sprintId = createTaskDto.sprintId;
 
     if (!sprintId) {
@@ -302,6 +309,13 @@ export class TasksService {
 
       if (!canCreate) {
         throw new ForbiddenException('Insufficient permissions to create task in this project');
+      }
+    }
+
+    // Validate that startDate is before dueDate
+    if (createTaskDto.startDate && createTaskDto.dueDate) {
+      if (new Date(createTaskDto.startDate) > new Date(createTaskDto.dueDate)) {
+        throw new BadRequestException('Start date must be before the due date');
       }
     }
 
@@ -1178,6 +1192,13 @@ export class TasksService {
 
     if (!canUpdate) {
       throw new ForbiddenException('Insufficient permissions to update this task');
+    }
+    const effectiveStartDate = updateTaskDto.startDate ?? task.startDate?.toISOString();
+    const effectiveDueDate = updateTaskDto.dueDate ?? task.dueDate?.toISOString();
+    if (effectiveStartDate && effectiveDueDate) {
+      if (new Date(effectiveStartDate) > new Date(effectiveDueDate)) {
+        throw new BadRequestException('Start date must be before the due date');
+      }
     }
 
     try {
