@@ -100,16 +100,23 @@ export class ProjectChartsService {
    * Helper method to get project and validate access
    */
   private async getProjectWithAccess(projectSlug: string, userId: string) {
-    const { isElevated } = await this.accessControl.getProjectAccessBySlug(projectSlug, userId);
+    const { isElevated: originalIsElevated } = await this.accessControl.getProjectAccessBySlug(
+      projectSlug,
+      userId,
+    );
 
     const project = await this.prisma.project.findUnique({
       where: { slug: projectSlug },
-      select: { id: true },
+      select: { id: true, visibility: true },
     });
 
     if (!project) {
       throw new NotFoundException('Project not found');
     }
+
+    // A project is considered "effectively elevated" for charts if the user has an elevated role
+    // OR if the project is PUBLIC (meaning everyone can see all tasks).
+    const isElevated = originalIsElevated || project.visibility === 'PUBLIC';
 
     return { project, isElevated };
   }
@@ -126,7 +133,22 @@ export class ProjectChartsService {
    * 1) Task Status Flow
    */
   async projectTaskStatusFlow(projectSlug: string, userId: string): Promise<TaskStatusFlow[]> {
-    const { isElevated } = await this.accessControl.getProjectAccessBySlug(projectSlug, userId);
+    const { isElevated: originalIsElevated } = await this.accessControl.getProjectAccessBySlug(
+      projectSlug,
+      userId,
+    );
+
+    // Fetch project to check visibility for bypassing restriction
+    const projectInfo = await this.prisma.project.findUnique({
+      where: { slug: projectSlug },
+      select: { visibility: true },
+    });
+
+    if (!projectInfo) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const isElevated = originalIsElevated || projectInfo.visibility === 'PUBLIC';
 
     const project = await this.prisma.project.findUnique({
       where: { slug: projectSlug },

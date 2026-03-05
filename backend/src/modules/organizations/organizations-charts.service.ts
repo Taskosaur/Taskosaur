@@ -230,10 +230,10 @@ export class OrganizationChartsService {
         activeSprints,
       ] = await Promise.all([
         this.prisma.workspace.count({
-          where: { organizationId: orgId, archive: false },
+          where: { members: { some: { userId: userId } }, organizationId: orgId, archive: false },
         }),
         this.prisma.workspace.count({
-          where: { organizationId: orgId, archive: false },
+          where: { members: { some: { userId: userId } }, organizationId: orgId, archive: false },
         }),
         this.prisma.project.count({
           where: { workspace: { organizationId: orgId }, archive: false },

@@ -574,9 +574,22 @@ export class TasksService {
     const whereClause: any = {
       // Ensure tasks belong to the organization through project->workspace->organization
       project: {
-        workspace: {
-          organizationId: organizationId,
-        },
+        OR: [
+          {
+            visibility: 'PUBLIC',
+            workspace: {
+              organizationId: organizationId,
+            },
+          },
+          {
+            workspace: {
+              members: {
+                some: { userId: userId },
+              },
+              organizationId: organizationId,
+            },
+          },
+        ],
       },
     };
 
