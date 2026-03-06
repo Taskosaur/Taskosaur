@@ -108,9 +108,9 @@ export class OrganizationsController {
     @Query('organizationId', ParseUUIDPipe) organizationId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
-    @CurrentUser() user?: User,
+    @CurrentUser() user?: any,
   ) {
-    return this.searchService.search(query, organizationId, user.id, {
+    return this.searchService.search(query, organizationId, user.id as string, {
       page: Math.max(1, page || 1),
       limit: Math.min(100, Math.max(1, limit || 20)),
     });
