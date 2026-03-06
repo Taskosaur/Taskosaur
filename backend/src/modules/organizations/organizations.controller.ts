@@ -7,6 +7,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
@@ -30,6 +31,7 @@ import { Role } from '@prisma/client';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { ChartDataResponse, ChartType, GetChartsQueryDto } from './dto/get-charts-query.dto';
 import { UniversalSearchService } from './universal-search.service';
+import { User } from '../users/entities/user.entity';
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -44,8 +46,8 @@ export class OrganizationsController {
   // Creating an organization: only authenticated user; no existing org scope yet.
   @Post()
   @ApiOperation({ summary: 'Create organization' })
-  create(@Body() createOrganizationDto: CreateOrganizationDto, @CurrentUser() user: any) {
-    return this.organizationsService.create(createOrganizationDto, user.id as string);
+  create(@Body() createOrganizationDto: CreateOrganizationDto, @CurrentUser() user: User) {
+    return this.organizationsService.create(createOrganizationDto, user.id);
   }
 
   // List organizations the user can see; rely on service-level filtering.
@@ -103,12 +105,12 @@ export class OrganizationsController {
   })
   async search(
     @Query('q') query: string,
-    @Query('organizationId') organizationId: string,
+    @Query('organizationId', ParseUUIDPipe) organizationId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
-    @CurrentUser() user?: any,
+    @CurrentUser() user?: User,
   ) {
-    return this.searchService.search(query, organizationId, user.id as string, {
+    return this.searchService.search(query, organizationId, user.id, {
       page: Math.max(1, page || 1),
       limit: Math.min(100, Math.max(1, limit || 20)),
     });
@@ -128,9 +130,9 @@ export class OrganizationsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateOrganizationDto: UpdateOrganizationDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
   ) {
-    return this.organizationsService.update(id, updateOrganizationDto, user.id as string);
+    return this.organizationsService.update(id, updateOrganizationDto, user.id);
   }
 
   @Delete(':id')
@@ -149,7 +151,7 @@ export class OrganizationsController {
   }
 
   @Get('slug/:slug')
-  @Scope('ORGANIZATION', 'id')
+  @Scope('ORGANIZATION', 'slug')
   findBySlug(@Param('slug') slug: string) {
     return this.organizationsService.findBySlug(slug);
   }
@@ -220,23 +222,24 @@ export class OrganizationsController {
   async getOrganizationCharts(
     @Param('id', ParseUUIDPipe) organizationId: string,
     @Query() query: GetChartsQueryDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
   ): Promise<ChartDataResponse> {
     try {
       const { types, ...filters } = query;
-      const chartRes = await this.orgChartsService.getMultipleChartData(
+      return await this.orgChartsService.getMultipleChartData(
         organizationId,
-        user.id as string,
+        user.id,
         types,
         filters,
       );
-      return chartRes;
     } catch (error) {
-      console.error(error);
-      if (error instanceof BadRequestException) {
-        throw error;
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(`Organization with ID ${organizationId} not found`);
       }
-      throw new BadRequestException('Failed to retrieve chart data');
+      if (error instanceof BadRequestException) {
+        throw new BadRequestException(`Invalid chart request: ${error.message}`);
+      }
+      throw error;
     }
   }
   // --- charts (read) ---
