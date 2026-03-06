@@ -808,6 +808,8 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
             <ActionButton
               id="create-task-submit"
               data-automation-id="create-task-submit"
+              aria-label="Create Task"
+              form="create-task-form"
               onClick={handleSubmit}
               type="submit"
               disabled={!isFormValid() || isSubmitting}

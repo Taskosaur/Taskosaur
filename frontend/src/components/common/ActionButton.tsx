@@ -4,6 +4,9 @@ import { HiPlus } from "react-icons/hi2";
 
 export interface ActionButtonProps {
   id?: string;
+  "data-automation-id"?: string;
+  form?: string;
+  "aria-label"?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   children: React.ReactNode;

@@ -124,6 +124,8 @@ export class ProjectsService {
                   goal: DEFAULT_SPRINT.goal,
                   status: DEFAULT_SPRINT.status,
                   isDefault: DEFAULT_SPRINT.isDefault,
+                  startDate: new Date(),
+                  endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                   createdBy: userId,
                   updatedBy: userId,
                 },
