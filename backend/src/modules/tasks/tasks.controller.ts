@@ -9,7 +9,6 @@ import {
   Query,
   ParseUUIDPipe,
   UseGuards,
-  Req,
   BadRequestException,
   UploadedFiles,
   UseInterceptors,
@@ -28,8 +27,6 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { getAuthUser } from 'src/common/request.utils';
-import { Request } from 'express';
 import { NotificationPriority, NotificationType, TaskPriority, Role } from '@prisma/client';
 import { AutoNotify } from 'src/common/decorator/auto-notify.decorator';
 import { LogActivity } from 'src/common/decorator/log-activity.decorator';
@@ -40,6 +37,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { BulkDeleteTasksDto } from './dto/bulk-delete-tasks.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { RecurrenceConfigDto } from './dto/recurrence-config.dto';
+import { User } from '../users/entities/user.entity';
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -64,8 +62,7 @@ export class TasksController {
     title: 'New Task Created',
     message: 'A new task has been created and assigned to you',
   })
-  create(@Req() req: Request, @Body() createTaskDto: CreateTaskDto) {
-    const user = getAuthUser(req);
+  create(@CurrentUser() user: User, @Body() createTaskDto: CreateTaskDto) {
     return this.tasksService.create(createTaskDto, user.id);
   }
 
@@ -115,9 +112,7 @@ export class TasksController {
     title: 'Tasks Deleted',
     message: 'Multiple tasks you were involved in have been deleted',
   })
-  async bulkDeleteTasks(@Body() bulkDeleteTasksDto: BulkDeleteTasksDto, @Req() req: Request) {
-    const user = getAuthUser(req);
-
+  async bulkDeleteTasks(@Body() bulkDeleteTasksDto: BulkDeleteTasksDto, @CurrentUser() user: User) {
     return this.tasksService.bulkDeleteTasks({
       taskIds: bulkDeleteTasksDto.taskIds,
       projectId: bulkDeleteTasksDto.projectId,
@@ -412,10 +407,8 @@ export class TasksController {
   async createWithAttachments(
     @Body() createTaskDto: CreateTaskDto,
     @UploadedFiles() files: Express.Multer.File[],
-    @Req() req: Request,
+    @CurrentUser() user: User,
   ) {
-    const user = getAuthUser(req);
-
     // Validate file type and count
     if (!Array.isArray(files)) {
       throw new BadRequestException('Files must be an array of uploaded file objects');
@@ -491,7 +484,7 @@ export class TasksController {
   @Scope('ORGANIZATION', 'organizationId')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findAll(
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
     @Query('organizationId', ParseUUIDPipe) organizationId: string,
     @Query('projectId') projectId?: string,
     @Query('sprintId') sprintId?: string,
@@ -506,43 +499,18 @@ export class TasksController {
     @Query('page') page = '1',
     @Query('limit') limit = '20',
   ) {
-    if (!organizationId) {
-      throw new BadRequestException('Organization ID is required');
-    }
-    const priorityArray = priorities ? priorities.split(',').filter(Boolean) : undefined;
-    const statusArray = statuses ? statuses.split(',').filter(Boolean) : undefined;
-    const typeArray = types ? types.split(',').filter(Boolean) : undefined;
-
-    let projectIdArray: string[] | undefined = undefined;
-    if (projectId) {
-      projectIdArray = projectId.split(',').filter(Boolean);
-    }
-
-    let workspaceIdArray: string[] | undefined = undefined;
-    if (workspaceId) {
-      workspaceIdArray = workspaceId.split(',').filter(Boolean);
-    }
-    let assigneeIdsArray: string[] | undefined = undefined;
-    if (assigneeIds) {
-      assigneeIdsArray = assigneeIds.split(',').filter(Boolean);
-    }
-    let reporterIdsArray: string[] | undefined = undefined;
-    if (reporterIds) {
-      reporterIdsArray = reporterIds.split(',').filter(Boolean);
-    }
-
     return this.tasksService.findAll(
       organizationId,
-      projectIdArray,
+      this.parseCommaSeparated(projectId),
       sprintId,
-      workspaceIdArray,
+      this.parseCommaSeparated(workspaceId),
       parentTaskId,
-      priorityArray,
-      statusArray,
-      typeArray,
-      assigneeIdsArray,
-      reporterIdsArray,
-      user.id as string,
+      this.parseCommaSeparated(priorities),
+      this.parseCommaSeparated(statuses),
+      this.parseCommaSeparated(types),
+      this.parseCommaSeparated(assigneeIds),
+      this.parseCommaSeparated(reporterIds),
+      user.id,
       search,
       Number(page),
       Number(limit),
@@ -602,7 +570,7 @@ export class TasksController {
   @Scope('ORGANIZATION', 'organizationId')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   getTasks(
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
     @Query('organizationId', ParseUUIDPipe) organizationId: string,
     @Query('projectId') projectId?: string,
     @Query('sprintId') sprintId?: string,
@@ -613,26 +581,16 @@ export class TasksController {
     @Query('types') types?: string,
     @Query('search') search?: string,
   ) {
-    if (!organizationId) {
-      throw new BadRequestException('Organization ID is required');
-    }
-
-    const priorityArray = priorities ? priorities.split(',').filter(Boolean) : undefined;
-    const statusArray = statuses ? statuses.split(',').filter(Boolean) : undefined;
-    const typeArray = types ? types.split(',').filter(Boolean) : undefined;
-    const projectIdArray = projectId ? projectId.split(',').filter(Boolean) : undefined;
-    const workspaceIdArray = workspaceId ? workspaceId.split(',').filter(Boolean) : undefined;
-
     return this.tasksService.getTasks(
       organizationId,
-      projectIdArray,
+      this.parseCommaSeparated(projectId),
       sprintId,
-      workspaceIdArray,
+      this.parseCommaSeparated(workspaceId),
       parentTaskId,
-      priorityArray,
-      statusArray,
-      typeArray,
-      user.id as string,
+      this.parseCommaSeparated(priorities),
+      this.parseCommaSeparated(statuses),
+      this.parseCommaSeparated(types),
+      user.id,
       search,
     );
   }
@@ -641,8 +599,7 @@ export class TasksController {
   @ApiOperation({ summary: 'Get tasks grouped by status with pagination' })
   @Scope('PROJECT', 'slug')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
-  async getTasksByStatus(@Query() query: TasksByStatusParams, @Req() req: Request) {
-    const user = getAuthUser(req);
+  async getTasksByStatus(@Query() query: TasksByStatusParams, @CurrentUser() user: User) {
     const tasks = await this.tasksService.getTasksGroupedByStatus(query, user.id);
 
     // Calculate totals across all statuses
@@ -667,29 +624,12 @@ export class TasksController {
   @Scope('ORGANIZATION', 'organizationId')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   getTodaysTasks(
-    @Query('organizationId') organizationId: string,
+    @Query('organizationId', ParseUUIDPipe) organizationId: string,
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
-    @Req() req: Request,
+    @CurrentUser() user: User,
   ) {
-    if (!organizationId) {
-      throw new BadRequestException('Organization ID is required');
-    }
-
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(organizationId)) {
-      throw new BadRequestException(
-        `Invalid organization ID format: ${organizationId}. Expected UUID.`,
-      );
-    }
-
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 10;
-
-    const validatedPage = Math.max(1, pageNum);
-    const validatedLimit = Math.min(Math.max(1, limitNum), 100);
-
-    const user = getAuthUser(req);
+    const { page: validatedPage, limit: validatedLimit } = this.validatePagination(page, limit);
 
     return this.tasksService.findTodaysTasks(
       organizationId,
@@ -705,14 +645,12 @@ export class TasksController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
-    const user = getAuthUser(req);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.tasksService.findOne(id, user.id);
   }
 
   @Get('key/:key')
-  findByKey(@Param('key') key: string, @Req() req: Request) {
-    const user = getAuthUser(req);
+  findByKey(@Param('key') key: string, @CurrentUser() user: User) {
     return this.tasksService.findByKey(key, user.id);
   }
 
@@ -721,20 +659,15 @@ export class TasksController {
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   getTasksByOrganization(
     @Param('orgId', ParseUUIDPipe) orgId: string,
-    @Req() req: Request,
+    @CurrentUser() user: User,
     @Query('priority') priority?: TaskPriority,
     @Query('search') search?: string,
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
   ) {
-    const user = getAuthUser(req);
     const assigneeId = user.id;
 
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 10;
-
-    const validatedPage = Math.max(1, pageNum);
-    const validatedLimit = Math.min(Math.max(1, limitNum), 100);
+    const { page: validatedPage, limit: validatedLimit } = this.validatePagination(page, limit);
 
     return this.tasksService.findByOrganization(
       orgId,
@@ -765,9 +698,8 @@ export class TasksController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateTaskDto: UpdateTaskDto,
-    @Req() req: Request,
+    @CurrentUser() user: User,
   ) {
-    const user = getAuthUser(req);
     return this.tasksService.update(id, updateTaskDto, user.id);
   }
 
@@ -789,9 +721,8 @@ export class TasksController {
   updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('statusId', ParseUUIDPipe) statusId: string,
-    @Req() req: Request,
+    @CurrentUser() user: User,
   ) {
-    const user = getAuthUser(req);
     return this.tasksService.update(id, { statusId }, user.id);
   }
 
@@ -813,9 +744,8 @@ export class TasksController {
   updateAssignees(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('assigneeIds') assigneeIds: string[],
-    @Req() req: Request,
+    @CurrentUser() user: User,
   ) {
-    const user = getAuthUser(req);
     return this.tasksService.update(id, { assigneeIds }, user.id);
   }
 
@@ -834,8 +764,7 @@ export class TasksController {
     title: 'Task Unassigned',
     message: 'You have been unassigned from a task',
   })
-  unassignTask(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
-    const user = getAuthUser(req);
+  unassignTask(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.tasksService.update(id, { assigneeIds: [] }, user.id);
   }
 
@@ -853,8 +782,7 @@ export class TasksController {
     title: 'Task Deleted',
     message: 'A task you were involved in has been deleted',
   })
-  remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
-    const user = getAuthUser(req);
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.tasksService.remove(id, user.id);
   }
 
@@ -883,8 +811,7 @@ export class TasksController {
     description: 'Completed recurring task occurrence',
     includeNewValue: true,
   })
-  async completeOccurrence(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
-    const user = getAuthUser(req);
+  async completeOccurrence(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.tasksService.completeOccurrenceAndGenerateNext(id, user.id);
   }
 
@@ -930,9 +857,8 @@ export class TasksController {
   addRecurrence(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() config: RecurrenceConfigDto,
-    @Req() req: Request,
+    @CurrentUser() user: User,
   ) {
-    const user = getAuthUser(req);
     return this.tasksService.addRecurrence(id, config, user.id);
   }
 
@@ -999,9 +925,8 @@ export class TasksController {
   updateRecurrence(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() config: RecurrenceConfigDto,
-    @Req() req: Request,
+    @CurrentUser() user: User,
   ) {
-    const user = getAuthUser(req);
     return this.tasksService.updateRecurrenceConfig(id, config, user.id);
   }
 
@@ -1018,8 +943,7 @@ export class TasksController {
     status: 400,
     description: 'Task is not a recurring task',
   })
-  stopRecurrence(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
-    const user = getAuthUser(req);
+  stopRecurrence(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.tasksService.stopRecurrence(id, user.id);
   }
 
@@ -1034,8 +958,10 @@ export class TasksController {
   })
   @Scope('PROJECT', 'projectId')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
-  getRecurringTasks(@Param('projectId', ParseUUIDPipe) projectId: string, @Req() req: Request) {
-    const user = getAuthUser(req);
+  getRecurringTasks(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUser() user: User,
+  ) {
     return this.tasksService.getRecurringTasks(projectId, user.id);
   }
 
@@ -1057,9 +983,8 @@ export class TasksController {
   addComment(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('comment') comment: string,
-    @Req() req: Request,
+    @CurrentUser() user: User,
   ) {
-    const user = getAuthUser(req);
     return this.tasksService.addComment(id, comment, user.id);
   }
 
@@ -1081,9 +1006,8 @@ export class TasksController {
   updatePriority(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('priority') priority: TaskPriority,
-    @Req() req: Request,
+    @CurrentUser() user: User,
   ) {
-    const user = getAuthUser(req);
     return this.tasksService.update(id, { priority }, user.id);
   }
 
@@ -1105,9 +1029,22 @@ export class TasksController {
   updateDueDate(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('dueDate') dueDate: string,
-    @Req() req: Request,
+    @CurrentUser() user: User,
   ) {
-    const user = getAuthUser(req);
     return this.tasksService.update(id, { dueDate }, user.id);
+  }
+
+  private parseCommaSeparated(value?: string): string[] | undefined {
+    return value ? value.split(',').filter(Boolean) : undefined;
+  }
+
+  private validatePagination(page: string, limit: string): { page: number; limit: number } {
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+
+    return {
+      page: Math.max(1, pageNum),
+      limit: Math.min(Math.max(1, limitNum), 100),
+    };
   }
 }
