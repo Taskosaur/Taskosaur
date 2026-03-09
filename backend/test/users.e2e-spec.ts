@@ -17,6 +17,8 @@ describe('UsersController (e2e)', () => {
 
   let adminUser: any;
   let accessToken: string;
+  let memberUser: any;
+  let memberToken: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -28,7 +30,7 @@ describe('UsersController (e2e)', () => {
     prismaService = app.get<PrismaService>(PrismaService);
     jwtService = app.get<JwtService>(JwtService);
 
-    // Create an admin user for testing
+    // Create a SUPER_ADMIN user for testing (needed for /users routes)
     const plainPassword = 'AdminPassword123!';
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
     adminUser = await prismaService.user.create({
@@ -42,38 +44,31 @@ describe('UsersController (e2e)', () => {
       },
     });
 
-    // Generate token
-    const payload = { sub: adminUser.id, email: adminUser.email, role: adminUser.role };
-    accessToken = jwtService.sign(payload);
+    // Create a regular MEMBER user for negative tests
+    memberUser = await prismaService.user.create({
+      data: {
+        email: `member-test-${Date.now()}@example.com`,
+        password: hashedPassword,
+        firstName: 'Member',
+        lastName: 'Tester',
+        username: `member_tester_${Date.now()}`,
+        role: Role.MEMBER,
+      },
+    });
+
+    // Generate tokens
+    accessToken = jwtService.sign({ sub: adminUser.id, email: adminUser.email, role: adminUser.role });
+    memberToken = jwtService.sign({ sub: memberUser.id, email: memberUser.email, role: memberUser.role });
   }, 10000);
 
   afterAll(async () => {
     if (prismaService) {
-      // Find all test users
-      const testUsers = await prismaService.user.findMany({
+      // Cleanup all test users created in this spec
+      await prismaService.user.deleteMany({
         where: {
           email: { contains: '-test-' },
         },
-        select: { id: true },
       });
-
-      const userIds = testUsers.map((u) => u.id);
-
-      if (userIds.length > 0) {
-        // Delete organizations owned by these users first to avoid foreign key violations
-        await prismaService.organization.deleteMany({
-          where: {
-            ownerId: { in: userIds },
-          },
-        });
-
-        // Cleanup all test users created in this spec
-        await prismaService.user.deleteMany({
-          where: {
-            id: { in: userIds },
-          },
-        });
-      }
     }
     await app.close();
   });
@@ -81,14 +76,13 @@ describe('UsersController (e2e)', () => {
   let createdUserId: string;
 
   describe('/users (POST)', () => {
-    it('should create a new user', () => {
+    it('should create a new user (Admin)', () => {
       const createUserDto: CreateUserDto = {
         email: `new-user-test-${Date.now()}@example.com`,
         password: 'NewUserPassword123!',
         firstName: 'New',
         lastName: 'User',
         username: `new_user_tester_${Date.now()}`,
-        role: Role.MEMBER,
       };
 
       return request(app.getHttpServer())
@@ -102,10 +96,26 @@ describe('UsersController (e2e)', () => {
           createdUserId = res.body.id;
         });
     });
+
+    it('should fail to create a user if not SUPER_ADMIN', async () => {
+      const createUserDto: CreateUserDto = {
+        email: `fail-user-test-${Date.now()}@example.com`,
+        password: 'Password123!',
+        firstName: 'Fail',
+        lastName: 'User',
+        username: `fail_user_tester_${Date.now()}`,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/users')
+        .set('Authorization', `Bearer ${memberToken}`)
+        .send(createUserDto)
+        .expect(HttpStatus.FORBIDDEN);
+    });
   });
 
   describe('/users (GET)', () => {
-    it('should retrieve all users', () => {
+    it('should retrieve all users (Admin)', () => {
       return request(app.getHttpServer())
         .get('/api/users')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -116,7 +126,14 @@ describe('UsersController (e2e)', () => {
         });
     });
 
-    it('should retrieve a user by ID', () => {
+    it('should fail to retrieve all users if not SUPER_ADMIN', () => {
+      return request(app.getHttpServer())
+        .get('/api/users')
+        .set('Authorization', `Bearer ${memberToken}`)
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('should retrieve a user by ID (Admin)', () => {
       return request(app.getHttpServer())
         .get(`/api/users/${createdUserId}`)
         .set('Authorization', `Bearer ${accessToken}`)
@@ -125,10 +142,17 @@ describe('UsersController (e2e)', () => {
           expect(res.body.id).toBe(createdUserId);
         });
     });
+
+    it('should fail to retrieve another user by ID if not SUPER_ADMIN', () => {
+      return request(app.getHttpServer())
+        .get(`/api/users/${createdUserId}`)
+        .set('Authorization', `Bearer ${memberToken}`)
+        .expect(HttpStatus.FORBIDDEN);
+    });
   });
 
   describe('/users/:id (PATCH)', () => {
-    it('should update a user', () => {
+    it('should update a user (Admin)', () => {
       const updateUserDto: UpdateUserDto = {
         firstName: 'UpdatedName',
         lastName: 'UpdatedLastName',
@@ -142,6 +166,22 @@ describe('UsersController (e2e)', () => {
         .expect((res) => {
           expect(res.body.firstName).toBe(updateUserDto.firstName);
         });
+    });
+
+    it('should allow a user to update their own profile but NOT their role', async () => {
+      // Successful profile update
+      await request(app.getHttpServer())
+        .patch(`/api/users/${memberUser.id}`)
+        .set('Authorization', `Bearer ${memberToken}`)
+        .send({ firstName: 'SelfUpdated' })
+        .expect(HttpStatus.OK);
+
+      // Forbidden role update
+      await request(app.getHttpServer())
+        .patch(`/api/users/${memberUser.id}`)
+        .set('Authorization', `Bearer ${memberToken}`)
+        .send({ role: Role.SUPER_ADMIN })
+        .expect(HttpStatus.FORBIDDEN);
     });
   });
 
@@ -176,11 +216,18 @@ describe('UsersController (e2e)', () => {
   });
 
   describe('/users/:id (DELETE)', () => {
-    it('should delete a user', () => {
+    it('should delete a user (Admin)', () => {
       return request(app.getHttpServer())
         .delete(`/api/users/${createdUserId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.NO_CONTENT);
+    });
+
+    it('should fail to delete a user if not SUPER_ADMIN', () => {
+      return request(app.getHttpServer())
+        .delete(`/api/users/${memberUser.id}`)
+        .set('Authorization', `Bearer ${memberToken}`)
+        .expect(HttpStatus.FORBIDDEN);
     });
 
     it('should return 404 when getting deleted user', () => {

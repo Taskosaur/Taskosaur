@@ -51,7 +51,13 @@ export class RolesGuard implements CanActivate {
     };
     const { type, idParam } = scopeMeta ?? inferScopeFromParams(params as Record<string, string>);
 
-    if (!type) throw new ForbiddenException('Scope not specified');
+    if (!type) {
+      // If no scope is defined, check if the user meets any of the required global roles
+      const ok = requiredRoles.some((r) => ROLE_RANK[user.role as string] >= ROLE_RANK[r]);
+      if (ok) return true;
+
+      throw new ForbiddenException('Insufficient privileges for this global action');
+    }
 
     const scopeId = params[idParam];
     if (!scopeId) throw new ForbiddenException('Scope id missing');
@@ -116,7 +122,6 @@ function inferScopeFromParams(params: Record<string, string>): {
   if (params.organizationId) return { type: 'ORGANIZATION' as const, idParam: 'organizationId' };
   if (params.workspaceId) return { type: 'WORKSPACE' as const, idParam: 'workspaceId' };
   if (params.projectId) return { type: 'PROJECT' as const, idParam: 'projectId' };
-  if (params.id && params.slug) return { type: 'PROJECT' as const, idParam: 'slug' };
-  if (params.id) return { type: 'PROJECT' as const, idParam: 'id' };
+  if (params.slug) return { type: 'PROJECT' as const, idParam: 'slug' };
   return { type: undefined, idParam: '' };
 }
