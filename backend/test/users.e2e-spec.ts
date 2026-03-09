@@ -38,7 +38,7 @@ describe('UsersController (e2e)', () => {
         firstName: 'Admin',
         lastName: 'Tester',
         username: `admin_tester_${Date.now()}`,
-        role: Role.OWNER,
+        role: Role.SUPER_ADMIN,
       },
     });
 

@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from '@prisma/client';
+import { User, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { S3Service } from '../storage/s3.service';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
@@ -46,9 +46,17 @@ export class UsersService {
 
     const user = await this.prisma.user.create({
       data: {
-        ...createUserDto,
-        username: finalUsername,
+        email: createUserDto.email,
         password: hashedPassword,
+        firstName: createUserDto.firstName,
+        lastName: createUserDto.lastName,
+        username: finalUsername,
+        avatar: createUserDto.avatar,
+        bio: createUserDto.bio,
+        mobileNumber: createUserDto.mobileNumber,
+        timezone: createUserDto.timezone,
+        language: createUserDto.language,
+        role: createUserDto.role || Role.MEMBER,
       },
     });
 

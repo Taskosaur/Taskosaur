@@ -12,6 +12,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { ROLE_RANK } from 'src/common/decorator/role-order';
 import { ROLES_KEY } from 'src/common/decorator/roles.decorator';
 import { SCOPE_KEY, ScopeType } from 'src/common/decorator/scope.decorator';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -21,6 +22,12 @@ export class RolesGuard implements CanActivate {
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      ctx.getHandler(),
+      ctx.getClass(),
+    ]);
+    if (isPublic) return true;
+
     const req = ctx.switchToHttp().getRequest();
     const user = req.user;
     if (!user?.id) throw new ForbiddenException('Unauthenticated');

@@ -17,7 +17,6 @@ describe('AuthController (e2e)', () => {
     firstName: 'E2E',
     lastName: 'Test',
     username: `e2e_user_${Date.now()}`,
-    role: Role.MEMBER,
   };
 
   let accessToken: string;

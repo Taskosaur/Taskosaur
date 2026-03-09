@@ -60,7 +60,6 @@ describe('Workflow 7: Profile & User Management (e2e)', () => {
           firstName: 'Profile',
           lastName: 'User',
           username: `profile_user_${Date.now()}`,
-          role: Role.MEMBER,
         })
         .expect(HttpStatus.CREATED);
 
@@ -154,16 +153,11 @@ describe('Workflow 7: Profile & User Management (e2e)', () => {
       expect(response.body.user.firstName).toBe('Updated');
     });
 
-    it('Step 8: List all users', async () => {
-      const response = await request(app.getHttpServer())
+    it('Step 8: List all users (Should be forbidden for MEMBER)', async () => {
+      await request(app.getHttpServer())
         .get('/api/users')
         .set('Authorization', `Bearer ${accessToken}`)
-        .expect(HttpStatus.OK);
-
-      expect(Array.isArray(response.body)).toBe(true);
-      const foundUser = response.body.find((u: any) => u.id === userId);
-      expect(foundUser).toBeDefined();
-      expect(foundUser.firstName).toBe('Updated');
+        .expect(HttpStatus.FORBIDDEN);
     });
   });
 });

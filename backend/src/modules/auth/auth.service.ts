@@ -16,6 +16,7 @@ import * as crypto from 'crypto';
 import { JwtPayload } from './strategies/jwt.strategy';
 import { SYSTEM_USER_ID } from '../../common/constants';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -100,7 +101,10 @@ export class AuthService {
       counter++;
     }
     registerDto.username = finalUsername;
-    const user = await this.usersService.create(registerDto);
+    const user = await this.usersService.create({
+      ...registerDto,
+      role: Role.MEMBER,
+    });
 
     // Generate tokens
     const payload: JwtPayload = {

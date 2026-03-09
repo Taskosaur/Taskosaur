@@ -11,6 +11,7 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -27,10 +28,13 @@ import { User } from './entities/user.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
+import { Roles } from 'src/common/decorator/roles.decorator';
+import { Role } from '@prisma/client';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 @ApiTags('users')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -54,6 +58,7 @@ export class UsersController {
   }
 
   @Post()
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Create a new user' })
   @ApiResponse({
     status: 201,
@@ -71,6 +76,7 @@ export class UsersController {
   }
 
   @Get()
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Retrieve all users' })
   @ApiResponse({ status: 200, description: 'List of all users.', type: [User] })
   findAll() {
@@ -82,7 +88,11 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'User ID (UUID)', type: String })
   @ApiResponse({ status: 200, description: 'User details.', type: User })
   @ApiResponse({ status: 404, description: 'User not found.' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
+    const requestUser = req.user;
+    if (requestUser.role !== Role.SUPER_ADMIN && requestUser.id !== id) {
+      throw new ForbiddenException('Profile access not allowed');
+    }
     return this.usersService.findOne(id);
   }
 
@@ -100,7 +110,23 @@ export class UsersController {
     status: 409,
     description: 'Email or username already exists.',
   })
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateUserDto: UpdateUserDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @Req() req: any,
+  ) {
+    const requestUser = req.user;
+
+    // 1. If not SUPER_ADMIN and not Self -> Forbidden
+    if (requestUser.role !== Role.SUPER_ADMIN && requestUser.id !== id) {
+      throw new ForbiddenException('You can only update your own profile');
+    }
+
+    // 2. If Self (and not SUPER_ADMIN) -> Prevent role modification
+    if (requestUser.role !== Role.SUPER_ADMIN && updateUserDto.role) {
+      throw new ForbiddenException('You cannot change your own role');
+    }
+
     return this.usersService.update(id, updateUserDto);
   }
 
@@ -129,6 +155,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Delete a user by ID' })
   @ApiParam({ name: 'id', description: 'User ID (UUID)', type: String })
   @ApiResponse({ status: 204, description: 'User deleted successfully.' })
