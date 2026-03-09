@@ -15,7 +15,15 @@ import {
   ValidationPipe,
   BadRequestException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiBody,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -42,6 +50,7 @@ interface AuthenticatedUser {
   username: string;
 }
 
+@ApiTags('Projects')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('projects')
@@ -53,6 +62,10 @@ export class ProjectsController {
 
   // Create project - requires MANAGER/OWNER at workspace level
   @Post()
+  @ApiOperation({ summary: 'Create a new project' })
+  @ApiBody({ type: CreateProjectDto })
+  @ApiResponse({ status: 201, description: 'Project created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid project data' })
   @Roles(Role.MANAGER, Role.OWNER, Role.SUPER_ADMIN)
   @LogActivity({
     type: 'PROJECT_CREATED',
@@ -66,6 +79,17 @@ export class ProjectsController {
 
   // List all projects - filtered by user access
   @Get()
+  @ApiOperation({
+    summary: 'Get all projects',
+    description: 'Returns projects filtered by user access',
+  })
+  @ApiQuery({ name: 'workspaceId', required: false, description: 'Filter by workspace ID (UUID)' })
+  @ApiQuery({ name: 'status', required: false, description: 'Filter by project status' })
+  @ApiQuery({ name: 'priority', required: false, description: 'Filter by priority' })
+  @ApiQuery({ name: 'search', required: false, description: 'Search projects by name' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'pageSize', required: false, description: 'Results per page (default: 10)' })
+  @ApiResponse({ status: 200, description: 'List of projects' })
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findAll(
     @CurrentUser() user: AuthenticatedUser,
@@ -94,6 +118,18 @@ export class ProjectsController {
   }
 
   @Get('/by-organization')
+  @ApiOperation({
+    summary: 'Get projects by organization',
+    description: 'Returns projects filtered by organization ID',
+  })
+  @ApiQuery({ name: 'organizationId', required: true, description: 'Organization ID (UUID)' })
+  @ApiQuery({ name: 'workspaceId', required: false, description: 'Filter by workspace ID (UUID)' })
+  @ApiQuery({ name: 'status', required: false, description: 'Filter by project status' })
+  @ApiQuery({ name: 'priority', required: false, description: 'Filter by priority' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number' })
+  @ApiQuery({ name: 'pageSize', required: false, description: 'Results per page' })
+  @ApiQuery({ name: 'search', required: false, description: 'Search projects by name' })
+  @ApiResponse({ status: 200, description: 'List of projects in the organization' })
   @Scope('ORGANIZATION', 'organizationId')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findByOrganizationId(
@@ -165,6 +201,11 @@ export class ProjectsController {
 
   // Find by workspace and key - requires workspace access
   @Get('workspace/:workspaceId/key/:key')
+  @ApiOperation({ summary: 'Find project by workspace and key' })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID (UUID)' })
+  @ApiParam({ name: 'key', description: 'Project key' })
+  @ApiResponse({ status: 200, description: 'Project details' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   @Scope('WORKSPACE', 'workspaceId')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findByKey(
@@ -177,6 +218,10 @@ export class ProjectsController {
 
   // Find project by ID - requires project access
   @Get(':id')
+  @ApiOperation({ summary: 'Get project by ID' })
+  @ApiParam({ name: 'id', description: 'Project ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Project details' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   @Scope('PROJECT', 'id')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
@@ -185,6 +230,11 @@ export class ProjectsController {
 
   // Update project - requires MANAGER/OWNER
   @Patch(':id')
+  @ApiOperation({ summary: 'Update a project' })
+  @ApiParam({ name: 'id', description: 'Project ID (UUID)' })
+  @ApiBody({ type: UpdateProjectDto })
+  @ApiResponse({ status: 200, description: 'Project updated successfully' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   @Scope('PROJECT', 'id')
   @Roles(Role.MANAGER, Role.OWNER)
   @LogActivity({
@@ -204,6 +254,10 @@ export class ProjectsController {
 
   // Delete project - OWNER only
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete a project' })
+  @ApiParam({ name: 'id', description: 'Project ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Project deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   @Scope('PROJECT', 'id')
   @Roles(Role.OWNER)
   @LogActivity({
@@ -219,6 +273,10 @@ export class ProjectsController {
 
   // Archive project - MANAGER/OWNER
   @Patch('archive/:id')
+  @ApiOperation({ summary: 'Archive a project' })
+  @ApiParam({ name: 'id', description: 'Project ID (UUID)' })
+  @ApiResponse({ status: 204, description: 'Project archived successfully' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   @Roles(Role.MANAGER, Role.OWNER)
   @HttpCode(HttpStatus.NO_CONTENT)
   archiveProject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
@@ -300,6 +358,10 @@ export class ProjectsController {
 
   // Get project by slug
   @Get('by-slug/:slug')
+  @ApiOperation({ summary: 'Get project by slug' })
+  @ApiParam({ name: 'slug', description: 'Project slug' })
+  @ApiResponse({ status: 200, description: 'Project details' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   @Scope('PROJECT', 'slug')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   getProjectBySlug(@Param('slug') slug: string) {
