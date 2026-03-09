@@ -50,6 +50,8 @@ interface WorkspaceContextType extends WorkspaceState {
   ) => Promise<Workspace>;
   deleteWorkspace: (workspaceId: string) => Promise<{ success: boolean; message: string }>;
   archiveWorkspace: (workspaceId: string) => Promise<{ success: boolean; message: string }>;
+  unarchiveWorkspace: (workspaceId: string) => Promise<{ success: boolean; message: string }>;
+  getArchivedWorkspaces: (organizationId?: string) => Promise<Workspace[]>;
 
   // Workspace member methods
   getWorkspaceMembers: (
@@ -314,6 +316,34 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         }
 
         return result;
+      },
+
+      unarchiveWorkspace: async (
+        workspaceId: string
+      ): Promise<{ success: boolean; message: string }> => {
+        const result = await handleApiOperation(() => workspaceApi.unarchiveWorkspace(workspaceId));
+
+        if (result.success) {
+          const orgId = getCurrentOrganizationId();
+          if (orgId) {
+            await contextValue.getWorkspacesByOrganization(orgId);
+          }
+        }
+
+        return result;
+      },
+
+      getArchivedWorkspaces: async (
+        organizationId?: string
+      ): Promise<Workspace[]> => {
+        const orgId = organizationId || getCurrentOrganizationId();
+        if (!orgId) {
+          throw new Error("No organization selected.");
+        }
+        return await handleApiOperation(
+          () => workspaceApi.getArchivedWorkspaces(orgId),
+          false
+        );
       },
 
       getWorkspacesByOrganization: async (

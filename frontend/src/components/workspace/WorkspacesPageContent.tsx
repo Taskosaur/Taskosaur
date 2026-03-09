@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
 import ActionButton from "@/components/common/ActionButton";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EntityCard } from "@/components/common/EntityCard";
@@ -45,6 +46,8 @@ export default function WorkspacesPageContent({ organizationId }: WorkspacesPage
     getWorkspacesByOrganization,
     clearError,
     getCurrentOrganizationId,
+    getArchivedWorkspaces,
+    unarchiveWorkspace,
   } = useWorkspaceContext();
   const { getUserAccess } = useAuth();
 
@@ -52,6 +55,8 @@ export default function WorkspacesPageContent({ organizationId }: WorkspacesPage
   const [hasAccess, setHasAccess] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [archivedWorkspaces, setArchivedWorkspaces] = useState<any[]>([]);
+  const [unarchiving, setUnarchiving] = useState<string | null>(null);
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const currentOrganization = organizationId || getCurrentOrganizationId();
@@ -100,7 +105,13 @@ export default function WorkspacesPageContent({ organizationId }: WorkspacesPage
 
     getUserAccess({ name: "organization", id: currentOrganization })
       .then((data) => {
-        setHasAccess(data?.canChange || false);
+        const canChange = data?.canChange || false;
+        setHasAccess(canChange);
+        if (canChange && currentOrganization) {
+          getArchivedWorkspaces(currentOrganization)
+            .then((archived) => setArchivedWorkspaces(archived || []))
+            .catch(() => { });
+        }
       })
       .catch((error) => {
         console.error("Error fetching user access:", error);
@@ -238,6 +249,54 @@ export default function WorkspacesPageContent({ organizationId }: WorkspacesPage
                 }
               />
             ))}
+          </div>
+        )}
+
+        {hasAccess && archivedWorkspaces.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-sm font-medium text-[var(--muted-foreground)] mb-3">
+              {t("archived_workspaces", "Archived Workspaces")}
+            </h3>
+            <div className="space-y-3">
+              {archivedWorkspaces.map((ws: any) => (
+                <div
+                  key={ws.id}
+                  className="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--muted)]/30"
+                >
+                  <div>
+                    <p className="font-medium text-sm">{ws.name}</p>
+                    <p className="text-xs text-[var(--muted-foreground)]">{ws.slug}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={unarchiving === ws.id}
+                    onClick={async () => {
+                      try {
+                        setUnarchiving(ws.id);
+                        const result = await unarchiveWorkspace(ws.id);
+                        if (result.success) {
+                          setArchivedWorkspaces((prev) =>
+                            prev.filter((w: any) => w.id !== ws.id)
+                          );
+                          toast.success(t("unarchive_success", "Workspace unarchived successfully"));
+                          await fetchData();
+                        }
+                      } catch (err) {
+                        console.error("Unarchive error:", err);
+                        toast.error(t("unarchive_failed", "Failed to unarchive workspace"));
+                      } finally {
+                        setUnarchiving(null);
+                      }
+                    }}
+                  >
+                    {unarchiving === ws.id
+                      ? t("unarchiving", "Unarchiving...")
+                      : t("unarchive", "Unarchive")}
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

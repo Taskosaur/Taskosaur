@@ -413,6 +413,34 @@ export class WorkspacesService {
     }
   }
 
+  async unarchiveWorkspace(id: string): Promise<void> {
+    try {
+      await this.prisma.workspace.update({
+        where: { id },
+        data: { archive: false },
+      });
+    } catch (error) {
+      console.error(error);
+      if (error.code === 'P2025') {
+        throw new NotFoundException('Workspace not found');
+      }
+      throw error;
+    }
+  }
+
+  async findArchived(organizationId: string): Promise<Workspace[]> {
+    return this.prisma.workspace.findMany({
+      where: { archive: true, organizationId },
+      include: {
+        organization: {
+          select: { id: true, name: true, slug: true, avatar: true },
+        },
+        _count: { select: { members: true, projects: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
   // Chart methods with role-based filtering
   async workspaceProjectStatusDistribution(
     organizationId: string,

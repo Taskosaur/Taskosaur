@@ -359,4 +359,32 @@ export const workspaceApi = {
       throw error;
     }
   },
+
+  unarchiveWorkspace: async (workspaceId: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await api.patch(`/workspaces/unarchive/${workspaceId}`);
+
+      const status = response.status;
+      if (status === 204 || status === 200) {
+        return { success: true, message: "Workspace unarchived successfully" };
+      }
+
+      return { success: true, message: "Workspace unarchived successfully" };
+    } catch (error) {
+      console.error("Unarchive workspace error:", error);
+      throw error;
+    }
+  },
+
+  getArchivedWorkspaces: async (organizationId: string): Promise<Workspace[]> => {
+    try {
+      const response = await api.get<Workspace[]>(
+        `/workspaces/archived?organizationId=${organizationId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Get archived workspaces error:", error);
+      throw error;
+    }
+  },
 };

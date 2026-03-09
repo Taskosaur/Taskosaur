@@ -14,7 +14,14 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -31,6 +38,7 @@ import {
   WorkspaceChartType,
 } from './dto/get-workspace-charts-query.dto';
 import { WorkspaceChartsService } from './workspace-charts.service';
+@ApiTags('Workspaces')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('workspaces')
@@ -42,15 +50,27 @@ export class WorkspacesController {
     private readonly workspaceChartsService: WorkspaceChartsService,
   ) {}
 
-  // Only ORG MANAGER/OWNER can create workspaces
   @Post()
+  @ApiOperation({ summary: 'Create a new workspace' })
+  @ApiResponse({ status: 201, description: 'Workspace created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid workspace data' })
   @Roles(Role.MANAGER, Role.OWNER)
   create(@Body() createWorkspaceDto: CreateWorkspaceDto, @CurrentUser() user: any) {
     return this.workspacesService.create(createWorkspaceDto, user.id as string);
   }
 
-  // All members can view, but filtered by their membership
   @Get()
+  @ApiOperation({
+    summary: 'Get all workspaces',
+    description: 'Returns workspaces filtered by user membership',
+  })
+  @ApiQuery({
+    name: 'organizationId',
+    required: false,
+    description: 'Filter by organization ID (UUID)',
+  })
+  @ApiQuery({ name: 'search', required: false, description: 'Search workspaces by name' })
+  @ApiResponse({ status: 200, description: 'List of workspaces' })
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   @Scope('ORGANIZATION', 'organizationId')
   findAll(
@@ -96,7 +116,20 @@ export class WorkspacesController {
     );
   }
 
+  @Get('archived')
+  @ApiOperation({ summary: 'Get archived workspaces for an organization' })
+  @ApiQuery({ name: 'organizationId', required: true, description: 'Organization ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'List of archived workspaces' })
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
+  getArchivedWorkspaces(@Query('organizationId', ParseUUIDPipe) organizationId: string) {
+    return this.workspacesService.findArchived(organizationId);
+  }
+
   @Get(':id')
+  @ApiOperation({ summary: 'Get workspace by ID' })
+  @ApiParam({ name: 'id', description: 'Workspace ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Workspace details' })
+  @ApiResponse({ status: 404, description: 'Workspace not found' })
   @Scope('WORKSPACE', 'id')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
@@ -125,6 +158,11 @@ export class WorkspacesController {
   }
 
   @Get('organization/:organizationId/slug/:slug')
+  @ApiOperation({ summary: 'Get workspace by organization ID and slug' })
+  @ApiParam({ name: 'organizationId', description: 'Organization ID (UUID)' })
+  @ApiParam({ name: 'slug', description: 'Workspace slug' })
+  @ApiResponse({ status: 200, description: 'Workspace details' })
+  @ApiResponse({ status: 404, description: 'Workspace not found' })
   @Scope('ORGANIZATION', 'organizationId')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findBySlug(
@@ -136,6 +174,10 @@ export class WorkspacesController {
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update a workspace' })
+  @ApiParam({ name: 'id', description: 'Workspace ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Workspace updated successfully' })
+  @ApiResponse({ status: 404, description: 'Workspace not found' })
   @Scope('WORKSPACE', 'id')
   @Roles(Role.MANAGER, Role.OWNER)
   update(
@@ -147,6 +189,10 @@ export class WorkspacesController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete a workspace' })
+  @ApiParam({ name: 'id', description: 'Workspace ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Workspace deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Workspace not found' })
   @Scope('WORKSPACE', 'id')
   @Roles(Role.OWNER)
   remove(@Param('id', ParseUUIDPipe) id: string) {
@@ -155,10 +201,25 @@ export class WorkspacesController {
 
   @Patch('archive/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Archive a workspace' })
+  @ApiParam({ name: 'id', description: 'Workspace ID (UUID)' })
+  @ApiResponse({ status: 204, description: 'Workspace archived successfully' })
+  @ApiResponse({ status: 404, description: 'Workspace not found' })
   @Scope('WORKSPACE', 'id')
   @Roles(Role.MANAGER, Role.OWNER)
   archiveWorkspace(@Param('id', ParseUUIDPipe) id: string) {
     return this.workspacesService.archiveWorkspace(id);
+  }
+
+  @Patch('unarchive/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Unarchive a workspace' })
+  @ApiParam({ name: 'id', description: 'Workspace ID (UUID)' })
+  @ApiResponse({ status: 204, description: 'Workspace unarchived successfully' })
+  @ApiResponse({ status: 404, description: 'Workspace not found' })
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
+  unarchiveWorkspace(@Param('id', ParseUUIDPipe) id: string) {
+    return this.workspacesService.unarchiveWorkspace(id);
   }
 
   // Chart endpoints - require workspace membership
