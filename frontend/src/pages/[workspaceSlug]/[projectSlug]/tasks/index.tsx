@@ -1161,7 +1161,7 @@ function ProjectTasksContent() {
             addTaskStatuses={availableStatuses}
             addTaskPriorities={addTaskPriorities}
             projectMembers={projectMembers}
-            showAddTaskRow={userAccess?.role !== "VIEWER" && isAuth}
+            showAddTaskRow={hasAccess && isAuth}
             onTaskSelect={handleTaskSelect}
             onTasksSelect={handleTasksSelect}
             selectedTasks={selectedTasks}
@@ -1263,7 +1263,7 @@ function ProjectTasksContent() {
                 </div>
 
                 {/* ONLY Create Task requires authentication */}
-                {userAccess?.role !== "VIEWER" && isAuth && (
+                {hasAccess && isAuth && (
                   <ActionButton
                     primary
                     showPlusIcon
@@ -1352,8 +1352,7 @@ function ProjectTasksContent() {
                         key={mode}
                         type="button"
                         onClick={() => setGanttViewMode(mode)}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${
-                          ganttViewMode === mode
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${ganttViewMode === mode
                             ? "bg-blue-500 text-white"
                             : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
                         }`}

@@ -263,6 +263,23 @@ export class AccessControlService {
         isSuperAdmin: false,
       };
     }
+    const projectMember = await this.prisma.projectMember.findUnique({
+      where: { userId_projectId: { userId, projectId: project.id } },
+      select: { role: true },
+    });
+
+    if (projectMember) {
+      const isElevated = projectMember.role === Role.MANAGER || projectMember.role === Role.OWNER;
+      return {
+        isElevated,
+        role: projectMember.role,
+        canChange: projectMember.role !== Role.VIEWER,
+        userId,
+        scopeId: projectId,
+        scopeType: 'PROJECT',
+        isSuperAdmin: false,
+      };
+    }
 
     // Handle INTERNAL visibility (workspace members get read access)
     if (project.visibility === 'INTERNAL' && wsMember) {
@@ -277,26 +294,8 @@ export class AccessControlService {
       };
     }
 
-    // Handle PUBLIC visibility (anyone authenticated gets read access)
+    // PUBLIC visibility — anyone authenticated gets read-only access
     if (project.visibility === 'PUBLIC') {
-      // Check if user has explicit project membership for write access
-      const projectMember = await this.prisma.projectMember.findUnique({
-        where: { userId_projectId: { userId, projectId: project.id } },
-        select: { role: true },
-      });
-      if (projectMember) {
-        const isElevated = projectMember.role === Role.MANAGER || projectMember.role === Role.OWNER;
-        return {
-          isElevated,
-          role: projectMember.role,
-          canChange: isElevated,
-          userId,
-          scopeId: projectId,
-          scopeType: 'PROJECT',
-          isSuperAdmin: false,
-        };
-      }
-      // Grant read-only access to public projects
       return {
         isElevated: false,
         role: Role.VIEWER,
@@ -308,24 +307,17 @@ export class AccessControlService {
       };
     }
 
-    // Check project membership (PRIVATE projects)
-    const projectMember = await this.prisma.projectMember.findUnique({
-      where: { userId_projectId: { userId, projectId: project.id } },
-      select: { role: true },
-    });
-
-    if (!projectMember && !wsMember && !orgMember) {
+    if (!wsMember && !orgMember) {
       throw new ForbiddenException('Not a member of this project');
     }
 
-    const effectiveRole = projectMember?.role || wsMember?.role || orgMember?.role || Role.VIEWER;
+    const effectiveRole = wsMember?.role || orgMember?.role || Role.VIEWER;
     const isElevated = effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
-    const canChange = effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
 
     return {
       isElevated,
       role: effectiveRole,
-      canChange,
+      canChange: isElevated,
       userId,
       scopeId: projectId,
       scopeType: 'PROJECT',
@@ -527,12 +519,17 @@ export class AccessControlService {
       };
     }
 
-    // Handle INTERNAL visibility (workspace members get read access)
-    if (project.visibility === 'INTERNAL' && wsMember) {
+    const projectMember = await this.prisma.projectMember.findUnique({
+      where: { userId_projectId: { userId, projectId: project.id } },
+      select: { role: true },
+    });
+
+    if (projectMember) {
+      const isElevated = projectMember.role === Role.MANAGER || projectMember.role === Role.OWNER;
       return {
-        isElevated: false,
-        role: wsMember.role,
-        canChange: false, // Read-only for workspace members
+        isElevated,
+        role: projectMember.role,
+        canChange: projectMember.role !== Role.VIEWER,
         userId,
         scopeId: slug,
         scopeType: 'PROJECT',
@@ -540,28 +537,19 @@ export class AccessControlService {
       };
     }
 
-    // Handle PUBLIC visibility (anyone authenticated gets read access)
+    if (project.visibility === 'INTERNAL' && wsMember) {
+      return {
+        isElevated: false,
+        role: wsMember.role,
+        canChange: false,
+        userId,
+        scopeId: slug,
+        scopeType: 'PROJECT',
+        isSuperAdmin: false,
+      };
+    }
+
     if (project.visibility === 'PUBLIC') {
-      // Check if user has explicit project membership for write access
-      const projectMember = await this.prisma.projectMember.findUnique({
-        where: { userId_projectId: { userId, projectId: project.id } },
-        select: { role: true },
-      });
-
-      if (projectMember) {
-        const isElevated = projectMember.role === Role.MANAGER || projectMember.role === Role.OWNER;
-        return {
-          isElevated,
-          role: projectMember.role,
-          canChange: isElevated,
-          userId,
-          scopeId: slug,
-          scopeType: 'PROJECT',
-          isSuperAdmin: false,
-        };
-      }
-
-      // Grant read-only access to public projects
       return {
         isElevated: false,
         role: Role.VIEWER,
@@ -573,24 +561,17 @@ export class AccessControlService {
       };
     }
 
-    // Check project membership (PRIVATE projects)
-    const projectMember = await this.prisma.projectMember.findUnique({
-      where: { userId_projectId: { userId, projectId: project.id } },
-      select: { role: true },
-    });
-
-    if (!projectMember && !wsMember && !orgMember) {
+    if (!wsMember && !orgMember) {
       throw new ForbiddenException('Not a member of this project');
     }
 
-    const effectiveRole = projectMember?.role || wsMember?.role || orgMember?.role || Role.VIEWER;
+    const effectiveRole = wsMember?.role || orgMember?.role || Role.VIEWER;
     const isElevated = effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
-    const canChange = effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER;
 
     return {
       isElevated,
       role: effectiveRole,
-      canChange,
+      canChange: isElevated,
       userId,
       scopeId: slug,
       scopeType: 'PROJECT',

@@ -108,7 +108,19 @@ export class RolesGuard implements CanActivate {
           where: { userId_projectId: { userId, projectId: scopeId } },
           select: { role: true },
         });
-        return m?.role ?? null;
+        if (m) return m.role;
+        const project = await this.prisma.project.findUnique({
+          where: { id: scopeId },
+          select: { visibility: true, workspaceId: true },
+        });
+        if (project?.visibility === 'INTERNAL') {
+          const ws = await this.prisma.workspaceMember.findUnique({
+            where: { userId_workspaceId: { userId, workspaceId: project.workspaceId } },
+            select: { role: true },
+          });
+          return ws?.role ?? null;
+        }
+        return null;
       }
       default:
         return null;
