@@ -6,6 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { WorkspaceMember, Role as WorkspaceRole, Role } from '@prisma/client';
+import { hasRequiredRole } from '../../constants/roles';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   CreateWorkspaceMemberDto,
@@ -84,11 +85,7 @@ export class WorkspaceMembersService {
     }
 
     if (requiredRole) {
-      const roles: Role[] = [Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER, Role.SUPER_ADMIN];
-      const actorRoleIndex = roles.indexOf(requesterWorkspaceMember.role);
-      const requiredRoleIndex = roles.indexOf(requiredRole);
-
-      if (actorRoleIndex < requiredRoleIndex) {
+      if (!hasRequiredRole(requesterWorkspaceMember.role, requiredRole)) {
         throw new ForbiddenException(`${requiredRole} privileges required`);
       }
     }
@@ -102,6 +99,11 @@ export class WorkspaceMembersService {
 
     if (actorId) {
       await this.checkActorPermissions(actorId, workspaceId, Role.MANAGER);
+
+      if (role === Role.OWNER) {
+        // Double check if requester has OWNER role if they are trying to add someone as OWNER
+        await this.checkActorPermissions(actorId, workspaceId, Role.OWNER);
+      }
     }
 
     // Verify workspace exists and get organization info
@@ -221,6 +223,11 @@ export class WorkspaceMembersService {
 
     if (actorId) {
       await this.checkActorPermissions(actorId, workspaceId, Role.MANAGER);
+
+      if (role === Role.OWNER) {
+        // Double check if requester has OWNER role if they are trying to add someone as OWNER
+        await this.checkActorPermissions(actorId, workspaceId, Role.OWNER);
+      }
     }
 
     // Find user by email
@@ -230,7 +237,7 @@ export class WorkspaceMembersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User with this email not found');
+      throw new NotFoundException('User not found');
     }
 
     return this.create(
