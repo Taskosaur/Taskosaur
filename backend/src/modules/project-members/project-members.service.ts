@@ -90,6 +90,20 @@ export class ProjectMembersService {
       throw new ForbiddenException('Only admins can add members to this project');
     }
 
+    // Role escalation check: only owners/org admins can assign OWNER role
+    if (role === ProjectRole.OWNER) {
+      const isHigherAdmin =
+        isOrgOwner ||
+        isOrgAdmin ||
+        isWorkspaceAdmin ||
+        requesterProjectMember?.role === ProjectRole.OWNER;
+      if (!isHigherAdmin) {
+        throw new ForbiddenException(
+          'Only project owners or organization/workspace admins can assign the OWNER role',
+        );
+      }
+    }
+
     // Verify user exists and is a member of the workspace
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -185,7 +199,7 @@ export class ProjectMembersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User with this email not found');
+      throw new NotFoundException('User not found');
     }
 
     return this.create(
@@ -599,6 +613,20 @@ export class ProjectMembersService {
 
     if (!isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin && !isProjectAdmin) {
       throw new ForbiddenException('Only admins can update member roles');
+    }
+
+    // Role escalation check: only owners/org admins can promote to OWNER role
+    if (updateProjectMemberDto.role === ProjectRole.OWNER) {
+      const isHigherAdmin =
+        isOrgOwner ||
+        isOrgAdmin ||
+        isWorkspaceAdmin ||
+        requesterProjectMember?.role === ProjectRole.OWNER;
+      if (!isHigherAdmin) {
+        throw new ForbiddenException(
+          'Only project owners or organization/workspace admins can assign the OWNER role',
+        );
+      }
     }
 
     const updatedMember = await this.prisma.projectMember.update({
