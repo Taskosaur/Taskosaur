@@ -289,4 +289,186 @@ describe('ProjectMembersController (e2e)', () => {
         });
     });
   });
+
+  describe('/project-members (POST) - Role Escalation Protection', () => {
+    let managerUser: any;
+    let managerAccessToken: string;
+
+    beforeAll(async () => {
+      // Create a user to be the manager
+      const managerReg = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: `pm-manager-${Date.now()}@example.com`,
+          password,
+          firstName: 'PM',
+          lastName: 'Manager',
+          username: `pm_manager_${Date.now()}`,
+          role: Role.MEMBER,
+        });
+      managerUser = managerReg.body.user;
+      managerAccessToken = managerReg.body.access_token;
+
+      // Add them to the workspace
+      await prismaService.workspaceMember.create({
+        data: { userId: managerUser.id, workspaceId, role: Role.MEMBER }
+      });
+
+      // Add them to the project as MANAGER
+      await prismaService.projectMember.create({
+        data: { userId: managerUser.id, projectId, role: Role.MANAGER }
+      });
+    });
+
+    it('should fail if a manager tries to add someone with the OWNER role', () => {
+      const createDto: CreateProjectMemberDto = {
+        userId: member.id,
+        projectId: projectId,
+        role: Role.OWNER,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/project-members')
+        .set('Authorization', `Bearer ${managerAccessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('should fail if a manager tries to promote someone to the OWNER role via update', async () => {
+      // First ensure the member is in the project
+      const memberMembership = await prismaService.projectMember.upsert({
+        where: { userId_projectId: { userId: member.id, projectId } },
+        update: { role: Role.MEMBER },
+        create: { userId: member.id, projectId, role: Role.MEMBER }
+      });
+
+      return request(app.getHttpServer())
+        .patch(`/api/project-members/${memberMembership.id}`)
+        .set('Authorization', `Bearer ${managerAccessToken}`)
+        .send({ role: Role.OWNER })
+        .expect(HttpStatus.FORBIDDEN);
+    });
+  });
+
+  describe('/project-members/invite (POST) - Email Harvesting Mitigation', () => {
+    it('should return generic "User not found" for unregistered email', () => {
+      const inviteDto = {
+        email: 'nonexistent-user-12345@example.com',
+        projectId: projectId,
+        role: Role.VIEWER,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/project-members/invite')
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
+        .send(inviteDto)
+        .expect(HttpStatus.NOT_FOUND)
+        .expect((res) => {
+          expect(res.body.message).toBe('User not found');
+        });
+    });
+  });
+
+  describe('Project Visibility Access', () => {
+    let workspaceMember: any;
+    let wsMemberAccessToken: string;
+    let internalProjectId: string;
+
+    beforeAll(async () => {
+      // Create a user who is only a workspace member
+      const wsMemberReg = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: `ws-only-member-${Date.now()}@example.com`,
+          password,
+          firstName: 'WS',
+          lastName: 'Only',
+          username: `ws_only_${Date.now()}`,
+          role: Role.MEMBER,
+        });
+      workspaceMember = wsMemberReg.body.user;
+      wsMemberAccessToken = wsMemberReg.body.access_token;
+
+      await prismaService.workspaceMember.create({
+        data: { userId: workspaceMember.id, workspaceId, role: Role.MEMBER }
+      });
+
+      // Create an INTERNAL project
+      const internalProject = await prismaService.project.create({
+        data: {
+          name: 'Internal Project',
+          slug: `internal-project-${Date.now()}`,
+          workspaceId,
+          status: ProjectStatus.PLANNING,
+          priority: ProjectPriority.MEDIUM,
+          visibility: ProjectVisibility.INTERNAL,
+          createdBy: owner.id,
+          workflowId,
+          color: '#00FF00',
+        },
+      });
+      internalProjectId = internalProject.id;
+    });
+
+    it('should allow a workspace member to see project members for an INTERNAL project', () => {
+      return request(app.getHttpServer())
+        .get('/api/project-members')
+        .query({ projectId: internalProjectId })
+        .set('Authorization', `Bearer ${wsMemberAccessToken}`)
+        .expect(HttpStatus.OK);
+    });
+
+    it('should deny a workspace member access if project visibility is PRIVATE', async () => {
+      await prismaService.project.update({
+        where: { id: internalProjectId },
+        data: { visibility: ProjectVisibility.PRIVATE }
+      });
+
+      return request(app.getHttpServer())
+        .get('/api/project-members')
+        .query({ projectId: internalProjectId })
+        .set('Authorization', `Bearer ${wsMemberAccessToken}`)
+        .expect(HttpStatus.FORBIDDEN);
+    });
+  });
+
+  describe('/project-members/user/:userId/project/:projectId (GET)', () => {
+    it('should allow a member to see their own membership', () => {
+      return request(app.getHttpServer())
+        .get(`/api/project-members/user/${member.id}/project/${projectId}`)
+        .set('Authorization', `Bearer ${memberAccessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.userId).toBe(member.id);
+          expect(res.body.projectId).toBe(projectId);
+        });
+    });
+
+    it('should allow an owner to see someone else\'s membership', () => {
+      return request(app.getHttpServer())
+        .get(`/api/project-members/user/${member.id}/project/${projectId}`)
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
+        .expect(HttpStatus.OK);
+    });
+
+    it('should deny a stranger access to see a membership', async () => {
+      // Create a stranger user
+      const strangerReg = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: `pm-stranger-${Date.now()}@example.com`,
+          password,
+          firstName: 'PM',
+          lastName: 'Stranger',
+          username: `pm_stranger_${Date.now()}`,
+          role: Role.MEMBER,
+        });
+      const strangerAccessToken = strangerReg.body.access_token;
+
+      return request(app.getHttpServer())
+        .get(`/api/project-members/user/${member.id}/project/${projectId}`)
+        .set('Authorization', `Bearer ${strangerAccessToken}`)
+        .expect(HttpStatus.FORBIDDEN);
+    });
+  });
 });

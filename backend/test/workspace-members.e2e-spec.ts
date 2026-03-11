@@ -5,7 +5,10 @@ import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
-import { CreateWorkspaceMemberDto, InviteWorkspaceMemberDto } from './../src/modules/workspace-members/dto/create-workspace-member.dto';
+import {
+  CreateWorkspaceMemberDto,
+  InviteWorkspaceMemberDto,
+} from './../src/modules/workspace-members/dto/create-workspace-member.dto';
 import { UpdateWorkspaceMemberDto } from './../src/modules/workspace-members/dto/update-workspace-member.dto';
 
 describe('WorkspaceMembersController (e2e)', () => {
@@ -68,9 +71,21 @@ describe('WorkspaceMembersController (e2e)', () => {
     });
 
     // Generate tokens
-    ownerAccessToken = jwtService.sign({ sub: ownerUser.id, email: ownerUser.email, role: ownerUser.role });
-    memberAccessToken = jwtService.sign({ sub: memberUser.id, email: memberUser.email, role: memberUser.role });
-    strangerAccessToken = jwtService.sign({ sub: strangerUser.id, email: strangerUser.email, role: strangerUser.role });
+    ownerAccessToken = jwtService.sign({
+      sub: ownerUser.id,
+      email: ownerUser.email,
+      role: ownerUser.role,
+    });
+    memberAccessToken = jwtService.sign({
+      sub: memberUser.id,
+      email: memberUser.email,
+      role: memberUser.role,
+    });
+    strangerAccessToken = jwtService.sign({
+      sub: strangerUser.id,
+      email: strangerUser.email,
+      role: strangerUser.role,
+    });
 
     // Create Organization
     const org = await prismaService.organization.create({
@@ -118,7 +133,9 @@ describe('WorkspaceMembersController (e2e)', () => {
       await prismaService.workspace.delete({ where: { id: workspaceId } });
       await prismaService.organizationMember.deleteMany({ where: { organizationId } });
       await prismaService.organization.delete({ where: { id: organizationId } });
-      await prismaService.user.deleteMany({ where: { id: { in: [ownerUser.id, memberUser.id, strangerUser.id] } } });
+      await prismaService.user.deleteMany({
+        where: { id: { in: [ownerUser.id, memberUser.id, strangerUser.id] } },
+      });
     }
     await app.close();
   });
@@ -157,6 +174,43 @@ describe('WorkspaceMembersController (e2e)', () => {
         .send(createDto)
         .expect(HttpStatus.FORBIDDEN);
     });
+
+    it('should fail if a manager tries to add someone with the OWNER role', async () => {
+      // Setup a manager user
+      const manager = await prismaService.user.create({
+        data: {
+          email: `ws-manager-${Date.now()}@example.com`,
+          password: 'StrongPassword123!',
+          firstName: 'WS',
+          lastName: 'Manager',
+          username: `ws_manager_${Date.now()}`,
+          role: Role.MEMBER,
+        },
+      });
+      await prismaService.organizationMember.create({
+        data: { userId: manager.id, organizationId, role: Role.MEMBER },
+      });
+      await prismaService.workspaceMember.create({
+        data: { userId: manager.id, workspaceId, role: Role.MANAGER },
+      });
+      const managerToken = jwtService.sign({
+        sub: manager.id,
+        email: manager.email,
+        role: manager.role,
+      });
+
+      const createDto: CreateWorkspaceMemberDto = {
+        userId: memberUser.id,
+        workspaceId,
+        role: Role.OWNER,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/workspace-members')
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send(createDto)
+        .expect(HttpStatus.FORBIDDEN);
+    });
   });
 
   describe('/workspace-members/invite (POST)', () => {
@@ -172,10 +226,10 @@ describe('WorkspaceMembersController (e2e)', () => {
           role: Role.MEMBER,
         },
       });
-      
+
       // Must be in org first
       await prismaService.organizationMember.create({
-        data: { userId: invitee.id, organizationId, role: Role.MEMBER }
+        data: { userId: invitee.id, organizationId, role: Role.MEMBER },
       });
 
       const inviteDto: InviteWorkspaceMemberDto = {
@@ -191,6 +245,60 @@ describe('WorkspaceMembersController (e2e)', () => {
         .expect(HttpStatus.CREATED)
         .expect((res) => {
           expect(res.body.userId).toBe(invitee.id);
+        });
+    });
+
+    it('should fail if a manager tries to invite someone with the OWNER role', async () => {
+      // Setup a manager user
+      const manager = await prismaService.user.create({
+        data: {
+          email: `ws-invite-manager-${Date.now()}@example.com`,
+          password: 'StrongPassword123!',
+          firstName: 'WS',
+          lastName: 'Manager',
+          username: `ws_invite_manager_${Date.now()}`,
+          role: Role.MEMBER,
+        },
+      });
+      await prismaService.organizationMember.create({
+        data: { userId: manager.id, organizationId, role: Role.MEMBER },
+      });
+      await prismaService.workspaceMember.create({
+        data: { userId: manager.id, workspaceId, role: Role.MANAGER },
+      });
+      const managerToken = jwtService.sign({
+        sub: manager.id,
+        email: manager.email,
+        role: manager.role,
+      });
+
+      const inviteDto: InviteWorkspaceMemberDto = {
+        email: `random-${Date.now()}@example.com`,
+        workspaceId,
+        role: Role.OWNER,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/workspace-members/invite')
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send(inviteDto)
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('should return generic "User not found" for unregistered email', () => {
+      const inviteDto: InviteWorkspaceMemberDto = {
+        email: 'nonexistent-user-workspace@example.com',
+        workspaceId,
+        role: Role.MEMBER,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/workspace-members/invite')
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
+        .send(inviteDto)
+        .expect(HttpStatus.NOT_FOUND)
+        .expect((res) => {
+          expect(res.body.message).toBe('User not found');
         });
     });
   });
@@ -277,6 +385,37 @@ describe('WorkspaceMembersController (e2e)', () => {
         });
     });
 
+    it('should fail if a manager tries to promote someone to the OWNER role', async () => {
+      // Setup a manager user
+      const manager = await prismaService.user.create({
+        data: {
+          email: `ws-patch-manager-${Date.now()}@example.com`,
+          password: 'StrongPassword123!',
+          firstName: 'WS',
+          lastName: 'Manager',
+          username: `ws_patch_manager_${Date.now()}`,
+          role: Role.MEMBER,
+        },
+      });
+      await prismaService.organizationMember.create({
+        data: { userId: manager.id, organizationId, role: Role.MEMBER },
+      });
+      await prismaService.workspaceMember.create({
+        data: { userId: manager.id, workspaceId, role: Role.MANAGER },
+      });
+      const managerToken = jwtService.sign({
+        sub: manager.id,
+        email: manager.email,
+        role: manager.role,
+      });
+
+      return request(app.getHttpServer())
+        .patch(`/api/workspace-members/${workspaceMemberId}`)
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({ role: Role.OWNER })
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
     it('should fail to update role by regular member', () => {
       const updateDto: UpdateWorkspaceMemberDto = {
         role: Role.OWNER,
@@ -290,16 +429,16 @@ describe('WorkspaceMembersController (e2e)', () => {
     });
 
     it('should fail to update role by stranger', () => {
-        const updateDto: UpdateWorkspaceMemberDto = {
-          role: Role.OWNER,
-        };
-  
-        return request(app.getHttpServer())
-          .patch(`/api/workspace-members/${workspaceMemberId}`)
-          .set('Authorization', `Bearer ${strangerAccessToken}`)
-          .send(updateDto)
-          .expect(HttpStatus.FORBIDDEN);
-      });
+      const updateDto: UpdateWorkspaceMemberDto = {
+        role: Role.OWNER,
+      };
+
+      return request(app.getHttpServer())
+        .patch(`/api/workspace-members/${workspaceMemberId}`)
+        .set('Authorization', `Bearer ${strangerAccessToken}`)
+        .send(updateDto)
+        .expect(HttpStatus.FORBIDDEN);
+    });
   });
 
   describe('/workspace-members/:id (DELETE)', () => {
