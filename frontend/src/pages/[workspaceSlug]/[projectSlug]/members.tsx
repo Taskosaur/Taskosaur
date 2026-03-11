@@ -147,7 +147,12 @@ function ProjectMembersContent() {
     if (!workspace?.id) return;
     getUserAccess({ name: "workspace", id: workspace?.id })
       .then((data) => {
-        setHasAccess(data?.canChange || data?.role === "OWNER" || data?.role === "MANAGER");
+        setHasAccess(
+          data?.canChange ||
+            data?.role === "OWNER" ||
+            data?.role === "MANAGER" ||
+            data?.role === "SUPER_ADMIN"
+        );
       })
       .catch((error) => {
         console.error("Error fetching user access:", error);
@@ -159,7 +164,12 @@ function ProjectMembersContent() {
     getUserAccess({ name: "project", id: project?.id })
       .then((data) => {
         setUserAccess(data);
-        setHasAccess(data?.canChange || data?.role === "OWNER" || data?.role === "MANAGER");
+        setHasAccess(
+          data?.canChange ||
+            data?.role === "OWNER" ||
+            data?.role === "MANAGER" ||
+            data?.role === "SUPER_ADMIN"
+        );
       })
       .catch((error) => {
         console.error("Error fetching user access:", error);
@@ -176,22 +186,36 @@ function ProjectMembersContent() {
 
   // Check if current user can manage members
   const canManageMembers = () => {
-    return userAccess?.role === "OWNER" || userAccess?.role === "MANAGER" || hasAccess;
+    return (
+      userAccess?.role === "OWNER" ||
+      userAccess?.role === "MANAGER" ||
+      userAccess?.role === "SUPER_ADMIN" ||
+      hasAccess
+    );
   };
 
   // Check if a member's role can be updated
   const canUpdateMemberRole = (member: Member) => {
     const currentUserId = getCurrentUserId();
-    if (isCurrentUserOwner) {
-      return false;
+    const isGlobalSA = userAccess?.role === "SUPER_ADMIN";
+
+    // Global SA can update anyone except themselves
+    if (isGlobalSA) {
+      return member.userId !== currentUserId;
     }
+
     // Current user cannot modify their own role
     if (member.userId === currentUserId) {
       return false;
     }
 
-    // Only owner can modify other owners
-    if (member.role === "OWNER" && !isCurrentUserOwner) {
+    // Only owner/SA can modify other owners
+    if (member.role === "OWNER" && !isCurrentUserOwner && !isGlobalSA) {
+      return false;
+    }
+
+    // Managers cannot modify other managers
+    if (userAccess?.role === "MANAGER" && member.role === "MANAGER") {
       return false;
     }
 
@@ -201,23 +225,32 @@ function ProjectMembersContent() {
   // Check if a member can be removed
   const canRemoveMember = (member: Member) => {
     const currentUserId = getCurrentUserId();
-    if (isCurrentUserOwner) {
+    const isGlobalSA = userAccess?.role === "SUPER_ADMIN";
+
+    // Global SA can remove anyone except themselves
+    if (isGlobalSA) {
+      return member.userId !== currentUserId;
+    }
+
+    // Owner cannot remove themselves
+    if (member.userId === currentUserId && isCurrentUserOwner) {
       return false;
     }
-    // User can always remove themselves (leave workspace)
+
+    // User can always remove themselves (leave project)
     if (member.userId === currentUserId) {
       return true;
     }
 
-    // Owner cannot be removed by others
-    if (member.role === "OWNER" && !isCurrentUserOwner) {
+    // Owner cannot be removed by others (except SA)
+    if (member.role === "OWNER") {
       return false;
     }
 
     // Manager cannot remove other managers
-    // if (userAccess?.role === "MANAGER" && member.role === "MANAGER") {
-    //   return false;
-    // }
+    if (userAccess?.role === "MANAGER" && member.role === "MANAGER") {
+      return false;
+    }
 
     return canManageMembers();
   };

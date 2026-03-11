@@ -127,8 +127,9 @@ export class ProjectMembersController {
   findByUserAndProject(
     @Param('userId', ParseUUIDPipe) userId: string,
     @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.projectMembersService.findByUserAndProject(userId, projectId);
+    return this.projectMembersService.findByUserAndProject(userId, projectId, user.id);
   }
 
   @Get(':id')

@@ -136,7 +136,10 @@ const MembersManagerComponent = memo(function MembersManager({
 
   const currentUser = getCurrentUser();
   const currentUserMember = members.find((m) => m.userId === currentUser?.id);
-  const currentUserRole = currentUserMember?.role;
+  const isGlobalSuperAdmin = currentUser?.role === "SUPER_ADMIN";
+  
+  // Use global role if not an explicit member, or if global role is SUPER_ADMIN
+  const currentUserRole = isGlobalSuperAdmin ? "SUPER_ADMIN" : currentUserMember?.role;
 
   const getRoleLabel = (role: string) => {
     const roleConfig = roles.find((r) => r.value === role);
@@ -145,8 +148,13 @@ const MembersManagerComponent = memo(function MembersManager({
 
   const canManageMember = useCallback(
     (targetMember: Member) => {
+      // Super admins can manage everyone except themselves
+      if (isGlobalSuperAdmin) {
+        return targetMember.userId !== currentUser?.id;
+      }
+
       if (!currentUserRole) return false;
-      if (type !== "project") return true; // Keep existing behavior for workspace for now
+      if (type !== "project") return true; 
 
       // Role hierarchy: SUPER_ADMIN/OWNER > MANAGER > DEVELOPER/MEMBER/VIEWER
       const isOwner = (role: string) => role === "SUPER_ADMIN" || role === "OWNER";
@@ -164,7 +172,7 @@ const MembersManagerComponent = memo(function MembersManager({
 
       return false; // Other roles cannot manage anyone
     },
-    [currentUserRole, type]
+    [currentUserRole, currentUser?.id, isGlobalSuperAdmin, type]
   );
 
   const fetchMembers = useCallback(async () => {
@@ -752,7 +760,7 @@ const MembersManagerComponent = memo(function MembersManager({
                   </div>
                 </div>
                 <div className="members-manager-member-actions">
-                  {canManageMember(member) ? (
+                  {isGlobalSuperAdmin || canManageMember(member) ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="members-manager-role-button">

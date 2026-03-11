@@ -11,6 +11,7 @@ import {
   Role as ProjectRole,
   Role as WorkspaceRole,
   Role as OrganizationRole,
+  ProjectVisibility,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -57,42 +58,53 @@ export class ProjectMembersService {
       throw new NotFoundException('Project not found');
     }
 
-    // Authorization check: requester must be admin/owner of project, workspace, or org
-    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] =
-      await Promise.all([
-        this.findByUserAndProject(requestUserId, projectId),
-        this.prisma.workspaceMember.findUnique({
-          where: {
-            userId_workspaceId: {
-              userId: requestUserId,
-              workspaceId: project.workspaceId,
+    // Authorization check: requester must be admin/owner of project, workspace, or org, or a SUPER_ADMIN
+    const actor = await this.prisma.user.findUnique({
+      where: { id: requestUserId },
+      select: { role: true },
+    });
+
+    const isSuperAdmin = actor?.role === OrganizationRole.SUPER_ADMIN;
+
+    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] = isSuperAdmin
+      ? [null, null, null]
+      : await Promise.all([
+          this.findByUserAndProject(requestUserId, projectId, requestUserId),
+          this.prisma.workspaceMember.findUnique({
+            where: {
+              userId_workspaceId: {
+                userId: requestUserId,
+                workspaceId: project.workspaceId,
+              },
             },
-          },
-        }),
-        this.prisma.organizationMember.findUnique({
-          where: {
-            userId_organizationId: {
-              userId: requestUserId,
-              organizationId: project.workspace.organizationId,
+          }),
+          this.prisma.organizationMember.findUnique({
+            where: {
+              userId_organizationId: {
+                userId: requestUserId,
+                organizationId: project.workspace.organizationId,
+              },
             },
-          },
-        }),
-      ]);
+          }),
+        ]);
 
     const isOrgOwner = project.workspace.organization.ownerId === requestUserId;
     const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
-    const isWorkspaceAdmin = requesterWorkspaceMember?.role === WorkspaceRole.OWNER;
+    const isWorkspaceAdmin =
+      requesterWorkspaceMember?.role === WorkspaceRole.OWNER ||
+      requesterWorkspaceMember?.role === WorkspaceRole.MANAGER;
     const isProjectAdmin =
       requesterProjectMember?.role === ProjectRole.OWNER ||
       requesterProjectMember?.role === ProjectRole.MANAGER;
 
-    if (!isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin && !isProjectAdmin) {
+    if (!isSuperAdmin && !isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin && !isProjectAdmin) {
       throw new ForbiddenException('Only admins can add members to this project');
     }
 
     // Role escalation check: only owners/org admins can assign OWNER role
     if (role === ProjectRole.OWNER) {
       const isHigherAdmin =
+        isSuperAdmin ||
         isOrgOwner ||
         isOrgAdmin ||
         isWorkspaceAdmin ||
@@ -228,36 +240,75 @@ export class ProjectMembersService {
     if (projectId) {
       const project = await this.prisma.project.findUnique({
         where: { id: projectId },
-        select: { workspaceId: true, workspace: { select: { organizationId: true } } },
+        select: {
+          visibility: true,
+          workspaceId: true,
+          workspace: {
+            select: {
+              organizationId: true,
+              organization: { select: { ownerId: true } },
+            },
+          },
+        },
       });
 
       if (!project) {
         throw new NotFoundException('Project not found');
       }
 
-      const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] =
-        await Promise.all([
-          this.findByUserAndProject(requestUserId, projectId),
-          this.prisma.workspaceMember.findUnique({
-            where: {
-              userId_workspaceId: {
-                userId: requestUserId,
-                workspaceId: project.workspaceId,
-              },
-            },
-          }),
-          this.prisma.organizationMember.findUnique({
-            where: {
-              userId_organizationId: {
-                userId: requestUserId,
-                organizationId: project.workspace.organizationId,
-              },
-            },
-          }),
-        ]);
+      const actor = await this.prisma.user.findUnique({
+        where: { id: requestUserId },
+        select: { role: true },
+      });
 
-      if (!requesterProjectMember && !requesterWorkspaceMember && !requesterOrgMember) {
-        throw new ForbiddenException('You are not authorized to view members of this project');
+      const isSuperAdmin = actor?.role === OrganizationRole.SUPER_ADMIN;
+
+      const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] = isSuperAdmin
+        ? [null, null, null]
+        : await Promise.all([
+            this.findByUserAndProject(requestUserId, projectId, requestUserId),
+            this.prisma.workspaceMember.findUnique({
+              where: {
+                userId_workspaceId: {
+                  userId: requestUserId,
+                  workspaceId: project.workspaceId,
+                },
+              },
+            }),
+            this.prisma.organizationMember.findUnique({
+              where: {
+                userId_organizationId: {
+                  userId: requestUserId,
+                  organizationId: project.workspace.organizationId,
+                },
+              },
+            }),
+          ]);
+
+      const isOrgOwner = project.workspace.organization.ownerId === requestUserId;
+      const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
+      const isWorkspaceAdmin =
+        requesterWorkspaceMember?.role === WorkspaceRole.OWNER ||
+        requesterWorkspaceMember?.role === WorkspaceRole.MANAGER;
+
+      // Access logic:
+      // 1. Project members, Org Owners/Admins, Workspace Owners/Managers always have access, or SUPER_ADMIN
+      // 2. If PUBLIC, everyone has access
+      // 3. If INTERNAL, workspace members have access
+      // 4. Otherwise (PRIVATE), only those in #1 have access
+
+      const hasExplicitAccess =
+        isSuperAdmin || requesterProjectMember || isOrgOwner || isOrgAdmin || isWorkspaceAdmin;
+
+      if (!hasExplicitAccess) {
+        if (project.visibility === ProjectVisibility.PUBLIC) {
+          // Public project: allow
+        } else if (project.visibility === ProjectVisibility.INTERNAL && requesterWorkspaceMember) {
+          // Internal project and user is a workspace member: allow
+        } else {
+          // Private project or user not in workspace: forbid
+          throw new ForbiddenException('You are not authorized to view members of this project');
+        }
       }
     }
 
@@ -343,26 +394,35 @@ export class ProjectMembersService {
     }
 
     // Authorization check
-    const [requesterWorkspaceMember, requesterOrgMember] = await Promise.all([
-      this.prisma.workspaceMember.findUnique({
-        where: {
-          userId_workspaceId: {
-            userId: requestUserId,
-            workspaceId,
-          },
-        },
-      }),
-      this.prisma.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId: requestUserId,
-            organizationId: workspace.organizationId,
-          },
-        },
-      }),
-    ]);
+    const actor = await this.prisma.user.findUnique({
+      where: { id: requestUserId },
+      select: { role: true },
+    });
 
-    if (!requesterWorkspaceMember && !requesterOrgMember) {
+    const isSuperAdmin = actor?.role === OrganizationRole.SUPER_ADMIN;
+
+    const [requesterWorkspaceMember, requesterOrgMember] = isSuperAdmin
+      ? [null, null]
+      : await Promise.all([
+          this.prisma.workspaceMember.findUnique({
+            where: {
+              userId_workspaceId: {
+                userId: requestUserId,
+                workspaceId,
+              },
+            },
+          }),
+          this.prisma.organizationMember.findUnique({
+            where: {
+              userId_organizationId: {
+                userId: requestUserId,
+                organizationId: workspace.organizationId,
+              },
+            },
+          }),
+        ]);
+
+    if (!isSuperAdmin && !requesterWorkspaceMember && !requesterOrgMember) {
       throw new ForbiddenException('You are not authorized to view members in this workspace');
     }
 
@@ -487,35 +547,119 @@ export class ProjectMembersService {
     }
 
     // Authorization check
-    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] =
-      await Promise.all([
-        this.findByUserAndProject(requestUserId, member.projectId),
-        this.prisma.workspaceMember.findUnique({
-          where: {
-            userId_workspaceId: {
-              userId: requestUserId,
-              workspaceId: member.project.workspaceId,
-            },
-          },
-        }),
-        this.prisma.organizationMember.findUnique({
-          where: {
-            userId_organizationId: {
-              userId: requestUserId,
-              organizationId: (member.project.workspace as any).organizationId,
-            },
-          },
-        }),
-      ]);
+    const actor = await this.prisma.user.findUnique({
+      where: { id: requestUserId },
+      select: { role: true },
+    });
 
-    if (!requesterProjectMember && !requesterWorkspaceMember && !requesterOrgMember) {
+    const isSuperAdmin = actor?.role === OrganizationRole.SUPER_ADMIN;
+
+    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] = isSuperAdmin
+      ? [null, null, null]
+      : await Promise.all([
+          this.findByUserAndProject(requestUserId, member.projectId, requestUserId),
+          this.prisma.workspaceMember.findUnique({
+            where: {
+              userId_workspaceId: {
+                userId: requestUserId,
+                workspaceId: member.project.workspaceId,
+              },
+            },
+          }),
+          this.prisma.organizationMember.findUnique({
+            where: {
+              userId_organizationId: {
+                userId: requestUserId,
+                organizationId: (member.project.workspace as any).organizationId,
+              },
+            },
+          }),
+        ]);
+
+    if (
+      !isSuperAdmin &&
+      !requesterProjectMember &&
+      !requesterWorkspaceMember &&
+      !requesterOrgMember
+    ) {
       throw new ForbiddenException('You are not authorized to view this project member');
     }
 
     return member;
   }
 
-  findByUserAndProject(userId: string, projectId: string) {
+  async findByUserAndProject(userId: string, projectId: string, requestUserId?: string) {
+    if (requestUserId) {
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: {
+          visibility: true,
+          workspaceId: true,
+          workspace: {
+            select: {
+              organizationId: true,
+              organization: { select: { ownerId: true } },
+            },
+          },
+        },
+      });
+
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+
+      const actor = await this.prisma.user.findUnique({
+        where: { id: requestUserId },
+        select: { role: true },
+      });
+
+      const isSuperAdmin = actor?.role === OrganizationRole.SUPER_ADMIN;
+
+      const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] = isSuperAdmin
+        ? [null, null, null]
+        : await Promise.all([
+            this.prisma.projectMember.findUnique({
+              where: { userId_projectId: { userId: requestUserId, projectId } },
+            }),
+            this.prisma.workspaceMember.findUnique({
+              where: {
+                userId_workspaceId: {
+                  userId: requestUserId,
+                  workspaceId: project.workspaceId,
+                },
+              },
+            }),
+            this.prisma.organizationMember.findUnique({
+              where: {
+                userId_organizationId: {
+                  userId: requestUserId,
+                  organizationId: project.workspace.organizationId,
+                },
+              },
+            }),
+          ]);
+
+      const isOrgOwner = project.workspace.organization.ownerId === requestUserId;
+      const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
+      const isWorkspaceAdmin =
+        requesterWorkspaceMember?.role === WorkspaceRole.OWNER ||
+        requesterWorkspaceMember?.role === WorkspaceRole.MANAGER;
+
+      const hasExplicitAccess =
+        isSuperAdmin || requesterProjectMember || isOrgOwner || isOrgAdmin || isWorkspaceAdmin;
+
+      if (!hasExplicitAccess) {
+        if (project.visibility === ProjectVisibility.PUBLIC) {
+          // Public project: allow
+        } else if (project.visibility === ProjectVisibility.INTERNAL && requesterWorkspaceMember) {
+          // Internal project and user is a workspace member: allow
+        } else {
+          // Private project or user not in workspace: forbid
+          throw new ForbiddenException('You are not authorized to view this project member');
+        }
+      }
+    }
+
     return this.prisma.projectMember.findUnique({
       where: {
         userId_projectId: {
@@ -576,28 +720,41 @@ export class ProjectMembersService {
     }
 
     // Check requester permissions at different levels
-    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] =
-      await Promise.all([
-        this.findByUserAndProject(requestUserId, member.projectId),
-        this.prisma.workspaceMember.findUnique({
-          where: {
-            userId_workspaceId: {
-              userId: requestUserId,
-              workspaceId: member.project.workspaceId,
-            },
-          },
-        }),
-        this.prisma.organizationMember.findUnique({
-          where: {
-            userId_organizationId: {
-              userId: requestUserId,
-              organizationId: member.project.workspace.organizationId,
-            },
-          },
-        }),
-      ]);
+    const actor = await this.prisma.user.findUnique({
+      where: { id: requestUserId },
+      select: { role: true },
+    });
 
-    if (!requesterProjectMember && !requesterWorkspaceMember && !requesterOrgMember) {
+    const isSuperAdmin = actor?.role === OrganizationRole.SUPER_ADMIN;
+
+    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] = isSuperAdmin
+      ? [null, null, null]
+      : await Promise.all([
+          this.findByUserAndProject(requestUserId, member.projectId, requestUserId),
+          this.prisma.workspaceMember.findUnique({
+            where: {
+              userId_workspaceId: {
+                userId: requestUserId,
+                workspaceId: member.project.workspaceId,
+              },
+            },
+          }),
+          this.prisma.organizationMember.findUnique({
+            where: {
+              userId_organizationId: {
+                userId: requestUserId,
+                organizationId: member.project.workspace.organizationId,
+              },
+            },
+          }),
+        ]);
+
+    if (
+      !isSuperAdmin &&
+      !requesterProjectMember &&
+      !requesterWorkspaceMember &&
+      !requesterOrgMember
+    ) {
       throw new ForbiddenException(
         'You are not a member of this project, workspace, or organization',
       );
@@ -606,18 +763,21 @@ export class ProjectMembersService {
     // Permission check: organization owner, org/workspace/project admins can update
     const isOrgOwner = member.project.workspace.organization.ownerId === requestUserId;
     const isOrgAdmin = requesterOrgMember?.role === OrganizationRole.OWNER;
-    const isWorkspaceAdmin = requesterWorkspaceMember?.role === WorkspaceRole.OWNER;
+    const isWorkspaceAdmin =
+      requesterWorkspaceMember?.role === WorkspaceRole.OWNER ||
+      requesterWorkspaceMember?.role === WorkspaceRole.MANAGER;
     const isProjectAdmin =
       requesterProjectMember?.role === ProjectRole.OWNER ||
       requesterProjectMember?.role === ProjectRole.MANAGER;
 
-    if (!isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin && !isProjectAdmin) {
+    if (!isSuperAdmin && !isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin && !isProjectAdmin) {
       throw new ForbiddenException('Only admins can update member roles');
     }
 
     // Role escalation check: only owners/org admins can promote to OWNER role
     if (updateProjectMemberDto.role === ProjectRole.OWNER) {
       const isHigherAdmin =
+        isSuperAdmin ||
         isOrgOwner ||
         isOrgAdmin ||
         isWorkspaceAdmin ||
@@ -687,26 +847,34 @@ export class ProjectMembersService {
     }
 
     // Check requester permissions
-    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] =
-      await Promise.all([
-        this.findByUserAndProject(requestUserId, member.projectId),
-        this.prisma.workspaceMember.findUnique({
-          where: {
-            userId_workspaceId: {
-              userId: requestUserId,
-              workspaceId: member.project.workspaceId,
+    const actor = await this.prisma.user.findUnique({
+      where: { id: requestUserId },
+      select: { role: true },
+    });
+
+    const isSuperAdmin = actor?.role === OrganizationRole.SUPER_ADMIN;
+
+    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] = isSuperAdmin
+      ? [null, null, null]
+      : await Promise.all([
+          this.findByUserAndProject(requestUserId, member.projectId, requestUserId),
+          this.prisma.workspaceMember.findUnique({
+            where: {
+              userId_workspaceId: {
+                userId: requestUserId,
+                workspaceId: member.project.workspaceId,
+              },
             },
-          },
-        }),
-        this.prisma.organizationMember.findUnique({
-          where: {
-            userId_organizationId: {
-              userId: requestUserId,
-              organizationId: member.project.workspace.organizationId,
+          }),
+          this.prisma.organizationMember.findUnique({
+            where: {
+              userId_organizationId: {
+                userId: requestUserId,
+                organizationId: member.project.workspace.organizationId,
+              },
             },
-          },
-        }),
-      ]);
+          }),
+        ]);
 
     // Users can remove themselves, or admins can remove others
     const isSelfRemoval = member.userId === requestUserId;
@@ -719,7 +887,14 @@ export class ProjectMembersService {
       requesterProjectMember?.role === ProjectRole.OWNER ||
       requesterProjectMember?.role === ProjectRole.MANAGER;
 
-    if (!isSelfRemoval && !isOrgOwner && !isOrgAdmin && !isWorkspaceAdmin && !isProjectAdmin) {
+    if (
+      !isSuperAdmin &&
+      !isSelfRemoval &&
+      !isOrgOwner &&
+      !isOrgAdmin &&
+      !isWorkspaceAdmin &&
+      !isProjectAdmin
+    ) {
       throw new ForbiddenException('You can only remove yourself or you must be an admin');
     }
 
@@ -798,28 +973,41 @@ export class ProjectMembersService {
     }
 
     // Authorization check
-    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] =
-      await Promise.all([
-        this.findByUserAndProject(requestUserId, projectId),
-        this.prisma.workspaceMember.findUnique({
-          where: {
-            userId_workspaceId: {
-              userId: requestUserId,
-              workspaceId: project.workspaceId,
-            },
-          },
-        }),
-        this.prisma.organizationMember.findUnique({
-          where: {
-            userId_organizationId: {
-              userId: requestUserId,
-              organizationId: project.workspace.organizationId,
-            },
-          },
-        }),
-      ]);
+    const actor = await this.prisma.user.findUnique({
+      where: { id: requestUserId },
+      select: { role: true },
+    });
 
-    if (!requesterProjectMember && !requesterWorkspaceMember && !requesterOrgMember) {
+    const isSuperAdmin = actor?.role === OrganizationRole.SUPER_ADMIN;
+
+    const [requesterProjectMember, requesterWorkspaceMember, requesterOrgMember] = isSuperAdmin
+      ? [null, null, null]
+      : await Promise.all([
+          this.findByUserAndProject(requestUserId, projectId, requestUserId),
+          this.prisma.workspaceMember.findUnique({
+            where: {
+              userId_workspaceId: {
+                userId: requestUserId,
+                workspaceId: project.workspaceId,
+              },
+            },
+          }),
+          this.prisma.organizationMember.findUnique({
+            where: {
+              userId_organizationId: {
+                userId: requestUserId,
+                organizationId: project.workspace.organizationId,
+              },
+            },
+          }),
+        ]);
+
+    if (
+      !isSuperAdmin &&
+      !requesterProjectMember &&
+      !requesterWorkspaceMember &&
+      !requesterOrgMember
+    ) {
       throw new ForbiddenException('You are not authorized to view statistics for this project');
     }
 
