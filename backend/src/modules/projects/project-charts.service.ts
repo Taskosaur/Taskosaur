@@ -100,10 +100,7 @@ export class ProjectChartsService {
    * Helper method to get project and validate access
    */
   private async getProjectWithAccess(projectSlug: string, userId: string) {
-    const { isElevated: originalIsElevated } = await this.accessControl.getProjectAccessBySlug(
-      projectSlug,
-      userId,
-    );
+    await this.accessControl.getProjectAccessBySlug(projectSlug, userId);
 
     const project = await this.prisma.project.findUnique({
       where: { slug: projectSlug },
@@ -114,11 +111,7 @@ export class ProjectChartsService {
       throw new NotFoundException('Project not found');
     }
 
-    // A project is considered "effectively elevated" for charts if the user has an elevated role
-    // OR if the project is PUBLIC (meaning everyone can see all tasks).
-    const isElevated = originalIsElevated || project.visibility === 'PUBLIC';
-
-    return { project, isElevated };
+    return { project };
   }
 
   /**
@@ -133,10 +126,7 @@ export class ProjectChartsService {
    * 1) Task Status Flow
    */
   async projectTaskStatusFlow(projectSlug: string, userId: string): Promise<TaskStatusFlow[]> {
-    const { isElevated: originalIsElevated } = await this.accessControl.getProjectAccessBySlug(
-      projectSlug,
-      userId,
-    );
+    await this.accessControl.getProjectAccessBySlug(projectSlug, userId);
 
     // Fetch project to check visibility for bypassing restriction
     const projectInfo = await this.prisma.project.findUnique({
@@ -147,8 +137,6 @@ export class ProjectChartsService {
     if (!projectInfo) {
       throw new NotFoundException('Project not found');
     }
-
-    const isElevated = originalIsElevated || projectInfo.visibility === 'PUBLIC';
 
     const project = await this.prisma.project.findUnique({
       where: { slug: projectSlug },
@@ -167,14 +155,6 @@ export class ProjectChartsService {
                     tasks: {
                       where: {
                         project: { slug: projectSlug },
-                        ...(isElevated
-                          ? {}
-                          : {
-                              OR: [
-                                { assignees: { some: { id: userId } } },
-                                { reporters: { some: { id: userId } } },
-                              ],
-                            }),
                       },
                     },
                   },
@@ -208,15 +188,10 @@ export class ProjectChartsService {
    * 2) Task Type Distribution
    */
   async projectTaskTypeDistribution(projectSlug: string, userId: string) {
-    const { project, isElevated } = await this.getProjectWithAccess(projectSlug, userId);
+    const { project } = await this.getProjectWithAccess(projectSlug, userId);
 
     const taskWhere = {
       projectId: project.id,
-      ...(isElevated
-        ? {}
-        : {
-            OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
-          }),
     };
 
     return this.prisma.task.groupBy({
@@ -230,15 +205,10 @@ export class ProjectChartsService {
    * 3) KPI Metrics
    */
   async projectKPIMetrics(projectSlug: string, userId: string): Promise<ProjectKPIMetrics> {
-    const { project, isElevated } = await this.getProjectWithAccess(projectSlug, userId);
+    const { project } = await this.getProjectWithAccess(projectSlug, userId);
 
     const taskWhere = {
       projectId: project.id,
-      ...(isElevated
-        ? {}
-        : {
-            OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
-          }),
     };
 
     const [totalTasks, completedTasks, activeSprints, totalBugs, resolvedBugs] = await Promise.all([
@@ -274,15 +244,10 @@ export class ProjectChartsService {
    * 4) Task Priority Distribution
    */
   async projectTaskPriorityDistribution(projectSlug: string, userId: string) {
-    const { project, isElevated } = await this.getProjectWithAccess(projectSlug, userId);
+    const { project } = await this.getProjectWithAccess(projectSlug, userId);
 
     const taskWhere = {
       projectId: project.id,
-      ...(isElevated
-        ? {}
-        : {
-            OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
-          }),
     };
 
     return this.prisma.task.groupBy({
@@ -296,7 +261,7 @@ export class ProjectChartsService {
    * 5) Sprint Velocity Trend
    */
   async projectSprintVelocityTrend(projectSlug: string, userId: string): Promise<SprintVelocity[]> {
-    const { project, isElevated } = await this.getProjectWithAccess(projectSlug, userId);
+    const { project } = await this.getProjectWithAccess(projectSlug, userId);
 
     const sprints = await this.prisma.sprint.findMany({
       where: {
@@ -308,14 +273,6 @@ export class ProjectChartsService {
         tasks: {
           where: {
             completedAt: { not: null },
-            ...(isElevated
-              ? {}
-              : {
-                  OR: [
-                    { assignees: { some: { id: userId } } },
-                    { reporters: { some: { id: userId } } },
-                  ],
-                }),
           },
           select: { storyPoints: true },
         },
@@ -336,21 +293,13 @@ export class ProjectChartsService {
    * Sprint Burndown (separate endpoint due to sprintId parameter)
    */
   async projectSprintBurndown(sprintId: string, projectSlug: string, userId: string) {
-    const { isElevated } = await this.accessControl.getProjectAccessBySlug(projectSlug, userId);
+    await this.accessControl.getProjectAccessBySlug(projectSlug, userId);
 
     return this.prisma.task.findMany({
       where: {
         sprintId,
         project: { archive: false },
         sprint: { archive: false },
-        ...(isElevated
-          ? {}
-          : {
-              OR: [
-                { assignees: { some: { id: userId } } },
-                { reporters: { some: { id: userId } } },
-              ],
-            }),
       },
       select: {
         completedAt: true,

@@ -206,14 +206,6 @@ export class WorkspaceChartsService {
       by: ['priority'],
       where: {
         projectId: { in: projectIds },
-        ...(isElevated
-          ? {}
-          : {
-              OR: [
-                { assignees: { some: { id: userId } } },
-                { reporters: { some: { id: userId } } },
-              ],
-            }),
       },
       _count: { priority: true },
     });
@@ -264,11 +256,6 @@ export class WorkspaceChartsService {
               ],
             }),
       },
-      ...(isElevated
-        ? {}
-        : {
-            OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
-          }),
     };
 
     const [totalProjects, activeProjects, completedProjects, totalTasks, overdueTasks] =
@@ -320,11 +307,6 @@ export class WorkspaceChartsService {
               ],
             }),
       },
-      ...(isElevated
-        ? {}
-        : {
-            OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
-          }),
     };
 
     return this.prisma.task.groupBy({
@@ -398,11 +380,6 @@ export class WorkspaceChartsService {
             }),
       },
       completedAt: { not: null },
-      ...(isElevated
-        ? {}
-        : {
-            OR: [{ assignees: { some: { id: userId } } }, { reporters: { some: { id: userId } } }],
-          }),
     };
 
     const tasks = await this.prisma.task.findMany({
