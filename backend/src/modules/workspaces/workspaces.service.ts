@@ -150,18 +150,24 @@ export class WorkspacesService {
         _count: {
           select: {
             members: true,
-            projects: userId ? {
-              where: {
-                archive: false,
-                OR: [
-                  { visibility: 'PUBLIC' },
-                  { visibility: 'INTERNAL' },
-                  { members: { some: { userId } } },
-                  { workspace: { members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } } } },
-                  { workspace: { organization: { ownerId: userId } } }
-                ]
-              }
-            } : true,
+            projects: userId
+              ? {
+                  where: {
+                    archive: false,
+                    OR: [
+                      { visibility: 'PUBLIC' },
+                      { visibility: 'INTERNAL' },
+                      { members: { some: { userId } } },
+                      {
+                        workspace: {
+                          members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } },
+                        },
+                      },
+                      { workspace: { organization: { ownerId: userId } } },
+                    ],
+                  },
+                }
+              : true,
           },
         },
       },
@@ -219,18 +225,24 @@ export class WorkspacesService {
         _count: {
           select: {
             members: true,
-            projects: userId ? {
-              where: {
-                archive: false,
-                OR: [
-                  { visibility: 'PUBLIC' },
-                  { visibility: 'INTERNAL' },
-                  { members: { some: { userId } } },
-                  { workspace: { members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } } } },
-                  { workspace: { organization: { ownerId: userId } } }
-                ]
-              }
-            } : true,
+            projects: userId
+              ? {
+                  where: {
+                    archive: false,
+                    OR: [
+                      { visibility: 'PUBLIC' },
+                      { visibility: 'INTERNAL' },
+                      { members: { some: { userId } } },
+                      {
+                        workspace: {
+                          members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } },
+                        },
+                      },
+                      { workspace: { organization: { ownerId: userId } } },
+                    ],
+                  },
+                }
+              : true,
           },
         },
       },
@@ -280,9 +292,13 @@ export class WorkspacesService {
               { visibility: 'PUBLIC' },
               { visibility: 'INTERNAL' },
               { members: { some: { userId } } },
-              { workspace: { members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } } } },
-              { workspace: { organization: { ownerId: userId } } }
-            ]
+              {
+                workspace: {
+                  members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } },
+                },
+              },
+              { workspace: { organization: { ownerId: userId } } },
+            ],
           },
           select: {
             id: true,
@@ -306,10 +322,14 @@ export class WorkspacesService {
                   { visibility: 'PUBLIC' },
                   { visibility: 'INTERNAL' },
                   { members: { some: { userId } } },
-                  { workspace: { members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } } } },
-                  { workspace: { organization: { ownerId: userId } } }
-                ]
-              }
+                  {
+                    workspace: {
+                      members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } },
+                    },
+                  },
+                  { workspace: { organization: { ownerId: userId } } },
+                ],
+              },
             },
           },
         },
@@ -333,25 +353,31 @@ export class WorkspacesService {
         },
         members: userId
           ? {
-            where: { userId },
-            select: { role: true },
-          }
+              where: { userId },
+              select: { role: true },
+            }
           : false,
         _count: {
           select: {
             members: true,
-            projects: userId ? {
-              where: {
-                archive: false,
-                OR: [
-                  { visibility: 'PUBLIC' },
-                  { visibility: 'INTERNAL' },
-                  { members: { some: { userId } } },
-                  { workspace: { members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } } } },
-                  { workspace: { organization: { ownerId: userId } } }
-                ]
-              }
-            } : true,
+            projects: userId
+              ? {
+                  where: {
+                    archive: false,
+                    OR: [
+                      { visibility: 'PUBLIC' },
+                      { visibility: 'INTERNAL' },
+                      { members: { some: { userId } } },
+                      {
+                        workspace: {
+                          members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } },
+                        },
+                      },
+                      { workspace: { organization: { ownerId: userId } } },
+                    ],
+                  },
+                }
+              : true,
           },
         },
       },
