@@ -17,7 +17,7 @@ function NewTaskPageContent() {
 
   const { getWorkspaceBySlug } = useWorkspace();
   const { getProjectsByWorkspace } = useProject();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, getCurrentUser } = useAuth();
   const { handleSlugNotFound } = useSlugRedirect();
 
   const [workspace, setWorkspace] = useState<any>(null);
@@ -41,7 +41,18 @@ function NewTaskPageContent() {
         if (ws?.id) {
           cacheSlugId("workspace", slugStr, ws.id);
         }
-        const projs = ws?.id ? await getProjectsByWorkspace(ws.id) : [];
+        const allProjs = ws?.id ? await getProjectsByWorkspace(ws.id) : [];
+        const currentUserId = getCurrentUser()?.id;
+        // Only show projects where the user can create tasks (is a project member with MEMBER/MANAGER/OWNER)
+        const projs = currentUserId
+          ? allProjs.filter((p: any) =>
+            (p.members || []).some(
+              (m: any) =>
+                (m.userId || m.user?.id) === currentUserId &&
+                ["MEMBER", "MANAGER", "OWNER"].includes(m.role)
+            )
+          )
+          : allProjs;
         setProjects(projs);
 
         isInitializedRef.current = true;

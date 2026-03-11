@@ -669,7 +669,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
               )
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-16">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-24">
                   {projects.map((project) => {
                     const statusText = formatStatus(project.status);
 
@@ -711,7 +711,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 
                 {/* Fixed Bottom Bar: Pagination + Counter */}
                 {projects.length > 0 && (
-                  <div className="fixed bottom-0 left-[50%] md:left-[55%] -translate-x-1/2 w-full flex flex-col items-center pb-4 pointer-events-none z-10">
+                  <div className="fixed bottom-0 left-[50%] md:left-[55%] -translate-x-1/2 w-full flex flex-col items-center pb-4 pt-3 pointer-events-none z-10 bg-[var(--background)] border-t border-[var(--border)]">
                     {enablePagination && (currentPage > 1 || hasMore) && (
                       <div className="flex items-center gap-3 pointer-events-auto mb-2">
                         <Button

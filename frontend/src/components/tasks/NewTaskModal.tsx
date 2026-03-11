@@ -47,6 +47,7 @@ import { useWorkspace } from "@/contexts/workspace-context";
 import { useProject } from "@/contexts/project-context";
 import { useTask } from "@/contexts/task-context";
 import { useSprint } from "@/contexts/sprint-context";
+import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 import { formatDateForApi, getTodayDate } from "@/utils/handleDateChange";
 import { PRIORITY_OPTIONS, TASK_TYPE_OPTIONS } from "@/utils/data/taskData";
@@ -96,6 +97,7 @@ export function NewTaskModal({
   const { createTask } = useTask();
   const { fetchAnalyticsData } = useProject();
   const { getSprintsByProject, getActiveSprint } = useSprint();
+  const { getCurrentUser } = useAuth();
 
   const [formData, setFormData] = useState<FormData>({
     title: "",
@@ -384,7 +386,17 @@ export function NewTaskModal({
 
     try {
       const projectsData = await getProjectsByWorkspace(workspaceId);
-      setProjects(projectsData || []);
+      const currentUserId = getCurrentUser()?.id;
+      const writableProjects = currentUserId
+        ? (projectsData || []).filter((p: any) =>
+          (p.members || []).some(
+            (m: any) =>
+              (m.userId || m.user?.id) === currentUserId &&
+              ["MEMBER", "MANAGER", "OWNER"].includes(m.role)
+          )
+        )
+        : (projectsData || []);
+      setProjects(writableProjects);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t("modal.errorLoadProjects");
       setError(errorMessage);
