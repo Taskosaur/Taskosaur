@@ -54,8 +54,12 @@ export class SprintsController {
     description: 'Filter by sprint status',
   })
   @ApiResponse({ status: 200, description: 'List of sprints' })
-  findAll(@Query('projectId') projectId?: string, @Query('status') status?: SprintStatus) {
-    return this.sprintsService.findAll(projectId, status);
+  findAll(
+    @Query('projectId') projectId: string,
+    @CurrentUser() user: any,
+    @Query('status') status?: SprintStatus,
+  ) {
+    return this.sprintsService.findAll(user.id as string, projectId, status);
   }
 
   @Get('slug')
@@ -68,8 +72,12 @@ export class SprintsController {
     description: 'Filter by sprint status',
   })
   @ApiResponse({ status: 200, description: 'List of sprints for the project' })
-  findAllByProjectSlug(@Query('slug') slug?: string, @Query('status') status?: SprintStatus) {
-    return this.sprintsService.findAllByProjectSlug(slug, status);
+  findAllByProjectSlug(
+    @Query('slug') slug: string,
+    @CurrentUser() user: any,
+    @Query('status') status?: SprintStatus,
+  ) {
+    return this.sprintsService.findAllByProjectSlug(user.id as string, slug, status);
   }
 
   @Get(':id')
@@ -77,8 +85,8 @@ export class SprintsController {
   @ApiParam({ name: 'id', description: 'Sprint ID (UUID)' })
   @ApiResponse({ status: 200, description: 'Sprint details' })
   @ApiResponse({ status: 404, description: 'Sprint not found' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.sprintsService.findOne(id);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.sprintsService.findOne(id, user.id as string);
   }
 
   @Get('project/:projectId/active')
@@ -86,8 +94,8 @@ export class SprintsController {
   @ApiParam({ name: 'projectId', description: 'Project ID (UUID)' })
   @ApiResponse({ status: 200, description: 'Active sprint details' })
   @ApiResponse({ status: 404, description: 'No active sprint found' })
-  getActiveSprint(@Param('projectId', ParseUUIDPipe) projectId: string) {
-    return this.sprintsService.getActiveSprint(projectId);
+  getActiveSprint(@Param('projectId', ParseUUIDPipe) projectId: string, @CurrentUser() user: any) {
+    return this.sprintsService.getActiveSprint(projectId, user.id as string);
   }
 
   @Patch(':id')
@@ -132,8 +140,8 @@ export class SprintsController {
   @ApiParam({ name: 'id', description: 'Sprint ID (UUID)' })
   @ApiResponse({ status: 204, description: 'Sprint deleted successfully' })
   @ApiResponse({ status: 404, description: 'Sprint not found' })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.sprintsService.remove(id);
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.sprintsService.remove(id, user.id as string);
   }
 
   @Patch('archive/:id')
@@ -142,7 +150,7 @@ export class SprintsController {
   @ApiParam({ name: 'id', description: 'Sprint ID (UUID)' })
   @ApiResponse({ status: 204, description: 'Sprint archived successfully' })
   @ApiResponse({ status: 404, description: 'Sprint not found' })
-  archiveSprint(@Param('id', ParseUUIDPipe) id: string) {
-    return this.sprintsService.archiveSprint(id);
+  archiveSprint(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.sprintsService.archiveSprint(id, user.id as string);
   }
 }

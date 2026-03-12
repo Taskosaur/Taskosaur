@@ -3,15 +3,20 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Sprint, SprintStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateSprintDto } from './dto/create-sprint.dto';
 import { UpdateSprintDto } from './dto/update-sprint.dto';
+import { AccessControlService } from '../../common/access-control.utils';
 
 @Injectable()
 export class SprintsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private accessControl: AccessControlService,
+  ) {}
 
   async create(createSprintDto: CreateSprintDto, userId: string): Promise<Sprint> {
     // Check if project exists
@@ -22,6 +27,12 @@ export class SprintsService {
 
     if (!project) {
       throw new NotFoundException('Project not found');
+    }
+
+    // Authorization check
+    const { isElevated } = await this.accessControl.getProjectAccess(project.id, userId);
+    if (!isElevated) {
+      throw new ForbiddenException('Only managers and owners can create sprints');
     }
 
     // Check if there's already an active sprint in this project
@@ -92,7 +103,26 @@ export class SprintsService {
     });
   }
 
-  findAll(projectId?: string, status?: SprintStatus): Promise<Sprint[]> {
+  async findAll(
+    requestUserId: string,
+    projectId: string,
+    status?: SprintStatus,
+  ): Promise<Sprint[]> {
+    if (!projectId) {
+      // Check if user is SUPER_ADMIN
+      const user = await this.prisma.user.findUnique({
+        where: { id: requestUserId },
+        select: { role: true },
+      });
+
+      if (user?.role !== 'SUPER_ADMIN') {
+        throw new BadRequestException('projectId is required for non-super-admins');
+      }
+    } else {
+      // Authorization check
+      await this.accessControl.getProjectAccess(projectId, requestUserId);
+    }
+
     const whereClause: any = {
       archive: false,
     };
@@ -129,7 +159,26 @@ export class SprintsService {
       ],
     });
   }
-  findAllByProjectSlug(slug?: string, status?: SprintStatus): Promise<Sprint[]> {
+  async findAllByProjectSlug(
+    requestUserId: string,
+    slug: string,
+    status?: SprintStatus,
+  ): Promise<Sprint[]> {
+    if (!slug) {
+      // Check if user is SUPER_ADMIN
+      const user = await this.prisma.user.findUnique({
+        where: { id: requestUserId },
+        select: { role: true },
+      });
+
+      if (user?.role !== 'SUPER_ADMIN') {
+        throw new BadRequestException('project slug is required for non-super-admins');
+      }
+    } else {
+      // Authorization check
+      await this.accessControl.getProjectAccessBySlug(slug, requestUserId);
+    }
+
     const whereClause: any = {
       archive: false,
     };
@@ -174,7 +223,7 @@ export class SprintsService {
     });
   }
 
-  async findOne(id: string): Promise<Sprint> {
+  async findOne(id: string, requestUserId: string): Promise<Sprint> {
     const sprint = await this.prisma.sprint.findUnique({
       where: { id },
       include: {
@@ -248,10 +297,16 @@ export class SprintsService {
       throw new NotFoundException('Sprint not found');
     }
 
+    // Authorization check
+    await this.accessControl.getProjectAccess(sprint.projectId, requestUserId);
+
     return sprint;
   }
 
-  getActiveSprint(projectId: string) {
+  async getActiveSprint(projectId: string, requestUserId: string) {
+    // Authorization check
+    await this.accessControl.getProjectAccess(projectId, requestUserId);
+
     return this.prisma.sprint.findFirst({
       where: {
         projectId,
@@ -298,17 +353,26 @@ export class SprintsService {
   }
 
   async update(id: string, updateSprintDto: UpdateSprintDto, userId: string): Promise<Sprint> {
+    const currentSprint = await this.prisma.sprint.findUnique({
+      where: { id },
+      select: { projectId: true, status: true },
+    });
+
+    if (!currentSprint) {
+      throw new NotFoundException('Sprint not found');
+    }
+
+    // Authorization check
+    const { isElevated } = await this.accessControl.getProjectAccess(
+      currentSprint.projectId,
+      userId,
+    );
+    if (!isElevated) {
+      throw new ForbiddenException('Only managers and owners can update sprints');
+    }
+
     // If updating to active status, check for conflicts
     if (updateSprintDto.status === SprintStatus.ACTIVE) {
-      const currentSprint = await this.prisma.sprint.findUnique({
-        where: { id },
-        select: { projectId: true, status: true },
-      });
-
-      if (!currentSprint) {
-        throw new NotFoundException('Sprint not found');
-      }
-
       // Only check for active sprint conflict if the current sprint is not already active
       if (currentSprint.status !== SprintStatus.ACTIVE) {
         const activeSprint = await this.prisma.sprint.findFirst({
@@ -436,14 +500,23 @@ export class SprintsService {
     return this.update(id, { status: SprintStatus.COMPLETED }, userId);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, requestUserId: string): Promise<void> {
     const sprint = await this.prisma.sprint.findUnique({
       where: { id },
-      select: { status: true },
+      select: { status: true, projectId: true },
     });
 
     if (!sprint) {
       throw new NotFoundException('Sprint not found');
+    }
+
+    // Authorization check
+    const { isElevated } = await this.accessControl.getProjectAccess(
+      sprint.projectId,
+      requestUserId,
+    );
+    if (!isElevated) {
+      throw new ForbiddenException('Only managers and owners can delete sprints');
     }
 
     if (sprint.status === SprintStatus.ACTIVE) {
@@ -461,7 +534,25 @@ export class SprintsService {
       throw error;
     }
   }
-  async archiveSprint(id: string): Promise<void> {
+  async archiveSprint(id: string, requestUserId: string): Promise<void> {
+    const sprint = await this.prisma.sprint.findUnique({
+      where: { id },
+      select: { projectId: true },
+    });
+
+    if (!sprint) {
+      throw new NotFoundException('Sprint not found');
+    }
+
+    // Authorization check
+    const { isElevated } = await this.accessControl.getProjectAccess(
+      sprint.projectId,
+      requestUserId,
+    );
+    if (!isElevated) {
+      throw new ForbiddenException('Only managers and owners can archive sprints');
+    }
+
     try {
       await this.prisma.sprint.update({
         where: { id },
