@@ -13,6 +13,7 @@ import {
 } from './dto/create-organization-member.dto';
 import { UpdateOrganizationMemberDto } from './dto/update-organization-member.dto';
 import { WorkspaceMembersService } from '../workspace-members/workspace-members.service';
+import { hasRequiredRole } from '../../constants/roles';
 
 @Injectable()
 export class OrganizationMembersService {
@@ -70,12 +71,17 @@ export class OrganizationMembersService {
         }
 
         const isOwner = organization.ownerId === requestUserId;
-        const isAdmin =
-          requesterMember.role === OrganizationRole.OWNER ||
-          requesterMember.role === OrganizationRole.MANAGER;
+        const isAdmin = hasRequiredRole(requesterMember.role, OrganizationRole.MANAGER);
 
         if (!isOwner && !isAdmin) {
           throw new ForbiddenException('Only organization owners and admins can add members');
+        }
+
+        // Role escalation check: only owners/org owners can assign OWNER role
+        if (role === OrganizationRole.OWNER) {
+          if (!isOwner && requesterMember.role !== OrganizationRole.OWNER) {
+            throw new ForbiddenException('Only organization owners can assign the OWNER role');
+          }
         }
       }
     }
@@ -154,7 +160,7 @@ export class OrganizationMembersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User with this email not found');
+      throw new NotFoundException('User not found');
     }
 
     return this.create(
@@ -575,14 +581,18 @@ export class OrganizationMembersService {
         throw new ForbiddenException('You are not a member of this organization');
       }
 
-      // Only organization owner or admins can update member roles
       const isOwner = member.organization.ownerId === requestUserId;
-      const isAdmin =
-        requesterMember.role === OrganizationRole.OWNER ||
-        requesterMember.role === OrganizationRole.MANAGER;
+      const isAdmin = hasRequiredRole(requesterMember.role, OrganizationRole.MANAGER);
 
       if (!isOwner && !isAdmin) {
         throw new ForbiddenException('Only organization owners and admins can update member roles');
+      }
+
+      // Role escalation check: only owners/org owners can promote to OWNER role
+      if (updateOrganizationMemberDto.role === OrganizationRole.OWNER) {
+        if (!isOwner && requesterMember.role !== OrganizationRole.OWNER) {
+          throw new ForbiddenException('Only organization owners can assign the OWNER role');
+        }
       }
     }
 
@@ -641,6 +651,16 @@ export class OrganizationMembersService {
               },
               requestUserId,
             );
+          } else {
+            // If they are a MANAGER/OWNER of the org, they should be added to the workspace if not already there
+            await this.workspaceMembersService.create(
+              {
+                userId,
+                role,
+                workspaceId: workspace.id,
+              },
+              requestUserId,
+            );
           }
         }),
       );
@@ -694,9 +714,7 @@ export class OrganizationMembersService {
       // Users can remove themselves, or admins/owners can remove others
       const isSelfRemoval = member.userId === requestUserId;
       const isOwner = member.organization.ownerId === requestUserId;
-      const isAdmin =
-        requesterMember.role === OrganizationRole.OWNER ||
-        requesterMember.role === OrganizationRole.MANAGER;
+      const isAdmin = hasRequiredRole(requesterMember.role, OrganizationRole.MANAGER);
 
       if (!isSelfRemoval && !isOwner && !isAdmin) {
         throw new ForbiddenException('You can only remove yourself or you must be an admin/owner');
@@ -952,9 +970,7 @@ export class OrganizationMembersService {
       });
 
       if (!member) {
-        throw new NotFoundException(
-          'Organization member not found for the given user and organization',
-        );
+        throw new NotFoundException('Organization member not found');
       }
     }
 
