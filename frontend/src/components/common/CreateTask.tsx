@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -25,7 +25,7 @@ import { useProject } from "@/contexts/project-context";
 import { useSprint } from "@/contexts/sprint-context";
 import { formatDateForApi, getTodayDate } from "@/utils/handleDateChange";
 import MemberSelect from "./MemberSelect";
-import { Plus } from "lucide-react";
+import { Plus, Eye, X } from "lucide-react";
 import { Button } from "../ui";
 
 interface CreateTaskProps {
@@ -73,6 +73,51 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
   const [recurrenceConfig, setRecurrenceConfig] = useState<RecurrenceConfig | null>(null);
   const [parentTasks, setParentTasks] = useState<any[]>([]);
   const [loadingParentTasks, setLoadingParentTasks] = useState(false);
+
+  // Multi-select & preview state for attachments
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [previewFile, setPreviewFile] = useState<{ url: string; name: string; type: string } | null>(null);
+
+  const toggleSelectIndex = (index: number) => {
+    setSelectedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  const toggleSelectAllAttachments = () => {
+    if (selectedIndices.size === attachments.length) {
+      setSelectedIndices(new Set());
+    } else {
+      setSelectedIndices(new Set(attachments.map((_, i) => i)));
+    }
+  };
+
+  const removeSelectedAttachments = () => {
+    setAttachments((prev) => prev.filter((_, i) => !selectedIndices.has(i)));
+    setSelectedIndices(new Set());
+    setIsSelectMode(false);
+  };
+
+  const exitAttachmentSelectMode = () => {
+    setIsSelectMode(false);
+    setSelectedIndices(new Set());
+  };
+
+  const openFilePreview = useCallback((file: File) => {
+    const url = URL.createObjectURL(file);
+    setPreviewFile({ url, name: file.name, type: file.type });
+  }, []);
+
+  const closeFilePreview = useCallback(() => {
+    if (previewFile) {
+      URL.revokeObjectURL(previewFile.url);
+    }
+    setPreviewFile(null);
+  }, [previewFile]);
 
   const [openParentTask, setOpenParentTask] = useState(false);
   const [parentTaskSearch, setParentTaskSearch] = useState("");
@@ -376,13 +421,73 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
               <CardContent className="space-y-4">
                 {attachments.length > 0 ? (
                   <div className="space-y-2">
+                    {/* Multi-select toolbar */}
+                    {attachments.length > 1 && (
+                      <div className="flex items-center justify-between gap-2">
+                        {isSelectMode ? (
+                          <div className="flex items-center gap-3 w-full">
+                            <label className="flex items-center gap-2 text-sm text-[var(--muted-foreground)] cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={selectedIndices.size === attachments.length && attachments.length > 0}
+                                onChange={toggleSelectAllAttachments}
+                                className="w-4 h-4 rounded border-[var(--border)] accent-[var(--primary)] cursor-pointer"
+                              />
+                              Select All ({selectedIndices.size}/{attachments.length})
+                            </label>
+                            <div className="flex items-center gap-2 ml-auto">
+                              {selectedIndices.size > 0 && (
+                                <ActionButton
+                                  onClick={removeSelectedAttachments}
+                                  className="h-8 px-3 text-xs cursor-pointer border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)]"
+                                >
+                                  <div className="flex items-center gap-1.5">
+                                    <HiTrash className="w-3.5 h-3.5" />
+                                    Remove {selectedIndices.size} selected
+                                  </div>
+                                </ActionButton>
+                              )}
+                              <ActionButton
+                                onClick={exitAttachmentSelectMode}
+                                secondary
+                                className="h-8 px-3 text-xs cursor-pointer"
+                              >
+                                Cancel
+                              </ActionButton>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center ml-auto">
+                            <ActionButton
+                              onClick={() => setIsSelectMode(true)}
+                              secondary
+                              className="h-8 px-3 text-xs cursor-pointer"
+                            >
+                              Select
+                            </ActionButton>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {attachments.map((file, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-3 bg-[var(--background)] border border-[var(--border)] rounded-md"
+                          className={`flex items-center justify-between p-3 bg-[var(--background)] border rounded-md transition-colors ${isSelectMode && selectedIndices.has(index)
+                              ? "border-[var(--primary)] bg-[var(--primary)]/5"
+                              : "border-[var(--border)]"
+                            }`}
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {isSelectMode && (
+                              <input
+                                type="checkbox"
+                                checked={selectedIndices.has(index)}
+                                onChange={() => toggleSelectIndex(index)}
+                                className="w-4 h-4 rounded border-[var(--border)] accent-[var(--primary)] cursor-pointer flex-shrink-0"
+                              />
+                            )}
                             <HiPaperClip
                               size={16}
                               className="text-[var(--muted-foreground)] flex-shrink-0"
@@ -396,13 +501,28 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                               </p>
                             </div>
                           </div>
-                          <Button
-                            onClick={() => removeAttachment(index)}
-                            className="flex-shrink-0 ml-2 p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
-                            aria-label="Remove file"
-                          >
-                            <HiTrash className="w-4 h-4 text-[var(--destructive)]" />
-                          </Button>
+                          {!isSelectMode && (
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {(file.type.startsWith("image/") || file.type === "application/pdf" || file.type.startsWith("video/")) && (
+                                <button
+                                  type="button"
+                                  onClick={() => openFilePreview(file)}
+                                  className="p-1.5 hover:bg-[var(--accent)] rounded transition-colors cursor-pointer"
+                                  title="Preview"
+                                >
+                                  <Eye className="w-4 h-4 text-[var(--muted-foreground)]" />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => removeAttachment(index)}
+                                className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors cursor-pointer"
+                                title="Remove"
+                              >
+                                <HiTrash className="w-4 h-4 text-[var(--destructive)]" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -412,6 +532,40 @@ export default function CreateTask({ projectSlug, workspace, projects }: CreateT
                 )}
               </CardContent>
             </Card>
+
+            {/* File Preview Modal */}
+            {previewFile && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={closeFilePreview}>
+                <div
+                  className="relative bg-[var(--card)] rounded-lg shadow-xl max-w-4xl max-h-[90vh] w-full mx-4 overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
+                    <p className="text-sm font-medium text-[var(--foreground)] truncate">{previewFile.name}</p>
+                    <button
+                      type="button"
+                      onClick={closeFilePreview}
+                      className="p-1.5 hover:bg-[var(--accent)] rounded transition-colors cursor-pointer"
+                    >
+                      <X className="w-5 h-5 text-[var(--muted-foreground)]" />
+                    </button>
+                  </div>
+                  <div className="p-4 flex items-center justify-center overflow-auto max-h-[calc(90vh-64px)]">
+                    {previewFile.type.startsWith("image/") && (
+                      <img src={previewFile.url} alt={previewFile.name} className="max-w-full max-h-[75vh] object-contain rounded" />
+                    )}
+                    {previewFile.type === "application/pdf" && (
+                      <iframe src={previewFile.url} className="w-full h-[75vh] rounded" title={previewFile.name} />
+                    )}
+                    {previewFile.type.startsWith("video/") && (
+                      <video src={previewFile.url} controls className="max-w-full max-h-[75vh] rounded">
+                        Your browser does not support video playback.
+                      </video>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <Card className="border-none bg-[var(--card)] gap-0 rounded-md">
               <CardHeader className="pb-0">

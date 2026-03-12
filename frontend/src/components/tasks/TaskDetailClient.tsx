@@ -772,6 +772,37 @@ export default function TaskDetailClient({
     });
   };
 
+  const handleDeleteMultipleAttachments = (attachmentIds: string[]): Promise<void> => {
+    return new Promise((resolve) => {
+      if (!currentUser?.id) {
+        toast.error(t("detail.loginToDelete"));
+        resolve();
+        return;
+      }
+
+      setConfirmModal({
+        isOpen: true,
+        title: `Delete ${attachmentIds.length} Attachments`,
+        message: `Are you sure you want to delete ${attachmentIds.length} selected attachments? This action cannot be undone.`,
+        type: "danger",
+        onConfirm: async () => {
+          try {
+            await Promise.all(
+              attachmentIds.map((id) => deleteAttachment(id, currentUser.id))
+            );
+            const updatedAttachments = await getTaskAttachments(taskId, isAuth);
+            setAttachments(updatedAttachments || []);
+            toast.success(`Successfully deleted ${attachmentIds.length} attachments`);
+          } catch (error) {
+            toast.error(t("detail.deleteAttachmentError"));
+          }
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          resolve();
+        },
+      });
+    });
+  };
+
   const handleEditTask = () => {
     setIsEditingTask({
       title: true,
@@ -1133,6 +1164,7 @@ export default function TaskDetailClient({
               onFileUpload={handleFileUpload}
               onDownloadAttachment={handleDownloadAttachment}
               onDeleteAttachment={handleDeleteAttachment}
+              onDeleteMultipleAttachments={handleDeleteMultipleAttachments}
               hasAccess={hasAccess}
               setLoading={setLoadingAttachments}
             />

@@ -596,7 +596,7 @@ export default function DualModeEditor({
 
       {/* Editor Content */}
       {mode === "markdown" ? (
-        <div data-color-mode={colorMode}>
+        <div data-color-mode={colorMode} className="task-md-editor">
           <MDEditor
             value={markdownValue}
             onChange={handleMarkdownChange}
