@@ -23,10 +23,9 @@ export default function ProjectSelector({
   currentProjectSlug,
 }: ProjectSelectorProps) {
   const router = useRouter();
-  const { getProjectsByWorkspace } = useProject();
+  const { getProjectsByWorkspace, projects } = useProject();
   const { getWorkspaceBySlug } = useWorkspace();
 
-  const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false); // loading starts true
@@ -48,8 +47,7 @@ export default function ProjectSelector({
     const fetchProjects = async () => {
       setIsLoading(true);
       try {
-        const data = await getProjectsByWorkspace(currentWorkspace.id);
-        setProjects(data ?? []);
+        await getProjectsByWorkspace(currentWorkspace.id);
       } catch (error) {
         console.error("Failed to fetch projects:", error);
       } finally {
@@ -136,9 +134,8 @@ export default function ProjectSelector({
           <DropdownMenuItem
             key={project.id}
             onClick={() => handleProjectSelect(project)}
-            className={`layout-project-selector-item ${
-              currentProject?.id === project.id ? "layout-project-selector-item-selected" : ""
-            }`}
+            className={`layout-project-selector-item ${currentProject?.id === project.id ? "layout-project-selector-item-selected" : ""
+              }`}
           >
             <Avatar className="layout-project-selector-item-avatar">
               <AvatarFallback
