@@ -340,8 +340,11 @@ export class AccessControlService {
       select: {
         createdBy: true,
         projectId: true,
+        assignees: { select: { id: true } },
+        reporters: { select: { id: true } },
         project: {
           select: {
+            visibility: true,
             workspaceId: true,
             workspace: {
               select: {
@@ -356,7 +359,7 @@ export class AccessControlService {
 
     if (!task) throw new NotFoundException('Task not found');
 
-    const { projectId, project } = task;
+    const { projectId, project, assignees, reporters } = task;
     const { workspaceId, workspace } = project;
     const { organizationId, organization } = workspace;
 
@@ -415,18 +418,38 @@ export class AccessControlService {
       select: { role: true },
     });
 
-    if (!projectMember && !wsMember && !orgMember) {
+    // Check if user is assignee or reporter
+    const isAssignee = assignees.some((a) => a.id === userId);
+    const isReporter = reporters.some((a) => a.id === userId);
+
+    if (!projectMember && !wsMember && !orgMember && !isAssignee && !isReporter) {
+      // If project is PUBLIC, we still allow read-only access (VIEWER)
+      if (project.visibility === 'PUBLIC') {
+        return {
+          isElevated: false,
+          role: Role.VIEWER,
+          canChange: false,
+          userId,
+          scopeId: taskId,
+          scopeType: 'TASK',
+          isSuperAdmin: false,
+        };
+      }
       throw new ForbiddenException("Not a member of this task's project");
     }
 
     const effectiveRole = projectMember?.role || wsMember?.role || orgMember?.role || Role.VIEWER;
-    const isElevated =
-      effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER || task.createdBy === userId;
+
+    // Allow changes if user is MANAGER/OWNER, or creator, or assignee, or reporter
     const canChange =
-      effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER || task.createdBy === userId;
+      effectiveRole === Role.MANAGER ||
+      effectiveRole === Role.OWNER ||
+      task.createdBy === userId ||
+      isAssignee ||
+      isReporter;
 
     return {
-      isElevated,
+      isElevated: effectiveRole === Role.MANAGER || effectiveRole === Role.OWNER,
       role: effectiveRole,
       canChange,
       userId,

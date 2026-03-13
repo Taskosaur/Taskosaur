@@ -83,31 +83,13 @@ export class TasksService {
     }
 
     // Check if user can create tasks in this project
-    const { organizationId, organization } = project.workspace;
+    const projectAccess = await this.accessControl.getProjectAccess(
+      createTaskDto.projectId,
+      userId,
+    );
 
-    if (organization.ownerId !== userId) {
-      const orgMember = await this.prisma.organizationMember.findUnique({
-        where: { userId_organizationId: { userId, organizationId } },
-        select: { role: true },
-      });
-
-      const wsMember = await this.prisma.workspaceMember.findUnique({
-        where: {
-          userId_workspaceId: { userId, workspaceId: project.workspaceId },
-        },
-        select: { role: true },
-      });
-
-      const projectMember = await this.prisma.projectMember.findUnique({
-        where: { userId_projectId: { userId, projectId: project.id } },
-        select: { role: true },
-      });
-
-      const canCreate = orgMember || wsMember || projectMember;
-
-      if (!canCreate) {
-        throw new ForbiddenException('Insufficient permissions to create task in this project');
-      }
+    if (!projectAccess.canChange) {
+      throw new ForbiddenException('Insufficient permissions to create task in this project');
     }
 
     // Validate that startDate is before dueDate
@@ -286,31 +268,13 @@ export class TasksService {
     }
 
     // Permission checks
-    const { organizationId, organization } = project.workspace;
+    const projectAccess = await this.accessControl.getProjectAccess(
+      createTaskDto.projectId,
+      userId,
+    );
 
-    if (organization.ownerId !== userId) {
-      const orgMember = await this.prisma.organizationMember.findUnique({
-        where: { userId_organizationId: { userId, organizationId } },
-        select: { role: true },
-      });
-
-      const wsMember = await this.prisma.workspaceMember.findUnique({
-        where: {
-          userId_workspaceId: { userId, workspaceId: project.workspaceId },
-        },
-        select: { role: true },
-      });
-
-      const projectMember = await this.prisma.projectMember.findUnique({
-        where: { userId_projectId: { userId, projectId: project.id } },
-        select: { role: true },
-      });
-
-      const canCreate = orgMember || wsMember || projectMember;
-
-      if (!canCreate) {
-        throw new ForbiddenException('Insufficient permissions to create task in this project');
-      }
+    if (!projectAccess.canChange) {
+      throw new ForbiddenException('Insufficient permissions to create task in this project');
     }
 
     // Validate that startDate is before dueDate
@@ -1186,9 +1150,13 @@ export class TasksService {
   }
 
   async update(id: string, updateTaskDto: UpdateTaskDto, userId: string): Promise<Task> {
-    const { isElevated } = await this.accessControl.getTaskAccess(id, userId);
+    const { canChange } = await this.accessControl.getTaskAccess(id, userId);
 
-    // Check if user can update this task
+    if (!canChange) {
+      throw new ForbiddenException('Insufficient permissions to update this task');
+    }
+
+    // Check if task exists (we already know it exists because getTaskAccess succeeded, but we need it for business logic)
     const task = await this.prisma.task.findUnique({
       where: { id },
       include: {
@@ -1199,14 +1167,6 @@ export class TasksService {
 
     if (!task) {
       throw new NotFoundException('Task not found');
-    }
-    const isAssignee = task.assignees.some((assignee) => assignee.id === userId);
-    const isReporter = task.reporters.some((reporter) => reporter.id === userId);
-    // Allow update if user is elevated OR is the assignee/reporter/creator
-    const canUpdate = isElevated || isAssignee || isReporter || task.createdBy === userId;
-
-    if (!canUpdate) {
-      throw new ForbiddenException('Insufficient permissions to update this task');
     }
     const effectiveStartDate = updateTaskDto.startDate ?? task.startDate?.toISOString();
     const effectiveDueDate = updateTaskDto.dueDate ?? task.dueDate?.toISOString();
