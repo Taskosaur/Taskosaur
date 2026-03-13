@@ -603,10 +603,6 @@ function ProjectMembersContent() {
     });
   };
 
-  if (loading) {
-    return <WorkspaceMembersSkeleton />;
-  }
-
   if (error && !members.length) {
     return <ErrorState error={error} onRetry={retryFetch} />;
   }
@@ -636,8 +632,10 @@ function ProjectMembersContent() {
           )
         }
       />
-
       {/* Main Content - Single Column Layout like MembersManager */}
+{loading ? (
+  <WorkspaceMembersSkeleton />
+    ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Members List - Takes most space */}
         <div className="lg:col-span-2">
@@ -659,7 +657,6 @@ function ProjectMembersContent() {
                     className="pl-10 h-9 w-full sm:w-64 border-input bg-background text-[var(--foreground)]"
                     placeholder="Search members..."
                   />
-
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm("")}
@@ -671,7 +668,6 @@ function ProjectMembersContent() {
                 </div>
               </div>
             </CardHeader>
-
             <CardContent className="p-0">
               {/* Table Header - Desktop Only */}
               <div className="hidden lg:block px-4 py-3 bg-[var(--muted)]/30 border-b border-[var(--border)]">
@@ -1013,7 +1009,6 @@ function ProjectMembersContent() {
               </div>
             </CardContent>
           </Card>
-
           {/* Pending Invitations */}
           {hasAccess && (
             <PendingInvitations
@@ -1025,6 +1020,7 @@ function ProjectMembersContent() {
           )}
         </div>
       </div>
+    )}
 
       <ProjectInviteMemberModal
         isOpen={showInviteModal}

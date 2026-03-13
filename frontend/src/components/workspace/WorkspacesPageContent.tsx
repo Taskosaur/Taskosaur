@@ -137,10 +137,6 @@ export default function WorkspacesPageContent({ organizationId }: WorkspacesPage
     setSearchQuery("");
   }, []);
 
-  if (isLoading) {
-    return <CardsSkeleton />;
-  }
-
   if (error) {
     return <ErrorState error={error} onRetry={retryFetch} />;
   }
@@ -195,7 +191,10 @@ export default function WorkspacesPageContent({ organizationId }: WorkspacesPage
             </div>
           }
         />
-        {workspaces.length === 0 ? (
+
+        {isLoading ? (
+          <CardsSkeleton />
+        ) : workspaces.length === 0 ? (
           searchQuery ? (
             <EmptyState
               icon={<HiSearch size={24} />}
