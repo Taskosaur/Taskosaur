@@ -13,7 +13,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { TasksByStatus, TasksByStatusParams } from './dto/task-by-status.dto';
 import { AccessControlService } from 'src/common/access-control.utils';
 import { StorageService } from '../storage/storage.service';
-import { sanitizeHtml } from 'src/common/utils/sanitizer.util';
+import { sanitizeHtml, sanitizeText, sanitizeObject } from 'src/common/utils/sanitizer.util';
 import { RecurrenceService } from './recurrence.service';
 import { RecurrenceConfigDto } from './dto/recurrence-config.dto';
 
@@ -133,7 +133,7 @@ export class TasksService {
 
       // Build task create data - filter out undefined values
       const taskCreateData: any = {
-        description: sanitizeHtml(description as string),
+        description: description ? sanitizeHtml(description) : undefined,
         createdBy: userId,
         taskNumber,
         slug: taskSlug,
@@ -142,7 +142,7 @@ export class TasksService {
       };
 
       // Add optional fields only if they have values
-      if (taskData.title) taskCreateData.title = taskData.title;
+      if (taskData.title) taskCreateData.title = sanitizeText(taskData.title);
       if (taskData.type) taskCreateData.type = taskData.type;
       if (taskData.priority) taskCreateData.priority = taskData.priority;
       if (taskData.projectId) taskCreateData.projectId = taskData.projectId;
@@ -154,7 +154,8 @@ export class TasksService {
         taskCreateData.originalEstimate = taskData.originalEstimate;
       if (taskData.remainingEstimate !== undefined)
         taskCreateData.remainingEstimate = taskData.remainingEstimate;
-      if (taskData.customFields) taskCreateData.customFields = taskData.customFields;
+      if (taskData.customFields)
+        taskCreateData.customFields = sanitizeObject(taskData.customFields);
       if (taskData.parentTaskId) taskCreateData.parentTaskId = taskData.parentTaskId;
       if (taskData.completedAt !== undefined) taskCreateData.completedAt = taskData.completedAt;
       if (taskData.allowEmailReplies !== undefined)
@@ -335,7 +336,7 @@ export class TasksService {
 
       // Build task create data - filter out undefined values
       const taskCreateData: any = {
-        description: sanitizeHtml(description as string),
+        description: description ? sanitizeHtml(description) : undefined,
         createdBy: userId,
         taskNumber,
         slug: taskSlug,
@@ -344,7 +345,7 @@ export class TasksService {
       };
 
       // Add optional fields only if they have values
-      if (taskData.title) taskCreateData.title = taskData.title;
+      if (taskData.title) taskCreateData.title = sanitizeText(taskData.title);
       if (taskData.type) taskCreateData.type = taskData.type;
       if (taskData.priority) taskCreateData.priority = taskData.priority;
       if (taskData.projectId) taskCreateData.projectId = taskData.projectId;
@@ -356,7 +357,8 @@ export class TasksService {
         taskCreateData.originalEstimate = taskData.originalEstimate;
       if (taskData.remainingEstimate !== undefined)
         taskCreateData.remainingEstimate = taskData.remainingEstimate;
-      if (taskData.customFields) taskCreateData.customFields = taskData.customFields;
+      if (taskData.customFields)
+        taskCreateData.customFields = sanitizeObject(taskData.customFields);
       if (taskData.parentTaskId) taskCreateData.parentTaskId = taskData.parentTaskId;
       if (taskData.completedAt !== undefined) taskCreateData.completedAt = taskData.completedAt;
       if (taskData.allowEmailReplies !== undefined)
@@ -1233,12 +1235,23 @@ export class TasksService {
       } else if (taskStatus) {
         updateTaskDto.completedAt = null;
       }
-      const { assigneeIds, reporterIds, description, ...taskData } = updateTaskDto;
+      const { assigneeIds, reporterIds, description, title, customFields, ...taskData } =
+        updateTaskDto;
       const updateData: any = { ...taskData };
 
       // Sanitize description if provided
       if (description !== undefined) {
         updateData.description = sanitizeHtml(description);
+      }
+
+      // Sanitize title if provided
+      if (title !== undefined) {
+        updateData.title = sanitizeText(title);
+      }
+
+      // Sanitize customFields if provided
+      if (customFields !== undefined) {
+        updateData.customFields = sanitizeObject(customFields);
       }
 
       // Handle assignees update
@@ -1337,7 +1350,7 @@ export class TasksService {
 
     const newComment = await this.prisma.taskComment.create({
       data: {
-        content: comment,
+        content: sanitizeHtml(comment),
         taskId: taskId,
         authorId: userId,
       },

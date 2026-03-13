@@ -56,3 +56,48 @@ export const sanitizeHtml = (html: string): string => {
     allowedSchemes: ['http', 'https', 'mailto'],
   });
 };
+
+/**
+ * Sanitizes plain text by stripping all HTML tags and attributes.
+ * Use this for fields like titles, names, etc.
+ */
+export const sanitizeText = (text: string): string => {
+  if (!text) return text;
+  return sanitize(text, {
+    allowedTags: [],
+    allowedAttributes: {},
+  });
+};
+
+/**
+ * Recursively sanitizes all string values in an object or array.
+ * Use this for fields like customFields.
+ */
+export function sanitizeObject<T>(obj: T): T {
+  // Use a private recursive function to avoid repeated casting of T
+  const sanitize = (val: unknown): unknown => {
+    if (typeof val === 'string') {
+      return sanitizeText(val);
+    }
+
+    if (Array.isArray(val)) {
+      return val.map((item: unknown) => sanitize(item));
+    }
+
+    if (val !== null && typeof val === 'object') {
+      const result: Record<string, unknown> = {};
+      const valAsRecord = val as Record<string, unknown>;
+
+      for (const key in valAsRecord) {
+        if (Object.prototype.hasOwnProperty.call(valAsRecord, key)) {
+          result[key] = sanitize(valAsRecord[key]);
+        }
+      }
+      return result;
+    }
+
+    return val;
+  };
+
+  return sanitize(obj) as T;
+}
