@@ -57,8 +57,16 @@ describe('OrganizationMembersController (e2e)', () => {
     });
 
     // Generate tokens
-    ownerAccessToken = jwtService.sign({ sub: ownerUser.id, email: ownerUser.email, role: ownerUser.role });
-    memberAccessToken = jwtService.sign({ sub: memberUser.id, email: memberUser.email, role: memberUser.role });
+    ownerAccessToken = jwtService.sign({
+      sub: ownerUser.id,
+      email: ownerUser.email,
+      role: ownerUser.role,
+    });
+    memberAccessToken = jwtService.sign({
+      sub: memberUser.id,
+      email: memberUser.email,
+      role: memberUser.role,
+    });
 
     // Create Organization
     const org = await prismaService.organization.create({
@@ -86,8 +94,9 @@ describe('OrganizationMembersController (e2e)', () => {
       // Cleanup
       await prismaService.organizationMember.deleteMany({ where: { organizationId } });
       await prismaService.organization.delete({ where: { id: organizationId } });
-      await prismaService.user.delete({ where: { id: ownerUser.id } });
-      await prismaService.user.delete({ where: { id: memberUser.id } });
+      await prismaService.user.deleteMany({
+        where: { id: { in: [ownerUser.id, memberUser.id] } },
+      });
     }
     await app.close();
   });
@@ -200,14 +209,154 @@ describe('OrganizationMembersController (e2e)', () => {
     });
 
     it('should verify member is removed', () => {
-       return request(app.getHttpServer())
+      return request(app.getHttpServer())
         .get(`/api/organization-members?organizationId=${organizationId}`)
         .set('Authorization', `Bearer ${ownerAccessToken}`)
         .expect(HttpStatus.OK)
         .expect((res) => {
-           const member = res.body.find((m: any) => m.id === memberId);
-           expect(member).toBeUndefined();
+          const member = res.body.find((m: any) => m.id === memberId);
+          expect(member).toBeUndefined();
         });
+    });
+  });
+
+  describe('Organization Members - Security and Logic', () => {
+    let managerUser: any;
+    let managerAccessToken: string;
+
+    beforeAll(async () => {
+      // Create a manager user
+      managerUser = await prismaService.user.create({
+        data: {
+          email: `org-manager-${Date.now()}@example.com`,
+          password: 'StrongPassword123!',
+          firstName: 'Org',
+          lastName: 'Manager',
+          username: `org_manager_${Date.now()}`,
+          role: Role.MEMBER,
+        },
+      });
+
+      await prismaService.organizationMember.create({
+        data: {
+          userId: managerUser.id,
+          organizationId,
+          role: OrganizationRole.MANAGER,
+        },
+      });
+
+      managerAccessToken = jwtService.sign({
+        sub: managerUser.id,
+        email: managerUser.email,
+        role: managerUser.role,
+      });
+    });
+
+    afterAll(async () => {
+      await prismaService.user.delete({ where: { id: managerUser.id } });
+    });
+
+    it('should fail if a manager tries to add an OWNER', async () => {
+      const newUser = await prismaService.user.create({
+        data: {
+          email: `org-new-${Date.now()}@example.com`,
+          password: 'StrongPassword123!',
+          firstName: 'New',
+          lastName: 'User',
+          username: `new_user_${Date.now()}`,
+          role: Role.MEMBER,
+        },
+      });
+
+      const createDto: CreateOrganizationMemberDto = {
+        userId: newUser.id,
+        organizationId,
+        role: OrganizationRole.OWNER,
+      };
+
+      try {
+        await request(app.getHttpServer())
+          .post('/api/organization-members')
+          .set('Authorization', `Bearer ${managerAccessToken}`)
+          .send(createDto)
+          .expect(HttpStatus.FORBIDDEN);
+      } finally {
+        await prismaService.user.delete({ where: { id: newUser.id } });
+      }
+    });
+
+    it('should fail if a manager tries to promote someone to OWNER', async () => {
+      // Add a regular member first
+      const memberDto: CreateOrganizationMemberDto = {
+        userId: memberUser.id,
+        organizationId,
+        role: OrganizationRole.MEMBER,
+      };
+      const res = await request(app.getHttpServer())
+        .post('/api/organization-members')
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
+        .send(memberDto);
+
+      const newMemberId = res.body.id;
+
+      return request(app.getHttpServer())
+        .patch(`/api/organization-members/${newMemberId}`)
+        .set('Authorization', `Bearer ${managerAccessToken}`)
+        .send({ role: OrganizationRole.OWNER })
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('should return generic "User not found" for unregistered email in invite', () => {
+      return request(app.getHttpServer())
+        .post('/api/organization-members/invite')
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
+        .send({
+          email: 'nonexistent@example.com',
+          organizationId,
+          role: OrganizationRole.MEMBER,
+        })
+        .expect(HttpStatus.NOT_FOUND)
+        .expect((res) => {
+          expect(res.body.message).toBe('User not found');
+        });
+    });
+
+    it('should automatically sync role to workspaces when promoted to MANAGER', async () => {
+      // Create a workspace first
+      const ws = await prismaService.workspace.create({
+        data: {
+          name: 'Sync Test Workspace',
+          slug: `sync-ws-${Date.now()}`,
+          organizationId,
+        },
+      });
+
+      try {
+        // User is currently a MEMBER (added in previous test)
+        // Promote to MANAGER
+        const orgMember = await prismaService.organizationMember.findFirst({
+          where: { userId: memberUser.id, organizationId },
+        });
+
+        if (!orgMember) throw new Error('Org member not found');
+
+        await request(app.getHttpServer())
+          .patch(`/api/organization-members/${orgMember.id}`)
+          .set('Authorization', `Bearer ${ownerAccessToken}`)
+          .send({ role: OrganizationRole.MANAGER })
+          .expect(HttpStatus.OK);
+
+        // Verify they were added to the workspace as MANAGER
+        const wsMember = await prismaService.workspaceMember.findFirst({
+          where: { userId: memberUser.id, workspaceId: ws.id },
+        });
+
+        if (!wsMember) throw new Error('Workspace member not found');
+        expect(wsMember.role).toBe(OrganizationRole.MANAGER);
+      } finally {
+        await prismaService.workspaceMember.deleteMany({ where: { workspaceId: ws.id } });
+        await prismaService.workspace.delete({ where: { id: ws.id } });
+      }
     });
   });
 });
