@@ -548,32 +548,7 @@ export class TasksService {
 
     // If not super admin and not organization elevated user (OWNER/MANAGER), apply visibility filters
     if (!access.isSuperAdmin && !access.isElevated) {
-      whereClause.project.OR = [
-        // 1. PUBLIC projects in this organization are visible to all members
-        { visibility: 'PUBLIC' },
-        // 2. INTERNAL projects are visible to all workspace members
-        {
-          visibility: 'INTERNAL',
-          workspace: {
-            members: { some: { userId } },
-          },
-        },
-        // 3. Any project (PRIVATE/INTERNAL/PUBLIC) where the user is an explicit project member
-        {
-          members: { some: { userId } },
-        },
-        // 4. Any project in a workspace where the user is a workspace MANAGER or OWNER
-        {
-          workspace: {
-            members: {
-              some: {
-                userId,
-                role: { in: ['MANAGER', 'OWNER'] },
-              },
-            },
-          },
-        },
-      ];
+      whereClause.project.OR = this.accessControl.getProjectVisibilityFilter(userId);
     }
 
     // Add conditions using AND array to avoid conflicts
@@ -781,7 +756,7 @@ export class TasksService {
       throw new ForbiddenException('User context required');
     }
 
-    const { isElevated } = await this.accessControl.getOrgAccess(organizationId, userId);
+    const access = await this.accessControl.getOrgAccess(organizationId, userId);
 
     // Verify organization exists
     const organization = await this.prisma.organization.findUnique({
@@ -799,6 +774,11 @@ export class TasksService {
         workspace: { organizationId },
       },
     };
+
+    // If not super admin and not organization elevated user (OWNER/MANAGER), apply visibility filters
+    if (!access.isSuperAdmin && !access.isElevated) {
+      whereClause.project.OR = this.accessControl.getProjectVisibilityFilter(userId);
+    }
 
     const andConditions: any[] = [];
 
@@ -847,16 +827,7 @@ export class TasksService {
       });
     }
 
-    if (!isElevated) {
-      andConditions.push({
-        OR: [
-          { assignees: { some: { id: userId } } },
-          { reporters: { some: { id: userId } } },
-          { createdBy: userId },
-        ],
-      });
-    }
-
+    // Add all conditions to the where clause
     if (andConditions.length > 0) {
       whereClause.AND = andConditions;
     }
@@ -1363,7 +1334,7 @@ export class TasksService {
       throw new ForbiddenException('User context required');
     }
 
-    const { isElevated } = await this.accessControl.getOrgAccess(orgId, userId);
+    const access = await this.accessControl.getOrgAccess(orgId, userId);
 
     const workspaces = await this.prisma.workspace.findMany({
       where: { organizationId: orgId },
@@ -1412,23 +1383,31 @@ export class TasksService {
       whereClause.priority = priority;
     }
 
+    const andConditions: any[] = [];
+
     if (search && search.trim()) {
-      whereClause.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
+      andConditions.push({
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      });
     }
 
-    // If not elevated, filter to user-related tasks only
-    if (!isElevated) {
-      const userFilters = [{ assigneeId: userId }, { reporterId: userId }, { createdBy: userId }];
+    // If not elevated (and not super admin), apply visibility filters
+    if (!access.isSuperAdmin && !access.isElevated) {
+      andConditions.push({
+        OR: [
+          ...this.accessControl.getTaskVisibilityFilter(userId),
+          { assignees: { some: { id: userId } } },
+          { reporters: { some: { id: userId } } },
+          { createdBy: userId },
+        ],
+      });
+    }
 
-      if (search && search.trim()) {
-        whereClause.AND = [{ OR: whereClause.OR }, { OR: userFilters }];
-        delete whereClause.OR;
-      } else {
-        whereClause.OR = userFilters;
-      }
+    if (andConditions.length > 0) {
+      whereClause.AND = andConditions;
     }
 
     const totalCount = await this.prisma.task.count({
@@ -1516,7 +1495,7 @@ export class TasksService {
       throw new ForbiddenException('User context required');
     }
 
-    const { isElevated } = await this.accessControl.getOrgAccess(organizationId, userId);
+    const access = await this.accessControl.getOrgAccess(organizationId, userId);
 
     const today = new Date();
     const startOfDay = new Date(today);
@@ -1591,18 +1570,19 @@ export class TasksService {
       );
     }
 
-    // If not elevated, apply user filtering
-    if (!isElevated && userFilters.length > 0) {
-      whereClause.AND = [{ OR: whereClause.OR }, { OR: userFilters }];
-      delete whereClause.OR;
-    } else if (!isElevated) {
-      // No specific filters but not elevated, default to user's tasks
-      const defaultUserFilters = [
-        { assigneeId: userId },
-        { reporterId: userId },
-        { createdBy: userId },
+    // If not elevated (and not super admin), apply visibility and user filtering
+    if (!access.isSuperAdmin && !access.isElevated) {
+      const visibilityAndUserFilters = [
+        ...this.accessControl.getTaskVisibilityFilter(userId),
+        ...(userFilters.length > 0
+          ? userFilters
+          : [{ assigneeId: userId }, { reporterId: userId }, { createdBy: userId }]),
       ];
-      whereClause.AND = [{ OR: whereClause.OR }, { OR: defaultUserFilters }];
+      whereClause.AND = [{ OR: whereClause.OR }, { OR: visibilityAndUserFilters }];
+      delete whereClause.OR;
+    } else if (userFilters.length > 0) {
+      // Elevated users only get filtered if they provided specific filter params
+      whereClause.AND = [{ OR: whereClause.OR }, { OR: userFilters }];
       delete whereClause.OR;
     }
 
@@ -1942,30 +1922,24 @@ export class TasksService {
       }
 
       // Check workspace access
-      const { isElevated } = await this.accessControl.getOrgAccess(
-        workspace.organizationId,
-        userId,
-      );
+      const access = await this.accessControl.getWorkspaceAccess(workspaceId, userId);
 
-      const projects = await this.prisma.project.findMany({
-        where: { workspaceId },
-        select: { id: true },
-      });
+      whereClause.project = {
+        workspaceId,
+      };
 
-      const projectIds = projects.map((project) => project.id);
-      whereClause.projectId = { in: projectIds };
-
-      // If not elevated, filter to user-related tasks only
-      if (!isElevated) {
-        whereClause.OR = [{ assigneeId: userId }, { reporterId: userId }, { createdBy: userId }];
+      // If not super admin and not workspace elevated user, apply visibility filters within workspace
+      if (!access.isSuperAdmin && !access.isElevated) {
+        whereClause.project.OR = this.accessControl.getProjectVisibilityFilter(userId);
       }
     } else if (projectId) {
-      const { isElevated } = await this.accessControl.getTaskAccess(projectId, userId);
+      await this.accessControl.getProjectAccess(projectId, userId);
       whereClause.projectId = projectId;
-
-      if (!isElevated) {
-        whereClause.OR = [{ assigneeId: userId }, { reporterId: userId }, { createdBy: userId }];
-      }
+    } else {
+      // If neither workspaceId nor projectId is provided, we still need to ensure
+      // the user only sees what they have access to.
+      // This is less common for findMainTasks but should be handled.
+      throw new BadRequestException('Either projectId or workspaceId must be provided');
     }
 
     // Add priority filter

@@ -601,4 +601,51 @@ export class AccessControlService {
       isSuperAdmin: false,
     };
   }
+
+  /**
+   * Returns a Prisma OR condition for project visibility filtering based on user membership and project settings.
+   * This is used in list methods to ensure users only see projects they have access to.
+   */
+  getProjectVisibilityFilter(userId: string): any[] {
+    return [
+      // 1. PUBLIC projects are visible to all authenticated users
+      { visibility: 'PUBLIC' },
+      // 2. INTERNAL projects are visible to all members of the parent workspace
+      {
+        visibility: 'INTERNAL',
+        workspace: {
+          members: { some: { userId } },
+        },
+      },
+      // 3. Any project where the user is an explicit project member
+      {
+        members: { some: { userId } },
+      },
+      // 4. Any project in a workspace where the user is a workspace MANAGER or OWNER
+      {
+        workspace: {
+          members: {
+            some: {
+              userId,
+              role: { in: ['MANAGER', 'OWNER'] },
+            },
+          },
+        },
+      },
+    ];
+  }
+
+  /**
+   * Returns a Prisma OR condition for task visibility filtering.
+   * This logic is tied to project visibility.
+   */
+  getTaskVisibilityFilter(userId: string): any[] {
+    return [
+      {
+        project: {
+          OR: this.getProjectVisibilityFilter(userId),
+        },
+      },
+    ];
+  }
 }
