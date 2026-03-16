@@ -524,7 +524,7 @@ export class TasksService {
       throw new ForbiddenException('User context required');
     }
 
-    await this.accessControl.getOrgAccess(organizationId, userId);
+    const access = await this.accessControl.getOrgAccess(organizationId, userId);
 
     // Verify organization exists
     const organization = await this.prisma.organization.findUnique({
@@ -540,24 +540,41 @@ export class TasksService {
     const whereClause: any = {
       // Ensure tasks belong to the organization through project->workspace->organization
       project: {
-        OR: [
-          {
-            visibility: 'PUBLIC',
-            workspace: {
-              organizationId: organizationId,
-            },
-          },
-          {
-            workspace: {
-              members: {
-                some: { userId: userId },
-              },
-              organizationId: organizationId,
-            },
-          },
-        ],
+        workspace: {
+          organizationId: organizationId,
+        },
       },
     };
+
+    // If not super admin and not organization elevated user (OWNER/MANAGER), apply visibility filters
+    if (!access.isSuperAdmin && !access.isElevated) {
+      whereClause.project.OR = [
+        // 1. PUBLIC projects in this organization are visible to all members
+        { visibility: 'PUBLIC' },
+        // 2. INTERNAL projects are visible to all workspace members
+        {
+          visibility: 'INTERNAL',
+          workspace: {
+            members: { some: { userId } },
+          },
+        },
+        // 3. Any project (PRIVATE/INTERNAL/PUBLIC) where the user is an explicit project member
+        {
+          members: { some: { userId } },
+        },
+        // 4. Any project in a workspace where the user is a workspace MANAGER or OWNER
+        {
+          workspace: {
+            members: {
+              some: {
+                userId,
+                role: { in: ['MANAGER', 'OWNER'] },
+              },
+            },
+          },
+        },
+      ];
+    }
 
     // Add conditions using AND array to avoid conflicts
     const andConditions: any[] = [];
