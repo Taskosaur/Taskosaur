@@ -26,7 +26,13 @@ import { CheckSquare, Flame, User, Users, Download, Shapes } from "lucide-react"
 import SortingManager, { SortOrder, SortField } from "@/components/tasks/SortIngManager";
 import Tooltip from "@/components/common/ToolTip";
 import { TokenManager } from "@/lib/api";
-import { exportTasksToCSV } from "@/utils/exportUtils";
+import { exportTasksToCSV, exportTasksToPDF } from "@/utils/exportUtils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/DropdownMenu";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
 import { KanbanColumnSkeleton } from "@/components/skeletons/KanbanColumnSkeleton";
 import { TaskTypeIcon } from "@/utils/data/taskData";
@@ -702,9 +708,13 @@ function ProjectTasksContent() {
     return sorted;
   }, [displayTasks, sortOrder, sortField]);
 
-  const handleExport = useCallback(() => {
-    exportTasksToCSV(sortedTasks, columns, `project-tasks-${projectSlug}.csv`);
-  }, [sortedTasks, columns, projectSlug]);
+  const handleExport = useCallback((format: "csv" | "pdf" = "csv") => {
+    if (format === "csv") {
+      exportTasksToCSV(sortedTasks, columns, `project-tasks-${projectSlug}.csv`);
+    } else {
+      exportTasksToPDF(sortedTasks, columns, `project-tasks-${projectSlug}.pdf`);
+    }
+  }, [columns, sortedTasks, projectSlug]);
 
   const statusFilters = useMemo(
     () =>
@@ -1378,13 +1388,24 @@ function ProjectTasksContent() {
                       onRemoveColumn={handleRemoveColumn}
                       setKabBanSettingModal={setKabBanSettingModal}
                     />
-                    <ActionButton
-                      leftIcon={<Download className="w-4 h-4" />}
-                      onClick={handleExport}
-                      variant="outline"
-                    >
-                      {t("export")}
-                    </ActionButton>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <ActionButton
+                          leftIcon={<Download className="w-4 h-4" />}
+                          variant="outline"
+                        >
+                          {t("export")}
+                        </ActionButton>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleExport("csv")}>
+                          Export as CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExport("pdf")}>
+                          Export as PDF
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 )}
                 {/* Kanban view controls - Only for authenticated users */}

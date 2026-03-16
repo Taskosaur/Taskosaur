@@ -25,7 +25,13 @@ import { CheckSquare, Flame, Folder, User, Users, Download, Shapes } from "lucid
 import { TaskPriorities, TaskTypeIcon } from "@/utils/data/taskData";
 import Tooltip from "@/components/common/ToolTip";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
-import { exportTasksToCSV } from "@/utils/exportUtils";
+import { exportTasksToCSV, exportTasksToPDF } from "@/utils/exportUtils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/DropdownMenu";
 import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -947,10 +953,17 @@ function WorkspaceTasksContent() {
     return sorted;
   }, [tasks, sortOrder, sortField]);
 
-  const handleExport = useCallback(() => {
-    exportTasksToCSV(sortedTasks, columns, `tasks_export_${new Date().toISOString().split("T")[0]}.csv`, {
-      showProject: true,
-    });
+  const handleExport = useCallback((format: "csv" | "pdf" = "csv") => {
+    const dateStr = new Date().toISOString().split("T")[0];
+    if (format === "csv") {
+      exportTasksToCSV(sortedTasks, columns, `tasks_export_${dateStr}.csv`, {
+        showProject: true,
+      });
+    } else {
+      exportTasksToPDF(sortedTasks, columns, `tasks_export_${dateStr}.pdf`, {
+        showProject: true,
+      });
+    }
   }, [columns, sortedTasks]);
 
   const renderContent = () => {
@@ -1156,14 +1169,24 @@ function WorkspaceTasksContent() {
                       onRemoveColumn={handleRemoveColumn}
                     />
 
-                    <ActionButton
-                      leftIcon={<Download className="w-4 h-4" />}
-                      onClick={handleExport}
-                      variant="outline"
-                    >
-                      {t("export")}
-                    </ActionButton>
-                  </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <ActionButton
+                          leftIcon={<Download className="w-4 h-4" />}
+                          variant="outline"
+                        >
+                          {t("export")}
+                        </ActionButton>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleExport("csv")}>
+                          Export as CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExport("pdf")}>
+                          Export as PDF
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>                  </div>
                 )}
               </>
             }

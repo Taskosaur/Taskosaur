@@ -152,3 +152,78 @@ export const exportTasksToCSV = (
   link.click();
   document.body.removeChild(link);
 };
+
+export const exportTasksToPDF = (
+  tasks: Task[], 
+  columns: ColumnConfig[], 
+  filename = "tasks_export.pdf",
+  options: { showProject?: boolean } = {}
+) => {
+  const { showProject = false } = options;
+
+  const defaultColumns: ColumnConfig[] = [
+    { id: "title", label: "Task", visible: true },
+    ...(showProject ? [{ id: "project", label: "Project", visible: true }] : []),
+    { id: "priority", label: "Priority", visible: true },
+    { id: "status", label: "Status", visible: true },
+    { id: "assignees", label: "Assignees", visible: true },
+    { id: "dueDate", label: "Due Date", visible: true },
+  ];
+
+  const visibleDynamicColumns = columns.filter((col) => col.visible);
+  const allExportColumns = [...defaultColumns, ...visibleDynamicColumns];
+
+  if (allExportColumns.length === 0) return;
+
+  // Create a simple HTML table for printing
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${filename}</title>
+      <style>
+        body { font-family: sans-serif; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 12px; }
+        th { background-color: #f4f4f4; }
+        h1 { font-size: 18px; }
+        @media print {
+          @page { margin: 1cm; }
+          .no-print { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Tasks Export - ${new Date().toLocaleDateString()}</h1>
+      <table>
+        <thead>
+          <tr>
+            ${allExportColumns.map(col => `<th>${col.label}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${tasks.map(task => `
+            <tr>
+              ${allExportColumns.map(col => `<td>${extractTaskValueForCSV(task, col.id)}</td>`).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <script>
+        window.onload = () => {
+          window.print();
+          // Optional: window.close(); 
+        };
+      </script>
+    </body>
+    </html>
+  `;
+
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  } else {
+    alert("Please allow popups to export as PDF");
+  }
+};
