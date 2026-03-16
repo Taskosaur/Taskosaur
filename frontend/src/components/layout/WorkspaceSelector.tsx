@@ -30,9 +30,8 @@ interface WorkspaceSelectorProps {
 export default function WorkspaceSelector({ currentWorkspaceSlug }: WorkspaceSelectorProps) {
   const router = useRouter();
 
-  const { getWorkspacesByOrganization } = useWorkspace();
+  const { getWorkspacesByOrganization, workspaces } = useWorkspace();
 
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [isLoading, setIsLoading] = useState(true); // Start with loading true
 
@@ -41,11 +40,9 @@ export default function WorkspaceSelector({ currentWorkspaceSlug }: WorkspaceSel
     const fetchWorkspaces = async () => {
       try {
         setIsLoading(true);
-        const workspacesData = await getWorkspacesByOrganization();
-        setWorkspaces(workspacesData || []);
+        await getWorkspacesByOrganization();
       } catch (error) {
         console.error("Error fetching workspaces:", error);
-        setWorkspaces([]);
       } finally {
         setIsLoading(false);
       }
@@ -133,9 +130,8 @@ export default function WorkspaceSelector({ currentWorkspaceSlug }: WorkspaceSel
           <DropdownMenuItem
             key={workspace.id}
             onClick={() => handleWorkspaceSelect(workspace)}
-            className={`layout-workspace-selector-item ${
-              currentWorkspace?.id === workspace.id ? "layout-workspace-selector-item-selected" : ""
-            }`}
+            className={`layout-workspace-selector-item ${currentWorkspace?.id === workspace.id ? "layout-workspace-selector-item-selected" : ""
+              }`}
           >
             <Avatar className="layout-workspace-selector-item-avatar">
               <AvatarFallback className="layout-workspace-selector-item-avatar-fallback">
