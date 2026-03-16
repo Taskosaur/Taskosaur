@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNotEmpty, IsUrl, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, IsUrl, IsObject, ValidateIf } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class DefaultWorkspaceDto {
@@ -57,6 +57,7 @@ export class CreateOrganizationDto {
     required: false,
   })
   @IsUrl()
+  @ValidateIf((object, value) => value !== null && value !== '' && value !== undefined)
   @IsOptional()
   website?: string;
 
