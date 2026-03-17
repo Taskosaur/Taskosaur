@@ -1178,7 +1178,7 @@ function WorkspaceTasksContent() {
                           {t("export")}
                         </ActionButton>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="bg-[var(--popover)] border-[var(--border)]">
                         <DropdownMenuItem onClick={() => handleExport("csv")}>
                           Export as CSV
                         </DropdownMenuItem>
