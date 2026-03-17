@@ -221,8 +221,7 @@ export const projectApi = {
   ): Promise<ProjectMember[]> => {
     try {
       const response = await api.get<{ data: ProjectMember[]; total: number }>(
-        `/project-members?projectId=${projectId}${
-          search ? `&search=${encodeURIComponent(search)}` : ""
+        `/project-members?projectId=${projectId}${search ? `&search=${encodeURIComponent(search)}` : ""
         }`
       );
       return response.data.data;
@@ -260,8 +259,7 @@ export const projectApi = {
   ): Promise<OrganizationMember[]> => {
     try {
       const response = await api.get<OrganizationMember[]>(
-        `/organization-members?organizationId=${organizationId}${
-          search ? `&search=${encodeURIComponent(search)}` : ""
+        `/organization-members?organizationId=${organizationId}${search ? `&search=${encodeURIComponent(search)}` : ""
         }`
       );
       return response.data;
@@ -403,6 +401,35 @@ export const projectApi = {
       return { success: true, message: "Project archived successfully" };
     } catch (error) {
       console.error("Archive project error:", error);
+      throw error;
+    }
+  },
+
+  unarchiveProject: async (projectId: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await api.patch(`/projects/unarchive/${projectId}`);
+      const status = response.status;
+      if (status === 204 || status === 200) {
+        return { success: true, message: "Project unarchived successfully" };
+      }
+      return { success: true, message: "Project unarchived successfully" };
+    } catch (error) {
+      console.error("Unarchive project error:", error);
+      throw error;
+    }
+  },
+
+  getArchivedProjects: async (params: { workspaceId?: string; organizationId?: string }): Promise<any[]> => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params.workspaceId) queryParams.append("workspaceId", params.workspaceId);
+      if (params.organizationId) queryParams.append("organizationId", params.organizationId);
+      const response = await api.get<any[]>(
+        `/projects/archived?${queryParams.toString()}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Get archived projects error:", error);
       throw error;
     }
   },

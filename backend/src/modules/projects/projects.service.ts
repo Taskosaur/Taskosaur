@@ -295,6 +295,7 @@ export class ProjectsService {
 
     const whereClause: any = {
       archive: false,
+      workspace: { archive: false },
       OR: [
         { visibility: 'PUBLIC' },
         { members: { some: { userId } } },
@@ -311,7 +312,7 @@ export class ProjectsService {
       ],
     };
     if (workspaceId) {
-      whereClause.workspaceId = workspaceId;
+      whereClause.workspace.id = workspaceId;
     }
     if (normalizedStatus) {
       whereClause.status = normalizedStatus.includes(',')
@@ -439,7 +440,7 @@ export class ProjectsService {
 
     if (!org) throw new NotFoundException('Organization not found');
     const whereClause: any = {
-      workspace: { organizationId },
+      workspace: { organizationId, archive: false },
       archive: false,
       OR: [
         { visibility: 'PUBLIC' },
@@ -457,7 +458,7 @@ export class ProjectsService {
       ],
     };
     if (workspaceId) {
-      whereClause.workspaceId = workspaceId;
+      whereClause.workspace.id = workspaceId;
     }
     if (normalizedStatus) {
       whereClause.status = normalizedStatus.includes(',')
@@ -732,19 +733,89 @@ export class ProjectsService {
     }
   }
 
+  async unarchiveProject(id: string, userId: string): Promise<void> {
+    const { isElevated } = await this.accessControl.getProjectAccess(id, userId);
+
+    if (!isElevated) {
+      throw new ForbiddenException('Insufficient permissions to unarchive project');
+    }
+
+    const project = await this.prisma.project.findUnique({
+      where: { id },
+      select: { workspace: { select: { id: true, archive: true, name: true } } },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (project.workspace.archive) {
+      throw new ForbiddenException(
+        `Cannot unarchive project: parent workspace "${project.workspace.name}" is still archived. Unarchive the workspace first.`,
+      );
+    }
+
+    try {
+      await this.prisma.project.update({
+        where: { id },
+        data: { archive: false },
+      });
+    } catch (error: any) {
+      console.error(error);
+      if (error.code === 'P2025') {
+        throw new NotFoundException('Project not found');
+      }
+      throw error;
+    }
+  }
+
+  async findArchivedByWorkspace(workspaceId: string, userId: string) {
+    await this.accessControl.getWorkspaceAccess(workspaceId, userId);
+    return this.prisma.project.findMany({
+      where: { archive: true, workspaceId, workspace: { archive: false } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        status: true,
+        workspace: { select: { id: true, name: true, slug: true, archive: true } },
+        _count: { select: { members: true, tasks: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  async findArchivedByOrganization(organizationId: string, userId: string) {
+    await this.accessControl.getOrgAccess(organizationId, userId);
+    return this.prisma.project.findMany({
+      where: { archive: true, workspace: { organizationId, archive: false } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        status: true,
+        workspace: { select: { id: true, name: true, slug: true, archive: true } },
+        _count: { select: { members: true, tasks: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
   // Additional helper methods for search functionality
   findBySearch(workspaceId?: string, organizationId?: string, search?: string, userId?: string) {
     if (!userId) {
       throw new ForbiddenException('User context required');
     }
 
-    const whereClause: any = { archive: false };
+    const whereClause: any = { archive: false, workspace: { archive: false } };
 
     // Add scope filtering
     if (workspaceId) {
-      whereClause.workspaceId = workspaceId;
+      whereClause.workspace.id = workspaceId;
     } else if (organizationId) {
-      whereClause.workspace = { organizationId };
+      whereClause.workspace.organizationId = organizationId;
     }
 
     // Add user access filtering
@@ -815,12 +886,12 @@ export class ProjectsService {
       throw new ForbiddenException('User context required');
     }
 
-    const whereClause: any = { archive: false };
+    const whereClause: any = { archive: false, workspace: { archive: false } };
 
     if (workspaceId) {
-      whereClause.workspaceId = workspaceId;
+      whereClause.workspace.id = workspaceId;
     } else if (organizationId) {
-      whereClause.workspace = { organizationId };
+      whereClause.workspace.organizationId = organizationId;
     }
 
     // Add user access filtering

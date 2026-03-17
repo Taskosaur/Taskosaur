@@ -216,6 +216,26 @@ export class ProjectsController {
     return this.projectsService.findByKey(workspaceId, key, user.id);
   }
 
+  @Get('archived')
+  @ApiOperation({ summary: 'Get archived projects for a workspace or organization' })
+  @ApiQuery({ name: 'workspaceId', required: false, description: 'Workspace ID (UUID)' })
+  @ApiQuery({ name: 'organizationId', required: false, description: 'Organization ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'List of archived projects' })
+  @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
+  getArchivedProjects(
+    @Query('workspaceId') workspaceId: string,
+    @Query('organizationId') organizationId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    if (workspaceId) {
+      return this.projectsService.findArchivedByWorkspace(workspaceId, user.id);
+    }
+    if (organizationId) {
+      return this.projectsService.findArchivedByOrganization(organizationId, user.id);
+    }
+    throw new BadRequestException('Either workspaceId or organizationId is required');
+  }
+
   // Find project by ID - requires project access
   @Get(':id')
   @ApiOperation({ summary: 'Get project by ID' })
@@ -281,6 +301,18 @@ export class ProjectsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   archiveProject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.projectsService.archiveProject(id, user.id);
+  }
+
+  @Patch('unarchive/:id')
+  @ApiOperation({ summary: 'Unarchive a project (fails if parent workspace is archived)' })
+  @ApiParam({ name: 'id', description: 'Project ID (UUID)' })
+  @ApiResponse({ status: 204, description: 'Project unarchived successfully' })
+  @ApiResponse({ status: 403, description: 'Parent workspace is still archived' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @Roles(Role.MANAGER, Role.OWNER)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  unarchiveProject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.projectsService.unarchiveProject(id, user.id);
   }
 
   // Chart endpoints - require project access

@@ -17,6 +17,7 @@ import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDro
 import { CheckSquare, Flame } from "lucide-react";
 import ErrorState from "@/components/common/ErrorState";
 import { EmptyState } from "@/components/ui";
+import { projectApi } from "@/utils/api/projectApi";
 
 import { toast } from "sonner";
 import Tooltip from "../common/ToolTip";
@@ -108,6 +109,8 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(12);
   const [hasMore, setHasMore] = useState(false);
+  const [archivedProjects, setArchivedProjects] = useState<any[]>([]);
+  const [unarchivingId, setUnarchivingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (router.isReady) {
@@ -414,6 +417,20 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
       t
     ]
   );
+
+  // Fetch archived projects
+  useEffect(() => {
+    if (!hasAccess) return;
+    if (contextType === "workspace" && workspace?.id) {
+      projectApi.getArchivedProjects({ workspaceId: workspace.id })
+        .then((data) => setArchivedProjects(data || []))
+        .catch(() => { });
+    } else if (contextType === "organization" && contextId) {
+      projectApi.getArchivedProjects({ organizationId: contextId })
+        .then((data) => setArchivedProjects(data || []))
+        .catch(() => { });
+    }
+  }, [workspace?.id, contextId, hasAccess, contextType]);
 
   // Check user access
   useEffect(() => {
@@ -752,6 +769,67 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
               </>
             )}
           </>
+        )}
+
+        {/* Archived Projects Section */}
+        {hasAccess && archivedProjects.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-sm font-medium text-[var(--muted-foreground)] mb-3">
+              {t("archived_projects", "Archived Projects")}
+            </h3>
+            <div className="space-y-3">
+              {archivedProjects.map((project: any) => {
+                const isWorkspaceArchived = project.workspace?.archive === true;
+                return (
+                  <div
+                    key={project.id}
+                    className="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--muted)]/30"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{project.name}</p>
+                      <p className="text-xs text-[var(--muted-foreground)]">{project.slug}</p>
+                    </div>
+                    <Tooltip
+                      content={
+                        isWorkspaceArchived
+                          ? t("unarchive_workspace_first", "Unarchive the parent workspace first")
+                          : t("unarchive_project", "Unarchive project")
+                      }
+                      position="top"
+                      color={isWorkspaceArchived ? "danger" : "primary"}
+                    >
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={unarchivingId === project.id || isWorkspaceArchived}
+                        onClick={async () => {
+                          try {
+                            setUnarchivingId(project.id);
+                            const result = await projectApi.unarchiveProject(project.id);
+                            if (result.success) {
+                              setArchivedProjects((prev) =>
+                                prev.filter((p: any) => p.id !== project.id)
+                              );
+                              toast.success(t("unarchive_success", "Project unarchived successfully"));
+                              await fetchData(1, true);
+                            }
+                          } catch (err: any) {
+                            toast.error(err?.message || t("unarchive_failed", "Failed to unarchive project"));
+                          } finally {
+                            setUnarchivingId(null);
+                          }
+                        }}
+                      >
+                        {unarchivingId === project.id
+                          ? t("unarchiving", "Unarchiving...")
+                          : t("unarchive", "Unarchive")}
+                      </Button>
+                    </Tooltip>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
     </div>
