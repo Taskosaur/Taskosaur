@@ -1138,26 +1138,16 @@ export class TasksService {
   }
 
   async update(id: string, updateTaskDto: UpdateTaskDto, userId: string): Promise<Task> {
-    const { canChange } = await this.accessControl.getTaskAccess(id, userId);
+    const { canChange, task: taskFromAccess } = await this.accessControl.getTaskAccess(id, userId);
 
     if (!canChange) {
       throw new ForbiddenException('Insufficient permissions to update this task');
     }
 
-    // Check if task exists (we already know it exists because getTaskAccess succeeded, but we need it for business logic)
-    const task = await this.prisma.task.findUnique({
-      where: { id },
-      include: {
-        assignees: { select: { id: true } },
-        reporters: { select: { id: true } },
-      },
-    });
+    const task = taskFromAccess;
 
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
-    const effectiveStartDate = updateTaskDto.startDate ?? task.startDate?.toISOString();
-    const effectiveDueDate = updateTaskDto.dueDate ?? task.dueDate?.toISOString();
+    const effectiveStartDate = updateTaskDto.startDate ?? task?.startDate?.toISOString();
+    const effectiveDueDate = updateTaskDto.dueDate ?? task?.dueDate?.toISOString();
     if (effectiveStartDate && effectiveDueDate) {
       if (new Date(effectiveStartDate) > new Date(effectiveDueDate)) {
         throw new BadRequestException('Start date must be before the due date');
@@ -1258,16 +1248,18 @@ export class TasksService {
     }
 
     try {
-      const taskWithSubtasks = await this.prisma.task.findUnique({
+      // Check if task exists and has subtasks
+      const taskWithCounts = await this.prisma.task.findUnique({
         where: { id },
-        include: {
+        select: {
+          id: true,
           _count: {
             select: { childTasks: true },
           },
         },
       });
 
-      if (!taskWithSubtasks) {
+      if (!taskWithCounts) {
         throw new NotFoundException('Task not found');
       }
 
@@ -1284,13 +1276,8 @@ export class TasksService {
   }
 
   async addComment(taskId: string, comment: string, userId: string) {
-    // Check task access first
-    await this.accessControl.getTaskAccess(taskId, userId);
-
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
-      select: { id: true, title: true },
-    });
+    // Check task access first and get task object
+    const { task } = await this.accessControl.getTaskAccess(taskId, userId);
 
     if (!task) {
       throw new NotFoundException('Task not found');
@@ -1542,7 +1529,7 @@ export class TasksService {
       };
     }
 
-    const whereClause: any = {
+    const whereClause: Prisma.TaskWhereInput = {
       projectId: { in: projectIds },
       OR: [
         { dueDate: { gte: startOfDay, lte: endOfDay } },
@@ -1552,31 +1539,35 @@ export class TasksService {
       ],
     };
 
-    const userFilters: any[] = [];
+    const userFilters: Prisma.TaskWhereInput[] = [];
 
     if (filters.assigneeId) {
-      userFilters.push({ assigneeId: filters.assigneeId });
+      userFilters.push({ assignees: { some: { id: filters.assigneeId } } });
     }
 
     if (filters.reporterId) {
-      userFilters.push({ reporterId: filters.reporterId });
+      userFilters.push({ reporters: { some: { id: filters.reporterId } } });
     }
 
     if (filters.userId) {
       userFilters.push(
-        { assigneeId: filters.userId },
-        { reporterId: filters.userId },
+        { assignees: { some: { id: filters.userId } } },
+        { reporters: { some: { id: filters.userId } } },
         { createdBy: filters.userId },
       );
     }
 
     // If not elevated (and not super admin), apply visibility and user filtering
     if (!access.isSuperAdmin && !access.isElevated) {
-      const visibilityAndUserFilters = [
+      const visibilityAndUserFilters: Prisma.TaskWhereInput[] = [
         ...this.accessControl.getTaskVisibilityFilter(userId),
         ...(userFilters.length > 0
           ? userFilters
-          : [{ assigneeId: userId }, { reporterId: userId }, { createdBy: userId }]),
+          : [
+              { assignees: { some: { id: userId } } },
+              { reporters: { some: { id: userId } } },
+              { createdBy: userId },
+            ]),
       ];
       whereClause.AND = [{ OR: whereClause.OR }, { OR: visibilityAndUserFilters }];
       delete whereClause.OR;
@@ -1849,8 +1840,6 @@ export class TasksService {
 
   // Additional helper methods with role-based filtering
   async findSubtasksByParent(parentTaskId: string, userId: string): Promise<Task[]> {
-    await this.accessControl.getTaskAccess(parentTaskId, userId);
-
     const { isElevated } = await this.accessControl.getTaskAccess(parentTaskId, userId);
 
     const whereClause: any = {

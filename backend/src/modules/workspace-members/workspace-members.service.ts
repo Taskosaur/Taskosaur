@@ -23,17 +23,7 @@ export class WorkspaceMembersService {
     workspaceId: string,
     requiredRole?: Role,
   ): Promise<void> {
-    // 1. Check if user is a SUPER_ADMIN
-    const actor = await this.prisma.user.findUnique({
-      where: { id: actorId },
-      select: { role: true },
-    });
-
-    if (actor?.role === Role.SUPER_ADMIN) {
-      return;
-    }
-
-    // 2. Get workspace and its organization info
+    // 1. Get workspace and its organization info, plus actor's memberships in one query
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: workspaceId },
       select: {
@@ -41,6 +31,20 @@ export class WorkspaceMembersService {
         organization: {
           select: {
             ownerId: true,
+            members: {
+              where: { userId: actorId },
+              select: {
+                role: true,
+                user: { select: { role: true } },
+              },
+            },
+          },
+        },
+        members: {
+          where: { userId: actorId },
+          select: {
+            role: true,
+            user: { select: { role: true } },
           },
         },
       },
@@ -50,42 +54,45 @@ export class WorkspaceMembersService {
       throw new NotFoundException('Workspace not found');
     }
 
-    // 3. Check if requester is org owner
+    // 2. Check if requester is org owner
     if (workspace.organization.ownerId === actorId) {
       return;
     }
 
-    // 4. Check org membership and role
-    const requesterOrgMember = await this.prisma.organizationMember.findUnique({
-      where: {
-        userId_organizationId: {
-          userId: actorId,
-          organizationId: workspace.organizationId,
-        },
-      },
-    });
+    const orgMember = workspace.organization.members[0];
+    const wsMember = workspace.members[0];
 
-    if (requesterOrgMember?.role === Role.OWNER || requesterOrgMember?.role === Role.MANAGER) {
-      // Org owners and managers have full access to all workspaces in their org
+    // 3. Check if we found the actor's global role from memberships
+    const actorGlobalRole = orgMember?.user?.role || wsMember?.user?.role;
+    if (actorGlobalRole === Role.SUPER_ADMIN) {
       return;
     }
 
-    // 5. Check workspace membership and role
-    const requesterWorkspaceMember = await this.prisma.workspaceMember.findUnique({
-      where: {
-        userId_workspaceId: {
-          userId: actorId,
-          workspaceId: workspaceId,
-        },
-      },
-    });
+    // 4. Fallback: If no membership found, check if user is a SUPER_ADMIN (who isn't a member)
+    if (!orgMember && !wsMember) {
+      const actor = await this.prisma.user.findUnique({
+        where: { id: actorId },
+        select: { role: true },
+      });
 
-    if (!requesterWorkspaceMember) {
+      if (actor?.role === Role.SUPER_ADMIN) {
+        return;
+      }
+      throw new ForbiddenException('You are not a member of this workspace');
+    }
+
+    // 5. Check org membership and role (OWNER/MANAGER have full access)
+    if (orgMember?.role === Role.OWNER || orgMember?.role === Role.MANAGER) {
+      return;
+    }
+
+    // 6. Check workspace membership and role
+    if (!wsMember) {
       throw new ForbiddenException('You are not a member of this workspace');
     }
 
     if (requiredRole) {
-      if (!hasRequiredRole(requesterWorkspaceMember.role, requiredRole)) {
+      if (!hasRequiredRole(wsMember.role, requiredRole)) {
         throw new ForbiddenException(`${requiredRole} privileges required`);
       }
     }

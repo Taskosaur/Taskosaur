@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { Role, Task } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 export interface AccessResult {
@@ -16,6 +16,7 @@ export interface AccessResult {
   scopeId: string;
   scopeType: 'ORGANIZATION' | 'WORKSPACE' | 'PROJECT' | 'TASK';
   isSuperAdmin: boolean;
+  task?: Task;
 }
 
 @Injectable()
@@ -331,15 +332,10 @@ export class AccessControlService {
   async getTaskAccess(taskId: string, userId: string): Promise<AccessResult> {
     // Check if user is SUPER_ADMIN
     const isSuperAdmin = await this.checkSuperAdmin(userId);
-    if (isSuperAdmin) {
-      return this.createSuperAdminAccess(userId, taskId, 'TASK');
-    }
 
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
-      select: {
-        createdBy: true,
-        projectId: true,
+      include: {
         assignees: { select: { id: true } },
         reporters: { select: { id: true } },
         project: {
@@ -359,6 +355,12 @@ export class AccessControlService {
 
     if (!task) throw new NotFoundException('Task not found');
 
+    if (isSuperAdmin) {
+      const result = this.createSuperAdminAccess(userId, taskId, 'TASK');
+      result.task = task;
+      return result;
+    }
+
     const { projectId, project, assignees, reporters } = task;
     const { workspaceId, workspace } = project;
     const { organizationId, organization } = workspace;
@@ -373,6 +375,7 @@ export class AccessControlService {
         scopeId: taskId,
         scopeType: 'TASK',
         isSuperAdmin: false,
+        task,
       };
     }
 
@@ -391,6 +394,7 @@ export class AccessControlService {
         scopeId: taskId,
         scopeType: 'TASK',
         isSuperAdmin: false,
+        task,
       };
     }
 
@@ -409,6 +413,7 @@ export class AccessControlService {
         scopeId: taskId,
         scopeType: 'TASK',
         isSuperAdmin: false,
+        task,
       };
     }
 
@@ -433,6 +438,7 @@ export class AccessControlService {
           scopeId: taskId,
           scopeType: 'TASK',
           isSuperAdmin: false,
+          task,
         };
       }
       throw new ForbiddenException("Not a member of this task's project");
@@ -456,6 +462,7 @@ export class AccessControlService {
       scopeId: taskId,
       scopeType: 'TASK',
       isSuperAdmin: false,
+      task,
     };
   }
 
