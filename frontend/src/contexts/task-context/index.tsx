@@ -107,6 +107,8 @@ interface TaskContextType extends TaskState {
       assignees?: string;
       reporters?: string;
       search?: string;
+      sortBy?: string;
+      sortOrder?: string;
       page?: number;
       limit?: number;
     }
@@ -463,6 +465,8 @@ export function TaskProvider({ children }: TaskProviderProps) {
           assignees?: string;
           reporters?: string;
           search?: string;
+          sortBy?: string;
+          sortOrder?: string;
           page?: number;
           limit?: number;
         }

@@ -427,6 +427,10 @@ function ProjectTasksContent() {
         ...(debouncedSearchQuery.trim() && {
           search: debouncedSearchQuery.trim(),
         }),
+        ...((sortField === 'dueDate' || sortField === 'dueIn') && {
+          sortBy: sortField,
+          sortOrder: sortOrder,
+        }),
         page: currentPage,
         limit: pageSize,
       };
@@ -577,6 +581,12 @@ function ProjectTasksContent() {
       loadPublicTasks();
     }
   }, [currentOrganizationId, project?.id, isAuth]);
+
+  useEffect(() => {
+    if (isAuth && currentOrganizationId && project?.id && (sortField === 'dueDate' || sortField === 'dueIn')) {
+      loadTasks();
+    }
+  }, [sortField, sortOrder]);
 
   useEffect(() => {
     if (project?.id && isAuth) {

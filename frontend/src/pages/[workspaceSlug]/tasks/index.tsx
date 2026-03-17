@@ -363,6 +363,10 @@ function WorkspaceTasksContent() {
         ...(selectedReporters.length > 0 && {
           reporters: selectedReporters.join(","),
         }),
+        ...((sortField === 'dueDate' || sortField === 'dueIn') && {
+          sortBy: sortField,
+          sortOrder: sortOrder,
+        }),
 
         page: currentPage,
         limit: pageSize,
@@ -440,6 +444,12 @@ function WorkspaceTasksContent() {
       loadTasks();
     }
   }, [workspace?.organizationId, workspace?.id, selectedAssignees, selectedReporters]);
+
+  useEffect(() => {
+    if (workspace?.organizationId && workspace?.id && (sortField === 'dueDate' || sortField === 'dueIn')) {
+      loadTasks();
+    }
+  }, [sortField, sortOrder]);
 
   const previousFiltersRef = useRef({
     page: currentPage,

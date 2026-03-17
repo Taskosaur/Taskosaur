@@ -325,6 +325,10 @@ function TasksPageContent() {
         ...(selectedReporters.length > 0 && {
           reporters: selectedReporters.join(","),
         }),
+        ...((sortField === 'dueDate' || sortField === 'dueIn') && {
+          sortBy: sortField,
+          sortOrder: sortOrder,
+        }),
       };
 
       const res = await getAllTasks(currentOrganizationId, params);
@@ -403,6 +407,12 @@ function TasksPageContent() {
     pageSize,
     debouncedSearchQuery,
   ]);
+
+  useEffect(() => {
+    if (urlParamsInitialized && (sortField === 'dueDate' || sortField === 'dueIn')) {
+      loadTasks();
+    }
+  }, [sortField, sortOrder]);
 
   const handleTaskUpdate = useCallback(
     async (taskId: string, updates: any) => {
