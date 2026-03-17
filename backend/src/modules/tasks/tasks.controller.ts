@@ -470,6 +470,16 @@ export class TasksController {
     description: 'Filter by search query',
   })
   @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    description: 'Sort by field',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    description: 'Sort order (asc or desc)',
+  })
+  @ApiQuery({
     name: 'page',
     required: false,
     description: 'Page number (default: 1)',
@@ -496,6 +506,8 @@ export class TasksController {
     @Query('statuses') statuses?: string,
     @Query('types') types?: string,
     @Query('search') search?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
     @Query('page') page = '1',
     @Query('limit') limit = '20',
   ) {
@@ -512,6 +524,8 @@ export class TasksController {
       this.parseCommaSeparated(reporterIds),
       user.id,
       search,
+      sortBy,
+      sortOrder,
       Number(page),
       Number(limit),
     );
@@ -567,6 +581,16 @@ export class TasksController {
     required: false,
     description: 'Filter by search query',
   })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    description: 'Sort by field',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    description: 'Sort order (asc or desc)',
+  })
   @Scope('ORGANIZATION', 'organizationId')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   getTasks(
@@ -580,6 +604,8 @@ export class TasksController {
     @Query('statuses') statuses?: string,
     @Query('types') types?: string,
     @Query('search') search?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
   ) {
     return this.tasksService.getTasks(
       organizationId,
@@ -592,6 +618,8 @@ export class TasksController {
       this.parseCommaSeparated(types),
       user.id,
       search,
+      sortBy,
+      sortOrder,
     );
   }
 

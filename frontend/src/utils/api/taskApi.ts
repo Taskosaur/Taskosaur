@@ -193,6 +193,8 @@ export const taskApi = {
       assignees?: string;
       reporters?: string;
       search?: string;
+      sortBy?: string;
+      sortOrder?: string;
       page?: number;
       limit?: number;
     }
@@ -214,6 +216,8 @@ export const taskApi = {
       if (params?.search) queryParams.append("search", params.search);
       if (params?.assignees) queryParams.append("assigneeIds", params.assignees);
       if (params?.reporters) queryParams.append("reporterIds", params.reporters);
+      if (params?.sortBy) queryParams.append("sortBy", params.sortBy);
+      if (params?.sortOrder) queryParams.append("sortOrder", params.sortOrder);
 
       // Pagination
       if (params?.page !== undefined) queryParams.append("page", String(params.page));

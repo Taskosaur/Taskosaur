@@ -511,6 +511,8 @@ export class TasksService {
     reporterIds?: string[],
     userId?: string,
     search?: string,
+    sortBy?: string,
+    sortOrder?: string,
     page: number = 1,
     limit: number = 20,
   ): Promise<{
@@ -649,6 +651,11 @@ export class TasksService {
 
     // Pagination calculation
     const skip = (page - 1) * limit;
+
+    let orderBy: any = { taskNumber: 'desc' };
+    if (sortBy === 'dueIn' || sortBy === 'dueDate') {
+      orderBy = { dueDate: sortOrder === 'asc' ? 'asc' : 'desc' };
+    }
     // Execute query and count in transaction
     const [tasks, total] = await this.prisma.$transaction([
       this.prisma.task.findMany({
@@ -712,7 +719,7 @@ export class TasksService {
             select: { childTasks: true, comments: true, attachments: true },
           },
         },
-        orderBy: { taskNumber: 'desc' },
+        orderBy,
         skip,
         take: limit,
       }),
@@ -751,6 +758,8 @@ export class TasksService {
     types?: string[],
     userId?: string,
     search?: string,
+    sortBy?: string,
+    sortOrder?: string,
   ): Promise<Task[]> {
     if (!userId) {
       throw new ForbiddenException('User context required');
@@ -831,6 +840,10 @@ export class TasksService {
     if (andConditions.length > 0) {
       whereClause.AND = andConditions;
     }
+    let orderBy: any = { taskNumber: 'desc' };
+    if (sortBy === 'dueIn' || sortBy === 'dueDate') {
+      orderBy = { dueDate: sortOrder === 'asc' ? 'asc' : 'desc' };
+    }
 
     const tasks = await this.prisma.task.findMany({
       where: whereClause,
@@ -883,7 +896,7 @@ export class TasksService {
           select: { childTasks: true, comments: true, attachments: true },
         },
       },
-      orderBy: { taskNumber: 'desc' },
+      orderBy,
     });
 
     return tasks.map((task) => ({
