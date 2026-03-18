@@ -2027,7 +2027,11 @@ export class TasksService {
         taskFilter.id = { notIn: excludedIds };
       }
     } else {
-      taskFilter.id = { in: taskIds };
+      let finalTaskIds = taskIds || [];
+      if (excludedIds && excludedIds.length > 0) {
+        finalTaskIds = finalTaskIds.filter((id) => !excludedIds.includes(id));
+      }
+      taskFilter.id = { in: finalTaskIds };
     }
 
     // Fetch tasks with project and member info

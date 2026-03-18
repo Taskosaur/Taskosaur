@@ -314,6 +314,75 @@ describe('TasksController (e2e)', () => {
         });
     });
 
+    it('should filter tasks by reporterIds', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks')
+        .query({ organizationId, reporterIds: user.id })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          const includesUser = res.body.data.every((t: any) => 
+            t.reporters.some((r: any) => r.id === user.id)
+          );
+          expect(includesUser).toBe(true);
+        });
+    });
+
+    it('should filter tasks by workspaceId', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks')
+        .query({ organizationId, workspaceId })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          const allInWorkspace = res.body.data.every((t: any) => 
+            t.project.workspace.id === workspaceId
+          );
+          expect(allInWorkspace).toBe(true);
+        });
+    });
+
+    it('should filter tasks by parentTaskId', async () => {
+      // Create a subtask
+      await prismaService.task.create({
+        data: {
+          title: 'Subtask',
+          projectId,
+          statusId,
+          parentTaskId,
+          taskNumber: 10,
+          slug: `${projectSlug}-10`,
+        },
+      });
+
+      return request(app.getHttpServer())
+        .get('/api/tasks')
+        .query({ organizationId, parentTaskId })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          const allAreSubtasks = res.body.data.every((t: any) => 
+            t.parentTaskId === parentTaskId
+          );
+          expect(allAreSubtasks).toBe(true);
+          expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+        });
+    });
+
+    it('should filter tasks by parentTaskId=null', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks')
+        .query({ organizationId, parentTaskId: 'null' })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          const allAreMainTasks = res.body.data.every((t: any) => 
+            t.parentTaskId === null
+          );
+          expect(allAreMainTasks).toBe(true);
+        });
+    });
+
     it('should test pagination (limit)', () => {
       return request(app.getHttpServer())
         .get('/api/tasks')
@@ -343,7 +412,7 @@ describe('TasksController (e2e)', () => {
   });
 
   describe('/tasks/by-status (GET)', () => {
-    it('should get tasks grouped by status', () => {
+    it('should get tasks grouped by status and validate meta data', () => {
       return request(app.getHttpServer())
         .get('/api/tasks/by-status')
         .query({ slug: projectSlug })
@@ -352,6 +421,11 @@ describe('TasksController (e2e)', () => {
         .expect((res) => {
           expect(res.body).toHaveProperty('data');
           expect(Array.isArray(res.body.data)).toBe(true);
+          expect(res.body).toHaveProperty('meta');
+          expect(res.body.meta).toHaveProperty('totalTasks');
+          expect(res.body.meta).toHaveProperty('loadedTasks');
+          expect(res.body.meta).toHaveProperty('totalStatuses');
+          expect(res.body.meta).toHaveProperty('fetchedAt');
         });
     });
   });
@@ -608,6 +682,24 @@ describe('TasksController (e2e)', () => {
         });
     });
 
+    it('should delete multiple tasks with excludedIds', async () => {
+      const t1 = await prismaService.task.create({
+        data: { title: 'Delete Me 3', projectId, statusId, taskNumber: 103, slug: `${projectSlug}-103` }
+      });
+      const t2 = await prismaService.task.create({
+        data: { title: 'Delete Me 4', projectId, statusId, taskNumber: 104, slug: `${projectSlug}-104` }
+      });
+
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-delete')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ taskIds: [t1.id, t2.id], excludedIds: [t2.id], projectId })
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.deletedCount).toBe(1);
+        });
+    });
+
     it('should fail with empty list of IDs and all=false', () => {
       return request(app.getHttpServer())
         .post('/api/tasks/bulk-delete')
@@ -666,6 +758,21 @@ describe('TasksController (e2e)', () => {
         .expect((res) => {
           expect(res.body.deletedCount).toBeGreaterThanOrEqual(1);
         });
+    });
+
+    it('should delete all tasks in project except excludedIds with all=true', async () => {
+      const tKeep = await prismaService.task.create({
+        data: { title: 'Keep Me', projectId, statusId, taskNumber: 105, slug: `${projectSlug}-105` }
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/tasks/bulk-delete')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ projectId, all: true, excludedIds: [tKeep.id] })
+        .expect(HttpStatus.OK);
+      
+      const keptTask = await prismaService.task.findUnique({ where: { id: tKeep.id } });
+      expect(keptTask).not.toBeNull();
     });
   });
 
