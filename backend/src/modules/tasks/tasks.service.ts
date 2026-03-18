@@ -655,6 +655,23 @@ export class TasksService {
     let orderBy: any = { taskNumber: 'desc' };
     if (sortBy === 'dueIn' || sortBy === 'dueDate') {
       orderBy = { dueDate: sortOrder === 'asc' ? 'asc' : 'desc' };
+    } else if (sortBy) {
+      const validSortFields = [
+        'createdAt',
+        'updatedAt',
+        'completedAt',
+        'priority',
+        'storyPoints',
+        'title',
+        'taskNumber',
+      ];
+      if (validSortFields.includes(sortBy)) {
+        orderBy = { [sortBy]: sortOrder === 'asc' ? 'asc' : 'desc' };
+      } else if (sortBy === 'status') {
+        orderBy = { status: { name: sortOrder === 'asc' ? 'asc' : 'desc' } };
+      } else if (sortBy === 'commentsCount') {
+        orderBy = { comments: { _count: sortOrder === 'asc' ? 'asc' : 'desc' } };
+      }
     }
     // Execute query and count in transaction
     const [tasks, total] = await this.prisma.$transaction([
@@ -843,6 +860,23 @@ export class TasksService {
     let orderBy: any = { taskNumber: 'desc' };
     if (sortBy === 'dueIn' || sortBy === 'dueDate') {
       orderBy = { dueDate: sortOrder === 'asc' ? 'asc' : 'desc' };
+    } else if (sortBy) {
+      const validSortFields = [
+        'createdAt',
+        'updatedAt',
+        'completedAt',
+        'priority',
+        'storyPoints',
+        'title',
+        'taskNumber',
+      ];
+      if (validSortFields.includes(sortBy)) {
+        orderBy = { [sortBy]: sortOrder === 'asc' ? 'asc' : 'desc' };
+      } else if (sortBy === 'status') {
+        orderBy = { status: { name: sortOrder === 'asc' ? 'asc' : 'desc' } };
+      } else if (sortBy === 'commentsCount') {
+        orderBy = { comments: { _count: sortOrder === 'asc' ? 'asc' : 'desc' } };
+      }
     }
 
     const tasks = await this.prisma.task.findMany({

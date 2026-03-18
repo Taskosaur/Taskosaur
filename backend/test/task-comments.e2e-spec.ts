@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, HttpStatus } from '@nestjs/common';
+import { INestApplication, HttpStatus, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma/prisma.service';
@@ -27,6 +27,14 @@ describe('TaskCommentsController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
     await app.init();
     prismaService = app.get<PrismaService>(PrismaService);
     jwtService = app.get<JwtService>(JwtService);
@@ -255,6 +263,66 @@ describe('TaskCommentsController (e2e)', () => {
     });
   });
 
+  describe('/task-comments (POST) - Mentions Hardening', () => {
+    let mentionedUser: any;
+
+    beforeAll(async () => {
+      mentionedUser = await prismaService.user.create({
+        data: {
+          email: `mentioned-${Date.now()}@example.com`,
+          password: 'Password123!',
+          firstName: 'Mentioned',
+          lastName: 'User',
+          username: `mentioned_${Date.now()}`,
+          role: Role.MEMBER,
+        },
+      });
+      // Add to organization so they can be notified
+      await prismaService.organizationMember.create({
+        data: {
+          organizationId: organizationId,
+          userId: mentionedUser.id,
+          role: Role.MEMBER,
+        },
+      });
+    });
+
+    afterAll(async () => {
+      await prismaService.notification.deleteMany({ where: { userId: mentionedUser.id } });
+      await prismaService.organizationMember.deleteMany({ where: { userId: mentionedUser.id } });
+      await prismaService.user.delete({ where: { id: mentionedUser.id } });
+    });
+
+    it('should notify mentioned user but NOT on email addresses', async () => {
+      const content = `Hello @${mentionedUser.username}, please check user@example.com`;
+      const createDto: CreateTaskCommentDto = {
+        content,
+        taskId: taskId,
+      };
+
+      await request(app.getHttpServer())
+        .post('/api/task-comments')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.CREATED);
+
+      // Check notifications for mentionedUser
+      const notifications = await prismaService.notification.findMany({
+        where: { 
+          userId: mentionedUser.id,
+          type: 'MENTION'
+        }
+      });
+
+      // Should have 1 notification for the valid mention, and 0 for the email address
+      expect(notifications.length).toBe(1);
+      expect(notifications[0].message).toContain(`mentioned you`);
+      
+      // Also verify that "example.com" was not treated as a mention (if there was a user with that name)
+      // This is implicit since we only have one MENTION notification for this user.
+    });
+  });
+
   describe('/task-comments (Unauthorized Access)', () => {
     let otherUser: any;
     let otherUserToken: string;
@@ -292,6 +360,21 @@ describe('TaskCommentsController (e2e)', () => {
         .delete(`/api/task-comments/${commentId}`)
         .set('Authorization', `Bearer ${otherUserToken}`)
         .expect(HttpStatus.FORBIDDEN);
+    });
+  });
+
+  describe('/task-comments (POST) - Validation', () => {
+    it('should fail to create a comment with empty content', () => {
+      const createDto = {
+        content: '',
+        taskId: taskId,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/task-comments')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.BAD_REQUEST);
     });
   });
 
