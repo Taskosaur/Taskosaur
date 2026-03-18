@@ -115,26 +115,38 @@ export class TaskCommentsService {
     notifiedUserIds.add(authorId); // Don't notify author
 
     // 2. Handle Mentions
-    const mentionRegex = /@([\w.-]+)/g;
+    const mentionRegex = /(?:^|\s)@([\w.-]+)\b/g;
     const matches = [...comment.content.matchAll(mentionRegex)];
     const usernames = [...new Set(matches.map((m) => m[1]))];
 
-    for (const username of usernames) {
-      const user = await this.usersService.findByUsername(username);
-      if (user && !notifiedUserIds.has(user.id)) {
-        await this.notificationsService.createNotification({
-          title: 'You were mentioned',
-          message: `${comment.author.firstName} mentioned you in a comment on "${task.title}"`,
-          type: NotificationType.MENTION,
-          userId: user.id,
-          organizationId,
-          entityType: 'Task',
-          entityId: task.id,
-          actionUrl: `/tasks/${task.id}`,
-          priority: NotificationPriority.HIGH,
-          createdBy: authorId,
+    if (usernames.length > 0) {
+      const mentionedUsers = await this.prisma.user.findMany({
+        where: {
+          username: { in: usernames },
+        },
+        select: { id: true, username: true },
+      });
+
+      const mentionNotifications = mentionedUsers
+        .filter((user) => !notifiedUserIds.has(user.id))
+        .map((user) => {
+          notifiedUserIds.add(user.id);
+          return this.notificationsService.createNotification({
+            title: 'You were mentioned',
+            message: `${comment.author.firstName} mentioned you in a comment on "${task.title}"`,
+            type: NotificationType.MENTION,
+            userId: user.id,
+            organizationId,
+            entityType: 'Task',
+            entityId: task.id,
+            actionUrl: `/tasks/${task.id}`,
+            priority: NotificationPriority.HIGH,
+            createdBy: authorId,
+          });
         });
-        notifiedUserIds.add(user.id);
+
+      if (mentionNotifications.length > 0) {
+        await Promise.all(mentionNotifications);
       }
     }
 
