@@ -363,10 +363,8 @@ function WorkspaceTasksContent() {
         ...(selectedReporters.length > 0 && {
           reporters: selectedReporters.join(","),
         }),
-        ...((sortField === 'dueDate' || sortField === 'dueIn') && {
-          sortBy: sortField,
-          sortOrder: sortOrder,
-        }),
+        sortBy: sortField,
+        sortOrder: sortOrder,
 
         page: currentPage,
         limit: pageSize,
@@ -394,6 +392,8 @@ function WorkspaceTasksContent() {
     selectedReporters,
     validateRequiredData,
     getAllTasks,
+    sortField,
+    sortOrder,
   ]);
 
   const loadGanttData = useCallback(async () => {
@@ -445,12 +445,6 @@ function WorkspaceTasksContent() {
     }
   }, [workspace?.organizationId, workspace?.id, selectedAssignees, selectedReporters]);
 
-  useEffect(() => {
-    if (workspace?.organizationId && workspace?.id && (sortField === 'dueDate' || sortField === 'dueIn')) {
-      loadTasks();
-    }
-  }, [sortField, sortOrder]);
-
   const previousFiltersRef = useRef({
     page: currentPage,
     pageSize,
@@ -459,6 +453,8 @@ function WorkspaceTasksContent() {
     statuses: selectedStatuses.join(","),
     priorities: selectedPriorities.join(","),
     types: selectedTaskTypes.join(","),
+    sortField,
+    sortOrder,
   });
 
   useEffect(() => {
@@ -471,6 +467,8 @@ function WorkspaceTasksContent() {
       statuses: selectedStatuses.join(","),
       priorities: selectedPriorities.join(","),
       types: selectedTaskTypes.join(","),
+      sortField,
+      sortOrder,
     };
     const filtersChanged =
       JSON.stringify(currentFilters) !== JSON.stringify(previousFiltersRef.current);
@@ -490,6 +488,8 @@ function WorkspaceTasksContent() {
     selectedPriorities,
     selectedTaskTypes,
     validateRequiredData,
+    sortField,
+    sortOrder,
   ]);
 
   const projectFilters = useMemo(

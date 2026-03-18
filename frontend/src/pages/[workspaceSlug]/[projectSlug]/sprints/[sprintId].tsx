@@ -17,7 +17,7 @@ import { TokenManager } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
 import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
-import { CheckSquare, Flame, User, Users } from "lucide-react";
+import { CheckSquare, Flame, User, Users, Download } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import SortingManager, { SortOrder, SortField } from "@/components/tasks/SortIngManager";
 import { useProjectContext } from "@/contexts/project-context";
@@ -29,7 +29,14 @@ import ErrorState from "@/components/common/ErrorState";
 import { useLayout } from "@/contexts/layout-context";
 import NotFound from "@/pages/404";
 import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
-
+import ActionButton from "@/components/common/ActionButton";
+import { exportTasksToCSV, exportTasksToPDF } from "@/utils/exportUtils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/DropdownMenu";
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
 
@@ -300,6 +307,8 @@ const SprintTasksTable = () => {
         ...(debouncedSearchQuery.trim() && {
           search: debouncedSearchQuery.trim(),
         }),
+        sortBy: sortField,
+        sortOrder: sortOrder,
         page: currentPage,
         limit: pageSize,
       };
@@ -341,6 +350,8 @@ const SprintTasksTable = () => {
     tasks,
     workspaceSlug,
     projectSlug,
+    sortField,
+    sortOrder,
   ]);
 
   const loadKanbanData = useCallback(
@@ -501,7 +512,7 @@ const SprintTasksTable = () => {
 
   useEffect(() => {
     loadTasks();
-  }, [selectedAssignees, selectedReporters]);
+  }, [selectedAssignees, selectedReporters, selectedStatuses, selectedPriorities, debouncedSearchQuery, sortField, sortOrder]);
 
   useEffect(() => {
     if (currentView === "kanban") {
@@ -788,6 +799,18 @@ const SprintTasksTable = () => {
     });
     return sorted;
   }, [tasks, sortOrder, sortField]);
+  const handleExport = useCallback((format: "csv" | "pdf" = "csv") => {
+    const dateStr = new Date().toISOString().split("T")[0];
+    if (format === "csv") {
+      exportTasksToCSV(sortedTasks, columns, `sprint_tasks_export_${dateStr}.csv`, {
+        showProject: true,
+      });
+    } else {
+      exportTasksToPDF(sortedTasks, columns, `sprint_tasks_export_${dateStr}.pdf`, {
+        showProject: true,
+      });
+    }
+  }, [columns, sortedTasks]);
 
   const renderContent = () => {
     if (isInitialLoad || isLoading) {
@@ -984,6 +1007,24 @@ const SprintTasksTable = () => {
                       onRemoveColumn={handleRemoveColumn}
                       setKabBanSettingModal={setKabBanSettingModal}
                     />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <ActionButton
+                          leftIcon={<Download className="w-4 h-4" />}
+                          variant="outline"
+                        >
+                          {t("common:export")}
+                        </ActionButton>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-[var(--popover)] border-[var(--border)]">
+                        <DropdownMenuItem onClick={() => handleExport("csv")}>
+                          Export as CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExport("pdf")}>
+                          Export as PDF
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 )}
                 {isAuth &&

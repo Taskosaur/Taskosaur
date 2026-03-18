@@ -427,10 +427,8 @@ function ProjectTasksContent() {
         ...(debouncedSearchQuery.trim() && {
           search: debouncedSearchQuery.trim(),
         }),
-        ...((sortField === 'dueDate' || sortField === 'dueIn') && {
-          sortBy: sortField,
-          sortOrder: sortOrder,
-        }),
+        sortBy: sortField,
+        sortOrder: sortOrder,
         page: currentPage,
         limit: pageSize,
       };
@@ -456,6 +454,8 @@ function ProjectTasksContent() {
     selectedTaskTypes,
     validateRequiredData,
     getAllTasks,
+    sortField,
+    sortOrder,
   ]);
 
   useEffect(() => {
@@ -583,12 +583,6 @@ function ProjectTasksContent() {
   }, [currentOrganizationId, project?.id, isAuth]);
 
   useEffect(() => {
-    if (isAuth && currentOrganizationId && project?.id && (sortField === 'dueDate' || sortField === 'dueIn')) {
-      loadTasks();
-    }
-  }, [sortField, sortOrder]);
-
-  useEffect(() => {
     if (project?.id && isAuth) {
       loadStatusData();
       loadProjectMembers();
@@ -602,6 +596,8 @@ function ProjectTasksContent() {
     statuses: selectedStatuses.join(","),
     priorities: selectedPriorities.join(","),
     types: selectedTaskTypes.join(","),
+    sortField,
+    sortOrder,
   });
 
   useEffect(() => {
@@ -615,6 +611,8 @@ function ProjectTasksContent() {
       statuses: selectedStatuses.join(","),
       priorities: selectedPriorities.join(","),
       types: selectedTaskTypes.join(","),
+      sortField,
+      sortOrder,
     };
 
     const filtersChanged =
@@ -639,6 +637,8 @@ function ProjectTasksContent() {
     selectedStatuses,
     selectedPriorities,
     selectedTaskTypes,
+    sortField,
+    sortOrder,
   ]);
 
   useEffect(() => {
@@ -730,13 +730,13 @@ function ProjectTasksContent() {
     () =>
       isAuth
         ? availableStatuses.map((status) => ({
-            id: status.id,
-            label: status.name,
-            value: status.id,
-            selected: selectedStatuses.includes(status.id),
-            count: status._count?.tasks || 0,
-            color: status.color || "#6b7280",
-          }))
+          id: status.id,
+          label: status.name,
+          value: status.id,
+          selected: selectedStatuses.includes(status.id),
+          count: status._count?.tasks || 0,
+          color: status.color || "#6b7280",
+        }))
         : [],
     [availableStatuses, selectedStatuses, isAuth]
   );
@@ -783,10 +783,10 @@ function ProjectTasksContent() {
       selected: selectedAssignees.includes(member.user.id),
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
-            Array.isArray(task.assignees)
-              ? task.assignees.some((assignee) => assignee.id === member.user.id)
-              : false
-          ).length
+          Array.isArray(task.assignees)
+            ? task.assignees.some((assignee) => assignee.id === member.user.id)
+            : false
+        ).length
         : 0,
       email: member?.user?.email,
     }));
@@ -800,10 +800,10 @@ function ProjectTasksContent() {
       selected: selectedReporters.includes(member.user.id),
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
-            Array.isArray(task.reporters)
-              ? task.reporters.some((reporter) => reporter.id === member.user.id)
-              : false
-          ).length
+          Array.isArray(task.reporters)
+            ? task.reporters.some((reporter) => reporter.id === member.user.id)
+            : false
+        ).length
         : 0,
       email: member?.user?.email,
     }));
@@ -905,62 +905,62 @@ function ProjectTasksContent() {
     () =>
       isAuth
         ? [
-            createSection({
-              id: "status",
-              title: t("filters.status"),
-              icon: CheckSquare,
-              data: statusFilters,
-              selectedIds: selectedStatuses,
-              searchable: false,
-              onToggle: safeToggleStatus,
-              onSelectAll: () => setSelectedStatuses(statusFilters.map((s) => s.id)),
-              onClearAll: () => setSelectedStatuses([]),
-            }),
-            createSection({
-              id: "priority",
-              title: t("filters.priority"),
-              icon: Flame,
-              data: priorityFilters,
-              selectedIds: selectedPriorities,
-              searchable: false,
-              onToggle: safeTogglePriority,
-              onSelectAll: () => setSelectedPriorities(priorityFilters.map((p) => p.id)),
-              onClearAll: () => setSelectedPriorities([]),
-            }),
-            createSection({
-              id: "type",
-              title: t("filters.type"),
-              icon: Shapes,
-              data: taskTypeFilters,
-              selectedIds: selectedTaskTypes,
-              searchable: false,
-              onToggle: safeToggleTaskType,
-              onSelectAll: () => setSelectedTaskTypes(taskTypeFilters.map((t) => t.id)),
-              onClearAll: () => setSelectedTaskTypes([]),
-            }),
-            createSection({
-              id: "assignee",
-              title: t("filters.assignee"),
-              icon: User,
-              data: assigneeFilters,
-              selectedIds: selectedAssignees,
-              searchable: true,
-              onToggle: toggleAssignee,
-              onSelectAll: () => setSelectedAssignees(assigneeFilters.map((a) => a.id)),
-              onClearAll: () => setSelectedAssignees([]),
-            }),
-            createSection({
-              id: "reporter",
-              title: t("filters.reporter"),
-              icon: Users,
-              data: reporterFilters,
-              selectedIds: selectedReporters,
-              searchable: true,
-              onToggle: toggleReporter,
-              onSelectAll: () => setSelectedReporters(reporterFilters.map((r) => r.id)),
-              onClearAll: () => setSelectedReporters([]),
-            }),
-          ]
+          createSection({
+            id: "status",
+            title: t("filters.status"),
+            icon: CheckSquare,
+            data: statusFilters,
+            selectedIds: selectedStatuses,
+            searchable: false,
+            onToggle: safeToggleStatus,
+            onSelectAll: () => setSelectedStatuses(statusFilters.map((s) => s.id)),
+            onClearAll: () => setSelectedStatuses([]),
+          }),
+          createSection({
+            id: "priority",
+            title: t("filters.priority"),
+            icon: Flame,
+            data: priorityFilters,
+            selectedIds: selectedPriorities,
+            searchable: false,
+            onToggle: safeTogglePriority,
+            onSelectAll: () => setSelectedPriorities(priorityFilters.map((p) => p.id)),
+            onClearAll: () => setSelectedPriorities([]),
+          }),
+          createSection({
+            id: "type",
+            title: t("filters.type"),
+            icon: Shapes,
+            data: taskTypeFilters,
+            selectedIds: selectedTaskTypes,
+            searchable: false,
+            onToggle: safeToggleTaskType,
+            onSelectAll: () => setSelectedTaskTypes(taskTypeFilters.map((t) => t.id)),
+            onClearAll: () => setSelectedTaskTypes([]),
+          }),
+          createSection({
+            id: "assignee",
+            title: t("filters.assignee"),
+            icon: User,
+            data: assigneeFilters,
+            selectedIds: selectedAssignees,
+            searchable: true,
+            onToggle: toggleAssignee,
+            onSelectAll: () => setSelectedAssignees(assigneeFilters.map((a) => a.id)),
+            onClearAll: () => setSelectedAssignees([]),
+          }),
+          createSection({
+            id: "reporter",
+            title: t("filters.reporter"),
+            icon: Users,
+            data: reporterFilters,
+            selectedIds: selectedReporters,
+            searchable: true,
+            onToggle: toggleReporter,
+            onSelectAll: () => setSelectedReporters(reporterFilters.map((r) => r.id)),
+            onClearAll: () => setSelectedReporters([]),
+          }),
+        ]
         : [],
     [
       isAuth,
