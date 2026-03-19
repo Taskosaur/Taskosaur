@@ -454,24 +454,32 @@ export class NotificationsService {
       this.prisma.notification.count({ where: whereClause }),
     ]);
 
-    // Fetch entity details for each notification
-    const notificationsWithEntities = await Promise.all(
-      notifications.map(async (notification) => {
-        let entityDetails: any = null;
+    // Fetch entity details with deduplication to avoid N+1 queries
+    const entityCache = new Map<string, any>();
+    const uniqueEntities = new Map<string, { type: string; id: string }>();
 
-        if (notification.entityId && notification.entityType) {
-          entityDetails = await this.getEntityDetails(
-            notification.entityType,
-            notification.entityId,
-          );
+    for (const n of notifications) {
+      if (n.entityId && n.entityType) {
+        const key = `${n.entityType}:${n.entityId}`;
+        if (!uniqueEntities.has(key)) {
+          uniqueEntities.set(key, { type: n.entityType, id: n.entityId });
         }
+      }
+    }
 
-        return {
-          ...notification,
-          entity: entityDetails,
-        };
+    await Promise.all(
+      Array.from(uniqueEntities.entries()).map(async ([key, { type, id }]) => {
+        entityCache.set(key, await this.getEntityDetails(type, id));
       }),
     );
+
+    const notificationsWithEntities = notifications.map((notification) => ({
+      ...notification,
+      entity:
+        notification.entityId && notification.entityType
+          ? entityCache.get(`${notification.entityType}:${notification.entityId}`) || null
+          : null,
+    }));
 
     // Get summary statistics
     const [unreadCount, typeStats, priorityStats] = await Promise.all([
