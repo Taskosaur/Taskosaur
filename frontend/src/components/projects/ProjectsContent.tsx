@@ -758,11 +758,17 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                         </Button>
                       </div>
                     )}
-                    <p className="text-sm text-[var(--muted-foreground)] pointer-events-auto">
-                      {t("showing_projects", { count: projects.length })}
-                      {searchInput && t("matching", { query: searchInput })}
-                      {totalActiveFilters > 0 &&
-                        t("with_filters", { count: totalActiveFilters })}
+                    <p className="flex items-center gap-2 text-sm text-[var(--muted-foreground)] pointer-events-auto">
+                      {isFetching ? (
+                        <div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          {t("showing_projects", { count: projects.length })}
+                          {searchInput && t("matching", { query: searchInput })}
+                          {totalActiveFilters > 0 &&
+                            t("with_filters", { count: totalActiveFilters })}
+                        </>
+                      )}
                     </p>
                   </div>
                 )}
