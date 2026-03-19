@@ -62,6 +62,7 @@ interface KanbanTask {
     name: string;
     color: string;
   }>;
+  isArchived?: boolean;
 }
 
 interface User {

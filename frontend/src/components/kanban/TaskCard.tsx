@@ -31,6 +31,7 @@ interface KanbanTask {
     name: string;
     color: string;
   }>;
+  isArchived?: boolean;
 }
 
 interface TaskCardProps {
@@ -151,12 +152,19 @@ const TaskCard: React.FC<TaskCardProps> = ({
     >
       <CardContent className="p-4">
         {/* Task Title */}
-        <h4
-          className="text-sm font-medium mb-2 line-clamp-1"
-          style={{ color: "var(--foreground)" }}
-        >
-          {task.title}
-        </h4>
+        <div className="flex items-center gap-2 mb-2">
+          <h4
+            className="text-sm font-medium line-clamp-1"
+            style={{ color: "var(--foreground)" }}
+          >
+            {task.title}
+          </h4>
+          {task.isArchived && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 flex-shrink-0">
+              Archived
+            </span>
+          )}
+        </div>
 
         {/* Category Tag */}
         <div className="mb-3">

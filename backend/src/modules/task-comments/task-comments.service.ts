@@ -183,14 +183,18 @@ export class TaskCommentsService {
 
     await this.checkAccess(userId, taskId);
 
-    // Verify task exists
+    // Verify task exists and is not archived
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
-      select: { id: true, title: true },
+      select: { id: true, title: true, isArchived: true },
     });
 
     if (!task) {
       throw new NotFoundException('Task not found');
+    }
+
+    if (task.isArchived) {
+      throw new ForbiddenException('Cannot add comments to an archived task');
     }
 
     // Verify author exists
@@ -514,6 +518,16 @@ export class TaskCommentsService {
 
     // Check if user has access to the project
     await this.checkAccess(userId, comment.taskId);
+
+    // Verify task is not archived
+    const task = await this.prisma.task.findUnique({
+      where: { id: comment.taskId },
+      select: { isArchived: true },
+    });
+
+    if (task && task.isArchived) {
+      throw new ForbiddenException('Cannot update comments on an archived task');
+    }
 
     if (comment.authorId !== userId) {
       throw new ForbiddenException('You can only edit your own comments');

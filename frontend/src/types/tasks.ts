@@ -53,6 +53,8 @@ export interface Task {
   updatedBy?: string;
   createdAt?: string;
   updatedAt?: string;
+  isArchived?: boolean;
+  archivedBy?: string | null;
   // Recurring task fields
   isRecurring?: boolean;
   recurringTaskId?: string | null;

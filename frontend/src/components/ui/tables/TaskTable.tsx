@@ -1374,6 +1374,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
                     <span className="text-muted text-xs">#{task.taskNumber}</span>
                   </Badge>
                   {task.isRecurring && <RecurringBadge />}
+                  {task.isArchived && (
+                    <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5 flex-shrink-0 bg-gray-100 text-gray-600">
+                      Archived
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 mt-2">
                   {task._count?.comments > 0 && (

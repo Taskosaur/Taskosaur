@@ -53,6 +53,7 @@ interface KanbanTask {
     name: string;
     color: string;
   }>;
+  isArchived?: boolean;
 }
 
 interface KanbanBoardProps {
@@ -112,6 +113,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 reporters: currentTask.reporters,
                 labels: (currentTask as any).labels || (currentTask as any).tags || task.labels,
                 updatedAt: currentTask.updatedAt,
+                isArchived: currentTask.isArchived,
               }
             : task
         ),

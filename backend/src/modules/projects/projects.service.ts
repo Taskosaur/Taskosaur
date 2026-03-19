@@ -720,9 +720,21 @@ export class ProjectsService {
     }
 
     try {
-      await this.prisma.project.update({
-        where: { id },
-        data: { archive: true },
+      await this.prisma.$transaction(async (tx) => {
+        // Archive all tasks in the project
+        await tx.task.updateMany({
+          where: { projectId: id },
+          data: {
+            isArchived: true,
+            archivedBy: userId,
+          },
+        });
+
+        // Archive the project
+        await tx.project.update({
+          where: { id },
+          data: { archive: true },
+        });
       });
     } catch (error: any) {
       console.error(error);
@@ -756,9 +768,21 @@ export class ProjectsService {
     }
 
     try {
-      await this.prisma.project.update({
-        where: { id },
-        data: { archive: false },
+      await this.prisma.$transaction(async (tx) => {
+        // Unarchive all tasks in the project
+        await tx.task.updateMany({
+          where: { projectId: id },
+          data: {
+            isArchived: false,
+            archivedBy: null,
+          },
+        });
+
+        // Unarchive the project
+        await tx.project.update({
+          where: { id },
+          data: { archive: false },
+        });
       });
     } catch (error: any) {
       console.error(error);
