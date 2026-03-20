@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
+import { CsvImportModal } from "@/components/tasks/CsvImportModal";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { useProject } from "@/contexts/project-context";
 import { useTask } from "@/contexts/task-context";
@@ -21,7 +22,7 @@ import Pagination from "@/components/common/Pagination";
 import { ColumnManager } from "@/components/tasks/ColumnManager";
 import SortingManager, { SortField, SortOrder } from "@/components/tasks/SortIngManager";
 import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
-import { CheckSquare, Flame, Folder, User, Users, Download, Shapes } from "lucide-react";
+import { CheckSquare, Flame, Folder, User, Users, Download, Upload, Shapes } from "lucide-react";
 import { TaskPriorities, TaskTypeIcon } from "@/utils/data/taskData";
 import Tooltip from "@/components/common/ToolTip";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
@@ -107,6 +108,7 @@ function WorkspaceTasksContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isNewTaskModalOpen, setNewTaskModalOpen] = useState(false);
+  const [isCsvImportOpen, setCsvImportOpen] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
   const [userAccess, setUserAccess] = useState(null);
 
@@ -1117,6 +1119,13 @@ function WorkspaceTasksContent() {
                   }}
                   workspaceSlug={workspaceSlug as string}
                 />
+                <CsvImportModal
+                  isOpen={isCsvImportOpen}
+                  onClose={() => setCsvImportOpen(false)}
+                  onImportComplete={loadTasks}
+                  workspaceId={workspace?.id}
+                  workspaceName={workspace?.name}
+                />
               </div>
             }
           />
@@ -1196,7 +1205,15 @@ function WorkspaceTasksContent() {
                           Export as PDF
                         </DropdownMenuItem>
                       </DropdownMenuContent>
-                    </DropdownMenu>                  </div>
+                    </DropdownMenu>
+
+                    <ActionButton
+                      leftIcon={<Upload className="w-4 h-4" />}
+                      variant="outline"
+                      onClick={() => setCsvImportOpen(true)}
+                    >
+                      Import
+                    </ActionButton>                  </div>
                 )}
               </>
             }

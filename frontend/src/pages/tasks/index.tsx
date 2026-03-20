@@ -7,6 +7,7 @@ import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
+import { CsvImportModal } from "@/components/tasks/CsvImportModal";
 import TaskListView from "@/components/tasks/views/TaskListView";
 import TaskGanttView from "@/components/tasks/views/TaskGanttView";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -31,6 +32,7 @@ import {
   User,
   Users,
   Download,
+  Upload,
   Shapes,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -97,6 +99,7 @@ function TasksPageContent() {
   const [urlParamsInitialized, setUrlParamsInitialized] = useState(false);
   const [statusFilterEnabled, setStatusFilterEnabled] = useState(false);
   const [isNewTaskModalOpen, setNewTaskModalOpen] = useState(false);
+  const [isCsvImportOpen, setCsvImportOpen] = useState(false);
 
   // View and display state
   type ViewType = "list" | "kanban" | "gantt";
@@ -866,21 +869,21 @@ function TasksPageContent() {
         if (!a.dueDate && !b.dueDate) return 0;
         if (!a.dueDate) return 1;
         if (!b.dueDate) return -1;
-        
+
         const aDue = new Date(a.dueDate).getTime() - now;
         const bDue = new Date(b.dueDate).getTime() - now;
         return sortOrder === "asc" ? aDue - bDue : bDue - aDue;
       }
-      
+
       // Handle date fields
       if (["createdAt", "updatedAt", "completedAt", "dueDate", "timeline"].includes(sortField)) {
         const aVal = a[sortField];
         const bVal = b[sortField];
-        
+
         if (!aVal && !bVal) return 0;
         if (!aVal) return 1;
         if (!bVal) return -1;
-        
+
         const aTime = new Date(aVal).getTime();
         const bTime = new Date(bVal).getTime();
         return sortOrder === "asc" ? aTime - bTime : bTime - aTime;
@@ -1071,8 +1074,8 @@ function TasksPageContent() {
                         type="button"
                         onClick={() => setGanttViewMode(mode)}
                         className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${ganttViewMode === mode
-                            ? "bg-blue-500 text-white"
-                            : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
+                          ? "bg-blue-500 text-white"
+                          : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
                           }`}
                       >
                         {t(`views.${mode}`)}
@@ -1114,6 +1117,14 @@ function TasksPageContent() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+
+                    <ActionButton
+                      leftIcon={<Upload className="w-4 h-4" />}
+                      variant="outline"
+                      onClick={() => setCsvImportOpen(true)}
+                    >
+                      Import
+                    </ActionButton>
                   </div>
                 )}
               </>
@@ -1139,6 +1150,11 @@ function TasksPageContent() {
       )}
 
       <NewTaskModal isOpen={isNewTaskModalOpen} onClose={() => setNewTaskModalOpen(false)} />
+      <CsvImportModal
+        isOpen={isCsvImportOpen}
+        onClose={() => setCsvImportOpen(false)}
+        onImportComplete={loadTasks}
+      />
     </div>
   );
 }

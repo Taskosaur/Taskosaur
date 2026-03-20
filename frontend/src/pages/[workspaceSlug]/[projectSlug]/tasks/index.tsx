@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
+import { CsvImportModal } from "@/components/tasks/CsvImportModal";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
 import { useProjectContext } from "@/contexts/project-context";
 import { useTask } from "@/contexts/task-context";
@@ -22,7 +23,7 @@ import Pagination from "@/components/common/Pagination";
 import { KanbanBoard } from "@/components/tasks/KanbanBoard";
 import { ColumnManager } from "@/components/tasks/ColumnManager";
 import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
-import { CheckSquare, Flame, User, Users, Download, Shapes } from "lucide-react";
+import { CheckSquare, Flame, User, Users, Download, Upload, Shapes } from "lucide-react";
 import SortingManager, { SortOrder, SortField } from "@/components/tasks/SortIngManager";
 import Tooltip from "@/components/common/ToolTip";
 import { TokenManager } from "@/lib/api";
@@ -114,6 +115,7 @@ function ProjectTasksContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isNewTaskModalOpen, setNewTaskModalOpen] = useState(false);
+  const [isCsvImportOpen, setCsvImportOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [selectedTaskTypes, setSelectedTaskTypes] = useState<string[]>([]);
@@ -745,13 +747,13 @@ function ProjectTasksContent() {
     () =>
       isAuth
         ? availablePriorities.map((priority) => ({
-            id: priority.id,
-            name: priority.name,
-            value: priority.value,
-            selected: selectedPriorities.includes(priority.value),
-            count: displayTasks.filter((task) => task.priority === priority.value).length,
-            color: priority.color,
-          }))
+          id: priority.id,
+          name: priority.name,
+          value: priority.value,
+          selected: selectedPriorities.includes(priority.value),
+          count: displayTasks.filter((task) => task.priority === priority.value).length,
+          color: priority.color,
+        }))
         : [],
     [availablePriorities, selectedPriorities, displayTasks, isAuth]
   );
@@ -760,17 +762,17 @@ function ProjectTasksContent() {
     () =>
       isAuth
         ? availableTaskTypes.map((type) => {
-            const typeKey = type as keyof typeof TaskTypeIcon;
-            const iconData = TaskTypeIcon[typeKey];
-            return {
-              id: type,
-              name: type.charAt(0) + type.slice(1).toLowerCase(),
-              value: type,
-              selected: selectedTaskTypes.includes(type),
-              count: displayTasks.filter((task) => task.type === type).length,
-              color: iconData?.color || "text-gray-500",
-            };
-          })
+          const typeKey = type as keyof typeof TaskTypeIcon;
+          const iconData = TaskTypeIcon[typeKey];
+          return {
+            id: type,
+            name: type.charAt(0) + type.slice(1).toLowerCase(),
+            value: type,
+            selected: selectedTaskTypes.includes(type),
+            count: displayTasks.filter((task) => task.type === type).length,
+            color: iconData?.color || "text-gray-500",
+          };
+        })
         : [],
     [availableTaskTypes, selectedTaskTypes, displayTasks, isAuth]
   );
@@ -986,10 +988,10 @@ function ProjectTasksContent() {
 
   const totalActiveFilters = isAuth
     ? selectedStatuses.length +
-      selectedPriorities.length +
-      selectedTaskTypes.length +
-      selectedAssignees.length +
-      selectedReporters.length
+    selectedPriorities.length +
+    selectedTaskTypes.length +
+    selectedAssignees.length +
+    selectedReporters.length
     : 0;
 
   const clearAllFilters = useCallback(() => {
@@ -1329,6 +1331,15 @@ function ProjectTasksContent() {
                   workspaceSlug={workspaceSlug as string}
                   projectSlug={projectSlug as string}
                 />
+                <CsvImportModal
+                  isOpen={isCsvImportOpen}
+                  onClose={() => setCsvImportOpen(false)}
+                  onImportComplete={loadTasks}
+                  workspaceId={workspace?.id}
+                  workspaceName={workspace?.name}
+                  projectId={project?.id}
+                  projectName={project?.name}
+                />
               </div>
             }
           />
@@ -1373,9 +1384,9 @@ function ProjectTasksContent() {
                         type="button"
                         onClick={() => setGanttViewMode(mode)}
                         className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${ganttViewMode === mode
-                            ? "bg-blue-500 text-white"
-                            : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
-                        }`}
+                          ? "bg-blue-500 text-white"
+                          : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
+                          }`}
                       >
                         {t(`views.${mode}`)}
                       </button>
@@ -1416,6 +1427,14 @@ function ProjectTasksContent() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+
+                    <ActionButton
+                      leftIcon={<Upload className="w-4 h-4" />}
+                      variant="outline"
+                      onClick={() => setCsvImportOpen(true)}
+                    >
+                      Import
+                    </ActionButton>
                   </div>
                 )}
                 {/* Kanban view controls - Only for authenticated users */}
