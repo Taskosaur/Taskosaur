@@ -153,13 +153,22 @@ export const exportTasksToCSV = (
   document.body.removeChild(link);
 };
 
+const escapeHtml = (str: string): string =>
+  str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
 export const exportTasksToPDF = (
-  tasks: Task[], 
-  columns: ColumnConfig[], 
+  tasks: Task[],
+  columns: ColumnConfig[],
   filename = "tasks_export.pdf",
   options: { showProject?: boolean } = {}
 ) => {
   const { showProject = false } = options;
+  const safeFilename = filename.replace(/[^\w.\- ]+/g, "_");
 
   const defaultColumns: ColumnConfig[] = [
     { id: "title", label: "Task", visible: true },
@@ -180,7 +189,7 @@ export const exportTasksToPDF = (
     <!DOCTYPE html>
     <html>
     <head>
-      <title>${filename}</title>
+      <title>${safeFilename}</title>
       <style>
         body { font-family: sans-serif; padding: 20px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -198,13 +207,13 @@ export const exportTasksToPDF = (
       <table>
         <thead>
           <tr>
-            ${allExportColumns.map(col => `<th>${col.label}</th>`).join('')}
+            ${allExportColumns.map(col => `<th>${escapeHtml(col.label)}</th>`).join('')}
           </tr>
         </thead>
         <tbody>
           ${tasks.map(task => `
             <tr>
-              ${allExportColumns.map(col => `<td>${extractTaskValueForCSV(task, col.id)}</td>`).join('')}
+              ${allExportColumns.map(col => `<td>${escapeHtml(extractTaskValueForCSV(task, col.id))}</td>`).join('')}
             </tr>
           `).join('')}
         </tbody>
