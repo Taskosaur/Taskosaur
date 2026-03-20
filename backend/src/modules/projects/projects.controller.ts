@@ -300,7 +300,7 @@ export class ProjectsController {
   @Roles(Role.MANAGER, Role.OWNER)
   @HttpCode(HttpStatus.NO_CONTENT)
   archiveProject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.projectsService.archiveProject(id, user.id);
+    return this.projectsService.archiveProject(id, user.id, user.role as Role);
   }
 
   @Patch('unarchive/:id')
@@ -312,7 +312,7 @@ export class ProjectsController {
   @Roles(Role.MANAGER, Role.OWNER)
   @HttpCode(HttpStatus.NO_CONTENT)
   unarchiveProject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.projectsService.unarchiveProject(id, user.id);
+    return this.projectsService.unarchiveProject(id, user.id, user.role as Role);
   }
 
   // Chart endpoints - require project access

@@ -712,11 +712,14 @@ export class ProjectsService {
     }
   }
 
-  async archiveProject(id: string, userId: string): Promise<void> {
-    const { isElevated } = await this.accessControl.getProjectAccess(id, userId);
+  async archiveProject(id: string, userId: string, userRole?: Role): Promise<void> {
+    // SUPER_ADMIN has unrestricted access
+    if (userRole !== Role.SUPER_ADMIN) {
+      const { isElevated } = await this.accessControl.getProjectAccess(id, userId);
 
-    if (!isElevated) {
-      throw new ForbiddenException('Insufficient permissions to archive project');
+      if (!isElevated) {
+        throw new ForbiddenException('Insufficient permissions to archive project');
+      }
     }
 
     try {
@@ -745,11 +748,14 @@ export class ProjectsService {
     }
   }
 
-  async unarchiveProject(id: string, userId: string): Promise<void> {
-    const { isElevated } = await this.accessControl.getProjectAccess(id, userId);
+  async unarchiveProject(id: string, userId: string, userRole?: Role): Promise<void> {
+    // SUPER_ADMIN has unrestricted access
+    if (userRole !== Role.SUPER_ADMIN) {
+      const { isElevated } = await this.accessControl.getProjectAccess(id, userId);
 
-    if (!isElevated) {
-      throw new ForbiddenException('Insufficient permissions to unarchive project');
+      if (!isElevated) {
+        throw new ForbiddenException('Insufficient permissions to unarchive project');
+      }
     }
 
     const project = await this.prisma.project.findUnique({
