@@ -207,8 +207,11 @@ export class WorkspacesController {
   @ApiResponse({ status: 404, description: 'Workspace not found' })
   @Scope('WORKSPACE', 'id')
   @Roles(Role.MANAGER, Role.OWNER)
-  archiveWorkspace(@Param('id', ParseUUIDPipe) id: string) {
-    return this.workspacesService.archiveWorkspace(id);
+  archiveWorkspace(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { id: string; role: Role },
+  ) {
+    return this.workspacesService.archiveWorkspace(id, user.id, user.role);
   }
 
   @Patch('unarchive/:id')
@@ -217,9 +220,13 @@ export class WorkspacesController {
   @ApiParam({ name: 'id', description: 'Workspace ID (UUID)' })
   @ApiResponse({ status: 204, description: 'Workspace unarchived successfully' })
   @ApiResponse({ status: 404, description: 'Workspace not found' })
-  @Roles(Role.OWNER, Role.SUPER_ADMIN)
-  unarchiveWorkspace(@Param('id', ParseUUIDPipe) id: string) {
-    return this.workspacesService.unarchiveWorkspace(id);
+  @Scope('WORKSPACE', 'id')
+  @Roles(Role.MANAGER, Role.OWNER)
+  unarchiveWorkspace(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { id: string; role: Role },
+  ) {
+    return this.workspacesService.unarchiveWorkspace(id, user.id, user.role);
   }
 
   // Chart endpoints - require workspace membership

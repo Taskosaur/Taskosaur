@@ -474,11 +474,71 @@ export class WorkspacesService {
     }
   }
 
-  async archiveWorkspace(id: string): Promise<void> {
-    try {
+  async archiveWorkspace(id: string, userId: string, userRole?: Role): Promise<void> {
+    // SUPER_ADMIN has unrestricted access
+    if (userRole === Role.SUPER_ADMIN) {
       await this.prisma.workspace.update({
         where: { id },
         data: { archive: true },
+      });
+      return;
+    }
+
+    // Verify workspace exists
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id },
+      select: { organizationId: true, archive: true },
+    });
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    // Check organization-level access (must be OWNER or MANAGER)
+    const orgAccess = await this.accessControl.getOrgAccess(workspace.organizationId, userId);
+    const isOrgManager = orgAccess.isElevated || orgAccess.role === Role.OWNER;
+
+    // Check workspace-level access (must be OWNER or MANAGER)
+    const workspaceMember = await this.prisma.workspaceMember.findUnique({
+      where: { userId_workspaceId: { userId, workspaceId: id } },
+      select: { role: true },
+    });
+    const isWorkspaceManager =
+      workspaceMember &&
+      (workspaceMember.role === Role.OWNER || workspaceMember.role === Role.MANAGER);
+
+    // User must have manager+ access at both org AND workspace level
+    if (!isOrgManager || !isWorkspaceManager) {
+      throw new ForbiddenException(
+        'Insufficient permissions to archive workspace. Requires MANAGER or OWNER role at both organization and workspace levels.',
+      );
+    }
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // Archive all projects in the workspace
+        await tx.project.updateMany({
+          where: { workspaceId: id, archive: false },
+          data: { archive: true },
+        });
+
+        // Archive all tasks in those projects
+        await tx.task.updateMany({
+          where: {
+            project: { workspaceId: id },
+            isArchived: false,
+          },
+          data: {
+            isArchived: true,
+            archivedBy: userId,
+          },
+        });
+
+        // Archive the workspace
+        await tx.workspace.update({
+          where: { id },
+          data: { archive: true },
+        });
       });
     } catch (error) {
       console.error(error);
@@ -489,11 +549,71 @@ export class WorkspacesService {
     }
   }
 
-  async unarchiveWorkspace(id: string): Promise<void> {
-    try {
+  async unarchiveWorkspace(id: string, userId: string, userRole?: Role): Promise<void> {
+    // SUPER_ADMIN has unrestricted access
+    if (userRole === Role.SUPER_ADMIN) {
       await this.prisma.workspace.update({
         where: { id },
         data: { archive: false },
+      });
+      return;
+    }
+
+    // Verify workspace exists and get organization info
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id },
+      select: { organizationId: true, archive: true },
+    });
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    // Check organization-level access (must be OWNER or MANAGER)
+    const orgAccess = await this.accessControl.getOrgAccess(workspace.organizationId, userId);
+    const isOrgManager = orgAccess.isElevated || orgAccess.role === Role.OWNER;
+
+    // Check workspace-level access (must be OWNER or MANAGER)
+    const workspaceMember = await this.prisma.workspaceMember.findUnique({
+      where: { userId_workspaceId: { userId, workspaceId: id } },
+      select: { role: true },
+    });
+    const isWorkspaceManager =
+      workspaceMember &&
+      (workspaceMember.role === Role.OWNER || workspaceMember.role === Role.MANAGER);
+
+    // User must have manager+ access at both org AND workspace level
+    if (!isOrgManager || !isWorkspaceManager) {
+      throw new ForbiddenException(
+        'Insufficient permissions to unarchive workspace. Requires MANAGER or OWNER role at both organization and workspace levels.',
+      );
+    }
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // Unarchive all projects in the workspace
+        await tx.project.updateMany({
+          where: { workspaceId: id, archive: true },
+          data: { archive: false },
+        });
+
+        // Unarchive all tasks in those projects
+        await tx.task.updateMany({
+          where: {
+            project: { workspaceId: id },
+            isArchived: true,
+          },
+          data: {
+            isArchived: false,
+            archivedBy: null,
+          },
+        });
+
+        // Unarchive the workspace
+        await tx.workspace.update({
+          where: { id },
+          data: { archive: false },
+        });
       });
     } catch (error) {
       console.error(error);
