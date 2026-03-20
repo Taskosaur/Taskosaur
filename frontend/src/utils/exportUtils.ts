@@ -94,63 +94,73 @@ function extractTaskValueForCSV(task: Task, columnId: string): string {
 }
 
 export const exportTasksToCSV = (
-  tasks: Task[], 
-  columns: ColumnConfig[], 
+  tasks: Task[],
+  columns: ColumnConfig[],
   filename = "tasks_export.csv",
   options: { showProject?: boolean } = {}
 ) => {
-  const { showProject = false } = options;
+  try {
+    const { showProject = false } = options;
 
-  const defaultColumns: ColumnConfig[] = [
-    { id: "title", label: "Task", visible: true },
-    ...(showProject ? [{ id: "project", label: "Project", visible: true }] : []),
-    { id: "priority", label: "Priority", visible: true },
-    { id: "status", label: "Status", visible: true },
-    { id: "assignees", label: "Assignees", visible: true },
-    { id: "dueDate", label: "Due Date", visible: true },
-  ];
+    const defaultColumns: ColumnConfig[] = [
+      { id: "title", label: "Task", visible: true },
+      ...(showProject ? [{ id: "project", label: "Project", visible: true }] : []),
+      { id: "priority", label: "Priority", visible: true },
+      { id: "status", label: "Status", visible: true },
+      { id: "assignees", label: "Assignees", visible: true },
+      { id: "dueDate", label: "Due Date", visible: true },
+    ];
 
-  // Combine default columns with visible dynamic columns
-  const visibleDynamicColumns = columns.filter((col) => col.visible);
-  const allExportColumns = [...defaultColumns, ...visibleDynamicColumns];
+    // Combine default columns with visible dynamic columns
+    const visibleDynamicColumns = columns.filter((col) => col.visible);
+    const allExportColumns = [...defaultColumns, ...visibleDynamicColumns];
 
-  if (allExportColumns.length === 0) {
-    console.warn("No visible columns to export");
-    return;
+    if (allExportColumns.length === 0) {
+      console.warn("No visible columns to export");
+      return;
+    }
+
+    // Create header row
+    const headers = allExportColumns.map((col) => col.label);
+
+    // Create data rows
+    const rows = tasks.map((task) =>
+      allExportColumns.map((col) => {
+        let cellValue = extractTaskValueForCSV(task, col.id);
+
+        // Escape generic CSV characters (quotes, commas, newlines)
+        if (typeof cellValue === 'string') {
+            cellValue = cellValue.replace(/"/g, '""'); // Escape double quotes
+            if (cellValue.search(/("|,|\n)/g) >= 0) {
+                cellValue = `"${cellValue}"`;
+            }
+        }
+        return cellValue;
+      })
+    );
+
+    // Combine header and rows
+    const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+
+    // Trigger download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+
+    try {
+      link.click();
+    } finally {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  } catch (error) {
+    console.error("Failed to export tasks to CSV:", error);
+    alert("Failed to export tasks. Please try again.");
   }
-  
-  // Create header row
-  const headers = allExportColumns.map((col) => col.label);
-  
-  // Create data rows
-  const rows = tasks.map((task) =>
-    allExportColumns.map((col) => {
-      let cellValue = extractTaskValueForCSV(task, col.id);
-      
-      // Escape generic CSV characters (quotes, commas, newlines)
-      if (typeof cellValue === 'string') {
-          cellValue = cellValue.replace(/"/g, '""'); // Escape double quotes
-          if (cellValue.search(/("|,|\n)/g) >= 0) {
-              cellValue = `"${cellValue}"`;
-          }
-      }
-      return cellValue;
-    })
-  );
-
-  // Combine header and rows
-  const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
-
-  // Trigger download
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", filename);
-  link.style.visibility = "hidden";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
 };
 
 const escapeHtml = (str: string): string =>
@@ -167,72 +177,85 @@ export const exportTasksToPDF = (
   filename = "tasks_export.pdf",
   options: { showProject?: boolean } = {}
 ) => {
-  const { showProject = false } = options;
-  const safeFilename = filename.replace(/[^\w.\- ]+/g, "_");
+  try {
+    const { showProject = false } = options;
+    const safeFilename = filename.replace(/[^\w.\- ]+/g, "_");
 
-  const defaultColumns: ColumnConfig[] = [
-    { id: "title", label: "Task", visible: true },
-    ...(showProject ? [{ id: "project", label: "Project", visible: true }] : []),
-    { id: "priority", label: "Priority", visible: true },
-    { id: "status", label: "Status", visible: true },
-    { id: "assignees", label: "Assignees", visible: true },
-    { id: "dueDate", label: "Due Date", visible: true },
-  ];
+    const defaultColumns: ColumnConfig[] = [
+      { id: "title", label: "Task", visible: true },
+      ...(showProject ? [{ id: "project", label: "Project", visible: true }] : []),
+      { id: "priority", label: "Priority", visible: true },
+      { id: "status", label: "Status", visible: true },
+      { id: "assignees", label: "Assignees", visible: true },
+      { id: "dueDate", label: "Due Date", visible: true },
+    ];
 
-  const visibleDynamicColumns = columns.filter((col) => col.visible);
-  const allExportColumns = [...defaultColumns, ...visibleDynamicColumns];
+    const visibleDynamicColumns = columns.filter((col) => col.visible);
+    const allExportColumns = [...defaultColumns, ...visibleDynamicColumns];
 
-  if (allExportColumns.length === 0) return;
+    if (allExportColumns.length === 0) {
+      console.warn("No visible columns to export");
+      return;
+    }
 
-  // Create a simple HTML table for printing
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>${safeFilename}</title>
-      <style>
-        body { font-family: sans-serif; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 12px; }
-        th { background-color: #f4f4f4; }
-        h1 { font-size: 18px; }
-        @media print {
-          @page { margin: 1cm; }
-          .no-print { display: none; }
-        }
-      </style>
-    </head>
-    <body>
-      <h1>Tasks Export - ${new Date().toLocaleDateString()}</h1>
-      <table>
-        <thead>
-          <tr>
-            ${allExportColumns.map(col => `<th>${escapeHtml(col.label)}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${tasks.map(task => `
+    // Create a simple HTML table for printing
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${safeFilename}</title>
+        <style>
+          body { font-family: sans-serif; padding: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 12px; }
+          th { background-color: #f4f4f4; }
+          h1 { font-size: 18px; }
+          @media print {
+            @page { margin: 1cm; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Tasks Export - ${new Date().toLocaleDateString()}</h1>
+        <table>
+          <thead>
             <tr>
-              ${allExportColumns.map(col => `<td>${escapeHtml(extractTaskValueForCSV(task, col.id))}</td>`).join('')}
+              ${allExportColumns.map(col => `<th>${escapeHtml(col.label)}</th>`).join('')}
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      <script>
-        window.onload = () => {
-          window.print();
-          // Optional: window.close(); 
-        };
-      </script>
-    </body>
-    </html>
-  `;
+          </thead>
+          <tbody>
+            ${tasks.map(task => `
+              <tr>
+                ${allExportColumns.map(col => `<td>${escapeHtml(extractTaskValueForCSV(task, col.id))}</td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <script>
+          window.onload = () => {
+            window.print();
+            // Optional: window.close();
+          };
+        </script>
+      </body>
+      </html>
+    `;
 
-  const printWindow = window.open('', '_blank');
-  if (printWindow) {
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-  } else {
-    alert("Please allow popups to export as PDF");
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      try {
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+      } catch (error) {
+        console.error("Failed to write PDF content:", error);
+        alert("Failed to generate PDF. Please try again.");
+      }
+    } else {
+      alert("Please allow popups to export as PDF");
+    }
+  } catch (error) {
+    console.error("Failed to export tasks to PDF:", error);
+    alert("Failed to export tasks to PDF. Please try again.");
   }
 };
