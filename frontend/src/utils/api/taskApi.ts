@@ -81,6 +81,28 @@ export const taskApi = {
       throw error;
     }
   },
+  bulkCreateTasks: async (data: {
+    projectId: string;
+    statusId: string;
+    tasks: Array<{
+      title: string;
+      description?: string;
+      type?: string;
+      priority?: string;
+      dueDate?: string;
+    }>;
+  }): Promise<{ created: number; failed: number }> => {
+    try {
+      const response = await api.post<{ created: number; failed: number }>(
+        "/tasks/bulk-create",
+        data
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Bulk create tasks error:", error);
+      throw error;
+    }
+  },
   createTaskWithAttachements: async (taskData: CreateTaskRequest): Promise<Task> => {
     try {
       const formData = new FormData();
@@ -258,13 +280,13 @@ export const taskApi = {
       if (params?.workspaceId) queryParams.append("workspaceId", params.workspaceId);
       if (params?.projectId) queryParams.append("projectId", params.projectId);
       if (params?.sprintId) queryParams.append("sprintId", params.sprintId);
-      
+
       if (params?.includeSubtasks) {
         queryParams.append("parentTaskId", "all");
       } else if (params?.parentTaskId) {
         queryParams.append("parentTaskId", params.parentTaskId);
       }
-      
+
       if (params?.priorities) queryParams.append("priorities", params.priorities);
       if (params?.statuses) queryParams.append("statuses", params.statuses);
       if (params?.search) queryParams.append("search", params.search);

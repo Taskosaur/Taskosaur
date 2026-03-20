@@ -10,6 +10,7 @@ import { Task, TaskPriority, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { BulkCreateTasksDto } from './dto/bulk-create-tasks.dto';
 import { TasksByStatus, TasksByStatusParams } from './dto/task-by-status.dto';
 import { AccessControlService } from 'src/common/access-control.utils';
 import { StorageService } from '../storage/storage.service';
@@ -241,6 +242,104 @@ export class TasksService {
 
       return task;
     });
+  }
+
+  async bulkCreate(
+    dto: BulkCreateTasksDto,
+    userId: string,
+  ): Promise<{ created: number; failed: number }> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: dto.projectId },
+      select: {
+        id: true,
+        slug: true,
+        workspaceId: true,
+        workspace: {
+          select: {
+            organizationId: true,
+            organization: { select: { ownerId: true } },
+          },
+        },
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const projectAccess = await this.accessControl.getProjectAccess(dto.projectId, userId);
+    if (!projectAccess.canChange) {
+      throw new ForbiddenException('Insufficient permissions to create tasks in this project');
+    }
+
+    // Verify status exists
+    const status = await this.prisma.taskStatus.findUnique({
+      where: { id: dto.statusId },
+    });
+    if (!status) {
+      throw new BadRequestException('Invalid status ID');
+    }
+
+    // Find default sprint
+    const defaultSprint = await this.prisma.sprint.findFirst({
+      where: { projectId: project.id, isDefault: true },
+    });
+    const sprintId = defaultSprint?.id;
+
+    const tasks = dto.tasks;
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const projects = await tx.$queryRaw<{ slug: string }[]>`
+          SELECT slug FROM projects WHERE id = ${dto.projectId}::uuid FOR UPDATE
+        `;
+
+        if (!projects || projects.length === 0) {
+          throw new NotFoundException('Project not found');
+        }
+
+        const projectSlug = projects[0].slug;
+
+        const lastTask = await tx.task.findFirst({
+          where: { projectId: dto.projectId },
+          orderBy: { taskNumber: 'desc' },
+          select: { taskNumber: true },
+        });
+
+        let nextNumber = lastTask ? lastTask.taskNumber + 1 : 1;
+        const taskRecords = tasks.map((item) => {
+          const num = nextNumber++;
+          return {
+            title: sanitizeText(item.title),
+            description: item.description ? sanitizeHtml(item.description) : undefined,
+            type: item.type || 'TASK',
+            priority: item.priority || 'MEDIUM',
+            dueDate: item.dueDate ? new Date(item.dueDate) : undefined,
+            projectId: dto.projectId,
+            statusId: dto.statusId,
+            createdBy: userId,
+            updatedBy: userId,
+            taskNumber: num,
+            slug: `${projectSlug}-${num}`,
+            sprintId: sprintId,
+            isRecurring: false,
+          };
+        });
+
+        const result = await tx.task.createMany({
+          data: taskRecords as any,
+          skipDuplicates: true,
+        });
+
+        return {
+          created: result.count,
+          failed: tasks.length - result.count,
+        };
+      },
+      {
+        timeout: 60000,
+      },
+    );
   }
   // Updated Task Create with Attachments
   async createWithAttachments(

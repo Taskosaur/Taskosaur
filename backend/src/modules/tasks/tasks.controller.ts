@@ -35,6 +35,7 @@ import { Roles } from 'src/common/decorator/roles.decorator';
 import { Scope } from 'src/common/decorator/scope.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { BulkDeleteTasksDto } from './dto/bulk-delete-tasks.dto';
+import { BulkCreateTasksDto } from './dto/bulk-create-tasks.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { RecurrenceConfigDto } from './dto/recurrence-config.dto';
 import { User } from '../users/entities/user.entity';
@@ -64,6 +65,17 @@ export class TasksController {
   })
   create(@CurrentUser() user: User, @Body() createTaskDto: CreateTaskDto) {
     return this.tasksService.create(createTaskDto, user.id);
+  }
+
+  @Post('bulk-create')
+  @ApiOperation({ summary: 'Bulk create tasks from CSV import' })
+  @ApiBody({ type: BulkCreateTasksDto })
+  @ApiResponse({ status: 201, description: 'Tasks created successfully' })
+  @Scope('PROJECT', 'projectId')
+  @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER)
+  @HttpCode(201)
+  async bulkCreate(@Body() bulkCreateDto: BulkCreateTasksDto, @CurrentUser() user: User) {
+    return this.tasksService.bulkCreate(bulkCreateDto, user.id);
   }
 
   @Post('bulk-delete')
