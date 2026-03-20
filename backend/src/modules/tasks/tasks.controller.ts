@@ -74,10 +74,7 @@ export class TasksController {
   @Scope('PROJECT', 'projectId')
   @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER)
   @HttpCode(201)
-  async bulkCreate(
-    @Body() bulkCreateDto: BulkCreateTasksDto,
-    @CurrentUser() user: User,
-  ) {
+  async bulkCreate(@Body() bulkCreateDto: BulkCreateTasksDto, @CurrentUser() user: User) {
     return this.tasksService.bulkCreate(bulkCreateDto, user.id);
   }
 
