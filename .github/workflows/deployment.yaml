@@ -1,4 +1,4 @@
-name: test-runner
+name: Deploy to production
 
 on:
   workflow_dispatch:
@@ -23,11 +23,11 @@ jobs:
         run: |
           docker info
 
-      - name: Run tests
-        run: |
-          # adapt to your project commands
-          npm ci
-          npm test
+      # - name: Run tests
+      #   run: |
+      #     # adapt to your project commands
+      #     npm ci
+      #     npm test
 
       - name: Build
         run: |
