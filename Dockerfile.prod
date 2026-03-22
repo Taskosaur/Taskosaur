@@ -5,12 +5,17 @@ FROM node:22-slim AS builder
 
 WORKDIR /app/taskosaur
 
-# Install build dependencies + curl/unzip required for Bun installation
+# Install build dependencies:
+#   curl/unzip — required for Bun installation
+#   python3/make/g++ — required by node-gyp to compile native addons (e.g. bcrypt)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     git \
     unzip \
+    python3 \
+    make \
+    g++ \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -36,6 +41,10 @@ COPY frontend/package.json ./frontend/
 # --ignore-scripts skips postinstall/prepare (Husky setup — not needed in Docker).
 # Prisma client generation runs later as part of the build step, not here.
 RUN bun install --ignore-scripts
+
+# Compile bcrypt's native addon with node-gyp.
+# bun install --ignore-scripts skips this, so we rebuild it explicitly.
+RUN npm rebuild bcrypt --build-from-source
 
 # Copy the rest of the source after the cached install layer
 COPY backend ./backend
@@ -64,7 +73,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy entrypoint script (before switching to www-data)
 COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN chmod 755 /entrypoint.sh
 
 # Change ownership of /app to www-data
 RUN chown -R www-data:www-data /app
