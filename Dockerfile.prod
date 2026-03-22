@@ -25,9 +25,10 @@ ENV BUILD_NUMBER=${BUILD_NUMBER}
 # Invalidate cache when BUILD_NUMBER changes
 RUN echo "Build number: ${BUILD_NUMBER}" > /tmp/build_number.txt
 
-# Copy only package manifests before installing so that the bun install layer
-# is cached and re-used on source-only changes
-COPY package.json ./
+# Copy package manifests AND the lockfile before installing.
+# Bun reads package-lock.json to pin exact versions, ensuring the same
+# dependency tree as npm. The install layer is cached until these files change.
+COPY package.json package-lock.json ./
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
 
