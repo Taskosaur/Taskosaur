@@ -5,15 +5,18 @@ FROM node:22-slim AS builder
 
 WORKDIR /app/taskosaur
 
-# Update npm to latest version
-RUN npm install -g npm@latest
-
-# Install build dependencies in a single layer
+# Install build dependencies + curl/unzip required for Bun installation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    curl \
     git \
+    unzip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install Bun — used as the package manager only; Node.js remains the runtime
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
 
 # Accept build number as build argument
 ARG BUILD_NUMBER
@@ -22,21 +25,26 @@ ENV BUILD_NUMBER=${BUILD_NUMBER}
 # Invalidate cache when BUILD_NUMBER changes
 RUN echo "Build number: ${BUILD_NUMBER}" > /tmp/build_number.txt
 
-# Copy package files first for better layer caching
+# Copy only package manifests before installing so that the bun install layer
+# is cached and re-used on source-only changes
 COPY package.json ./
+COPY backend/package.json ./backend/
+COPY frontend/package.json ./frontend/
 
-# Copy workspace directories
+# Install all dependencies with Bun.
+# --ignore-scripts skips postinstall/prepare (Husky setup — not needed in Docker).
+# Prisma client generation runs later as part of the build step, not here.
+RUN bun install --ignore-scripts
+
+# Copy the rest of the source after the cached install layer
 COPY backend ./backend
 COPY frontend ./frontend
 COPY scripts ./scripts
 
-# Install dependencies
-RUN npm install
-
 # Set dummy DATABASE_URL for Prisma generate (required by Prisma during build)
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
 
-# Build the distribution
+# Build the distribution (runs next build + nest build + packages dist/)
 RUN npm run build:dist
 
 # =============================================================================
