@@ -54,11 +54,6 @@ wait_for_redis() {
 echo ""
 echo "🔧 Bootstrapping Application..."
 
-# Install dependencies
-echo ""
-echo "📦 Installing dependencies..."
-npm install
-
 # Wait for dependencies
 wait_for_postgres
 wait_for_redis
