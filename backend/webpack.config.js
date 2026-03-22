@@ -200,15 +200,10 @@ class PackageAndDependenciesPlugin {
         console.log('[PackageAndDependenciesPlugin] Writing package.json to dist directory...');
         fs.writeFileSync(distPackageJsonPath, JSON.stringify(distPackageJson, null, 2) + '\n');
 
-        // Step 6: Install production deps in dist directory
-        // Use Bun when available (faster), fall back to npm otherwise
-        console.log('[PackageAndDependenciesPlugin] Installing production dependencies in dist directory...');
+        // Step 6: Run npm install in dist directory (skip postinstall to avoid prisma generate error)
+        console.log('[PackageAndDependenciesPlugin] Running npm install in dist directory...');
         console.log('[PackageAndDependenciesPlugin] This may take a few moments...');
-        const hasBun = (() => { try { execSync('bun --version', { stdio: 'ignore' }); return true; } catch { return false; } })();
-        const installCmd = hasBun
-          ? 'bun install --production --ignore-scripts'
-          : 'npm install --production --no-audit --no-fund --ignore-scripts';
-        execSync(installCmd, {
+        execSync('npm install --production --no-audit --no-fund --ignore-scripts', {
           cwd: distDir,
           stdio: 'inherit',
         });
