@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { S3Service } from './s3.service';
 import * as fs from 'fs';
 import * as path from 'path';
+import { randomBytes } from 'crypto';
 import { Response } from 'express';
 
 @Injectable()
@@ -103,8 +104,9 @@ export class StorageService {
   ): Promise<{ url: string | null; key: string; size: number }> {
     // Sanitize folder and fileName to prevent path injection
     const safeFolder = this.sanitizeFolderPath(folder);
-    const fileName = file.originalname;
-    const safeFileName = this.sanitizePathComponent(fileName);
+    const ext = path.extname(file.originalname) || '';
+    const randomName = randomBytes(5).toString('hex') + ext; // 10-char hex + original extension
+    const safeFileName = this.sanitizePathComponent(randomName);
 
     const key = `${safeFolder}/${safeFileName}`;
     if (this.useS3) {
