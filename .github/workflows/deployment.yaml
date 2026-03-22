@@ -29,9 +29,9 @@ jobs:
       #     npm ci
       #     npm test
 
-      - name: Build
-        run: |
-          npm run build
+      # - name: Build
+      #   run: |
+      #     npm run docker:build:prod
 
       - name: Run production compose
         working-directory: ${{ github.workspace }}
