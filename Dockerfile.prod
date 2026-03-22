@@ -5,15 +5,18 @@ FROM node:22-slim AS builder
 
 WORKDIR /app/taskosaur
 
-# Update npm to latest version
-RUN npm install -g npm@latest
-
-# Install build dependencies in a single layer
+# Install build dependencies + curl/unzip for Bun installation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    curl \
     git \
+    unzip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install Bun for fast dependency installs (replaces npm install)
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
 
 # Accept build number as build argument
 ARG BUILD_NUMBER
@@ -22,16 +25,19 @@ ENV BUILD_NUMBER=${BUILD_NUMBER}
 # Invalidate cache when BUILD_NUMBER changes
 RUN echo "Build number: ${BUILD_NUMBER}" > /tmp/build_number.txt
 
-# Copy package files first for better layer caching
+# Copy only package manifests first — the install layer is cached until these change,
+# so editing source files no longer triggers a full reinstall
 COPY package.json ./
+COPY backend/package.json ./backend/
+COPY frontend/package.json ./frontend/
 
-# Copy workspace directories
+# Install all dependencies using Bun
+RUN bun install
+
+# Copy the rest of the source after install
 COPY backend ./backend
 COPY frontend ./frontend
 COPY scripts ./scripts
-
-# Install dependencies
-RUN npm install
 
 # Set dummy DATABASE_URL for Prisma generate (required by Prisma during build)
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
