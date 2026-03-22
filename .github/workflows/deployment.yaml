@@ -1,0 +1,73 @@
+name: test-runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    env:
+      # configurable via workflow_dispatch inputs or repo secrets set in UI
+      # defaults can be overridden in `with` when triggering
+      COMPOSE_PROJECT_NAME: taskosaur
+      ENVIRONMENT: production
+      APP_ENV: production
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup docker (optional)
+        run: |
+          docker info
+
+      - name: Run tests
+        run: |
+          # adapt to your project commands
+          npm ci
+          npm test
+
+      - name: Build
+        run: |
+          npm run build
+
+      - name: Run production compose
+        working-directory: ${{ github.workspace }}
+        env:
+          # pass necessary environment variables for production deployment
+          # these should be set as secrets in the repository settings
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+          JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+          JWT_REFRESH_EXPIRES_IN: ${{ secrets.JWT_REFRESH_EXPIRES_IN }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          EMAIL_DOMAIN: ${{ secrets.EMAIL_DOMAIN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+        run: |
+          docker-compose -f docker-compose.prod.yml down --remove-orphans
+          docker-compose -f docker-compose.prod.yml pull
+          docker-compose -f docker-compose.prod.yml up -d
+
+      - name: Verify running services
+        run: |
+          docker-compose -f docker-compose.prod.yml ps
+
+      - name: Done
+        run: echo "Deployment complete"
