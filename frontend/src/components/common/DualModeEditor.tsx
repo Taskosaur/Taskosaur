@@ -48,6 +48,7 @@ interface DualModeEditorProps {
   colorMode?: "light" | "dark";
   disabled?: boolean;
   onModeChange?: (mode: EditorMode) => void;
+  onImageUpload?: (file: File) => Promise<string>;
 }
 
 /**
@@ -178,6 +179,16 @@ function htmlToMarkdown(html: string): string {
   return markdown;
 }
 
+// Renders image entities inside the Draft.js editor
+function MediaComponent({ block, contentState }: { block: import("draft-js").ContentBlock; contentState: import("draft-js").ContentState }) {
+  const entityKey = block.getEntityAt(0);
+  if (!entityKey) return null;
+  const entity = contentState.getEntity(entityKey);
+  if (entity.getType() !== "IMAGE") return null;
+  const { src, alt } = entity.getData() as { src: string; alt?: string };
+  return <img src={src} alt={alt || "image"} style={{ maxWidth: "100%" }} />;
+}
+
 // Rich text editor inner component (loaded only on client)
 interface RichTextEditorInnerProps {
   value: string;
@@ -185,6 +196,7 @@ interface RichTextEditorInnerProps {
   placeholder: string;
   height: number;
   disabled: boolean;
+  onImageUpload?: (file: File) => Promise<string>;
 }
 
 function RichTextEditorInner({
@@ -193,6 +205,7 @@ function RichTextEditorInner({
   placeholder,
   height,
   disabled,
+  onImageUpload,
 }: RichTextEditorInnerProps) {
   // Import draft-js modules dynamically
   const [draftModules, setDraftModules] = useState<{
@@ -201,6 +214,7 @@ function RichTextEditorInner({
     RichUtils: typeof import("draft-js").RichUtils;
     ContentState: typeof import("draft-js").ContentState;
     convertToRaw: typeof import("draft-js").convertToRaw;
+    AtomicBlockUtils: typeof import("draft-js").AtomicBlockUtils;
     DefaultDraftBlockRenderMap: typeof import("draft-js").DefaultDraftBlockRenderMap;
     draftToHtml: typeof import("draftjs-to-html").default;
     htmlToDraft: typeof import("html-to-draftjs").default;
@@ -209,6 +223,7 @@ function RichTextEditorInner({
   const [editorState, setEditorState] = useState<import("draft-js").EditorState | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const lastEmittedValue = useRef<string>(value);
+  const editorStateRef = useRef(editorState);
 
   // Load draft-js modules on mount
   useEffect(() => {
@@ -225,6 +240,7 @@ function RichTextEditorInner({
         RichUtils: draftJs.RichUtils,
         ContentState: draftJs.ContentState,
         convertToRaw: draftJs.convertToRaw,
+        AtomicBlockUtils: draftJs.AtomicBlockUtils,
         DefaultDraftBlockRenderMap: draftJs.DefaultDraftBlockRenderMap,
         draftToHtml: draftToHtmlMod.default,
         htmlToDraft: htmlToDraftMod.default,
@@ -279,19 +295,55 @@ function RichTextEditorInner({
     (newState: import("draft-js").EditorState) => {
       if (!draftModules) return;
       setEditorState(newState);
+      editorStateRef.current = newState;
       const rawContent = draftModules.convertToRaw(newState.getCurrentContent());
-      const html = draftModules.draftToHtml(rawContent);
+      const html = draftModules.draftToHtml(rawContent, undefined, false, (entity: { type: string; data: Record<string, string> }) => {
+        if (entity.type === "IMAGE") {
+          return `<img src="${entity.data.src}" alt="${entity.data.alt || "image"}" style="max-width:100%" />`;
+        }
+      });
       const plainText = newState.getCurrentContent().getPlainText();
-      
+
       let newValue = "";
       if (plainText.trim() || html !== "<p></p>\n") {
         newValue = html;
       }
-      
+
       lastEmittedValue.current = newValue;
       onChange(newValue);
     },
     [draftModules, onChange]
+  );
+
+  const handlePastedFiles = useCallback(
+    (files: Blob[]): "handled" | "not-handled" => {
+      if (!onImageUpload || !draftModules) return "not-handled";
+      const imageFile = files.find((f) => f.type.startsWith("image/"));
+      if (!imageFile) return "not-handled";
+
+      onImageUpload(imageFile as File).then((url) => {
+        const currentState = editorStateRef.current;
+        if (!currentState) return;
+        const contentState = currentState.getCurrentContent();
+        const contentStateWithEntity = contentState.createEntity("IMAGE", "IMMUTABLE", { src: url });
+        const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
+        const stateWithEntity = draftModules.EditorState.set(currentState, { currentContent: contentStateWithEntity });
+        handleEditorChange(draftModules.AtomicBlockUtils.insertAtomicBlock(stateWithEntity, entityKey, " "));
+      });
+
+      return "handled";
+    },
+    [onImageUpload, draftModules, handleEditorChange]
+  );
+
+  const blockRendererFn = useCallback(
+    (block: import("draft-js").ContentBlock) => {
+      if (block.getType() === "atomic") {
+        return { component: MediaComponent, editable: false };
+      }
+      return null;
+    },
+    []
   );
 
   const toggleInlineStyle = useCallback(
@@ -433,6 +485,8 @@ function RichTextEditorInner({
           placeholder={placeholder}
           handleKeyCommand={handleKeyCommand}
           blockStyleFn={blockStyleFn}
+          blockRendererFn={blockRendererFn}
+          handlePastedFiles={handlePastedFiles}
           readOnly={disabled}
         />
       </div>
@@ -448,12 +502,15 @@ export default function DualModeEditor({
   colorMode = "light",
   disabled = false,
   onModeChange,
+  onImageUpload,
 }: DualModeEditorProps) {
   const [mode, setMode] = useState<EditorMode>("markdown");
   const [markdownValue, setMarkdownValue] = useState<string>("");
   const [richTextValue, setRichTextValue] = useState<string>("");
   const [isInitialized, setIsInitialized] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  // Ref so paste handlers always read the latest value without stale closure issues
+  const markdownValueRef = useRef<string>("");
 
   // Handle client-side mounting
   useEffect(() => {
@@ -477,20 +534,26 @@ export default function DualModeEditor({
           // Detect if value is HTML or markdown
           const isHtml = /<[a-z][\s\S]*>/i.test(value);
 
+          const md = isHtml ? htmlToMarkdown(value) : value;
+          const html = isHtml ? value : markdownToHtml(value);
           if (mode === "markdown") {
-            setMarkdownValue(isHtml ? htmlToMarkdown(value) : value);
-            setRichTextValue(isHtml ? value : markdownToHtml(value));
+            markdownValueRef.current = md;
+            setMarkdownValue(md);
+            setRichTextValue(html);
           } else {
-            setRichTextValue(isHtml ? value : markdownToHtml(value));
-            setMarkdownValue(isHtml ? htmlToMarkdown(value) : value);
+            setRichTextValue(html);
+            markdownValueRef.current = md;
+            setMarkdownValue(md);
           }
         } else if (!isInitialized) {
           // Only reset to empty on init, otherwise we might wipe user input
           // if the parent passes empty string temporarily
+          markdownValueRef.current = "";
           setMarkdownValue("");
           setRichTextValue("");
         } else if (value === "") {
            // Explicit clear from parent
+           markdownValueRef.current = "";
            setMarkdownValue("");
            setRichTextValue("");
         }
@@ -530,6 +593,7 @@ export default function DualModeEditor({
   const handleMarkdownChange = useCallback(
     (val: string | undefined) => {
       const newValue = val || "";
+      markdownValueRef.current = newValue;
       setMarkdownValue(newValue);
       onChange(newValue);
     },
@@ -543,6 +607,37 @@ export default function DualModeEditor({
       onChange(val);
     },
     [onChange]
+  );
+
+  // Handle image paste in markdown mode
+  const handleMarkdownPaste = useCallback(
+    (e: React.ClipboardEvent<HTMLDivElement>) => {
+      if (!onImageUpload) return;
+      const imageFiles = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
+      if (imageFiles.length === 0) return;
+
+      e.preventDefault();
+
+      // Capture insert position synchronously before any async work
+      const textarea = (e.target as HTMLElement).closest(".task-md-editor")?.querySelector("textarea");
+      const initialPos = textarea ? (textarea.selectionEnd ?? markdownValueRef.current.length) : markdownValueRef.current.length;
+
+      // Process images sequentially so each insertion uses the updated value from the previous one
+      let chain = Promise.resolve({ value: markdownValueRef.current, pos: initialPos });
+      imageFiles.forEach((file) => {
+        chain = chain.then(async ({ value, pos }) => {
+          const url = await onImageUpload(file);
+          const insertion = `![image](${url})`;
+          const newValue = value.slice(0, pos) + insertion + value.slice(pos);
+          const newPos = pos + insertion.length;
+          markdownValueRef.current = newValue;
+          setMarkdownValue(newValue);
+          onChange(newValue);
+          return { value: newValue, pos: newPos };
+        });
+      });
+    },
+    [onImageUpload, onChange]
   );
 
   // Show loading state during SSR
@@ -596,7 +691,7 @@ export default function DualModeEditor({
 
       {/* Editor Content */}
       {mode === "markdown" ? (
-        <div data-color-mode={colorMode} className="task-md-editor">
+        <div data-color-mode={colorMode} className="task-md-editor" onPaste={handleMarkdownPaste}>
           <MDEditor
             value={markdownValue}
             onChange={handleMarkdownChange}
@@ -617,6 +712,7 @@ export default function DualModeEditor({
           placeholder={placeholder}
           height={height}
           disabled={disabled}
+          onImageUpload={onImageUpload}
         />
       )}
     </div>

@@ -677,6 +677,18 @@ export default function TaskDetailClient({
     }
   };
 
+  const handleDescriptionImageUpload = async (file: File): Promise<string> => {
+    const attachment = await uploadAttachment(taskId, file);
+    const updatedAttachments = await getTaskAttachments(taskId, isAuth);
+    setAttachments(updatedAttachments || []);
+    // attachment.url is a backend-relative path (e.g. /tasks/{id}/file.png).
+    // Prefix with the API base so the browser resolves it correctly in all environments.
+    const { url } = attachment;
+    if (url.startsWith("http")) return url;
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000/api";
+    return `${apiBase}/uploads${url}`;
+  };
+
   const handleAddLabel = async (name: string, color: string) => {
     try {
       const projectId = task.projectId || task.project?.id;
@@ -1126,6 +1138,7 @@ export default function TaskDetailClient({
                     value={editTaskData.description}
                     onChange={(value) => handleTaskFieldChange("description", value)}
                     editMode={true}
+                    onImageUpload={handleDescriptionImageUpload}
                   />
                   <div className="flex items-center justify-end gap-4 mt-4">
                     <ActionButton
