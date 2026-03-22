@@ -29,9 +29,9 @@ jobs:
       #     npm ci
       #     npm test
 
-      - name: Build
-        run: |
-          npm run docker:build:prod
+      # - name: Build
+      #   run: |
+      #     npm run docker:build:prod
 
       - name: Run production compose
         working-directory: ${{ github.workspace }}
@@ -63,7 +63,7 @@ jobs:
         run: |
           docker-compose -f docker-compose.prod.yml down --remove-orphans
           docker-compose -f docker-compose.prod.yml pull
-          docker-compose -f docker-compose.prod.yml up -d
+          docker-compose -f docker-compose.prod.yml up -d --build
 
       - name: Verify running services
         run: |
