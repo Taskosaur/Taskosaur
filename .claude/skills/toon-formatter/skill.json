@@ -1,0 +1,34 @@
+{
+  "id": "toon-formatter",
+  "version": "1.0.0",
+  "category": "data",
+  "keywords": ["toon", "format", "token", "optimization", "json", "data"],
+  "dependencies": [],
+  "docs": null,
+  "semanticTags": {
+    "primary": ["token_optimization", "data_formatting", "compression"],
+    "secondary": ["json_conversion", "performance", "efficiency"],
+    "domains": ["data", "optimization", "utilities", "ai"]
+  },
+  "capabilities": {
+    "inputs": ["json_data", "tabular_data", "large_datasets"],
+    "outputs": ["toon_format", "optimized_data", "token_savings"],
+    "actions": ["convert_json", "encode_toon", "decode_toon", "analyze_savings", "validate_format"]
+  },
+  "orchestration": {
+    "priority": 5,
+    "cooperationLevel": "low",
+    "parallelizable": true,
+    "estimatedTokens": 2000,
+    "activationThreshold": 0.6
+  },
+  "dependencies": {
+    "recommended": [],
+    "complements": ["*"]
+  },
+  "collaboration": {
+    "canProvideDataTo": ["*"],
+    "canConsumeDataFrom": ["*"],
+    "sharedContext": ["data_format", "optimization_level"]
+  }
+}

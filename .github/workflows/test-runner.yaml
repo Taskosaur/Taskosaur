@@ -1,0 +1,12 @@
+name: Test Self-Hosted Runner
+on: workflow_dispatch # Allows you to run this manually
+
+jobs:
+  test:
+    runs-on: self-hosted
+    steps:
+      - name: Check Environment
+        run: |
+          echo "Running on $(hostname)"
+          nix --version
+          command -v git
