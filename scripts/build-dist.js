@@ -41,7 +41,7 @@ function copyRecursive(src, dest) {
     fs.cpSync(srcPath, destPath, {
       recursive: true,
       preserveTimestamps: true,
-      force: true
+      force: true,
     });
 
     console.log(`✅ Successfully copied ${src} to ${dest}`);
@@ -68,5 +68,35 @@ copyRecursive('backend/dist', 'dist');
 // Step 4: Copy frontend out to dist/public
 console.log('\n📂 Copying frontend distribution...');
 copyRecursive('frontend/out', 'dist/public');
+
+// Step 5: Fix absolute symlinks in dist/node_modules/.bin/
+// npm and Bun create absolute symlinks when installing in backend/dist/.
+// After copying to dist/ the absolute paths no longer match the production
+// container path. We rewrite them as relative paths, computing the offset
+// from the SOURCE .bin/ directory so the same relative path is valid in
+// both the builder (dist/) and the production container (/app/taskosaur/).
+console.log('\n🔗 Fixing symlinks in dist/node_modules/.bin/...');
+const srcBinDir = path.resolve('backend/dist', 'node_modules', '.bin');
+const destBinDir = path.resolve('dist', 'node_modules', '.bin');
+if (fs.existsSync(destBinDir)) {
+  let fixed = 0;
+  for (const entry of fs.readdirSync(destBinDir)) {
+    const entryPath = path.join(destBinDir, entry);
+    try {
+      if (fs.lstatSync(entryPath).isSymbolicLink()) {
+        const target = fs.readlinkSync(entryPath);
+        if (path.isAbsolute(target)) {
+          // Relative offset from source .bin/ → target is the correct offset
+          // regardless of where the directory ends up being placed.
+          const relTarget = path.relative(srcBinDir, target);
+          fs.unlinkSync(entryPath);
+          fs.symlinkSync(relTarget, entryPath);
+          fixed++;
+        }
+      }
+    } catch (_) { /* skip unreadable entries */ }
+  }
+  console.log(`✅ Fixed ${fixed} absolute symlink(s)`);
+}
 
 console.log('\n✅ Distribution build complete!\n');

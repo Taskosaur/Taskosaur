@@ -201,16 +201,13 @@ class PackageAndDependenciesPlugin {
         fs.writeFileSync(distPackageJsonPath, JSON.stringify(distPackageJson, null, 2) + '\n');
 
         // Step 6: Install production deps in dist directory.
-        // Use Bun when available (matches the builder stage for speed),
-        // fall back to npm for local builds where Bun is not installed.
+        // Must use npm here (not Bun) because Bun creates absolute symlinks in
+        // node_modules/.bin/. When the dist directory is later copied to a
+        // different path in the production image, those absolute symlinks break.
+        // npm creates relative symlinks that survive the directory move.
         console.log('[PackageAndDependenciesPlugin] Installing production dependencies in dist directory...');
         console.log('[PackageAndDependenciesPlugin] This may take a few moments...');
-        const hasBun = (() => {
-          try { execSync('bun --version', { stdio: 'ignore' }); return true; } catch { return false; }
-        })();
-        const installCmd = hasBun
-          ? 'bun install --production --ignore-scripts'
-          : 'npm install --production --no-audit --no-fund --ignore-scripts';
+        const installCmd = 'npm install --production --no-audit --no-fund --ignore-scripts';
         console.log(`[PackageAndDependenciesPlugin] Using: ${installCmd}`);
         execSync(installCmd, {
           cwd: distDir,
