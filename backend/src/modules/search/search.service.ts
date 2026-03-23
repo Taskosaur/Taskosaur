@@ -77,29 +77,39 @@ export class SearchService {
 
     // Search based on entity type
     if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.TASKS) {
-      searchPromises.push(this.searchTasks(query, searchDto, offset, limit, accessibleScopes));
+      searchPromises.push(
+        this.searchTasks(query || '', searchDto, offset, limit, accessibleScopes),
+      );
     }
 
     if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.PROJECTS) {
-      searchPromises.push(this.searchProjects(query, searchDto, offset, limit, accessibleScopes));
+      searchPromises.push(
+        this.searchProjects(query || '', searchDto, offset, limit, accessibleScopes),
+      );
     }
 
     if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.USERS) {
-      searchPromises.push(this.searchUsers(query, searchDto, offset, limit, accessibleScopes));
+      searchPromises.push(
+        this.searchUsers(query || '', searchDto, offset, limit, accessibleScopes),
+      );
     }
 
     if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.COMMENTS) {
-      searchPromises.push(this.searchComments(query, searchDto, offset, limit, accessibleScopes));
+      searchPromises.push(
+        this.searchComments(query || '', searchDto, offset, limit, accessibleScopes),
+      );
     }
 
     if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.ATTACHMENTS) {
       searchPromises.push(
-        this.searchAttachments(query, searchDto, offset, limit, accessibleScopes),
+        this.searchAttachments(query || '', searchDto, offset, limit, accessibleScopes),
       );
     }
 
     if (entityType === SearchEntityType.ALL || entityType === SearchEntityType.SPRINTS) {
-      searchPromises.push(this.searchSprints(query, searchDto, offset, limit, accessibleScopes));
+      searchPromises.push(
+        this.searchSprints(query || '', searchDto, offset, limit, accessibleScopes),
+      );
     }
 
     let results = (await Promise.all(searchPromises)).flat();

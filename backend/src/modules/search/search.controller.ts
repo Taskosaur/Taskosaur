@@ -21,9 +21,11 @@ import { GlobalSearchDto, AdvancedSearchDto } from './dto/search.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '@prisma/client';
+import { RateLimit } from '../public/guards/public-rate-limit.guard';
 @ApiTags('Search')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
+@RateLimit(30, 60000) // 30 requests per minute for authenticated search
 @Controller('search')
 export class SearchController {
   constructor(private readonly searchService: SearchService) {}
@@ -233,26 +235,11 @@ export class SearchController {
     status: 200,
     description: 'Quick search results',
   })
+  @ApiResponse({ status: 400, description: 'Invalid search parameters' })
   quickSearch(
     @CurrentUser() user: User,
-    @Query('q') query: string,
-    @Query('type') entityType?: string,
-    @Query('organizationId') organizationId?: string,
-    @Query('workspaceId') workspaceId?: string,
-    @Query('projectId') projectId?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() searchDto: GlobalSearchDto,
   ): Promise<SearchResponse> {
-    const searchDto: GlobalSearchDto = {
-      query,
-      entityType: entityType as any,
-      organizationId,
-      workspaceId,
-      projectId,
-      page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
-    };
-
     return this.searchService.globalSearch(searchDto, user.id);
   }
 }

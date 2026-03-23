@@ -8,6 +8,7 @@ import {
   Min,
   Max,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { TaskType, TaskPriority } from '@prisma/client';
 
@@ -43,7 +44,8 @@ export class GlobalSearchDto {
     maxLength: 200,
   })
   @IsString()
-  query: string;
+  @IsOptional()
+  query?: string;
 
   @ApiProperty({
     description: 'Type of entities to search',
@@ -93,9 +95,10 @@ export class GlobalSearchDto {
     required: false,
     default: 1,
   })
+  @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
-  @IsOptional()
   page?: number;
 
   @ApiProperty({
@@ -106,10 +109,11 @@ export class GlobalSearchDto {
     required: false,
     default: 20,
   })
+  @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)
-  @IsOptional()
   limit?: number;
 
   @ApiProperty({
@@ -301,9 +305,10 @@ export class AdvancedSearchDto {
     required: false,
     default: 1,
   })
+  @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
-  @IsOptional()
   page?: number;
 
   @ApiProperty({
@@ -314,10 +319,11 @@ export class AdvancedSearchDto {
     required: false,
     default: 20,
   })
+  @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)
-  @IsOptional()
   limit?: number;
 
   @ApiProperty({
