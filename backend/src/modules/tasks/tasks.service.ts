@@ -247,7 +247,15 @@ export class TasksService {
   async bulkCreate(
     dto: BulkCreateTasksDto,
     userId: string,
-  ): Promise<{ created: number; failed: number }> {
+  ): Promise<{
+    created: number;
+    failed: number;
+    failures: Array<{
+      index: number;
+      title: string;
+      reason: string;
+    }>;
+  }> {
     const project = await this.prisma.project.findUnique({
       where: { id: dto.projectId },
       select: {
@@ -287,6 +295,94 @@ export class TasksService {
     const sprintId = defaultSprint?.id;
 
     const tasks = dto.tasks;
+    const failures: Array<{ index: number; title: string; reason: string }> = [];
+    const validTasks: Array<{
+      title: string;
+      description?: string;
+      type: string;
+      priority: string;
+      dueDate?: Date;
+      projectId: string;
+      statusId: string;
+      createdBy: string;
+      updatedBy: string;
+      taskNumber: number;
+      slug: string;
+      sprintId?: string;
+      isRecurring: boolean;
+    }> = [];
+
+    // Validate each task before bulk insert
+    tasks.forEach((item, index) => {
+      // Validate title
+      if (!item.title || item.title.trim().length === 0) {
+        failures.push({
+          index,
+          title: item.title || '(empty)',
+          reason: 'Title is required',
+        });
+        return;
+      }
+
+      // Validate title length
+      if (item.title.length > 500) {
+        failures.push({
+          index,
+          title: item.title.substring(0, 50) + '...',
+          reason: 'Title exceeds maximum length of 500 characters',
+        });
+        return;
+      }
+
+      // Validate description length if provided
+      if (item.description && item.description.length > 5000) {
+        failures.push({
+          index,
+          title: item.title,
+          reason: 'Description exceeds maximum length of 5000 characters',
+        });
+        return;
+      }
+
+      // Validate dueDate format if provided
+      if (item.dueDate) {
+        const date = new Date(item.dueDate);
+        if (isNaN(date.getTime())) {
+          failures.push({
+            index,
+            title: item.title,
+            reason: 'Invalid due date format. Use YYYY-MM-DD',
+          });
+          return;
+        }
+      }
+
+      // Task is valid, add to validTasks
+      validTasks.push({
+        title: sanitizeText(item.title),
+        description: item.description ? sanitizeHtml(item.description) : undefined,
+        type: item.type || 'TASK',
+        priority: item.priority || 'MEDIUM',
+        dueDate: item.dueDate ? new Date(item.dueDate) : undefined,
+        projectId: dto.projectId,
+        statusId: dto.statusId,
+        createdBy: userId,
+        updatedBy: userId,
+        taskNumber: 0, // Will be set below
+        slug: '', // Will be set below
+        sprintId: sprintId,
+        isRecurring: false,
+      });
+    });
+
+    // If all tasks failed validation, return early
+    if (validTasks.length === 0 && failures.length > 0) {
+      return {
+        created: 0,
+        failed: failures.length,
+        failures,
+      };
+    }
 
     return this.prisma.$transaction(
       async (tx) => {
@@ -307,33 +403,50 @@ export class TasksService {
         });
 
         let nextNumber = lastTask ? lastTask.taskNumber + 1 : 1;
-        const taskRecords = tasks.map((item) => {
+
+        // Assign task numbers and slugs to valid tasks
+        const taskRecords = validTasks.map((task) => {
           const num = nextNumber++;
           return {
-            title: sanitizeText(item.title),
-            description: item.description ? sanitizeHtml(item.description) : undefined,
-            type: item.type || 'TASK',
-            priority: item.priority || 'MEDIUM',
-            dueDate: item.dueDate ? new Date(item.dueDate) : undefined,
-            projectId: dto.projectId,
-            statusId: dto.statusId,
-            createdBy: userId,
-            updatedBy: userId,
+            ...task,
             taskNumber: num,
             slug: `${projectSlug}-${num}`,
-            sprintId: sprintId,
-            isRecurring: false,
           };
         });
+
+        // If no valid tasks to create, return early
+        if (taskRecords.length === 0) {
+          return {
+            created: 0,
+            failed: failures.length,
+            failures,
+          };
+        }
 
         const result = await tx.task.createMany({
           data: taskRecords as any,
           skipDuplicates: true,
         });
 
+        // Calculate duplicates (tasks that were skipped)
+        const duplicates = validTasks.length - result.count;
+
+        // Add duplicate failures
+        if (duplicates > 0) {
+          // Find which tasks were duplicates (last N tasks in the array)
+          for (let i = validTasks.length - duplicates; i < validTasks.length; i++) {
+            failures.push({
+              index: i,
+              title: validTasks[i].title,
+              reason: 'Duplicate task (same title already exists)',
+            });
+          }
+        }
+
         return {
           created: result.count,
-          failed: tasks.length - result.count,
+          failed: failures.length,
+          failures,
         };
       },
       {
