@@ -30,7 +30,7 @@ import { useLayout } from "@/contexts/layout-context";
 import NotFound from "@/pages/404";
 import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
 import ActionButton from "@/components/common/ActionButton";
-import { exportTasksToCSV, exportTasksToPDF } from "@/utils/exportUtils";
+import { exportTasksToCSV, exportTasksToPDF, exportTasksToXLSX, exportTasksToJSON } from "@/utils/exportUtils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -799,10 +799,18 @@ const SprintTasksTable = () => {
     });
     return sorted;
   }, [tasks, sortOrder, sortField]);
-  const handleExport = useCallback((format: "csv" | "pdf" = "csv") => {
+  const handleExport = useCallback((format: "csv" | "pdf" | "xlsx" | "json" = "csv") => {
     const dateStr = new Date().toISOString().split("T")[0];
     if (format === "csv") {
       exportTasksToCSV(sortedTasks, columns, `sprint_tasks_export_${dateStr}.csv`, {
+        showProject: true,
+      });
+    } else if (format === "xlsx") {
+      exportTasksToXLSX(sortedTasks, columns, `sprint_tasks_export_${dateStr}.xlsx`, {
+        showProject: true,
+      });
+    } else if (format === "json") {
+      exportTasksToJSON(sortedTasks, columns, `sprint_tasks_export_${dateStr}.json`, {
         showProject: true,
       });
     } else {
@@ -1019,6 +1027,12 @@ const SprintTasksTable = () => {
                       <DropdownMenuContent align="end" className="bg-[var(--popover)] border-[var(--border)]">
                         <DropdownMenuItem onClick={() => handleExport("csv")}>
                           Export as CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExport("xlsx")}>
+                          Export as Excel (.xlsx)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExport("json")}>
+                          Export as JSON
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleExport("pdf")}>
                           Export as PDF

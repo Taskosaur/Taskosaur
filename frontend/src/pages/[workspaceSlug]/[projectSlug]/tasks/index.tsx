@@ -27,7 +27,7 @@ import { CheckSquare, Flame, User, Users, Download, Upload, Shapes } from "lucid
 import SortingManager, { SortOrder, SortField } from "@/components/tasks/SortIngManager";
 import Tooltip from "@/components/common/ToolTip";
 import { TokenManager } from "@/lib/api";
-import { exportTasksToCSV, exportTasksToPDF } from "@/utils/exportUtils";
+import { exportTasksToCSV, exportTasksToPDF, exportTasksToXLSX, exportTasksToJSON } from "@/utils/exportUtils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -720,9 +720,13 @@ function ProjectTasksContent() {
     return sorted;
   }, [displayTasks, sortOrder, sortField]);
 
-  const handleExport = useCallback((format: "csv" | "pdf" = "csv") => {
+  const handleExport = useCallback((format: "csv" | "pdf" | "xlsx" | "json" = "csv") => {
     if (format === "csv") {
       exportTasksToCSV(sortedTasks, columns, `project-tasks-${projectSlug}.csv`);
+    } else if (format === "xlsx") {
+      exportTasksToXLSX(sortedTasks, columns, `project-tasks-${projectSlug}.xlsx`);
+    } else if (format === "json") {
+      exportTasksToJSON(sortedTasks, columns, `project-tasks-${projectSlug}.json`);
     } else {
       exportTasksToPDF(sortedTasks, columns, `project-tasks-${projectSlug}.pdf`);
     }
@@ -1421,6 +1425,12 @@ function ProjectTasksContent() {
                       <DropdownMenuContent align="end" className="bg-[var(--popover)] border-[var(--border)]">
                         <DropdownMenuItem onClick={() => handleExport("csv")}>
                           Export as CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExport("xlsx")}>
+                          Export as Excel (.xlsx)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExport("json")}>
+                          Export as JSON
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleExport("pdf")}>
                           Export as PDF

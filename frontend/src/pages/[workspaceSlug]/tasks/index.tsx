@@ -26,7 +26,7 @@ import { CheckSquare, Flame, Folder, User, Users, Download, Upload, Shapes } fro
 import { TaskPriorities, TaskTypeIcon } from "@/utils/data/taskData";
 import Tooltip from "@/components/common/ToolTip";
 import TaskTableSkeleton from "@/components/skeletons/TaskTableSkeleton";
-import { exportTasksToCSV, exportTasksToPDF } from "@/utils/exportUtils";
+import { exportTasksToCSV, exportTasksToPDF, exportTasksToXLSX, exportTasksToJSON } from "@/utils/exportUtils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -965,10 +965,18 @@ function WorkspaceTasksContent() {
     return sorted;
   }, [tasks, sortOrder, sortField]);
 
-  const handleExport = useCallback((format: "csv" | "pdf" = "csv") => {
+  const handleExport = useCallback((format: "csv" | "pdf" | "xlsx" | "json" = "csv") => {
     const dateStr = new Date().toISOString().split("T")[0];
     if (format === "csv") {
       exportTasksToCSV(sortedTasks, columns, `tasks_export_${dateStr}.csv`, {
+        showProject: true,
+      });
+    } else if (format === "xlsx") {
+      exportTasksToXLSX(sortedTasks, columns, `tasks_export_${dateStr}.xlsx`, {
+        showProject: true,
+      });
+    } else if (format === "json") {
+      exportTasksToJSON(sortedTasks, columns, `tasks_export_${dateStr}.json`, {
         showProject: true,
       });
     } else {
@@ -1200,6 +1208,12 @@ function WorkspaceTasksContent() {
                       <DropdownMenuContent align="end" className="bg-[var(--popover)] border-[var(--border)]">
                         <DropdownMenuItem onClick={() => handleExport("csv")}>
                           Export as CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExport("xlsx")}>
+                          Export as Excel (.xlsx)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExport("json")}>
+                          Export as JSON
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleExport("pdf")}>
                           Export as PDF
