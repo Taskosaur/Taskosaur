@@ -1343,6 +1343,7 @@ function ProjectTasksContent() {
                   workspaceName={workspace?.name}
                   projectId={project?.id}
                   projectName={project?.name}
+                  projectSlug={projectSlug as string}
                 />
               </div>
             }

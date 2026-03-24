@@ -17,7 +17,7 @@ import { TokenManager } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
 import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
-import { CheckSquare, Flame, User, Users, Download } from "lucide-react";
+import { CheckSquare, Flame, User, Users, Download, Upload } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import SortingManager, { SortOrder, SortField } from "@/components/tasks/SortIngManager";
 import { useProjectContext } from "@/contexts/project-context";
@@ -37,6 +37,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
+import { CsvImportModal } from "@/components/tasks/CsvImportModal";
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
 
@@ -113,6 +114,7 @@ const SprintTasksTable = () => {
   });
 
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+  const [isCsvImportOpen, setCsvImportOpen] = useState(false);
 
   const handleTaskSelect = useCallback((taskId: string) => {
     setSelectedTasks((prev) =>
@@ -608,10 +610,10 @@ const SprintTasksTable = () => {
       selected: selectedAssignees.includes(member.user.id),
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
-            Array.isArray(task.assignees)
-              ? task.assignees.some((assignee) => assignee.id === member.user.id)
-              : false
-          ).length
+          Array.isArray(task.assignees)
+            ? task.assignees.some((assignee) => assignee.id === member.user.id)
+            : false
+        ).length
         : 0,
       email: member?.user?.email,
     }));
@@ -625,10 +627,10 @@ const SprintTasksTable = () => {
       selected: selectedReporters.includes(member.user.id),
       count: Array.isArray(tasks)
         ? tasks.filter((task) =>
-            Array.isArray(task.reporters)
-              ? task.reporters.some((reporter) => reporter.id === member.user.id)
-              : false
-          ).length
+          Array.isArray(task.reporters)
+            ? task.reporters.some((reporter) => reporter.id === member.user.id)
+            : false
+        ).length
         : 0,
       email: member?.user?.email,
     }));
@@ -989,11 +991,10 @@ const SprintTasksTable = () => {
                         key={mode}
                         type="button"
                         onClick={() => setGanttViewMode(mode)}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${
-                          ganttViewMode === mode
-                            ? "bg-blue-500 text-white"
-                            : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
-                        }`}
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors capitalize cursor-pointer ${ganttViewMode === mode
+                          ? "bg-blue-500 text-white"
+                          : "text-slate-600 dark:text-slate-400 hover:bg-[var(--accent)]/50"
+                          }`}
                       >
                         {t(`tasks:views.${mode}`)}
                       </button>
@@ -1039,6 +1040,28 @@ const SprintTasksTable = () => {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    {hasAccess && (
+                      <>
+                        <ActionButton
+                          leftIcon={<Upload className="w-4 h-4" />}
+                          variant="outline"
+                          onClick={() => setCsvImportOpen(true)}
+                        >
+                          Import
+                        </ActionButton>
+                        <CsvImportModal
+                          isOpen={isCsvImportOpen}
+                          onClose={() => setCsvImportOpen(false)}
+                          onImportComplete={loadTasks}
+                          workspaceId={workspace?.id}
+                          workspaceName={workspace?.name}
+                          projectId={project?.id}
+                          projectName={project?.name}
+                          projectSlug={projectSlug as string}
+                          sprintId={sprintId as string}
+                        />
+                      </>
+                    )}
                   </div>
                 )}
                 {isAuth &&

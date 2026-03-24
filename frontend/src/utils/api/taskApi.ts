@@ -84,6 +84,7 @@ export const taskApi = {
   bulkCreateTasks: async (data: {
     projectId: string;
     statusId: string;
+    sprintId?: string;
     tasks: Array<{
       title: string;
       description?: string;
