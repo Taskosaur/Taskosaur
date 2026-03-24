@@ -64,6 +64,17 @@ export class SearchService {
     const { query, entityType = SearchEntityType.ALL, page = 1, limit = 20 } = searchDto;
     const offset = (page - 1) * limit;
 
+    if (!query || query.trim().length === 0) {
+      return {
+        results: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+        searchTime: Date.now() - startTime,
+      };
+    }
+
     const accessibleScopes = await this.getUserAccessibleScopeIds(userId);
     if (
       accessibleScopes.organizationIds.length === 0 &&

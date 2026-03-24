@@ -239,7 +239,11 @@ export class SearchController {
   quickSearch(
     @CurrentUser() user: User,
     @Query() searchDto: GlobalSearchDto,
+    @Query('q') q?: string,
   ): Promise<SearchResponse> {
+    if (q) {
+      searchDto.query = q;
+    }
     return this.searchService.globalSearch(searchDto, user.id);
   }
 }
