@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { TaskComment, NotificationType, NotificationPriority } from '@prisma/client';
+import { Prisma, TaskComment, NotificationType, NotificationPriority } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskCommentDto } from './dto/create-task-comment.dto';
 import { UpdateTaskCommentDto } from './dto/update-task-comment.dto';
@@ -12,6 +12,21 @@ import { EmailReplyService } from '../inbox/services/email-reply.service';
 import { sanitizeHtml } from 'src/common/utils/sanitizer.util';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UsersService } from '../users/users.service';
+
+const AUTHOR_SELECT = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  avatar: true,
+} as const;
+
+const AUTHOR_SELECT_WITH_EMAIL = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  avatar: true,
+} as const;
 
 @Injectable()
 export class TaskCommentsService {
@@ -21,6 +36,42 @@ export class TaskCommentsService {
     private notificationsService: NotificationsService,
     private usersService: UsersService,
   ) {}
+
+  private getCommentIncludeClause(includeEmail = false) {
+    const authorSelect = includeEmail ? AUTHOR_SELECT_WITH_EMAIL : AUTHOR_SELECT;
+    return {
+      author: {
+        select: authorSelect,
+      },
+      task: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+        },
+      },
+      replies: {
+        include: {
+          author: {
+            select: AUTHOR_SELECT,
+          },
+          _count: {
+            select: {
+              replies: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: Prisma.SortOrder.asc,
+        },
+      },
+      _count: {
+        select: {
+          replies: true,
+        },
+      },
+    };
+  }
 
   private async checkAccess(userId: string, taskId: string) {
     const task = await this.prisma.task.findUnique({
@@ -178,8 +229,6 @@ export class TaskCommentsService {
 
   async create(createTaskCommentDto: CreateTaskCommentDto, userId: string): Promise<TaskComment> {
     const { taskId, parentCommentId } = createTaskCommentDto;
-    // Override authorId with the authenticated user's ID
-    const authorId = userId;
 
     await this.checkAccess(userId, taskId);
 
@@ -199,8 +248,8 @@ export class TaskCommentsService {
 
     // Verify author exists
     const author = await this.prisma.user.findUnique({
-      where: { id: authorId },
-      select: { id: true, firstName: true, lastName: true },
+      where: { id: userId },
+      select: AUTHOR_SELECT,
     });
 
     if (!author) {
@@ -226,18 +275,12 @@ export class TaskCommentsService {
     const comment = await this.prisma.taskComment.create({
       data: {
         ...createTaskCommentDto,
-        authorId, // Ensure we use the authenticated user ID
+        authorId: userId,
         content: sanitizeHtml(createTaskCommentDto.content),
       },
       include: {
         author: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-          },
+          select: AUTHOR_SELECT_WITH_EMAIL,
         },
         task: {
           select: {
@@ -252,11 +295,7 @@ export class TaskCommentsService {
             id: true,
             content: true,
             author: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
+              select: AUTHOR_SELECT,
             },
           },
         },
@@ -313,49 +352,7 @@ export class TaskCommentsService {
       where: whereClause,
       skip,
       take: limit,
-      include: {
-        author: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-          },
-        },
-        task: {
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-          },
-        },
-        replies: {
-          include: {
-            author: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                avatar: true,
-              },
-            },
-            _count: {
-              select: {
-                replies: true,
-              },
-            },
-          },
-          orderBy: {
-            createdAt: 'asc',
-          },
-        },
-        _count: {
-          select: {
-            replies: true,
-          },
-        },
-      },
+      include: this.getCommentIncludeClause(true), // includeEmail=true for email in author
       orderBy: {
         createdAt: sort,
       },
@@ -376,13 +373,7 @@ export class TaskCommentsService {
       where: { id },
       include: {
         author: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-          },
+          select: AUTHOR_SELECT_WITH_EMAIL,
         },
         task: {
           select: {
@@ -403,12 +394,7 @@ export class TaskCommentsService {
             id: true,
             content: true,
             author: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                avatar: true,
-              },
+              select: AUTHOR_SELECT,
             },
             createdAt: true,
           },
@@ -416,21 +402,11 @@ export class TaskCommentsService {
         replies: {
           include: {
             author: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                avatar: true,
-              },
-            },
-            _count: {
-              select: {
-                replies: true,
-              },
+              select: AUTHOR_SELECT,
             },
           },
           orderBy: {
-            createdAt: 'asc',
+            createdAt: Prisma.SortOrder.asc,
           },
         },
         _count: {
@@ -467,26 +443,16 @@ export class TaskCommentsService {
       where: { parentCommentId: commentId },
       include: {
         author: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-          },
+          select: AUTHOR_SELECT,
         },
         replies: {
           include: {
             author: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                avatar: true,
-              },
+              select: AUTHOR_SELECT,
             },
           },
           orderBy: {
-            createdAt: 'asc',
+            createdAt: Prisma.SortOrder.asc,
           },
         },
         _count: {
@@ -496,7 +462,7 @@ export class TaskCommentsService {
         },
       },
       orderBy: {
-        createdAt: 'asc',
+        createdAt: Prisma.SortOrder.asc,
       },
     });
   }
@@ -541,12 +507,7 @@ export class TaskCommentsService {
       },
       include: {
         author: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-          },
+          select: AUTHOR_SELECT,
         },
         task: {
           select: {
@@ -619,41 +580,16 @@ export class TaskCommentsService {
       },
       include: {
         author: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-          },
+          select: AUTHOR_SELECT,
         },
         replies: {
           include: {
             author: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                avatar: true,
-              },
-            },
-            replies: {
-              include: {
-                author: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    avatar: true,
-                  },
-                },
-              },
-              orderBy: {
-                createdAt: 'asc',
-              },
+              select: AUTHOR_SELECT,
             },
           },
           orderBy: {
-            createdAt: 'asc',
+            createdAt: Prisma.SortOrder.asc,
           },
         },
         _count: {
@@ -663,7 +599,7 @@ export class TaskCommentsService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: Prisma.SortOrder.desc,
       },
     });
   }
@@ -699,49 +635,7 @@ export class TaskCommentsService {
       where: whereClause,
     });
 
-    const includeClause = {
-      author: {
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          avatar: true,
-        },
-      },
-      task: {
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-        },
-      },
-      replies: {
-        include: {
-          author: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              avatar: true,
-            },
-          },
-          _count: {
-            select: {
-              replies: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'asc' as const,
-        },
-      },
-      _count: {
-        select: {
-          replies: true,
-        },
-      },
-    };
+    const includeClause = this.getCommentIncludeClause(true);
 
     let data: TaskComment[] = [];
     let loadedCount = 0;

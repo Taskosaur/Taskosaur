@@ -29,6 +29,7 @@ import { LogActivity } from 'src/common/decorator/log-activity.decorator';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '@prisma/client';
+import { RateLimit } from '../public/guards/public-rate-limit.guard';
 
 @ApiTags('Task Comments')
 @ApiBearerAuth('JWT-auth')
@@ -38,10 +39,12 @@ export class TaskCommentsController {
   constructor(private readonly taskCommentsService: TaskCommentsService) {}
 
   @Post()
+  @RateLimit(20, 60000) // 20 comments per minute per user
   @ApiOperation({ summary: 'Create a new task comment' })
   @ApiBody({ type: CreateTaskCommentDto })
   @ApiResponse({ status: 201, description: 'Comment created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid comment data' })
+  @ApiResponse({ status: 429, description: 'Rate limit exceeded' })
   @LogActivity({
     type: 'TASK_COMMENTED',
     entityType: 'Task Comment',
