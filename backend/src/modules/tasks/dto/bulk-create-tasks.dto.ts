@@ -47,11 +47,16 @@ export class BulkCreateTasksDto {
   @IsNotEmpty()
   statusId: string;
 
+  @ApiProperty({ description: 'Sprint ID for all created tasks', required: false })
+  @IsUUID()
+  @IsOptional()
+  sprintId?: string;
+
   @ApiProperty({ description: 'Array of tasks to create', type: [BulkTaskItem] })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => BulkTaskItem)
   @ArrayMinSize(1)
-  @ArrayMaxSize(500)
+  @ArrayMaxSize(1000)
   tasks: BulkTaskItem[];
 }
