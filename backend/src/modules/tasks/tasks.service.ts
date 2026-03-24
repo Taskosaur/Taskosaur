@@ -6,7 +6,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import { Task, TaskPriority, Prisma } from '@prisma/client';
+import { Task, TaskPriority, TaskType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -28,6 +28,33 @@ export class TasksService {
     private storageService: StorageService,
     private recurrenceService: RecurrenceService,
   ) {}
+
+  // Helper to get enum values safely
+  private getTaskType(value?: string): TaskType {
+    if (!value) return TaskType.TASK;
+    // Map string values to enum explicitly
+    const typeMap: Record<string, TaskType> = {
+      TASK: TaskType.TASK,
+      STORY: TaskType.STORY,
+      BUG: TaskType.BUG,
+      EPIC: TaskType.EPIC,
+      SUBTASK: TaskType.SUBTASK,
+    };
+    return typeMap[value] || TaskType.TASK;
+  }
+
+  private getTaskPriority(value?: string): TaskPriority {
+    if (!value) return TaskPriority.MEDIUM;
+    // Map string values to enum explicitly
+    const priorityMap: Record<string, TaskPriority> = {
+      LOWEST: TaskPriority.LOWEST,
+      LOW: TaskPriority.LOW,
+      MEDIUM: TaskPriority.MEDIUM,
+      HIGH: TaskPriority.HIGH,
+      HIGHEST: TaskPriority.HIGHEST,
+    };
+    return priorityMap[value] || TaskPriority.MEDIUM;
+  }
 
   /**
    * Generates a unique task number by locking the project row to prevent race conditions.
@@ -256,6 +283,19 @@ export class TasksService {
       reason: string;
     }>;
   }> {
+    // Validate empty tasks array first
+    if (!dto.tasks || dto.tasks.length === 0) {
+      throw new BadRequestException('Tasks array cannot be empty');
+    }
+
+    // Verify status exists before checking project access
+    const status = await this.prisma.taskStatus.findUnique({
+      where: { id: dto.statusId },
+    });
+    if (!status) {
+      throw new BadRequestException('Invalid status ID');
+    }
+
     const project = await this.prisma.project.findUnique({
       where: { id: dto.projectId },
       select: {
@@ -280,27 +320,21 @@ export class TasksService {
       throw new ForbiddenException('Insufficient permissions to create tasks in this project');
     }
 
-    // Verify status exists
-    const status = await this.prisma.taskStatus.findUnique({
-      where: { id: dto.statusId },
-    });
-    if (!status) {
-      throw new BadRequestException('Invalid status ID');
+    let sprintId = dto.sprintId;
+    if (!sprintId) {
+      const defaultSprint = await this.prisma.sprint.findFirst({
+        where: { projectId: project.id, isDefault: true },
+      });
+      sprintId = defaultSprint?.id;
     }
-
-    // Find default sprint
-    const defaultSprint = await this.prisma.sprint.findFirst({
-      where: { projectId: project.id, isDefault: true },
-    });
-    const sprintId = defaultSprint?.id;
 
     const tasks = dto.tasks;
     const failures: Array<{ index: number; title: string; reason: string }> = [];
     const validTasks: Array<{
       title: string;
       description?: string;
-      type: string;
-      priority: string;
+      type: TaskType;
+      priority: TaskPriority;
       dueDate?: Date;
       projectId: string;
       statusId: string;
@@ -357,12 +391,12 @@ export class TasksService {
         }
       }
 
-      // Task is valid, add to validTasks
+      // Task is valid, add to validTasks with proper enum types
       validTasks.push({
         title: sanitizeText(item.title),
         description: item.description ? sanitizeHtml(item.description) : undefined,
-        type: item.type || 'TASK',
-        priority: item.priority || 'MEDIUM',
+        type: this.getTaskType(item.type),
+        priority: this.getTaskPriority(item.priority),
         dueDate: item.dueDate ? new Date(item.dueDate) : undefined,
         projectId: dto.projectId,
         statusId: dto.statusId,
@@ -370,7 +404,7 @@ export class TasksService {
         updatedBy: userId,
         taskNumber: 0, // Will be set below
         slug: '', // Will be set below
-        sprintId: sprintId,
+        sprintId,
         isRecurring: false,
       });
     });
@@ -407,10 +441,23 @@ export class TasksService {
         // Assign task numbers and slugs to valid tasks
         const taskRecords = validTasks.map((task) => {
           const num = nextNumber++;
+          const slug = `${projectSlug}-${num}`;
+
+          // Build task record without undefined values for createMany
           return {
-            ...task,
+            title: task.title,
+            type: task.type,
+            priority: task.priority,
+            projectId: task.projectId,
+            statusId: task.statusId,
+            createdBy: task.createdBy,
+            updatedBy: task.updatedBy,
             taskNumber: num,
-            slug: `${projectSlug}-${num}`,
+            slug,
+            isRecurring: task.isRecurring,
+            ...(task.description !== undefined && { description: task.description }),
+            ...(task.dueDate !== undefined && { dueDate: task.dueDate }),
+            ...(task.sprintId !== undefined && { sprintId: task.sprintId }),
           };
         });
 
@@ -423,28 +470,17 @@ export class TasksService {
           };
         }
 
-        const result = await tx.task.createMany({
-          data: taskRecords as any,
-          skipDuplicates: true,
-        });
-
-        // Calculate duplicates (tasks that were skipped)
-        const duplicates = validTasks.length - result.count;
-
-        // Add duplicate failures
-        if (duplicates > 0) {
-          // Find which tasks were duplicates (last N tasks in the array)
-          for (let i = validTasks.length - duplicates; i < validTasks.length; i++) {
-            failures.push({
-              index: i,
-              title: validTasks[i].title,
-              reason: 'Duplicate task (same title already exists)',
-            });
-          }
-        }
+        // Use individual create calls instead of createMany to handle enums properly
+        const createdTasks = await Promise.all(
+          taskRecords.map((record) =>
+            tx.task.create({
+              data: record,
+            }),
+          ),
+        );
 
         return {
-          created: result.count,
+          created: createdTasks.length,
           failed: failures.length,
           failures,
         };

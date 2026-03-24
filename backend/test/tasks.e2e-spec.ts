@@ -776,6 +776,185 @@ describe('TasksController (e2e)', () => {
     });
   });
 
+  describe('/tasks/bulk-create (POST)', () => {
+    it('should bulk create multiple tasks successfully', async () => {
+      const bulkCreateDto = {
+        projectId,
+        statusId,
+        tasks: [
+          { title: 'Bulk Task 1', description: 'First bulk task', type: 'TASK', priority: 'MEDIUM' },
+          { title: 'Bulk Task 2', description: 'Second bulk task', type: 'STORY', priority: 'HIGH' },
+          { title: 'Bulk Task 3', type: 'BUG', priority: 'CRITICAL', dueDate: new Date(Date.now() + 86400000).toISOString() },
+        ],
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-create')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(bulkCreateDto)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body.created).toBe(3);
+          expect(res.body.failed).toBe(0);
+          expect(res.body.failures).toEqual([]);
+        });
+    });
+
+    it('should bulk create with partial failures (some invalid tasks)', async () => {
+      const bulkCreateDto = {
+        projectId,
+        statusId,
+        tasks: [
+          { title: 'Valid Task 1', description: 'This should succeed', type: 'TASK', priority: 'LOW' },
+          { title: '', description: 'Empty title should fail', type: 'TASK', priority: 'MEDIUM' },
+          { title: 'Valid Task 2', type: 'STORY', priority: 'HIGH' },
+          { title: 'A'.repeat(501), description: 'Title too long', type: 'TASK', priority: 'LOW' },
+          { title: 'Valid Task 3', type: 'BUG', priority: 'CRITICAL' },
+        ],
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-create')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(bulkCreateDto)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body.created).toBe(3);
+          expect(res.body.failed).toBe(2);
+          expect(res.body.failures.length).toBe(2);
+          expect(res.body.failures.map((f: any) => f.reason)).toContain('Title is required');
+          expect(res.body.failures.map((f: any) => f.reason)).toContain('Title exceeds maximum length of 500 characters');
+        });
+    });
+
+    it('should bulk create with all invalid tasks', async () => {
+      const bulkCreateDto = {
+        projectId,
+        statusId,
+        tasks: [
+          { title: '', description: 'Empty title' },
+          { title: '', description: 'Another empty title' },
+        ],
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-create')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(bulkCreateDto)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body.created).toBe(0);
+          expect(res.body.failed).toBe(2);
+          expect(res.body.failures.length).toBe(2);
+        });
+    });
+
+    it('should fail bulk create with empty tasks array', () => {
+      const bulkCreateDto = {
+        projectId,
+        statusId,
+        tasks: [],
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-create')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(bulkCreateDto)
+        .expect(HttpStatus.BAD_REQUEST)
+        .expect((res) => {
+          expect(res.body.message).toContain('empty');
+        });
+    });
+
+    it('should fail bulk create with invalid project ID', () => {
+      const bulkCreateDto = {
+        projectId: '00000000-0000-0000-0000-000000000000',
+        statusId,
+        tasks: [{ title: 'Test Task', type: 'TASK', priority: 'MEDIUM' }],
+      };
+
+      // Note: Returns 403 because getProjectAccess checks permissions and throws
+      // ForbiddenException when user has no access to the (non-existent) project
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-create')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(bulkCreateDto)
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('should fail bulk create with invalid status ID', () => {
+      const bulkCreateDto = {
+        projectId,
+        statusId: '00000000-0000-0000-0000-000000000000',
+        tasks: [{ title: 'Test Task', type: 'TASK', priority: 'MEDIUM' }],
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-create')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(bulkCreateDto)
+        .expect(HttpStatus.BAD_REQUEST);
+    });
+
+    it('should fail bulk create with unauthorized user', async () => {
+      const memberToken = jwtService.sign({ sub: user2.id, email: user2.email, role: user2.role });
+      const bulkCreateDto = {
+        projectId,
+        statusId,
+        tasks: [{ title: 'Test Task', type: 'TASK', priority: 'MEDIUM' }],
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-create')
+        .set('Authorization', `Bearer ${memberToken}`)
+        .send(bulkCreateDto)
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('should bulk create with optional sprintId', async () => {
+      const bulkCreateDto = {
+        projectId,
+        statusId,
+        sprintId,
+        tasks: [
+          { title: 'Sprint Task 1', type: 'STORY', priority: 'MEDIUM' },
+          { title: 'Sprint Task 2', type: 'TASK', priority: 'LOW' },
+        ],
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-create')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(bulkCreateDto)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body.created).toBe(2);
+          expect(res.body.failed).toBe(0);
+        });
+    });
+
+    it('should bulk create tasks without optional fields', async () => {
+      const bulkCreateDto = {
+        projectId,
+        statusId,
+        tasks: [
+          { title: 'Minimal Task 1' },
+          { title: 'Minimal Task 2' },
+        ],
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/tasks/bulk-create')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(bulkCreateDto)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body.created).toBe(2);
+          expect(res.body.failed).toBe(0);
+        });
+    });
+  });
+
   describe('Recurring Tasks', () => {
     let recurringTaskId: string;
 
