@@ -376,6 +376,97 @@ describe('TaskCommentsController (e2e)', () => {
         .send(createDto)
         .expect(HttpStatus.BAD_REQUEST);
     });
+
+    it('should fail to create a comment on archived task', async () => {
+      // Create an archived task
+      const archivedTask = await prismaService.task.create({
+        data: {
+          title: 'Archived Task',
+          description: 'This task is archived',
+          projectId: projectId,
+          statusId: statusId,
+          createdBy: user.id,
+          priority: 'MEDIUM',
+          type: 'TASK',
+          taskNumber: 2,
+          slug: `archived-task-${Date.now()}`,
+          isArchived: true,
+        },
+      });
+
+      const createDto = {
+        content: 'Comment on archived task',
+        taskId: archivedTask.id,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/task-comments')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.FORBIDDEN)
+        .then((res) => {
+          expect(res.body.message).toContain('archived');
+        });
+    });
+
+    it('should fail to reply to non-existent parent comment', () => {
+      const createDto: CreateTaskCommentDto = {
+        content: 'Reply to non-existent comment',
+        taskId: taskId,
+        parentCommentId: '00000000-0000-0000-0000-000000000000',
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/task-comments')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.NOT_FOUND)
+        .expect((res) => {
+          expect(res.body.message).toContain('Parent comment not found');
+        });
+    });
+
+    it('should fail to reply with parent comment from different task', async () => {
+      // Create another task
+      const otherTask = await prismaService.task.create({
+        data: {
+          title: 'Other Task',
+          description: 'Different task',
+          projectId: projectId,
+          statusId: statusId,
+          createdBy: user.id,
+          priority: 'MEDIUM',
+          type: 'TASK',
+          taskNumber: 3,
+          slug: `other-task-${Date.now()}`,
+        },
+      });
+
+      // Create a comment on the other task
+      const otherComment = await prismaService.taskComment.create({
+        data: {
+          content: 'Comment on other task',
+          taskId: otherTask.id,
+          authorId: user.id,
+        },
+      });
+
+      // Try to reply to that comment from our original task
+      const createDto: CreateTaskCommentDto = {
+        content: 'Invalid reply',
+        taskId: taskId,
+        parentCommentId: otherComment.id,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/task-comments')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.BAD_REQUEST)
+        .expect((res) => {
+          expect(res.body.message).toContain('same task');
+        });
+    });
   });
 
   describe('/task-comments/:id (PATCH)', () => {
@@ -388,6 +479,44 @@ describe('TaskCommentsController (e2e)', () => {
         .expect(HttpStatus.OK)
         .expect((res) => {
           expect(res.body.content).toBe(updateDto.content);
+        });
+    });
+
+    it('should fail to update a comment on archived task', async () => {
+      // Create an archived task
+      const archivedTask = await prismaService.task.create({
+        data: {
+          title: 'Archived Task for Update',
+          description: 'This task is archived',
+          projectId: projectId,
+          statusId: statusId,
+          createdBy: user.id,
+          priority: 'MEDIUM',
+          type: 'TASK',
+          taskNumber: 4,
+          slug: `archived-task-update-${Date.now()}`,
+          isArchived: true,
+        },
+      });
+
+      // Create a comment on the archived task
+      const archivedComment = await prismaService.taskComment.create({
+        data: {
+          content: 'Comment on archived task',
+          taskId: archivedTask.id,
+          authorId: user.id,
+        },
+      });
+
+      // Try to update the comment
+      const updateDto = { content: 'Updated content on archived task' };
+      return request(app.getHttpServer())
+        .patch(`/api/task-comments/${archivedComment.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(updateDto)
+        .expect(HttpStatus.FORBIDDEN)
+        .expect((res) => {
+          expect(res.body.message).toContain('archived');
         });
     });
   });
