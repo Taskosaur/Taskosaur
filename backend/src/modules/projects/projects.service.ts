@@ -12,6 +12,8 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 import slugify from 'slugify';
 import { DEFAULT_SPRINT } from '../../constants/defaultWorkflow';
 import { AccessControlService } from 'src/common/access-control.utils';
+import { ActivityLogService } from '../activity-log/activity-log.service';
+import { InputSanitizer } from '../../common/utils/input-sanitizer';
 
 type ProjectFilters = {
   organizationId: string;
@@ -28,6 +30,7 @@ export class ProjectsService {
   constructor(
     private prisma: PrismaService,
     private accessControl: AccessControlService,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
   async create(createProjectDto: CreateProjectDto, userId: string): Promise<Project> {
@@ -262,7 +265,14 @@ export class ProjectsService {
       throw new ForbiddenException('User context required');
     }
 
-    const { status, priority, search, page = 1, pageSize = 10 } = filters || {};
+    const { status, priority, search, page, pageSize } = filters || {};
+
+    // Sanitize pagination parameters
+    const { page: sanitizedPage, pageSize: sanitizedPageSize } = InputSanitizer.sanitizePagination(
+      page,
+      pageSize,
+      100, // Max page size
+    );
 
     // Normalize status and priority to strings (handle potential arrays from query params)
     const normalizedStatus: string | undefined = status
@@ -292,6 +302,9 @@ export class ProjectsService {
     if (normalizedPriority && !/^[a-zA-Z0-9,_-]+$/.test(normalizedPriority)) {
       throw new BadRequestException('Invalid priority value format.');
     }
+
+    // Sanitize search parameter
+    const sanitizedSearch = InputSanitizer.sanitizeSearch(search);
 
     const whereClause: any = {
       archive: false,
@@ -327,20 +340,22 @@ export class ProjectsService {
         : normalizedPriority;
     }
 
-    // Step 4: Add search filter
-    if (search) {
+    // Step 4: Add search filter with sanitized input
+    if (sanitizedSearch) {
+      // Escape special LIKE characters for defense in depth
+      const escapedSearch = InputSanitizer.escapeLikeString(sanitizedSearch);
       whereClause.AND = [
         ...(whereClause.AND || []),
         {
           OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { slug: { contains: search, mode: 'insensitive' } },
+            { name: { contains: escapedSearch, mode: 'insensitive' } },
+            { slug: { contains: escapedSearch, mode: 'insensitive' } },
           ],
         },
       ];
     }
 
-    // Step 5: Query projects with pagination
+    // Step 5: Query projects with sanitized pagination
     return this.prisma.project.findMany({
       where: whereClause,
       include: {
@@ -387,21 +402,20 @@ export class ProjectsService {
         _count: { select: { members: true, tasks: true, sprints: true } },
       },
       orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      skip: (sanitizedPage - 1) * sanitizedPageSize,
+      take: sanitizedPageSize,
     });
   }
 
   async findByOrganizationId(filters: ProjectFilters, userId: string): Promise<Project[]> {
-    const {
-      organizationId,
-      workspaceId,
-      status,
-      priority,
-      page = 1,
-      pageSize = 10,
-      search,
-    } = filters;
+    const { organizationId, workspaceId, status, priority, page, pageSize, search } = filters;
+
+    // Sanitize pagination parameters
+    const { page: sanitizedPage, pageSize: sanitizedPageSize } = InputSanitizer.sanitizePagination(
+      page,
+      pageSize,
+      100, // Max page size
+    );
 
     // Normalize status and priority to strings (handle potential arrays from query params)
     const normalizedStatus: string | undefined = status
@@ -431,6 +445,9 @@ export class ProjectsService {
     if (normalizedPriority && !/^[a-zA-Z0-9,_-]+$/.test(normalizedPriority)) {
       throw new BadRequestException('Invalid priority value format.');
     }
+
+    // Sanitize search parameter
+    const sanitizedSearch = InputSanitizer.sanitizeSearch(search);
 
     // Step 1: Verify org exists
     const org = await this.prisma.organization.findUnique({
@@ -470,10 +487,11 @@ export class ProjectsService {
         ? { in: normalizedPriority.split(',').map((p: string) => p.trim()) }
         : normalizedPriority;
     }
-    if (search) {
+    if (sanitizedSearch) {
+      const escapedSearch = InputSanitizer.escapeLikeString(sanitizedSearch);
       const searchConditions = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { slug: { contains: search, mode: 'insensitive' } },
+        { name: { contains: escapedSearch, mode: 'insensitive' } },
+        { slug: { contains: escapedSearch, mode: 'insensitive' } },
       ];
       whereClause.AND = [...(whereClause.AND || []), { OR: searchConditions }];
     }
@@ -523,8 +541,8 @@ export class ProjectsService {
         _count: { select: { members: true, tasks: true, sprints: true } },
       },
       orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      skip: (sanitizedPage - 1) * sanitizedPageSize,
+      take: sanitizedPageSize,
     });
   }
 
@@ -722,6 +740,27 @@ export class ProjectsService {
       }
     }
 
+    // Get project details before archiving for audit log
+    const project = await this.prisma.project.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        workspace: {
+          select: {
+            id: true,
+            name: true,
+            organizationId: true,
+          },
+        },
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
     try {
       await this.prisma.$transaction(async (tx) => {
         // Archive all tasks in the project
@@ -738,6 +777,18 @@ export class ProjectsService {
           where: { id },
           data: { archive: true },
         });
+      });
+
+      // Log the archive activity
+      await this.activityLog.logActivity({
+        type: 'PROJECT_ARCHIVED',
+        description: `Archived project "${project.name}" (${project.slug})`,
+        entityType: 'Project',
+        entityId: project.id,
+        userId,
+        organizationId: project.workspace.organizationId,
+        oldValue: { archived: false },
+        newValue: { archived: true },
       });
     } catch (error: any) {
       console.error(error);
@@ -760,7 +811,19 @@ export class ProjectsService {
 
     const project = await this.prisma.project.findUnique({
       where: { id },
-      select: { workspace: { select: { id: true, archive: true, name: true } } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        workspace: {
+          select: {
+            id: true,
+            name: true,
+            archive: true,
+            organizationId: true,
+          },
+        },
+      },
     });
 
     if (!project) {
@@ -789,6 +852,18 @@ export class ProjectsService {
           where: { id },
           data: { archive: false },
         });
+      });
+
+      // Log the unarchive activity
+      await this.activityLog.logActivity({
+        type: 'PROJECT_UNARCHIVED',
+        description: `Unarchived project "${project.name}" (${project.slug})`,
+        entityType: 'Project',
+        entityId: project.id,
+        userId,
+        organizationId: project.workspace.organizationId,
+        oldValue: { archived: true },
+        newValue: { archived: false },
       });
     } catch (error: any) {
       console.error(error);
@@ -839,6 +914,9 @@ export class ProjectsService {
       throw new ForbiddenException('User context required');
     }
 
+    // Sanitize search parameter
+    const sanitizedSearch = InputSanitizer.sanitizeSearch(search);
+
     const whereClause: any = { archive: false, workspace: { archive: false } };
 
     // Add scope filtering
@@ -864,12 +942,13 @@ export class ProjectsService {
       },
     ];
 
-    // Add search filter
-    if (search && search.trim()) {
+    // Add search filter with sanitized input
+    if (sanitizedSearch) {
+      const escapedSearch = InputSanitizer.escapeLikeString(sanitizedSearch);
       const searchConditions = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { slug: { contains: search, mode: 'insensitive' } },
+        { name: { contains: escapedSearch, mode: 'insensitive' } },
+        { description: { contains: escapedSearch, mode: 'insensitive' } },
+        { slug: { contains: escapedSearch, mode: 'insensitive' } },
       ];
 
       whereClause.AND = [{ OR: whereClause.OR }, { OR: searchConditions }];
@@ -899,8 +978,8 @@ export class ProjectsService {
     workspaceId?: string,
     organizationId?: string,
     search?: string,
-    page: number = 1,
-    limit: number = 10,
+    page?: number | string,
+    limit?: number | string,
     userId?: string,
   ): Promise<{
     projects: Project[];
@@ -915,6 +994,16 @@ export class ProjectsService {
     if (!userId) {
       throw new ForbiddenException('User context required');
     }
+
+    // Sanitize pagination parameters
+    const { page: sanitizedPage, pageSize: sanitizedLimit } = InputSanitizer.sanitizePagination(
+      page,
+      limit,
+      100, // Max page size
+    );
+
+    // Sanitize search parameter
+    const sanitizedSearch = InputSanitizer.sanitizeSearch(search);
 
     const whereClause: any = { archive: false, workspace: { archive: false } };
 
@@ -940,11 +1029,12 @@ export class ProjectsService {
       },
     ];
 
-    if (search && search.trim()) {
+    if (sanitizedSearch) {
+      const escapedSearch = InputSanitizer.escapeLikeString(sanitizedSearch);
       const searchConditions = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { slug: { contains: search, mode: 'insensitive' } },
+        { name: { contains: escapedSearch, mode: 'insensitive' } },
+        { description: { contains: escapedSearch, mode: 'insensitive' } },
+        { slug: { contains: escapedSearch, mode: 'insensitive' } },
       ];
 
       whereClause.AND = [{ OR: whereClause.OR }, { OR: searchConditions }];
@@ -969,21 +1059,21 @@ export class ProjectsService {
           _count: { select: { members: true, tasks: true, sprints: true } },
         },
         orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (sanitizedPage - 1) * sanitizedLimit,
+        take: sanitizedLimit,
       }),
     ]);
 
-    const totalPages = Math.ceil(totalCount / limit);
+    const totalPages = Math.ceil(totalCount / sanitizedLimit);
 
     return {
       projects,
       pagination: {
-        currentPage: page,
+        currentPage: sanitizedPage,
         totalPages,
         totalCount,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1,
+        hasNextPage: sanitizedPage < totalPages,
+        hasPrevPage: sanitizedPage > 1,
       },
     };
   }

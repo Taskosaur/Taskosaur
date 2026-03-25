@@ -93,7 +93,7 @@ export class ProjectsController {
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findAll(
     @CurrentUser() user: AuthenticatedUser,
-    @Query('workspaceId') workspaceId?: string,
+    @Query('workspaceId', ParseUUIDPipe) workspaceId?: string,
     @Query('status') status?: string,
     @Query('priority') priority?: string,
     @Query('search') search?: string,
@@ -134,8 +134,8 @@ export class ProjectsController {
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findByOrganizationId(
     @CurrentUser() user: AuthenticatedUser,
-    @Query('organizationId') organizationId: string,
-    @Query('workspaceId') workspaceId?: string,
+    @Query('organizationId', ParseUUIDPipe) organizationId: string,
+    @Query('workspaceId', ParseUUIDPipe) workspaceId?: string,
     @Query('status') status?: string,
     @Query('priority') priority?: string,
     @Query('page') page?: string,
@@ -168,8 +168,8 @@ export class ProjectsController {
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   searchProjects(
     @CurrentUser() user: AuthenticatedUser,
-    @Query('workspaceId') workspaceId?: string,
-    @Query('organizationId') organizationId?: string,
+    @Query('workspaceId', ParseUUIDPipe) workspaceId?: string,
+    @Query('organizationId', ParseUUIDPipe) organizationId?: string,
     @Query('search') search?: string,
   ) {
     return this.projectsService.findBySearch(workspaceId, organizationId, search, user.id);
@@ -181,8 +181,8 @@ export class ProjectsController {
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   searchProjectsWithPagination(
     @CurrentUser() user: AuthenticatedUser,
-    @Query('workspaceId') workspaceId?: string,
-    @Query('organizationId') organizationId?: string,
+    @Query('workspaceId', ParseUUIDPipe) workspaceId?: string,
+    @Query('organizationId', ParseUUIDPipe) organizationId?: string,
     @Query('search') search?: string,
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
@@ -223,8 +223,8 @@ export class ProjectsController {
   @ApiResponse({ status: 200, description: 'List of archived projects' })
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   getArchivedProjects(
-    @Query('workspaceId') workspaceId: string,
-    @Query('organizationId') organizationId: string,
+    @Query('workspaceId', ParseUUIDPipe) workspaceId: string,
+    @Query('organizationId', ParseUUIDPipe) organizationId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     if (workspaceId) {
@@ -299,6 +299,13 @@ export class ProjectsController {
   @ApiResponse({ status: 404, description: 'Project not found' })
   @Roles(Role.MANAGER, Role.OWNER)
   @HttpCode(HttpStatus.NO_CONTENT)
+  @LogActivity({
+    type: 'PROJECT_ARCHIVED',
+    entityType: 'Project',
+    description: 'Archived a project',
+    includeOldValue: true,
+    includeNewValue: true,
+  })
   archiveProject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.projectsService.archiveProject(id, user.id, user.role as Role);
   }
@@ -311,6 +318,13 @@ export class ProjectsController {
   @ApiResponse({ status: 404, description: 'Project not found' })
   @Roles(Role.MANAGER, Role.OWNER)
   @HttpCode(HttpStatus.NO_CONTENT)
+  @LogActivity({
+    type: 'PROJECT_UNARCHIVED',
+    entityType: 'Project',
+    description: 'Unarchived a project',
+    includeOldValue: true,
+    includeNewValue: true,
+  })
   unarchiveProject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.projectsService.unarchiveProject(id, user.id, user.role as Role);
   }
