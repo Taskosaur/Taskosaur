@@ -45,84 +45,93 @@ export class WorkspacesService {
       createWorkspaceDto.organizationId,
     );
 
-    const workspace = await this.prisma.$transaction(async (tx) => {
-      const workspace = await tx.workspace.create({
-        data: {
-          ...createWorkspaceDto,
-          slug: uniqueSlug,
-          createdBy: userId,
-          updatedBy: userId,
-        },
-        include: {
-          organization: {
-            select: { id: true, name: true, slug: true, avatar: true },
+    try {
+      const workspace = await this.prisma.$transaction(async (tx) => {
+        const workspace = await tx.workspace.create({
+          data: {
+            ...createWorkspaceDto,
+            slug: uniqueSlug,
+            createdBy: userId,
+            updatedBy: userId,
           },
-          createdByUser: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
+          include: {
+            organization: {
+              select: { id: true, name: true, slug: true, avatar: true },
             },
-          },
-          updatedByUser: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
+            createdByUser: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              },
             },
+            updatedByUser: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+            _count: { select: { members: true, projects: true } },
           },
-          _count: { select: { members: true, projects: true } },
-        },
+        });
+        const membersToAdd = new Map<string, Role>();
+        membersToAdd.set(userId, Role.OWNER);
+        membersToAdd.set(organization.ownerId, Role.OWNER);
+        organization.members.forEach((member) => {
+          if (!membersToAdd.has(member.userId)) {
+            membersToAdd.set(member.userId, member.role);
+          }
+        });
+        await Promise.all(
+          Array.from(membersToAdd.entries()).map(([memberId, memberRole]) =>
+            tx.workspaceMember.create({
+              data: {
+                userId: memberId,
+                workspaceId: workspace.id,
+                role: memberRole,
+                createdBy: userId,
+                updatedBy: userId,
+              },
+            }),
+          ),
+        );
+
+        return workspace;
       });
-      const membersToAdd = new Map<string, Role>();
-      membersToAdd.set(userId, Role.OWNER);
-      membersToAdd.set(organization.ownerId, Role.OWNER);
-      organization.members.forEach((member) => {
-        if (!membersToAdd.has(member.userId)) {
-          membersToAdd.set(member.userId, member.role);
-        }
-      });
-      await Promise.all(
-        Array.from(membersToAdd.entries()).map(([memberId, memberRole]) =>
-          tx.workspaceMember.create({
-            data: {
-              userId: memberId,
-              workspaceId: workspace.id,
-              role: memberRole,
-              createdBy: userId,
-              updatedBy: userId,
-            },
-          }),
-        ),
-      );
 
       return workspace;
-    });
-
-    return workspace;
+    } catch (error) {
+      if (error?.code === 'P2002') {
+        throw new ConflictException('A workspace with this slug already exists. Please try again.');
+      }
+      throw error;
+    }
   }
 
   private async generateUniqueSlug(baseSlug: string, organizationId: string): Promise<string> {
     let slug = baseSlug;
     let counter = 1;
 
-    while (true) {
-      const existingWorkspace = await this.prisma.workspace.findUnique({
+    while (
+      await this.prisma.workspace.findUnique({
         where: { organizationId_slug: { organizationId, slug } },
         select: { id: true },
-      });
-
-      if (!existingWorkspace) {
-        return slug;
-      }
-
+      })
+    ) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
+
+    return slug;
   }
   findAll(userId: string, organizationId?: string, search?: string): Promise<Workspace[]> {
+    if (organizationId) {
+      void this.accessControl.getOrgAccess(organizationId, userId);
+    }
+
     const whereClause: any = { archive: false, organizationId };
     if (userId) {
       whereClause.members = { some: { userId } };
@@ -191,6 +200,10 @@ export class WorkspacesService {
       hasPrevPage: boolean;
     };
   }> {
+    if (organizationId) {
+      await this.accessControl.getOrgAccess(organizationId, userId);
+    }
+
     const whereClause: any = { archive: false, organizationId };
     if (userId) {
       whereClause.members = { some: { userId } };
@@ -462,7 +475,12 @@ export class WorkspacesService {
     }
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, userId: string): Promise<void> {
+    const { isElevated } = await this.accessControl.getWorkspaceAccess(id, userId);
+    if (!isElevated) {
+      throw new ForbiddenException('Insufficient permissions to delete workspace');
+    }
+
     try {
       await this.prisma.workspace.delete({ where: { id } });
     } catch (error) {
@@ -474,17 +492,15 @@ export class WorkspacesService {
     }
   }
 
-  async archiveWorkspace(id: string, userId: string, userRole?: Role): Promise<void> {
-    // SUPER_ADMIN has unrestricted access
-    if (userRole === Role.SUPER_ADMIN) {
-      await this.prisma.workspace.update({
-        where: { id },
-        data: { archive: true },
-      });
-      return;
+  async archiveWorkspace(id: string, userId: string): Promise<void> {
+    const { isElevated, isSuperAdmin } = await this.accessControl.getWorkspaceAccess(id, userId);
+
+    if (!isElevated && !isSuperAdmin) {
+      throw new ForbiddenException(
+        'Insufficient permissions to archive workspace. Requires MANAGER or OWNER role.',
+      );
     }
 
-    // Verify workspace exists
     const workspace = await this.prisma.workspace.findUnique({
       where: { id },
       select: { organizationId: true, archive: true },
@@ -494,35 +510,17 @@ export class WorkspacesService {
       throw new NotFoundException('Workspace not found');
     }
 
-    // Check organization-level access (must be OWNER or MANAGER)
-    const orgAccess = await this.accessControl.getOrgAccess(workspace.organizationId, userId);
-    const isOrgManager = orgAccess.isElevated || orgAccess.role === Role.OWNER;
-
-    // Check workspace-level access (must be OWNER or MANAGER)
-    const workspaceMember = await this.prisma.workspaceMember.findUnique({
-      where: { userId_workspaceId: { userId, workspaceId: id } },
-      select: { role: true },
-    });
-    const isWorkspaceManager =
-      workspaceMember &&
-      (workspaceMember.role === Role.OWNER || workspaceMember.role === Role.MANAGER);
-
-    // User must have manager+ access at both org AND workspace level
-    if (!isOrgManager || !isWorkspaceManager) {
-      throw new ForbiddenException(
-        'Insufficient permissions to archive workspace. Requires MANAGER or OWNER role at both organization and workspace levels.',
-      );
+    if (workspace.archive) {
+      throw new ConflictException('Workspace is already archived');
     }
 
     try {
       await this.prisma.$transaction(async (tx) => {
-        // Archive all projects in the workspace
         await tx.project.updateMany({
           where: { workspaceId: id, archive: false },
           data: { archive: true },
         });
 
-        // Archive all tasks in those projects
         await tx.task.updateMany({
           where: {
             project: { workspaceId: id },
@@ -534,7 +532,6 @@ export class WorkspacesService {
           },
         });
 
-        // Archive the workspace
         await tx.workspace.update({
           where: { id },
           data: { archive: true },
@@ -549,17 +546,15 @@ export class WorkspacesService {
     }
   }
 
-  async unarchiveWorkspace(id: string, userId: string, userRole?: Role): Promise<void> {
-    // SUPER_ADMIN has unrestricted access
-    if (userRole === Role.SUPER_ADMIN) {
-      await this.prisma.workspace.update({
-        where: { id },
-        data: { archive: false },
-      });
-      return;
+  async unarchiveWorkspace(id: string, userId: string): Promise<void> {
+    const { isElevated, isSuperAdmin } = await this.accessControl.getWorkspaceAccess(id, userId);
+
+    if (!isElevated && !isSuperAdmin) {
+      throw new ForbiddenException(
+        'Insufficient permissions to unarchive workspace. Requires MANAGER or OWNER role.',
+      );
     }
 
-    // Verify workspace exists and get organization info
     const workspace = await this.prisma.workspace.findUnique({
       where: { id },
       select: { organizationId: true, archive: true },
@@ -569,35 +564,17 @@ export class WorkspacesService {
       throw new NotFoundException('Workspace not found');
     }
 
-    // Check organization-level access (must be OWNER or MANAGER)
-    const orgAccess = await this.accessControl.getOrgAccess(workspace.organizationId, userId);
-    const isOrgManager = orgAccess.isElevated || orgAccess.role === Role.OWNER;
-
-    // Check workspace-level access (must be OWNER or MANAGER)
-    const workspaceMember = await this.prisma.workspaceMember.findUnique({
-      where: { userId_workspaceId: { userId, workspaceId: id } },
-      select: { role: true },
-    });
-    const isWorkspaceManager =
-      workspaceMember &&
-      (workspaceMember.role === Role.OWNER || workspaceMember.role === Role.MANAGER);
-
-    // User must have manager+ access at both org AND workspace level
-    if (!isOrgManager || !isWorkspaceManager) {
-      throw new ForbiddenException(
-        'Insufficient permissions to unarchive workspace. Requires MANAGER or OWNER role at both organization and workspace levels.',
-      );
+    if (!workspace.archive) {
+      throw new ConflictException('Workspace is not archived');
     }
 
     try {
       await this.prisma.$transaction(async (tx) => {
-        // Unarchive all projects in the workspace
         await tx.project.updateMany({
           where: { workspaceId: id, archive: true },
           data: { archive: false },
         });
 
-        // Unarchive all tasks in those projects
         await tx.task.updateMany({
           where: {
             project: { workspaceId: id },
@@ -609,7 +586,6 @@ export class WorkspacesService {
           },
         });
 
-        // Unarchive the workspace
         await tx.workspace.update({
           where: { id },
           data: { archive: false },
@@ -624,7 +600,9 @@ export class WorkspacesService {
     }
   }
 
-  async findArchived(organizationId: string): Promise<Workspace[]> {
+  async findArchived(organizationId: string, userId: string): Promise<Workspace[]> {
+    await this.accessControl.getOrgAccess(organizationId, userId);
+
     return this.prisma.workspace.findMany({
       where: { archive: true, organizationId },
       include: {

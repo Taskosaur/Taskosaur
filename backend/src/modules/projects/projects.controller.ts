@@ -117,7 +117,7 @@ export class ProjectsController {
     });
   }
 
-  @Get('/by-organization')
+  @Get('by-organization')
   @ApiOperation({
     summary: 'Get projects by organization',
     description: 'Returns projects filtered by organization ID',
@@ -135,7 +135,7 @@ export class ProjectsController {
   findByOrganizationId(
     @CurrentUser() user: AuthenticatedUser,
     @Query('organizationId', ParseUUIDPipe) organizationId: string,
-    @Query('workspaceId', ParseUUIDPipe) workspaceId?: string,
+    @Query('workspaceId', new ParseUUIDPipe({ optional: true })) workspaceId?: string,
     @Query('status') status?: string,
     @Query('priority') priority?: string,
     @Query('page') page?: string,
@@ -223,7 +223,7 @@ export class ProjectsController {
   @ApiResponse({ status: 200, description: 'List of archived projects' })
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   getArchivedProjects(
-    @Query('workspaceId', ParseUUIDPipe) workspaceId: string,
+    @Query('workspaceId', new ParseUUIDPipe({ optional: true })) workspaceId: string,
     @Query('organizationId', ParseUUIDPipe) organizationId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {

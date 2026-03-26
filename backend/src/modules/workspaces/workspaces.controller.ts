@@ -120,9 +120,13 @@ export class WorkspacesController {
   @ApiOperation({ summary: 'Get archived workspaces for an organization' })
   @ApiQuery({ name: 'organizationId', required: true, description: 'Organization ID (UUID)' })
   @ApiResponse({ status: 200, description: 'List of archived workspaces' })
-  @Roles(Role.OWNER, Role.SUPER_ADMIN)
-  getArchivedWorkspaces(@Query('organizationId', ParseUUIDPipe) organizationId: string) {
-    return this.workspacesService.findArchived(organizationId);
+  @Roles(Role.MANAGER, Role.OWNER)
+  @Scope('ORGANIZATION', 'organizationId')
+  getArchivedWorkspaces(
+    @Query('organizationId', ParseUUIDPipe) organizationId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.workspacesService.findArchived(organizationId, user.id as string);
   }
 
   @Get(':id')
@@ -194,9 +198,9 @@ export class WorkspacesController {
   @ApiResponse({ status: 200, description: 'Workspace deleted successfully' })
   @ApiResponse({ status: 404, description: 'Workspace not found' })
   @Scope('WORKSPACE', 'id')
-  @Roles(Role.OWNER)
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.workspacesService.remove(id);
+  @Roles(Role.OWNER, Role.MANAGER)
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.workspacesService.remove(id, user.id as string);
   }
 
   @Patch('archive/:id')
@@ -207,11 +211,8 @@ export class WorkspacesController {
   @ApiResponse({ status: 404, description: 'Workspace not found' })
   @Scope('WORKSPACE', 'id')
   @Roles(Role.MANAGER, Role.OWNER)
-  archiveWorkspace(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: { id: string; role: Role },
-  ) {
-    return this.workspacesService.archiveWorkspace(id, user.id, user.role);
+  archiveWorkspace(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.workspacesService.archiveWorkspace(id, user.id as string);
   }
 
   @Patch('unarchive/:id')
@@ -222,11 +223,8 @@ export class WorkspacesController {
   @ApiResponse({ status: 404, description: 'Workspace not found' })
   @Scope('WORKSPACE', 'id')
   @Roles(Role.MANAGER, Role.OWNER)
-  unarchiveWorkspace(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: { id: string; role: Role },
-  ) {
-    return this.workspacesService.unarchiveWorkspace(id, user.id, user.role);
+  unarchiveWorkspace(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.workspacesService.unarchiveWorkspace(id, user.id as string);
   }
 
   // Chart endpoints - require workspace membership
