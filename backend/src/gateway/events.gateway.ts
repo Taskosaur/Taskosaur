@@ -51,6 +51,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Track user connections
       const userSockets = this.connectedUsers.get(client.userId!) || [];
+      const wasOffline = userSockets.length === 0;
       userSockets.push(client.id);
       this.connectedUsers.set(client.userId!, userSockets);
 
@@ -65,6 +66,15 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         socketId: client.id,
         timestamp: new Date().toISOString(),
       });
+
+      // Broadcast user:online event if this is their first connection
+      if (wasOffline) {
+        this.server.emit('user:online', {
+          userId: client.userId,
+          isOnline: true,
+          timestamp: new Date().toISOString(),
+        });
+      }
     } catch (error) {
       this.logger.error(`Authentication failed for socket ${client.id}: ${error.message}`);
       client.disconnect();
@@ -79,6 +89,13 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (updatedSockets.length === 0) {
         this.connectedUsers.delete(client.userId);
+
+        // Broadcast user:offline event when user has no more connections
+        this.server.emit('user:offline', {
+          userId: client.userId,
+          isOnline: false,
+          lastSeen: new Date().toISOString(),
+        });
       } else {
         this.connectedUsers.set(client.userId, updatedSockets);
       }
