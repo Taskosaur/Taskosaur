@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
+import { UserStatusIndicator } from "@/components/users/UserStatusIndicator";
 import {
   Select,
   SelectContent,
@@ -697,10 +698,12 @@ function WorkspaceMembersContent() {
                                     }}
                                     size="sm"
                                   />
-                                  {/* Active Status Indicator - Green Dot */}
-                                  {(member.status || "ACTIVE") === "ACTIVE" && (
-                                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-[var(--card)] rounded-full"></div>
-                                  )}
+                                  <UserStatusIndicator
+                                    userId={member.userId}
+                                    size="sm"
+                                    showTooltip
+                                    className="absolute -bottom-0.5 -right-0.5 ring-0"
+                                  />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="text-sm font-medium text-[var(--foreground)] truncate">

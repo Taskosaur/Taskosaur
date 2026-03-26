@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
+import { UserStatusIndicator } from "@/components/users/UserStatusIndicator";
 import {
   Select,
   SelectContent,
@@ -311,8 +312,9 @@ export const MembersList: React.FC<MembersListProps> = ({
                       </div>
                     </div>
 
-                    {/* Status */}
-                    <div className="col-span-2">
+                    {/* Online Status */}
+                    <div className="col-span-2 flex items-center gap-2">
+                      <UserStatusIndicator userId={member.userId} size="sm" showTooltip />
                       <Badge
                         variant="outline"
                         className={`text-xs bg-transparent px-2 py-1 rounded-md border-none ${getStatusBadgeClass(

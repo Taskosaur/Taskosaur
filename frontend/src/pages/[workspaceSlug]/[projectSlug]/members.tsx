@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import UserAvatar from "@/components/ui/avatars/UserAvatar";
+import { UserStatusIndicator } from "@/components/users/UserStatusIndicator";
 import { invitationApi } from "@/utils/api/invitationsApi";
 import { toast } from "sonner";
 import {
@@ -720,10 +721,12 @@ function ProjectMembersContent() {
                                     }}
                                     size="sm"
                                   />
-                                  {/* Active Status Indicator - Green Dot */}
-                                  {(member.status || "ACTIVE") === "ACTIVE" && (
-                                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-[var(--card)] rounded-full"></div>
-                                  )}
+                                  <UserStatusIndicator
+                                    userId={member.userId}
+                                    size="sm"
+                                    showTooltip
+                                    className="absolute -bottom-0.5 -right-0.5 ring-0"
+                                  />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="text-sm font-medium text-[var(--foreground)] truncate">
@@ -825,8 +828,9 @@ function ProjectMembersContent() {
                               </div>
                             </div>
 
-                            {/* Status */}
-                            <div className="col-span-2">
+                            {/* Online Status */}
+                            <div className="col-span-2 flex items-center gap-2">
+                              <UserStatusIndicator userId={member.userId} size="sm" showTooltip />
                               <Badge
                                 variant="outline"
                                 className={`text-xs bg-transparent px-2 py-1 rounded-md border-none ${getStatusBadgeClass(
