@@ -804,14 +804,21 @@ function WorkspaceMembersContent() {
 
                             {/* Status */}
                             <div className="col-span-2">
-                              <Badge
-                                variant="outline"
-                                className={`text-xs bg-transparent px-2 py-1 rounded-md border-none ${getStatusBadgeClass(
-                                  member.status || "ACTIVE"
-                                )}`}
-                              >
-                                {member.status || "ACTIVE"}
-                              </Badge>
+                              <div className="flex items-center gap-2">
+                                <UserStatusIndicator
+                                  userId={member.userId}
+                                  size="sm"
+                                  showTooltip
+                                />
+                                <Badge
+                                  variant="outline"
+                                  className={`text-xs bg-transparent px-2 py-1 rounded-md border-none ${getStatusBadgeClass(
+                                    member.status || "ACTIVE"
+                                  )}`}
+                                >
+                                  {member.status || "ACTIVE"}
+                                </Badge>
+                              </div>
                             </div>
 
                             {/* Joined Date */}

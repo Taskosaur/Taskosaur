@@ -53,7 +53,7 @@ export const UserStatusIndicator: React.FC<UserStatusIndicatorProps> = ({
 
   const indicator = (
     <span
-      className={`${sizeClasses[size]} ${statusColor} rounded-full ring-2 ${statusRing} ${className}`}
+      className={`${className} ${sizeClasses[size]} ${statusColor} rounded-full ring-2 ${statusRing}`}
       aria-label={isOnline ? "Online" : "Offline"}
     />
   );
