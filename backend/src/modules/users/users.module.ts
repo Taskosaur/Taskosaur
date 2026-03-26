@@ -4,11 +4,12 @@ import { UsersController } from './users.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { S3Service } from '../storage/s3.service';
 import { StorageService } from '../storage/storage.service';
+import { UserStatusService } from './services/user-status.service';
 
 @Module({
   imports: [PrismaModule],
   controllers: [UsersController],
-  providers: [UsersService, S3Service, StorageService],
-  exports: [UsersService],
+  providers: [UsersService, S3Service, StorageService, UserStatusService],
+  exports: [UsersService, UserStatusService],
 })
 export class UsersModule {}

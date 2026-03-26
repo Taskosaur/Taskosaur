@@ -12,6 +12,7 @@ import {
   UseGuards,
   Req,
   ForbiddenException,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -23,6 +24,7 @@ import {
   ApiParam,
   ApiBody,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { User } from './entities/user.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -31,13 +33,18 @@ import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 import { Roles } from 'src/common/decorator/roles.decorator';
 import { Role } from '@prisma/client';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserStatusService } from './services/user-status.service';
+import { UserStatusResponseDto, BulkUserStatusResponseDto } from './dto/user-status.dto';
 
 @ApiTags('users')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly userStatusService: UserStatusService,
+  ) {}
 
   @Public()
   @Get('exists')
@@ -163,5 +170,42 @@ export class UsersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.remove(id);
+  }
+
+  @Get(':id/status')
+  @ApiOperation({ summary: 'Get online status for a single user' })
+  @ApiParam({ name: 'id', description: 'User ID (UUID)', type: String })
+  @ApiResponse({
+    status: 200,
+    description: 'User online status',
+    type: UserStatusResponseDto,
+  })
+  getUserStatus(@Param('id', ParseUUIDPipe) id: string) {
+    return this.userStatusService.getUserStatus(id);
+  }
+
+  @Get('status/bulk')
+  @ApiOperation({ summary: 'Get online status for multiple users' })
+  @ApiQuery({
+    name: 'userIds',
+    description: 'Comma-separated list of user IDs',
+    example: 'uuid1,uuid2,uuid3',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Map of user statuses',
+    type: BulkUserStatusResponseDto,
+  })
+  getUsersStatus(@Query('userIds') userIds: string) {
+    const ids = userIds
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+    const statusMap = this.userStatusService.getUsersStatus(ids);
+    const status: Record<string, { isOnline: boolean; lastSeen?: string }> = {};
+    statusMap.forEach((value, key) => {
+      status[key] = { isOnline: value.isOnline, lastSeen: value.lastSeen };
+    });
+    return { status };
   }
 }
