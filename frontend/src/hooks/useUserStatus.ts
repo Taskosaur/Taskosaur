@@ -23,6 +23,7 @@ export const useUserStatus = (userId: string | null) => {
       const data = await userApi.getUserStatus(userId);
       setStatus(data);
     } catch (err) {
+      console.error(`[useUserStatus] Failed to fetch status for user ${userId}:`, err);
       setError(err instanceof Error ? err : new Error("Failed to fetch user status"));
     } finally {
       setLoading(false);

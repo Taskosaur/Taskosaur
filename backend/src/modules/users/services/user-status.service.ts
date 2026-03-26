@@ -14,18 +14,15 @@ export interface UserStatusInfo {
 @Injectable()
 export class UserStatusService implements OnModuleInit {
   private readonly logger = new Logger(UserStatusService.name);
-  private eventsGateway?: EventsGateway;
+  private eventsGateway: EventsGateway;
   private userLastSeen = new Map<string, string>(); // userId -> ISO timestamp
 
-  constructor() {}
-
-  onModuleInit() {
-    // EventsGateway will be set via setter injection to avoid circular dependency
+  constructor(eventsGateway: EventsGateway) {
+    this.eventsGateway = eventsGateway;
   }
 
-  setEventsGateway(gateway: EventsGateway) {
-    this.eventsGateway = gateway;
-    this.logger.log('EventsGateway connected to UserStatusService');
+  onModuleInit() {
+    this.logger.log('UserStatusService initialized with EventsGateway');
   }
 
   /**

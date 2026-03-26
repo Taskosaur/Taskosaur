@@ -17,6 +17,7 @@ import {
   Notification,
   UserData,
 } from "@/types";
+import { initializeSocket, disconnectSocket } from "@/lib/socket";
 
 interface AuthState {
   user: User | null;
@@ -149,6 +150,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
           // Setup organization for the user
           await setupUserOrganization(user.id);
+          
+          // Initialize WebSocket connection for already logged-in users (on page refresh)
+          const token = localStorage.getItem("token");
+          if (token) {
+            initializeSocket(token);
+          }
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
@@ -261,6 +268,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         if (result) {
           // Load AI settings after successful registration
           await loadUserAISettings();
+          
+          // Initialize WebSocket connection for real-time updates
+          const token = localStorage.getItem("token");
+          if (token) {
+            initializeSocket(token);
+          }
         }
         return result;
       },
@@ -270,6 +283,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         if (result) {
           // Load AI settings after successful login
           await loadUserAISettings();
+          
+          // Initialize WebSocket connection for real-time updates
+          const token = localStorage.getItem("token");
+          if (token) {
+            initializeSocket(token);
+          }
         }
         return result;
       },
@@ -278,6 +297,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         await handleApiOperation(async () => {
           await authApi.logout();
           setAuthState((prev) => ({ ...prev, user: null }));
+          
+          // Disconnect WebSocket connection
+          disconnectSocket();
         });
       },
 

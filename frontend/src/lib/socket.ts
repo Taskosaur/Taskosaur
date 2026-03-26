@@ -6,12 +6,14 @@ class SocketService {
 
   connect(token: string, eventsNamespace = "/events") {
     if (this.socket?.connected) {
-      console.log("Socket already connected");
+      console.log("[SocketService] Socket already connected");
       return;
     }
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
     const socketUrl = apiUrl.replace("/api", "");
+
+    console.log("[SocketService] Connecting to:", `${socketUrl}${eventsNamespace}`);
 
     this.socket = io(`${socketUrl}${eventsNamespace}`, {
       auth: {
@@ -24,34 +26,34 @@ class SocketService {
     });
 
     this.socket.on("connect", () => {
-      console.log("Socket connected:", this.socket?.id);
+      console.log("[SocketService] Socket connected:", this.socket?.id);
       this.connected = true;
     });
 
     this.socket.on("disconnect", (reason) => {
-      console.log("Socket disconnected:", reason);
+      console.log("[SocketService] Socket disconnected:", reason);
       this.connected = false;
     });
 
     this.socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error);
+      console.error("[SocketService] Connection error:", error);
       this.connected = false;
     });
 
     // Listen for user status events and dispatch to window
     this.socket.on("user:online", (data) => {
-      console.log("User online:", data);
+      console.log("[SocketService] User online event:", data);
       window.dispatchEvent(new CustomEvent("user:online", { detail: data }));
     });
 
     this.socket.on("user:offline", (data) => {
-      console.log("User offline:", data);
+      console.log("[SocketService] User offline event:", data);
       window.dispatchEvent(new CustomEvent("user:offline", { detail: data }));
     });
 
     // Listen for other real-time events
     this.socket.on("connected", (data) => {
-      console.log("Connected to socket:", data);
+      console.log("[SocketService] Connected to socket:", data);
     });
   }
 
