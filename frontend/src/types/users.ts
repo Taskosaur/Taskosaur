@@ -48,3 +48,13 @@ export interface User {
   onboardInfo?: { [key: string]: string };
   source?: UserSource;
 }
+
+export interface UserStatus {
+  userId: string;
+  isOnline: boolean;
+  lastSeen?: string;
+}
+
+export interface BulkUserStatus {
+  status: Record<string, { isOnline: boolean; lastSeen?: string }>;
+}

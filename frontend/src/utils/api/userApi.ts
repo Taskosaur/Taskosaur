@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import { UpdateUserData, User } from "@/types";
+import { UpdateUserData, User, UserStatus, BulkUserStatus } from "@/types";
 
 export interface UpdateEmailData {
   email: string;
@@ -13,6 +13,18 @@ export const userApi = {
 
   getUserById: async (userId: string): Promise<User> => {
     const response = await api.get<User>(`/users/${userId}`);
+    return response.data;
+  },
+
+  getUserStatus: async (userId: string): Promise<UserStatus> => {
+    const response = await api.get<UserStatus>(`/users/${userId}/status`);
+    return response.data;
+  },
+
+  getUsersStatus: async (userIds: string[]): Promise<BulkUserStatus> => {
+    const response = await api.get<BulkUserStatus>(
+      `/users/status/bulk?userIds=${userIds.join(",")}`
+    );
     return response.data;
   },
 
