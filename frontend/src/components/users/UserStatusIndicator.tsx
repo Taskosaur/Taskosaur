@@ -1,6 +1,7 @@
 import React from "react";
 import { useUserStatus } from "@/hooks/useUserStatus";
 import { formatLastSeen } from "@/hooks/useUserStatus";
+import { FiAlertCircle, FiCircle } from "react-icons/fi";
 
 export interface UserStatusIndicatorProps {
   userId: string;
@@ -11,15 +12,15 @@ export interface UserStatusIndicatorProps {
 
 /**
  * UserStatusIndicator Component
- * 
- * Displays a colored dot indicating whether a user is online or offline.
- * 
+ *
+ * Displays an icon indicating whether a user is online or offline.
+ *
  * Features:
- * - Green dot for online users
- * - Gray dot for offline users
- * - Optional tooltip with last seen time
+ * - Green check circle for online users
+ * - Gray minus circle for offline users
+ * - Tooltip with last seen time
  * - Multiple size options
- * 
+ *
  * @example
  * ```tsx
  * <UserStatusIndicator userId="user-uuid" showTooltip />
@@ -27,20 +28,24 @@ export interface UserStatusIndicatorProps {
  */
 export const UserStatusIndicator: React.FC<UserStatusIndicatorProps> = ({
   userId,
-  showTooltip = false,
+  showTooltip = true,
   size = "md",
   className = "",
 }) => {
   const { isOnline, lastSeen, loading } = useUserStatus(userId);
 
   const sizeClasses = {
-    sm: "w-2 h-2",
-    md: "w-2.5 h-2.5",
-    lg: "w-3 h-3",
+    sm: "w-3 h-3",
+    md: "w-3.5 h-3.5",
+    lg: "w-4 h-4",
   };
 
-  const statusColor = isOnline ? "bg-green-500" : "bg-gray-400";
-  const statusRing = isOnline ? "ring-green-200" : "ring-gray-200";
+  const statusBg = isOnline
+    ? "bg-green-500"
+    : "bg-gray-400";
+  const statusRing = isOnline
+    ? "ring-green-300 dark:ring-green-700"
+    : "ring-gray-300 dark:ring-gray-600";
 
   if (loading) {
     return (
@@ -52,17 +57,19 @@ export const UserStatusIndicator: React.FC<UserStatusIndicatorProps> = ({
   }
 
   const indicator = (
-    <span
-      className={`${className} ${sizeClasses[size]} ${statusColor} rounded-full ring-2 ${statusRing}`}
-      aria-label={isOnline ? "Online" : "Offline"}
-    />
+    <span>
+      <FiCircle
+        className={`${className} ${sizeClasses[size]} ${statusBg} green rounded-full ring-2 ${statusRing}`}
+        aria-label={isOnline ? "Online" : "Offline"}
+      />
+    </span>
   );
 
   if (showTooltip) {
     return (
-      <div className="relative group">
+      <div className="relative group inline-block">
         {indicator}
-        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
           {isOnline ? "Online" : formatLastSeen(lastSeen)}
         </div>
       </div>
@@ -96,9 +103,7 @@ export const UserStatusBadge: React.FC<{ userId: string; className?: string }> =
 
   return (
     <span
-      className={`text-xs ${
-        isOnline ? "text-green-600" : "text-gray-500"
-      } ${className}`}
+     
     >
       {isOnline ? "Online" : formatLastSeen(lastSeen)}
     </span>
@@ -107,12 +112,12 @@ export const UserStatusBadge: React.FC<{ userId: string; className?: string }> =
 
 /**
  * UserAvatarWithStatus Component
- * 
- * Combines user avatar with online status indicator.
- * 
+ *
+ * Combines user avatar with online status indicator icon.
+ *
  * @example
  * ```tsx
- * <UserAvatarWithStatus 
+ * <UserAvatarWithStatus
  *   userId="user-uuid"
  *   avatarUrl="https://..."
  *   userName="John Doe"
@@ -167,7 +172,9 @@ export const UserAvatarWithStatus: React.FC<{
             statusSizes[size]
           } ${
             isOnline ? "bg-green-500" : "bg-gray-400"
-          } rounded-full ring-2 ring-white`}
+          } rounded-full ring-2 ${
+            isOnline ? "ring-green-300 dark:ring-green-700" : "ring-gray-300 dark:ring-gray-600"
+          }`}
           aria-label={isOnline ? "Online" : "Offline"}
         />
       )}

@@ -34,13 +34,18 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(private jwtService: JwtService) {}
 
-  handleConnection(client: AuthenticatedSocket) {
+  afterInit() {
+    this.logger.log('EventsGateway initialized on /events namespace');
+  }
+
+  async handleConnection(client: AuthenticatedSocket) {
     try {
       // Extract token from handshake
       const token = client.handshake.auth.token || client.handshake.query.token;
 
       if (!token) {
         this.logger.warn(`Client ${client.id} attempted to connect without token`);
+        client.emit('error', { message: 'Authentication token required' });
         client.disconnect();
         return;
       }
@@ -49,16 +54,26 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const payload = this.jwtService.verify(token as string);
       client.userId = payload.sub;
 
+      if (!client.userId) {
+        this.logger.warn(`Client ${client.id} connected with invalid token payload (no sub)`);
+        client.emit('error', { message: 'Invalid token payload' });
+        client.disconnect();
+        return;
+      }
+
       // Track user connections
-      const userSockets = this.connectedUsers.get(client.userId!) || [];
+      let userSockets = this.connectedUsers.get(client.userId);
+      if (!userSockets) {
+        userSockets = [];
+      }
       const wasOffline = userSockets.length === 0;
       userSockets.push(client.id);
-      this.connectedUsers.set(client.userId!, userSockets);
+      this.connectedUsers.set(client.userId, userSockets);
 
       this.logger.log(`User ${client.userId} connected with socket ${client.id}`);
 
       // Join user to their personal room
-      void client.join(`user:${client.userId}`);
+      await client.join(`user:${client.userId}`);
 
       // Emit connection confirmation
       client.emit('connected', {
@@ -77,117 +92,224 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     } catch (error) {
       this.logger.error(`Authentication failed for socket ${client.id}: ${error.message}`);
+      client.emit('error', { message: 'Authentication failed', details: error.message });
       client.disconnect();
     }
   }
 
-  handleDisconnect(client: AuthenticatedSocket) {
-    if (client.userId) {
-      // Remove socket from user's connections
-      const userSockets = this.connectedUsers.get(client.userId) || [];
-      const updatedSockets = userSockets.filter((socketId) => socketId !== client.id);
+  async handleDisconnect(client: AuthenticatedSocket) {
+    try {
+      if (client.userId) {
+        // Remove socket from user's connections
+        const userSockets = this.connectedUsers.get(client.userId) || [];
+        const updatedSockets = userSockets.filter((socketId) => socketId !== client.id);
 
-      if (updatedSockets.length === 0) {
-        this.connectedUsers.delete(client.userId);
+        if (updatedSockets.length === 0) {
+          this.connectedUsers.delete(client.userId);
 
-        // Broadcast user:offline event when user has no more connections
-        this.server.emit('user:offline', {
-          userId: client.userId,
-          isOnline: false,
-          lastSeen: new Date().toISOString(),
-        });
-      } else {
-        this.connectedUsers.set(client.userId, updatedSockets);
+          // Broadcast user:offline event when user has no more connections
+          this.server.emit('user:offline', {
+            userId: client.userId,
+            isOnline: false,
+            lastSeen: new Date().toISOString(),
+          });
+        } else {
+          this.connectedUsers.set(client.userId, updatedSockets);
+        }
+
+        this.logger.log(`User ${client.userId} disconnected socket ${client.id}`);
       }
 
-      this.logger.log(`User ${client.userId} disconnected socket ${client.id}`);
+      // Clean up room memberships
+      const roomsToLeave: string[] = [];
+
+      if (client.organizationId) {
+        roomsToLeave.push(`org:${client.organizationId}`);
+      }
+      if (client.workspaceId) {
+        roomsToLeave.push(`workspace:${client.workspaceId}`);
+      }
+      if (client.projectId) {
+        roomsToLeave.push(`project:${client.projectId}`);
+      }
+
+      // Leave all rooms the client was part of
+      for (const room of roomsToLeave) {
+        await client.leave(room);
+      }
+
+      // Leave personal room
+      if (client.userId) {
+        await client.leave(`user:${client.userId}`);
+      }
+    } catch (error) {
+      this.logger.error(`Error handling disconnect for socket ${client.id}: ${error.message}`);
     }
   }
 
   // Join organization room
   @SubscribeMessage('join:organization')
-  joinOrganization(
+  async joinOrganization(
     @MessageBody() data: { organizationId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
-    client.organizationId = data.organizationId;
-    void client.join(`org:${data.organizationId}`);
-    client.emit('joined:organization', { organizationId: data.organizationId });
-    this.logger.log(`User ${client.userId} joined organization ${data.organizationId}`);
+    try {
+      if (!data.organizationId) {
+        client.emit('error', { message: 'Organization ID is required' });
+        return;
+      }
+
+      client.organizationId = data.organizationId;
+      await client.join(`org:${data.organizationId}`);
+      client.emit('joined:organization', { organizationId: data.organizationId });
+      this.logger.log(`User ${client.userId} joined organization ${data.organizationId}`);
+    } catch (error) {
+      this.logger.error(`Error joining organization: ${error.message}`);
+      client.emit('error', { message: 'Failed to join organization', details: error.message });
+    }
   }
 
   // Join workspace room
   @SubscribeMessage('join:workspace')
-  joinWorkspace(
+  async joinWorkspace(
     @MessageBody() data: { workspaceId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
-    client.workspaceId = data.workspaceId;
-    void client.join(`workspace:${data.workspaceId}`);
-    client.emit('joined:workspace', { workspaceId: data.workspaceId });
-    this.logger.log(`User ${client.userId} joined workspace ${data.workspaceId}`);
+    try {
+      if (!data.workspaceId) {
+        client.emit('error', { message: 'Workspace ID is required' });
+        return;
+      }
+
+      client.workspaceId = data.workspaceId;
+      await client.join(`workspace:${data.workspaceId}`);
+      client.emit('joined:workspace', { workspaceId: data.workspaceId });
+      this.logger.log(`User ${client.userId} joined workspace ${data.workspaceId}`);
+    } catch (error) {
+      this.logger.error(`Error joining workspace: ${error.message}`);
+      client.emit('error', { message: 'Failed to join workspace', details: error.message });
+    }
   }
 
   // Join project room
   @SubscribeMessage('join:project')
-  joinProject(
+  async joinProject(
     @MessageBody() data: { projectId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
-    client.projectId = data.projectId;
-    void client.join(`project:${data.projectId}`);
-    client.emit('joined:project', { projectId: data.projectId });
-    this.logger.log(`User ${client.userId} joined project ${data.projectId}`);
+    try {
+      if (!data.projectId) {
+        client.emit('error', { message: 'Project ID is required' });
+        return;
+      }
+
+      client.projectId = data.projectId;
+      await client.join(`project:${data.projectId}`);
+      client.emit('joined:project', { projectId: data.projectId });
+      this.logger.log(`User ${client.userId} joined project ${data.projectId}`);
+    } catch (error) {
+      this.logger.error(`Error joining project: ${error.message}`);
+      client.emit('error', { message: 'Failed to join project', details: error.message });
+    }
   }
 
   // Join task room for task-specific updates
   @SubscribeMessage('join:task')
-  joinTask(
+  async joinTask(
     @MessageBody() data: { taskId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
-    void client.join(`task:${data.taskId}`);
-    client.emit('joined:task', { taskId: data.taskId });
-    this.logger.log(`User ${client.userId} joined task ${data.taskId}`);
+    try {
+      if (!data.taskId) {
+        client.emit('error', { message: 'Task ID is required' });
+        return;
+      }
+
+      await client.join(`task:${data.taskId}`);
+      client.emit('joined:task', { taskId: data.taskId });
+      this.logger.log(`User ${client.userId} joined task ${data.taskId}`);
+    } catch (error) {
+      this.logger.error(`Error joining task: ${error.message}`);
+      client.emit('error', { message: 'Failed to join task', details: error.message });
+    }
   }
 
   // Leave rooms
   @SubscribeMessage('leave:organization')
-  leaveOrganization(@ConnectedSocket() client: AuthenticatedSocket) {
-    if (client.organizationId) {
-      void client.leave(`org:${client.organizationId}`);
-      client.emit('left:organization', {
-        organizationId: client.organizationId,
-      });
+  async leaveOrganization(@ConnectedSocket() client: AuthenticatedSocket) {
+    try {
+      if (!client.organizationId) {
+        client.emit('error', { message: 'Not joined to any organization' });
+        return;
+      }
+
+      await client.leave(`org:${client.organizationId}`);
+      const organizationId = client.organizationId;
       client.organizationId = undefined;
+      client.emit('left:organization', { organizationId });
+      this.logger.log(`User ${client.userId} left organization ${organizationId}`);
+    } catch (error) {
+      this.logger.error(`Error leaving organization: ${error.message}`);
+      client.emit('error', { message: 'Failed to leave organization', details: error.message });
     }
   }
 
   @SubscribeMessage('leave:workspace')
-  leaveWorkspace(@ConnectedSocket() client: AuthenticatedSocket) {
-    if (client.workspaceId) {
-      void client.leave(`workspace:${client.workspaceId}`);
-      client.emit('left:workspace', { workspaceId: client.workspaceId });
+  async leaveWorkspace(@ConnectedSocket() client: AuthenticatedSocket) {
+    try {
+      if (!client.workspaceId) {
+        client.emit('error', { message: 'Not joined to any workspace' });
+        return;
+      }
+
+      await client.leave(`workspace:${client.workspaceId}`);
+      const workspaceId = client.workspaceId;
       client.workspaceId = undefined;
+      client.emit('left:workspace', { workspaceId });
+      this.logger.log(`User ${client.userId} left workspace ${workspaceId}`);
+    } catch (error) {
+      this.logger.error(`Error leaving workspace: ${error.message}`);
+      client.emit('error', { message: 'Failed to leave workspace', details: error.message });
     }
   }
 
   @SubscribeMessage('leave:project')
-  leaveProject(@ConnectedSocket() client: AuthenticatedSocket) {
-    if (client.projectId) {
-      void client.leave(`project:${client.projectId}`);
-      client.emit('left:project', { projectId: client.projectId });
+  async leaveProject(@ConnectedSocket() client: AuthenticatedSocket) {
+    try {
+      if (!client.projectId) {
+        client.emit('error', { message: 'Not joined to any project' });
+        return;
+      }
+
+      await client.leave(`project:${client.projectId}`);
+      const projectId = client.projectId;
       client.projectId = undefined;
+      client.emit('left:project', { projectId });
+      this.logger.log(`User ${client.userId} left project ${projectId}`);
+    } catch (error) {
+      this.logger.error(`Error leaving project: ${error.message}`);
+      client.emit('error', { message: 'Failed to leave project', details: error.message });
     }
   }
 
   @SubscribeMessage('leave:task')
-  leaveTask(
+  async leaveTask(
     @MessageBody() data: { taskId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
-    void client.leave(`task:${data.taskId}`);
-    client.emit('left:task', { taskId: data.taskId });
+    try {
+      if (!data.taskId) {
+        client.emit('error', { message: 'Task ID is required' });
+        return;
+      }
+
+      await client.leave(`task:${data.taskId}`);
+      client.emit('left:task', { taskId: data.taskId });
+      this.logger.log(`User ${client.userId} left task ${data.taskId}`);
+    } catch (error) {
+      this.logger.error(`Error leaving task: ${error.message}`);
+      client.emit('error', { message: 'Failed to leave task', details: error.message });
+    }
   }
 
   // Real-time event broadcasting methods

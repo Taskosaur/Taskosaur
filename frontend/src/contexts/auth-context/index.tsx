@@ -150,9 +150,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
           // Setup organization for the user
           await setupUserOrganization(user.id);
-          
+
           // Initialize WebSocket connection for already logged-in users (on page refresh)
-          const token = localStorage.getItem("token");
+          const token = localStorage.getItem("access_token");
           if (token) {
             initializeSocket(token);
           }
@@ -268,9 +268,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         if (result) {
           // Load AI settings after successful registration
           await loadUserAISettings();
-          
+
           // Initialize WebSocket connection for real-time updates
-          const token = localStorage.getItem("token");
+          const token = localStorage.getItem("access_token");
           if (token) {
             initializeSocket(token);
           }
@@ -283,9 +283,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         if (result) {
           // Load AI settings after successful login
           await loadUserAISettings();
-          
+
           // Initialize WebSocket connection for real-time updates
-          const token = localStorage.getItem("token");
+          const token = localStorage.getItem("access_token");
           if (token) {
             initializeSocket(token);
           }
