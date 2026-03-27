@@ -224,7 +224,7 @@ export class ProjectsController {
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   getArchivedProjects(
     @Query('workspaceId', new ParseUUIDPipe({ optional: true })) workspaceId: string,
-    @Query('organizationId', ParseUUIDPipe) organizationId: string,
+    @Query('organizationId', new ParseUUIDPipe({ optional: true })) organizationId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     if (workspaceId) {

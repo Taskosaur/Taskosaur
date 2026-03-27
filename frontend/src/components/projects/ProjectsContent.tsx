@@ -341,10 +341,8 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
           ...(debouncedSearchQuery.trim() && {
             search: debouncedSearchQuery.trim(),
           }),
-          ...(enablePagination && {
-            page,
-            pageSize,
-          }),
+          page: enablePagination ? page : 1,
+          pageSize: enablePagination ? pageSize : 100,
         };
 
         let projectsData: any[] = [];
@@ -686,7 +684,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
               )
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-24">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
                   {projects.map((project) => {
                     const statusText = formatStatus(project.status);
 
@@ -728,9 +726,9 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
 
                 {/* Fixed Bottom Bar: Pagination + Counter */}
                 {projects.length > 0 && (
-                  <div className="fixed bottom-0 left-[50%] md:left-[55%] -translate-x-1/2 w-full flex flex-col items-center pb-4 pt-3 pointer-events-none z-10 bg-[var(--background)] border-t border-[var(--border)]">
+                  <div className="w-full flex flex-col items-center pb-4 pt-3 bg-[var(--background)] border-t border-[var(--border)]">
                     {enablePagination && (currentPage > 1 || hasMore) && (
-                      <div className="flex items-center gap-3 pointer-events-auto mb-2">
+                      <div className="flex items-center gap-3 mb-2">
                         <Button
                           onClick={() => goToPage(currentPage - 1)}
                           disabled={currentPage <= 1 || isFetching}
@@ -758,7 +756,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                         </Button>
                       </div>
                     )}
-                    <p className="flex items-center gap-2 text-sm text-[var(--muted-foreground)] pointer-events-auto">
+                    <p className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
                       {isFetching ? (
                         <div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
                       ) : (
@@ -817,6 +815,8 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                                 prev.filter((p: any) => p.id !== project.id)
                               );
                               toast.success(t("unarchive_success", "Project unarchived successfully"));
+                              setCurrentPage(1);
+                              setHasMore(false);
                               await fetchData(1, true);
                             }
                           } catch (err: any) {

@@ -17,7 +17,7 @@ export default function WorkspaceProjectsPage() {
       description="Manage and organize projects within this workspace."
       emptyStateTitle="No projects found"
       emptyStateDescription="Create your first project to get started with organizing your tasks and collaborating with your team."
-      enablePagination={false}
+      enablePagination={true}
       generateProjectLink={(project, ws) =>
         isSafeSlug(ws) && isSafeSlug(project?.slug)
           ? `/${ws}/${project.slug}`
