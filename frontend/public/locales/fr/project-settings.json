@@ -1,0 +1,53 @@
+{
+    "title": "Paramètres du Projet",
+    "description": "Gérez la configuration et les préférences de votre projet",
+    "refreshing": "Actualisation des données du projet...",
+    "auth_required": "Authentification requise",
+    "workspace_not_found": "Espace de travail non trouvé",
+    "project_not_found": "Projet non trouvé",
+    "failed_to_load": "Échec du chargement du projet",
+    "tabs": {
+        "general": "Général",
+        "email": "Configuration Email",
+        "rules": "Règles"
+    },
+    "general": {
+        "title": "Informations Générales",
+        "subtitle": "Gérer les informations générales de votre projet",
+        "name_label": "Nom du Projet",
+        "name_placeholder": "Entrez le nom du projet",
+        "slug_label": "Slug du Projet",
+        "slug_placeholder": "slug-du-projet",
+        "slug_description": "Utilisé dans les URLs. Seules les lettres minuscules, les chiffres et les tirets sont autorisés.",
+        "slug_error": "Le slug du projet ne peut contenir que des lettres minuscules, des chiffres et des tirets",
+        "description_label": "Description",
+        "description_placeholder": "Décrivez votre projet...",
+        "status_label": "Statut",
+        "status_placeholder": "Sélectionner le statut",
+        "status_active": "Actif",
+        "status_on_hold": "En attente",
+        "status_completed": "Terminé",
+        "status_archived": "Archivé",
+        "visibility_label": "Visibilité",
+        "visibility_placeholder": "Sélectionner la visibilité",
+        "visibility_private": "Privé - Membres uniquement",
+        "visibility_internal": "Interne - Les membres de l'espace de travail peuvent voir",
+        "visibility_public": "Public - Tout le monde peut voir",
+        "visibility_description": "Contrôlez qui peut accéder à ce projet. Les membres ont toujours un accès complet selon leur rôle.",
+        "save_changes": "Enregistrer les Modifications",
+        "saving": "Enregistrement...",
+        "save_success": "Paramètres du projet mis à jour avec succès !",
+        "save_failed": "Échec de la mise à jour du projet"
+    },
+    "danger_zone": {
+        "title": "Zone de Danger",
+        "description": "Ces actions sont irréversibles. Veuillez procéder avec prudence.",
+        "archive_label": "Archiver le Projet",
+        "archive_description": "Archiver ce projet et le rendre en lecture seule",
+        "archive_failed": "Échec de l'archivage du projet",
+        "delete_label": "Supprimer le Projet",
+        "delete_description": "Supprimer définitivement ce projet et toutes ses données",
+        "delete_failed": "Échec de la suppression du projet",
+        "delete_button": "Supprimer le Projet"
+    }
+}

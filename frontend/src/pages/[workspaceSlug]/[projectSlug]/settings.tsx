@@ -1,4 +1,5 @@
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { useProject } from "@/contexts/project-context";
 import { useWorkspace } from "@/contexts/workspace-context";
@@ -47,6 +48,7 @@ function ProjectSettingsContent() {
   const { getProjectsByWorkspace, updateProject, deleteProject, archiveProject } = useProject();
   const { getWorkspaceBySlug } = useWorkspace();
   const { isAuthenticated, getUserAccess } = useAuth();
+  const { t } = useTranslation("project-settings");
   const [hasAccess, setHasAccess] = useState(false);
   const { handleSlugNotFound } = useSlugRedirect();
   const [project, setProject] = useState<any>(null);
@@ -65,10 +67,10 @@ function ProjectSettingsContent() {
   });
 
   const retryFetch = () => {
-    toast.info("Refreshing project data...");
+    toast.info(t("refreshing"));
     const fetchProject = async () => {
       if (!workspaceSlug || !projectSlug || !isAuthenticated()) {
-        setError("Authentication required");
+        setError(t("auth_required"));
         setLoading(false);
         return;
       }
@@ -77,7 +79,7 @@ function ProjectSettingsContent() {
         setLoading(true);
         const workspaceData = await getWorkspaceBySlug(workspaceSlug as string);
         if (!workspaceData) {
-          setError("Workspace not found");
+          setError(t("workspace_not_found"));
           setLoading(false);
           return;
         }
@@ -86,7 +88,7 @@ function ProjectSettingsContent() {
         const projectData = workspaceProjects.find((p) => p.slug === projectSlug);
 
         if (!projectData) {
-          setError("Project not found");
+          setError(t("project_not_found"));
           setLoading(false);
           return;
         }
@@ -100,7 +102,7 @@ function ProjectSettingsContent() {
           visibility: projectData.visibility || "PRIVATE",
         });
       } catch (err) {
-        setError(err?.message ? err.message : "Failed to load project");
+        setError(err?.message ? err.message : t("failed_to_load"));
       } finally {
         setLoading(false);
       }
@@ -123,8 +125,8 @@ function ProjectSettingsContent() {
     {
       name: "archive",
       type: "archive" as const,
-      label: "Archive Project",
-      description: "Archive this project and make it read-only",
+      label: t("danger_zone.archive_label"),
+      description: t("danger_zone.archive_description"),
       handler: async () => {
         try {
           const result = await archiveProject(project.id);
@@ -142,11 +144,11 @@ function ProjectSettingsContent() {
               await router.replace('/');
             }
           } else {
-            toast.error("Failed to archive project");
+            toast.error(t("danger_zone.archive_failed"));
           }
         } catch (error) {
           console.error("Archive error:", error);
-          toast.error("Failed to archive project");
+          toast.error(t("danger_zone.archive_failed"));
           throw error;
         }
       },
@@ -155,8 +157,8 @@ function ProjectSettingsContent() {
     {
       name: "delete",
       type: "delete" as const,
-      label: "Delete Project",
-      description: "Permanently delete this project and all its data",
+      label: t("danger_zone.delete_label"),
+      description: t("danger_zone.delete_description"),
       handler: async () => {
         try {
           await deleteProject(project.id);
@@ -175,7 +177,7 @@ function ProjectSettingsContent() {
           }
         } catch (error) {
           console.error("Delete error:", error);
-          toast.error("Failed to delete project");
+          toast.error(t("danger_zone.delete_failed"));
           throw error;
         }
       },
@@ -187,7 +189,7 @@ function ProjectSettingsContent() {
     let isActive = true;
     const fetchProject = async () => {
       if (!workspaceSlug || !projectSlug || !isAuthenticated()) {
-        setError("Authentication required");
+        setError(t("auth_required"));
         setLoading(false);
         router.push("/login");
         return;
@@ -200,7 +202,7 @@ function ProjectSettingsContent() {
         if (!isActive) return;
 
         if (!workspaceData) {
-          setError("Workspace not found");
+          setError(t("workspace_not_found"));
           setLoading(false);
           router.replace("/workspaces");
           return;
@@ -212,7 +214,7 @@ function ProjectSettingsContent() {
         if (!isActive) return;
 
         if (!projectData) {
-          setError("Project not found");
+          setError(t("project_not_found"));
           setLoading(false);
           const safeSlug = sanitizeSlug(workspaceSlug);
           if (!safeSlug) {
@@ -244,7 +246,7 @@ function ProjectSettingsContent() {
       } catch (err) {
         if (!isActive) return;
 
-        const errorMessage = err?.message ? err.message : "Failed to load project";
+        const errorMessage = err?.message ? err.message : t("failed_to_load");
 
         const redirected = await handleSlugNotFound(
           err,
@@ -255,21 +257,21 @@ function ProjectSettingsContent() {
         );
 
         if (!redirected) {
-        setError(errorMessage);
-        if (errorMessage.includes("not found") || errorMessage.includes("404")) {
-          const safeSlug = sanitizeSlug(workspaceSlug);
-          if (!safeSlug) {
-            console.error('Invalid workspace slug');
-            router.replace('/');
-            return;
+          setError(errorMessage);
+          if (errorMessage.includes("not found") || errorMessage.includes("404")) {
+            const safeSlug = sanitizeSlug(workspaceSlug);
+            if (!safeSlug) {
+              console.error('Invalid workspace slug');
+              router.replace('/');
+              return;
+            }
+            const path = `/${safeSlug}/projects`;
+            if (isValidInternalPath(path)) {
+              router.replace(path);
+            } else {
+              router.replace('/');
+            }
           }
-          const path = `/${safeSlug}/projects`;
-          if (isValidInternalPath(path)) {
-            router.replace(path);
-          } else {
-            router.replace('/');
-          }
-        }
         }
       } finally {
         if (isActive) {
@@ -290,7 +292,7 @@ function ProjectSettingsContent() {
 
     // Validate slug format
     if (formData.slug && !/^[a-z0-9-]+$/.test(formData.slug)) {
-      toast.error("Project slug can only contain lowercase letters, numbers, and hyphens");
+      toast.error(t("general.slug_error"));
       return;
     }
 
@@ -320,9 +322,9 @@ function ProjectSettingsContent() {
         }
       }
 
-      toast.success("Project settings updated successfully!");
+      toast.success(t("general.save_success"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update project");
+      toast.error(err instanceof Error ? err.message : t("general.save_failed"));
     } finally {
       setSaving(false);
     }
@@ -377,17 +379,17 @@ function ProjectSettingsContent() {
   }
 
   const tabs = [
-    { id: "general", name: "General", icon: HiCog },
-    { id: "email", name: "Email Setup", icon: HiEnvelope },
-    { id: "rules", name: "Rules", icon: IoWarning },
+    { id: "general", name: t("tabs.general"), icon: HiCog },
+    { id: "email", name: t("tabs.email"), icon: HiEnvelope },
+    { id: "rules", name: t("tabs.rules"), icon: IoWarning },
   ];
 
   return (
     <div className="dashboard-container space-y-6">
-      <SEO title={project ? `${project.name} Settings` : "Project Settings"} />
+      <SEO title={project ? `${project.name} ${t("title")}` : t("title")} />
       <PageHeader
-        title="Project Settings"
-        description="Manage your project configuration and preferences"
+        title={t("title")}
+        description={t("description")}
       />
 
       {success && (
@@ -415,11 +417,10 @@ function ProjectSettingsContent() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex cursor-pointer items-center gap-2 px-3 py-2 border-b-2 text-sm font-medium transition-all duration-200 ease-in-out ${
-                      isActive
-                        ? "border-b-[var(--primary)] text-[var(--primary)]"
-                        : "border-b-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                    }`}
+                    className={`flex cursor-pointer items-center gap-2 px-3 py-2 border-b-2 text-sm font-medium transition-all duration-200 ease-in-out ${isActive
+                      ? "border-b-[var(--primary)] text-[var(--primary)]"
+                      : "border-b-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                      }`}
                   >
                     <IconComponent className="w-4 h-4" />
                     <span>{tab.name}</span>
@@ -436,45 +437,45 @@ function ProjectSettingsContent() {
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Cog className="w-5 h-5 mr-2" />
-                      General Information
+                      {t("general.title")}
                     </CardTitle>
                     <p className="text-sm text-[var(--muted-foreground)]">
-                      Manage general information of your project
+                      {t("general.subtitle")}
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Project Name</Label>
+                      <Label htmlFor="name">{t("general.name_label")}</Label>
                       <Input
                         id="name"
                         value={formData.name}
                         onChange={(e) => handleInputChange("name", e.target.value)}
-                        placeholder="Enter project name"
+                        placeholder={t("general.name_placeholder")}
                         disabled={saving || !hasAccess}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="slug">Project Slug</Label>
+                      <Label htmlFor="slug">{t("general.slug_label")}</Label>
                       <Input
                         id="slug"
                         value={formData.slug}
                         onChange={(e) => handleInputChange("slug", e.target.value)}
-                        placeholder="project-slug"
+                        placeholder={t("general.slug_placeholder")}
                         disabled={saving || !hasAccess}
                       />
                       <p className="text-xs text-[var(--muted-foreground)]">
-                        Used in URLs. Only lowercase letters, numbers, and hyphens are allowed.
+                        {t("general.slug_description")}
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="description">Description</Label>
+                      <Label htmlFor="description">{t("general.description_label")}</Label>
                       <Textarea
                         id="description"
                         value={formData.description}
                         onChange={(e) => handleInputChange("description", e.target.value)}
-                        placeholder="Describe your project..."
+                        placeholder={t("general.description_placeholder")}
                         rows={3}
                         disabled={saving || !hasAccess}
                       />
@@ -483,7 +484,7 @@ function ProjectSettingsContent() {
                     <div className="grid grid-cols-2 gap-4">
                       {/* Status */}
                       <div className="space-y-2">
-                        <Label htmlFor="status">Status</Label>
+                        <Label htmlFor="status">{t("general.status_label")}</Label>
                         <Select
                           value={formData.status}
                           onValueChange={(value) => handleInputChange("status", value)}
@@ -491,24 +492,23 @@ function ProjectSettingsContent() {
                         >
                           <SelectTrigger
                             id="status"
-                            className={`w-full border border-[var(--border)] ${
-                              !hasAccess || saving ? "cursor-not-allowed" : "cursor-pointer"
-                            }`}
+                            className={`w-full border border-[var(--border)] ${!hasAccess || saving ? "cursor-not-allowed" : "cursor-pointer"
+                              }`}
                           >
-                            <SelectValue placeholder="Select status" />
+                            <SelectValue placeholder={t("general.status_placeholder")} />
                           </SelectTrigger>
                           <SelectContent className="bg-[var(--card)] border border-[var(--border)] ">
                             <SelectItem className="hover:bg-[var(--hover-bg)]" value="ACTIVE">
-                              Active
+                              {t("general.status_active")}
                             </SelectItem>
                             <SelectItem className="hover:bg-[var(--hover-bg)]" value="ON_HOLD">
-                              On Hold
+                              {t("general.status_on_hold")}
                             </SelectItem>
                             <SelectItem className="hover:bg-[var(--hover-bg)]" value="COMPLETED">
-                              Completed
+                              {t("general.status_completed")}
                             </SelectItem>
                             <SelectItem className="hover:bg-[var(--hover-bg)]" value="ARCHIVED">
-                              Archived
+                              {t("general.status_archived")}
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -516,7 +516,7 @@ function ProjectSettingsContent() {
 
                       {/* Visibility */}
                       <div className="space-y-2">
-                        <Label htmlFor="visibility">Visibility</Label>
+                        <Label htmlFor="visibility">{t("general.visibility_label")}</Label>
                         <Select
                           value={formData.visibility}
                           onValueChange={(value) => handleInputChange("visibility", value)}
@@ -524,27 +524,25 @@ function ProjectSettingsContent() {
                         >
                           <SelectTrigger
                             id="visibility"
-                            className={`w-full border border-[var(--border)] ${
-                              !hasAccess || saving ? "cursor-not-allowed" : "cursor-pointer"
-                            }`}
+                            className={`w-full border border-[var(--border)] ${!hasAccess || saving ? "cursor-not-allowed" : "cursor-pointer"
+                              }`}
                           >
-                            <SelectValue placeholder="Select visibility" />
+                            <SelectValue placeholder={t("general.visibility_placeholder")} />
                           </SelectTrigger>
                           <SelectContent className="bg-[var(--card)] border border-[var(--border)]">
                             <SelectItem className="hover:bg-[var(--hover-bg)]" value="PRIVATE">
-                              Private - Only members
+                              {t("general.visibility_private")}
                             </SelectItem>
                             <SelectItem className="hover:bg-[var(--hover-bg)]" value="INTERNAL">
-                              Internal - Workspace members can view
+                              {t("general.visibility_internal")}
                             </SelectItem>
                             <SelectItem className="hover:bg-[var(--hover-bg)]" value="PUBLIC">
-                              Public - Anyone can view
+                              {t("general.visibility_public")}
                             </SelectItem>
                           </SelectContent>
                         </Select>
                         <p className="text-xs text-[var(--muted-foreground)]">
-                          Control who can access this project. Members always have full access based
-                          on their role.
+                          {t("general.visibility_description")}
                         </p>
                       </div>
                     </div>
@@ -556,7 +554,7 @@ function ProjectSettingsContent() {
                           disabled={saving || !formData.name.trim() || !hasAccess}
                           primary
                         >
-                          {saving ? "Saving..." : "Save Changes"}
+                          {saving ? t("general.saving") : t("general.save_changes")}
                         </ActionButton>
                       </div>
                     )}
@@ -567,9 +565,9 @@ function ProjectSettingsContent() {
                   <div className="flex items-start gap-3">
                     <HiExclamationTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-1" />
                     <div className="flex-1">
-                      <h4 className="font-medium text-red-800 dark:text-red-400">Danger Zone</h4>
+                      <h4 className="font-medium text-red-800 dark:text-red-400">{t("danger_zone.title")}</h4>
                       <p className="text-sm text-red-700 dark:text-red-500 mb-4">
-                        These actions cannot be undone. Please proceed with caution.
+                        {t("danger_zone.description")}
                       </p>
                       <DangerZoneModal
                         entity={{
@@ -585,7 +583,7 @@ function ProjectSettingsContent() {
                           className="bg-red-600 hover:bg-red-700 text-white"
                           disabled={!hasAccess}
                         >
-                          Delete Project
+                          {t("danger_zone.delete_button")}
                         </ActionButton>
                       </DangerZoneModal>
                     </div>

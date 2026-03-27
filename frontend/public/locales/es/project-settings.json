@@ -1,0 +1,53 @@
+{
+    "title": "Configuración del Proyecto",
+    "description": "Gestiona la configuración y preferencias de tu proyecto",
+    "refreshing": "Actualizando datos del proyecto...",
+    "auth_required": "Autenticación requerida",
+    "workspace_not_found": "Espacio de trabajo no encontrado",
+    "project_not_found": "Proyecto no encontrado",
+    "failed_to_load": "Error al cargar el proyecto",
+    "tabs": {
+        "general": "General",
+        "email": "Correo Electrónico",
+        "rules": "Reglas"
+    },
+    "general": {
+        "title": "Información General",
+        "subtitle": "Gestiona la información general de tu proyecto",
+        "name_label": "Nombre del Proyecto",
+        "name_placeholder": "Ingrese el nombre del proyecto",
+        "slug_label": "Slug del Proyecto",
+        "slug_placeholder": "slug-del-proyecto",
+        "slug_description": "Usado en URLs. Solo se permiten letras minúsculas, números y guiones.",
+        "slug_error": "El slug del proyecto solo puede contener letras minúsculas, números y guiones",
+        "description_label": "Descripción",
+        "description_placeholder": "Describe tu proyecto...",
+        "status_label": "Estado",
+        "status_placeholder": "Seleccionar estado",
+        "status_active": "Activo",
+        "status_on_hold": "En Espera",
+        "status_completed": "Completado",
+        "status_archived": "Archivado",
+        "visibility_label": "Visibilidad",
+        "visibility_placeholder": "Seleccionar visibilidad",
+        "visibility_private": "Privado - Solo miembros",
+        "visibility_internal": "Interno - Miembros del espacio de trabajo pueden ver",
+        "visibility_public": "Público - Cualquiera puede ver",
+        "visibility_description": "Controla quién puede acceder a este proyecto. Los miembros siempre tienen acceso completo según su rol.",
+        "save_changes": "Guardar Cambios",
+        "saving": "Guardando...",
+        "save_success": "¡Configuración del proyecto actualizada con éxito!",
+        "save_failed": "Error al actualizar el proyecto"
+    },
+    "danger_zone": {
+        "title": "Zona de Peligro",
+        "description": "Estas acciones no se pueden deshacer. Proceda con precaución.",
+        "archive_label": "Archivar Proyecto",
+        "archive_description": "Archivar este proyecto y hacerlo de solo lectura",
+        "archive_failed": "Error al archivar el proyecto",
+        "delete_label": "Eliminar Proyecto",
+        "delete_description": "Eliminar permanentemente este proyecto y todos sus datos",
+        "delete_failed": "Error al eliminar el proyecto",
+        "delete_button": "Eliminar Proyecto"
+    }
+}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams, useRouter } from "next/navigation";
 import ActionButton from "@/components/common/ActionButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,6 +106,7 @@ const EmptyState = ({
 );
 
 function ProjectMembersContent() {
+  const { t } = useTranslation("project-members");
   const params = useParams();
   const router = useRouter();
   const workspaceSlug = params?.workspaceSlug as string;
@@ -150,9 +152,9 @@ function ProjectMembersContent() {
       .then((data) => {
         setHasAccess(
           data?.canChange ||
-            data?.role === "OWNER" ||
-            data?.role === "MANAGER" ||
-            data?.role === "SUPER_ADMIN"
+          data?.role === "OWNER" ||
+          data?.role === "MANAGER" ||
+          data?.role === "SUPER_ADMIN"
         );
       })
       .catch((error) => {
@@ -167,9 +169,9 @@ function ProjectMembersContent() {
         setUserAccess(data);
         setHasAccess(
           data?.canChange ||
-            data?.role === "OWNER" ||
-            data?.role === "MANAGER" ||
-            data?.role === "SUPER_ADMIN"
+          data?.role === "OWNER" ||
+          data?.role === "MANAGER" ||
+          data?.role === "SUPER_ADMIN"
         );
       })
       .catch((error) => {
@@ -287,7 +289,7 @@ function ProjectMembersContent() {
       currentRouteRef.current = pageKey;
 
       if (!workspaceSlug || !projectSlug || !isAuthenticated()) {
-        setError("Authentication required");
+        setError(t("auth_required"));
         setLoading(false);
         return;
       }
@@ -302,7 +304,7 @@ function ProjectMembersContent() {
         }
         const workspaceData = workspace || (await getWorkspaceBySlug(workspaceSlug));
         if (!workspaceData) {
-          setError("Workspace not found");
+          setError(t("workspace_not_found"));
           setLoading(false);
           return;
         }
@@ -312,7 +314,7 @@ function ProjectMembersContent() {
         const projectsData = await getProjectsByWorkspace(workspaceData.id);
         const foundProject = projectsData?.find((p: any) => p.slug === projectSlug);
         if (!foundProject) {
-          setError("Project not found");
+          setError(t("project_not_found"));
           setLoading(false);
           return;
         }
@@ -360,7 +362,7 @@ function ProjectMembersContent() {
           }
         } catch (membersError) {
           console.error("Failed to fetch members:", membersError);
-          setError("Failed to load project members");
+          setError(t("failed_to_load_members"));
           setMembers([]);
           fetchPrevention.markFetchComplete("project-members", []);
         }
@@ -376,7 +378,7 @@ function ProjectMembersContent() {
             project?.id
           );
           if (!redirected) {
-            setError(err?.message ? err.message : "Failed to load data");
+            setError(err?.message ? err.message : t("failed_to_load_data"));
             setMembers([]);
             isInitializedRef.current = false;
           }
@@ -467,7 +469,7 @@ function ProjectMembersContent() {
       }
       setError(null);
     } catch (err) {
-      setError(err?.message ? err.message : "Failed to load members");
+      setError(err?.message ? err.message : t("failed_to_load_members_short"));
       setMembers([]);
     }
   };
@@ -500,7 +502,7 @@ function ProjectMembersContent() {
   const handleRoleUpdate = async (memberId: string, newRole: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      toast.error("User not authenticated");
+      toast.error(t("user_not_authenticated"));
       return;
     }
 
@@ -509,9 +511,9 @@ function ProjectMembersContent() {
       await updateProjectMemberRole(memberId, newRole);
       updateLocalStorageUser(newRole);
       await refreshMembers();
-      toast.success("Member role updated successfully");
+      toast.success(t("role_updated_success"));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to update role";
+      const errorMessage = err instanceof Error ? err.message : t("role_update_failed");
       toast.error(errorMessage);
     } finally {
       setUpdatingMember(null);
@@ -521,7 +523,7 @@ function ProjectMembersContent() {
   const handleRemoveMember = async (member: ProjectMember) => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      toast.error("User not authenticated");
+      toast.error(t("user_not_authenticated"));
       return;
     }
 
@@ -533,14 +535,14 @@ function ProjectMembersContent() {
 
       // If user removed themselves, redirect to project page
       if (member.userId === currentUser.id) {
-        toast.success("You have left the project");
+        toast.success(t("left_project_success"));
         router.push(`/workspaces/${workspaceSlug}/projects/${projectSlug}`);
         return;
       }
 
-      toast.success("Member removed successfully");
+      toast.success(t("member_removed_success"));
     } catch (err) {
-      const errorMessage = err.message ? err.message : "Failed to remove member";
+      const errorMessage = err.message ? err.message : t("member_remove_failed");
       toast.error(errorMessage);
       setMemberToRemove(null);
     } finally {
@@ -550,8 +552,8 @@ function ProjectMembersContent() {
 
   const handleInvite = async (email: string, role: string) => {
     if (!project) {
-      toast.error("Project not found");
-      throw new Error("Project not found");
+      toast.error(t("project_not_found_for_invite"));
+      throw new Error(t("project_not_found_for_invite"));
     }
 
     const validation = invitationApi.validateInvitationData({
@@ -562,7 +564,7 @@ function ProjectMembersContent() {
 
     if (!validation.isValid) {
       validation.errors.forEach((error) => toast.error(error));
-      throw new Error("Validation failed");
+      throw new Error(t("validation_failed"));
     }
 
     try {
@@ -572,7 +574,7 @@ function ProjectMembersContent() {
         role: role,
       });
 
-      toast.success(`Invitation sent to ${email}`);
+      toast.success(t("invitation_sent", { email }));
 
       if (pendingInvitationsRef.current) {
         await pendingInvitationsRef.current.refreshInvitations();
@@ -580,7 +582,7 @@ function ProjectMembersContent() {
       await refreshMembers();
     } catch (error: any) {
       const errorMessage =
-        error?.response?.data?.message || error?.message || "Failed to send invitation";
+        error?.response?.data?.message || error?.message || t("invitation_failed");
       toast.error(errorMessage);
       console.error("Invite member error:", error);
       throw error;
@@ -611,11 +613,11 @@ function ProjectMembersContent() {
   return (
     <div className="dashboard-container space-y-6 pt-0" data-automation-id="invite-member-btn">
       <PageHeader
-        title={`${project?.name || "Project"} Members`}
+        title={project?.name ? t("title", { name: project.name }) : t("title_default")}
         description={
           workspace?.name && project?.name
-            ? `Manage members for ${project.name} in ${workspace.name} workspace`
-            : "Manage project members and their permissions"
+            ? t("description_with_context", { project: project.name, workspace: workspace.name })
+            : t("description_default")
         }
         actions={
           hasAccess && (
@@ -628,91 +630,187 @@ function ProjectMembersContent() {
               {inviteLoading ? (
                 <div className="w-4 h-4 border-2 border-[var(--primary-foreground)] border-t-transparent rounded-full animate-spin mr-2"></div>
               ) : null}
-              Invite Member
+              {t("invite_member")}
             </ActionButton>
           )
         }
       />
       {/* Main Content - Single Column Layout like MembersManager */}
-{loading ? (
-  <WorkspaceMembersSkeleton />
-    ) : (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Members List - Takes most space */}
-        <div className="lg:col-span-2">
-          <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
-            <CardHeader className="pb-2 px-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
-                  <HiUsers className="w-5 h-5 text-[var(--muted-foreground)]" />
-                  Team Members ({activeMembers.length})
-                </CardTitle>
-                <div className="relative w-full sm:w-auto">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <HiMagnifyingGlass className="w-4 text-[var(--muted-foreground)]" />
+      {loading ? (
+        <WorkspaceMembersSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Members List - Takes most space */}
+          <div className="lg:col-span-2">
+            <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
+              <CardHeader className="pb-2 px-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
+                    <HiUsers className="w-5 h-5 text-[var(--muted-foreground)]" />
+                    {t("team_members_count", { count: activeMembers.length })}
+                  </CardTitle>
+                  <div className="relative w-full sm:w-auto">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <HiMagnifyingGlass className="w-4 text-[var(--muted-foreground)]" />
+                    </div>
+                    <Input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 h-9 w-full sm:w-64 border-input bg-background text-[var(--foreground)]"
+                      placeholder={t("search_placeholder")}
+                    />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+                      >
+                        <HiXMark size={16} />
+                      </button>
+                    )}
                   </div>
-                  <Input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-9 w-full sm:w-64 border-input bg-background text-[var(--foreground)]"
-                    placeholder="Search members..."
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {/* Table Header - Desktop Only */}
+                <div className="hidden lg:block px-4 py-3 bg-[var(--muted)]/30 border-b border-[var(--border)]">
+                  <div className="grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                    <div className="col-span-4">{t("table_member")}</div>
+                    <div className="col-span-2">{t("table_status")}</div>
+                    <div className="col-span-2">{t("table_joined")}</div>
+                    <div className="col-span-2">{t("table_role")}</div>
+                    <div className="col-span-2">{t("table_action")}</div>
+                  </div>
+                </div>
+
+                {/* Table Content */}
+                {activeMembers.length === 0 && !loading ? (
+                  <EmptyState
+                    icon={HiUsers}
+                    title={
+                      searchTerm
+                        ? t("no_members_match")
+                        : t("no_members_found")
+                    }
+                    description={
+                      searchTerm
+                        ? t("try_adjusting_search")
+                        : t("start_by_inviting")
+                    }
                   />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
-                    >
-                      <HiXMark size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {/* Table Header - Desktop Only */}
-              <div className="hidden lg:block px-4 py-3 bg-[var(--muted)]/30 border-b border-[var(--border)]">
-                <div className="grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
-                  <div className="col-span-4">Member</div>
-                  <div className="col-span-2">Status</div>
-                  <div className="col-span-2">Joined</div>
-                  <div className="col-span-2">Role</div>
-                  <div className="col-span-2">Action</div>
-                </div>
-              </div>
+                ) : (
+                  <div className="divide-y divide-[var(--border)] lg:divide-y-0">
+                    {activeMembers.map((member) => {
+                      const currentUserId = getCurrentUserId();
+                      const isCurrentUser = member.userId === currentUserId;
+                      const canEditRole = canUpdateMemberRole(member);
+                      const canRemove = canRemoveMember(member);
+                      const availableRoles = getAvailableRolesForMember();
+                      const isOwner = member.role === "OWNER";
 
-              {/* Table Content */}
-              {activeMembers.length === 0 && !loading ? (
-                <EmptyState
-                  icon={HiUsers}
-                  title={
-                    searchTerm
-                      ? "No members found matching your search"
-                      : "No members found in this project"
-                  }
-                  description={
-                    searchTerm
-                      ? "Try adjusting your search terms"
-                      : "Start by inviting team members to collaborate on this project"
-                  }
-                />
-              ) : (
-                <div className="divide-y divide-[var(--border)] lg:divide-y-0">
-                  {activeMembers.map((member) => {
-                    const currentUserId = getCurrentUserId();
-                    const isCurrentUser = member.userId === currentUserId;
-                    const canEditRole = canUpdateMemberRole(member);
-                    const canRemove = canRemoveMember(member);
-                    const availableRoles = getAvailableRolesForMember();
-                    const isOwner = member.role === "OWNER";
+                      return (
+                        <div key={member.id}>
+                          <div className="block lg:hidden p-4 hover:bg-[var(--accent)]/30 transition-colors">
+                            <div className="space-y-2">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                  <div className="relative">
+                                    <UserAvatar
+                                      user={{
+                                        firstName: member.firstName,
+                                        lastName: member.lastName,
+                                        avatar: member.avatarUrl,
+                                      }}
+                                      size="sm"
+                                    />
+                                    <UserStatusIndicator
+                                      userId={member.userId}
+                                      size="sm"
+                                      showTooltip
+                                      className="absolute -bottom-0.5 -right-0.5 ring-0"
+                                    />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-sm font-medium text-[var(--foreground)] truncate">
+                                      {member.firstName} {member.lastName}
+                                    </div>
+                                    <div className="text-xs text-[var(--muted-foreground)] truncate">
+                                      {member.email}
+                                    </div>
+                                  </div>
+                                </div>
 
-                    return (
-                      <div key={member.id}>
-                        <div className="block lg:hidden p-4 hover:bg-[var(--accent)]/30 transition-colors">
-                          <div className="space-y-2">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <div className="relative">
+                                {/* Action Button */}
+                                {canRemove && (
+                                  <Tooltip
+                                    content={
+                                      isCurrentUser
+                                        ? t("leave_project")
+                                        : isOwner
+                                          ? t("owner_cannot_be_removed")
+                                          : userAccess?.role === "MANAGER" &&
+                                            member.role === "MANAGER"
+                                            ? t("cannot_remove_managers")
+                                            : t("remove_member")
+                                    }
+                                    position="top"
+                                    color="danger"
+                                  >
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setMemberToRemove(member)}
+                                      disabled={removingMember === member.id}
+                                      className="h-9 min-w-[36px] border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)] transition-all duration-200 flex-shrink-0"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </Tooltip>
+                                )}
+                              </div>
+
+                              {/* Row 2: Role */}
+                              <div className="flex items-center gap-2">
+                                {canEditRole ? (
+                                  <Select
+                                    value={member.role}
+                                    onValueChange={(value) => handleRoleUpdate(member.id, value)}
+                                    disabled={updatingMember === member.id}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs border-[var(--border)] bg-background text-[var(--foreground)] w-auto min-w-[100px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="border-none bg-[var(--card)]">
+                                      {availableRoles.map((role) => (
+                                        <SelectItem
+                                          key={role.id}
+                                          value={role.name}
+                                          className="hover:bg-[var(--hover-bg)]"
+                                        >
+                                          {role.name.charAt(0) + role.name.slice(1).toLowerCase()}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Badge
+                                    className={`text-[10px] px-2 py-0.5 rounded-md border-none h-6 ${getRoleBadgeClass(
+                                      member.role
+                                    )}`}
+                                  >
+                                    {member.role}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Desktop Layout (>= lg) - EXACT ORIGINAL */}
+                          <div className="hidden lg:block px-4 py-3 hover:bg-[var(--accent)]/30 transition-colors">
+                            <div className="grid grid-cols-12 gap-3 items-center">
+                              {/* Member Info */}
+                              <div className="col-span-4">
+                                <div className="flex items-center gap-3">
                                   <UserAvatar
                                     user={{
                                       firstName: member.firstName,
@@ -721,310 +819,214 @@ function ProjectMembersContent() {
                                     }}
                                     size="sm"
                                   />
-                                  <UserStatusIndicator
-                                    userId={member.userId}
-                                    size="sm"
-                                    showTooltip
-                                    className="absolute -bottom-0.5 -right-0.5 ring-0"
-                                  />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-sm font-medium text-[var(--foreground)] truncate">
-                                    {member.firstName} {member.lastName}
-                                  </div>
-                                  <div className="text-xs text-[var(--muted-foreground)] truncate">
-                                    {member.email}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-sm font-medium text-[var(--foreground)] truncate">
+                                      {member.firstName} {member.lastName}
+                                    </div>
+                                    <div className="text-xs text-[var(--muted-foreground)] truncate">
+                                      {member.email}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
 
-                              {/* Action Button */}
-                              {canRemove && (
-                                <Tooltip
-                                  content={
-                                    isCurrentUser
-                                      ? "Leave Project"
-                                      : isOwner
-                                        ? "Project owner cannot be removed"
-                                        : userAccess?.role === "MANAGER" &&
-                                          member.role === "MANAGER"
-                                          ? "Cannot remove other managers"
-                                          : "Remove Member"
-                                  }
-                                  position="top"
-                                  color="danger"
-                                >
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setMemberToRemove(member)}
-                                    disabled={removingMember === member.id}
-                                    className="h-9 min-w-[36px] border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)] transition-all duration-200 flex-shrink-0"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </Button>
-                                </Tooltip>
-                              )}
-                            </div>
-
-                            {/* Row 2: Role */}
-                            <div className="flex items-center gap-2">
-                              {canEditRole ? (
-                                <Select
-                                  value={member.role}
-                                  onValueChange={(value) => handleRoleUpdate(member.id, value)}
-                                  disabled={updatingMember === member.id}
-                                >
-                                  <SelectTrigger className="h-8 text-xs border-[var(--border)] bg-background text-[var(--foreground)] w-auto min-w-[100px]">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent className="border-none bg-[var(--card)]">
-                                    {availableRoles.map((role) => (
-                                      <SelectItem
-                                        key={role.id}
-                                        value={role.name}
-                                        className="hover:bg-[var(--hover-bg)]"
-                                      >
-                                        {role.name.charAt(0) + role.name.slice(1).toLowerCase()}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              ) : (
+                              {/* Online Status */}
+                              <div className="col-span-2 flex items-center gap-2">
+                                <UserStatusIndicator userId={member.userId} size="sm" showTooltip />
                                 <Badge
-                                  className={`text-[10px] px-2 py-0.5 rounded-md border-none h-6 ${getRoleBadgeClass(
-                                    member.role
+                                  variant="outline"
+                                  className={`text-xs bg-transparent px-2 py-1 rounded-md border-none ${getStatusBadgeClass(
+                                    member.status || "ACTIVE"
                                   )}`}
                                 >
-                                  {member.role}
+                                  {member.status || "ACTIVE"}
                                 </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Desktop Layout (>= lg) - EXACT ORIGINAL */}
-                        <div className="hidden lg:block px-4 py-3 hover:bg-[var(--accent)]/30 transition-colors">
-                          <div className="grid grid-cols-12 gap-3 items-center">
-                            {/* Member Info */}
-                            <div className="col-span-4">
-                              <div className="flex items-center gap-3">
-                                <UserAvatar
-                                  user={{
-                                    firstName: member.firstName,
-                                    lastName: member.lastName,
-                                    avatar: member.avatarUrl,
-                                  }}
-                                  size="sm"
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-sm font-medium text-[var(--foreground)] truncate">
-                                    {member.firstName} {member.lastName}
-                                  </div>
-                                  <div className="text-xs text-[var(--muted-foreground)] truncate">
-                                    {member.email}
-                                  </div>
-                                </div>
                               </div>
-                            </div>
 
-                            {/* Online Status */}
-                            <div className="col-span-2 flex items-center gap-2">
-                              <UserStatusIndicator userId={member.userId} size="sm" showTooltip />
-                              <Badge
-                                variant="outline"
-                                className={`text-xs bg-transparent px-2 py-1 rounded-md border-none ${getStatusBadgeClass(
-                                  member.status || "ACTIVE"
-                                )}`}
-                              >
-                                {member.status || "ACTIVE"}
-                              </Badge>
-                            </div>
+                              {/* Joined Date */}
+                              <div className="col-span-2">
+                                <span className="text-sm text-[var(--muted-foreground)]">
+                                  {formatDate(
+                                    typeof member.joinedAt === "string"
+                                      ? member.joinedAt
+                                      : (member.joinedAt as Date)?.toISOString()
+                                  )}
+                                </span>
+                              </div>
 
-                            {/* Joined Date */}
-                            <div className="col-span-2">
-                              <span className="text-sm text-[var(--muted-foreground)]">
-                                {formatDate(
-                                  typeof member.joinedAt === "string"
-                                    ? member.joinedAt
-                                    : (member.joinedAt as Date)?.toISOString()
+                              {/* Role */}
+                              <div className="col-span-2">
+                                {canEditRole ? (
+                                  <Select
+                                    value={member.role}
+                                    onValueChange={(value) => handleRoleUpdate(member.id, value)}
+                                    disabled={updatingMember === member.id}
+                                  >
+                                    <SelectTrigger className="h-7 text-xs border-none shadow-none bg-background text-[var(--foreground)]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="border-none bg-[var(--card)]">
+                                      {availableRoles.map((role) => (
+                                        <SelectItem
+                                          key={role.id}
+                                          value={role.name}
+                                          className="hover:bg-[var(--hover-bg)]"
+                                        >
+                                          {role.name.charAt(0) + role.name.slice(1).toLowerCase()}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Badge
+                                    className={`text-xs px-2 py-1 rounded-md border-none ${getRoleBadgeClass(
+                                      member.role
+                                    )}`}
+                                  >
+                                    {member.role}
+                                  </Badge>
                                 )}
-                              </span>
-                            </div>
+                              </div>
 
-                            {/* Role */}
-                            <div className="col-span-2">
-                              {canEditRole ? (
-                                <Select
-                                  value={member.role}
-                                  onValueChange={(value) => handleRoleUpdate(member.id, value)}
-                                  disabled={updatingMember === member.id}
-                                >
-                                  <SelectTrigger className="h-7 text-xs border-none shadow-none bg-background text-[var(--foreground)]">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent className="border-none bg-[var(--card)]">
-                                    {availableRoles.map((role) => (
-                                      <SelectItem
-                                        key={role.id}
-                                        value={role.name}
-                                        className="hover:bg-[var(--hover-bg)]"
-                                      >
-                                        {role.name.charAt(0) + role.name.slice(1).toLowerCase()}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              ) : (
-                                <Badge
-                                  className={`text-xs px-2 py-1 rounded-md border-none ${getRoleBadgeClass(
-                                    member.role
-                                  )}`}
-                                >
-                                  {member.role}
-                                </Badge>
-                              )}
-                            </div>
-
-                            {/* Action */}
-                            <div className="col-span-2">
-                              {canRemove && (
-                                <Tooltip
-                                  content={
-                                    isCurrentUser
-                                      ? "Leave Project"
-                                      : isOwner
-                                        ? "Project owner cannot be removed"
-                                        : userAccess?.role === "MANAGER" &&
-                                          member.role === "MANAGER"
-                                          ? "Cannot remove other managers"
-                                          : "Remove Member"
-                                  }
-                                  position="top"
-                                  color="danger"
-                                >
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setMemberToRemove(member)}
-                                    disabled={removingMember === member.id}
-                                    className="h-7 border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)] transition-all duration-200"
+                              {/* Action */}
+                              <div className="col-span-2">
+                                {canRemove && (
+                                  <Tooltip
+                                    content={
+                                      isCurrentUser
+                                        ? t("leave_project")
+                                        : isOwner
+                                          ? t("owner_cannot_be_removed")
+                                          : userAccess?.role === "MANAGER" &&
+                                            member.role === "MANAGER"
+                                            ? t("cannot_remove_managers")
+                                            : t("remove_member")
+                                    }
+                                    position="top"
+                                    color="danger"
                                   >
-                                    <X className="w-3 h-3" />
-                                  </Button>
-                                </Tooltip>
-                              )}
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setMemberToRemove(member)}
+                                      disabled={removingMember === member.id}
+                                      className="h-7 border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)] transition-all duration-200"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </Tooltip>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
+                      );
+                    })}
+                    <div className="px-4">
+                      {totalMembers > 10 && (
+                        <Pagination
+                          pagination={{
+                            currentPage: currentPage,
+                            totalPages: Math.ceil(totalMembers / pageSize),
+                            totalCount: totalMembers,
+                            hasNextPage: currentPage * pageSize < totalMembers,
+                            hasPrevPage: currentPage > 1,
+                          }}
+                          pageSize={pageSize}
+                          onPageChange={async (page) => {
+                            setCurrentPage(page);
+                            await fetchMembers(page === 1 ? debouncedSearchTerm : searchTerm, page);
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Project Info & Recent Activity - Small Sidebar */}
+          <div className="lg:col-span-1 space-y-4">
+            {/* Project Info Card */}
+            <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
+                  <HiFolder className="w-5 h-5 text-[var(--muted-foreground)]" />
+                  {t("project_info")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-[var(--foreground)]">
+                      {project?.name || t("unknown_project")}
+                    </p>
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                      {project?.description || t("no_description")}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
+                    <span>{t("workspace_label")}</span>
+                    <span className="font-medium text-[var(--foreground)]">
+                      {workspace?.name || t("unknown")}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
+                    <span>{t("members_label")}</span>
+                    <span className="font-medium text-[var(--foreground)]">{members.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
+                    <span>{t("active_members_label")}</span>
+                    <span className="font-medium text-[var(--foreground)]">
+                      {members.filter((m) => m.status === "ACTIVE").length}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Member Roles Summary */}
+            <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
+                  <HiCog className="w-5 h-5 text-[var(--muted-foreground)]" />
+                  {t("role_distribution")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  {roles.map((role) => {
+                    const count = members.filter(
+                      (m) => m.role === role.name && m.status?.toLowerCase() !== "pending"
+                    ).length;
+                    return (
+                      <div key={role.id} className="flex items-center justify-between text-xs">
+                        <span className="text-[var(--muted-foreground)]">{role.name}</span>
+                        <Badge
+                          variant={role.variant}
+                          className="h-5 px-2 text-xs border-none bg-[var(--primary)]/10 text-[var(--primary)]"
+                        >
+                          {count}
+                        </Badge>
                       </div>
                     );
                   })}
-                  <div className="px-4">
-                    {totalMembers > 10 && (
-                      <Pagination
-                        pagination={{
-                          currentPage: currentPage,
-                          totalPages: Math.ceil(totalMembers / pageSize),
-                          totalCount: totalMembers,
-                          hasNextPage: currentPage * pageSize < totalMembers,
-                          hasPrevPage: currentPage > 1,
-                        }}
-                        pageSize={pageSize}
-                        onPageChange={async (page) => {
-                          setCurrentPage(page);
-                          await fetchMembers(page === 1 ? debouncedSearchTerm : searchTerm, page);
-                        }}
-                      />
-                    )}
-                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+            {/* Pending Invitations */}
+            {hasAccess && (
+              <PendingInvitations
+                ref={pendingInvitationsRef}
+                entity={project}
+                entityType="project"
+                members={members}
+              />
+            )}
+          </div>
         </div>
-
-        {/* Project Info & Recent Activity - Small Sidebar */}
-        <div className="lg:col-span-1 space-y-4">
-          {/* Project Info Card */}
-          <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
-                <HiFolder className="w-5 h-5 text-[var(--muted-foreground)]" />
-                Project Info
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm font-medium text-[var(--foreground)]">
-                    {project?.name || "Unknown Project"}
-                  </p>
-                  <p className="text-xs text-[var(--muted-foreground)]">
-                    {project?.description || "No description available"}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
-                  <span>Workspace:</span>
-                  <span className="font-medium text-[var(--foreground)]">
-                    {workspace?.name || "Unknown"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
-                  <span>Members:</span>
-                  <span className="font-medium text-[var(--foreground)]">{members.length}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
-                  <span>Active Members:</span>
-                  <span className="font-medium text-[var(--foreground)]">
-                    {members.filter((m) => m.status === "ACTIVE").length}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Member Roles Summary */}
-          <Card className="bg-[var(--card)] rounded-[var(--card-radius)] border-none shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-md font-semibold text-[var(--foreground)] flex items-center gap-2">
-                <HiCog className="w-5 h-5 text-[var(--muted-foreground)]" />
-                Role Distribution
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-2">
-                {roles.map((role) => {
-                  const count = members.filter(
-                    (m) => m.role === role.name && m.status?.toLowerCase() !== "pending"
-                  ).length;
-                  return (
-                    <div key={role.id} className="flex items-center justify-between text-xs">
-                      <span className="text-[var(--muted-foreground)]">{role.name}</span>
-                      <Badge
-                        variant={role.variant}
-                        className="h-5 px-2 text-xs border-none bg-[var(--primary)]/10 text-[var(--primary)]"
-                      >
-                        {count}
-                      </Badge>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-          {/* Pending Invitations */}
-          {hasAccess && (
-            <PendingInvitations
-              ref={pendingInvitationsRef}
-              entity={project}
-              entityType="project"
-              members={members}
-            />
-          )}
-        </div>
-      </div>
-    )}
+      )}
 
       <ProjectInviteMemberModal
         isOpen={showInviteModal}
@@ -1038,14 +1040,14 @@ function ProjectMembersContent() {
           isOpen={true}
           onClose={() => setMemberToRemove(null)}
           onConfirm={() => handleRemoveMember(memberToRemove)}
-          title={memberToRemove.userId === getCurrentUserId() ? "Leave Project" : "Remove Member"}
+          title={memberToRemove.userId === getCurrentUserId() ? t("leave_confirm_title") : t("remove_confirm_title")}
           message={
             memberToRemove.userId === getCurrentUserId()
-              ? "Are you sure you want to leave this project? You will lose access to all project resources."
-              : "Are you sure you want to remove this member from the Project?"
+              ? t("leave_confirm_message")
+              : t("remove_confirm_message")
           }
-          confirmText={memberToRemove.userId === getCurrentUserId() ? "Leave" : "Remove"}
-          cancelText="Cancel"
+          confirmText={memberToRemove.userId === getCurrentUserId() ? t("confirm_leave") : t("confirm_remove")}
+          cancelText={t("cancel")}
         />
       )}
     </div>

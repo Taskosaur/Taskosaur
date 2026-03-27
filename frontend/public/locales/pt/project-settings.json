@@ -1,0 +1,53 @@
+{
+    "title": "Configurações do Projeto",
+    "description": "Gerencie a configuração e preferências do seu projeto",
+    "refreshing": "Atualizando dados do projeto...",
+    "auth_required": "Autenticação necessária",
+    "workspace_not_found": "Espaço de trabalho não encontrado",
+    "project_not_found": "Projeto não encontrado",
+    "failed_to_load": "Falha ao carregar o projeto",
+    "tabs": {
+        "general": "Geral",
+        "email": "Configuração de Email",
+        "rules": "Regras"
+    },
+    "general": {
+        "title": "Informações Gerais",
+        "subtitle": "Gerencie as informações gerais do seu projeto",
+        "name_label": "Nome do Projeto",
+        "name_placeholder": "Digite o nome do projeto",
+        "slug_label": "Slug do Projeto",
+        "slug_placeholder": "slug-do-projeto",
+        "slug_description": "Usado em URLs. Apenas letras minúsculas, números e hífens são permitidos.",
+        "slug_error": "O slug do projeto só pode conter letras minúsculas, números e hífens",
+        "description_label": "Descrição",
+        "description_placeholder": "Descreva seu projeto...",
+        "status_label": "Status",
+        "status_placeholder": "Selecionar status",
+        "status_active": "Ativo",
+        "status_on_hold": "Em Espera",
+        "status_completed": "Concluído",
+        "status_archived": "Arquivado",
+        "visibility_label": "Visibilidade",
+        "visibility_placeholder": "Selecionar visibilidade",
+        "visibility_private": "Privado - Apenas membros",
+        "visibility_internal": "Interno - Membros do espaço de trabalho podem ver",
+        "visibility_public": "Público - Qualquer pessoa pode ver",
+        "visibility_description": "Controle quem pode acessar este projeto. Os membros sempre têm acesso completo com base em sua função.",
+        "save_changes": "Salvar Alterações",
+        "saving": "Salvando...",
+        "save_success": "Configurações do projeto atualizadas com sucesso!",
+        "save_failed": "Falha ao atualizar o projeto"
+    },
+    "danger_zone": {
+        "title": "Zona de Perigo",
+        "description": "Estas ações não podem ser desfeitas. Prossiga com cautela.",
+        "archive_label": "Arquivar Projeto",
+        "archive_description": "Arquivar este projeto e torná-lo somente leitura",
+        "archive_failed": "Falha ao arquivar o projeto",
+        "delete_label": "Excluir Projeto",
+        "delete_description": "Excluir permanentemente este projeto e todos os seus dados",
+        "delete_failed": "Falha ao excluir o projeto",
+        "delete_button": "Excluir Projeto"
+    }
+}

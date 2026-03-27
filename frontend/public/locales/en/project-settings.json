@@ -1,0 +1,53 @@
+{
+    "title": "Project Settings",
+    "description": "Manage your project configuration and preferences",
+    "refreshing": "Refreshing project data...",
+    "auth_required": "Authentication required",
+    "workspace_not_found": "Workspace not found",
+    "project_not_found": "Project not found",
+    "failed_to_load": "Failed to load project",
+    "tabs": {
+        "general": "General",
+        "email": "Email Setup",
+        "rules": "Rules"
+    },
+    "general": {
+        "title": "General Information",
+        "subtitle": "Manage general information of your project",
+        "name_label": "Project Name",
+        "name_placeholder": "Enter project name",
+        "slug_label": "Project Slug",
+        "slug_placeholder": "project-slug",
+        "slug_description": "Used in URLs. Only lowercase letters, numbers, and hyphens are allowed.",
+        "slug_error": "Project slug can only contain lowercase letters, numbers, and hyphens",
+        "description_label": "Description",
+        "description_placeholder": "Describe your project...",
+        "status_label": "Status",
+        "status_placeholder": "Select status",
+        "status_active": "Active",
+        "status_on_hold": "On Hold",
+        "status_completed": "Completed",
+        "status_archived": "Archived",
+        "visibility_label": "Visibility",
+        "visibility_placeholder": "Select visibility",
+        "visibility_private": "Private - Only members",
+        "visibility_internal": "Internal - Workspace members can view",
+        "visibility_public": "Public - Anyone can view",
+        "visibility_description": "Control who can access this project. Members always have full access based on their role.",
+        "save_changes": "Save Changes",
+        "saving": "Saving...",
+        "save_success": "Project settings updated successfully!",
+        "save_failed": "Failed to update project"
+    },
+    "danger_zone": {
+        "title": "Danger Zone",
+        "description": "These actions cannot be undone. Please proceed with caution.",
+        "archive_label": "Archive Project",
+        "archive_description": "Archive this project and make it read-only",
+        "archive_failed": "Failed to archive project",
+        "delete_label": "Delete Project",
+        "delete_description": "Permanently delete this project and all its data",
+        "delete_failed": "Failed to delete project",
+        "delete_button": "Delete Project"
+    }
+}
