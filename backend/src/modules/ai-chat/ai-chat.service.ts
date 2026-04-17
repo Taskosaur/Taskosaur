@@ -16,6 +16,53 @@ import { getAutomationPrompt } from './automation-prompts';
 export class AiChatService {
   constructor(private settingsService: SettingsService) {}
 
+  /**
+   * Detect the API vendor/family from the model string so we can apply
+   * vendor-specific features (currently prompt caching) even when the
+   * `provider` is `custom` (e.g. CLIProxyAPI, LiteLLM) and the URL gives
+   * no hint about the backing model.
+   *
+   * Matches:
+   *  - anthropic: `claude-*`, `anthropic/*`, `.../claude-*`
+   *  - openai:   `gpt-*`, `o1-*`, `o3-*`, `o4-*`, `chatgpt*`, and the same with an org prefix
+   *  - google:   `gemini-*`, `google/gemini-*`
+   */
+  private getModelFamily(model: unknown): 'anthropic' | 'openai' | 'google' | 'unknown' {
+    if (typeof model !== 'string') return 'unknown';
+    const m = model.toLowerCase();
+    if (/(^|\/)claude[-/]/.test(m) || m.includes('anthropic')) return 'anthropic';
+    if (/(^|\/)(gpt-|o1-|o3-|o4-|chatgpt)/.test(m)) return 'openai';
+    if (/(^|\/)gemini[-/]/.test(m)) return 'google';
+    return 'unknown';
+  }
+
+  /**
+   * Attach an Anthropic prompt-cache breakpoint to the system message for
+   * OpenAI-wire requests that route to a Claude model (OpenRouter, custom
+   * proxies backing Anthropic). The OpenAI-compatible shape uses a content
+   * array on the system message with `cache_control` on the text block;
+   * proxies that do not recognize the field silently drop it.
+   *
+   * Only call this when the model family is `anthropic` — sending
+   * `cache_control` to OpenAI directly can trigger strict-schema 400s.
+   */
+  private withAnthropicCacheBreakpoint(messages: ChatMessageDto[]): unknown[] {
+    return messages.map((m) =>
+      m.role === 'system'
+        ? {
+            role: 'system',
+            content: [
+              {
+                type: 'text',
+                text: m.content,
+                cache_control: { type: 'ephemeral' },
+              },
+            ],
+          }
+        : m,
+    );
+  }
+
   private detectProvider(apiUrl: string): string {
     try {
       const parsedUrl = new URL(apiUrl);
@@ -247,6 +294,7 @@ FILTER RULES (VERY IMPORTANT - for filtering tasks by priority, status, type, et
       });
 
       const isGpt5Model = typeof model === 'string' && model.startsWith('gpt-5');
+      const modelFamily = this.getModelFamily(model);
 
       // Prepare request based on provider
       let requestUrl = apiUrl;
@@ -304,19 +352,29 @@ FILTER RULES (VERY IMPORTANT - for filtering tasks by priority, status, type, et
           requestBody.top_p = 0.9;
           break;
 
-        case 'anthropic':
+        case 'anthropic': {
           requestUrl = `${apiUrl}/messages`;
           requestHeaders['x-api-key'] = apiKey;
           requestHeaders['anthropic-version'] = '2023-06-01';
           delete requestHeaders['Authorization'];
+          const systemContent = messages.find((m) => m.role === 'system')?.content ?? '';
           requestBody = {
             model,
             messages: messages.filter((m) => m.role !== 'system'), // Anthropic doesn't use system role the same way
-            system: messages.find((m) => m.role === 'system')?.content,
+            // Array form with `cache_control` enables prompt caching on the
+            // (large, stable) system prompt. Paid on first write, ~0.1x on reads.
+            system: [
+              {
+                type: 'text',
+                text: systemContent,
+                cache_control: { type: 'ephemeral' },
+              },
+            ],
             max_tokens: 500,
             temperature: 0.1,
           };
           break;
+        }
 
         case 'google':
           // Google Gemini has a different API structure
@@ -338,6 +396,17 @@ FILTER RULES (VERY IMPORTANT - for filtering tasks by priority, status, type, et
         default: // custom or openrouter fallback
           requestUrl = `${apiUrl}/chat/completions`;
           break;
+      }
+
+      // Enable Anthropic prompt caching when a Claude model is served over an
+      // OpenAI-compatible wire (OpenRouter, custom proxies like CLIProxyAPI,
+      // self-hosted Ollama fronting Claude). The Anthropic-native branch above
+      // already attaches `cache_control` directly on the system block.
+      if (
+        modelFamily === 'anthropic' &&
+        (provider === 'openrouter' || provider === 'ollama' || provider === 'custom')
+      ) {
+        requestBody.messages = this.withAnthropicCacheBreakpoint(messages);
       }
 
       // Call API
