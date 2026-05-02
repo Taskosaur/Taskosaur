@@ -275,8 +275,13 @@ export default function Header() {
     <>
       <header className="header-container">
         <div className="header-content">
-          {/* Left Section - Create Button */}
+          {/* Left Section - Create Button or Read-only indicator */}
           <div className="header-left">
+            {currentUser?.role === "VIEWER" && (
+              <span className="text-xs px-2 py-1 rounded-full bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)]">
+                Read-only view
+              </span>
+            )}
             {hasOrganizationAccess && (
               <div className={`transition-all duration-300 ease-in-out `}>
                 <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>

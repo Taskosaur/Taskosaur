@@ -43,8 +43,8 @@ export class OrganizationsController {
     private readonly searchService: UniversalSearchService,
   ) {}
 
-  // Creating an organization: only authenticated user; no existing org scope yet.
   @Post()
+  @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER, Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Create organization' })
   create(@Body() createOrganizationDto: CreateOrganizationDto, @CurrentUser() user: User) {
     return this.organizationsService.create(createOrganizationDto, user.id);
