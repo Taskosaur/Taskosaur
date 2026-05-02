@@ -29,6 +29,7 @@ import NewWorkspaceDialog from "../workspace/NewWorkspaceDialogProps";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 import SearchManager from "../header/SearchManager";
 import HeaderView from "../ui/mobile/HeaderView";
+import Tooltip from "../common/ToolTip";
 
 const LoginButton = () => {
   const router = useRouter();
@@ -404,6 +405,7 @@ export default function Header() {
                   ))}
 
                   {toggleChat && isAIEnabled && (
+                    <Tooltip content="AI Assistant" position="bottom" color="primary">
                     <div className="relative">
                       <Button
                         onClick={toggleChat}
@@ -426,6 +428,7 @@ export default function Header() {
                         <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse" />
                       )}
                     </div>
+                    </Tooltip>
                   )}
 
                   <div className="header-divider" />
