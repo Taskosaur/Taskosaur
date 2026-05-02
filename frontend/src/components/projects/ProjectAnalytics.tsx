@@ -44,6 +44,8 @@ import ErrorState from "../common/ErrorState";
 import Tooltip from "../common/ToolTip";
 import { useAuth } from "@/contexts/auth-context";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "next/router";
+import { ShareInviteModal } from "../common/ShareInviteModal";
 
 interface ProjectAnalyticsProps {
   projectSlug: string;
@@ -101,6 +103,8 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
   const { t } = useTranslation(["analytics", "common"]);
   const { setShow404, show404 } = useLayout();
   const { createWidgetsSection } = useDashboardSettings();
+  const router = useRouter();
+  const { workspaceSlug } = router.query;
   const {
     analyticsData: data,
     analyticsLoading: loading,
@@ -108,6 +112,7 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
     refreshingAnalytics: refreshing,
     fetchAnalyticsData,
     clearAnalyticsError,
+    currentProject,
   } = useProject();
   const { isAuthenticated } = useAuth();
   const isAuth = isAuthenticated();
@@ -360,6 +365,12 @@ export function ProjectAnalytics({ projectSlug }: ProjectAnalyticsProps) {
         description={t("project_analytics_description")}
         actions={
           <div className="flex items-center gap-2">
+            <ShareInviteModal
+              entityType="project"
+              entityId={currentProject?.id ?? ""}
+              entityName={currentProject?.name ?? "Project"}
+              redirectPath={`/${workspaceSlug}/${projectSlug}`}
+            />
             <Tooltip content={t("dashboard_settings")} position="top" color="primary">
               <DashboardSettingsDropdown
                 sections={settingSections}

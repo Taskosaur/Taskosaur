@@ -41,6 +41,7 @@ import {
 import { CsvImportModal } from "@/components/tasks/CsvImportModal";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 import { SEO } from "@/components/common/SEO";
+import { ShareInviteModal } from "@/components/common/ShareInviteModal";
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
 
@@ -957,6 +958,12 @@ const sprintId = resolvedSprintId;
             description={t("sprintTasks.description", { total: pagination.totalCount })}
             actions={
               <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
+                <ShareInviteModal
+                  entityType="project"
+                  entityId={project?.id ?? ""}
+                  entityName={project?.name ?? "Sprint"}
+                  redirectPath={`/${workspaceSlug}/${projectSlug}/sprints/${sprintSlugOrId}`}
+                />
                 <div className="flex items-center gap-2">
                   <div className="relative w-full sm:max-w-xs">
                     <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
