@@ -50,6 +50,7 @@ import { TodayAgendaDialog } from "./TodayAgendaDialog";
 import ErrorState from "../common/ErrorState";
 import { HiHome } from "react-icons/hi";
 import { useTranslation } from "react-i18next";
+import { ShareInviteModal } from "../common/ShareInviteModal";
 
 interface OrganizationAnalyticsProps {
   organizationId: string;
@@ -471,6 +472,12 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
         icon={<HiHome className="size-5" />}
         actions={
           <div className="flex items-center gap-2">
+            <ShareInviteModal
+              entityType="organization"
+              entityId={organizationId}
+              entityName={currentOrganization?.name ?? "Organisation"}
+              redirectPath={`/${currentOrganization?.slug}`}
+            />
             <Tooltip content={t("analytics.today_agenda_tooltip")} position="top" color="primary">
               <ActionButton
                 variant="outline"

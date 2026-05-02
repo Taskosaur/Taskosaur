@@ -19,6 +19,7 @@ import { TokenManager } from "@/lib/api";
 import { workspaceWidgets } from "@/utils/data/workspaceWidgets";
 import Tooltip from "../common/ToolTip";
 import { useTranslation } from "react-i18next";
+import { ShareInviteModal } from "../common/ShareInviteModal";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
 // DnD Imports
@@ -352,6 +353,12 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
         description={t("analytics_description")}
         actions={
           <div className="flex items-center gap-2">
+            <ShareInviteModal
+              entityType="workspace"
+              entityId={currentWorkspace?.id ?? ""}
+              entityName={currentWorkspace?.name ?? "Workspace"}
+              redirectPath={`/${workspaceSlug}`}
+            />
             <Tooltip content={t("dashboard_settings")} position="top" color="primary">
               <DashboardSettingsDropdown
                 sections={settingSections}
