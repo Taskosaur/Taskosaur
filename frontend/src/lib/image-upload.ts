@@ -65,6 +65,7 @@ export async function uploadImage(
   try {
     // Upload file
     const response = await api.post<ImageUploadResponse>(IMAGE_UPLOAD_CONFIG.uploadEndpoint, formData, {
+      headers: { "Content-Type": undefined },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);

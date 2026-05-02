@@ -178,7 +178,9 @@ export const taskApi = {
         });
       }
 
-      const response = await api.post<Task>("/tasks/create-task-attachment", formData);
+      const response = await api.post<Task>("/tasks/create-task-attachment", formData, {
+        headers: { "Content-Type": undefined },
+      });
 
       return response.data;
     } catch (error) {
@@ -872,7 +874,8 @@ export const taskApi = {
       // Use the specialized upload endpoint with form data
       const response = await api.post<TaskAttachment>(
         `/task-attachments/upload/${encodeURIComponent(taskId)}`,
-        formData
+        formData,
+        { headers: { "Content-Type": undefined } }
       );
 
       return response.data;
