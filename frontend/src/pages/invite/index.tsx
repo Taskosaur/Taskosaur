@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/auth-context";
 
 export default function InviteRedirect() {
   const router = useRouter();
-  const { token } = router.query;
+  const { token, redirect } = router.query;
   const { isAuthenticated, user, isLoading } = useAuth();
 
   useEffect(() => {
@@ -30,18 +30,25 @@ export default function InviteRedirect() {
         localStorage.setItem("pendingInvitation", token as string);
 
         const inviteeEmail = res.invitation.email;
+        const redirectPath = redirect as string | undefined;
+
+        if (redirectPath) {
+          localStorage.setItem("pendingRedirect", redirectPath);
+        }
 
         /* 3 ▸ decide where to send the browser */
         if (isAuthenticated()) {
           // User is logged in - check if email matches
           if (user?.email?.toLowerCase() === inviteeEmail.toLowerCase()) {
-            // Email matches → accept and go to dashboard
+            // Email matches → accept and go to the target resource
             await invitationApi.acceptInvitation(token as string).catch(() => {});
             localStorage.removeItem("pendingInvitation");
-            router.replace("/dashboard");
+            localStorage.removeItem("pendingRedirect");
+            router.replace(redirectPath || "/dashboard");
           } else {
             // Email mismatch → clear the token so the modal doesn't persist
             localStorage.removeItem("pendingInvitation");
+            localStorage.removeItem("pendingRedirect");
             // Go to invalid page with specific message
             router.replace(
               `/invite/invalid?msg=${encodeURIComponent(
@@ -51,10 +58,12 @@ export default function InviteRedirect() {
           }
         } else if (res.inviteeExists) {
           // invited email already has an account but not logged in
-          router.replace(`/login?email=${encodeURIComponent(inviteeEmail)}`);
+          const loginUrl = `/login?email=${encodeURIComponent(inviteeEmail)}${redirectPath ? `&redirect=${encodeURIComponent(redirectPath)}` : ""}`;
+          router.replace(loginUrl);
         } else {
           // no account yet → register
-          router.replace(`/register?email=${encodeURIComponent(inviteeEmail)}`);
+          const registerUrl = `/register?email=${encodeURIComponent(inviteeEmail)}${redirectPath ? `&redirect=${encodeURIComponent(redirectPath)}` : ""}`;
+          router.replace(registerUrl);
         }
       } catch (err) {
         localStorage.removeItem("pendingInvitation");

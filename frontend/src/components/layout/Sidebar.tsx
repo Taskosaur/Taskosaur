@@ -86,6 +86,7 @@ export default function Sidebar() {
   const { isAuthenticated, getCurrentUser } = useAuth();
   const isAuth = isAuthenticated();
   const currentUser = getCurrentUser();
+  const isViewer = currentUser?.role === "VIEWER";
   const { getProjectBySlug, currentProject } = useProject();
   const [isMounted, setIsMounted] = useState(false);
   const [miniPathName, setMiniPathName] = useState("");
@@ -228,13 +229,17 @@ export default function Sidebar() {
               title: "Workspace Projects",
               disabled: !isAuth,
             },
-            {
-              name: "Members",
-              href: `/${currentWorkspaceSlug}/members`,
-              icon: <HiUsers size={16} />,
-              title: "Workspace Members",
-              disabled: !isAuth,
-            },
+            ...(!isViewer
+              ? [
+                  {
+                    name: "Members",
+                    href: `/${currentWorkspaceSlug}/members`,
+                    icon: <HiUsers size={16} />,
+                    title: "Workspace Members",
+                    disabled: !isAuth,
+                  },
+                ]
+              : []),
             {
               name: "Activities",
               href: `/${currentWorkspaceSlug}/activities`,
@@ -249,8 +254,8 @@ export default function Sidebar() {
               title: "Workspace Tasks",
               disabled: !isAuth,
             },
-            // Settings only shown to authenticated users
-            ...(isAuth
+            // Settings only shown to authenticated non-viewer users
+            ...(isAuth && !isViewer
               ? [
                   {
                     name: "Settings",
@@ -263,7 +268,7 @@ export default function Sidebar() {
               : []),
           ]
         : [],
-    [currentWorkspaceSlug, isAuth]
+    [currentWorkspaceSlug, isAuth, isViewer]
   );
 
   // Default project navigation items for unauthenticated users (all disabled)
@@ -345,23 +350,27 @@ export default function Sidebar() {
             title: "Calendar",
             disabled: false,
           },
-          {
-            name: "Members",
-            href: `/${currentWorkspaceSlug}/${currentProjectSlug}/members`,
-            icon: <HiUsers size={16} />,
-            title: "Members",
-            disabled: false,
-          },
-          {
-            name: "Settings",
-            href: `/${currentWorkspaceSlug}/${currentProjectSlug}/settings`,
-            icon: <HiCog size={16} />,
-            title: "Settings",
-            disabled: false,
-          },
+          ...(!isViewer
+            ? [
+                {
+                  name: "Members",
+                  href: `/${currentWorkspaceSlug}/${currentProjectSlug}/members`,
+                  icon: <HiUsers size={16} />,
+                  title: "Members",
+                  disabled: false,
+                },
+                {
+                  name: "Settings",
+                  href: `/${currentWorkspaceSlug}/${currentProjectSlug}/settings`,
+                  icon: <HiCog size={16} />,
+                  title: "Settings",
+                  disabled: false,
+                },
+              ]
+            : []),
         ]
       : [];
-  }, [currentWorkspaceSlug, currentProjectSlug, isAuth, defaultProjectNavItems]);
+  }, [currentWorkspaceSlug, currentProjectSlug, isAuth, isViewer, defaultProjectNavItems]);
 
   const navigationItems: NavItem[] = useMemo(() => {
     // For unauthenticated users, always show project navigation (disabled)

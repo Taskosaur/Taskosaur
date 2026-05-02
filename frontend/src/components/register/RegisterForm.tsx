@@ -40,6 +40,7 @@ export function RegisterForm() {
   const searchParams = useSearchParams();
   const { register, checkOrganizationAndRedirect } = useAuth();
   const initialEmail = searchParams.get("email") ?? "";
+  const pendingRedirect = searchParams.get("redirect") || "";
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
     lastName: "",
@@ -120,9 +121,12 @@ export function RegisterForm() {
       const response = await register(userData);
 
       if (response.access_token) {
-        // Check if user has an organization and redirect accordingly
-        const redirectPath = await checkOrganizationAndRedirect();
-        router.push(redirectPath);
+        const destination =
+          pendingRedirect ||
+          localStorage.getItem("pendingRedirect") ||
+          (await checkOrganizationAndRedirect());
+        localStorage.removeItem("pendingRedirect");
+        router.push(destination);
       } else {
         router.push("/login?message=Registration successful! Please log in.");
       }

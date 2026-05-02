@@ -4,6 +4,7 @@ import Link from "next/link";
 import api, { TokenManager } from "@/lib/api";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
+import { invitationApi } from "@/utils/api/invitationsApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ interface FormData {
 export function LoginForm() {
   const { login, checkOrganizationAndRedirect } = useAuth();
   const router = useRouter();
+  const redirectParam = router.query.redirect as string | undefined;
   const { resolvedTheme } = useTheme();
 
   const [formData, setFormData] = useState<FormData>({
@@ -92,7 +94,21 @@ export function LoginForm() {
 
     try {
       await login({ email: formData.email, password: formData.password });
-      router.push("/dashboard");
+
+      // Accept pending invitation if one is waiting
+      const pendingToken = localStorage.getItem("pendingInvitation");
+      if (pendingToken) {
+        await invitationApi.acceptInvitation(pendingToken).catch(() => {});
+        localStorage.removeItem("pendingInvitation");
+      }
+
+      // Resolve redirect: URL param → localStorage fallback → org-based default
+      const destination =
+        redirectParam ||
+        localStorage.getItem("pendingRedirect") ||
+        (await checkOrganizationAndRedirect());
+      localStorage.removeItem("pendingRedirect");
+      router.push(destination);
     } catch (err) {
       setError("Invalid email or password. Please try again.");
       console.error(err);

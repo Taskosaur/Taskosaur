@@ -14,7 +14,7 @@ Close the gap where any authenticated user (including VIEWER) can create an orga
 
 ### Tasks
 
-- [ ] Add `@Roles` decorator to `POST /organizations` endpoint
+- [x] Add `@Roles` decorator to `POST /organizations` endpoint
 
 ### Technical Details
 
@@ -60,9 +60,9 @@ https://pm.maxxpro.co.za/invite?token=<TOKEN>&redirect=/maxipro/google-reviews/s
 
 ### Tasks
 
-- [ ] Update invite page to extract `redirect` and pass it to login/register (depends on nothing)
-- [ ] Update RegisterForm to honour `redirect` param post-registration (depends on invite page task)
-- [ ] Update LoginForm to honour `redirect` param and process pending invitation post-login (depends on invite page task)
+- [x] Update invite page to extract `redirect` and pass it to login/register (depends on nothing)
+- [x] Update RegisterForm to honour `redirect` param post-registration (depends on invite page task)
+- [x] Update LoginForm to honour `redirect` param and process pending invitation post-login (depends on invite page task)
 
 ### Technical Details
 
@@ -150,8 +150,8 @@ Hide all create/edit/settings actions in the sidebar for VIEWER-role users, and 
 
 ### Tasks
 
-- [ ] Strip create/settings actions from Sidebar for VIEWER role
-- [ ] Add "Read-only view" chip to Header for VIEWER role
+- [x] Strip create/settings actions from Sidebar for VIEWER role
+- [x] Add "Read-only view" chip to Header for VIEWER role
 
 ### Technical Details
 
