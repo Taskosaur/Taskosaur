@@ -64,18 +64,8 @@ npm run db:migrate || {
   echo "⚠️  Migration failed or already up to date"
 }
 
-# Seed database (idempotent - safe to run multiple times)
-echo ""
-echo "🌱 Seeding database..."
-npm run db:seed || {
-  echo "⚠️  Seeding failed or data already exists"
 }
 
-# Seed admin user (idempotent)
-echo ""
-echo "👤 Seeding admin user..."
-npm run db:seed:admin || {
-  echo "⚠️  Admin seeding failed or already exists"
 }
 
 echo ""

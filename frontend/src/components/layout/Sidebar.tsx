@@ -20,6 +20,7 @@ import {
   HiLightningBolt,
   HiViewBoards,
   HiShieldCheck,
+  HiCode,
 } from "react-icons/hi";
 import { useProject } from "@/contexts/project-context";
 
@@ -30,6 +31,7 @@ interface NavItem {
   icon: React.ReactNode;
   title?: string;
   disabled?: boolean;
+  external?: boolean;
 }
 
 const usePathnameParsing = (pathname: string, isMounted: boolean) => {
@@ -193,6 +195,14 @@ export default function Sidebar() {
               icon: <HiShieldCheck size={16} />,
               title: "System Administration",
               disabled: false,
+            },
+            {
+              name: "API Docs",
+              href: "/api/docs",
+              icon: <HiCode size={16} />,
+              title: "API Documentation",
+              disabled: false,
+              external: true,
             },
           ]
         : []),
@@ -543,6 +553,7 @@ export default function Sidebar() {
                         ? "layout-sidebar-nav-link-active"
                         : "layout-sidebar-nav-link-inactive"
                     }`}
+                    {...(item.external && { target: "_blank", rel: "noopener noreferrer" })}
                     {...(item.name === "Settings" && {
                       "data-automation-id": item.href === "/settings"
                         ? "sidebar-org-settings"

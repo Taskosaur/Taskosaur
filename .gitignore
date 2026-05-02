@@ -146,3 +146,6 @@ temp/
 # Misc
 .turbo
 .codeql
+
+# Local production overrides — never commit
+docker-compose.override.yml
