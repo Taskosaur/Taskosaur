@@ -81,7 +81,7 @@ services:
       AWS_REGION: ${AWS_REGION:-}
       AWS_BUCKET_NAME: ${AWS_BUCKET_NAME:-}
     ports:
-      - "3000:3000"
+      - "${APP_PORT:-3000}:3000"
     volumes:
       - app_uploads:/app/taskosaur/uploads
       - app_logs:/app/taskosaur/logs
