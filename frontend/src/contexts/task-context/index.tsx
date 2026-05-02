@@ -433,7 +433,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
             prev.currentTask?.id === subtaskData.parentTaskId
               ? {
                 ...prev.currentTask,
-                subtasks: [...(prev.currentTask?.childTasks || []), result],
+                childTasks: [...(prev.currentTask?.childTasks || []), result],
               }
               : prev.currentTask;
 
@@ -625,6 +625,8 @@ export function TaskProvider({ children }: TaskProviderProps) {
         projectSlug?: string,
         options?: { page?: number; limit?: number }
       ): Promise<PaginatedTaskResponse> => {
+        // Clear stale subtasks from a previous parent before fetching
+        setTaskState((prev) => ({ ...prev, subtTask: [] }));
         const result = await handleApiOperation(
           () =>
             taskApi.getSubtasksByParent(parentTaskId, isAuth, workspaceSlug, projectSlug, options),

@@ -117,6 +117,7 @@ export const SprintTasksPanel: React.FC<SprintTasksPanelProps> = ({
                 tasks={tasks}
                 selectedTasks={selectedTasks}
                 onTaskSelect={handleTaskSelect}
+                organizationId={getCurrentOrganizationId() || undefined}
               />
             )}
           </div>

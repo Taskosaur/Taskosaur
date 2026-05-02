@@ -1154,6 +1154,7 @@ const sprintId = resolvedSprintId;
         }}
         workspaceSlug={workspaceSlug as string}
         projectSlug={projectSlug as string}
+        sprintId={sprintId as string}
       />
     </>
   );

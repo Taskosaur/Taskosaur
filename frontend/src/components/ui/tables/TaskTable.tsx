@@ -553,13 +553,18 @@ const TaskTable: React.FC<TaskTableProps> = ({
         scopeId = workspaceId;
       }
 
+      if (!scopeId) {
+        setIsReordering(false);
+        return;
+      }
+
       const activeTask = localTasks[oldIndex];
 
       // Persist to backend using professional relative ranking
       try {
         await updateRelativeTaskRank(activeTask.id, {
           scopeType,
-          scopeId: scopeId!,
+          scopeId,
           viewType: "LIST",
           afterTaskId,
           beforeTaskId,
@@ -1245,15 +1250,16 @@ const TaskTable: React.FC<TaskTableProps> = ({
         return;
       }
 
-      const taskData = {
+      const taskData: any = {
         title: newTaskData.title.trim(),
         description: "",
         priority: newTaskData.priority,
         projectId,
         statusId: newTaskData.statusId,
-        assigneeIds: newTaskData.assigneeIds.length > 0 ? newTaskData.assigneeIds : undefined, // Send array of assignee IDs
+        assigneeIds: newTaskData.assigneeIds.length > 0 ? newTaskData.assigneeIds : undefined,
         dueDate: newTaskData.dueDate ? dayjs(newTaskData.dueDate).toISOString() : undefined,
       };
+      if (sprintId) taskData.sprintId = sprintId;
 
       await createTask(taskData);
       handleCancelCreating();
