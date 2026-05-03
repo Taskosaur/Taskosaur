@@ -469,6 +469,13 @@ api.interceptors.request.use(
         config.headers["X-Organization-ID"] = orgId;
       }
 
+      // For FormData, remove Content-Type so the browser sets it with the
+      // correct multipart/form-data boundary. The instance default
+      // (application/json) must not reach the server for file uploads.
+      if (config.data instanceof FormData && config.headers) {
+        config.headers.delete("Content-Type");
+      }
+
       return config;
     } catch (error) {
       console.error("Request interceptor error:", error);
