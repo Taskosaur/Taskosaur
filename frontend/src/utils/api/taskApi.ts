@@ -1,4 +1,4 @@
-import api from "@/lib/api";
+import api, { TokenManager } from "@/lib/api";
 import {
   AssignLabelRequest,
   AssignMultipleLabelsRequest,
@@ -178,7 +178,12 @@ export const taskApi = {
         });
       }
 
-      const response = await api.post<Task>("/tasks/create-task-attachment", formData);
+      const response = await api.post<Task>("/tasks/create-task-attachment", formData, {
+        transformRequest: [(data: any, headers: any) => {
+          delete headers?.["Content-Type"];
+          return data;
+        }],
+      });
 
       return response.data;
     } catch (error) {
@@ -873,7 +878,13 @@ export const taskApi = {
       // Use the specialized upload endpoint with form data
       const response = await api.post<TaskAttachment>(
         `/task-attachments/upload/${encodeURIComponent(taskId)}`,
-        formData
+        formData,
+        {
+          transformRequest: [(data: any, headers: any) => {
+            delete headers?.["Content-Type"];
+            return data;
+          }],
+        }
       );
 
       return response.data;
