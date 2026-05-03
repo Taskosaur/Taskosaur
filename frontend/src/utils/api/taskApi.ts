@@ -1,4 +1,4 @@
-import api from "@/lib/api";
+import api, { TokenManager } from "@/lib/api";
 import {
   AssignLabelRequest,
   AssignMultipleLabelsRequest,
@@ -179,7 +179,10 @@ export const taskApi = {
       }
 
       const response = await api.post<Task>("/tasks/create-task-attachment", formData, {
-        headers: { "Content-Type": undefined },
+        transformRequest: [(data: any, headers: any) => {
+          delete headers?.["Content-Type"];
+          return data;
+        }],
       });
 
       return response.data;
@@ -875,7 +878,12 @@ export const taskApi = {
       const response = await api.post<TaskAttachment>(
         `/task-attachments/upload/${encodeURIComponent(taskId)}`,
         formData,
-        { headers: { "Content-Type": undefined } }
+        {
+          transformRequest: [(data: any, headers: any) => {
+            delete headers?.["Content-Type"];
+            return data;
+          }],
+        }
       );
 
       return response.data;
