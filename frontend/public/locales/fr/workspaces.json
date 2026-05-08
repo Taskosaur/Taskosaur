@@ -22,5 +22,29 @@
     "load_failed": "Échec du chargement des espaces de travail",
     "created_success": "Espace de travail créé avec succès !",
     "refresh_failed": "Espace de travail créé mais échec de l'actualisation de la liste. Veuillez rafraîchir la page."
+  },
+  "modal": {
+    "createTitle": "Créer un nouvel espace de travail",
+    "createDescription": "Fournissez des informations de base sur votre nouvel espace de travail",
+    "workspaceName": "Nom de l'espace de travail",
+    "enterWorkspaceName": "Entrez le nom de l'espace de travail",
+    "workspaceNameHint": "Choisissez un nom clair et descriptif pour votre espace de travail.",
+    "description": "Description",
+    "descriptionPlaceholder": "Décrivez le but de cet espace de travail...",
+    "descriptionHint": "Aidez les membres de l'équipe à comprendre à quoi sert cet espace de travail.",
+    "parentWorkspace": "Espace de travail parent",
+    "optional": "(Facultatif)",
+    "none": "Aucun",
+    "parentWorkspaceHint": "Sélectionnez un espace de travail parent pour imbriquer cet espace de travail en dessous. La profondeur maximale est de 5 niveaux.",
+    "inheritFromParent": "Hériter de l'espace de travail parent",
+    "inheritHint": "Copiez automatiquement les autorisations des membres, les modèles d'étiquettes et la configuration du flux de travail à partir de l'espace de travail parent sélectionné.",
+    "cancel": "Annuler",
+    "create": "Créer l'espace de travail",
+    "creating": "Création de l'espace de travail...",
+    "errorNoOrg": "Contexte de l'espace de travail non disponible",
+    "errorFields": "Veuillez remplir tous les champs obligatoires",
+    "errorAuth": "Authentification requise",
+    "errorCreate": "Échec de la création de l'espace de travail",
+    "success": "Espace de travail \"{{name}}\" créé avec succès !"
   }
 }

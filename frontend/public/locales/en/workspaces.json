@@ -22,5 +22,29 @@
     "load_failed": "Failed to load workspaces",
     "created_success": "Workspace created successfully!",
     "refresh_failed": "Workspace created but failed to refresh list. Please refresh the page."
+  },
+  "modal": {
+    "createTitle": "Create new workspace",
+    "createDescription": "Provide basic information about your new workspace",
+    "workspaceName": "Workspace name",
+    "enterWorkspaceName": "Enter workspace name",
+    "workspaceNameHint": "Choose a clear, descriptive name for your workspace.",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe the purpose of this workspace...",
+    "descriptionHint": "Help team members understand what this workspace is for.",
+    "parentWorkspace": "Parent Workspace",
+    "optional": "(Optional)",
+    "none": "None",
+    "parentWorkspaceHint": "Select a parent workspace to nest this workspace underneath it. Max depth is 5 levels.",
+    "inheritFromParent": "Inherit from parent workspace",
+    "inheritHint": "Automatically copy member permissions, label templates, and workflow configuration from the selected parent workspace.",
+    "cancel": "Cancel",
+    "create": "Create workspace",
+    "creating": "Creating workspace...",
+    "errorNoOrg": "Workspace context not available",
+    "errorFields": "Please fill in all required fields",
+    "errorAuth": "Authentication required",
+    "errorCreate": "Failed to create workspace",
+    "success": "Workspace \"{{name}}\" created successfully!"
   }
 }

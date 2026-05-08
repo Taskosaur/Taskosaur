@@ -33,5 +33,109 @@
     "refresh_failed": "Proyecto creado pero falló al actualizar la lista",
     "load_failed": "Error al cargar los proyectos",
     "auth_required": "Autenticación requerida. Por favor, inicie sesión de nuevo."
+  },
+  "modal": {
+    "createTitle": "Crear nuevo proyecto",
+    "createDescription": "Organiza tus tareas y colabora con tu equipo",
+    "tryAgain": "Reintentar",
+    "projectName": "Nombre del proyecto",
+    "enterProjectName": "Introduce el nombre del proyecto",
+    "url": "URL:",
+    "urlWorkspace": "espacio-de-trabajo",
+    "urlProject": "nombre-del-proyecto",
+    "workflow": "Flujo de trabajo",
+    "searchWorkflows": "Buscar flujos de trabajo...",
+    "noWorkflowsFound": "No se encontraron flujos de trabajo.",
+    "typeToSearchWorkflows": "Escribe para buscar flujos de trabajo",
+    "selectWorkflow": "Seleccionar flujo de trabajo",
+    "workflowHint": "Elige un flujo de trabajo para el proceso de tu proyecto.",
+    "visibility": "Visibilidad",
+    "selectVisibility": "Seleccionar visibilidad",
+    "noVisibilityOptions": "No se encontraron opciones de visibilidad.",
+    "visibilityHint": "Controla quién puede acceder a este proyecto.",
+    "workspace": "Espacio de trabajo",
+    "loadingWorkspaces": "Cargando espacios de trabajo...",
+    "selectWorkspace": "Seleccionar espacio de trabajo",
+    "searchWorkspaces": "Buscar espacios de trabajo...",
+    "noWorkspacesFound": "No se encontraron espacios de trabajo.",
+    "typeToSearchWorkspaces": "Escribe para buscar espacios de trabajo",
+    "workspaceHint": "El proyecto se creará en este espacio de trabajo.",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Describe de qué trata este proyecto...",
+    "descriptionHint": "Ayuda a tu equipo a entender los objetivos y el alcance del proyecto.",
+    "projectColors": "Colores del proyecto",
+    "selectCategory": "Seleccionar categoría",
+    "noCategoriesFound": "No se encontraron categorías.",
+    "categoryHint": "Elige una categoría para ayudar a organizar e identificar tu proyecto.",
+    "cancel": "Cancelar",
+    "create": "Crear proyecto",
+    "creating": "Creando proyecto...",
+    "success": "¡Proyecto \"{{name}}\" creado con éxito!",
+    "errorLoadWorkspaces": "Error al cargar los espacios de trabajo",
+    "errorCreate": "Error al crear el proyecto",
+    "visibilityOptions": {
+      "PRIVATE": {
+        "label": "Privado",
+        "description": "Solo los miembros pueden acceder a este proyecto"
+      },
+      "INTERNAL": {
+        "label": "Interno",
+        "description": "Los miembros del espacio de trabajo pueden ver, los miembros pueden editar"
+      },
+      "PUBLIC": {
+        "label": "Público",
+        "description": "Cualquiera puede ver, los miembros pueden editar"
+      }
+    }
+  },
+  "categories": {
+    "operational": {
+      "label": "Operativo",
+      "description": "Operaciones diarias y mantenimiento"
+    },
+    "technical": {
+      "label": "Técnico",
+      "description": "Proyectos de desarrollo y técnicos"
+    },
+    "strategic": {
+      "label": "Estratégico",
+      "description": "Planificación a largo plazo y estrategia"
+    },
+    "hiring": {
+      "label": "Contratación",
+      "description": "Reclutamiento y formación de equipos"
+    },
+    "financial": {
+      "label": "Financiero",
+      "description": "Presupuesto y planificación financiera"
+    },
+    "neutral": {
+      "label": "Neutral",
+      "description": "Proyectos generales o sin categorizar"
+    },
+    "innovation": {
+      "label": "Innovación",
+      "description": "Iniciativas de creatividad e innovación"
+    },
+    "community": {
+      "label": "Comunidad",
+      "description": "Iniciativas de comunidad y participación"
+    },
+    "sustainability": {
+      "label": "Sostenibilidad",
+      "description": "Proyectos de sostenibilidad y medio ambiente"
+    },
+    "marketing": {
+      "label": "Marketing",
+      "description": "Campañas de marketing y divulgación"
+    },
+    "research": {
+      "label": "Investigación",
+      "description": "Proyectos de investigación y análisis"
+    },
+    "growth": {
+      "label": "Crecimiento",
+      "description": "Iniciativas de crecimiento y expansión"
+    }
   }
 }

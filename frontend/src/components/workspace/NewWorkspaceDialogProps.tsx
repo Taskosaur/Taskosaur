@@ -3,6 +3,7 @@ import { isValidSlug } from "@/utils/slugUtils";
 import { useRouter } from "next/router";
 import { useWorkspaceContext } from "@/contexts/workspace-context";
 import { useAuth } from "@/contexts/auth-context";
+import { useTranslation } from "react-i18next";
 import { HiExclamationTriangle, HiSparkles, HiDocumentText } from "react-icons/hi2";
 import { HiBuildingOffice2 } from "react-icons/hi2";
 import {
@@ -50,10 +51,11 @@ export default function NewWorkspaceDialog({
   children,
   open,
   onOpenChange,
-  triggerText = "New Workspace",
+  triggerText,
   triggerVariant = "default",
   onWorkspaceCreated,
 }: NewWorkspaceDialogProps) {
+  const { t } = useTranslation("workspaces");
   const router = useRouter();
   const workspaceContext = useWorkspaceContext();
   const { isAuthenticated } = useAuth();
@@ -105,12 +107,12 @@ export default function NewWorkspaceDialog({
       e.preventDefault();
 
       if (!workspaceContext) {
-        setError("Workspace context not available");
+        setError(t("modal.errorNoOrg"));
         return;
       }
 
       if (!isFormValid()) {
-        setError("Please fill in all required fields");
+        setError(t("modal.errorFields"));
         return;
       }
 
@@ -119,7 +121,7 @@ export default function NewWorkspaceDialog({
 
       try {
         if (!isAuthenticated()) {
-          throw new Error("Authentication required");
+          throw new Error(t("modal.errorAuth"));
         }
 
         const newWorkspace = await workspaceContext.createWorkspace({
@@ -140,13 +142,13 @@ export default function NewWorkspaceDialog({
         }
 
         handleOpenChange(false);
-        toast.success(`Workspace "${formData.name}" created successfully!`);
+        toast.success(t("modal.success", { name: formData.name }));
 
         if (isValidSlug(newWorkspace?.slug)) {
           router.push(`/${newWorkspace.slug}`);
         }
       } catch (error) {
-        const errMsg = error instanceof Error ? error.message : "Failed to create workspace";
+        const errMsg = error instanceof Error ? error.message : t("modal.errorCreate");
         setError(errMsg);
         toast.error(errMsg);
       } finally {
@@ -159,7 +161,7 @@ export default function NewWorkspaceDialog({
   return (
     <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        {children || <Button variant={triggerVariant}>{triggerText}</Button>}
+        {children || <Button variant={triggerVariant}>{triggerText || t("modal.createTitle")}</Button>}
       </DialogTrigger>
 
       <DialogContent className="projects-modal-container border-none">
@@ -169,9 +171,9 @@ export default function NewWorkspaceDialog({
               <HiBuildingOffice2 className="projects-modal-icon-content" />
             </div>
             <div className="projects-modal-info">
-              <DialogTitle className="projects-modal-title">Create new workspace</DialogTitle>
+              <DialogTitle className="projects-modal-title">{t("modal.createTitle")}</DialogTitle>
               <DialogDescription className="projects-modal-description">
-                Provide basic information about your new workspace
+                {t("modal.createDescription")}
               </DialogDescription>
             </div>
           </div>
@@ -191,7 +193,7 @@ export default function NewWorkspaceDialog({
                 className="projects-form-label-icon"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              Workspace name <span className="projects-form-label-required">*</span>
+              {t("modal.workspaceName")} <span className="projects-form-label-required">*</span>
             </Label>
             <Input
               id="workspace-name"
@@ -199,7 +201,7 @@ export default function NewWorkspaceDialog({
               value={formData.name}
               onChange={handleChange}
               required
-              placeholder="Enter workspace name"
+              placeholder={t("modal.enterWorkspaceName")}
               disabled={isSubmitting}
               className="projects-form-input border-none"
               onFocus={(e) => {
@@ -215,7 +217,7 @@ export default function NewWorkspaceDialog({
                 className="projects-form-hint-icon"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              Choose a clear, descriptive name for your workspace.
+              {t("modal.workspaceNameHint")}
             </p>
           </div>
 
@@ -225,7 +227,7 @@ export default function NewWorkspaceDialog({
                 className="projects-form-label-icon"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              Description <span className="projects-form-label-required">*</span>
+              {t("modal.description")} <span className="projects-form-label-required">*</span>
             </Label>
             <Textarea
               id="workspace-description"
@@ -234,7 +236,7 @@ export default function NewWorkspaceDialog({
               onChange={handleChange}
               required
               rows={4}
-              placeholder="Describe the purpose of this workspace..."
+              placeholder={t("modal.descriptionPlaceholder")}
               disabled={isSubmitting}
               className="projects-form-textarea border-none"
               style={{}}
@@ -250,7 +252,7 @@ export default function NewWorkspaceDialog({
                 className="projects-form-hint-icon"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              Help team members understand what this workspace is for.
+              {t("modal.descriptionHint")}
             </p>
           </div>
 
@@ -260,7 +262,7 @@ export default function NewWorkspaceDialog({
                 className="projects-form-label-icon"
                 style={{ color: "hsl(var(--primary))" }}
               />
-              Parent Workspace <span className="text-muted-foreground font-normal">(Optional)</span>
+              {t("modal.parentWorkspace")} <span className="text-muted-foreground font-normal">{t("modal.optional")}</span>
             </Label>
             <Select
               value={formData.parentWorkspaceId || "none"}
@@ -275,10 +277,10 @@ export default function NewWorkspaceDialog({
               }}
             >
               <SelectTrigger className="projects-form-input border-none">
-                <SelectValue placeholder="None" />
+                <SelectValue placeholder={t("modal.none")} />
               </SelectTrigger>
               <SelectContent className="bg-[var(--card)] border-[var(--border)]">
-                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="none">{t("modal.none")}</SelectItem>
                 {workspaceContext?.workspaces.map((ws) => (
                   <SelectItem key={ws.id} value={ws.id}>
                     {ws.name}
@@ -287,7 +289,7 @@ export default function NewWorkspaceDialog({
               </SelectContent>
             </Select>
             <p className="projects-form-hint mt-2">
-              Select a parent workspace to nest this workspace underneath it. Max depth is 5 levels.
+              {t("modal.parentWorkspaceHint")}
             </p>
           </div>
 
@@ -302,10 +304,10 @@ export default function NewWorkspaceDialog({
               />
               <div className="space-y-1 leading-none">
                 <Label htmlFor="inherit-members" className="font-medium cursor-pointer">
-                  Inherit from parent workspace
+                  {t("modal.inheritFromParent")}
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Automatically copy member permissions, label templates, and workflow configuration from the selected parent workspace.
+                  {t("modal.inheritHint")}
                 </p>
               </div>
             </div>
@@ -318,16 +320,16 @@ export default function NewWorkspaceDialog({
               onClick={() => handleOpenChange(false)}
               disabled={isSubmitting}
             >
-              Cancel
+              {t("modal.cancel")}
             </ActionButton>
             <ActionButton type="submit" primary disabled={isSubmitting || !isFormValid()}>
               {isSubmitting ? (
                 <>
                   <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  Creating workspace...
+                  {t("modal.creating")}
                 </>
               ) : (
-                "Create workspace"
+                t("modal.create")
               )}
             </ActionButton>
           </div>

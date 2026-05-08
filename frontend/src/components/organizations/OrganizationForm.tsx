@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { Organization, CreateOrganizationDto } from "@/types";
 import { Button } from "@/components/ui";
@@ -15,6 +16,7 @@ export default function OrganizationForm({
   onSuccess,
   onCancel,
 }: OrganizationFormProps) {
+  const { t } = useTranslation("organizations");
   const router = useRouter();
   const isEditing = !!organization;
 
@@ -32,17 +34,17 @@ export default function OrganizationForm({
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "Organization name is required";
+      newErrors.name = t("modal.errorNameRequired");
     }
 
     if (!formData.slug.trim()) {
-      newErrors.slug = "Organization slug is required";
+      newErrors.slug = t("modal.errorSlugRequired");
     } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
-      newErrors.slug = "Slug can only contain lowercase letters, numbers, and hyphens";
+      newErrors.slug = t("modal.errorSlugInvalid");
     }
 
     if (formData.website && !isValidUrl(formData.website)) {
-      newErrors.website = "Please enter a valid URL";
+      newErrors.website = t("modal.errorWebsiteInvalid");
     }
 
     setErrors(newErrors);
@@ -108,7 +110,7 @@ export default function OrganizationForm({
       }
     } catch (error) {
       console.error("Error saving organization:", error);
-      setErrors({ submit: "Failed to save organization. Please try again." });
+      setErrors({ submit: t("modal.errorSave") });
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +120,7 @@ export default function OrganizationForm({
     <form onSubmit={handleSubmit} className="organizations-form">
       <div className="organizations-form-field">
         <label htmlFor="name" className="form-label-primary">
-          Organization Name *
+          {t("modal.name")} *
         </label>
         <input
           type="text"
@@ -127,7 +129,7 @@ export default function OrganizationForm({
           value={formData.name}
           onChange={handleNameChange}
           className="form-input-primary"
-          placeholder="Enter organization name"
+          placeholder={t("modal.namePlaceholder")}
           required
         />
         {errors.name && <p className="form-error-text">{errors.name}</p>}
@@ -135,7 +137,7 @@ export default function OrganizationForm({
 
       <div className="organizations-form-field">
         <label htmlFor="slug" className="form-label-primary">
-          Organization Slug *
+          {t("modal.slug")} *
         </label>
         <input
           type="text"
@@ -144,19 +146,18 @@ export default function OrganizationForm({
           value={formData.slug}
           onChange={handleChange}
           className="form-input-primary"
-          placeholder="organization-slug"
+          placeholder={t("modal.slugPlaceholder")}
           required
         />
         <p className="organizations-form-slug-hint">
-          This will be used in your organization URL. Only lowercase letters, numbers, and hyphens
-          are allowed.
+          {t("modal.slugHint")}
         </p>
         {errors.slug && <p className="form-error-text">{errors.slug}</p>}
       </div>
 
       <div className="organizations-form-field">
         <label htmlFor="description" className="form-label-primary">
-          Description
+          {t("modal.description")}
         </label>
         <textarea
           id="description"
@@ -165,13 +166,13 @@ export default function OrganizationForm({
           value={formData.description}
           onChange={handleChange}
           className="form-textarea-primary"
-          placeholder="Describe your organization..."
+          placeholder={t("modal.descriptionPlaceholder")}
         />
       </div>
 
       <div className="organizations-form-field">
         <label htmlFor="website" className="form-label-primary">
-          Website
+          {t("modal.website")}
         </label>
         <input
           type="url"
@@ -180,7 +181,7 @@ export default function OrganizationForm({
           value={formData.website}
           onChange={handleChange}
           className="form-input-primary"
-          placeholder="https://your-website.com"
+          placeholder={t("modal.websitePlaceholder")}
         />
         {errors.website && <p className="form-error-text">{errors.website}</p>}
       </div>
@@ -194,11 +195,11 @@ export default function OrganizationForm({
       <div className="organizations-form-actions">
         {onCancel && (
           <Button type="button" variant="secondary" onClick={onCancel} disabled={isLoading}>
-            Cancel
+            {t("modal.cancel")}
           </Button>
         )}
         <Button type="submit" disabled={isLoading}>
-          {isEditing ? "Update Organization" : "Create Organization"}
+          {isEditing ? t("modal.update") : t("modal.create")}
         </Button>
       </div>
     </form>

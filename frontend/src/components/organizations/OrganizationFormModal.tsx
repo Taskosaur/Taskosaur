@@ -1,6 +1,7 @@
 import { useOrganization } from "@/contexts/organization-context";
 import { Organization } from "@/types";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { HiBuildingOffice2, HiExclamationTriangle } from "react-icons/hi2";
 import { Button, Input, Label, Textarea } from "../ui";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
@@ -21,6 +22,7 @@ const OrganizationFormModal = ({
   triggerVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   onOpenChange?: (open: boolean) => void;
 }) => {
+  const { t } = useTranslation("organizations");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [website, setWebsite] = useState("");
@@ -42,14 +44,14 @@ const OrganizationFormModal = ({
 
       const newOrg = await createOrganization(organizationData);
       onSuccess(newOrg);
-      toast.success("Organization created successfully!");
+      toast.success(t("modal.success"));
     } catch (err) {
       const backendMessage = err?.message || err?.response?.data?.message;
       const errorMessage = Array.isArray(backendMessage)
         ? backendMessage[0]
         : typeof backendMessage === "string"
           ? backendMessage
-          : "Failed to create organization";
+          : t("modal.errorDefault");
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -69,9 +71,9 @@ const OrganizationFormModal = ({
               <HiBuildingOffice2 className="projects-modal-icon-content" />
             </div>
             <div className="projects-modal-info">
-              <DialogTitle className="projects-modal-title">Create New Organization</DialogTitle>
+              <DialogTitle className="projects-modal-title">{t("modal.createTitle")}</DialogTitle>
               <DialogDescription className="projects-modal-description">
-                Provide information about your new organization
+                {t("modal.createDescription")}
               </DialogDescription>
             </div>
           </div>
@@ -92,14 +94,14 @@ const OrganizationFormModal = ({
           <div className="space-y-4">
             <div>
               <Label htmlFor="org-name" className="text-sm font-medium text-[var(--foreground)]">
-                Organization Name<span className="text-red-400">*</span>
+                {t("modal.name")}<span className="text-red-400">*</span>
               </Label>
               <Input
                 id="org-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Enter organization name"
+                placeholder={t("modal.namePlaceholder")}
                 required
                 disabled={isSubmitting}
                 className="mt-1 border-input bg-background text-[var(--foreground)]"
@@ -111,13 +113,13 @@ const OrganizationFormModal = ({
                 htmlFor="org-description"
                 className="text-sm font-medium text-[var(--foreground)]"
               >
-                Description
+                {t("modal.description")}
               </Label>
               <Textarea
                 id="org-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe your organization..."
+                placeholder={t("modal.descriptionPlaceholder")}
                 rows={3}
                 disabled={isSubmitting}
                 className="mt-1 border-input bg-background text-[var(--foreground)]"
@@ -126,14 +128,14 @@ const OrganizationFormModal = ({
 
             <div>
               <Label htmlFor="org-website" className="text-sm font-medium text-[var(--foreground)]">
-                Website
+                {t("modal.website")}
               </Label>
               <Input
                 id="org-website"
                 type="url"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
-                placeholder="https://example.com"
+                placeholder={t("modal.websitePlaceholder")}
                 disabled={isSubmitting}
                 className="mt-1 border-input bg-background text-[var(--foreground)]"
               />
@@ -148,7 +150,7 @@ const OrganizationFormModal = ({
               disabled={isSubmitting}
               className="h-9 border-none bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)] transition-all duration-200"
             >
-              Cancel
+              {t("modal.cancel")}
             </Button>
             <Button
               type="submit"
@@ -158,10 +160,10 @@ const OrganizationFormModal = ({
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-[var(--primary-foreground)] border-t-transparent rounded-full animate-spin mr-2"></div>
-                  Creating...
+                  {t("modal.creating")}
                 </>
               ) : (
-                <>Create Organization</>
+                <>{t("modal.create")}</>
               )}
             </Button>
           </div>

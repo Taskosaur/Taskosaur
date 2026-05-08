@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Command,
@@ -51,6 +52,7 @@ export function NewProjectModal({
   workspaceSlug,
   onProjectCreated,
 }: NewProjectModalProps) {
+  const { t } = useTranslation("projects");
   const router = useRouter();
   const workspaceContext = useWorkspace();
   const projectContext = useProject();
@@ -124,18 +126,18 @@ export function NewProjectModal({
   const VISIBILITY_OPTIONS = [
     {
       value: "PRIVATE",
-      label: "Private",
-      description: "Only members can access this project",
+      label: t("modal.visibilityOptions.PRIVATE.label"),
+      description: t("modal.visibilityOptions.PRIVATE.description"),
     },
     {
       value: "INTERNAL",
-      label: "Internal",
-      description: "Workspace members can view, members can edit",
+      label: t("modal.visibilityOptions.INTERNAL.label"),
+      description: t("modal.visibilityOptions.INTERNAL.description"),
     },
     {
       value: "PUBLIC",
-      label: "Public",
-      description: "Anyone can view, members can edit",
+      label: t("modal.visibilityOptions.PUBLIC.label"),
+      description: t("modal.visibilityOptions.PUBLIC.description"),
     },
   ];
 
@@ -207,14 +209,14 @@ export function NewProjectModal({
                 setFormData((prev) => ({ ...prev, workspace }));
               }
             } catch (error) {
-              throw new Error("Failed to load current workspace");
+              throw new Error(t("modal.errorLoadWorkspaces"));
             }
           }
         }
       }
     } catch (error) {
       if (requestIdRef.current === requestId) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to load workspaces";
+        const errorMessage = error instanceof Error ? error.message : t("modal.errorLoadWorkspaces");
         setError(errorMessage);
         toast.error(errorMessage);
         console.error("Failed to load workspaces:", error);
@@ -285,7 +287,7 @@ export function NewProjectModal({
       const wsSlug = formData.workspace?.slug;
       const projSlug = newProject?.slug;
 
-      toast.success(`Project "${formData.name}" created successfully!`);
+      toast.success(t("modal.success", { name: formData.name }));
       handleClose();
       document.body.style.pointerEvents = "auto";
 
@@ -293,7 +295,7 @@ export function NewProjectModal({
         router.push(`/${wsSlug}/${projSlug}`);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to create project";
+      const errorMessage = error instanceof Error ? error.message : t("modal.errorCreate");
       toast.error(errorMessage);
       console.error("Failed to create project:", error);
     } finally {
@@ -350,9 +352,9 @@ export function NewProjectModal({
               <HiFolderPlus className="projects-modal-icon-content" />
             </div>
             <div className="projects-modal-info">
-              <DialogTitle className="projects-modal-title">Create new project</DialogTitle>
+              <DialogTitle className="projects-modal-title">{t("modal.createTitle")}</DialogTitle>
               <p className="projects-modal-description">
-                Organize your tasks and collaborate with your team
+                {t("modal.createDescription")}
               </p>
             </div>
           </div>
@@ -368,11 +370,9 @@ export function NewProjectModal({
                 {error}
                 <ActionButton
                   secondary
-                  onClick={retryFetch}
-                  className="h-9 w-24 mt-2"
                   disabled={isSubmitting}
                 >
-                  Try Again
+                  {t("modal.tryAgain")}
                 </ActionButton>
               </AlertDescription>
             </Alert>
@@ -385,11 +385,11 @@ export function NewProjectModal({
                 className="projects-form-label-icon"
                 style={{ color: "var(--dynamic-primary)" }}
               />
-              Project name <span className="projects-form-label-required">*</span>
+              {t("modal.projectName")} <span className="projects-form-label-required">*</span>
             </Label>
             <Input
               id="name"
-              placeholder="Enter project name"
+              placeholder={t("modal.enterProjectName")}
               value={formData.name}
               onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
               className="projects-form-input border-none"
@@ -422,13 +422,13 @@ export function NewProjectModal({
                   className="projects-url-preview-icon"
                   style={{ color: "var(--dynamic-primary)" }}
                 />
-                <div className="projects-url-preview-label">URL:</div>
+                <div className="projects-url-preview-label">{t("modal.url")}</div>
                 <code
                   className="projects-url-preview-code border-none"
                   style={{ color: "var(--dynamic-primary)" }}
                 >
-                  {formData.workspace ? `/${formData.workspace.slug}` : "/workspace"}/
-                  {projectSlug || "project-name"}
+                  {formData.workspace ? `/${formData.workspace.slug}` : `/${t("modal.urlWorkspace")}`}/
+                  {projectSlug || t("modal.urlProject")}
                 </code>
               </div>
             )}
@@ -441,7 +441,7 @@ export function NewProjectModal({
                 className="projects-form-label-icon"
                 style={{ color: "var(--dynamic-primary)" }}
               />
-              Workflow <span className="projects-form-label-required">*</span>
+              {t("modal.workflow")} <span className="projects-form-label-required">*</span>
             </Label>
             <Popover open={workflowOpen} onOpenChange={setWorkflowOpen} modal={true}>
               <PopoverTrigger asChild>
@@ -466,7 +466,7 @@ export function NewProjectModal({
                   }}
                 >
                   <span className="projects-workspace-selected">
-                    {selectedWorkflow?.name || "Select workflow"}
+                    {selectedWorkflow?.name || t("modal.selectWorkflow")}
                   </span>
                   <HiChevronDown className="projects-workspace-dropdown-icon" />
                 </Button>
@@ -474,15 +474,15 @@ export function NewProjectModal({
               <PopoverContent className="projects-workspace-popover border-none" align="start">
                 <Command className="projects-workspace-command border-none">
                   <CommandInput
-                    placeholder="Search workflows..."
+                    placeholder={t("modal.searchWorkflows")}
                     value={workflowSearch}
                     onValueChange={setWorkflowSearch}
                     className="projects-workspace-command-input border-none"
                   />
                   <CommandEmpty className="projects-workspace-command-empty">
                     {filteredWorkflows.length === 0 && workflowSearch
-                      ? "No workflows found."
-                      : "Type to search workflows"}
+                      ? t("modal.noWorkflowsFound")
+                      : t("modal.typeToSearchWorkflows")}
                   </CommandEmpty>
                   <CommandGroup className="projects-workspace-command-group">
                     {filteredWorkflows.map((workflow) => (
@@ -524,7 +524,7 @@ export function NewProjectModal({
                 className="projects-form-hint-icon"
                 style={{ color: "var(--dynamic-primary)" }}
               />
-              Choose a workflow for your project's process.
+              {t("modal.workflowHint")}
             </p>
           </div>
 
@@ -535,7 +535,7 @@ export function NewProjectModal({
                 className="projects-form-label-icon"
                 style={{ color: "var(--dynamic-primary)" }}
               />
-              Visibility <span className="projects-form-label-required">*</span>
+              {t("modal.visibility")} <span className="projects-form-label-required">*</span>
             </Label>
             <Popover open={visibilityOpen} onOpenChange={setVisibilityOpen} modal={true}>
               <PopoverTrigger asChild>
@@ -561,7 +561,7 @@ export function NewProjectModal({
                 >
                   <span className="projects-workspace-selected">
                     {VISIBILITY_OPTIONS.find((v) => v.value === formData.visibility)?.label ||
-                      "Select visibility"}
+                      t("modal.selectVisibility")}
                   </span>
                   <HiChevronDown className="projects-workspace-dropdown-icon" />
                 </Button>
@@ -569,7 +569,7 @@ export function NewProjectModal({
               <PopoverContent className="projects-workspace-popover border-none" align="start">
                 <Command className="projects-workspace-command border-none">
                   <CommandEmpty className="projects-workspace-command-empty">
-                    No visibility options found.
+                    {t("modal.noVisibilityOptions")}
                   </CommandEmpty>
                   <CommandGroup className="projects-workspace-command-group">
                     {VISIBILITY_OPTIONS.map((option) => (
@@ -605,7 +605,7 @@ export function NewProjectModal({
                 className="projects-form-hint-icon"
                 style={{ color: "var(--dynamic-primary)" }}
               />
-              Control who can access this project.
+              {t("modal.visibilityHint")}
             </p>
           </div>
 
@@ -617,7 +617,7 @@ export function NewProjectModal({
                   className="projects-form-label-icon"
                   style={{ color: "var(--dynamic-primary)" }}
                 />
-                Workspace <span className="projects-form-label-required">*</span>
+                {t("modal.workspace")} <span className="projects-form-label-required">*</span>
               </Label>
               <Popover open={workspaceOpen} onOpenChange={setWorkspaceOpen} modal={true}>
                 <PopoverTrigger asChild>
@@ -645,11 +645,11 @@ export function NewProjectModal({
                     disabled={isLoadingWorkspaces}
                   >
                     {isLoadingWorkspaces ? (
-                      <span className="projects-workspace-loading">Loading workspaces...</span>
+                      <span className="projects-workspace-loading">{t("modal.loadingWorkspaces")}</span>
                     ) : formData.workspace ? (
                       <span className="projects-workspace-selected">{formData.workspace.name}</span>
                     ) : (
-                      <span className="projects-workspace-placeholder">Select workspace</span>
+                      <span className="projects-workspace-placeholder">{t("modal.selectWorkspace")}</span>
                     )}
                     <HiChevronDown className="projects-workspace-dropdown-icon" />
                   </Button>
@@ -657,17 +657,17 @@ export function NewProjectModal({
                 <PopoverContent className="projects-workspace-popover border-none" align="start">
                   <Command className="projects-workspace-command border-none">
                     <CommandInput
-                      placeholder="Search workspaces..."
+                      placeholder={t("modal.searchWorkspaces")}
                       value={workspaceSearch}
                       onValueChange={setWorkspaceSearch}
                       className="projects-workspace-command-input border-none"
                     />
                     <CommandEmpty className="projects-workspace-command-empty">
                       {isLoadingWorkspaces
-                        ? "Loading workspaces..."
+                        ? t("modal.loadingWorkspaces")
                         : filteredWorkspaces.length === 0 && workspaceSearch
-                          ? "No workspaces found."
-                          : "Type to search workspaces"}
+                          ? t("modal.noWorkspacesFound")
+                          : t("modal.typeToSearchWorkspaces")}
                     </CommandEmpty>
                     <CommandGroup className="projects-workspace-command-group">
                       {filteredWorkspaces.map((workspace) => (
@@ -703,7 +703,7 @@ export function NewProjectModal({
                   className="projects-form-label-icon"
                   style={{ color: "var(--dynamic-primary)" }}
                 />
-                Workspace
+                {t("modal.workspace")}
               </Label>
               <Input
                 value={formData.workspace.name}
@@ -720,7 +720,7 @@ export function NewProjectModal({
                   className="projects-form-hint-icon"
                   style={{ color: "var(--dynamic-primary)" }}
                 />
-                Project will be created in this workspace.
+                {t("modal.workspaceHint")}
               </p>
             </div>
           )}
@@ -732,11 +732,11 @@ export function NewProjectModal({
                 className="projects-form-label-icon"
                 style={{ color: "var(--dynamic-primary)" }}
               />
-              Description
+              {t("modal.description")}
             </Label>
             <Textarea
               id="description"
-              placeholder="Describe what this project is about..."
+              placeholder={t("modal.descriptionPlaceholder")}
               value={formData.description}
               onChange={(e) =>
                 setFormData((prev) => ({
@@ -762,7 +762,7 @@ export function NewProjectModal({
                 className="projects-form-hint-icon"
                 style={{ color: "var(--dynamic-primary)" }}
               />
-              Help your team understand the project's goals and scope.
+              {t("modal.descriptionHint")}
             </p>
           </div>
 
@@ -773,7 +773,7 @@ export function NewProjectModal({
                 className="projects-form-label-icon"
                 style={{ color: "var(--dynamic-primary)" }}
               />
-              Project Colors
+              {t("modal.projectColors")}
             </Label>
             <Popover open={categoryOpen} onOpenChange={setCategoryOpen} modal={true}>
               <PopoverTrigger asChild>
@@ -806,7 +806,7 @@ export function NewProjectModal({
                       style={{ backgroundColor: selectedCategory?.color }}
                     />
                     <span className="projects-workspace-selected">
-                      {selectedCategory?.label || "Select category"}
+                      {selectedCategory ? t(`categories.${selectedCategory.id}.label`) : t("modal.selectCategory")}
                     </span>
                   </div>
                   <HiChevronDown className="projects-workspace-dropdown-icon" />
@@ -815,13 +815,13 @@ export function NewProjectModal({
               <PopoverContent className="projects-workspace-popover border-none" align="start">
                 <Command className="projects-workspace-command border-none">
                   <CommandEmpty className="projects-workspace-command-empty">
-                    No categories found.
+                    {t("modal.noCategoriesFound")}
                   </CommandEmpty>
                   <CommandGroup className="projects-workspace-command-group">
                     {PROJECT_CATEGORIES.map((category) => (
                       <CommandItem
                         key={category.id}
-                        value={category.label}
+                        value={t(`categories.${category.id}.label`)}
                         onSelect={() => handleCategorySelect(category)}
                         className="projects-workspace-command-item"
                       >
@@ -831,9 +831,9 @@ export function NewProjectModal({
                             style={{ backgroundColor: category.color }}
                           />
                           <div className="flex flex-col">
-                            <span className="text-[14px] font-medium">{category.label}</span>
+                            <span className="text-[14px] font-medium">{t(`categories.${category.id}.label`)}</span>
                             <span className="text-[12px] text-muted-foreground">
-                              {category.description}
+                              {t(`categories.${category.id}.description`)}
                             </span>
                           </div>
                         </div>
@@ -851,17 +851,17 @@ export function NewProjectModal({
                 className="projects-form-hint-icon"
                 style={{ color: "var(--dynamic-primary)" }}
               />
-              Choose a category to help organize and identify your project.
+              {t("modal.categoryHint")}
             </p>
           </div>
 
           {/* Submit Buttons */}
           <div className="projects-form-actions flex gap-2 justify-end mt-6">
             <ActionButton type="button" secondary onClick={handleClose} disabled={isSubmitting}>
-              Cancel
+              {t("modal.cancel")}
             </ActionButton>
             <ActionButton type="submit" primary disabled={!isValid || isSubmitting}>
-              {isSubmitting ? "Creating project..." : "Create project"}
+              {isSubmitting ? t("modal.creating") : t("modal.create")}
             </ActionButton>
           </div>
         </form>

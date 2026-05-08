@@ -218,7 +218,7 @@ export class CreateTaskDto {
     format: 'uuid',
     required: false,
   })
-  @IsUUID()
+  @IsString()
   @IsOptional()
   parentTaskId?: string;
 

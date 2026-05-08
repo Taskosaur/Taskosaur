@@ -1,0 +1,28 @@
+{
+  "modal": {
+    "createTitle": "Create New Organization",
+    "createDescription": "Provide information about your new organization",
+    "name": "Organization Name",
+    "namePlaceholder": "Enter organization name",
+    "slug": "Organization Slug",
+    "slugPlaceholder": "organization-slug",
+    "slugHint": "This will be used in your organization URL. Only lowercase letters, numbers, and hyphens are allowed.",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe your organization...",
+    "website": "Website",
+    "websitePlaceholder": "https://example.com",
+    "cancel": "Cancel",
+    "create": "Create Organization",
+    "update": "Update Organization",
+    "creating": "Creating...",
+    "saving": "Saving...",
+    "success": "Organization created successfully!",
+    "errorDefault": "Failed to create organization",
+    "errorSave": "Failed to save organization. Please try again.",
+    "errorTitle": "Error creating organization",
+    "errorNameRequired": "Organization name is required",
+    "errorSlugRequired": "Organization slug is required",
+    "errorSlugInvalid": "Slug can only contain lowercase letters, numbers, and hyphens",
+    "errorWebsiteInvalid": "Please enter a valid URL"
+  }
+}

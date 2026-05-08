@@ -1,0 +1,28 @@
+{
+  "modal": {
+    "createTitle": "Créer une nouvelle organisation",
+    "createDescription": "Fournissez des informations sur votre nouvelle organisation",
+    "name": "Nom de l'organisation",
+    "namePlaceholder": "Entrez le nom de l'organisation",
+    "slug": "Slug de l'organisation",
+    "slugPlaceholder": "slug-de-l-organisation",
+    "slugHint": "Ceci sera utilisé dans l'URL de votre organisation. Seuls les lettres minuscules, les chiffres et les traits d'union sont autorisés.",
+    "description": "Description",
+    "descriptionPlaceholder": "Décrivez votre organisation...",
+    "website": "Site web",
+    "websitePlaceholder": "https://exemple.com",
+    "cancel": "Annuler",
+    "create": "Créer l'organisation",
+    "update": "Mettre à jour l'organisation",
+    "creating": "Création...",
+    "saving": "Enregistrement...",
+    "success": "Organisation créée avec succès !",
+    "errorDefault": "Échec de la création de l'organisation",
+    "errorSave": "Échec de l'enregistrement de l'organisation. Veuillez réessayer.",
+    "errorTitle": "Erreur lors de la création de l'organisation",
+    "errorNameRequired": "Le nom de l'organisation est requis",
+    "errorSlugRequired": "Le slug de l'organisation est requis",
+    "errorSlugInvalid": "Le slug ne peut contenir que des lettres minuscules, des chiffres et des traits d'union",
+    "errorWebsiteInvalid": "Veuillez entrer une URL valide"
+  }
+}

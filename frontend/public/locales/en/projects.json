@@ -33,5 +33,109 @@
     "refresh_failed": "Project created but failed to refresh list",
     "load_failed": "Failed to load projects",
     "auth_required": "Authentication required. Please log in again."
+  },
+  "modal": {
+    "createTitle": "Create new project",
+    "createDescription": "Organize your tasks and collaborate with your team",
+    "tryAgain": "Try Again",
+    "projectName": "Project name",
+    "enterProjectName": "Enter project name",
+    "url": "URL:",
+    "urlWorkspace": "workspace",
+    "urlProject": "project-name",
+    "workflow": "Workflow",
+    "searchWorkflows": "Search workflows...",
+    "noWorkflowsFound": "No workflows found.",
+    "typeToSearchWorkflows": "Type to search workflows",
+    "selectWorkflow": "Select workflow",
+    "workflowHint": "Choose a workflow for your project's process.",
+    "visibility": "Visibility",
+    "selectVisibility": "Select visibility",
+    "noVisibilityOptions": "No visibility options found.",
+    "visibilityHint": "Control who can access this project.",
+    "workspace": "Workspace",
+    "loadingWorkspaces": "Loading workspaces...",
+    "selectWorkspace": "Select workspace",
+    "searchWorkspaces": "Search workspaces...",
+    "noWorkspacesFound": "No workspaces found.",
+    "typeToSearchWorkspaces": "Type to search workspaces",
+    "workspaceHint": "Project will be created in this workspace.",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe what this project is about...",
+    "descriptionHint": "Help your team understand the project's goals and scope.",
+    "projectColors": "Project Colors",
+    "selectCategory": "Select category",
+    "noCategoriesFound": "No categories found.",
+    "categoryHint": "Choose a category to help organize and identify your project.",
+    "cancel": "Cancel",
+    "create": "Create project",
+    "creating": "Creating project...",
+    "success": "Project \"{{name}}\" created successfully!",
+    "errorLoadWorkspaces": "Failed to load workspaces",
+    "errorCreate": "Failed to create project",
+    "visibilityOptions": {
+      "PRIVATE": {
+        "label": "Private",
+        "description": "Only members can access this project"
+      },
+      "INTERNAL": {
+        "label": "Internal",
+        "description": "Workspace members can view, members can edit"
+      },
+      "PUBLIC": {
+        "label": "Public",
+        "description": "Anyone can view, members can edit"
+      }
+    }
+  },
+  "categories": {
+    "operational": {
+      "label": "Operational",
+      "description": "Day-to-day operations and maintenance"
+    },
+    "technical": {
+      "label": "Technical",
+      "description": "Development and technical projects"
+    },
+    "strategic": {
+      "label": "Strategic",
+      "description": "Long-term planning and strategy"
+    },
+    "hiring": {
+      "label": "Hiring",
+      "description": "Recruitment and team building"
+    },
+    "financial": {
+      "label": "Financial",
+      "description": "Budget and financial planning"
+    },
+    "neutral": {
+      "label": "Neutral",
+      "description": "General or uncategorized projects"
+    },
+    "innovation": {
+      "label": "Innovation",
+      "description": "Creativity and innovation initiatives"
+    },
+    "community": {
+      "label": "Community",
+      "description": "Community and engagement initiatives"
+    },
+    "sustainability": {
+      "label": "Sustainability",
+      "description": "Sustainability and environment projects"
+    },
+    "marketing": {
+      "label": "Marketing",
+      "description": "Marketing and outreach campaigns"
+    },
+    "research": {
+      "label": "Research",
+      "description": "Research and analysis projects"
+    },
+    "growth": {
+      "label": "Growth",
+      "description": "Growth and expansion initiatives"
+    }
   }
 }

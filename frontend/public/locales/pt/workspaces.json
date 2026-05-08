@@ -22,5 +22,29 @@
     "load_failed": "Falha ao carregar espaços de trabalho",
     "created_success": "Espaço de trabalho criado com sucesso!",
     "refresh_failed": "Espaço de trabalho criado, mas falhou ao atualizar a lista. Atualize a página."
+  },
+  "modal": {
+    "createTitle": "Criar novo espaço de trabalho",
+    "createDescription": "Forneça informações básicas sobre seu novo espaço de trabalho",
+    "workspaceName": "Nome do espaço de trabalho",
+    "enterWorkspaceName": "Insira o nome do espaço de trabalho",
+    "workspaceNameHint": "Escolha um nome claro e descritivo para seu espaço de trabalho.",
+    "description": "Descrição",
+    "descriptionPlaceholder": "Descreva o propósito deste espaço de trabalho...",
+    "descriptionHint": "Ajude os membros da equipe a entender para que serve este espaço de trabalho.",
+    "parentWorkspace": "Espaço de Trabalho Pai",
+    "optional": "(Opcional)",
+    "none": "Nenhum",
+    "parentWorkspaceHint": "Selecione um espaço de trabalho pai para aninhar este espaço de trabalho abaixo dele. A profundidade máxima é de 5 níveis.",
+    "inheritFromParent": "Herdar do espaço de trabalho pai",
+    "inheritHint": "Copiar automaticamente permissões de membros, modelos de etiquetas e configuração de fluxo de trabalho do espaço de trabalho pai selecionado.",
+    "cancel": "Cancelar",
+    "create": "Criar espaço de trabalho",
+    "creating": "Criando espaço de trabalho...",
+    "errorNoOrg": "Contexto do espaço de trabalho não disponível",
+    "errorFields": "Por favor, preencha todos os campos obrigatórios",
+    "errorAuth": "Autenticação necessária",
+    "errorCreate": "Falha ao criar espaço de trabalho",
+    "success": "Espaço de trabalho \"{{name}}\" criado com sucesso!"
   }
 }
