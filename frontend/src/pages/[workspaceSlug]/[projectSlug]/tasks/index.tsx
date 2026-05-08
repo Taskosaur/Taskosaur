@@ -376,8 +376,10 @@ function ProjectTasksContent() {
           projectId: project.id,
           workspaceId: workspace.id,
           ...commonFilters,
-          sortBy: sortField,
-          sortOrder: sortOrder,
+          // Always fall back to 'listRank' — ensures rank order is preserved on reload
+          // even if localStorage sortField is stale or empty.
+          sortBy: sortField || "listRank",
+          sortOrder: sortOrder || "asc",
           page: currentPage,
           limit: pageSize,
         });
@@ -467,7 +469,7 @@ function ProjectTasksContent() {
         projectId: project.id,
         workspaceId: workspace.id,
         includeSubtasks: true,
-        sortBy: "displayOrder",
+        sortBy: "listRank",
         sortOrder: "asc",
         viewType: "GANTT",
         page: currentPage,
@@ -1026,7 +1028,7 @@ function ProjectTasksContent() {
             onViewModeChange={setGanttViewMode}
             onTaskUpdate={handleTaskUpdate}
             groupBy={groupBy}
-            onTaskRefetch={loadTasks}
+            onTaskRefetch={loadGanttData}
             workspaceId={workspace?.id}
             organizationId={currentOrganizationId || undefined}
             currentProject={project}
@@ -1081,7 +1083,7 @@ function ProjectTasksContent() {
         <div className="pb-2">
           <PageHeader
             title={project ? t("projectTasks", { name: project.name }) : t("defaultProjectTasks")}
-            description={t("projectTasksDescription")}
+            description={project ? t("projectTasksDescription", { name: project.name }) : t("defaultProjectTasksDescription")}
             actions={
               <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
                 <div className="flex items-center gap-2">

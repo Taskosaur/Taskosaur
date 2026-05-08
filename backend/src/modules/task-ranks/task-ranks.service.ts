@@ -44,26 +44,15 @@ export class TaskRanksService {
   }
 
   async rebalance(scopeType: ScopeType, scopeId: string, viewType: ViewType): Promise<void> {
-    // Logic to fetch tasks in the specified scope and view, and rebalance their ranks
     const rows = await this.prisma.taskRank.findMany({
-      where: {
-        scopeType,
-        scopeId,
-        viewType,
-      },
+      where: { scopeType, scopeId, viewType },
       orderBy: [
         { rank: 'asc' },
         { taskId: 'asc' }, // Secondary sort for absolute determinism
       ],
-      select: {
-        id: true,
-      },
+      select: { id: true },
     });
-    // const updates = rows.map((row, i) =>
-    //   this.prisma.task.update({
 
-    //   }),
-    // );
     await this.prisma.$transaction(
       rows.map((row, i) =>
         this.prisma.taskRank.update({
@@ -81,7 +70,6 @@ export class TaskRanksService {
     orgId: string,
     tx: Prisma.TransactionClient,
   ) {
-    // Logic to insert 6 rank rows at bottom of each scope, accepts prisma transaction client
     const scopes = [
       { scopeType: ScopeType.PROJECT, scopeId: projectId },
       { scopeType: ScopeType.WORKSPACE, scopeId: workspaceId },
@@ -101,9 +89,7 @@ export class TaskRanksService {
           })),
         ),
       },
-      _max: {
-        rank: true,
-      },
+      _max: { rank: true },
     });
 
     const maxRankMap = new Map(
@@ -120,8 +106,106 @@ export class TaskRanksService {
       })),
     );
 
-    await tx.taskRank.createMany({
-      data: rows,
+    await tx.taskRank.createMany({ data: rows });
+  }
+
+  /**
+   * Ensures that EVERY task belonging to the given scope/view has a taskRank
+   * row before we compute a reorder.  Tasks that were created before the
+   * ranking system existed will have no row; without this guard the neighbor
+   * lookup returns null for them and `computeRank` collapses everything to 1.0.
+   *
+   * Strategy
+   * ─────────
+   * 1. Find all tasks in the scope that are missing a rank row (ordered by
+   *    createdAt so the existing visual order is respected).
+   * 2. Find the current MAX rank so new rows are appended *after* every
+   *    already-ranked task.
+   * 3. Bulk-insert the missing rows with sequential integer ranks.
+   *    `skipDuplicates: true` makes this idempotent and race-condition safe.
+   */
+  private async ensureRanksSeeded(
+    scopeType: ScopeType,
+    scopeId: string,
+    viewType: ViewType,
+  ): Promise<void> {
+    // ── 1. Identify unranked TOP-LEVEL tasks in this scope ─────────────────
+    // Order by task_number DESC so seeded ranks mirror the default API display
+    // order (newest first).  This ensures that on a user's very first drag, the
+    // rank ordering matches what they see on screen and subsequent reloads look
+    // identical to the pre-drag state.
+    let unrankedRows: { id: string }[] = [];
+
+    if (scopeType === ScopeType.PROJECT) {
+      unrankedRows = await this.prisma.$queryRaw<{ id: string }[]>`
+        SELECT t.id
+        FROM   tasks t
+        WHERE  t.project_id = ${scopeId}::uuid
+          AND  t.parent_task_id IS NULL
+          AND  NOT EXISTS (
+                 SELECT 1 FROM task_ranks tr
+                 WHERE  tr.task_id        = t.id
+                   AND  tr."scope_type"::text = ${scopeType as string}
+                   AND  tr."scope_id"::uuid   = ${scopeId}::uuid
+                   AND  tr."view_type"::text  = ${viewType as string}
+               )
+        ORDER BY t.task_number DESC
+      `;
+    } else if (scopeType === ScopeType.WORKSPACE) {
+      unrankedRows = await this.prisma.$queryRaw<{ id: string }[]>`
+        SELECT t.id
+        FROM   tasks t
+        INNER  JOIN projects p ON p.id = t.project_id
+        WHERE  p.workspace_id = ${scopeId}::uuid
+          AND  t.parent_task_id IS NULL
+          AND  NOT EXISTS (
+                 SELECT 1 FROM task_ranks tr
+                 WHERE  tr.task_id        = t.id
+                   AND  tr."scope_type"::text = ${scopeType as string}
+                   AND  tr."scope_id"::uuid   = ${scopeId}::uuid
+                   AND  tr."view_type"::text  = ${viewType as string}
+               )
+        ORDER BY t.task_number DESC
+      `;
+    } else {
+      // ORGANIZATION
+      unrankedRows = await this.prisma.$queryRaw<{ id: string }[]>`
+        SELECT t.id
+        FROM   tasks t
+        INNER  JOIN projects  p ON p.id  = t.project_id
+        INNER  JOIN workspaces w ON w.id = p.workspace_id
+        WHERE  w.organization_id = ${scopeId}::uuid
+          AND  t.parent_task_id IS NULL
+          AND  NOT EXISTS (
+                 SELECT 1 FROM task_ranks tr
+                 WHERE  tr.task_id        = t.id
+                   AND  tr."scope_type"::text = ${scopeType as string}
+                   AND  tr."scope_id"::uuid   = ${scopeId}::uuid
+                   AND  tr."view_type"::text  = ${viewType as string}
+               )
+        ORDER BY t.task_number DESC
+      `;
+    }
+
+    if (unrankedRows.length === 0) return; // nothing to seed
+
+    // ── 2. Find current maximum rank so new rows are appended at the bottom ─
+    const aggResult = await this.prisma.taskRank.aggregate({
+      where: { scopeType, scopeId, viewType },
+      _max: { rank: true },
+    });
+    const base = aggResult._max.rank ?? 0;
+
+    // ── 3. Bulk-insert missing rows ────────────────────────────────────────
+    await this.prisma.taskRank.createMany({
+      data: unrankedRows.map((row, i) => ({
+        taskId: row.id,
+        scopeType,
+        scopeId,
+        viewType,
+        rank: base + i + 1,
+      })),
+      skipDuplicates: true, // idempotent — safe against concurrent requests
     });
   }
 
@@ -193,6 +277,13 @@ export class TaskRanksService {
     afterTaskId,
     beforeTaskId,
   }: ReorderDto & { taskId: string }) {
+    // ── Guard: seed rank rows for any tasks in this scope that are missing one ──
+    // This makes drag-and-drop safe regardless of whether the dragged task or its
+    // neighbors already have a rank entry.  Tasks created before the ranking table
+    // existed are appended at the bottom (ordered by createdAt) so the current
+    // visual order is preserved on first drag.
+    await this.ensureRanksSeeded(scopeType, scopeId, viewType);
+
     const { afterRank, beforeRank } = await this.getNeighborRanks(
       scopeType,
       scopeId,
@@ -212,16 +303,8 @@ export class TaskRanksService {
           viewType,
         },
       },
-      update: {
-        rank: newRank,
-      },
-      create: {
-        taskId,
-        scopeType,
-        scopeId,
-        viewType,
-        rank: newRank,
-      },
+      update: { rank: newRank },
+      create: { taskId, scopeType, scopeId, viewType, rank: newRank },
     });
 
     if (this.needsRebalance(afterRank, beforeRank, newRank)) {

@@ -196,7 +196,23 @@ export class TasksService {
         taskCreateData.remainingEstimate = taskData.remainingEstimate;
       if (taskData.customFields)
         taskCreateData.customFields = sanitizeObject(taskData.customFields);
-      if (taskData.parentTaskId) taskCreateData.parentTaskId = taskData.parentTaskId;
+      if (taskData.parentTaskId) {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          taskData.parentTaskId,
+        );
+        if (!isUuid) {
+          const parentTask = await tx.task.findFirst({
+            where: { slug: taskData.parentTaskId },
+            select: { id: true },
+          });
+          if (!parentTask) {
+            throw new NotFoundException(`Parent task with slug ${taskData.parentTaskId} not found`);
+          }
+          taskCreateData.parentTaskId = parentTask.id;
+        } else {
+          taskCreateData.parentTaskId = taskData.parentTaskId;
+        }
+      }
       if (taskData.completedAt !== undefined) taskCreateData.completedAt = taskData.completedAt;
       if (taskData.allowEmailReplies !== undefined)
         taskCreateData.allowEmailReplies = taskData.allowEmailReplies;
@@ -627,7 +643,23 @@ export class TasksService {
         taskCreateData.remainingEstimate = taskData.remainingEstimate;
       if (taskData.customFields)
         taskCreateData.customFields = sanitizeObject(taskData.customFields);
-      if (taskData.parentTaskId) taskCreateData.parentTaskId = taskData.parentTaskId;
+      if (taskData.parentTaskId) {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          taskData.parentTaskId,
+        );
+        if (!isUuid) {
+          const parentTask = await tx.task.findFirst({
+            where: { slug: taskData.parentTaskId },
+            select: { id: true },
+          });
+          if (!parentTask) {
+            throw new NotFoundException(`Parent task with slug ${taskData.parentTaskId} not found`);
+          }
+          taskCreateData.parentTaskId = parentTask.id;
+        } else {
+          taskCreateData.parentTaskId = taskData.parentTaskId;
+        }
+      }
       if (taskData.completedAt !== undefined) taskCreateData.completedAt = taskData.completedAt;
       if (taskData.allowEmailReplies !== undefined)
         taskCreateData.allowEmailReplies = taskData.allowEmailReplies;
@@ -916,8 +948,30 @@ export class TasksService {
       if (parentTaskId === 'null' || parentTaskId === '' || parentTaskId === null) {
         whereClause.parentTaskId = null;
       } else {
-        whereClause.parentTaskId = parentTaskId;
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          parentTaskId,
+        );
+        if (isUuid) {
+          whereClause.parentTaskId = parentTaskId;
+        } else {
+          // Resolve slug to UUID
+          const task = await this.prisma.task.findFirst({
+            where: { slug: parentTaskId },
+            select: { id: true },
+          });
+          if (task) {
+            whereClause.parentTaskId = task.id;
+          } else {
+            // If slug not found, we set it to a non-existent UUID to return no results
+            whereClause.parentTaskId = '00000000-0000-0000-0000-000000000000';
+          }
+        }
       }
+    } else {
+      // Default: show only top-level tasks (not subtasks).
+      // This aligns with the rank-sort SQL which also filters IS NULL,
+      // ensuring the task count and page data are consistent.
+      whereClause.parentTaskId = null;
     }
 
     // Filter by priorities if provided
@@ -1072,19 +1126,58 @@ export class TasksService {
       const sqlLimit = limit;
       const sqlOffset = skip;
 
-      const rankedTaskIds = await this.prisma.$queryRaw<{ id: string }[]>`
-        SELECT t.id
-        FROM tasks t
-        INNER JOIN task_ranks tr ON t.id = tr.task_id
-        INNER JOIN projects p ON t.project_id = p.id
-        INNER JOIN workspaces w ON p.workspace_id = w.id
-        WHERE tr."scope_type"::text = ${scopeType}
-          AND tr."scope_id"::uuid = ${scopeId}::uuid
-          AND tr."view_type"::text = ${viewType}
-          AND w."organization_id"::uuid = ${organizationId}::uuid
-        ORDER BY tr.rank ${Prisma.raw(rankOrderDir)}, t.id ${Prisma.raw(rankOrderDir)}
-        LIMIT ${Prisma.raw(sqlLimit.toString())} 
-        OFFSET ${Prisma.raw(sqlOffset.toString())}`;
+      // Build the scope-specific WHERE predicate so LIMIT/OFFSET pages the
+      // correct filtered set rather than the entire organisation.
+      let rankedTaskIds: { id: string }[];
+
+      if (scopeType === 'PROJECT') {
+        rankedTaskIds = await this.prisma.$queryRaw<{ id: string }[]>`
+          SELECT t.id
+          FROM tasks t
+          LEFT JOIN task_ranks tr ON t.id = tr.task_id
+            AND tr."scope_type"::text = ${scopeType}
+            AND tr."scope_id"::uuid = ${scopeId}::uuid
+            AND tr."view_type"::text = ${viewType}
+          INNER JOIN projects p ON t.project_id = p.id
+          INNER JOIN workspaces w ON p.workspace_id = w.id
+          WHERE w."organization_id"::uuid = ${organizationId}::uuid
+            AND t.project_id = ${scopeId}::uuid
+            AND t."parent_task_id" IS NULL
+          ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
+          LIMIT ${Prisma.raw(sqlLimit.toString())}
+          OFFSET ${Prisma.raw(sqlOffset.toString())}`;
+      } else if (scopeType === 'WORKSPACE') {
+        rankedTaskIds = await this.prisma.$queryRaw<{ id: string }[]>`
+          SELECT t.id
+          FROM tasks t
+          LEFT JOIN task_ranks tr ON t.id = tr.task_id
+            AND tr."scope_type"::text = ${scopeType}
+            AND tr."scope_id"::uuid = ${scopeId}::uuid
+            AND tr."view_type"::text = ${viewType}
+          INNER JOIN projects p ON t.project_id = p.id
+          INNER JOIN workspaces w ON p.workspace_id = w.id
+          WHERE w."organization_id"::uuid = ${organizationId}::uuid
+            AND p."workspace_id" = ${scopeId}::uuid
+            AND t."parent_task_id" IS NULL
+          ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
+          LIMIT ${Prisma.raw(sqlLimit.toString())}
+          OFFSET ${Prisma.raw(sqlOffset.toString())}`;
+      } else {
+        rankedTaskIds = await this.prisma.$queryRaw<{ id: string }[]>`
+          SELECT t.id
+          FROM tasks t
+          LEFT JOIN task_ranks tr ON t.id = tr.task_id
+            AND tr."scope_type"::text = ${scopeType}
+            AND tr."scope_id"::uuid = ${scopeId}::uuid
+            AND tr."view_type"::text = ${viewType}
+          INNER JOIN projects p ON t.project_id = p.id
+          INNER JOIN workspaces w ON p.workspace_id = w.id
+          WHERE w."organization_id"::uuid = ${organizationId}::uuid
+            AND t."parent_task_id" IS NULL
+          ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
+          LIMIT ${Prisma.raw(sqlLimit.toString())}
+          OFFSET ${Prisma.raw(sqlOffset.toString())}`;
+      }
 
       const taskIds = rankedTaskIds.map((r) => r.id);
 
@@ -1312,9 +1405,27 @@ export class TasksService {
     if (parentTaskId !== undefined) {
       if (parentTaskId === 'all') {
         // Do not filter by parentTaskId to include both main tasks and subtasks
+      } else if (parentTaskId === 'null' || parentTaskId === '' || parentTaskId === null) {
+        whereClause.parentTaskId = null;
       } else {
-        whereClause.parentTaskId =
-          parentTaskId === 'null' || parentTaskId === '' ? null : parentTaskId;
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          parentTaskId,
+        );
+        if (isUuid) {
+          whereClause.parentTaskId = parentTaskId;
+        } else {
+          // Resolve slug to UUID
+          const parentTask = await this.prisma.task.findFirst({
+            where: { slug: parentTaskId },
+            select: { id: true },
+          });
+          if (parentTask) {
+            whereClause.parentTaskId = parentTask.id;
+          } else {
+            // If slug not found, we set it to a non-existent UUID to return no results
+            whereClause.parentTaskId = '00000000-0000-0000-0000-000000000000';
+          }
+        }
       }
     } else {
       // Default to showing only main tasks (not subtasks) for backward compatibility
@@ -1447,19 +1558,57 @@ export class TasksService {
       const sqlLimit = limit;
       const sqlOffset = skip;
 
-      const rankedTaskIds = await this.prisma.$queryRaw<{ id: string }[]>`
-        SELECT t.id
-        FROM tasks t
-        INNER JOIN task_ranks tr ON t.id = tr.task_id
-        INNER JOIN projects p ON t.project_id = p.id
-        INNER JOIN workspaces w ON p.workspace_id = w.id
-        WHERE tr."scope_type"::text = ${scopeType}
-          AND tr."scope_id"::uuid = ${scopeId}::uuid
-          AND tr."view_type"::text = ${viewType}
-          AND w."organization_id"::uuid = ${organizationId}::uuid
-        ORDER BY tr.rank ${Prisma.raw(rankOrderDir)}, t.id ${Prisma.raw(rankOrderDir)}
-        LIMIT ${Prisma.raw(sqlLimit.toString())} 
-        OFFSET ${Prisma.raw(sqlOffset.toString())}`;
+      // Build scope-specific WHERE so LIMIT/OFFSET pages within the correct scope
+      let rankedTaskIds: { id: string }[];
+
+      if (scopeType === 'PROJECT') {
+        rankedTaskIds = await this.prisma.$queryRaw<{ id: string }[]>`
+          SELECT t.id
+          FROM tasks t
+          LEFT JOIN task_ranks tr ON t.id = tr.task_id
+            AND tr."scope_type"::text = ${scopeType}
+            AND tr."scope_id"::uuid = ${scopeId}::uuid
+            AND tr."view_type"::text = ${viewType}
+          INNER JOIN projects p ON t.project_id = p.id
+          INNER JOIN workspaces w ON p.workspace_id = w.id
+          WHERE w."organization_id"::uuid = ${organizationId}::uuid
+            AND t.project_id = ${scopeId}::uuid
+            AND t."parent_task_id" IS NULL
+          ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
+          LIMIT ${Prisma.raw(sqlLimit.toString())}
+          OFFSET ${Prisma.raw(sqlOffset.toString())}`;
+      } else if (scopeType === 'WORKSPACE') {
+        rankedTaskIds = await this.prisma.$queryRaw<{ id: string }[]>`
+          SELECT t.id
+          FROM tasks t
+          LEFT JOIN task_ranks tr ON t.id = tr.task_id
+            AND tr."scope_type"::text = ${scopeType}
+            AND tr."scope_id"::uuid = ${scopeId}::uuid
+            AND tr."view_type"::text = ${viewType}
+          INNER JOIN projects p ON t.project_id = p.id
+          INNER JOIN workspaces w ON p.workspace_id = w.id
+          WHERE w."organization_id"::uuid = ${organizationId}::uuid
+            AND p."workspace_id" = ${scopeId}::uuid
+            AND t."parent_task_id" IS NULL
+          ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
+          LIMIT ${Prisma.raw(sqlLimit.toString())}
+          OFFSET ${Prisma.raw(sqlOffset.toString())}`;
+      } else {
+        rankedTaskIds = await this.prisma.$queryRaw<{ id: string }[]>`
+          SELECT t.id
+          FROM tasks t
+          LEFT JOIN task_ranks tr ON t.id = tr.task_id
+            AND tr."scope_type"::text = ${scopeType}
+            AND tr."scope_id"::uuid = ${scopeId}::uuid
+            AND tr."view_type"::text = ${viewType}
+          INNER JOIN projects p ON t.project_id = p.id
+          INNER JOIN workspaces w ON p.workspace_id = w.id
+          WHERE w."organization_id"::uuid = ${organizationId}::uuid
+            AND t."parent_task_id" IS NULL
+          ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
+          LIMIT ${Prisma.raw(sqlLimit.toString())}
+          OFFSET ${Prisma.raw(sqlOffset.toString())}`;
+      }
 
       const taskIds = rankedTaskIds.map((r) => r.id);
 
@@ -1945,10 +2094,14 @@ export class TasksService {
   }
 
   async findOne(id: string, userId: string) {
-    const { isElevated } = await this.accessControl.getTaskAccess(id, userId);
+    const { isElevated, task: taskFromAccess } = await this.accessControl.getTaskAccess(id, userId);
+
+    if (!taskFromAccess) {
+      throw new NotFoundException('Task not found');
+    }
 
     const task = await this.prisma.task.findUnique({
-      where: { id },
+      where: { id: taskFromAccess.id },
       include: {
         project: {
           select: {
@@ -2210,6 +2363,10 @@ export class TasksService {
       task: taskFromAccess,
     } = await this.accessControl.getTaskAccess(id, userId);
 
+    if (!taskFromAccess) {
+      throw new NotFoundException('Task not found');
+    }
+
     if (!canChange) {
       throw new ForbiddenException('Insufficient permissions to update this task');
     }
@@ -2275,9 +2432,37 @@ export class TasksService {
       } else if (taskStatus) {
         updateTaskDto.completedAt = null;
       }
-      const { assigneeIds, reporterIds, description, title, customFields, ...taskData } =
-        updateTaskDto;
+      const {
+        assigneeIds,
+        reporterIds,
+        description,
+        title,
+        customFields,
+        parentTaskId,
+        ...taskData
+      } = updateTaskDto;
       const updateData: any = { ...taskData };
+
+      // Resolve parentTaskId if it's a slug
+      if (parentTaskId) {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          parentTaskId,
+        );
+        if (!isUuid) {
+          const parentTask = await this.prisma.task.findFirst({
+            where: { slug: parentTaskId },
+            select: { id: true },
+          });
+          if (!parentTask) {
+            throw new NotFoundException(`Parent task with slug ${parentTaskId} not found`);
+          }
+          updateData.parentTaskId = parentTask.id;
+        } else {
+          updateData.parentTaskId = parentTaskId;
+        }
+      } else if (parentTaskId === null) {
+        updateData.parentTaskId = null;
+      }
 
       // Sanitize description if provided
       if (description !== undefined) {
@@ -2332,7 +2517,7 @@ export class TasksService {
         };
       }
       const updatedTask = await this.prisma.task.update({
-        where: { id },
+        where: { id: taskFromAccess.id },
         data: updateData,
         include: {
           project: {
@@ -2377,8 +2562,12 @@ export class TasksService {
     }
   }
 
-  async remove(id: string, userId: string): Promise<void> {
-    const { isElevated } = await this.accessControl.getTaskAccess(id, userId);
+  async remove(id: string, userId: string): Promise<Task> {
+    const { isElevated, task } = await this.accessControl.getTaskAccess(id, userId);
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
 
     if (!isElevated) {
       throw new ForbiddenException('Only managers and owners can delete tasks');
@@ -2387,7 +2576,7 @@ export class TasksService {
     try {
       // Check if task exists and has subtasks
       const taskWithCounts = await this.prisma.task.findUnique({
-        where: { id },
+        where: { id: task.id },
         select: {
           id: true,
           _count: {
@@ -2401,8 +2590,9 @@ export class TasksService {
       }
 
       await this.prisma.task.delete({
-        where: { id },
+        where: { id: task.id },
       });
+      return task;
     } catch (error: any) {
       this.logger.error('Failed to delete the task');
       if (error.code === 'P2025') {
@@ -2423,7 +2613,7 @@ export class TasksService {
     const newComment = await this.prisma.taskComment.create({
       data: {
         content: sanitizeHtml(comment),
-        taskId: taskId,
+        taskId: task.id,
         authorId: userId,
       },
       include: {
@@ -2913,7 +3103,7 @@ export class TasksService {
             AND t.project_id = ${project.id}::uuid
             ${sprintId ? Prisma.raw(`AND t.sprint_id = '${sprintId}'::uuid`) : Prisma.empty}
             ${!includeSubtasks ? Prisma.raw('AND t.parent_task_id IS NULL') : Prisma.empty}
-          ORDER BY COALESCE(tr.rank, t.task_number::float) DESC, t.task_number DESC
+          ORDER BY tr.rank DESC NULLS LAST, t.created_at DESC
           LIMIT ${Prisma.raw(pageLimit.toString())}
           OFFSET ${Prisma.raw(skip.toString())}
         `;
@@ -3024,10 +3214,10 @@ export class TasksService {
 
   // Additional helper methods with role-based filtering
   async findSubtasksByParent(parentTaskId: string, userId: string): Promise<Task[]> {
-    const { isElevated } = await this.accessControl.getTaskAccess(parentTaskId, userId);
+    const { isElevated, task } = await this.accessControl.getTaskAccess(parentTaskId, userId);
 
     const whereClause: any = {
-      parentTaskId: parentTaskId,
+      parentTaskId: task!.id,
     };
 
     // If not elevated, filter to user-related subtasks only
@@ -3282,10 +3472,14 @@ export class TasksService {
    */
   async completeOccurrenceAndGenerateNext(taskId: string, userId: string) {
     // Verify task access
-    await this.accessControl.getTaskAccess(taskId, userId);
+    const { task: taskFromAccess } = await this.accessControl.getTaskAccess(taskId, userId);
+
+    if (!taskFromAccess) {
+      throw new NotFoundException('Task not found');
+    }
 
     const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+      where: { id: taskFromAccess.id },
       include: {
         recurringConfig: true,
         assignees: { select: { userId: true } },
@@ -3367,10 +3561,14 @@ export class TasksService {
    * Add recurrence configuration to an existing non-recurring task
    */
   async addRecurrence(taskId: string, recurrenceConfig: RecurrenceConfigDto, userId: string) {
-    await this.accessControl.getTaskAccess(taskId, userId);
+    const { task: taskFromAccess } = await this.accessControl.getTaskAccess(taskId, userId);
+
+    if (!taskFromAccess) {
+      throw new NotFoundException('Task not found');
+    }
 
     const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+      where: { id: taskFromAccess.id },
       include: { recurringConfig: true },
     });
 
@@ -3390,7 +3588,7 @@ export class TasksService {
     // Create recurring task configuration
     const recurringTask = await this.prisma.recurringTask.create({
       data: {
-        taskId: taskId,
+        taskId: taskFromAccess.id,
         recurrenceType: recurrenceConfig.recurrenceType,
         interval: recurrenceConfig.interval,
         daysOfWeek: recurrenceConfig.daysOfWeek || [],
@@ -3407,7 +3605,7 @@ export class TasksService {
 
     // Update task to mark it as recurring
     await this.prisma.task.update({
-      where: { id: taskId },
+      where: { id: taskFromAccess.id },
       data: { isRecurring: true },
     });
 
@@ -3422,10 +3620,14 @@ export class TasksService {
     recurrenceConfig: RecurrenceConfigDto,
     userId: string,
   ) {
-    await this.accessControl.getTaskAccess(taskId, userId);
+    const { task: taskFromAccess } = await this.accessControl.getTaskAccess(taskId, userId);
+
+    if (!taskFromAccess) {
+      throw new NotFoundException('Task not found');
+    }
 
     const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+      where: { id: taskFromAccess.id },
       include: { recurringConfig: true },
     });
 
@@ -3462,10 +3664,14 @@ export class TasksService {
    * Stop recurrence for a task
    */
   async stopRecurrence(taskId: string, userId: string) {
-    await this.accessControl.getTaskAccess(taskId, userId);
+    const { task: taskFromAccess } = await this.accessControl.getTaskAccess(taskId, userId);
+
+    if (!taskFromAccess) {
+      throw new NotFoundException('Task not found');
+    }
 
     const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+      where: { id: taskFromAccess.id },
       include: { recurringConfig: true },
     });
 
@@ -3484,7 +3690,7 @@ export class TasksService {
 
     // Update task to mark it as not recurring
     return this.prisma.task.update({
-      where: { id: taskId },
+      where: { id: taskFromAccess.id },
       data: { isRecurring: false },
     });
   }
@@ -3766,7 +3972,40 @@ export class TasksService {
     };
   }
 
-  reorderTask(taskId: string, dto: ReorderDto) {
-    return this.taskRanksService.reorder({ taskId, ...dto });
+  async reorderTask(taskId: string, userId: string, dto: ReorderDto) {
+    const { task } = await this.accessControl.getTaskAccess(taskId, userId);
+
+    // Resolve neighbors if they are slugs
+    let afterId = dto.afterTaskId;
+    let beforeId = dto.beforeTaskId;
+
+    if (
+      afterId &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(afterId)
+    ) {
+      const afterTask = await this.prisma.task.findFirst({
+        where: { slug: afterId },
+        select: { id: true },
+      });
+      if (afterTask) afterId = afterTask.id;
+    }
+
+    if (
+      beforeId &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(beforeId)
+    ) {
+      const beforeTask = await this.prisma.task.findFirst({
+        where: { slug: beforeId },
+        select: { id: true },
+      });
+      if (beforeTask) beforeId = beforeTask.id;
+    }
+
+    return this.taskRanksService.reorder({
+      taskId: task!.id,
+      ...dto,
+      afterTaskId: afterId,
+      beforeTaskId: beforeId,
+    });
   }
 }

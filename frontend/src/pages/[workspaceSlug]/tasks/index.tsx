@@ -519,8 +519,9 @@ function WorkspaceTasksContent() {
       const res = await getCalendarTask(workspace.organizationId, {
         workspaceId: workspace.id,
         includeSubtasks: true,
-        sortBy: "displayOrder",
+        sortBy: "listRank",
         sortOrder: "asc",
+        viewType: "GANTT",
         page: currentPage,
         limit: pageSize,
       });

@@ -129,7 +129,10 @@ const SortableRow = ({
   projectSlug, 
   columnOrder, 
   renderTaskRowCell, 
-  handleRowClick 
+  handleRowClick,
+  isFocused,
+  rowIndex,
+  onRowClick,
 }: { 
   task: any;
   workspaceSlug?: string;
@@ -137,6 +140,9 @@ const SortableRow = ({
   columnOrder: string[];
   renderTaskRowCell: (colId: string, task: any, options?: { dragHandleProps?: any }) => React.ReactNode;
   handleRowClick: (task: any) => void;
+  isFocused?: boolean;
+  rowIndex?: number;
+  onRowClick?: (task: any, index: number, e: React.MouseEvent) => void;
 }) => {
   const {
     attributes,
@@ -158,11 +164,21 @@ const SortableRow = ({
     <TableRow
       ref={setNodeRef}
       style={style}
+      data-row-index={rowIndex}
+      tabIndex={0}
+      aria-selected={isFocused}
       className={cn(
-        "tasktable-row group/row h-12 odd:bg-[var(--odd-row)] cursor-pointer",
-        isDragging && "shadow-lg rounded-md"
+        "tasktable-row group/row h-12 odd:bg-[var(--odd-row)] cursor-pointer outline-none",
+        isDragging && "shadow-lg rounded-md",
+        isFocused && "ring-2 ring-inset ring-[var(--primary)] bg-[var(--accent)]/40"
       )}
-      onClick={() => handleRowClick(task)}
+      onClick={(e) => {
+        if (onRowClick && rowIndex !== undefined) {
+          onRowClick(task, rowIndex, e);
+        } else {
+          handleRowClick(task);
+        }
+      }}
       {...attributes}
     >
       {/* Other columns */}
@@ -552,6 +568,21 @@ const TaskTable: React.FC<TaskTableProps> = ({
   // Guard to prevent double-close race conditions
   const isClosingRef = useRef(false);
 
+  // ─── Keyboard navigation state ───────────────────────────────────────────
+  const [focusedRowIndex, setFocusedRowIndex] = useState<number>(-1);
+  // Ref mirror — always holds the latest focusedRowIndex so the document-level
+  // keydown listener can read it synchronously without closure staleness.
+  const focusedRowIndexRef = useRef<number>(-1);
+  // Ref to handleRowClick — lets the keydown listener call it without needing
+  // it in the useEffect dependency array (it's declared late in the component).
+  const handleRowClickRef = useRef<((task: Task) => Promise<void>) | null>(null);
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
+  // Anchor index for shift-click range selection
+  const lastClickedIndexRef = useRef<number>(-1);
+
+  // Keep the ref in sync with state on every render (runs before effects)
+  focusedRowIndexRef.current = focusedRowIndex;
+
   // Column Reordering State with localStorage persistence
   // Make the key project-specific so each project can have its own column order
   const getStorageKey = () => {
@@ -567,6 +598,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [isReordering, setIsReordering] = useState(false);
+  // Ref-based guard: synchronously blocks the sync effect while a reorder
+  // API call + refetch is in flight.  Using a ref avoids the React batching
+  // delay that caused the old state-based guard to let stale props overwrite
+  // the optimistic task order before the fresh data arrived.
+  const isReorderingRef = useRef(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -582,13 +618,21 @@ const TaskTable: React.FC<TaskTableProps> = ({
   // Local state for optimistic updates
   const [localTasks, setLocalTasks] = useState<Task[]>(tasks);
   const prevTasksRef = useRef<Task[]>(tasks);
+  // Timestamp of the last completed reorder — protects localTasks from being
+  // overwritten by the background refetch for a short cooldown window.
+  const lastReorderTimeRef = useRef<number>(0);
+  const REORDER_COOLDOWN_MS = 3000;
 
-  // Sync localTasks when tasks prop changes (but not during reordering)
+  // Sync localTasks when tasks prop changes.
+  // Skip during active reorder AND during the cooldown window after one,
+  // so the fire-and-forget background refetch can't overwrite the optimistic order.
   useEffect(() => {
-    if (!isReordering) {
+    const timeSinceLastReorder = Date.now() - lastReorderTimeRef.current;
+    if (!isReorderingRef.current && timeSinceLastReorder > REORDER_COOLDOWN_MS) {
       setLocalTasks(tasks);
     }
-  }, [tasks, isReordering]);
+  }, [tasks]);
+
 
   // Grouped view: use backend groupMap when available, else fall back to client-side groupTasks()
   const groupedTasks = useMemo<TaskGroup[]>(() => {
@@ -674,7 +718,6 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveDragId(null);
-    setIsReordering(false);
 
     if (!over || active.id === over.id) return;
 
@@ -697,23 +740,26 @@ const TaskTable: React.FC<TaskTableProps> = ({
 
       if (oldIndex === -1 || newIndex === -1) return;
 
-      setIsReordering(true);
+      // Snapshot the pre-drag order so we can roll back on API failure
+      const snapshotTasks = [...localTasks];
 
-      // Optimistic update - reorder locally first and update state
+      // 1. Apply optimistic UI order immediately — this is now the source of truth.
+      //    Lock the sync effect so incoming tasks prop updates (from context)
+      //    don't overwrite our local order while the API call is in flight.
+      isReorderingRef.current = true;
+      setIsReordering(true);
       const reorderedTasks = arrayMove(localTasks, oldIndex, newIndex);
       setLocalTasks(reorderedTasks);
       
       // Identify neighbors for relative reordering
       const prevTask = reorderedTasks[newIndex - 1];
       const nextTask = reorderedTasks[newIndex + 1];
-      
       const afterTaskId = prevTask ? prevTask.id : null;
       const beforeTaskId = nextTask ? nextTask.id : null;
 
       // Determine the polymorphic scope
       let scopeType: "PROJECT" | "WORKSPACE" | "ORGANIZATION" = "ORGANIZATION";
       let scopeId = organizationId;
-
       if (projectSlug && (currentProject?.id || contextProject?.id)) {
         scopeType = "PROJECT";
         scopeId = currentProject?.id || contextProject?.id;
@@ -722,10 +768,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
         scopeId = workspaceId;
       }
 
-      const activeTask = localTasks[oldIndex];
+      const activeTask = snapshotTasks[oldIndex];
 
-      // Persist to backend using professional relative ranking
       try {
+        // 2. Persist rank to backend
         await updateRelativeTaskRank(activeTask.id, {
           scopeType,
           scopeId: scopeId!,
@@ -734,15 +780,26 @@ const TaskTable: React.FC<TaskTableProps> = ({
           beforeTaskId,
         });
 
-        // Trigger refetch to ensure pagination and order are perfectly synced
+        // 3. Fire-and-forget background refetch to sync context/pagination.
+        //    We do NOT await this — the optimistic order in localTasks is the
+        //    UI truth. The refetch keeps the context state consistent for
+        //    page changes, filter changes, etc.
         if (onTaskRefetch) {
-          await onTaskRefetch();
+          Promise.resolve(onTaskRefetch()).catch((err) =>
+            console.warn("Background refetch after reorder failed:", err)
+          );
         }
       } catch (error) {
         console.error("Failed to persist task reorder:", error);
-        // Revert UI to previous state on failure
-        setLocalTasks(tasks);
+        // Roll back to the pre-drag snapshot on API failure
+        setLocalTasks(snapshotTasks);
       } finally {
+        // Stamp the completion time so the cooldown guard prevents the
+        // background refetch from overwriting the optimistic order.
+        lastReorderTimeRef.current = Date.now();
+        // Unlock the sync guard so that future filter/page changes from the
+        // parent correctly sync localTasks again.
+        isReorderingRef.current = false;
         setIsReordering(false);
       }
     }
@@ -753,7 +810,6 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const handleGroupedDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveDragId(null);
-    setIsReordering(false);
     if (!over || active.id === over.id) return;
 
     // Ignore column drags
@@ -773,6 +829,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
     const newIndex = localTasks.findIndex((t) => t.id === overId);
     if (oldIndex === -1 || newIndex === -1) return;
 
+    // Snapshot for rollback
+    const snapshotTasks = [...localTasks];
+
+    // Lock sync before any state update
+    isReorderingRef.current = true;
     setIsReordering(true);
     const reorderedTasks = arrayMove(localTasks, oldIndex, newIndex);
     setLocalTasks(reorderedTasks);
@@ -798,14 +859,21 @@ const TaskTable: React.FC<TaskTableProps> = ({
         afterTaskId: prevTask?.id ?? null,
         beforeTaskId: nextTask?.id ?? null,
       });
-      if (onTaskRefetch) await onTaskRefetch();
+      // Fire-and-forget background sync
+      if (onTaskRefetch) {
+        Promise.resolve(onTaskRefetch()).catch((err) =>
+          console.warn("Background refetch after grouped reorder failed:", err)
+        );
+      }
     } catch (error) {
       console.error("Failed to persist grouped task reorder:", error);
-      setLocalTasks(tasks);
+      setLocalTasks(snapshotTasks);
     } finally {
+      lastReorderTimeRef.current = Date.now();
+      isReorderingRef.current = false;
       setIsReordering(false);
     }
-  }, [groupedTasks, localTasks, columnOrder, organizationId, projectSlug, workspaceSlug, workspaceId, currentProject, contextProject, updateRelativeTaskRank, onTaskRefetch, tasks]);
+  }, [groupedTasks, localTasks, columnOrder, organizationId, projectSlug, workspaceSlug, workspaceId, currentProject, contextProject, updateRelativeTaskRank, onTaskRefetch]);
 
 
   // Handle browser back button to close modal
@@ -821,6 +889,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [isEditModalOpen]);
+
 
   const handleCloseModal = () => {
     if (isClosingRef.current || !isEditModalOpen) return;
@@ -843,6 +912,111 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const [excludedTaskIds, setExcludedTaskIds] = useState<string[]>([]);
   const [localAddTaskStatuses, setLocalAddTaskStatuses] = useState<TaskStatus[]>([]);
   const [localAddTaskProjectMembers, setLocalAddTaskProjectMembers] = useState<any[]>([]);
+
+  // ─── Keyboard navigation via document-level listener ────────────────────
+  // We attach to `document` so arrow keys/space work immediately without
+  // needing the user to click the table wrapper first.
+  useEffect(() => {
+    const handleDocKeyDown = (e: KeyboardEvent) => {
+      // Skip when modal is open
+      if (isEditModalOpen) return;
+
+      // Skip when an interactive element (input, textarea, select, button inside
+      // a popover, etc.) has keyboard focus — we don't want to hijack typing.
+      const active = document.activeElement as HTMLElement | null;
+      if (active) {
+        const tag = active.tagName;
+        if (
+          tag === "INPUT" ||
+          tag === "TEXTAREA" ||
+          tag === "SELECT" ||
+          // contenteditable divs (rich-text editors)
+          active.getAttribute("contenteditable") === "true" ||
+          // Any element inside a [role=dialog] or [data-radix-popper-content-wrapper]
+          active.closest("[role=dialog], [data-radix-popper-content-wrapper]")
+        ) {
+          return;
+        }
+      }
+
+      // Only intercept when the table is actually in the DOM
+      if (!tableWrapperRef.current) return;
+
+      const tasksForNav = isGrouped
+        ? groupedTasks.flatMap((g) => g.tasks)
+        : localTasks;
+
+      if (tasksForNav.length === 0) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusedRowIndex((prev) => {
+          // First press: start at row 0 if nothing focused yet
+          if (prev < 0) return 0;
+          return Math.min(prev + 1, tasksForNav.length - 1);
+        });
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusedRowIndex((prev) => {
+          if (prev < 0) return 0;
+          return Math.max(prev - 1, 0);
+        });
+      } else if (e.key === " ") {
+        // Space toggles the checkbox of the focused row.
+        // Read the current index from the ref (always fresh, no closure staleness).
+        const currentIdx = focusedRowIndexRef.current;
+        if (currentIdx < 0 || currentIdx >= tasksForNav.length) return;
+
+        // Only when bulk selection is available
+        if (!showBulkActionBar || !canBulkAction) return;
+
+        const task = tasksForNav[currentIdx];
+        if (!task) return;
+
+        // Prevent the browser from scrolling the page on Space
+        e.preventDefault();
+
+        if (allDelete) {
+          setExcludedTaskIds((ids) =>
+            ids.includes(task.id)
+              ? ids.filter((id) => id !== task.id)
+              : [...ids, task.id]
+          );
+        } else {
+          if (onTaskSelect) {
+            onTaskSelect(task.id);
+          } else if (onTasksSelect) {
+            const action = selectedTasks.includes(task.id) ? "remove" : "add";
+            onTasksSelect([task.id], action);
+          }
+        }
+      } else if (e.key === "Enter") {
+        // Enter opens the task detail drawer for the currently focused row
+        const currentIdx = focusedRowIndexRef.current;
+        if (currentIdx < 0 || currentIdx >= tasksForNav.length) return;
+        const task = tasksForNav[currentIdx];
+        if (!task) return;
+        e.preventDefault();
+        handleRowClickRef.current?.(task);
+      }
+    };
+
+    document.addEventListener("keydown", handleDocKeyDown);
+    return () => document.removeEventListener("keydown", handleDocKeyDown);
+  }, [
+    isEditModalOpen,
+    isGrouped,
+    groupedTasks,
+    localTasks,
+    showBulkActionBar,
+    canBulkAction,
+    allDelete,
+    selectedTasks,
+    onTaskSelect,
+    onTasksSelect,
+  ]);
+  // focusedRowIndex intentionally not in deps — we use focusedRowIndexRef.current
+  // (always fresh) so we avoid re-registering the listener on every arrow key.
 
   useEffect(() => {
     const fetchProjectMeta = async () => {
@@ -1409,10 +1583,76 @@ const TaskTable: React.FC<TaskTableProps> = ({
       window.history.pushState({ taskOpen: true }, "", newUrl);
     }
 
-    await getTaskById(task.id, isAuthenticated());
+    await getTaskById(task.slug || task.id, isAuthenticated());
     setSelectedTask(task);
     setIsEditModalOpen(true);
   };
+  // Keep the ref in sync so the keydown handler can always call the latest version
+  handleRowClickRef.current = handleRowClick;
+
+  // ─── Shift-click / single-click row handler ───────────────────────────────
+  const handleRowClickWithKeyboard = useCallback(
+    (task: Task, rowIndex: number, e: React.MouseEvent) => {
+      setFocusedRowIndex(rowIndex);
+
+      const canSelect = showBulkActionBar && canBulkAction && (onTaskSelect || onTasksSelect);
+
+      // Shift + click → range-select (only when selection is available)
+      if (e.shiftKey && canSelect) {
+        e.preventDefault();
+        const tasksForNav = isGrouped
+          ? groupedTasks.flatMap((g) => g.tasks)
+          : localTasks;
+
+        if (lastClickedIndexRef.current < 0) {
+          // No anchor yet — treat this shift-click as a regular selection click
+          // (select just this row and set the anchor)
+          lastClickedIndexRef.current = rowIndex;
+          if (allDelete) {
+            setExcludedTaskIds((prev) => prev.filter((id) => id !== task.id));
+          } else {
+            if (onTasksSelect) onTasksSelect([task.id], "add");
+            else if (onTaskSelect) onTaskSelect(task.id);
+          }
+        } else {
+          // Range-select from anchor to current row
+          const start = Math.min(lastClickedIndexRef.current, rowIndex);
+          const end = Math.max(lastClickedIndexRef.current, rowIndex);
+          const rangeIds = tasksForNav.slice(start, end + 1).map((t) => t.id);
+
+          if (allDelete) {
+            // In "all selected" mode, un-exclude the range
+            setExcludedTaskIds((prev) => prev.filter((id) => !rangeIds.includes(id)));
+          } else {
+            if (onTasksSelect) {
+              onTasksSelect(rangeIds, "add");
+            } else if (onTaskSelect) {
+              rangeIds.forEach((id) => {
+                if (!selectedTasks.includes(id)) onTaskSelect(id);
+              });
+            }
+          }
+        }
+        return; // don't open the detail modal on shift-click
+      }
+
+      // Normal click → open task detail & update anchor for future shift-clicks
+      lastClickedIndexRef.current = rowIndex;
+      handleRowClick(task);
+    },
+    [
+      showBulkActionBar,
+      canBulkAction,
+      isGrouped,
+      groupedTasks,
+      localTasks,
+      allDelete,
+      selectedTasks,
+      onTaskSelect,
+      onTasksSelect,
+      handleRowClick,
+    ]
+  );
 
   if (tasks.length === 0) {
     return (
@@ -1989,7 +2229,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
 
   return (
     <div className="w-full">
-      <div className="tasktable-container">
+      <div
+        className="tasktable-container"
+        ref={tableWrapperRef}
+      >
         <div className="tasktable-wrapper">
           <DndContext
             sensors={sensors}
@@ -2042,17 +2285,26 @@ const TaskTable: React.FC<TaskTableProps> = ({
                       totalPages={state?.totalPages ?? 1}
                       loadingMore={state?.loadingMore ?? false}
                       onPageChange={onGroupPageChange ? (p) => onGroupPageChange(group.key, p) : undefined}
-                      renderRow={(task) => (
-                        <SortableRow
-                          key={task.id}
-                          task={task}
-                          workspaceSlug={workspaceSlug}
-                          projectSlug={projectSlug}
-                          columnOrder={columnOrder}
-                          renderTaskRowCell={renderTaskRowCell}
-                          handleRowClick={handleRowClick}
-                        />
-                      )}
+                      renderRow={(task, taskIndex) => {
+                        // compute global index across all groups
+                        const globalIndex = groupedTasks
+                          .slice(0, groupedTasks.findIndex((g) => g.tasks.some((t) => t.id === task.id)))
+                          .reduce((acc, g) => acc + g.tasks.length, 0) + taskIndex;
+                        return (
+                          <SortableRow
+                            key={task.id}
+                            task={task}
+                            workspaceSlug={workspaceSlug}
+                            projectSlug={projectSlug}
+                            columnOrder={columnOrder}
+                            renderTaskRowCell={renderTaskRowCell}
+                            handleRowClick={handleRowClick}
+                            isFocused={focusedRowIndex === globalIndex}
+                            rowIndex={globalIndex}
+                            onRowClick={handleRowClickWithKeyboard}
+                          />
+                        );
+                      }}
                     />
                   );
                 })}
@@ -2116,7 +2368,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                     items={localTasks.map(t => t.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    {localTasks.map((task) => (
+                    {localTasks.map((task, idx) => (
                       <SortableRow
                         key={task.id}
                         task={task}
@@ -2125,6 +2377,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
                         columnOrder={columnOrder}
                         renderTaskRowCell={renderTaskRowCell}
                         handleRowClick={handleRowClick}
+                        isFocused={focusedRowIndex === idx}
+                        rowIndex={idx}
+                        onRowClick={handleRowClickWithKeyboard}
                       />
                     ))}
                   </SortableContext>
@@ -2247,7 +2502,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
               open="modal"
               workspaceSlug={workspaceSlug as string}
               projectSlug={projectSlug as string}
-              taskId={selectedTask.id}
+              taskId={selectedTask.slug}
               onTaskRefetch={onTaskRefetch}
               onClose={handleCloseModal}
             />

@@ -332,7 +332,7 @@ export function NewTaskModal({
       const project = projectsData.find((p) => p.slug === projectSlug);
 
       if (!project) {
-        throw new Error(t("projectTasksDescription", { name: projectSlug }));
+        throw new Error(t("modal.errorLoadProject"));
       }
 
       setFormData((prev) => ({
