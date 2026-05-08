@@ -20,6 +20,7 @@ describe('TaskWatchersController (e2e)', () => {
   let workflowId: string;
   let statusId: string;
   let taskId: string;
+  let taskSlug: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -144,6 +145,7 @@ describe('TaskWatchersController (e2e)', () => {
       },
     });
     taskId = task.id;
+    taskSlug = task.slug;
   });
 
   afterAll(async () => {
@@ -167,11 +169,11 @@ describe('TaskWatchersController (e2e)', () => {
     });
 
     describe('/task-watchers/watch (POST)', () => {
-      it('should start watching a task', () => {
+      it('should start watching a task using task slug', () => {
         return request(app.getHttpServer())
           .post('/api/task-watchers/watch')
           .set('Authorization', `Bearer ${accessToken}`)
-          .send({ taskId, userId: user.id })
+          .send({ taskId: taskSlug, userId: user.id })
           .expect(HttpStatus.CREATED)
           .expect((res) => {
             expect(res.body.taskId).toBe(taskId);
@@ -191,11 +193,11 @@ describe('TaskWatchersController (e2e)', () => {
     });
 
     describe('/task-watchers/check/:taskId/:userId (GET)', () => {
-      it('should check if user is watching task', async () => {
+      it('should check if user is watching task using task slug', async () => {
         await prismaService.taskWatcher.create({ data: { taskId, userId: user.id } });
 
         return request(app.getHttpServer())
-          .get(`/api/task-watchers/check/${taskId}/${user.id}`)
+          .get(`/api/task-watchers/check/${taskSlug}/${user.id}`)
           .set('Authorization', `Bearer ${accessToken}`)
           .expect(HttpStatus.OK)
           .expect((res) => {
@@ -215,11 +217,11 @@ describe('TaskWatchersController (e2e)', () => {
     });
 
     describe('/task-watchers/task/:taskId (GET)', () => {
-      it('should list watchers for a task', async () => {
+      it('should list watchers for a task using task slug', async () => {
         await prismaService.taskWatcher.create({ data: { taskId, userId: user.id } });
 
         return request(app.getHttpServer())
-          .get(`/api/task-watchers/task/${taskId}`)
+          .get(`/api/task-watchers/task/${taskSlug}`)
           .set('Authorization', `Bearer ${accessToken}`)
           .expect(HttpStatus.OK)
           .expect((res) => {

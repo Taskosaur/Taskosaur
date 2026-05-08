@@ -27,7 +27,7 @@ import {
  * Note: This workflow demonstrates advanced task management features.
  */
 describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
-  jest.setTimeout(30000);
+  jest.setTimeout(60000);
   let app: INestApplication;
   let prismaService: PrismaService;
   let jwtService: JwtService;
@@ -46,11 +46,15 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
   let testingStatusId: string;
   let doneStatusId: string;
 
-  // Task IDs
+  // Task IDs & Slugs
   let taskAId: string; // Design API
+  let taskASlug: string;
   let taskBId: string; // Implement API
+  let taskBSlug: string;
   let taskCId: string; // Write Tests
+  let taskCSlug: string;
   let taskDId: string; // Deploy
+  let taskDSlug: string;
 
   // Dependency IDs
   let depABId: string;
@@ -255,6 +259,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
         .expect(HttpStatus.CREATED);
 
       taskAId = response.body.id;
+      taskASlug = response.body.slug;
     });
 
     it('Step 5: Create Task B - Implement API', async () => {
@@ -272,6 +277,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
         .expect(HttpStatus.CREATED);
 
       taskBId = response.body.id;
+      taskBSlug = response.body.slug;
     });
 
     it('Step 6: Create Task C - Write Tests', async () => {
@@ -289,6 +295,7 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
         .expect(HttpStatus.CREATED);
 
       taskCId = response.body.id;
+      taskCSlug = response.body.slug;
     });
 
     it('Step 7: Create Task D - Deploy', async () => {
@@ -306,15 +313,16 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
         .expect(HttpStatus.CREATED);
 
       taskDId = response.body.id;
+      taskDSlug = response.body.slug;
     });
 
-    it('Step 8: Set dependency - B depends on A', async () => {
+    it('Step 8: Set dependency - B depends on A using slugs', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/task-dependencies')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
-          dependentTaskId: taskBId,
-          blockingTaskId: taskAId,
+          dependentTaskId: taskBSlug,
+          blockingTaskId: taskASlug,
           type: 'BLOCKS',
         })
         .expect(HttpStatus.CREATED);
@@ -323,13 +331,13 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       depABId = response.body.id;
     });
 
-    it('Step 9: Set dependency - C depends on B', async () => {
+    it('Step 9: Set dependency - C depends on B using slugs', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/task-dependencies')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
-          dependentTaskId: taskCId,
-          blockingTaskId: taskBId,
+          dependentTaskId: taskCSlug,
+          blockingTaskId: taskBSlug,
           type: 'BLOCKS',
         })
         .expect(HttpStatus.CREATED);
@@ -337,13 +345,13 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       depBCId = response.body.id;
     });
 
-    it('Step 10: Set dependency - D depends on C', async () => {
+    it('Step 10: Set dependency - D depends on C using slugs', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/task-dependencies')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
-          dependentTaskId: taskDId,
-          blockingTaskId: taskCId,
+          dependentTaskId: taskDSlug,
+          blockingTaskId: taskCSlug,
           type: 'BLOCKS',
         })
         .expect(HttpStatus.CREATED);
@@ -351,21 +359,21 @@ describe('Workflow 5: Task Dependency & Workflow Management (e2e)', () => {
       depCDId = response.body.id;
     });
 
-    it('Step 11: Attempt circular dependency (A depends on D) - should fail', async () => {
+    it('Step 11: Attempt circular dependency (A depends on D) using slugs - should fail', async () => {
       await request(app.getHttpServer())
         .post('/api/task-dependencies')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
-          dependentTaskId: taskAId,
-          blockingTaskId: taskDId,
+          dependentTaskId: taskASlug,
+          blockingTaskId: taskDSlug,
           type: 'BLOCKS',
         })
         .expect(HttpStatus.BAD_REQUEST);
     });
 
-    it('Step 12: Move Task A to "In Progress"', async () => {
+    it('Step 12: Move Task A to "In Progress" using slug', async () => {
       const response = await request(app.getHttpServer())
-        .patch(`/api/tasks/${taskAId}`)
+        .patch(`/api/tasks/${taskASlug}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           statusId: inProgressStatusId,

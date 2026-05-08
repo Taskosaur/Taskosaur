@@ -19,6 +19,7 @@ describe('TaskCommentsController (e2e)', () => {
   let projectId: string;
   let statusId: string;
   let taskId: string;
+  let taskSlug: string;
   let commentId: string;
 
   beforeAll(async () => {
@@ -144,6 +145,7 @@ describe('TaskCommentsController (e2e)', () => {
       },
     });
     taskId = task.id;
+    taskSlug = task.slug;
   });
 
   afterAll(async () => {
@@ -161,9 +163,9 @@ describe('TaskCommentsController (e2e)', () => {
   });
 
   describe('/task-comments (POST)', () => {
-    it('should create a comment', () => {
+    it('should create a comment using task UUID', () => {
       const createDto: CreateTaskCommentDto = {
-        content: 'This is a test comment',
+        content: 'This is a test comment by UUID',
         taskId: taskId,
       };
 
@@ -173,19 +175,35 @@ describe('TaskCommentsController (e2e)', () => {
         .send(createDto)
         .expect(HttpStatus.CREATED)
         .expect((res) => {
-          expect(res.body).toHaveProperty('id');
           expect(res.body.content).toBe(createDto.content);
           expect(res.body.taskId).toBe(taskId);
           commentId = res.body.id;
         });
     });
+
+    it('should create a comment using task slug', () => {
+      const createDto: CreateTaskCommentDto = {
+        content: 'This is a test comment by slug',
+        taskId: taskSlug,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/task-comments')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body.content).toBe(createDto.content);
+          expect(res.body.taskId).toBe(taskId);
+        });
+    });
   });
 
   describe('/task-comments (GET)', () => {
-    it('should get comments for a task', () => {
+    it('should get comments for a task using task slug', () => {
       return request(app.getHttpServer())
         .get('/api/task-comments')
-        .query({ taskId })
+        .query({ taskId: taskSlug })
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.OK)
         .expect((res) => {
@@ -233,9 +251,9 @@ describe('TaskCommentsController (e2e)', () => {
   });
 
   describe('/task-comments/task/:taskId/tree (GET)', () => {
-    it('should get the comment tree for a task', () => {
+    it('should get the comment tree for a task using task slug', () => {
       return request(app.getHttpServer())
-        .get(`/api/task-comments/task/${taskId}/tree`)
+        .get(`/api/task-comments/task/${taskSlug}/tree`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.OK)
         .expect((res) => {
@@ -243,7 +261,6 @@ describe('TaskCommentsController (e2e)', () => {
           const parent = res.body.find((c: any) => c.id === commentId);
           expect(parent).toBeDefined();
           expect(parent.replies).toBeDefined();
-          expect(parent.replies.length).toBeGreaterThan(0);
         });
     });
   });

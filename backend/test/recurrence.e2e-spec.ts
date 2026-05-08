@@ -141,6 +141,7 @@ describe('RecurrenceService (e2e)', () => {
 
   describe('Recurrence Operations', () => {
     let taskId: string;
+    let taskSlug: string;
 
     beforeEach(async () => {
       const task = await prismaService.task.create({
@@ -159,9 +160,10 @@ describe('RecurrenceService (e2e)', () => {
         },
       });
       taskId = task.id;
+      taskSlug = task.slug;
     });
 
-    it('should add DAILY recurrence to a task', () => {
+    it('should add DAILY recurrence to a task using task slug', () => {
       const recurrenceConfig = {
         recurrenceType: RecurrenceType.DAILY,
         interval: 1,
@@ -169,7 +171,7 @@ describe('RecurrenceService (e2e)', () => {
       };
 
       return request(app.getHttpServer())
-        .post(`/api/tasks/${taskId}/recurrence`)
+        .post(`/api/tasks/${taskSlug}/recurrence`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send(recurrenceConfig)
         .expect(HttpStatus.CREATED)
@@ -221,9 +223,9 @@ describe('RecurrenceService (e2e)', () => {
         });
     });
 
-    it('should update existing recurrence', async () => {
+    it('should update existing recurrence using task slug', async () => {
       await request(app.getHttpServer())
-        .post(`/api/tasks/${taskId}/recurrence`)
+        .post(`/api/tasks/${taskSlug}/recurrence`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           recurrenceType: RecurrenceType.DAILY,
@@ -239,7 +241,7 @@ describe('RecurrenceService (e2e)', () => {
       };
 
       return request(app.getHttpServer())
-        .patch(`/api/tasks/${taskId}/recurrence`)
+        .patch(`/api/tasks/${taskSlug}/recurrence`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send(updateConfig)
         .expect(HttpStatus.OK)
@@ -249,9 +251,9 @@ describe('RecurrenceService (e2e)', () => {
         });
     });
 
-    it('should complete occurrence and generate next task', async () => {
+    it('should complete occurrence and generate next task using task slug', async () => {
       await request(app.getHttpServer())
-        .post(`/api/tasks/${taskId}/recurrence`)
+        .post(`/api/tasks/${taskSlug}/recurrence`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           recurrenceType: RecurrenceType.DAILY,
@@ -260,7 +262,7 @@ describe('RecurrenceService (e2e)', () => {
         });
 
       const completeRes = await request(app.getHttpServer())
-        .post(`/api/tasks/${taskId}/complete-occurrence`)
+        .post(`/api/tasks/${taskSlug}/complete-occurrence`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect((res) => {
           if (res.status !== 200 && res.status !== 201) {
@@ -280,9 +282,9 @@ describe('RecurrenceService (e2e)', () => {
       expect(nextDueDate.getTime()).toBeGreaterThan(originalDueDate.getTime());
     });
 
-    it('should stop recurrence', async () => {
+    it('should stop recurrence using task slug', async () => {
       await request(app.getHttpServer())
-        .post(`/api/tasks/${taskId}/recurrence`)
+        .post(`/api/tasks/${taskSlug}/recurrence`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           recurrenceType: RecurrenceType.DAILY,
@@ -291,7 +293,7 @@ describe('RecurrenceService (e2e)', () => {
         });
 
       await request(app.getHttpServer())
-        .delete(`/api/tasks/${taskId}/recurrence`)
+        .delete(`/api/tasks/${taskSlug}/recurrence`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.OK)
         .expect((res) => {

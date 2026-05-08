@@ -22,6 +22,7 @@ describe('TaskLabelsController (e2e)', () => {
   let workflowId: string;
   let statusId: string;
   let taskId: string;
+  let taskSlug: string;
   let labelId: string;
   let labelForUnauthorizedTest: string;
 
@@ -153,6 +154,7 @@ describe('TaskLabelsController (e2e)', () => {
       },
     });
     taskId = task.id;
+    taskSlug = task.slug;
 
     // Create Label
     const label = await prismaService.label.create({
@@ -202,9 +204,9 @@ describe('TaskLabelsController (e2e)', () => {
   });
 
   describe('/task-labels (POST)', () => {
-    it('should assign a label to a task', () => {
+    it('should assign a label to a task using task slug', () => {
       const assignDto: AssignTaskLabelDto = {
-        taskId: taskId,
+        taskId: taskSlug,
         labelId: labelId,
       };
 
@@ -238,14 +240,13 @@ describe('TaskLabelsController (e2e)', () => {
   });
 
   describe('/task-labels/:taskId/:labelId (DELETE)', () => {
-    it('should remove a label from a task', () => {
+    it('should remove a label from a task using task slug', () => {
       return request(app.getHttpServer())
-        .delete(`/api/task-labels/${taskId}/${labelId}`)
+        .delete(`/api/task-labels/${taskSlug}/${labelId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.OK)
         .expect((res) => {
           expect(res.body).toHaveProperty('taskId');
-          expect(res.body).toHaveProperty('labelId');
           expect(res.body.taskId).toBe(taskId);
           expect(res.body.labelId).toBe(labelId);
         });
@@ -283,9 +284,9 @@ describe('TaskLabelsController (e2e)', () => {
     });
 
     describe('UUID Validation Tests', () => {
-      it('should return 400 when assigning label with invalid taskId UUID', () => {
+      it('should return 404 when assigning label with non-existent taskId', () => {
         const assignDto: AssignTaskLabelDto = {
-          taskId: 'invalid-uuid',
+          taskId: 'non-existent-task-slug',
           labelId: labelId,
         };
 
@@ -293,7 +294,7 @@ describe('TaskLabelsController (e2e)', () => {
           .post('/api/task-labels')
           .set('Authorization', `Bearer ${accessToken}`)
           .send(assignDto)
-          .expect(HttpStatus.BAD_REQUEST);
+          .expect(HttpStatus.NOT_FOUND);
       });
 
       it('should return 400 when assigning label with invalid labelId UUID', () => {
@@ -309,11 +310,11 @@ describe('TaskLabelsController (e2e)', () => {
           .expect(HttpStatus.BAD_REQUEST);
       });
 
-      it('should return 400 when removing label with invalid taskId UUID', () => {
+      it('should return 404 when removing label with non-existent taskId', () => {
         return request(app.getHttpServer())
-          .delete('/api/task-labels/invalid-uuid/123456')
+          .delete(`/api/task-labels/non-existent-task-slug/${labelId}`)
           .set('Authorization', `Bearer ${accessToken}`)
-          .expect(HttpStatus.BAD_REQUEST);
+          .expect(HttpStatus.NOT_FOUND);
       });
 
       it('should return 400 when removing label with invalid labelId UUID', () => {

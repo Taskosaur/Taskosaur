@@ -31,13 +31,14 @@ describe('ProjectsController (e2e)', () => {
     jwtService = app.get<JwtService>(JwtService);
 
     // Create a test user
+    const uniqueSuffix = Math.random().toString(36).substring(2, 8);
     user = await prismaService.user.create({
       data: {
-        email: `proj-test-${Date.now()}@example.com`,
+        email: `proj-test-${uniqueSuffix}-${Date.now()}@example.com`,
         password: 'StrongPassword123!',
         firstName: 'Project',
         lastName: 'Manager',
-        username: `proj_mgr_${Date.now()}`,
+        username: `proj_mgr_${uniqueSuffix}_${Date.now()}`,
         role: Role.OWNER, // Needs to be OWNER or MANAGER to create projects
       },
     });
@@ -64,8 +65,8 @@ describe('ProjectsController (e2e)', () => {
     // Create Organization
     const organization = await prismaService.organization.create({
       data: {
-        name: `Test Org ${Date.now()}`,
-        slug: `test-org-${Date.now()}`,
+        name: `Test Org ${uniqueSuffix} ${Date.now()}`,
+        slug: `test-org-${uniqueSuffix}-${Date.now()}`,
         ownerId: user.id,
       },
     });
@@ -108,8 +109,8 @@ describe('ProjectsController (e2e)', () => {
     // Create a workspace
     const workspace = await prismaService.workspace.create({
       data: {
-        name: `Test Workspace ${Date.now()}`,
-        slug: `test-workspace-${Date.now()}`,
+        name: `Test Workspace ${uniqueSuffix} ${Date.now()}`,
+        slug: `test-workspace-${uniqueSuffix}-${Date.now()}`,
         organizationId: organization.id,
       },
     });
@@ -208,7 +209,7 @@ describe('ProjectsController (e2e)', () => {
 
   describe('/projects/:id (PATCH)', () => {
     it('should update the project', () => {
-      const updateData = { name: 'Updated Project Name' };
+      const updateData = { name: 'Updated E2E Project Name' };
       return request(app.getHttpServer())
         .patch(`/api/projects/${projectId}`)
         .set('Authorization', `Bearer ${accessToken}`)

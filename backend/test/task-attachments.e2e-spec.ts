@@ -21,6 +21,7 @@ describe('TaskAttachmentsController (e2e)', () => {
   let workflowId: string;
   let statusId: string;
   let taskId: string;
+  let taskSlug: string;
 
   const testFilePath = path.join(__dirname, 'test-file.txt');
 
@@ -129,30 +130,12 @@ describe('TaskAttachmentsController (e2e)', () => {
       },
     });
     taskId = task.id;
+    taskSlug = task.slug;
 
     // Create a dummy test file
     fs.writeFileSync(testFilePath, 'This is a test file for e2e attachment testing.');
   });
 
-  afterAll(async () => {
-    if (prismaService) {
-      // Cleanup
-      await prismaService.taskAttachment.deleteMany({ where: { taskId } });
-      await prismaService.task.delete({ where: { id: taskId } });
-      await prismaService.taskStatus.delete({ where: { id: statusId } });
-      await prismaService.project.delete({ where: { id: projectId } });
-      await prismaService.workspace.delete({ where: { id: workspaceId } });
-      await prismaService.workflow.delete({ where: { id: workflowId } });
-      await prismaService.organization.delete({ where: { id: organizationId } });
-      await prismaService.user.delete({ where: { id: user.id } });
-    }
-
-    if (fs.existsSync(testFilePath)) {
-      fs.unlinkSync(testFilePath);
-    }
-
-    await app.close();
-  });
 
   let attachmentId: string;
 
@@ -169,6 +152,18 @@ describe('TaskAttachmentsController (e2e)', () => {
           attachmentId = res.body.id;
         });
     });
+
+    it('should upload an attachment using task slug', () => {
+      return request(app.getHttpServer())
+        .post(`/api/task-attachments/upload/${taskSlug}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .attach('file', testFilePath)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('id');
+          expect(res.body.task.id).toBe(taskId);
+        });
+    });
   });
 
   describe('/task-attachments/task/:taskId (GET)', () => {
@@ -181,6 +176,17 @@ describe('TaskAttachmentsController (e2e)', () => {
           expect(Array.isArray(res.body)).toBe(true);
           expect(res.body.length).toBeGreaterThan(0);
           expect(res.body[0].taskId).toBe(taskId);
+        });
+    });
+
+    it('should list attachments for a task using slug', () => {
+      return request(app.getHttpServer())
+        .get(`/api/task-attachments/task/${taskSlug}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.length).toBeGreaterThan(0);
         });
     });
   });
@@ -221,5 +227,25 @@ describe('TaskAttachmentsController (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.NOT_FOUND);
     });
+  });
+
+  afterAll(async () => {
+    if (prismaService) {
+      // Cleanup
+      await prismaService.taskAttachment.deleteMany({ where: { taskId } });
+      await prismaService.task.delete({ where: { id: taskId } });
+      await prismaService.taskStatus.delete({ where: { id: statusId } });
+      await prismaService.project.delete({ where: { id: projectId } });
+      await prismaService.workspace.delete({ where: { id: workspaceId } });
+      await prismaService.workflow.delete({ where: { id: workflowId } });
+      await prismaService.organization.delete({ where: { id: organizationId } });
+      await prismaService.user.delete({ where: { id: user.id } });
+    }
+
+    if (fs.existsSync(testFilePath)) {
+      fs.unlinkSync(testFilePath);
+    }
+
+    await app.close();
   });
 });

@@ -25,7 +25,9 @@ describe('TaskDependenciesController (e2e)', () => {
   let projectId: string;
   let statusId: string;
   let task1Id: string;
+  let task1Slug: string;
   let task2Id: string;
+  let task2Slug: string;
   let dependencyId: string;
 
   beforeAll(async () => {
@@ -134,6 +136,7 @@ describe('TaskDependenciesController (e2e)', () => {
       },
     });
     task1Id = task1.id;
+    task1Slug = task1.slug;
 
     const task2 = await prismaService.task.create({
       data: {
@@ -149,6 +152,7 @@ describe('TaskDependenciesController (e2e)', () => {
       },
     });
     task2Id = task2.id;
+    task2Slug = task2.slug;
   });
 
   afterAll(async () => {
@@ -166,10 +170,10 @@ describe('TaskDependenciesController (e2e)', () => {
   });
 
   describe('/task-dependencies (POST)', () => {
-    it('should create a dependency', () => {
+    it('should create a dependency using task slugs', () => {
       const createDto: CreateTaskDependencyDto = {
-        dependentTaskId: task2Id,
-        blockingTaskId: task1Id,
+        dependentTaskId: task2Slug,
+        blockingTaskId: task1Slug,
         type: DependencyType.BLOCKS,
         createdBy: user.id,
       };

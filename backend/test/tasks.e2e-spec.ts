@@ -21,6 +21,7 @@ describe('TasksController (e2e)', () => {
   let projectSlug: string;
   let statusId: string;
   let taskId: string;
+  let taskSlug: string;
   let sprintId: string;
   let parentTaskId: string;
 
@@ -172,25 +173,12 @@ describe('TasksController (e2e)', () => {
         projectId: projectId,
         statusId: statusId,
         taskNumber: 1,
-        slug: 'TASK-PR',
+        slug: `${project.slug}-PR`,
       },
     });
     parentTaskId = parentTask.id;
   });
 
-  afterAll(async () => {
-    if (prismaService) {
-      // Cleanup
-      await prismaService.task.deleteMany({ where: { projectId } });
-      await prismaService.sprint.deleteMany({ where: { projectId } });
-      await prismaService.taskStatus.deleteMany({ where: { workflow: { organizationId } } });
-      await prismaService.project.deleteMany({ where: { id: projectId } });
-      await prismaService.workspace.deleteMany({ where: { id: workspaceId } });
-      await prismaService.organization.deleteMany({ where: { id: organizationId } });
-      await prismaService.user.deleteMany({ where: { id: { in: [user.id, user2.id] } } });
-    }
-    await app.close();
-  });
 
   describe('/tasks (POST)', () => {
     it('should create a task with basic fields', () => {
@@ -212,6 +200,7 @@ describe('TasksController (e2e)', () => {
           expect(res.body).toHaveProperty('id');
           expect(res.body.title).toBe(createDto.title);
           taskId = res.body.id;
+          taskSlug = res.body.slug;
         });
     });
 
@@ -245,6 +234,29 @@ describe('TasksController (e2e)', () => {
           expect(res.body.parentTaskId).toBe(parentTaskId);
           expect(res.body.storyPoints).toBe(5);
           expect(res.body.assignees.length).toBe(2);
+        });
+    });
+
+    it('should create a task with parentTaskId as a slug', async () => {
+      const parentTask = await prismaService.task.findUnique({
+        where: { id: parentTaskId },
+        select: { slug: true },
+      });
+
+      const createDto: CreateTaskDto = {
+        title: 'Subtask by Slug',
+        projectId: projectId,
+        statusId: statusId,
+        parentTaskId: parentTask!.slug,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body.parentTaskId).toBe(parentTaskId);
         });
     });
 
@@ -467,6 +479,24 @@ describe('TasksController (e2e)', () => {
         });
     });
 
+    it('should filter tasks by parentTaskId using slug', async () => {
+      const parentTask = await prismaService.task.findUnique({
+        where: { id: parentTaskId },
+        select: { slug: true },
+      });
+
+      return request(app.getHttpServer())
+        .get('/api/tasks')
+        .query({ organizationId, parentTaskId: parentTask!.slug })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          const allAreSubtasks = res.body.data.every((t: any) => t.parentTaskId === parentTaskId);
+          expect(allAreSubtasks).toBe(true);
+          expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+        });
+    });
+
     it('should filter tasks by parentTaskId=null', () => {
       return request(app.getHttpServer())
         .get('/api/tasks')
@@ -574,7 +604,7 @@ describe('TasksController (e2e)', () => {
   });
 
   describe('/tasks/:id (GET)', () => {
-    it('should get a task', () => {
+    it('should get a task by UUID', () => {
       return request(app.getHttpServer())
         .get(`/api/tasks/${taskId}`)
         .set('Authorization', `Bearer ${accessToken}`)
@@ -584,10 +614,21 @@ describe('TasksController (e2e)', () => {
           expect(res.body.title).toBe('E2E Task');
         });
     });
+
+    it('should get a task by slug', () => {
+      return request(app.getHttpServer())
+        .get(`/api/tasks/${taskSlug}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.id).toBe(taskId);
+          expect(res.body.slug).toBe(taskSlug);
+        });
+    });
   });
 
   describe('/tasks/:id (PATCH)', () => {
-    it('should update a task', () => {
+    it('should update a task by UUID', () => {
       const updateDto = { title: 'Updated E2E Task' };
       return request(app.getHttpServer())
         .patch(`/api/tasks/${taskId}`)
@@ -598,12 +639,47 @@ describe('TasksController (e2e)', () => {
           expect(res.body.title).toBe(updateDto.title);
         });
     });
+    it('should update a task using its slug in the URL', () => {
+      const updateDto = { title: 'Updated E2E Task by Slug' };
+      return request(app.getHttpServer())
+        .patch(`/api/tasks/${taskSlug}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(updateDto)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.title).toBe(updateDto.title);
+        });
+    });
+
+    it('should update a task parentTaskId using a slug', async () => {
+      // Create another task to be the new parent
+      const newParentTask = await prismaService.task.create({
+        data: {
+          title: 'New Parent Task',
+          projectId,
+          statusId,
+          taskNumber: 20,
+          slug: `${projectSlug}-20`,
+          createdBy: user.id,
+        },
+      });
+
+      const updateDto = { parentTaskId: newParentTask.slug };
+      return request(app.getHttpServer())
+        .patch(`/api/tasks/${taskId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(updateDto)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.parentTaskId).toBe(newParentTask.id);
+        });
+    });
   });
 
   describe('/tasks/:id/status (PATCH)', () => {
-    it('should update task status', () => {
+    it('should update task status by slug', () => {
       return request(app.getHttpServer())
-        .patch(`/api/tasks/${taskId}/status`)
+        .patch(`/api/tasks/${taskSlug}/status`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ statusId })
         .expect(HttpStatus.OK)
@@ -614,9 +690,9 @@ describe('TasksController (e2e)', () => {
   });
 
   describe('/tasks/:id/assignees (PATCH)', () => {
-    it('should update task assignees', () => {
+    it('should update task assignees by slug', () => {
       return request(app.getHttpServer())
-        .patch(`/api/tasks/${taskId}/assignees`)
+        .patch(`/api/tasks/${taskSlug}/assignees`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ assigneeIds: [user.id] })
         .expect(HttpStatus.OK)
@@ -636,9 +712,9 @@ describe('TasksController (e2e)', () => {
   });
 
   describe('/tasks/:id/unassign (PATCH)', () => {
-    it('should unassign all users from a task', () => {
+    it('should unassign all users from a task by slug', () => {
       return request(app.getHttpServer())
-        .patch(`/api/tasks/${taskId}/unassign`)
+        .patch(`/api/tasks/${taskSlug}/unassign`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.OK)
         .expect((res) => {
@@ -648,9 +724,9 @@ describe('TasksController (e2e)', () => {
   });
 
   describe('/tasks/:id/priority (PATCH)', () => {
-    it('should update task priority', () => {
+    it('should update task priority by slug', () => {
       return request(app.getHttpServer())
-        .patch(`/api/tasks/${taskId}/priority`)
+        .patch(`/api/tasks/${taskSlug}/priority`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ priority: 'LOW' })
         .expect(HttpStatus.OK)
@@ -661,10 +737,10 @@ describe('TasksController (e2e)', () => {
   });
 
   describe('/tasks/:id/due-date (PATCH)', () => {
-    it("should update task's due date", () => {
+    it("should update task's due date by slug", () => {
       const dueDate = new Date().toISOString();
       return request(app.getHttpServer())
-        .patch(`/api/tasks/${taskId}/due-date`)
+        .patch(`/api/tasks/${taskSlug}/due-date`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ dueDate })
         .expect(HttpStatus.OK)
@@ -675,9 +751,9 @@ describe('TasksController (e2e)', () => {
   });
 
   describe('/tasks/:id/comments (POST)', () => {
-    it('should add a comment to a task', () => {
+    it('should add a comment to a task by slug', () => {
       return request(app.getHttpServer())
-        .post(`/api/tasks/${taskId}/comments`)
+        .post(`/api/tasks/${taskSlug}/comments`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ comment: 'Test Shortcut Comment' })
         .expect(HttpStatus.CREATED)
@@ -689,11 +765,29 @@ describe('TasksController (e2e)', () => {
   });
 
   describe('/tasks/:id (DELETE)', () => {
-    it('should delete a task', async () => {
+    it('should delete a task by slug', async () => {
       // Create a task specifically for deletion
       const taskToDelete = await prismaService.task.create({
         data: {
-          title: 'Task to Delete',
+          title: 'Task to Delete by Slug',
+          projectId,
+          statusId,
+          taskNumber: 1000,
+          slug: `${projectSlug}-1000`,
+        },
+      });
+
+      return request(app.getHttpServer())
+        .delete(`/api/tasks/${taskToDelete.slug}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK);
+    });
+
+    it('should delete a task by UUID', async () => {
+      // Create a task specifically for deletion
+      const taskToDelete = await prismaService.task.create({
+        data: {
+          title: 'Task to Delete by UUID',
           projectId,
           statusId,
           taskNumber: 999,
@@ -1201,5 +1295,19 @@ describe('TasksController (e2e)', () => {
           expect(res.body.isRecurring).toBe(false);
         });
     });
+  });
+
+  afterAll(async () => {
+    if (prismaService) {
+      // Cleanup
+      await prismaService.task.deleteMany({ where: { projectId } });
+      await prismaService.sprint.deleteMany({ where: { projectId } });
+      await prismaService.taskStatus.deleteMany({ where: { workflow: { organizationId } } });
+      await prismaService.project.deleteMany({ where: { id: projectId } });
+      await prismaService.workspace.deleteMany({ where: { id: workspaceId } });
+      await prismaService.organization.deleteMany({ where: { id: organizationId } });
+      await prismaService.user.deleteMany({ where: { id: { in: [user.id, user2.id] } } });
+    }
+    await app.close();
   });
 });

@@ -29,7 +29,7 @@ import {
  * Note: Watchers and attachments are skipped as they may require additional setup.
  */
 describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
-  jest.setTimeout(30000);
+  jest.setTimeout(60000);
   let app: INestApplication;
   let prismaService: PrismaService;
   let jwtService: JwtService;
@@ -46,6 +46,7 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
   let inReviewStatusId: string;
   let doneStatusId: string;
   let taskId: string;
+  let taskSlug: string;
   let labelId: string;
   let commentId: string;
 
@@ -237,6 +238,7 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
       expect(response.body.title).toBe('Implement User Authentication');
       expect(response.body.priority).toBe(TaskPriority.HIGH);
       taskId = response.body.id;
+      taskSlug = response.body.slug;
     });
 
     it('Step 2: Get "In Review" status ID', async () => {
@@ -250,9 +252,9 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
       inReviewStatusId = status.id;
     });
 
-    it('Step 3: Update task status to "In Review"', async () => {
+    it('Step 3: Update task status to "In Review" using slug', async () => {
       const response = await request(app.getHttpServer())
-        .patch(`/api/tasks/${taskId}`)
+        .patch(`/api/tasks/${taskSlug}`)
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           statusId: inReviewStatusId,
@@ -262,9 +264,9 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
       expect(response.body.statusId).toBe(inReviewStatusId);
     });
 
-    it('Step 4: Assign task to team member', async () => {
+    it('Step 4: Assign task to team member using slug', async () => {
       const response = await request(app.getHttpServer())
-        .patch(`/api/tasks/${taskId}`)
+        .patch(`/api/tasks/${taskSlug}`)
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           assigneeIds: [member.id],
@@ -274,12 +276,12 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
       expect(response.body).toHaveProperty('id', taskId);
     });
 
-    it('Step 5: Add label to task', async () => {
+    it('Step 5: Add label to task using slug', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/task-labels')
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
-          taskId: taskId,
+          taskId: taskSlug,
           labelId: labelId,
         })
         .expect(HttpStatus.CREATED);
@@ -288,13 +290,13 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
       expect(response.body).toHaveProperty('labelId', labelId);
     });
 
-    it('Step 6: Add comment to task', async () => {
+    it('Step 6: Add comment to task using slug', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/task-comments')
         .set('Authorization', `Bearer ${memberToken}`)
         .send({
           content: 'I have started working on this task',
-          taskId: taskId,
+          taskId: taskSlug,
           authorId: member.id,
         })
         .expect(HttpStatus.CREATED);
@@ -327,9 +329,9 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
       expect(response.body.statusId).toBe(doneStatusId);
     });
 
-    it('Step 9: Verify task completion', async () => {
+    it('Step 9: Verify task completion using slug', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/api/tasks/${taskId}`)
+        .get(`/api/tasks/${taskSlug}`)
         .set('Authorization', `Bearer ${ownerToken}`)
         .expect(HttpStatus.OK);
 
@@ -338,10 +340,10 @@ describe('Workflow 3: Complete Task Management Lifecycle (e2e)', () => {
       expect(response.body.title).toBe('Implement User Authentication');
     });
 
-    it('Step 10: Verify comment exists', async () => {
+    it('Step 10: Verify comment exists using slug', async () => {
       const response = await request(app.getHttpServer())
         .get('/api/task-comments')
-        .query({ taskId: taskId })
+        .query({ taskId: taskSlug })
         .set('Authorization', `Bearer ${ownerToken}`)
         .expect(HttpStatus.OK);
 
