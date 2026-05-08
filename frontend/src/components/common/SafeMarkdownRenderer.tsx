@@ -8,6 +8,7 @@ import { decodeHtml } from '@/utils/sanitize-content';
 interface SafeMarkdownRendererProps {
   content: string;
   className?: string;
+  mentions?: any[];
 }
 
 /**
@@ -17,11 +18,21 @@ interface SafeMarkdownRendererProps {
  */
 export const SafeMarkdownRenderer: React.FC<SafeMarkdownRendererProps> = ({
   content,
-  className = "prose prose-sm max-w-none"
+  className = "prose prose-sm max-w-none",
+  mentions = []
 }) => {
   // Decode HTML entities (like &gt; to >) so markdown parser can recognize syntax
   const hasHtmlEntities = /&[a-z]+;|&#\d+;/i.test(content);
   const decodedContent = hasHtmlEntities ? decodeHtml(content) : content;
+
+  const processedContent = React.useMemo(() => {
+    return decodedContent.replace(/@\[mention:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]/gi, (match, uuid) => {
+      const mention = mentions && mentions.length > 0 ? mentions.find(m => m.id === uuid) : null;
+      const label = mention ? `@${mention.label}` : `@user`;
+      const workspaceSlug = typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'workspace';
+      return `[${label}](/${workspaceSlug}/members/${uuid})`;
+    });
+  }, [decodedContent, mentions]);
 
   // Custom sanitize schema to allow common HTML tags in markdown
   const sanitizeSchema = {
@@ -75,7 +86,7 @@ export const SafeMarkdownRenderer: React.FC<SafeMarkdownRendererProps> = ({
           },
         }}
       >
-        {decodedContent}
+        {processedContent}
       </ReactMarkdown>
     </div>
   );

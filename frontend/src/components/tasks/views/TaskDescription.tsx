@@ -14,17 +14,22 @@ interface TaskDescriptionProps {
   mentions?: any[];
 }
 
-const TaskDescription: React.FC<TaskDescriptionProps> = ({
+const TaskDescription = React.forwardRef<any, TaskDescriptionProps>(({
   value,
   onChange,
   editMode = true,
   onSaveRequest,
   emailThreadId,
   mentions = [],
-}) => {
+}, ref) => {
   const { resolvedTheme } = useTheme();
   const [colorMode, setColorMode] = useState<"light" | "dark">("light");
   const [editorMode, setEditorMode] = useState<EditorMode>("markdown");
+  const editorRef = React.useRef<any>(null);
+
+  React.useImperativeHandle(ref, () => ({
+    getContent: () => editorRef.current?.getContent(),
+  }));
 
   useEffect(() => {
     if (resolvedTheme) {
@@ -165,6 +170,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
                 key={`content-${idx}`}
                 content={part}
                 className="prose prose-sm max-w-none"
+                mentions={mentions}
               />
             );
           }
@@ -185,6 +191,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
           </div>
         )}
         <DualModeEditor
+          ref={editorRef}
           value={value || ""}
           onChange={onChange}
           placeholder="Describe the task in detail..."
@@ -201,7 +208,7 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
   if (emailThreadId || isHtmlContent) {
     return (
       <div className="task-description-view rounded-md border border-[var(--border)] overflow-hidden">
-        <ShadowDomHtmlRenderer content={value} />
+        <ShadowDomHtmlRenderer content={value} mentions={mentions} />
       </div>
     );
   }
@@ -218,6 +225,8 @@ const TaskDescription: React.FC<TaskDescriptionProps> = ({
       )}
     </div>
   );
-};
+});
+
+TaskDescription.displayName = "TaskDescription";
 
 export default TaskDescription;

@@ -149,8 +149,13 @@ export class UsersService {
   }
 
   async getPublicProfile(identifier: string, requesterId: string) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      identifier,
+    );
     const user = await this.prisma.user.findFirst({
-      where: { username: identifier },
+      where: isUuid
+        ? { OR: [{ id: identifier }, { username: identifier }] }
+        : { username: identifier },
       select: {
         id: true,
         firstName: true,

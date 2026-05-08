@@ -43,6 +43,18 @@ const EDITOR_MODE_STORAGE_KEY = "taskosaur_comment_editor_mode";
 // Track ongoing uploads by placeholder ID
 const ongoingUploads = new Map<string, boolean>();
 
+const MENTION_STYLE = `
+  .mention {
+    color: #3b82f6 !important;
+    font-weight: 500 !important;
+    text-decoration: underline !important;
+    cursor: pointer !important;
+  }
+  .dark .mention {
+    color: #60a5fa !important;
+  }
+`;
+
 // Inline styles configuration
 const INLINE_STYLES = [
   { icon: <HiBold className="size-4" />, style: "BOLD", tooltip: "Bold (Ctrl+B)" },
@@ -64,6 +76,8 @@ const BLOCK_TYPES = [
 
 export interface DualModeEditorHandle {
   clear: () => void;
+  getContent: () => string;
+  getRawContent: () => string;
 }
 
 interface DualModeEditorProps {
@@ -141,6 +155,11 @@ function markdownToHtml(markdown: string): string {
       }
       return `<a href="${url}">${label}</a>`;
     })
+    // Support for @[mention:UUID] format
+    .replace(/@\[mention:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]/gi, (match, uuid) => {
+      const workspaceSlug = typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : '';
+      return `<a class="mention text-blue-500 font-medium cursor-pointer hover:underline" href="/${workspaceSlug}/members/${uuid}" data-type="mention" data-id="${uuid}">@user</a>`;
+    })
     // Line breaks
     .replace(/\n/g, "<br>");
 
@@ -190,8 +209,18 @@ function htmlToMarkdown(html: string): string {
     .replace(/<\/?[uo]l[^>]*>/gi, "")
     // Blockquotes
     .replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gi, "> $1\n")
+    // Mentions
+    .replace(/<a[^>]*data-type="mention"[^>]*data-id="([^"]*)"[^>]*>(.*?)<\/a>/gi, (match, id, label) => {
+      return `@[mention:${id}]`;
+    })
     // Links
-    .replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, "[$2]($1)")
+    .replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, (match, href, label) => {
+      if (href.includes('/members/') && label.startsWith('@')) {
+        const id = href.split('/').pop();
+        return `@[mention:${id}]`;
+      }
+      return `[${label}](${href})`;
+    })
     // Paragraphs and line breaks
     .replace(/<\/p>\s*<p[^>]*>/gi, "\n\n")
     .replace(/<p[^>]*>/gi, "")
@@ -246,7 +275,7 @@ function RichTextEditorInner({
           const workspaceSlug = typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : '';
           return [
             "a",
-            { ...options.HTMLAttributes, href: `/${workspaceSlug}/members/${node.attrs.label}`, "data-type": "mention", "data-id": node.attrs.label },
+            { ...options.HTMLAttributes, href: `/${workspaceSlug}/members/${node.attrs.id || node.attrs.label}`, "data-type": "mention", "data-id": node.attrs.id || node.attrs.label },
             `@${node.attrs.label}`,
           ];
         },
@@ -554,6 +583,74 @@ const DualModeEditor = forwardRef<DualModeEditorHandle, DualModeEditorProps>(fun
   const [contentVersion, setContentVersion] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const processForLoad = useCallback((content: string) => {
+    if (!content) return "";
+    const workspaceSlug = typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'workspace';
+
+    // 1. Handle internal format @[mention:UUID] -> [@username](/workspace/members)
+    let processed = content.replace(/@\[mention:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]/gi, (match, uuid) => {
+      const mention = mentions.find(m => m.id === uuid);
+      const label = mention ? mention.label : 'user';
+      return `[@${label}](/${workspaceSlug}/members)`;
+    });
+
+    // 2. Handle legacy link formats [@username](/any/path/UUID) -> [@username](/workspace/members)
+    // This ensures old comments are modernized in the editor and UUIDs are hidden
+    processed = processed.replace(/\[@([\w.-]+)\]\(.*\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\)/gi, (match, label, uuid) => {
+      const mention = mentions.find(m => m.id === uuid);
+      const currentLabel = mention ? mention.label : label;
+      return `[@${currentLabel}](/${workspaceSlug}/members)`;
+    });
+
+    // 3. Handle plain text mentions @username -> [@username](/workspace/members)
+    // This catches very old mentions that were stored as plain text
+    processed = processed.replace(/(?<!\[)@([\w.-]+)\b/g, (match, username) => {
+      const mention = mentions.find(m => m.label === username);
+      if (mention) {
+        return `[@${username}](/${workspaceSlug}/members)`;
+      }
+      return match;
+    });
+
+    return processed;
+  }, [mentions]);
+
+  const processForSave = useCallback((content: string) => {
+    if (!content) return "";
+    
+    // 1. Handle ALL link formats [@username](ANY_URL) 
+    // This catches [@username](/workspace/members), [@username](/members/username), etc.
+    let processed = content.replace(/\[@([\w.-]+)\]\(([^)]*)\)/g, (match, username, url) => {
+      // If it's one of our mention links (contains /members or #)
+      if (url.includes('/members') || url === '#') {
+        // Try to find a UUID in the URL first (legacy support)
+        const uuidMatch = url.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+        if (uuidMatch) {
+          return `@[mention:${uuidMatch[1]}]`;
+        }
+
+        // Otherwise, look up the current ID by the username in the brackets
+        const mention = mentions.find(m => m.label === username);
+        if (mention) {
+          return `@[mention:${mention.id}]`;
+        }
+      }
+      return match;
+    });
+
+    // 2. Handle plain text mentions @username -> @[mention:UUID]
+    // This catches anything that was missed by the link pattern
+    processed = processed.replace(/(?<!\[)@([\w.-]+)\b/g, (match, username) => {
+      const mention = mentions.find(m => m.label === username);
+      if (mention) {
+        return `@[mention:${mention.id}]`;
+      }
+      return match;
+    });
+
+    return processed;
+  }, [mentions]);
+
   useImperativeHandle(ref, () => ({
     clear: () => {
       setMarkdownValue("");
@@ -561,7 +658,14 @@ const DualModeEditor = forwardRef<DualModeEditorHandle, DualModeEditorProps>(fun
       setContentVersion(prev => prev + 1);
       onChange("");
     },
-  }), [onChange]);
+    getContent: () => {
+      const rawContent = mode === "markdown" ? markdownValue : richTextValue;
+      return processForSave(rawContent);
+    },
+    getRawContent: () => {
+      return mode === "markdown" ? markdownValue : richTextValue;
+    }
+  }), [onChange, mode, markdownValue, richTextValue, processForSave]);
 
   // Handle client-side mounting
   useEffect(() => {
@@ -603,11 +707,11 @@ const DualModeEditor = forwardRef<DualModeEditorHandle, DualModeEditorProps>(fun
           const isHtml = /<[a-z][\s\S]*>/i.test(value);
 
           if (mode === "markdown") {
-            setMarkdownValue(isHtml ? htmlToMarkdown(value) : value);
+            setMarkdownValue(processForLoad(isHtml ? htmlToMarkdown(value) : value));
             setRichTextValue(isHtml ? value : markdownToHtml(value));
           } else {
             setRichTextValue(isHtml ? value : markdownToHtml(value));
-            setMarkdownValue(isHtml ? htmlToMarkdown(value) : value);
+            setMarkdownValue(processForLoad(isHtml ? htmlToMarkdown(value) : value));
           }
         } else if (!isInitialized) {
           // Only reset to empty on init
@@ -671,7 +775,7 @@ const DualModeEditor = forwardRef<DualModeEditorHandle, DualModeEditorProps>(fun
     
     const beforeText = markdownValue.substring(0, replaceStart);
     
-    const mentionText = `[@${mention.label}](/${workspaceSlug}/members/${mention.label}) `;
+    const mentionText = `[@${mention.label}](/${workspaceSlug}/members) `;
     
     const currentPos = textarea ? textarea.selectionEnd : markdownValue.length;
     const afterText = markdownValue.substring(currentPos);
@@ -715,13 +819,15 @@ const DualModeEditor = forwardRef<DualModeEditorHandle, DualModeEditorProps>(fun
       if (newMode === mode) return;
 
       if (newMode === "markdown") {
-        // Convert rich text to markdown
+        // Convert rich text to markdown and clean it for display
         const markdown = htmlToMarkdown(richTextValue);
-        setMarkdownValue(markdown);
-        onChange(markdown);
+        const cleanMarkdown = processForLoad(markdown);
+        setMarkdownValue(cleanMarkdown);
+        onChange(processForSave(cleanMarkdown));
       } else {
-        // Convert markdown to rich text
-        const html = markdownToHtml(markdownValue);
+        // Convert markdown to rich text and preserve UUIDs
+        const fullMarkdown = processForSave(markdownValue);
+        const html = markdownToHtml(fullMarkdown);
         setRichTextValue(html);
         onChange(html);
       }
@@ -916,61 +1022,62 @@ const DualModeEditor = forwardRef<DualModeEditorHandle, DualModeEditorProps>(fun
     );
   }
 
-  return (
-    <div className="dual-mode-editor">
-      {/* Mode Switcher */}
-      <div className="flex items-center gap-2 mb-2">
-        <div className="inline-flex items-center p-0.5 bg-[var(--muted)]/50 rounded-md">
-          <button
-            type="button"
-            onClick={() => handleModeSwitch("markdown")}
-            disabled={disabled}
-            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded transition-colors ${
-              mode === "markdown"
-                ? "bg-[var(--background)] text-[var(--foreground)] shadow-sm"
-                : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-            } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-          >
-            <HiCodeBracketSquare className="size-3.5" />
-            Markdown
-          </button>
-          <button
-            type="button"
-            onClick={() => handleModeSwitch("richtext")}
-            disabled={disabled}
-            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded transition-colors ${
-              mode === "richtext"
-                ? "bg-[var(--background)] text-[var(--foreground)] shadow-sm"
-                : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-            } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-          >
-            <HiDocumentText className="size-3.5" />
-            Rich Text
-          </button>
-        </div>
-        <span className="text-[10px] text-[var(--muted-foreground)]">
-          {mode === "markdown" ? "Supports GFM" : "WYSIWYG"}
-        </span>
-      </div>
-
-      {/* Editor Content */}
-      {mode === "markdown" ? (
-        <div
-          key={contentVersion}
-          data-color-mode={colorMode}
-          className="task-md-editor relative"
-        >
-          {/* Custom Image Upload Button */}
-          <div className="flex items-center gap-1 p-1 border-b border-[var(--border)] bg-[var(--muted)]/30">
+    return (
+      <div className="dual-mode-editor">
+        <style dangerouslySetInnerHTML={{ __html: MENTION_STYLE }} />
+        {/* Mode Switcher */}
+        <div className="flex items-center gap-2 mb-2">
+          <div className="inline-flex items-center p-0.5 bg-[var(--muted)]/50 rounded-md">
             <button
               type="button"
-              onClick={handleImageButtonClick}
+              onClick={() => handleModeSwitch("markdown")}
               disabled={disabled}
-              title="Upload image"
-              className={`p-1.5 rounded transition-colors text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] ${
-                disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-              }`}
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+                mode === "markdown"
+                  ? "bg-[var(--background)] text-[var(--foreground)] shadow-sm"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
             >
+              <HiCodeBracketSquare className="size-3.5" />
+              Markdown
+            </button>
+            <button
+              type="button"
+              onClick={() => handleModeSwitch("richtext")}
+              disabled={disabled}
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+                mode === "richtext"
+                  ? "bg-[var(--background)] text-[var(--foreground)] shadow-sm"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+            >
+              <HiDocumentText className="size-3.5" />
+              Rich Text
+            </button>
+          </div>
+          <span className="text-[10px] text-[var(--muted-foreground)]">
+            {mode === "markdown" ? "Supports GFM" : "WYSIWYG"}
+          </span>
+        </div>
+
+        {/* Editor Content */}
+        {mode === "markdown" ? (
+          <div
+            key={contentVersion}
+            data-color-mode={colorMode}
+            className="task-md-editor relative"
+          >
+            {/* Custom Image Upload Button */}
+            <div className="flex items-center gap-1 p-1 border-b border-[var(--border)] bg-[var(--muted)]/30">
+              <button
+                type="button"
+                onClick={handleImageButtonClick}
+                disabled={disabled}
+                title="Upload image"
+                className={`p-1.5 rounded transition-colors text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] ${
+                  disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                }`}
+              >
               <HiOutlinePhoto className="size-4" />
             </button>
             <span className="text-[10px] text-[var(--muted-foreground)] ml-2">

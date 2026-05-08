@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import TaskComments from "./TaskComments";
 import Subtasks from "./Subtasks";
@@ -131,6 +131,7 @@ export default function TaskDetailClient({
   const [loadingLabels, setLoadingLabels] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [minLoadTimeElapsed, setMinLoadTimeElapsed] = useState(false);
+  const descriptionEditorRef = useRef<any>(null);
 
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
@@ -404,40 +405,6 @@ export default function TaskDetailClient({
           return;
         }
         setWorkspaceData(workspace);
-        if (typeof projectSlug === "string") {
-          const projects = await projectContext.getProjectsByWorkspace(workspace.id);
-          const project = findProjectBySlug(projects || [], projectSlug);
-          if (project) {
-            setProjectData(project);
-          }
-        } else {
-          setProjectData(null);
-        }
-      } catch (err) {
-        console.error("Error loading workspace/project data:", err);
-      }
-    };
-
-    loadWorkspaceAndProjectData();
-  }, [workspaceSlug, projectSlug]);
-
-  useEffect(() => {
-    const loadWorkspaceAndProjectData = async () => {
-      try {
-        if (!authContext.isAuthenticated()) {
-          return;
-        }
-
-        if (typeof workspaceSlug !== "string") {
-          return;
-        }
-
-        const workspace = await workspaceContext.getWorkspaceBySlug(workspaceSlug);
-        if (!workspace) {
-          return;
-        }
-        setWorkspaceData(workspace);
-
         if (typeof projectSlug === "string") {
           const projects = await projectContext.getProjectsByWorkspace(workspace.id);
           const project = findProjectBySlug(projects || [], projectSlug);
@@ -833,9 +800,12 @@ export default function TaskDetailClient({
       return;
     }
 
+    // Use the editor ref to get the processed content (with UUIDs for mentions)
+    const processedDescription = descriptionEditorRef.current?.getContent() || descriptionToSave;
+
     // Sanitize description to prevent XSS
-    const sanitizedDescription = descriptionToSave
-      ? sanitizeEditorContent(descriptionToSave.trim())
+    const sanitizedDescription = processedDescription
+      ? sanitizeEditorContent(processedDescription.trim())
       : undefined;
 
     try {
@@ -986,13 +956,8 @@ export default function TaskDetailClient({
     return null;
   }
 
-  // Validate task.id before URL construction
+  // Construct detail URL using slug
   const detailUrl = (() => {
-    if (!validator.isUUID(task.id, 4)) {
-      console.error('Invalid task ID format:', task.id);
-      return '';
-    }
-
     const wsSlug = sanitizeSlug(workspaceSlug) || task.project?.workspace?.slug;
     const pgSlug = sanitizeSlug(projectSlug) || task.project?.slug;
 
@@ -1130,10 +1095,15 @@ export default function TaskDetailClient({
                     className="text-xs bg-[var(--background)] border-[var(--border)]"
                   />
                   <TaskDescription
+                    ref={descriptionEditorRef}
                     value={editTaskData.description}
                     onChange={(value) => handleTaskFieldChange("description", value)}
                     editMode={true}
-                    mentions={projectMembers.map(m => ({ id: m.id, label: m.username, avatar: m.avatar, email: m.email }))}
+                    mentions={projectMembers.map(m => ({
+                      id: m.id,
+                      label: m.username,
+                      avatar: m.avatar
+                    }))}
                   />
                   <div className="flex items-center justify-end gap-4 mt-4">
                     <ActionButton
@@ -1209,9 +1179,14 @@ export default function TaskDetailClient({
                 onCommentDeleted={() => {
                   onTaskRefetch && onTaskRefetch();
                 }}
+                onTaskRefetch={onTaskRefetch}
                 hasAccess={hasAccess}
                 setLoading={setLoadingComments}
-                mentions={projectMembers.map(m => ({ id: m.id, label: m.username, avatar: m.avatar, email: m.email }))}
+                mentions={projectMembers.map(m => ({
+                  id: m.id,
+                  label: m.username,
+                  avatar: m.avatar
+                }))}
               />
             </div>
           </div>

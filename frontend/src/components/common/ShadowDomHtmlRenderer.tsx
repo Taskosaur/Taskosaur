@@ -5,6 +5,7 @@ import { useTheme } from 'next-themes';
 interface ShadowDomHtmlRendererProps {
   content: string;
   className?: string;
+  mentions?: any[];
 }
 
 const EMAIL_STYLES = `
@@ -135,10 +136,20 @@ const EMAIL_SANITIZE_CONFIG = {
 export const ShadowDomHtmlRenderer: React.FC<ShadowDomHtmlRendererProps> = ({
   content,
   className,
+  mentions = [],
 }) => {
   const hostRef = useRef<HTMLDivElement>(null);
   const shadowRootRef = useRef<ShadowRoot | null>(null);
   const { resolvedTheme } = useTheme();
+
+  const processedContent = React.useMemo(() => {
+    return content.replace(/@\[mention:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]/gi, (match, uuid) => {
+      const mention = mentions && mentions.length > 0 ? mentions.find(m => m.id === uuid) : null;
+      const label = mention ? `@${mention.label}` : `@user`;
+      const workspaceSlug = typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'workspace';
+      return `<a class="mention" href="/${workspaceSlug}/members/${uuid}">${label}</a>`;
+    });
+  }, [content, mentions]);
 
   // Handle theme changes
   useEffect(() => {
@@ -163,7 +174,7 @@ export const ShadowDomHtmlRenderer: React.FC<ShadowDomHtmlRendererProps> = ({
       style.textContent = EMAIL_STYLES;
 
       // Allow some more tags/attributes that are common in emails but safe
-      const sanitizedContent = DOMPurify.sanitize(content, EMAIL_SANITIZE_CONFIG);
+      const sanitizedContent = DOMPurify.sanitize(processedContent, EMAIL_SANITIZE_CONFIG);
 
       const contentWrapper = document.createElement('div');
       contentWrapper.innerHTML = sanitizedContent;

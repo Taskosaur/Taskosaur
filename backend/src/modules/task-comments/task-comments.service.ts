@@ -79,9 +79,12 @@ export class TaskCommentsService {
   }
 
   private async checkAccess(userId: string, taskId: string) {
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
       select: {
+        id: true,
         projectId: true,
         project: {
           select: {
@@ -143,6 +146,7 @@ export class TaskCommentsService {
     }
 
     return {
+      taskId: task.id,
       projectRole: user.projectMembers[0]?.role,
       workspaceRole: user.workspaceMembers[0]?.role,
       organizationRole: user.organizationMembers[0]?.role,
@@ -184,16 +188,36 @@ export class TaskCommentsService {
     const matches = [...comment.content.matchAll(mentionRegex)];
     let usernames = [...new Set(matches.map((m) => m[1]))];
 
+    // Extract UUIDs from mentions in links like [@username](/members/UUID) or <a href="/members/UUID">
+    const uuidRegex = /\/members\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi;
+    const uuidMatches = [...comment.content.matchAll(uuidRegex)];
+    let userIdsFromMentions = [...new Set(uuidMatches.map((m) => m[1]))];
+
+    // Extract UUIDs from new mention format @[mention:UUID]
+    const newMentionRegex =
+      /@\[mention:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]/gi;
+    const newMentionMatches = [...comment.content.matchAll(newMentionRegex)];
+    const newUserIds = [...new Set(newMentionMatches.map((m) => m[1]))];
+    userIdsFromMentions = [...new Set([...userIdsFromMentions, ...newUserIds])];
+
     if (oldContent) {
       const oldMatches = [...oldContent.matchAll(mentionRegex)];
       const oldUsernames = [...new Set(oldMatches.map((m) => m[1]))];
       usernames = usernames.filter((u) => !oldUsernames.includes(u));
+
+      const oldUuidMatches = [...oldContent.matchAll(uuidRegex)];
+      const oldNewMentionMatches = [...oldContent.matchAll(newMentionRegex)];
+      const oldUserIds = [
+        ...new Set([...oldUuidMatches.map((m) => m[1]), ...oldNewMentionMatches.map((m) => m[1])]),
+      ];
+      // Only keep new user IDs that weren't in the old content
+      userIdsFromMentions = userIdsFromMentions.filter((id) => !oldUserIds.includes(id));
     }
 
-    if (usernames.length > 0) {
+    if (usernames.length > 0 || userIdsFromMentions.length > 0) {
       const mentionedUsers = await this.prisma.user.findMany({
         where: {
-          username: { in: usernames },
+          OR: [{ username: { in: usernames } }, { id: { in: userIdsFromMentions } }],
         },
         select: { id: true, username: true, email: true, firstName: true, lastName: true },
       });
@@ -308,12 +332,11 @@ export class TaskCommentsService {
 
   async create(createTaskCommentDto: CreateTaskCommentDto, userId: string): Promise<TaskComment> {
     const { taskId, parentCommentId } = createTaskCommentDto;
-
-    await this.checkAccess(userId, taskId);
+    const { taskId: resolvedTaskId } = await this.checkAccess(userId, taskId);
 
     // Verify task exists and is not archived
     const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+      where: { id: resolvedTaskId },
       select: { id: true, title: true, isArchived: true },
     });
 
@@ -346,7 +369,7 @@ export class TaskCommentsService {
         throw new NotFoundException('Parent comment not found');
       }
 
-      if (parentComment.taskId !== taskId) {
+      if (parentComment.taskId !== resolvedTaskId) {
         throw new BadRequestException('Parent comment must belong to the same task');
       }
     }
@@ -354,6 +377,7 @@ export class TaskCommentsService {
     const comment = await this.prisma.taskComment.create({
       data: {
         ...createTaskCommentDto,
+        taskId: resolvedTaskId,
         authorId: userId,
         content: sanitizeHtml(createTaskCommentDto.content),
       },
@@ -410,11 +434,11 @@ export class TaskCommentsService {
     totalPages: number;
     hasMore: boolean;
   }> {
-    await this.checkAccess(userId, taskId);
+    const { taskId: resolvedTaskId } = await this.checkAccess(userId, taskId);
 
     const whereClause: any = {};
-    if (taskId) {
-      whereClause.taskId = taskId;
+    if (resolvedTaskId) {
+      whereClause.taskId = resolvedTaskId;
       // Only get top-level comments (not replies)
       whereClause.parentCommentId = null;
     }
@@ -642,11 +666,11 @@ export class TaskCommentsService {
   }
 
   async getTaskCommentTree(taskId: string, userId: string): Promise<TaskComment[]> {
-    await this.checkAccess(userId, taskId);
+    const { taskId: resolvedTaskId } = await this.checkAccess(userId, taskId);
 
     // Verify task exists
     const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+      where: { id: resolvedTaskId },
       select: { id: true },
     });
 
@@ -657,7 +681,7 @@ export class TaskCommentsService {
     // Get all comments for the task in a hierarchical structure
     return this.prisma.taskComment.findMany({
       where: {
-        taskId,
+        taskId: resolvedTaskId,
         parentCommentId: null, // Only top-level comments
       },
       include: {
@@ -705,10 +729,10 @@ export class TaskCommentsService {
     hasMore: boolean;
     loadedCount: number; // How many middle comments have been loaded so far
   }> {
-    await this.checkAccess(userId, taskId);
+    const { taskId: resolvedTaskId } = await this.checkAccess(userId, taskId);
 
     const whereClause: any = {
-      taskId,
+      taskId: resolvedTaskId,
       parentCommentId: null, // Only top-level comments
     };
 

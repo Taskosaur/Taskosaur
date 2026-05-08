@@ -51,12 +51,12 @@ export const sanitizeHtml = (html: string): string => {
     ],
     allowedAttributes: {
       '*': ['class', 'style', 'title', 'className'],
-      a: ['href', 'name', 'target', 'title', 'rel'],
+      a: ['href', 'name', 'target', 'title', 'rel', 'data-id', 'data-type'],
       img: ['src', 'alt', 'width', 'height'],
       input: ['type', 'checked', 'disabled'],
       code: ['className'],
     },
-    allowedSchemes: ['http', 'https', 'mailto'],
+    allowedSchemes: ['http', 'https', 'mailto', 'data'],
   });
 };
 

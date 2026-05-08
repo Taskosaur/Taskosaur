@@ -94,6 +94,7 @@ const CommentItem = React.memo(
     colorMode,
     isAuth,
     t,
+    mentions = [],
   }: {
     comment: CommentWithAuthor;
     currentUser: User;
@@ -112,6 +113,7 @@ const CommentItem = React.memo(
     colorMode: "light" | "dark";
     isAuth: boolean;
     t: any;
+    mentions?: any[];
   }) => {
     const [isHovered, setIsHovered] = useState(false);
     const timestamp = useMemo(
@@ -248,12 +250,12 @@ const CommentItem = React.memo(
             {/* Comment content */}
             {isEmailOrRichText ? (
               <div className="mt-1">
-                <ShadowDomHtmlRenderer content={comment.content} />
+                <ShadowDomHtmlRenderer content={comment.content} mentions={mentions} />
               </div>
             ) : (
               <div className="prose prose-sm max-w-none bg-[var(--background)] text-sm text-[var(--foreground)] p-2 rounded-md border border-[var(--border)] mt-1">
                 <div className="markdown-content">
-                  <SafeMarkdownRenderer content={comment.content} />
+                  <SafeMarkdownRenderer content={comment.content} mentions={mentions} />
                 </div>
               </div>
             )}
@@ -537,8 +539,11 @@ export default function TaskComments({
     const trimmedContent = commentContent.trim();
     if (!trimmedContent) return;
 
+    // Use the editor ref to get the processed content (with UUIDs for mentions)
+    const processedContent = editorRef.current?.getContent() || trimmedContent;
+    
     // Sanitize content before sending to backend
-    const sanitizedContent = sanitizeEditorContent(trimmedContent);
+    const sanitizedContent = sanitizeEditorContent(processedContent.trim());
     if (!sanitizedContent) {
       toast.error(t("comments.invalidContent"));
       return;
@@ -708,6 +713,7 @@ export default function TaskComments({
             colorMode={colorMode}
             isAuth
             t={t}
+            mentions={mentions}
           />
         ))}
 
@@ -751,6 +757,7 @@ export default function TaskComments({
             colorMode={colorMode}
             isAuth
             t={t}
+            mentions={mentions}
           />
         ))}
       </div>
@@ -769,7 +776,8 @@ export default function TaskComments({
     allowEmailReplies,
     handleSendAsEmail,
     loadMoreComments,
-    LOAD_MORE_BATCH_SIZE
+    LOAD_MORE_BATCH_SIZE,
+    mentions
   ]);
 
 

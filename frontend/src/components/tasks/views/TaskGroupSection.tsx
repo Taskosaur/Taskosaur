@@ -9,7 +9,7 @@ interface TaskGroupSectionProps {
   label: string;
   tasks: Task[];
   itemIds?: string[];
-  renderRow: (task: Task) => React.ReactNode;
+  renderRow: (task: Task, index: number) => React.ReactNode;
   defaultExpanded?: boolean;
   /** True total count of tasks in this group (from the DB) */
   totalCount: number;
@@ -82,10 +82,10 @@ const TaskGroupSection: React.FC<TaskGroupSectionProps> = ({
           ) : (
             itemIds ? (
               <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-                {tasks.map((task) => renderRow(task))}
+                {tasks.map((task, i) => renderRow(task, i))}
               </SortableContext>
             ) : (
-              tasks.map((task) => renderRow(task))
+              tasks.map((task, i) => renderRow(task, i))
             )
           )}
 
