@@ -69,7 +69,7 @@ function TaskDetailContent() {
 
   return (
     <Suspense fallback={<div className="p-4"><div className="animate-pulse h-96 bg-[var(--muted)] rounded"></div></div>}>
-      <TaskDetailClient task={task} taskId={task.id as string} />
+      <TaskDetailClient task={task} taskId={task.slug as string} />
     </Suspense>
   );
 }

@@ -298,7 +298,7 @@ export default function Subtasks({
     }
 
     try {
-      const subtask = subtTask.find((s) => s.id === subtaskId);
+      const subtask = subtTask.find((s) => s.id === subtaskId || s.slug === subtaskId);
       if (!subtask) return;
 
       const completedStatus = taskStatuses.find((s) => s.category === "DONE");
@@ -455,11 +455,11 @@ export default function Subtasks({
 
   return (
     <>
-      {selectedSubtask && router.query.taskId === selectedSubtask.id && (
+      {selectedSubtask && router.query.taskId === selectedSubtask.slug && (
         <div className="">
           <TaskDetailClient
             task={selectedSubtask}
-            taskId={selectedSubtask.id}
+            taskId={selectedSubtask.slug}
             workspaceSlug={workspaceSlug as string | undefined}
             projectSlug={projectSlug as string | undefined}
             open="modal"
@@ -493,12 +493,6 @@ export default function Subtasks({
                   }
                   setSelectedSubtask(subtask);
 
-                  // Validate subtask.id as UUID before URL construction
-                  if (!validator.isUUID(subtask.id, 4)) {
-                    console.error('Invalid subtask ID format:', subtask.id);
-                    return;
-                  }
-
                   // Sanitize slugs before URL construction
                   const sanitizeSlug = (slug: string | string[] | undefined): string => {
                     if (!slug || typeof slug !== 'string') return '';
@@ -514,13 +508,13 @@ export default function Subtasks({
                       ? `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks/${subtask.slug}`
                       : `/tasks/${subtask.slug}`;
 
-                  if (editingSubtaskId !== subtask.id) {
+                  if (editingSubtaskId !== subtask.id && editingSubtaskId !== subtask.slug) {
                     router.push(subtaskUrl);
                   }
                 }}
               >
                 <div className="flex-1 min-w-0 space-y-1.5">
-                  {editingSubtaskId === subtask.id ? (
+                  {editingSubtaskId === subtask.id || editingSubtaskId === subtask.slug ? (
                     <div className="space-y-3">
                       <Input
                         type="text"
@@ -533,7 +527,7 @@ export default function Subtasks({
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            handleSaveEdit(subtask.id);
+                             handleSaveEdit(subtask.slug);
                           } else if (e.key === "Escape") {
                             handleCancelEdit();
                           }
@@ -570,7 +564,7 @@ export default function Subtasks({
 
                       <div className="flex gap-2 justify-end">
                         <ActionButton
-                          onClick={() => handleSaveEdit(subtask.id)}
+                          onClick={() => handleSaveEdit(subtask.slug)}
                           disabled={isLoading || !editingTitle.trim()}
                           primary
                           className="h-8 px-3 cursor-pointer"
@@ -592,7 +586,7 @@ export default function Subtasks({
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <div
-                            onClick={(e) => handleToggleSubtaskStatus(subtask.id, e)}
+                            onClick={(e) => handleToggleSubtaskStatus(subtask.slug, e)}
                             className="cursor-pointer"
                           >
                             {isSubtaskCompleted(subtask) ? (
@@ -610,7 +604,7 @@ export default function Subtasks({
                             )}
                           </div>
                           <div
-                            onClick={(e) => handleToggleSubtaskStatus(subtask.id, e)}
+                            onClick={(e) => handleToggleSubtaskStatus(subtask.slug, e)}
                             className={`text-sm font-medium cursor-pointer line-clamp-2 ${isSubtaskCompleted(subtask)
                               ? "text-[var(--muted-foreground)] line-through"
                               : "text-[var(--foreground)]"
@@ -626,7 +620,7 @@ export default function Subtasks({
                               <ActionButton
                                 onClick={(e) =>
                                   handleEditSubtask(
-                                    subtask.id,
+                                    subtask.slug,
                                     subtask.title,
                                     subtask.priority,
                                     subtask.type,
@@ -642,7 +636,7 @@ export default function Subtasks({
                             </Tooltip>
                             <Tooltip content={t("subtasks.delete")} position="top" color="primary">
                               <ActionButton
-                                onClick={(e) => handleDeleteSubtask(subtask.id, e)}
+                                onClick={(e) => handleDeleteSubtask(subtask.slug, e)}
                                 variant="ghost"
                                 className="text-[var(--muted-foreground)] hover:text-[var(--destructive)] cursor-pointer p-1"
                                 disabled={isLoading}

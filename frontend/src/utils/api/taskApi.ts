@@ -582,9 +582,6 @@ export const taskApi = {
 
   getTaskById: async (taskId: string, isAuth: boolean): Promise<Task> => {
     try {
-      if (!isValidUUID(taskId)) {
-        throw new Error('Invalid task ID format');
-      }
       let response;
       if (isAuth) {
         response = await api.get<Task>(`/tasks/${encodeURIComponent(taskId)}`);
@@ -605,9 +602,9 @@ export const taskApi = {
       }
       let response;
       if (isAuth) {
-        response = await api.get<Task>(`/tasks/key/${encodeURIComponent(slug)}`);
+        response = await api.get<Task>(`/tasks/slug/${encodeURIComponent(slug)}`);
       } else {
-        response = await api.get<Task>(`/public/project-tasks/key/${encodeURIComponent(slug)}`);
+        response = await api.get<Task>(`/public/project-tasks/slug/${encodeURIComponent(slug)}`);
       }
       return response.data;
     } catch (error) {
@@ -618,9 +615,6 @@ export const taskApi = {
 
   updateTask: async (taskId: string, taskData: UpdateTaskRequest): Promise<Task> => {
     try {
-      if (!isValidUUID(taskId)) {
-        throw new Error('Invalid task ID format');
-      }
       const response = await api.patch<Task>(`/tasks/${encodeURIComponent(taskId)}`, taskData);
       return response.data;
     } catch (error) {
@@ -660,9 +654,6 @@ export const taskApi = {
     }
   ): Promise<void> => {
     try {
-      if (!isValidUUID(taskId)) {
-        throw new Error('Invalid task ID format');
-      }
       await api.patch(`/task-ranks/${encodeURIComponent(taskId)}/reorder`, reorderData);
     } catch (error) {
       console.error("Update relative task rank error:", error);
@@ -672,9 +663,6 @@ export const taskApi = {
 
   deleteTask: async (taskId: string): Promise<void> => {
     try {
-      if (!isValidUUID(taskId)) {
-        throw new Error('Invalid task ID format');
-      }
       await api.delete(`/tasks/${encodeURIComponent(taskId)}`);
     } catch (error) {
       console.error("Delete task error:", error);
@@ -685,8 +673,8 @@ export const taskApi = {
   // Recurring Task operations
   completeOccurrence: async (taskId: string): Promise<{ completedTask: Task; nextTask: Task }> => {
     try {
-      if (!isValidUUID(taskId)) {
-        throw new Error('Invalid task ID format');
+      if (!taskId || typeof taskId !== 'string') {
+        throw new Error('Invalid task identifier');
       }
       const response = await api.post<{ completedTask: Task; nextTask: Task }>(
         `/tasks/${encodeURIComponent(taskId)}/complete-occurrence`
@@ -700,8 +688,8 @@ export const taskApi = {
 
   addRecurrence: async (taskId: string, recurrenceConfig: any): Promise<Task> => {
     try {
-      if (!isValidUUID(taskId)) {
-        throw new Error('Invalid task ID format');
+      if (!taskId || typeof taskId !== 'string') {
+        throw new Error('Invalid task identifier');
       }
       const response = await api.post<Task>(
         `/tasks/${encodeURIComponent(taskId)}/recurrence`,
@@ -716,8 +704,8 @@ export const taskApi = {
 
   updateRecurrence: async (taskId: string, recurrenceConfig: any): Promise<Task> => {
     try {
-      if (!isValidUUID(taskId)) {
-        throw new Error('Invalid task ID format');
+      if (!taskId || typeof taskId !== 'string') {
+        throw new Error('Invalid task identifier');
       }
       const response = await api.patch<Task>(
         `/tasks/${encodeURIComponent(taskId)}/recurrence`,
@@ -732,8 +720,8 @@ export const taskApi = {
 
   stopRecurrence: async (taskId: string): Promise<Task> => {
     try {
-      if (!isValidUUID(taskId)) {
-        throw new Error('Invalid task ID format');
+      if (!taskId || typeof taskId !== 'string') {
+        throw new Error('Invalid task identifier');
       }
       const response = await api.delete<Task>(
         `/tasks/${encodeURIComponent(taskId)}/recurrence`
@@ -773,8 +761,8 @@ export const taskApi = {
     limit: number = 10
   ): Promise<any> => {
     try {
-      if (!isValidUUID(taskId)) {
-        throw new Error('Invalid task ID format');
+      if (!taskId || typeof taskId !== 'string') {
+        throw new Error('Invalid task identifier');
       }
       let response;
       if (isAuth) {
@@ -838,8 +826,8 @@ export const taskApi = {
     loadedCount?: number;
   }> => {
     try {
-      if (!isValidUUID(taskId)) {
-        throw new Error('Invalid task ID format');
+      if (!taskId || typeof taskId !== 'string') {
+        throw new Error('Invalid task identifier');
       }
 
       const page = options?.page ?? 1;
@@ -924,8 +912,8 @@ export const taskApi = {
 
   // Task Attachment operations
   uploadAttachment: async (taskId: string, file: File): Promise<TaskAttachment> => {
-    if (!isValidUUID(taskId)) {
-      throw new Error("Invalid taskId format. Expected a UUID.");
+    if (!taskId || typeof taskId !== 'string') {
+      throw new Error("Invalid task identifier");
     }
     try {
       const formData = new FormData();
@@ -960,9 +948,8 @@ export const taskApi = {
   },
 
   getTaskAttachments: async (taskId: string, isAuth: boolean): Promise<TaskAttachment[]> => {
-    // Validate that taskId is a UUID before using in any endpoint
-    if (!isValidUUID(taskId)) {
-      throw new Error("Invalid taskId format");
+    if (!taskId || typeof taskId !== 'string') {
+      throw new Error("Invalid task identifier");
     }
     try {
       let response;
@@ -1044,8 +1031,8 @@ export const taskApi = {
 
   getAttachmentStats: async (taskId?: string): Promise<AttachmentStats> => {
     try {
-      if (taskId && !isValidUUID(taskId)) {
-        throw new Error('Invalid task ID format');
+      if (taskId && (typeof taskId !== 'string' || !taskId)) {
+        throw new Error('Invalid task identifier');
       }
       const query = taskId ? `?taskId=${encodeURIComponent(taskId)}` : "";
       const response = await api.get<AttachmentStats>(`/task-attachments/stats${query}`);
@@ -1153,7 +1140,7 @@ export const taskApi = {
 
   removeLabelFromTask: async (taskId: string, labelId: string): Promise<void> => {
     try {
-      if (!isValidUUID(taskId) || !isValidUUID(labelId)) {
+      if (!taskId || typeof taskId !== 'string' || !isValidUUID(labelId)) {
         throw new Error("Invalid taskId or labelId");
       }
       await api.delete(`/task-labels/${encodeURIComponent(taskId)}/${encodeURIComponent(labelId)}`);
@@ -1165,8 +1152,8 @@ export const taskApi = {
 
   getTaskLabels: async (taskId: string): Promise<TaskLabel[]> => {
     try {
-      if (!isValidUUID(taskId)) {
-        throw new Error('Invalid task ID format');
+      if (!taskId || typeof taskId !== 'string') {
+        throw new Error('Invalid task identifier');
       }
       const response = await api.get<TaskLabel[]>(`/task-labels?taskId=${encodeURIComponent(taskId)}`);
       return response.data;
@@ -1266,9 +1253,6 @@ export const taskApi = {
 
   updateTaskStatus: async (taskId: string, statusId: string): Promise<Task> => {
     try {
-      if (!isValidUUID(taskId)) {
-        throw new Error('Invalid task ID format');
-      }
       if (!isValidUUID(statusId)) {
         throw new Error('Invalid status ID format');
       }
@@ -1353,18 +1337,12 @@ export const taskApi = {
 
   // Validate and format UUID using strict v4 check
   assignTaskAssignees: async (taskId: string, assigneeIds: string[]) => {
-    if (!isValidUUID(taskId)) {
-      throw new Error("Invalid taskId provided. Must be a valid v4 UUID.");
+    if (!taskId || typeof taskId !== 'string') {
+      throw new Error("Invalid task identifier");
     }
 
-    // Always use canonical hyphenated UUID form for safety
-    const safeTaskId = taskId.includes("-") ? taskId : [
-      taskId.slice(0, 8),
-      taskId.slice(8, 12),
-      taskId.slice(12, 16),
-      taskId.slice(16, 20),
-      taskId.slice(20, 32),
-    ].join("-");
+    // Use task identifier as is (internal resolution handles UUID or Slug)
+    const safeTaskId = taskId;
 
     try {
       const response = await api.patch(`/tasks/${encodeURIComponent(safeTaskId)}/assignees`, {

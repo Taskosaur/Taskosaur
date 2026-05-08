@@ -523,15 +523,15 @@ export function TaskProvider({ children }: TaskProviderProps) {
         setTaskState((prev) => {
           // Update subtask in subtTask array
           const updatedSubtasks = prev.subtTask.map((subtask) =>
-            subtask.id === subtaskId ? { ...subtask, ...result } : subtask
+            (subtask.id === subtaskId || subtask.slug === subtaskId) ? { ...subtask, ...result } : subtask
           );
           const updatedCurrentTask = prev.currentTask?.childTasks?.some(
-            (child) => child.id === subtaskId
+            (child) => child.id === subtaskId || child.slug === subtaskId
           )
             ? {
               ...prev.currentTask,
               childTasks: prev.currentTask.childTasks.map((child) =>
-                child.id === subtaskId ? { ...child, ...result } : child
+                (child.id === subtaskId || child.slug === subtaskId) ? { ...child, ...result } : child
               ),
             }
             : prev.currentTask;
@@ -550,13 +550,13 @@ export function TaskProvider({ children }: TaskProviderProps) {
         await taskApi.deleteTask(subtaskId);
 
         setTaskState((prev) => {
-          const updatedSubtasks = prev.subtTask.filter((subtask) => subtask.id !== subtaskId);
+          const updatedSubtasks = prev.subtTask.filter((subtask) => subtask.id !== subtaskId && subtask.slug !== subtaskId);
           const updatedCurrentTask = prev.currentTask?.childTasks?.some(
-            (child) => child.id === subtaskId
+            (child) => child.id === subtaskId || child.slug === subtaskId
           )
             ? {
               ...prev.currentTask,
-              childTasks: prev.currentTask.childTasks.filter((child) => child.id !== subtaskId),
+              childTasks: prev.currentTask.childTasks.filter((child) => child.id !== subtaskId && child.slug !== subtaskId),
             }
             : prev.currentTask;
 
@@ -758,18 +758,18 @@ export function TaskProvider({ children }: TaskProviderProps) {
         const result = await handleApiOperation(() => taskApi.updateTask(taskId, taskData), false);
         setTaskState((prev) => ({
           ...prev,
-          tasks: prev.tasks.map((task) => (task.id === taskId ? { ...task, ...result } : task)),
+          tasks: prev.tasks.map((task) => (task.id === taskId || task.slug === taskId ? { ...task, ...result } : task)),
           subtTask: prev.subtTask.map((subtask) =>
-            subtask.id === taskId ? { ...subtask, ...result } : subtask
+            (subtask.id === taskId || subtask.slug === taskId) ? { ...subtask, ...result } : subtask
           ),
           currentTask:
-            prev.currentTask?.id === taskId
+            (prev.currentTask?.id === taskId || prev.currentTask?.slug === taskId)
               ? { ...prev.currentTask, ...result }
-              : prev.currentTask?.childTasks?.some((child) => child.id === taskId)
+              : prev.currentTask?.childTasks?.some((child) => child.id === taskId || child.slug === taskId)
                 ? {
                   ...prev.currentTask,
                   childTasks: prev.currentTask.childTasks.map((child) =>
-                    child.id === taskId ? { ...child, ...result } : child
+                    (child.id === taskId || child.slug === taskId) ? { ...child, ...result } : child
                   ),
                 }
                 : prev.currentTask,
@@ -781,15 +781,15 @@ export function TaskProvider({ children }: TaskProviderProps) {
         await handleApiOperation(() => taskApi.deleteTask(taskId), false);
         setTaskState((prev) => ({
           ...prev,
-          tasks: prev.tasks.filter((task) => task.id !== taskId),
-          subtTask: prev.subtTask.filter((subtask) => subtask.id !== taskId),
+          tasks: prev.tasks.filter((task) => task.id !== taskId && task.slug !== taskId),
+          subtTask: prev.subtTask.filter((subtask) => subtask.id !== taskId && subtask.slug !== taskId),
           currentTask:
-            prev.currentTask?.id === taskId
+            (prev.currentTask?.id === taskId || prev.currentTask?.slug === taskId)
               ? null
-              : prev.currentTask?.childTasks?.some((child) => child.id === taskId)
+              : prev.currentTask?.childTasks?.some((child) => child.id === taskId || child.slug === taskId)
                 ? {
                   ...prev.currentTask,
-                  childTasks: prev.currentTask.childTasks.filter((child) => child.id !== taskId),
+                  childTasks: prev.currentTask.childTasks.filter((child) => child.id !== taskId && child.slug !== taskId),
                 }
                 : prev.currentTask,
         }));
@@ -820,13 +820,13 @@ export function TaskProvider({ children }: TaskProviderProps) {
           tasks: prev.tasks.filter((task) => !successfullyDeletedIds.includes(task.id)),
           subtTask: prev.subtTask.filter((subtask) => !successfullyDeletedIds.includes(subtask.id)),
           currentTask:
-            prev.currentTask && successfullyDeletedIds.includes(prev.currentTask.id)
+            prev.currentTask && (successfullyDeletedIds.includes(prev.currentTask.id) || successfullyDeletedIds.includes(prev.currentTask.slug))
               ? null
               : prev.currentTask?.childTasks
                 ? {
                   ...prev.currentTask,
                   childTasks: prev.currentTask.childTasks.filter(
-                    (child) => !successfullyDeletedIds.includes(child.id)
+                    (child) => !successfullyDeletedIds.includes(child.id) && !successfullyDeletedIds.includes(child.slug)
                   ),
                 }
                 : prev.currentTask,
@@ -870,10 +870,10 @@ export function TaskProvider({ children }: TaskProviderProps) {
                 const updatedTask = result.updatedTasks.find((t: any) => t.id === task.id);
                 return updatedTask ? { ...task, ...updatedTask } : task;
               }),
-              currentTask: result.updatedTasks.find((t: any) => t.id === prev.currentTask?.id)
+              currentTask: result.updatedTasks.find((t: any) => t.id === prev.currentTask?.id || t.slug === prev.currentTask?.slug)
                 ? {
                   ...prev.currentTask,
-                  ...result.updatedTasks.find((t: any) => t.id === prev.currentTask?.id),
+                  ...result.updatedTasks.find((t: any) => t.id === prev.currentTask?.id || t.slug === prev.currentTask?.slug),
                 }
                 : prev.currentTask,
             };
@@ -891,9 +891,9 @@ export function TaskProvider({ children }: TaskProviderProps) {
         // Update task in state
         setTaskState((prev) => ({
           ...prev,
-          tasks: prev.tasks.map((task) => (task.id === taskId ? { ...task, statusId } : task)),
+          tasks: prev.tasks.map((task) => (task.id === taskId || task.slug === taskId ? { ...task, statusId } : task)),
           currentTask:
-            prev.currentTask?.id === taskId ? { ...prev.currentTask, statusId } : prev.currentTask,
+            (prev.currentTask?.id === taskId || prev.currentTask?.slug === taskId) ? { ...prev.currentTask, statusId } : prev.currentTask,
         }));
         return result;
       },
@@ -1293,14 +1293,14 @@ export function TaskProvider({ children }: TaskProviderProps) {
         setTaskState((prev) => ({
           ...prev,
           currentTask:
-            prev.currentTask?.id === taskId
+            (prev.currentTask?.id === taskId || prev.currentTask?.slug === taskId)
               ? {
                 ...prev.currentTask,
                 assignees: result.assignees || [],
               }
               : prev.currentTask,
           tasks: prev.tasks.map((task) =>
-            task.id === taskId ? { ...task, assignees: result.assignees || [] } : task
+            (task.id === taskId || task.slug === taskId) ? { ...task, assignees: result.assignees || [] } : task
           ),
         }));
 
@@ -1323,7 +1323,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
               }
               : prev.currentTask,
           tasks: prev.tasks.map((task) =>
-            task.id === taskId
+            (task.id === taskId || task.slug === taskId)
               ? { ...task, recurringConfig: { ...task.recurringConfig, ...recurrenceConfig } }
               : task
           ),
@@ -1341,7 +1341,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         setTaskState((prev) => ({
           ...prev,
           currentTask:
-            prev.currentTask?.id === taskId
+            (prev.currentTask?.id === taskId || prev.currentTask?.slug === taskId)
               ? {
                 ...prev.currentTask,
                 isRecurring: true,
@@ -1349,7 +1349,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
               }
               : prev.currentTask,
           tasks: prev.tasks.map((task) =>
-            task.id === taskId
+            (task.id === taskId || task.slug === taskId)
               ? { ...task, isRecurring: true, recurringConfig: recurrenceConfig }
               : task
           ),
@@ -1367,7 +1367,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         setTaskState((prev) => ({
           ...prev,
           currentTask:
-            prev.currentTask?.id === taskId
+            (prev.currentTask?.id === taskId || prev.currentTask?.slug === taskId)
               ? {
                 ...prev.currentTask,
                 isRecurring: false,
@@ -1375,7 +1375,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
               }
               : prev.currentTask,
           tasks: prev.tasks.map((task) =>
-            task.id === taskId
+            (task.id === taskId || task.slug === taskId)
               ? { ...task, isRecurring: false, recurringConfig: null }
               : task
           ),

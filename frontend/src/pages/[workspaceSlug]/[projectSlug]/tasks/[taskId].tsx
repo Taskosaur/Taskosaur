@@ -101,7 +101,7 @@ function TaskDetailContent() {
             task={task}
             workspaceSlug={workspaceSlug as string}
             projectSlug={projectSlug as string}
-            taskId={task.id as string}
+            taskId={task.slug as string}
           />
         </Suspense>
       </div>

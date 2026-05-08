@@ -191,7 +191,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   };
 
   const handleRowClick = async (task: Task) => {
-    await getTaskById(task.id, isAuthenticated());
+    await getTaskById(task.slug || task.id, isAuthenticated());
     setSelectedTask(task);
     setIsEditModalOpen(true);
   };

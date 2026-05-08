@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, useCallback } from "react";
+import React, { createContext, useContext, useState, useMemo, useCallback, useRef } from "react";
 import { projectApi } from "@/utils/api/projectApi";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -151,6 +151,9 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
     analyticsError: null,
     refreshingAnalytics: false,
   });
+
+  // Track in-flight requests for getProjectsByWorkspace to avoid redundant calls
+  const projectRequestsRef = useRef<Record<string, Promise<Project[]>>>({});
 
   // Helper to handle API operations with error handling
   const handleApiOperation = useCallback(async function <T>(
@@ -324,16 +327,33 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
           search?: string;
         }
       ): Promise<Project[]> => {
-        const result = await handleApiOperation(() =>
-          projectApi.getProjectsByWorkspace(workspaceId, filters)
-        );
+        const cacheKey = `${workspaceId}:${JSON.stringify(filters || {})}`;
 
-        setProjectState((prev) => ({
-          ...prev,
-          projects: result,
-        }));
+        // Check if a request is already in flight
+        if (projectRequestsRef.current[cacheKey]) {
+          return projectRequestsRef.current[cacheKey];
+        }
 
-        return result;
+        const request = (async () => {
+          try {
+            const result = await handleApiOperation(() =>
+              projectApi.getProjectsByWorkspace(workspaceId, filters)
+            );
+
+            setProjectState((prev) => ({
+              ...prev,
+              projects: result,
+            }));
+
+            return result;
+          } finally {
+            // Remove from in-flight requests
+            delete projectRequestsRef.current[cacheKey];
+          }
+        })();
+
+        projectRequestsRef.current[cacheKey] = request;
+        return request;
       },
 
       updateProject: async (
