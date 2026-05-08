@@ -114,7 +114,7 @@ export class LabelsController {
   @ApiResponse({ status: 404, description: 'Label assignment not found' })
   @ApiResponse({ status: 403, description: 'Forbidden - User does not have permission' })
   removeLabelFromTask(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Param('taskId') taskId: string,
     @Param('labelId', ParseUUIDPipe) labelId: string,
     @CurrentUser() user: User,
   ) {
@@ -142,7 +142,7 @@ export class LabelsController {
   @ApiResponse({ status: 200, description: 'List of labels assigned to the task' })
   @ApiResponse({ status: 403, description: 'Forbidden - User does not have permission' })
   @ApiResponse({ status: 404, description: 'Task not found' })
-  getTaskLabels(@Param('taskId', ParseUUIDPipe) taskId: string, @CurrentUser() user: User) {
+  getTaskLabels(@Param('taskId') taskId: string, @CurrentUser() user: User) {
     return this.labelsService.getTaskLabels(taskId, user.id);
   }
 }

@@ -344,8 +344,10 @@ export class AccessControlService {
     // Check if user is SUPER_ADMIN
     const isSuperAdmin = await this.checkSuperAdmin(userId);
 
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
       include: {
         assignees: { select: { userId: true } },
         reporters: { select: { userId: true } },

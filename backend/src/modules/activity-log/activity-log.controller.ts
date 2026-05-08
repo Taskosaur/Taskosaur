@@ -115,7 +115,7 @@ export class ActivityLogController {
     description: 'Get activity logs for a specific task with pagination',
   })
   async getTaskActivities(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Param('taskId') taskId: string,
     @Query('limit') limit: string = '50',
     @Query('page') page: string = '1',
   ) {

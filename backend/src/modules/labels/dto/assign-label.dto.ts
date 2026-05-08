@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsArray, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsArray, IsUUID, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AssignLabelDto {
@@ -7,7 +7,7 @@ export class AssignLabelDto {
     example: '123e4567-e89b-12d3-a456-426614174999',
     format: 'uuid',
   })
-  @IsUUID('4')
+  @IsString()
   @IsNotEmpty()
   taskId: string;
 
@@ -27,7 +27,7 @@ export class AssignMultipleLabelsDto {
     example: '123e4567-e89b-12d3-a456-426614174999',
     format: 'uuid',
   })
-  @IsUUID('4')
+  @IsString()
   @IsNotEmpty()
   taskId: string;
 

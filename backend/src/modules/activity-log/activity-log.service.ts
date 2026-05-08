@@ -1,10 +1,11 @@
 // src/activity-log/activity-log.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { ActivityLog, ActivityType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class ActivityLogService {
+  private readonly logger = new Logger(ActivityLogService.name);
   constructor(private prisma: PrismaService) {}
 
   async logActivity(data: {
@@ -17,12 +18,46 @@ export class ActivityLogService {
     oldValue?: any;
     newValue?: any;
   }) {
+    let resolvedEntityId = data.entityId;
+
+    // Resolve taskId if it's a slug and entityType is Task
+    if (data.entityType.toLowerCase() === 'task') {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        data.entityId,
+      );
+
+      if (!isUuid) {
+        const task = await this.prisma.task.findFirst({
+          where: { slug: data.entityId },
+          select: { id: true },
+        });
+        if (task) {
+          resolvedEntityId = task.id;
+        } else {
+          this.logger.warn(
+            `Could not resolve task slug to UUID for activity log: ${data.entityId}`,
+          );
+        }
+      }
+    }
+
+    const finalIsUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      resolvedEntityId,
+    );
+
+    if (!finalIsUuid && resolvedEntityId) {
+      this.logger.error(
+        `Attempting to log activity with non-UUID entityId: ${resolvedEntityId} (EntityType: ${data.entityType})`,
+      );
+      return; // Prevent Prisma crash
+    }
+
     return await this.prisma.activityLog.create({
       data: {
         type: data.type,
         description: data.description,
         entityType: data.entityType,
-        entityId: data.entityId,
+        entityId: resolvedEntityId,
         userId: data.userId,
         organizationId: data.organizationId,
         oldValue: data.oldValue || null,
@@ -83,12 +118,16 @@ export class ActivityLogService {
     });
   }
 
-  async getTaskParticipants(taskId: string): Promise<string[]> {
-    if (!taskId) return [];
+  async getTaskParticipants(taskIdOrSlug: string): Promise<string[]> {
+    if (!taskIdOrSlug) return [];
 
     try {
-      const task = await this.prisma.task.findUnique({
-        where: { id: taskId },
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        taskIdOrSlug,
+      );
+
+      const task = await this.prisma.task.findFirst({
+        where: isUuid ? { id: taskIdOrSlug } : { slug: taskIdOrSlug },
         select: {
           assignees: true,
           reporters: true,
@@ -156,8 +195,11 @@ export class ActivityLogService {
     try {
       switch (entityType.toLowerCase()) {
         case 'task': {
-          const task = await this.prisma.task.findUnique({
-            where: { id: entityId },
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            entityId,
+          );
+          const task = await this.prisma.task.findFirst({
+            where: isUuid ? { id: entityId } : { slug: entityId },
             select: {
               project: {
                 select: {
@@ -226,7 +268,7 @@ export class ActivityLogService {
   }
 
   async getTaskActivities(
-    taskId: string,
+    taskIdOrSlug: string,
     page: number = 1,
     limit: number = 50,
   ): Promise<{
@@ -239,14 +281,21 @@ export class ActivityLogService {
       hasPrevPage: boolean;
     };
   }> {
-    // Validate task exists
-    const taskExists = await this.prisma.task.findFirst({
-      where: { id: taskId },
+    // Resolve taskId if it's a slug
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      taskIdOrSlug,
+    );
+
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskIdOrSlug } : { slug: taskIdOrSlug },
+      select: { id: true },
     });
 
-    if (!taskExists) {
-      throw new Error('Task not found');
+    if (!task) {
+      throw new NotFoundException('Task not found');
     }
+
+    const taskId = task.id;
 
     // Simple where clause - just match entityId with taskId
     const whereClause = {
