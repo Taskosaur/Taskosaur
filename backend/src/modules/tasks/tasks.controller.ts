@@ -794,8 +794,13 @@ export class TasksController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  findOne(@Param('id') id: string, @CurrentUser() user: User) {
     return this.tasksService.findOne(id, user.id);
+  }
+
+  @Get('slug/:slug')
+  findBySlug(@Param('slug') slug: string, @CurrentUser() user: User) {
+    return this.tasksService.findOne(slug, user.id);
   }
 
   @Get('key/:key')
@@ -834,9 +839,13 @@ export class TasksController {
     summary: 'Update relative task rank',
     description: 'Updates a tasks rank relative to neighbors in a specific scope',
   })
-  async updateRelativeRank(@Param('id') taskId: string, @Body() dto: any) {
+  async updateRelativeRank(
+    @Param('id') taskId: string,
+    @Body() dto: any,
+    @CurrentUser() user: User,
+  ) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    return this.tasksService.reorderTask(taskId, dto);
+    return this.tasksService.reorderTask(taskId, user.id, dto);
   }
 
   @Patch(':id')
@@ -854,11 +863,7 @@ export class TasksController {
     title: 'Task Updated',
     message: 'A task you are involved in has been updated',
   })
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateTaskDto: UpdateTaskDto,
-    @CurrentUser() user: User,
-  ) {
+  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto, @CurrentUser() user: User) {
     return this.tasksService.update(id, updateTaskDto, user.id);
   }
 
@@ -878,7 +883,7 @@ export class TasksController {
     message: 'Task status has been changed',
   })
   updateStatus(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body('statusId', ParseUUIDPipe) statusId: string,
     @CurrentUser() user: User,
   ) {
@@ -901,7 +906,7 @@ export class TasksController {
     message: 'You have been assigned to a task',
   })
   updateAssignees(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body('assigneeIds') assigneeIds: string[],
     @CurrentUser() user: User,
   ) {
@@ -923,7 +928,7 @@ export class TasksController {
     title: 'Task Unassigned',
     message: 'You have been unassigned from a task',
   })
-  unassignTask(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  unassignTask(@Param('id') id: string, @CurrentUser() user: User) {
     return this.tasksService.update(id, { assigneeIds: [] }, user.id);
   }
 
@@ -941,7 +946,7 @@ export class TasksController {
     title: 'Task Deleted',
     message: 'A task you were involved in has been deleted',
   })
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  remove(@Param('id') id: string, @CurrentUser() user: User) {
     return this.tasksService.remove(id, user.id);
   }
 
@@ -970,7 +975,7 @@ export class TasksController {
     description: 'Completed recurring task occurrence',
     includeNewValue: true,
   })
-  async completeOccurrence(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  async completeOccurrence(@Param('id') id: string, @CurrentUser() user: User) {
     return this.tasksService.completeOccurrenceAndGenerateNext(id, user.id);
   }
 
@@ -1014,7 +1019,7 @@ export class TasksController {
     description: 'Task is already a recurring task',
   })
   addRecurrence(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() config: RecurrenceConfigDto,
     @CurrentUser() user: User,
   ) {
@@ -1082,7 +1087,7 @@ export class TasksController {
     description: 'Task is not a recurring task',
   })
   updateRecurrence(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() config: RecurrenceConfigDto,
     @CurrentUser() user: User,
   ) {
@@ -1102,7 +1107,7 @@ export class TasksController {
     status: 400,
     description: 'Task is not a recurring task',
   })
-  stopRecurrence(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  stopRecurrence(@Param('id') id: string, @CurrentUser() user: User) {
     return this.tasksService.stopRecurrence(id, user.id);
   }
 
@@ -1139,11 +1144,7 @@ export class TasksController {
     title: 'New Comment',
     message: 'Someone commented on a task you are involved in',
   })
-  addComment(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body('comment') comment: string,
-    @CurrentUser() user: User,
-  ) {
+  addComment(@Param('id') id: string, @Body('comment') comment: string, @CurrentUser() user: User) {
     return this.tasksService.addComment(id, comment, user.id);
   }
 
@@ -1163,7 +1164,7 @@ export class TasksController {
     message: 'Task priority has been changed',
   })
   updatePriority(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body('priority') priority: TaskPriority,
     @CurrentUser() user: User,
   ) {
@@ -1186,7 +1187,7 @@ export class TasksController {
     message: 'Task due date has been changed',
   })
   updateDueDate(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body('dueDate') dueDate: string,
     @CurrentUser() user: User,
   ) {

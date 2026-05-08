@@ -134,7 +134,7 @@ export class TaskWatchersController {
   @ApiParam({ name: 'taskId', description: 'Task ID (UUID)' })
   @ApiResponse({ status: 200, description: 'List of users watching the task' })
   @ApiResponse({ status: 404, description: 'Task not found' })
-  getTaskWatchers(@Param('taskId', ParseUUIDPipe) taskId: string) {
+  getTaskWatchers(@Param('taskId') taskId: string) {
     return this.taskWatchersService.getTaskWatchers(taskId);
   }
 
@@ -159,7 +159,7 @@ export class TaskWatchersController {
     description: 'Returns true if user is watching the task',
   })
   isUserWatchingTask(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Param('taskId') taskId: string,
     @Param('userId', ParseUUIDPipe) userId: string,
   ) {
     return this.taskWatchersService.isUserWatchingTask(userId, taskId);

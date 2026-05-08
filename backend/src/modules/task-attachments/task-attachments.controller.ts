@@ -162,7 +162,7 @@ export class TaskAttachmentsController {
     entityIdName: 'taskId',
   })
   async uploadFile(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Param('taskId') taskId: string,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: any,
   ) {
@@ -184,7 +184,7 @@ export class TaskAttachmentsController {
   }
 
   @Get('task/:taskId')
-  getTaskAttachments(@Param('taskId', ParseUUIDPipe) taskId: string, @CurrentUser() user: any) {
+  getTaskAttachments(@Param('taskId') taskId: string, @CurrentUser() user: any) {
     return this.taskAttachmentsService.getTaskAttachments(taskId, user.id as string);
   }
 

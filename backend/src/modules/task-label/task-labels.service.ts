@@ -15,8 +15,9 @@ export class TaskLabelsService {
     const { taskId, labelId } = assignTaskLabelDto;
 
     // Verify task exists and user has access to it
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
       include: {
         project: {
           include: {
@@ -64,7 +65,7 @@ export class TaskLabelsService {
     const existingAssignment = await this.prisma.taskLabel.findUnique({
       where: {
         taskId_labelId: {
-          taskId,
+          taskId: task.id,
           labelId,
         },
       },
@@ -76,7 +77,7 @@ export class TaskLabelsService {
 
     return this.prisma.taskLabel.create({
       data: {
-        taskId,
+        taskId: task.id,
         labelId,
         createdBy: userId,
         updatedBy: userId,
@@ -149,13 +150,12 @@ export class TaskLabelsService {
   }
 
   async update(taskId: string, labelId: string, userId: string): Promise<TaskLabel> {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
     // Verify task label assignment exists and user has access
-    const taskLabel = await this.prisma.taskLabel.findUnique({
+    const taskLabel = await this.prisma.taskLabel.findFirst({
       where: {
-        taskId_labelId: {
-          taskId,
-          labelId,
-        },
+        labelId,
+        task: isUuid ? { id: taskId } : { slug: taskId },
       },
       include: {
         task: {
@@ -195,7 +195,7 @@ export class TaskLabelsService {
     const updatedTaskLabel = await this.prisma.taskLabel.update({
       where: {
         taskId_labelId: {
-          taskId,
+          taskId: taskLabel.taskId,
           labelId,
         },
       },
@@ -226,13 +226,12 @@ export class TaskLabelsService {
   }
 
   async remove(taskId: string, labelId: string, userId: string): Promise<TaskLabel> {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
     // Verify task label assignment exists and user has access
-    const taskLabel = await this.prisma.taskLabel.findUnique({
+    const taskLabel = await this.prisma.taskLabel.findFirst({
       where: {
-        taskId_labelId: {
-          taskId,
-          labelId,
-        },
+        labelId,
+        task: isUuid ? { id: taskId } : { slug: taskId },
       },
       include: {
         task: {
@@ -273,11 +272,12 @@ export class TaskLabelsService {
     await this.prisma.taskLabel.delete({
       where: {
         taskId_labelId: {
-          taskId,
+          taskId: taskLabel.taskId,
           labelId,
         },
       },
     });
+
     return taskLabel;
   }
 }

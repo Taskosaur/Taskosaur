@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsEnum, IsOptional, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsEnum, IsOptional, IsUUID, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { DependencyType } from '@prisma/client';
 
@@ -18,7 +18,7 @@ export class CreateTaskDependencyDto {
     example: '123e4567-e89b-12d3-a456-426614174000',
     format: 'uuid',
   })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   dependentTaskId: string;
 
@@ -27,7 +27,7 @@ export class CreateTaskDependencyDto {
     example: '123e4567-e89b-12d3-a456-426614174001',
     format: 'uuid',
   })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   blockingTaskId: string;
 

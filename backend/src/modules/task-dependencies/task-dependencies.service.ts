@@ -28,25 +28,45 @@ export class TaskDependenciesService {
     }
 
     // Check if tasks exist
+    const isDepUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      dependentTaskId,
+    );
+    const isBlockUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      blockingTaskId,
+    );
+
     const [dependentTask, blockingTask] = await Promise.all([
-      this.prisma.task.findUnique({ where: { id: dependentTaskId } }),
-      this.prisma.task.findUnique({ where: { id: blockingTaskId } }),
+      this.prisma.task.findFirst({
+        where: isDepUuid ? { id: dependentTaskId } : { slug: dependentTaskId },
+      }),
+      this.prisma.task.findFirst({
+        where: isBlockUuid ? { id: blockingTaskId } : { slug: blockingTaskId },
+      }),
     ]);
 
     if (!dependentTask) {
-      throw new NotFoundException(`Dependent task with ID ${dependentTaskId} not found`);
+      throw new NotFoundException(`Dependent task ${dependentTaskId} not found`);
     }
 
     if (!blockingTask) {
-      throw new NotFoundException(`Blocking task with ID ${blockingTaskId} not found`);
+      throw new NotFoundException(`Blocking task ${blockingTaskId} not found`);
+    }
+
+    // Update variables to use UUIDs
+    const depTaskId = dependentTask.id;
+    const blockTaskId = blockingTask.id;
+
+    // Prevent self-dependency after resolution
+    if (depTaskId === blockTaskId) {
+      throw new BadRequestException('A task cannot depend on itself');
     }
 
     // Check if dependency already exists
     const existingDependency = await this.prisma.taskDependency.findUnique({
       where: {
         dependentTaskId_blockingTaskId: {
-          dependentTaskId,
-          blockingTaskId,
+          dependentTaskId: depTaskId,
+          blockingTaskId: blockTaskId,
         },
       },
     });
@@ -56,13 +76,13 @@ export class TaskDependenciesService {
     }
 
     // Check for circular dependencies
-    await this.validateNoCycles(dependentTaskId, blockingTaskId);
+    await this.validateNoCycles(depTaskId, blockTaskId);
 
     return this.prisma.taskDependency.create({
       data: {
         type: type || DependencyType.BLOCKS,
-        dependentTaskId,
-        blockingTaskId,
+        dependentTaskId: depTaskId,
+        blockingTaskId: blockTaskId,
         createdBy,
       },
       include: {
@@ -179,9 +199,21 @@ export class TaskDependenciesService {
     dependsOn: TaskDependency[];
     blocks: TaskDependency[];
   }> {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
+      select: { id: true },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    const resolvedTaskId = task.id;
+
     const [dependsOn, blocks] = await Promise.all([
       this.prisma.taskDependency.findMany({
-        where: { dependentTaskId: taskId },
+        where: { dependentTaskId: resolvedTaskId },
         include: {
           blockingTask: {
             select: {
@@ -194,7 +226,7 @@ export class TaskDependenciesService {
         },
       }),
       this.prisma.taskDependency.findMany({
-        where: { blockingTaskId: taskId },
+        where: { blockingTaskId: resolvedTaskId },
         include: {
           dependentTask: {
             select: {
@@ -211,9 +243,19 @@ export class TaskDependenciesService {
     return { dependsOn, blocks };
   }
 
-  getBlockedTasks(taskId: string): Promise<TaskDependency[]> {
+  async getBlockedTasks(taskId: string): Promise<TaskDependency[]> {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
+      select: { id: true },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
     return this.prisma.taskDependency.findMany({
-      where: { blockingTaskId: taskId },
+      where: { blockingTaskId: task.id },
       include: {
         dependentTask: {
           select: {
@@ -284,11 +326,33 @@ export class TaskDependenciesService {
   }
 
   async removeByTasks(dependentTaskId: string, blockingTaskId: string): Promise<void> {
+    const isDepUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      dependentTaskId,
+    );
+    const isBlockUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      blockingTaskId,
+    );
+
+    const [dependentTask, blockingTask] = await Promise.all([
+      this.prisma.task.findFirst({
+        where: isDepUuid ? { id: dependentTaskId } : { slug: dependentTaskId },
+        select: { id: true },
+      }),
+      this.prisma.task.findFirst({
+        where: isBlockUuid ? { id: blockingTaskId } : { slug: blockingTaskId },
+        select: { id: true },
+      }),
+    ]);
+
+    if (!dependentTask || !blockingTask) {
+      throw new NotFoundException('One or both tasks not found');
+    }
+
     const dependency = await this.prisma.taskDependency.findUnique({
       where: {
         dependentTaskId_blockingTaskId: {
-          dependentTaskId,
-          blockingTaskId,
+          dependentTaskId: dependentTask.id,
+          blockingTaskId: blockingTask.id,
         },
       },
     });

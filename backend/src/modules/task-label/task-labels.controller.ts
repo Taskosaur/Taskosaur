@@ -88,7 +88,7 @@ export class TaskLabelsController {
     description: 'Forbidden - User does not have permission',
   })
   async remove(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Param('taskId') taskId: string,
     @Param('labelId', ParseUUIDPipe) labelId: string,
     @CurrentUser() user: User,
   ) {

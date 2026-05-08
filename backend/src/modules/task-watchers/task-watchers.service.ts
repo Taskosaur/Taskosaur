@@ -19,8 +19,9 @@ export class TaskWatchersService {
     const { taskId, userId } = createTaskWatcherDto;
 
     // Verify task exists
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
       select: {
         id: true,
         title: true,
@@ -83,7 +84,7 @@ export class TaskWatchersService {
     try {
       return await this.prisma.taskWatcher.create({
         data: {
-          taskId,
+          taskId: task.id,
           userId,
         },
         include: {
@@ -127,14 +128,12 @@ export class TaskWatchersService {
 
   async unwatchTask(unwatchTaskDto: UnwatchTaskDto): Promise<void> {
     const { taskId, userId } = unwatchTaskDto;
-
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
     // Verify the watcher exists
-    const watcher = await this.prisma.taskWatcher.findUnique({
+    const watcher = await this.prisma.taskWatcher.findFirst({
       where: {
-        taskId_userId: {
-          taskId,
-          userId,
-        },
+        userId,
+        task: isUuid ? { id: taskId } : { slug: taskId },
       },
     });
 
@@ -145,16 +144,27 @@ export class TaskWatchersService {
     await this.prisma.taskWatcher.delete({
       where: {
         taskId_userId: {
-          taskId,
+          taskId: watcher.taskId,
           userId,
         },
       },
     });
   }
 
-  findAll(taskId?: string, userId?: string): Promise<TaskWatcher[]> {
+  async findAll(taskId?: string, userId?: string): Promise<TaskWatcher[]> {
     const whereClause: any = {};
-    if (taskId) whereClause.taskId = taskId;
+    if (taskId) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+      const task = await this.prisma.task.findFirst({
+        where: isUuid ? { id: taskId } : { slug: taskId },
+        select: { id: true },
+      });
+      if (task) {
+        whereClause.taskId = task.id;
+      } else {
+        return []; // Task not found, so no watchers
+      }
+    }
     if (userId) whereClause.userId = userId;
 
     return this.prisma.taskWatcher.findMany({
@@ -284,8 +294,9 @@ export class TaskWatchersService {
 
   async getTaskWatchers(taskId: string): Promise<TaskWatcher[]> {
     // Verify task exists
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
       select: { id: true },
     });
 
@@ -294,7 +305,7 @@ export class TaskWatchersService {
     }
 
     return this.prisma.taskWatcher.findMany({
-      where: { taskId },
+      where: { taskId: task.id },
       include: {
         user: {
           select: {
@@ -393,12 +404,11 @@ export class TaskWatchersService {
   }
 
   async isUserWatchingTask(userId: string, taskId: string): Promise<boolean> {
-    const watcher = await this.prisma.taskWatcher.findUnique({
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+    const watcher = await this.prisma.taskWatcher.findFirst({
       where: {
-        taskId_userId: {
-          taskId,
-          userId,
-        },
+        userId,
+        task: isUuid ? { id: taskId } : { slug: taskId },
       },
     });
 

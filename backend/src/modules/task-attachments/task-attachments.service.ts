@@ -12,7 +12,6 @@ import { promises as fs, existsSync } from 'fs';
 import * as path from 'path';
 import { StorageService } from '../storage/storage.service';
 import { Response } from 'express';
-import { isUUID } from 'class-validator';
 
 @Injectable()
 export class TaskAttachmentsService implements OnModuleInit {
@@ -37,10 +36,15 @@ export class TaskAttachmentsService implements OnModuleInit {
     }
   }
 
-  private async checkAccess(userId: string, taskId: string) {
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+  private async checkAccess(userId: string, taskIdOrSlug: string) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      taskIdOrSlug,
+    );
+
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskIdOrSlug } : { slug: taskIdOrSlug },
       select: {
+        id: true,
         projectId: true,
         project: {
           select: {
@@ -94,16 +98,21 @@ export class TaskAttachmentsService implements OnModuleInit {
     }
 
     return {
+      taskId: task.id,
       projectRole: user.projectMembers[0]?.role,
       workspaceRole: user.workspaceMembers[0]?.role,
       organizationRole: user.organizationMembers[0]?.role,
     };
   }
 
-  async create(file: Express.Multer.File, taskId: string, userId: string): Promise<TaskAttachment> {
-    await this.checkAccess(userId, taskId);
+  async create(
+    file: Express.Multer.File,
+    taskIdOrSlug: string,
+    userId: string,
+  ): Promise<TaskAttachment> {
+    const { taskId } = await this.checkAccess(userId, taskIdOrSlug);
 
-    // Verify task exists
+    // Verify task exists and get metadata for storage
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       select: {
@@ -175,8 +184,8 @@ export class TaskAttachmentsService implements OnModuleInit {
     }
   }
 
-  async findAll(taskId: string, userId: string): Promise<any[]> {
-    await this.checkAccess(userId, taskId);
+  async findAll(taskIdOrSlug: string, userId: string): Promise<any[]> {
+    const { taskId } = await this.checkAccess(userId, taskIdOrSlug);
 
     const whereClause = taskId ? { taskId } : {};
 
@@ -383,8 +392,8 @@ export class TaskAttachmentsService implements OnModuleInit {
     }
   }
 
-  async getTaskAttachments(taskId: string, userId: string): Promise<any[]> {
-    await this.checkAccess(userId, taskId);
+  async getTaskAttachments(taskIdOrSlug: string, userId: string): Promise<any[]> {
+    const { taskId } = await this.checkAccess(userId, taskIdOrSlug);
 
     // Verify task exists
     const task = await this.prisma.task.findUnique({
@@ -494,8 +503,8 @@ export class TaskAttachmentsService implements OnModuleInit {
     return attachment;
   }
 
-  async getAttachmentStats(taskId: string, userId: string): Promise<any> {
-    await this.checkAccess(userId, taskId);
+  async getAttachmentStats(taskIdOrSlug: string, userId: string): Promise<any> {
+    const { taskId } = await this.checkAccess(userId, taskIdOrSlug);
 
     const whereClause = { taskId };
 
@@ -576,10 +585,7 @@ export class TaskAttachmentsService implements OnModuleInit {
 
   // Helper method to generate safe file path
   async generateFilePath(originalName: string, taskId: string): Promise<string> {
-    // Validate taskId is a valid UUID to prevent path traversal
-    if (!isUUID(taskId)) {
-      throw new BadRequestException('Invalid taskId format');
-    }
+    // We allow both UUIDs and slugs as taskId here
 
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);

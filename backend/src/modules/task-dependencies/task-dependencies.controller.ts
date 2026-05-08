@@ -96,7 +96,7 @@ export class TaskDependenciesController {
     description: 'Task dependencies (what it depends on and what it blocks)',
   })
   @ApiResponse({ status: 404, description: 'Task not found' })
-  getTaskDependencies(@Param('taskId', ParseUUIDPipe) taskId: string) {
+  getTaskDependencies(@Param('taskId') taskId: string) {
     return this.taskDependenciesService.getTaskDependencies(taskId);
   }
 
@@ -107,7 +107,7 @@ export class TaskDependenciesController {
     status: 200,
     description: 'List of tasks blocked by this task',
   })
-  getBlockedTasks(@Param('taskId', ParseUUIDPipe) taskId: string) {
+  getBlockedTasks(@Param('taskId') taskId: string) {
     return this.taskDependenciesService.getBlockedTasks(taskId);
   }
 
@@ -167,8 +167,8 @@ export class TaskDependenciesController {
   })
   @ApiResponse({ status: 404, description: 'Task dependency not found' })
   removeByTasks(
-    @Param('dependentTaskId', ParseUUIDPipe) dependentTaskId: string,
-    @Param('blockingTaskId', ParseUUIDPipe) blockingTaskId: string,
+    @Param('dependentTaskId') dependentTaskId: string,
+    @Param('blockingTaskId') blockingTaskId: string,
   ) {
     return this.taskDependenciesService.removeByTasks(dependentTaskId, blockingTaskId);
   }

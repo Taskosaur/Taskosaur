@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsUUID } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import { ScopeType, ViewType } from '@prisma/client';
 
 export class ReorderDto {
@@ -12,10 +12,10 @@ export class ReorderDto {
   viewType: ViewType;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   afterTaskId: string | null;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   beforeTaskId: string | null;
 }

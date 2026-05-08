@@ -147,7 +147,7 @@ export class TaskCommentsController {
   })
   @ApiParam({ name: 'taskId', description: 'Task ID (UUID)' })
   @ApiResponse({ status: 200, description: 'Hierarchical comment tree' })
-  getTaskCommentTree(@Param('taskId', ParseUUIDPipe) taskId: string, @CurrentUser() user: User) {
+  getTaskCommentTree(@Param('taskId') taskId: string, @CurrentUser() user: User) {
     return this.taskCommentsService.getTaskCommentTree(taskId, user.id);
   }
 

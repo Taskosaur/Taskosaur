@@ -1,7 +1,7 @@
-import { IsNotEmpty, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsUUID, IsString } from 'class-validator';
 
 export class CreateTaskWatcherDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   taskId: string;
 
@@ -11,7 +11,7 @@ export class CreateTaskWatcherDto {
 }
 
 export class WatchTaskDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   taskId: string;
 
@@ -21,7 +21,7 @@ export class WatchTaskDto {
 }
 
 export class UnwatchTaskDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   taskId: string;
 
