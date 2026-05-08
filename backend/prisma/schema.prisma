@@ -199,6 +199,7 @@ model Workspace {
   createdByUser   User?             @relation("WorkspaceCreatedBy", fields: [createdBy], references: [id])
   updatedByUser   User?             @relation("WorkspaceUpdatedBy", fields: [updatedBy], references: [id])
   Invitation      Invitation[]
+  workspaceLabels WorkspaceLabel[]
 
   @@unique([organizationId, slug])
   @@index([parentWorkspaceId])
@@ -511,9 +512,22 @@ model Label {
   createdByUser User?       @relation("LabelCreatedBy", fields: [createdBy], references: [id])
   updatedByUser User?       @relation("LabelUpdatedBy", fields: [updatedBy], references: [id])
   taskLabels    TaskLabel[]
+  workspaceLabels WorkspaceLabel[]
 
   @@unique([projectId, name])
   @@map("labels")
+}
+
+model WorkspaceLabel {
+  workspaceId String   @map("workspace_id") @db.Uuid
+  labelId     String   @map("label_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  label       Label     @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, labelId])
+  @@map("workspace_labels")
 }
 
 model TaskLabel {

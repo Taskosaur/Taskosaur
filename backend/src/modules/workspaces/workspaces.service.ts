@@ -186,15 +186,51 @@ export class WorkspacesService {
 
         if (createWorkspaceDto.parentWorkspaceId) {
           if (createWorkspaceDto.inheritLabels) {
-            // Fetch label definitions from parent workspace's projects
-            const parentLabels = await tx.label.findMany({
+            // Fetch label definitions from parent workspace's used labels
+            let parentLabels = await tx.label.findMany({
               where: {
-                project: { workspaceId: createWorkspaceDto.parentWorkspaceId },
+                workspaceLabels: {
+                  some: { workspaceId: createWorkspaceDto.parentWorkspaceId },
+                },
               },
-              select: { name: true, color: true, description: true },
+              select: { id: true, name: true, color: true, description: true },
             });
+
+            // Fallback: If no labels are found via WorkspaceLabel,
+            // fetch labels directly from the projects within the parent workspace.
+            if (parentLabels.length === 0) {
+              parentLabels = await tx.label.findMany({
+                where: {
+                  project: { workspaceId: createWorkspaceDto.parentWorkspaceId },
+                },
+                select: { id: true, name: true, color: true, description: true },
+              });
+
+              // Backfill the parent workspace with these labels
+              if (parentLabels.length > 0) {
+                await tx.workspaceLabel.createMany({
+                  data: parentLabels.map((l) => ({
+                    workspaceId: createWorkspaceDto.parentWorkspaceId!,
+                    labelId: l.id,
+                  })),
+                  skipDuplicates: true,
+                });
+              }
+            }
             if (parentLabels.length > 0) {
-              inheritanceSettings.inheritedLabelTemplates = parentLabels;
+              inheritanceSettings.inheritedLabelTemplates = parentLabels.map((l) => ({
+                name: l.name,
+                color: l.color,
+                description: l.description,
+              }));
+
+              await tx.workspaceLabel.createMany({
+                data: parentLabels.map((l) => ({
+                  workspaceId: workspace.id,
+                  labelId: l.id,
+                })),
+                skipDuplicates: true,
+              });
             }
           }
 
@@ -1297,11 +1333,37 @@ export class WorkspacesService {
 
       // ── 2. LABEL TEMPLATES ───────────────────────────────────────────────
       if (inheritLabels) {
-        // Fetch all distinct label definitions from parent workspace's projects
-        const parentLabels = await tx.label.findMany({
-          where: { project: { workspaceId: parentWorkspaceId } },
-          select: { name: true, color: true, description: true },
+        // Fetch all distinct used label definitions from parent workspace
+        let parentLabels = await tx.label.findMany({
+          where: {
+            workspaceLabels: {
+              some: { workspaceId: parentWorkspaceId },
+            },
+          },
+          select: { id: true, name: true, color: true, description: true },
         });
+
+        // Fallback: If no labels are found via WorkspaceLabel,
+        // fetch labels directly from the projects within the parent workspace.
+        if (parentLabels.length === 0) {
+          parentLabels = await tx.label.findMany({
+            where: {
+              project: { workspaceId: parentWorkspaceId },
+            },
+            select: { id: true, name: true, color: true, description: true },
+          });
+
+          // Backfill the parent workspace with these labels
+          if (parentLabels.length > 0) {
+            await tx.workspaceLabel.createMany({
+              data: parentLabels.map((l) => ({
+                workspaceId: parentWorkspaceId,
+                labelId: l.id,
+              })),
+              skipDuplicates: true,
+            });
+          }
+        }
 
         if (parentLabels.length > 0) {
           // Current inherited label templates (keyed by name for O(1) lookup)
@@ -1314,9 +1376,25 @@ export class WorkspacesService {
           // UPSERT: add only missing labels (compare by name)
           const newLabels = parentLabels.filter((l) => !existingNames.has(l.name));
           if (newLabels.length > 0) {
-            currentSettings.inheritedLabelTemplates = [...existingTemplates, ...newLabels];
+            currentSettings.inheritedLabelTemplates = [
+              ...existingTemplates,
+              ...newLabels.map((l) => ({
+                name: l.name,
+                color: l.color,
+                description: l.description,
+              })),
+            ];
             labelsAdded = newLabels.length;
           }
+
+          // Physically link the labels to the child workspace
+          await tx.workspaceLabel.createMany({
+            data: parentLabels.map((l) => ({
+              workspaceId,
+              labelId: l.id,
+            })),
+            skipDuplicates: true,
+          });
         }
       }
 

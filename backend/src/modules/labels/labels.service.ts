@@ -41,56 +41,68 @@ export class LabelsService {
     }
 
     try {
-      return await this.prisma.label.create({
-        data: {
-          ...createLabelDto,
-          createdBy: userId,
-          updatedBy: userId,
-        },
-        include: {
-          project: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              workspace: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                  organization: {
-                    select: {
-                      id: true,
-                      name: true,
-                      slug: true,
+      return await this.prisma.$transaction(async (tx) => {
+        const label = await tx.label.create({
+          data: {
+            ...createLabelDto,
+            createdBy: userId,
+            updatedBy: userId,
+          },
+          include: {
+            project: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                workspace: {
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    organization: {
+                      select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                      },
                     },
                   },
                 },
               },
             },
-          },
-          createdByUser: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
+            createdByUser: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+            updatedByUser: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+            _count: {
+              select: {
+                taskLabels: true,
+              },
             },
           },
-          updatedByUser: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-            },
+        });
+
+        // Add label to WorkspaceLabel join table for workspace-level tracking
+        await tx.workspaceLabel.create({
+          data: {
+            workspaceId: project.workspaceId,
+            labelId: label.id,
           },
-          _count: {
-            select: {
-              taskLabels: true,
-            },
-          },
-        },
+        });
+
+        return label;
       });
     } catch (error) {
       if (error.code === 'P2002') {
@@ -128,7 +140,10 @@ export class LabelsService {
         throw new ForbiddenException('You do not have permission to view labels in this project');
       }
 
-      whereClause.projectId = projectId;
+      whereClause.OR = [
+        { project: { workspaceId: project.workspaceId } },
+        { workspaceLabels: { some: { workspaceId: project.workspaceId } } },
+      ];
     } else {
       // If no projectId, get all labels from projects user has access to
       const accessibleProjects = await this.prisma.project.findMany({
@@ -388,8 +403,9 @@ export class LabelsService {
     const { taskId, labelId } = assignLabelDto;
 
     // Verify task and label exist and user has access
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
       include: {
         project: {
           include: {
@@ -417,23 +433,47 @@ export class LabelsService {
 
     const label = await this.prisma.label.findUnique({
       where: { id: labelId },
-      select: { projectId: true },
+      include: {
+        project: { select: { workspaceId: true } },
+        workspaceLabels: { where: { workspaceId: task.project.workspaceId } },
+      },
     });
 
     if (!label) {
       throw new NotFoundException('Label not found');
     }
 
-    if (task.projectId !== label.projectId) {
-      throw new ConflictException('Task and label must belong to the same project');
+    if (
+      task.project.workspaceId !== label.project.workspaceId &&
+      label.workspaceLabels.length === 0
+    ) {
+      throw new ConflictException(
+        'Task and label must belong to the same workspace or be inherited',
+      );
     }
 
     try {
-      await this.prisma.taskLabel.create({
-        data: {
-          taskId,
-          labelId,
-        },
+      await this.prisma.$transaction(async (tx) => {
+        await tx.taskLabel.create({
+          data: {
+            taskId: task.id,
+            labelId,
+          },
+        });
+
+        await tx.workspaceLabel.upsert({
+          where: {
+            workspaceId_labelId: {
+              workspaceId: task.project.workspaceId,
+              labelId,
+            },
+          },
+          update: {},
+          create: {
+            workspaceId: task.project.workspaceId,
+            labelId,
+          },
+        });
       });
     } catch (error) {
       if (error.code === 'P2002') {
@@ -445,8 +485,9 @@ export class LabelsService {
 
   async removeLabelFromTask(taskId: string, labelId: string, userId: string): Promise<void> {
     // Verify task exists and user has access
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
       include: {
         project: {
           include: {
@@ -476,7 +517,7 @@ export class LabelsService {
       await this.prisma.taskLabel.delete({
         where: {
           taskId_labelId: {
-            taskId,
+            taskId: task.id,
             labelId,
           },
         },
@@ -501,8 +542,9 @@ export class LabelsService {
     }
 
     // Verify task exists and user has access
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
       include: {
         project: {
           include: {
@@ -528,18 +570,21 @@ export class LabelsService {
       throw new ForbiddenException('You do not have permission to modify labels in this project');
     }
 
-    // Verify all labels exist and belong to the same project
+    // Verify all labels exist and belong to the same workspace or are inherited
     const labels = await this.prisma.label.findMany({
       where: {
         id: { in: labelIds },
-        projectId: task.projectId,
+        OR: [
+          { project: { workspaceId: task.project.workspaceId } },
+          { workspaceLabels: { some: { workspaceId: task.project.workspaceId } } },
+        ],
       },
       select: { id: true },
     });
 
     if (labels.length !== labelIds.length) {
       throw new NotFoundException(
-        'One or more labels not found or do not belong to the same project',
+        'One or more labels not found or do not belong to the same workspace',
       );
     }
 
@@ -547,16 +592,25 @@ export class LabelsService {
     await this.prisma.$transaction(async (tx) => {
       // Remove existing labels
       await tx.taskLabel.deleteMany({
-        where: { taskId },
+        where: { taskId: task.id },
       });
 
       // Add new labels
       if (labelIds.length > 0) {
         await tx.taskLabel.createMany({
           data: labelIds.map((labelId) => ({
-            taskId,
+            taskId: task.id,
             labelId,
           })),
+        });
+
+        // Track used labels at the workspace level
+        await tx.workspaceLabel.createMany({
+          data: labelIds.map((labelId) => ({
+            workspaceId: task.project.workspaceId,
+            labelId,
+          })),
+          skipDuplicates: true,
         });
       }
     });
@@ -564,8 +618,9 @@ export class LabelsService {
 
   async getTaskLabels(taskId: string, userId: string): Promise<Label[]> {
     // Verify task exists and user has access
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
       include: {
         project: {
           include: {
@@ -592,7 +647,7 @@ export class LabelsService {
     }
 
     const taskLabels = await this.prisma.taskLabel.findMany({
-      where: { taskId },
+      where: { taskId: task.id },
       include: {
         label: {
           include: {
