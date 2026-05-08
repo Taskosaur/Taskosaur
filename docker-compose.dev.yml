@@ -46,10 +46,10 @@ services:
       DATABASE_URL: postgresql://taskosaur:taskosaur@postgres:5432/taskosaur
       REDIS_HOST: redis
       # Frontend environment variable for API connection
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:${BACKEND_PORT:-3000}/api
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:3000/api
     ports:
-      - "${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}" # Backend
-      - "${FRONTEND_PORT:-3001}:${FRONTEND_PORT:-3001}" # Frontend
+      - "3000:3000" # Backend
+      - "3001:3001" # Frontend
     volumes:
       - .:/app
       - /app/node_modules

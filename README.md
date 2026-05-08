@@ -57,6 +57,9 @@ Taskosaur combines traditional project management features with Conversational A
 - PostgreSQL 16+ (or Docker)
 - Redis 7+ (or Docker)
 
+> [!NOTE]
+> **Default Ports:** Both `docker compose -f docker-compose.dev.yml up` and `npm run dev` will automatically start the Backend on port **3000** and the Frontend on port **3001** by default. Please ensure these ports are available on your system before proceeding.
+
 ### Docker Setup (Recommended)
 
 The fastest way to get started with Taskosaur is using Docker Compose:
@@ -86,7 +89,7 @@ The fastest way to get started with Taskosaur is using Docker Compose:
    - ✅ Generates Prisma client
    - ✅ Runs database migrations
    - ✅ Seeds the database with sample data
-   - ✅ Starts both backend and frontend
+   - ✅ Starts both backend and frontend (on default ports 3000 and 3001 respectively)
 
 4. **Access the application**
    - Frontend: http://localhost:3001
