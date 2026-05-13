@@ -22,7 +22,7 @@ import { TaskLabelsService } from './task-labels.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '@prisma/client';
-import { AssignTaskLabelDto } from './dto/create-task-labels.dto';
+import { AssignTaskLabelDto, AssignMultipleTaskLabelsDto } from './dto/create-task-labels.dto';
 import { LogActivity } from 'src/common/decorator/log-activity.decorator';
 
 @ApiTags('Task Labels')
@@ -58,6 +58,33 @@ export class TaskLabelsController {
   @ApiBody({ type: AssignTaskLabelDto })
   create(@Body() assignTaskLabelDto: AssignTaskLabelDto, @CurrentUser() user: User) {
     return this.taskLabelsService.assignLabel(assignTaskLabelDto, user.id);
+  }
+
+  @Post('assign-multiple')
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @LogActivity({
+    type: 'TASK_LABEL_ADDED',
+    entityType: 'Task Label',
+    description: 'Added multiple labels to task',
+    includeNewValue: true,
+    entityIdName: 'taskId',
+  })
+  @ApiOperation({ summary: 'Assign multiple labels to a task' })
+  @ApiResponse({
+    status: 201,
+    description: 'Labels assigned to task successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Task or one or more labels not found' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - User does not have permission',
+  })
+  @ApiBody({ type: AssignMultipleTaskLabelsDto })
+  assignMultiple(
+    @Body() assignMultipleTaskLabelsDto: AssignMultipleTaskLabelsDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.taskLabelsService.assignMultiple(assignMultipleTaskLabelsDto, user.id);
   }
 
   //

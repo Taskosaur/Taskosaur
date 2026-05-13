@@ -20,3 +20,23 @@ export class AssignTaskLabelDto {
   @IsNotEmpty()
   labelId: string;
 }
+
+export class AssignMultipleTaskLabelsDto {
+  @ApiProperty({
+    description: 'ID of the task to assign the labels to',
+    example: '123e4567-e89b-12d3-a456-426614174999',
+    format: 'uuid',
+  })
+  @IsString()
+  @IsNotEmpty()
+  taskId: string;
+
+  @ApiProperty({
+    description: 'Array of label IDs to assign to the task',
+    example: ['123e4567-e89b-12d3-a456-426614174000'],
+    type: [String],
+  })
+  @IsUUID('4', { each: true })
+  @IsNotEmpty({ each: true })
+  labelIds: string[];
+}

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { TaskLabel } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { AssignTaskLabelDto } from './dto/create-task-labels.dto';
+import { AssignTaskLabelDto, AssignMultipleTaskLabelsDto } from './dto/create-task-labels.dto';
 @Injectable()
 export class TaskLabelsService {
   constructor(private prisma: PrismaService) {}
@@ -48,17 +48,24 @@ export class TaskLabelsService {
       throw new BadRequestException('Cannot assign label to task in archived project');
     }
 
-    // Verify label exists and belongs to the same project
+    // Verify label exists and belongs to the same workspace or is inherited
     const label = await this.prisma.label.findUnique({
       where: { id: labelId },
+      include: {
+        project: { select: { workspaceId: true } },
+        workspaceLabels: { where: { workspaceId: task.project.workspaceId } },
+      },
     });
 
     if (!label) {
       throw new NotFoundException('Label not found');
     }
 
-    if (label.projectId !== task.projectId) {
-      throw new BadRequestException('Label does not belong to the same project as the task');
+    if (
+      task.project.workspaceId !== label.project.workspaceId &&
+      label.workspaceLabels.length === 0
+    ) {
+      throw new BadRequestException('Label does not belong to the same workspace as the task');
     }
 
     // Check if label is already assigned to the task
@@ -75,30 +82,161 @@ export class TaskLabelsService {
       throw new BadRequestException('Label is already assigned to this task');
     }
 
-    return this.prisma.taskLabel.create({
-      data: {
-        taskId: task.id,
-        labelId,
-        createdBy: userId,
-        updatedBy: userId,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const taskLabel = await tx.taskLabel.create({
+        data: {
+          taskId: task.id,
+          labelId,
+          createdBy: userId,
+          updatedBy: userId,
+        },
+        include: {
+          label: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
+              description: true,
+            },
+          },
+          task: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+            },
+          },
+        },
+      });
+
+      // Track label at workspace level
+      await tx.workspaceLabel.upsert({
+        where: {
+          workspaceId_labelId: {
+            workspaceId: task.project.workspaceId,
+            labelId,
+          },
+        },
+        update: {},
+        create: {
+          workspaceId: task.project.workspaceId,
+          labelId,
+        },
+      });
+
+      return taskLabel;
+    });
+  }
+
+  async assignMultiple(
+    assignMultipleTaskLabelsDto: AssignMultipleTaskLabelsDto,
+    userId: string,
+  ): Promise<TaskLabel[]> {
+    const { taskId, labelIds } = assignMultipleTaskLabelsDto;
+
+    if (!labelIds || labelIds.length === 0) {
+      throw new BadRequestException('labelIds array cannot be empty');
+    }
+
+    // Verify task exists and user has access to it
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
       include: {
-        label: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-            description: true,
-          },
-        },
-        task: {
-          select: {
-            id: true,
-            title: true,
-            slug: true,
+        project: {
+          include: {
+            workspace: {
+              include: {
+                members: {
+                  where: { userId },
+                  select: { role: true },
+                },
+              },
+            },
           },
         },
       },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    // Check if user has access to the project's workspace
+    const workspaceAccess = task.project.workspace.members;
+    if (workspaceAccess.length === 0) {
+      throw new ForbiddenException('You do not have permission to modify labels in this project');
+    }
+
+    if (task.project.archive) {
+      throw new BadRequestException('Cannot assign labels to task in archived project');
+    }
+
+    // Verify all labels exist and belong to the same workspace or are inherited
+    const labels = await this.prisma.label.findMany({
+      where: {
+        id: { in: labelIds },
+        OR: [
+          { project: { workspaceId: task.project.workspaceId } },
+          { workspaceLabels: { some: { workspaceId: task.project.workspaceId } } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (labels.length !== labelIds.length) {
+      throw new NotFoundException(
+        'One or more labels not found or do not belong to the same workspace',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // Remove existing labels
+      await tx.taskLabel.deleteMany({
+        where: { taskId: task.id },
+      });
+
+      // Add new labels
+      const taskLabels = await Promise.all(
+        labelIds.map((labelId) =>
+          tx.taskLabel.create({
+            data: {
+              taskId: task.id,
+              labelId,
+              createdBy: userId,
+              updatedBy: userId,
+            },
+            include: {
+              label: {
+                select: {
+                  id: true,
+                  name: true,
+                  color: true,
+                  description: true,
+                },
+              },
+              task: {
+                select: {
+                  id: true,
+                  title: true,
+                  slug: true,
+                },
+              },
+            },
+          }),
+        ),
+      );
+
+      // Track used labels at the workspace level
+      await tx.workspaceLabel.createMany({
+        data: labelIds.map((labelId) => ({
+          workspaceId: task.project.workspaceId,
+          labelId,
+        })),
+        skipDuplicates: true,
+      });
+
+      return taskLabels;
     });
   }
 
