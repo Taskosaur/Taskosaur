@@ -28,12 +28,12 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <SEO />
       <AuthProvider>
-        <AppBootstrapper>
-          <ChatProvider>
+        <ChatProvider>
+          <AppBootstrapper>
             <Component {...pageProps} />
             <ChatPanel />
-          </ChatProvider>
-        </AppBootstrapper>
+          </AppBootstrapper>
+        </ChatProvider>
       </AuthProvider>
       <Toaster expand={false} richColors closeButton />
     </ThemeProvider>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useRouter } from "next/router";
 import { useOrganization } from "@/contexts/organization-context";
 import { setCurrentOrganizationId } from "@/utils/hierarchyContext";
@@ -25,6 +26,7 @@ export default function OrganizationSelector({
 }: {
   onOrganizationChange?: (o: Organization) => void;
 }) {
+  const { t } = useTranslation("header");
   const router = useRouter();
   const { getUserOrganizations, organizations, currentOrganization, setCurrentOrganization: setContextCurrentOrganization, isLoading } = useOrganization();
   const { getCurrentUser } = useAuth();
@@ -127,12 +129,12 @@ export default function OrganizationSelector({
     <div className="space-y-1">
       <p className="text-sm font-bold leading-none">{currentOrganization.name}</p>
       <p className="text-xs text-muted-foreground">
-        {currentOrganization._count?.members ?? 0} {currentOrganization._count?.members === 1 ? 'member' : 'members'}
+        {currentOrganization._count?.members ?? 0} {currentOrganization._count?.members === 1 ? t("member") : t("members")}
       </p>
     </div>
   );
 
-  const notificationTooltipContent = `You have ${totalOtherUnreadCount} unread notification${totalOtherUnreadCount !== 1 ? 's' : ''} in other organizations`;
+  const notificationTooltipContent = t("unreadNotificationsInOtherOrgs", { count: totalOtherUnreadCount });
 
   return (
     <DropdownMenu open={dropdownOpen} onOpenChange={handleDropdownOpen}>
@@ -155,7 +157,7 @@ export default function OrganizationSelector({
           </Tooltip>
 
           <HiChevronDown className="header-org-selector-chevron max-[530px]:hidden" />
-          <span className="hidden max-[530px]:inline-block text-sm font-medium">Organizations</span>
+          <span className="hidden max-[530px]:inline-block text-sm font-medium">{t("organizations")}</span>
           
           {hasOtherNotifications && (
             <Tooltip 
@@ -197,8 +199,8 @@ export default function OrganizationSelector({
               <div className="header-org-empty-icon-container">
                 <Building size={20} className="header-org-empty-icon" />
               </div>
-              <p className="header-org-empty-title">No organizations found</p>
-              <p className="header-org-empty-description">Contact your admin to get access</p>
+              <p className="header-org-empty-title">{t("noOrganizationsFound")}</p>
+              <p className="header-org-empty-description">{t("contactAdminAccess")}</p>
             </div>
           ) : (
             <>
@@ -224,14 +226,14 @@ export default function OrganizationSelector({
                   </Avatar>
                   <div className="header-org-item-info">
                     <p className="header-org-item-name">{org.name}</p>
-                    <p className="header-org-item-members">{org._count?.members ?? 0} {org._count?.members === 1 ? 'member' : 'members'}</p>
+                    <p className="header-org-item-members">{org._count?.members ?? 0} {org._count?.members === 1 ? t("member") : t("members")}</p>
                   </div>
                   {(() => {
                     const unreadCount = unreadCountsByOrg.find(u => u.organizationId === org.id)?.unreadCount;
                     if (!unreadCount) return null;
                     return (
                       <Tooltip 
-                        content={`You have ${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`} 
+                        content={`${unreadCount} ${unreadCount === 1 ? t("unreadNotification") : t("unreadNotifications")}`} 
                         position="right" 
                         className="ml-auto flex items-center"
                       >
@@ -264,7 +266,7 @@ export default function OrganizationSelector({
                     <HiCog className="header-org-manage-icon" />
                   </div>
                   <div className="header-org-manage-text">
-                    <div className="header-org-manage-title">Manage Organizations</div>
+                    <div className="header-org-manage-title">{t("manageOrganizations")}</div>
                   </div>
                 </DropdownMenuItem>
               </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,6 +37,7 @@ export default function UserProfileMenu({
   hasOrganizationAccess = true,
   className = "",
 }: UserProfileMenuProps) {
+  const { t } = useTranslation(["header", "common"]);
   const [isClient, setIsClient] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
@@ -59,12 +61,12 @@ export default function UserProfileMenu({
   };
 
   const getFullName = () => {
-    if (!isClient || !user) return "User";
+    if (!isClient || !user) return t("header:user");
     const fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
-    return fullName || "User";
+    return fullName || t("header:user");
   };
 
-  const getUserRole = () => user?.role == "SUPER_ADMIN" ? "Super Admin" : user?.role || "Admin";
+  const getUserRole = () => user?.role == "SUPER_ADMIN" ? t("header:superAdmin") : user?.role || t("header:admin");
 
   const handleLogout = async () => {
     try {
@@ -136,7 +138,7 @@ export default function UserProfileMenu({
                     <div className="header-user-menu-icon-container header-user-menu-icon-container-settings">
                       <HiCog className="header-user-menu-icon-settings" />
                     </div>
-                    <div className="header-user-menu-text">Profile</div>
+                    <div className="header-user-menu-text">{t("header:profile")}</div>
                   </Link>
                 </DropdownMenuItem>
 
@@ -153,7 +155,7 @@ export default function UserProfileMenu({
                 <RiLogoutCircleRLine className="header-user-menu-icon-logout" />
               </div>
               <div className="header-user-menu-text">
-                {isLoggingOut ? "Logging out..." : "Logout"}
+                {isLoggingOut ? t("header:loggingOut") : t("header:logout")}
               </div>
             </DropdownMenuItem>
           </div>
@@ -164,10 +166,10 @@ export default function UserProfileMenu({
         isOpen={logoutModalOpen}
         onClose={() => setLogoutModalOpen(false)}
         onConfirm={handleLogout}
-        title="Confirm Logout"
-        message="Are you sure you want to log out? You’ll need to log in again to access your account."
-        confirmText="Logout"
-        cancelText="Cancel"
+        title={t("header:confirmLogoutTitle")}
+        message={t("header:confirmLogoutMessage")}
+        confirmText={t("header:logout")}
+        cancelText={t("common:cancel")}
         type="danger"
       />
     </>

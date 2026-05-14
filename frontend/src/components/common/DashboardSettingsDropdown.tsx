@@ -41,9 +41,12 @@ export function DashboardSettingsDropdown({
   sections = [],
   triggerClassName = "border-none bg-[var(--accent)]",
   dropdownWidth = "w-96",
-  title = "Dashboard Settings",
-  description = "Customize your dashboard widgets and metrics",
+  title,
+  description,
 }: DashboardSettingsDropdownProps) {
+  const { t } = useTranslation(["analytics", "workspace-home", "common"]);
+  const displayTitle = title || t("dashboard_settings");
+  const displayDescription = description || t("customize_widgets");
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -51,7 +54,7 @@ export function DashboardSettingsDropdown({
           variant="default"
           className={triggerClassName}
           data-automation-id="dashboard-settings-button"
-          aria-label="Dashboard Settings"
+          aria-label={displayTitle}
         >
           <Settings className="h-4 w-4" />
         </ActionButton>
@@ -64,9 +67,9 @@ export function DashboardSettingsDropdown({
         <div className="bg-gradient-to-r from-[var(--accent)] to-[var(--muted)] p-4 border-none">
           <div className="flex items-center gap-2">
             <Settings className="h-4 w-4 text-[var(--primary)]" />
-            <h3 className="font-semibold text-[var(--card-foreground)]">{title}</h3>
+            <h3 className="font-semibold text-[var(--card-foreground)]">{displayTitle}</h3>
           </div>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">{description}</p>
+          <p className="text-sm text-[var(--muted-foreground)] mt-1">{displayDescription}</p>
         </div>
 
         {/* Content */}
@@ -123,7 +126,7 @@ export function DashboardSettingsDropdown({
                                 : "text-[var(--muted-foreground)]"
                             }`}
                           >
-                            {item.label}
+                            {t(item.label)}
                           </span>
                         </div>
                       </div>
@@ -143,7 +146,7 @@ export function DashboardSettingsDropdown({
           {sections.length === 0 && (
             <div className="text-center py-6 text-[var(--muted-foreground)]">
               <Settings className="h-6 w-6 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No settings available</p>
+              <p className="text-sm">{t("no_settings_available")}</p>
             </div>
           )}
         </div>
@@ -154,7 +157,7 @@ export function DashboardSettingsDropdown({
 
 // Convenience hook for creating sections
 export function useDashboardSettings() {
-  const { t } = useTranslation(["analytics"]);
+  const { t } = useTranslation(["analytics", "workspace-home", "common"]);
   const createKPISection = (
     kpiCards: any[],
     toggleKPICard: (id: string) => void,

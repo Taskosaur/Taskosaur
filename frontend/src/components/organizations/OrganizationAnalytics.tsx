@@ -86,7 +86,7 @@ function SortableWidget({
 }
 
 export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsProps) {
-  const { t } = useTranslation("workspace-home");
+  const { t, i18n } = useTranslation("workspace-home");
   const {
     analyticsData: data,
     analyticsLoading: loading,
@@ -398,7 +398,7 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
         return (
           <Card className="p-4 h-full flex items-center justify-center">
             <div className="text-center text-muted-foreground">
-              <p>{t("analytics.failed_to_load_widget_data", { widgetTitle: widget.title })}</p>
+              <p>{t("analytics.failed_to_load_widget_data", { widgetTitle: t(widget.title) })}</p>
               <Button variant="outline" size="sm" onClick={handleFetchData} className="mt-2">
                 {t("analytics.retry_button")}
               </Button>
@@ -437,13 +437,13 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
   );
 
   const getCurrentDate = useCallback(() => {
-    return formatDateForDisplay(new Date(), {
+    return new Intl.DateTimeFormat(i18n.language, {
       weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
-    });
-  }, []);
+    }).format(new Date());
+  }, [i18n.language]);
 
   // Early returns after all hooks
   if (loading) {

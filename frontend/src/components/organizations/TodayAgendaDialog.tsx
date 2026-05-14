@@ -1,5 +1,6 @@
 import React from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -34,44 +35,51 @@ const getPriorityConfig = (priority: string) => {
         bgClass:
           "bg-[var(--destructive)]/10 text-[var(--destructive)] border-[var(--destructive)]/20",
         iconClass: "text-[var(--destructive)]",
-        label: "High Priority",
+        labelKey: "priority.high",
       };
     case "MEDIUM":
       return {
         color: "bg-amber-500",
         bgClass: "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400",
         iconClass: "text-amber-500",
-        label: "Medium Priority",
+        labelKey: "priority.medium",
       };
     case "LOW":
       return {
         color: "bg-green-500",
         bgClass: "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400",
         iconClass: "text-green-500",
-        label: "Low Priority",
+        labelKey: "priority.low",
       };
     default:
       return {
         color: "bg-[var(--muted)]",
         bgClass: "bg-[var(--muted)] text-[var(--muted-foreground)] border-[var(--border)]",
         iconClass: "text-[var(--muted-foreground)]",
-        label: "Normal",
+        labelKey: "priority.lowest",
       };
   }
 };
 
-const formatDueDate = (dateString: string) => {
-  if (checkDateOverdue(dateString)) return "Overdue";
+const formatDueDate = (dateString: string, t: any, lng: string) => {
+  if (checkDateOverdue(dateString)) return t("agenda.overdue");
 
   const label = getRelativeDateLabel(dateString);
-  if (label === "Today" || label === "Tomorrow") {
-    return label;
-  }
+  if (label === "Today") return t("agenda.today");
+  if (label === "Tomorrow") return t("agenda.tomorrow");
 
-  return formatDateTimeForDisplay(dateString, "MMM D, h:mm A");
+  const options: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+  };
+  return new Intl.DateTimeFormat(lng, options).format(new Date(dateString));
 };
 
 const TaskAgendaItem: React.FC<TaskAgendaItemProps> = ({ task, onClick }) => {
+  const { t, i18n } = useTranslation("workspace-home");
   const priorityConfig = getPriorityConfig(task.priority);
   const isUrgent = task.priority === "HIGH";
 
@@ -105,8 +113,8 @@ const TaskAgendaItem: React.FC<TaskAgendaItemProps> = ({ task, onClick }) => {
             : "border-[var(--border)] bg-[var(--card)] hover:bg-[var(--accent)]/50 hover:border-[var(--primary)]/30 hover:shadow-sm"
         }
       `}
-      aria-label={`Open task: ${task.title}`}
-      title={`Click to view task details`}
+      aria-label={t("agenda.open_task", { title: task.title })}
+      title={t("agenda.click_to_view")}
     >
       <div className="flex items-center gap-3 w-full">
         <div className={`w-1.5 h-1.5 rounded-full ${priorityConfig.color} flex-shrink-0`} />
@@ -126,7 +134,7 @@ const TaskAgendaItem: React.FC<TaskAgendaItemProps> = ({ task, onClick }) => {
               <Badge
                 className={`text-[10px] px-1.5 py-0.5 ${priorityConfig.bgClass} border-none pointer-events-none`}
               >
-                {task.priority}
+                {t(priorityConfig.labelKey)}
               </Badge>
             </div>
           </div>
@@ -137,12 +145,12 @@ const TaskAgendaItem: React.FC<TaskAgendaItemProps> = ({ task, onClick }) => {
               <>
                 <Clock className="w-2.5 h-2.5 text-[var(--muted-foreground)]" />
                 <span className="text-[10px] text-[var(--muted-foreground)]">
-                  Due: {formatDueDate(task.dueDate)}
+                  {t("agenda.due")}: {formatDueDate(task.dueDate, t, i18n.language)}
                 </span>
               </>
             ) : (
               <span className="text-[10px] text-[var(--muted-foreground)] opacity-50">
-                No due date
+                {t("agenda.no_due_date")}
               </span>
             )}
           </div>
@@ -158,6 +166,7 @@ export function TodayAgendaDialog({
   currentDate,
   upcomingTasks = [],
 }: TodayAgendaDialogProps) {
+  const { t } = useTranslation("workspace-home");
   const router = useRouter();
 
   const handleTaskClick = (taskSlug: string) => {
@@ -183,7 +192,7 @@ export function TodayAgendaDialog({
               </div>
               <div>
                 <DialogTitle className="text-base font-bold text-[var(--foreground)] flex items-center gap-2">
-                  Today&apos;s Agenda
+                  {t("header.todays_agenda")}
                   <Sparkles className="w-4 h-4 text-[var(--primary)]" />
                 </DialogTitle>
                 <DialogDescription className="text-xs text-[var(--muted-foreground)]">
@@ -208,15 +217,15 @@ export function TodayAgendaDialog({
                   <CheckCircle className="w-6 h-6 text-green-500" />
                 </div>
                 <h4 className="text-base font-semibold text-[var(--foreground)] mb-1">
-                  All clear for today!
+                  {t("agenda.all_clear")}
                 </h4>
                 <p className="text-sm text-[var(--muted-foreground)] mb-3 max-w-xs mx-auto">
-                  No tasks scheduled. You&apos;re all caught up!
+                  {t("agenda.no_tasks_scheduled")}
                 </p>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
                   <Sparkles className="w-3 h-3 text-green-600 dark:text-green-400" />
                   <span className="text-xs font-medium text-green-700 dark:text-green-400">
-                    Great job staying organized!
+                    {t("agenda.great_job")}
                   </span>
                 </div>
               </div>
