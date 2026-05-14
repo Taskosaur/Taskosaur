@@ -9,14 +9,15 @@ import {
   Legend,
   CartesianGrid,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 import { ChartWrapper } from "../chart-wrapper";
 
 const chartConfig = {
-  low: { label: "Low Workload", color: "#10B981" },
-  medium: { label: "Medium Workload", color: "#F59E0B" },
-  high: { label: "High Workload", color: "#EF4444" },
-  assigned: { label: "Assigned Tasks", color: "#3B82F6" },
-  reported: { label: "Reported Tasks", color: "#8B5CF6" },
+  low: { label: "workload.low", color: "#10B981" },
+  medium: { label: "workload.medium", color: "#F59E0B" },
+  high: { label: "workload.high", color: "#EF4444" },
+  assigned: { label: "workload.assigned", color: "#3B82F6" },
+  reported: { label: "workload.reported", color: "#8B5CF6" },
 };
 
 interface MemberWorkloadChartProps {
@@ -29,17 +30,18 @@ interface MemberWorkloadChartProps {
 }
 
 // Custom tooltip component
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload, t }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
+    const workloadLevel = data.workload;
 
     return (
       <div className="border-0 bg-[var(--accent)] p-3 border-gray-200 rounded-lg shadow-md">
         <p className="font-semibold">{data.memberName}</p>
-        <p className="text-sm text-blue-600">{`Assigned Tasks: ${data.activeTasks}`}</p>
-        <p className="text-sm text-purple-600">{`Reported Tasks: ${data.reportedTasks}`}</p>
+        <p className="text-sm text-blue-600">{`${t("workload.assigned")}: ${data.activeTasks}`}</p>
+        <p className="text-sm text-purple-600">{`${t("workload.reported")}: ${data.reportedTasks}`}</p>
         <p className="text-sm text-gray-500">
-          {`Workload: ${data.activeTasks > 10 ? "High" : data.activeTasks > 5 ? "Medium" : "Low"}`}
+          {`${t("workload.label")}: ${t(`workload.${workloadLevel}`)}`}
         </p>
       </div>
     );
@@ -48,6 +50,7 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 export function MemberWorkloadChart({ data }: MemberWorkloadChartProps) {
+  const { t } = useTranslation("workspace-home");
   // Sort data by active tasks (descending) and filter out inactive members
   const sortedData = [...data]
     .sort((a, b) => b.activeTasks - a.activeTasks)
@@ -68,8 +71,8 @@ export function MemberWorkloadChart({ data }: MemberWorkloadChartProps) {
 
   return (
     <ChartWrapper
-      title="Member Workload Distribution"
-      description="Active tasks vs reported tasks by member"
+      title={t("widgets.member_workload")}
+      description={t("charts.member_workload_description")}
       config={chartConfig}
       className="border-[var(--border)]"
     >
@@ -85,7 +88,7 @@ export function MemberWorkloadChart({ data }: MemberWorkloadChartProps) {
             tick={{ fontSize: 12 }}
           />
           <YAxis />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip t={t} />} />
           <defs>
             <linearGradient id="colorAssigned" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
@@ -99,7 +102,7 @@ export function MemberWorkloadChart({ data }: MemberWorkloadChartProps) {
           <Area
             type="monotone"
             dataKey="activeTasks"
-            name="Assigned Tasks"
+            name={t("workload.assigned")}
             stroke="#3B82F6"
             fillOpacity={1}
             fill="url(#colorAssigned)"
@@ -108,7 +111,7 @@ export function MemberWorkloadChart({ data }: MemberWorkloadChartProps) {
           <Area
             type="monotone"
             dataKey="reportedTasks"
-            name="Reported Tasks"
+            name={t("workload.reported")}
             stroke="#8B5CF6"
             fillOpacity={1}
             fill="url(#colorReported)"

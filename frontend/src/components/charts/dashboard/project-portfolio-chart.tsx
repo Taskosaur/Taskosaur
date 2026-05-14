@@ -1,13 +1,14 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from "recharts";
+import { useTranslation } from "react-i18next";
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
 
 const chartConfig = {
-  PLANNING: { label: "Planning", color: "#8B5CF6" },
-  ACTIVE: { label: "Active", color: "#10B981" },
-  ON_HOLD: { label: "On Hold", color: "#F59E0B" },
-  COMPLETED: { label: "Completed", color: "#3B82F6" },
-  CANCELLED: { label: "Cancelled", color: "#EF4444" },
+  PLANNING: { label: "project_status.planning", color: "#8B5CF6" },
+  ACTIVE: { label: "project_status.active", color: "#10B981" },
+  ON_HOLD: { label: "project_status.on_hold", color: "#F59E0B" },
+  COMPLETED: { label: "project_status.completed", color: "#3B82F6" },
+  CANCELLED: { label: "project_status.cancelled", color: "#EF4444" },
 };
 
 interface ProjectPortfolioChartProps {
@@ -15,8 +16,9 @@ interface ProjectPortfolioChartProps {
 }
 
 export function ProjectPortfolioChart({ data }: ProjectPortfolioChartProps) {
+  const { t } = useTranslation("workspace-home");
   const chartData = data?.map((item) => ({
-    name: chartConfig[item.status]?.label || item.status,
+    name: t(chartConfig[item.status]?.label) || item.status,
     value: item._count.status,
     fill: chartConfig[item.status]?.color || "#8B5CF6",
   }));
@@ -25,8 +27,8 @@ export function ProjectPortfolioChart({ data }: ProjectPortfolioChartProps) {
 
   return (
     <ChartWrapper
-      title="Project Portfolio Status"
-      description={`${totalProjects} total projects across organization`}
+      title={t("widgets.project_status")}
+      description={t("charts.project_status_description_with_count", { count: totalProjects })}
       config={chartConfig}
       className="border-[var(--border)]"
     >

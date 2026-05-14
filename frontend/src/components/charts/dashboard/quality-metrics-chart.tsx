@@ -1,14 +1,15 @@
 // components/charts/organization/quality-metrics-chart.tsx
 import { PieChart, Pie, Cell } from "recharts";
+import { useTranslation } from "react-i18next";
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
 
 const chartConfig = {
-  resolved: { label: "Resolved", color: "#10B981" },
-  low: { label: "Low Performance", color: "#EF4444" },
-  medium: { label: "Medium Performance", color: "#F59E0B" },
-  high: { label: "High Performance", color: "#10B981" },
-  remaining: { label: "Remaining", color: "#E5E7EB" },
+  resolved: { label: "quality.resolved", color: "#10B981" },
+  low: { label: "quality.low_performance", color: "#EF4444" },
+  medium: { label: "quality.medium_performance", color: "#F59E0B" },
+  high: { label: "quality.high_performance", color: "#10B981" },
+  remaining: { label: "quality.remaining", color: "#E5E7EB" },
 };
 
 interface QualityMetricsChartProps {
@@ -23,6 +24,7 @@ interface QualityMetricsChartProps {
 }
 
 export function QualityMetricsChart({ data }: QualityMetricsChartProps) {
+  const { t } = useTranslation("workspace-home");
   // Determine color based on resolution rate
   const getResolvedColor = (rate: number) => {
     if (rate > 80) return chartConfig.high.color;
@@ -32,12 +34,12 @@ export function QualityMetricsChart({ data }: QualityMetricsChartProps) {
 
   const gaugeData = [
     {
-      name: chartConfig.resolved.label,
+      name: t(chartConfig.resolved.label),
       value: data.bugResolutionRate,
       fill: getResolvedColor(data.bugResolutionRate),
     },
     {
-      name: chartConfig.remaining.label,
+      name: t(chartConfig.remaining.label),
       value: 100 - data.bugResolutionRate,
       fill: chartConfig.remaining.color,
     },
@@ -45,8 +47,12 @@ export function QualityMetricsChart({ data }: QualityMetricsChartProps) {
 
   return (
     <ChartWrapper
-      title="Bug Resolution Quality"
-      description={`${data.resolvedBugs}/${data.totalBugs} bugs resolved (${data.bugResolutionRate.toFixed(1)}%)`}
+      title={t("widgets.quality_metrics")}
+      description={t("charts.quality_metrics_description_with_count", {
+        resolved: data.resolvedBugs,
+        total: data.totalBugs,
+        rate: data.bugResolutionRate.toFixed(1),
+      })}
       config={chartConfig}
       className="border-[var(--border)]"
     >
@@ -71,7 +77,7 @@ export function QualityMetricsChart({ data }: QualityMetricsChartProps) {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
             <div className="text-2xl font-bold">{data.bugResolutionRate.toFixed(1)}%</div>
-            <div className="text-sm text-muted-foreground">Resolution Rate</div>
+            <div className="text-sm text-muted-foreground">{t("quality.resolution_rate")}</div>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 // components/charts/organization/team-utilization-chart.tsx
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   RadarChart,
   PolarGrid,
@@ -22,10 +23,10 @@ import { useOrganization } from "@/contexts/organization-context";
 import { ChartType } from "@/types";
 
 const chartConfig = {
-  ADMIN: { label: "Admin", color: "#DC2626" },
-  MANAGER: { label: "Manager", color: "#EA580C" },
-  MEMBER: { label: "Member", color: "#3B82F6" },
-  VIEWER: { label: "Viewer", color: "#10B981" },
+  ADMIN: { label: "roles.admin", color: "#DC2626" },
+  MANAGER: { label: "roles.manager", color: "#EA580C" },
+  MEMBER: { label: "roles.member", color: "#3B82F6" },
+  VIEWER: { label: "roles.viewer", color: "#10B981" },
 };
 
 interface TeamUtilizationChartProps {
@@ -33,6 +34,7 @@ interface TeamUtilizationChartProps {
 }
 
 export function TeamUtilizationChart({ data: initialData }: TeamUtilizationChartProps) {
+  const { t } = useTranslation("workspace-home");
   const { workspaces, getWorkspacesByOrganization } = useWorkspace();
   const { fetchSingleChartData, currentOrganization } = useOrganization();
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("all");
@@ -46,12 +48,12 @@ export function TeamUtilizationChart({ data: initialData }: TeamUtilizationChart
 
   useEffect(() => {
     const mappedData = initialData?.map((item) => ({
-      role: chartConfig[item.role as keyof typeof chartConfig]?.label || item.role,
+      role: t(chartConfig[item.role as keyof typeof chartConfig]?.label) || item.role,
       count: item._count.role,
       fill: chartConfig[item.role as keyof typeof chartConfig]?.color || "#8B5CF6",
     }));
     setChartData(mappedData || []);
-  }, [initialData]);
+  }, [initialData, t]);
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     setSelectedWorkspace(workspaceId);
@@ -66,7 +68,7 @@ export function TeamUtilizationChart({ data: initialData }: TeamUtilizationChart
 
     if (newData && !newData.error) {
       const mappedData = newData.map((item: any) => ({
-        role: chartConfig[item.role as keyof typeof chartConfig]?.label || item.role,
+        role: t(chartConfig[item.role as keyof typeof chartConfig]?.label) || item.role,
         count: item._count.role,
         fill: chartConfig[item.role as keyof typeof chartConfig]?.color || "#8B5CF6",
       }));
@@ -76,21 +78,21 @@ export function TeamUtilizationChart({ data: initialData }: TeamUtilizationChart
 
   return (
     <ChartWrapper
-      title="Team Role Distribution"
+      title={t("widgets.team_utilization")}
       description={
         selectedWorkspace === "all"
-          ? "Organization member roles breakdown"
-          : `Role breakdown for selected workspace`
+          ? t("charts.team_utilization_description_all")
+          : t("charts.team_utilization_description_workspace")
       }
       config={chartConfig}
       className="border-[var(--border)]"
       extraHeader={
         <Select value={selectedWorkspace} onValueChange={handleWorkspaceChange}>
           <SelectTrigger className="w-[150px] h-8 text-xs">
-            <SelectValue placeholder="All Workspaces" />
+            <SelectValue placeholder={t("charts.all_workspaces")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Workspaces</SelectItem>
+            <SelectItem value="all">{t("charts.all_workspaces")}</SelectItem>
             {workspaces.map((ws) => (
               <SelectItem key={ws.id} value={ws.id}>
                 {ws.name}

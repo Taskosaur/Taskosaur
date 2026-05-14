@@ -1,12 +1,13 @@
 // components/charts/organization/workspace-project-chart.tsx
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { useTranslation } from "react-i18next";
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
 
 const chartConfig = {
-  high: { label: ">10 Projects", color: "#10B981" },
-  medium: { label: "6-10 Projects", color: "#F59E0B" },
-  low: { label: "<=5 Projects", color: "#3B82F6" },
+  high: { label: "project_count.high", color: "#10B981" },
+  medium: { label: "project_count.medium", color: "#F59E0B" },
+  low: { label: "project_count.low", color: "#3B82F6" },
 };
 
 interface WorkspaceProjectChartProps {
@@ -19,6 +20,7 @@ interface WorkspaceProjectChartProps {
 }
 
 export function WorkspaceProjectChart({ data }: WorkspaceProjectChartProps) {
+  const { t } = useTranslation("workspace-home");
   const chartData = data?.map((item) => ({
     workspace:
       item.workspaceName.length > 15
@@ -35,8 +37,8 @@ export function WorkspaceProjectChart({ data }: WorkspaceProjectChartProps) {
 
   return (
     <ChartWrapper
-      title="Projects per Workspace"
-      description="Project distribution across workspaces"
+      title={t("widgets.workspace_projects")}
+      description={t("charts.workspace_projects_description")}
       config={chartConfig}
       className="border-[var(--border)]"
     >

@@ -1,5 +1,6 @@
 // components/charts/organization/task-type-chart.tsx
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { useTranslation } from "react-i18next";
 import {
   ChartTooltip,
   ChartTooltipContent,
@@ -9,11 +10,11 @@ import {
 import { ChartWrapper } from "../chart-wrapper";
 
 const chartConfig = {
-  STORY: { label: "Story", color: "#10B981" },
-  TASK: { label: "Task", color: "#3B82F6" },
-  BUG: { label: "Bug", color: "#EF4444" },
-  EPIC: { label: "Epic", color: "#8B5CF6" },
-  FEATURE: { label: "Feature", color: "#F59E0B" },
+  STORY: { label: "task_types.story", color: "#10B981" },
+  TASK: { label: "task_types.task", color: "#3B82F6" },
+  BUG: { label: "task_types.bug", color: "#EF4444" },
+  EPIC: { label: "task_types.epic", color: "#8B5CF6" },
+  FEATURE: { label: "task_types.feature", color: "#F59E0B" },
 };
 
 interface TaskTypeChartProps {
@@ -21,8 +22,9 @@ interface TaskTypeChartProps {
 }
 
 export function TaskTypeChart({ data }: TaskTypeChartProps) {
+  const { t } = useTranslation("workspace-home");
   const chartData = data?.map((item) => ({
-    name: chartConfig[item.type]?.label || item.type,
+    name: t(chartConfig[item.type]?.label) || item.type,
     value: item._count.type,
     fill: chartConfig[item.type]?.color || "#8B5CF6",
   }));
@@ -31,8 +33,8 @@ export function TaskTypeChart({ data }: TaskTypeChartProps) {
 
   return (
     <ChartWrapper
-      title="Task Type Distribution"
-      description={`${totalTasks} total tasks across organization`}
+      title={t("widgets.task_type")}
+      description={t("charts.task_type_description_with_count", { count: totalTasks })}
       config={chartConfig}
       className="border-[var(--border)]"
     >

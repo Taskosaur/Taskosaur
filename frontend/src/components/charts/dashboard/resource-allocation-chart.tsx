@@ -1,5 +1,6 @@
 // components/charts/organization/resource-allocation-chart.tsx
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   BarChart,
   Bar,
@@ -24,12 +25,12 @@ import { useOrganization } from "@/contexts/organization-context";
 import { ChartType } from "@/types";
 
 const chartConfig = {
-  ADMIN: { label: "Admin", color: "#DC2626" },
-  MANAGER: { label: "Manager", color: "#EA580C" },
-  MEMBER: { label: "Member", color: "#3B82F6" },
-  GUEST: { label: "Guest", color: "#10B981" },
-  CONTRIBUTOR: { label: "Contributor", color: "#8B5CF6" },
-  VIEWER: { label: "Viewer", color: "#94A3B8" },
+  ADMIN: { label: "roles.admin", color: "#DC2626" },
+  MANAGER: { label: "roles.manager", color: "#EA580C" },
+  MEMBER: { label: "roles.member", color: "#3B82F6" },
+  GUEST: { label: "roles.guest", color: "#10B981" },
+  CONTRIBUTOR: { label: "roles.contributor", color: "#8B5CF6" },
+  VIEWER: { label: "roles.viewer", color: "#94A3B8" },
 };
 
 interface ResourceAllocationChartProps {
@@ -42,15 +43,15 @@ interface ResourceAllocationChartProps {
 }
 
 // Custom tooltip component
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload, t }: any) => {
   if (active && payload && payload.length) {
     const role = payload[0].payload.role;
     const config = chartConfig[role as keyof typeof chartConfig];
 
     return (
       <div className="border-0 bg-[var(--accent)] p-3 border-gray-200 rounded-lg shadow-md">
-        <p className="font-semibold">{config?.label || role}</p>
-        <p className="text-sm">{`Count: ${payload[0].value}`}</p>
+        <p className="font-semibold">{config ? t(config.label) : role}</p>
+        <p className="text-sm">{`${t("charts.count")}: ${payload[0].value}`}</p>
       </div>
     );
   }
@@ -58,6 +59,7 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 export function ResourceAllocationChart({ data: initialData }: ResourceAllocationChartProps) {
+  const { t } = useTranslation("workspace-home");
   const { listProjects, projects } = useProject();
   const { fetchSingleChartData, currentOrganization } = useOrganization();
   const [selectedProject, setSelectedProject] = useState<string>("all");
@@ -117,21 +119,21 @@ export function ResourceAllocationChart({ data: initialData }: ResourceAllocatio
 
   return (
     <ChartWrapper
-      title="Resource Allocation"
+      title={t("widgets.resource_allocation")}
       description={
         selectedProject === "all"
-          ? "Team member distribution by role"
-          : "Role distribution for selected project"
+          ? t("charts.resource_allocation_description_all")
+          : t("charts.resource_allocation_description_project")
       }
       config={chartConfig}
       className="border-[var(--border)]"
       extraHeader={
         <Select value={selectedProject} onValueChange={handleProjectChange}>
           <SelectTrigger className="w-[150px] h-8 text-xs">
-            <SelectValue placeholder="All Projects" />
+            <SelectValue placeholder={t("charts.all_projects")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Projects</SelectItem>
+            <SelectItem value="all">{t("charts.all_projects")}</SelectItem>
             {projects.map((project) => (
               <SelectItem key={project.id} value={project.id}>
                 {project.name}
@@ -147,15 +149,15 @@ export function ResourceAllocationChart({ data: initialData }: ResourceAllocatio
           <XAxis
             dataKey="role"
             tickFormatter={(value) =>
-              chartConfig[value as keyof typeof chartConfig]?.label || value
+              t(chartConfig[value as keyof typeof chartConfig]?.label) || value
             }
           />
           <YAxis />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip t={t} />} />
           <Legend
             formatter={(value) => (
               <span className="text-sm text-gray-700">
-                {chartConfig[value as keyof typeof chartConfig]?.label || value}
+                {t(chartConfig[value as keyof typeof chartConfig]?.label) || value}
               </span>
             )}
           />

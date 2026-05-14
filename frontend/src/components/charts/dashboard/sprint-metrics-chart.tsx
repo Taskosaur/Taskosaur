@@ -1,13 +1,14 @@
 // components/charts/organization/sprint-metrics-chart.tsx
 import { AreaChart, Area, XAxis, YAxis } from "recharts";
+import { useTranslation } from "react-i18next";
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
 
 const chartConfig = {
-  PLANNING: { label: "Planning", color: "#94A3B8" },
-  ACTIVE: { label: "Active", color: "#10B981" },
-  COMPLETED: { label: "Completed", color: "#3B82F6" },
-  CANCELLED: { label: "Cancelled", color: "#EF4444" },
+  PLANNING: { label: "sprint_status.planning", color: "#94A3B8" },
+  ACTIVE: { label: "sprint_status.active", color: "#10B981" },
+  COMPLETED: { label: "sprint_status.completed", color: "#3B82F6" },
+  CANCELLED: { label: "sprint_status.cancelled", color: "#EF4444" },
 };
 
 interface SprintMetricsChartProps {
@@ -15,16 +16,17 @@ interface SprintMetricsChartProps {
 }
 
 export function SprintMetricsChart({ data }: SprintMetricsChartProps) {
+  const { t } = useTranslation("workspace-home");
   const chartData = data?.map((item) => ({
-    status: chartConfig[item.status]?.label || item.status,
+    status: t(chartConfig[item.status]?.label) || item.status,
     count: item._count.status,
     fill: chartConfig[item.status]?.color || "#8B5CF6",
   }));
 
   return (
     <ChartWrapper
-      title="Sprint Status Overview"
-      description="Current sprint distribution across projects"
+      title={t("widgets.sprint_status")}
+      description={t("charts.sprint_status_description")}
       config={chartConfig}
       className="border-[var(--border)]"
     >
