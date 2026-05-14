@@ -30,8 +30,9 @@ export class PublicSharedTasksService {
     userId: string,
   ): Promise<PublicTaskShareResponseDto> {
     // Verify user has access to the task
-    const task = await this.prisma.task.findUnique({
-      where: { id: dto.taskId },
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(dto.taskId);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: dto.taskId } : { slug: dto.taskId },
       include: {
         project: {
           include: {
@@ -70,12 +71,11 @@ export class PublicSharedTasksService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + dto.expiresInDays);
 
-    // Create share record
     const share = await this.prisma.publicTaskShare.create({
       data: {
         token,
         expiresAt,
-        taskId: dto.taskId,
+        taskId: task.id,
         createdBy: userId,
       },
     });
@@ -176,8 +176,9 @@ export class PublicSharedTasksService {
     userId: string,
   ): Promise<PublicTaskShareResponseDto[]> {
     // Verify user has access to the task
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
       include: {
         project: {
           include: {
@@ -211,7 +212,7 @@ export class PublicSharedTasksService {
     // Get active shares (not revoked, not expired)
     const shares = await this.prisma.publicTaskShare.findMany({
       where: {
-        taskId,
+        taskId: task.id,
         revokedAt: null,
         expiresAt: {
           gt: new Date(),

@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsUUID, Min, Max } from 'class-validator';
+import { IsInt, Min, Max, IsString } from 'class-validator';
 
 export class CreatePublicTaskShareDto {
-  @ApiProperty({ description: 'Task ID to share' })
-  @IsUUID()
+  @ApiProperty({ description: 'Task ID or Slug to share' })
+  @IsString()
   taskId: string;
 
   @ApiProperty({
