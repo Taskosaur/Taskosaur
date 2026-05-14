@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/contexts/workspace-context";
 import {
@@ -28,6 +29,7 @@ interface WorkspaceSelectorProps {
 }
 
 export default function WorkspaceSelector({ currentWorkspaceSlug }: WorkspaceSelectorProps) {
+  const { t } = useTranslation("sidebar");
   const router = useRouter();
 
   const { getWorkspacesByOrganization, workspaces } = useWorkspace();
@@ -112,7 +114,7 @@ export default function WorkspaceSelector({ currentWorkspaceSlug }: WorkspaceSel
               <div className="layout-workspace-selector-loading" />
             ) : (
               <div className="layout-workspace-selector-title">
-                {currentWorkspace ? currentWorkspace.name : "Select Workspace"}
+                {currentWorkspace ? currentWorkspace.name : t("selectWorkspace")}
               </div>
             )}
           </div>
@@ -141,7 +143,7 @@ export default function WorkspaceSelector({ currentWorkspaceSlug }: WorkspaceSel
             <div className="layout-workspace-selector-item-content">
               <div className="layout-workspace-selector-item-name">{workspace.name}</div>
               <div className="layout-workspace-selector-item-description">
-                {workspace.description || "No description"}
+                {workspace.description || t("noDescription")}
               </div>
             </div>
             {currentWorkspace?.id === workspace.id && (

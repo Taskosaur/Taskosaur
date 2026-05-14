@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { useProject } from "@/contexts/project-context";
 import { useWorkspace } from "@/contexts/workspace-context";
@@ -22,6 +23,7 @@ export default function ProjectSelector({
   currentWorkspaceSlug,
   currentProjectSlug,
 }: ProjectSelectorProps) {
+  const { t } = useTranslation("sidebar");
   const router = useRouter();
   const { getProjectsByWorkspace, projects } = useProject();
   const { getWorkspaceBySlug } = useWorkspace();
@@ -116,7 +118,7 @@ export default function ProjectSelector({
               <div className="layout-project-selector-loading" />
             ) : (
               <div className="layout-project-selector-title">
-                {currentProject ? currentProject.name : "Select Project"}
+                {currentProject ? currentProject.name : t("selectProject")}
               </div>
             )}
           </div>
@@ -149,7 +151,7 @@ export default function ProjectSelector({
             <div className="layout-project-selector-item-content">
               <div className="layout-project-selector-item-name">{project.name}</div>
               <div className="layout-project-selector-item-description">
-                {project.description || "No description"}
+                {project.description || t("noDescription")}
               </div>
             </div>
 
