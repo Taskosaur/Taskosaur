@@ -429,8 +429,10 @@ export function NewTaskModal({
       ]);
       setSprints(projectSprints || []);
 
-      if (urlContext.sprintId && projectSprints?.some((s: any) => s.id === urlContext.sprintId)) {
-        setFormData(prev => ({ ...prev, sprintId: urlContext.sprintId }));
+      const targetSprint = projectSprints?.find((s: any) => s.id === urlContext.sprintId || s.slug === urlContext.sprintId);
+
+      if (targetSprint) {
+        setFormData(prev => ({ ...prev, sprintId: targetSprint.id }));
       } else if (activeSprint) {
         setFormData(prev => ({ ...prev, sprintId: activeSprint.id }));
       } else if (projectSprints && projectSprints.length > 0) {

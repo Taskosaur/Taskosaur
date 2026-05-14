@@ -17,11 +17,13 @@ import { useTranslation } from "react-i18next";
 interface OrganizationSettingsProps {
   organization: Organization;
   onUpdate: (organization: Organization) => void;
+  userAccess?: any;
 }
 
 export default function OrganizationSettingsComponent({
   organization,
   onUpdate,
+  userAccess,
 }: OrganizationSettingsProps) {
   const { t } = useTranslation("settings");
   const router = useRouter();
@@ -61,7 +63,6 @@ export default function OrganizationSettingsComponent({
   });
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const { getUserAccess } = useAuth();
 
   // Generate slug from name (mirrors backend slugify logic)
   const generateSlugFromName = (name: string): string => {
@@ -80,31 +81,17 @@ export default function OrganizationSettingsComponent({
   // Track the original name to detect name changes
   const [previousName, setPreviousName] = useState(organization.name);
 
-  // Use getUserAccess to check permissions
+  // Use userAccess prop to check permissions
   const [hasEditAccess, setHasEditAccess] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
-  const [hasAccessLoaded, setHasAccessLoaded] = useState(false);
 
   useEffect(() => {
-    const checkAccess = async () => {
-      try {
-        const accessData = await getUserAccess({ name: "organization", id: organization.id });
-        const role = accessData?.role;
-        // Allow edit access if role is SUPER_ADMIN, Owner or Manager (matching backend permissions)
-        setHasEditAccess(role === "SUPER_ADMIN" || role === "OWNER" || role === "MANAGER");
-        // Only Owner or SUPER_ADMIN can delete organization
-        setIsOwner(role === "SUPER_ADMIN" || role === "OWNER");
-      } catch (error) {
-        setHasEditAccess(false);
-        setIsOwner(false);
-      } finally {
-        setHasAccessLoaded(true);
-      }
-    };
-    if (!hasAccessLoaded && organization.id && user?.id) {
-      checkAccess();
+    if (userAccess) {
+      const role = userAccess.role;
+      setHasEditAccess(role === "SUPER_ADMIN" || role === "OWNER" || role === "MANAGER");
+      setIsOwner(role === "SUPER_ADMIN" || role === "OWNER");
     }
-  }, [organization.id, user?.id, hasAccessLoaded, getUserAccess]);
+  }, [userAccess]);
 
   // Track changes to enable/disable save button
   useEffect(() => {

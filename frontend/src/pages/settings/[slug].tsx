@@ -242,7 +242,14 @@ function OrganizationManagePageContent() {
     }
   }, [slug]); // This will trigger when slug becomes available
 
+  const prevSearchQuery = useRef(searchQuery);
+
   useEffect(() => {
+    if (prevSearchQuery.current === searchQuery) {
+      return;
+    }
+    prevSearchQuery.current = searchQuery;
+
     const timer = setTimeout(() => {
       if (slug && typeof slug === "string") {
         setCurrentPage(1);
@@ -471,6 +478,7 @@ function OrganizationManagePageContent() {
               <OrganizationSettingsComponent
                 organization={organization}
                 onUpdate={handleOrganizationUpdate}
+                userAccess={userAccess}
               />
             </Card>
           </TabsContent>

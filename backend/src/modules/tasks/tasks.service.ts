@@ -1143,6 +1143,7 @@ export class TasksService {
           WHERE w."organization_id"::uuid = ${organizationId}::uuid
             AND t.project_id = ${scopeId}::uuid
             AND t."parent_task_id" IS NULL
+            ${sprintId ? Prisma.sql`AND t.sprint_id = ${sprintId}::uuid` : Prisma.empty}
           ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
           LIMIT ${Prisma.raw(sqlLimit.toString())}
           OFFSET ${Prisma.raw(sqlOffset.toString())}`;
@@ -1159,6 +1160,7 @@ export class TasksService {
           WHERE w."organization_id"::uuid = ${organizationId}::uuid
             AND p."workspace_id" = ${scopeId}::uuid
             AND t."parent_task_id" IS NULL
+            ${sprintId ? Prisma.sql`AND t.sprint_id = ${sprintId}::uuid` : Prisma.empty}
           ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
           LIMIT ${Prisma.raw(sqlLimit.toString())}
           OFFSET ${Prisma.raw(sqlOffset.toString())}`;
@@ -1174,6 +1176,7 @@ export class TasksService {
           INNER JOIN workspaces w ON p.workspace_id = w.id
           WHERE w."organization_id"::uuid = ${organizationId}::uuid
             AND t."parent_task_id" IS NULL
+            ${sprintId ? Prisma.sql`AND t.sprint_id = ${sprintId}::uuid` : Prisma.empty}
           ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
           LIMIT ${Prisma.raw(sqlLimit.toString())}
           OFFSET ${Prisma.raw(sqlOffset.toString())}`;

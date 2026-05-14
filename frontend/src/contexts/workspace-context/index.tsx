@@ -132,6 +132,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
   // Track in-flight requests for getWorkspaceBySlug to avoid redundant calls
   const workspaceRequestsRef = useRef<Record<string, Promise<Workspace>>>({});
+  // Track in-flight requests for getWorkspacesByOrganization
+  const orgWorkspacesRequestsRef = useRef<Record<string, Promise<Workspace[]>>>({});
 
   // Helper to handle API operations with error handling
   const handleApiOperation = useCallback(async function <T>(
@@ -360,19 +362,34 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         const orgId = organizationId || getCurrentOrganizationId();
         if (!orgId) {
           console.error("No organization selected. Please select an organization first.");
-          return;
+          return [];
         }
 
-        const result = await handleApiOperation(() =>
-          workspaceApi.getWorkspacesByOrganization(orgId, search)
-        );
+        const cacheKey = `${orgId}:${search || ""}`;
 
-        setWorkspaceState((prev) => ({
-          ...prev,
-          workspaces: result,
-        }));
+        if (orgWorkspacesRequestsRef.current[cacheKey]) {
+          return orgWorkspacesRequestsRef.current[cacheKey];
+        }
 
-        return result;
+        const request = (async () => {
+          try {
+            const result = await handleApiOperation(() =>
+              workspaceApi.getWorkspacesByOrganization(orgId, search)
+            );
+
+            setWorkspaceState((prev) => ({
+              ...prev,
+              workspaces: result,
+            }));
+
+            return result;
+          } finally {
+            delete orgWorkspacesRequestsRef.current[cacheKey];
+          }
+        })();
+
+        orgWorkspacesRequestsRef.current[cacheKey] = request;
+        return request;
       },
 
       getWorkspaceTree: async (organizationId: string): Promise<Workspace[]> => {
