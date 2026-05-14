@@ -8,12 +8,13 @@ import {
   HiCog6Tooth,
   HiChartBar,
 } from "react-icons/hi2";
+import { useTranslation } from "react-i18next";
 
-const adminNavItems = [
-  { id: "dashboard", label: "Overview", href: "/admin", icon: HiChartBar },
-  { id: "users", label: "Users", href: "/admin/users", icon: HiUsers },
-  { id: "organizations", label: "Organizations", href: "/admin/organizations", icon: HiBuildingOffice2 },
-  { id: "config", label: "Configuration", href: "/admin/config", icon: HiCog6Tooth },
+const getAdminNavItems = (t: any) => [
+  { id: "dashboard", label: t("navigation.overview"), href: "/admin", icon: HiChartBar },
+  { id: "users", label: t("navigation.users"), href: "/admin/users", icon: HiUsers },
+  { id: "organizations", label: t("navigation.organizations"), href: "/admin/organizations", icon: HiBuildingOffice2 },
+  { id: "config", label: t("navigation.configuration"), href: "/admin/config", icon: HiCog6Tooth },
 ];
 
 function getActiveTab(pathname: string): string {
@@ -61,14 +62,16 @@ interface AdminLayoutProps {
 
 function AdminLayoutContent({ children, breadcrumbs }: AdminLayoutProps) {
   const router = useRouter();
+  const { t } = useTranslation("admin");
   const activeTab = getActiveTab(router.pathname);
+  const adminNavItems = getAdminNavItems(t);
 
   return (
     <div className="dashboard-container">
       {/* Admin Header */}
       <div className="flex items-center gap-2 mb-1">
         <HiShieldCheck className="w-5 h-5 text-[var(--primary)]" />
-        <h1 className="text-md font-bold text-[var(--foreground)]">Administration</h1>
+        <h1 className="text-md font-bold text-[var(--foreground)]">{t("administration")}</h1>
       </div>
 
       {/* Sub Navigation */}

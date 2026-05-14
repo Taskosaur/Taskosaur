@@ -16,10 +16,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { HiUser } from "react-icons/hi2";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 const GLOBAL_ROLES = ["SUPER_ADMIN", "MEMBER"];
 
 function UserDetailContent() {
+  const { t } = useTranslation("admin");
   const router = useRouter();
   const { id } = router.query;
   const [user, setUser] = useState<any>(null);
@@ -33,21 +35,21 @@ function UserDetailContent() {
         setUser(data);
       } catch (error) {
         console.error("Failed to fetch user:", error);
-        toast.error("Failed to load user details");
+        toast.error(t("common.error_loading"));
       } finally {
         setIsLoading(false);
       }
     };
     fetch();
-  }, [id]);
+  }, [id, t]);
 
   const handleRoleChange = async (role: string) => {
     try {
       await adminApi.updateUserRole(user.id, role);
       setUser((prev: any) => ({ ...prev, role }));
-      toast.success("Role updated");
+      toast.success(t("common.success"));
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to update role");
+      toast.error(error?.response?.data?.message || t("common.error_loading"));
     }
   };
 
@@ -56,9 +58,9 @@ function UserDetailContent() {
     try {
       await adminApi.updateUserStatus(user.id, newStatus);
       setUser((prev: any) => ({ ...prev, status: newStatus }));
-      toast.success(`User ${newStatus === "ACTIVE" ? "activated" : "deactivated"}`);
+      toast.success(t("common.success"));
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to update status");
+      toast.error(error?.response?.data?.message || t("common.error_loading"));
     }
   };
 
@@ -67,39 +69,37 @@ function UserDetailContent() {
       const result = await adminApi.resetUserPassword(user.id);
       if (result.resetLink) {
         await navigator.clipboard.writeText(window.location.origin + result.resetLink);
-        toast.success("Password reset link copied to clipboard. Valid for 24 hours.");
+        toast.success(t("users.actions.reset_password_link_copied", { name: user.firstName }));
       } else {
         toast.success(result.message);
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to generate reset link");
+      toast.error(error?.response?.data?.message || t("common.error_loading"));
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Are you sure you want to remove "${user.firstName} ${user.lastName}"? This will deactivate their account and remove them from all organizations.`)) {
+    if (!window.confirm(t("users.actions.delete_confirmation", { name: `${user.firstName} ${user.lastName}` }))) {
       return;
     }
     try {
       await adminApi.deleteUser(user.id);
-      toast.success(`User "${user.firstName} ${user.lastName}" removed`);
+      toast.success(t("users.actions.user_removed", { name: user.firstName }));
       router.push("/admin/users");
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to delete user");
+      toast.error(error?.response?.data?.message || t("common.error_loading"));
     }
   };
 
   if (isLoading) {
     return (
-      <>
-        <Card className="bg-[var(--card)] border-none shadow-sm">
-          <CardContent className="p-6 space-y-4">
-            <Skeleton className="h-12 w-12 rounded-full" />
-            <Skeleton className="h-5 w-48" />
-            <Skeleton className="h-4 w-64" />
-          </CardContent>
-        </Card>
-      </>
+      <Card className="bg-[var(--card)] border-none shadow-sm">
+        <CardContent className="p-6 space-y-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </CardContent>
+      </Card>
     );
   }
 
@@ -108,7 +108,7 @@ function UserDetailContent() {
       <Card className="bg-[var(--card)] border-none shadow-sm">
         <CardContent className="p-8 text-center">
           <HiUser className="w-10 h-10 mx-auto text-[var(--muted-foreground)] mb-3" />
-          <p className="text-sm text-[var(--muted-foreground)]">User not found</p>
+          <p className="text-sm text-[var(--muted-foreground)]">{t("users.no_users")}</p>
         </CardContent>
       </Card>
     );
@@ -134,14 +134,14 @@ function UserDetailContent() {
                     ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
                     : "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
                 }`}>
-                  {user.role}
+                  {t(`users.roles.${user.role.toLowerCase()}`, user.role) as string}
                 </Badge>
                 <Badge className={`text-[10px] px-1.5 py-0 rounded-md border ${
                   user.status === "ACTIVE"
                     ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
                     : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
                 }`}>
-                  {user.status}
+                  {t(`users.status.${user.status.toLowerCase()}`, user.status) as string}
                 </Badge>
                 {user.source === "SSO" && (
                   <Badge className="text-[10px] px-1.5 py-0 rounded-md bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800">
@@ -151,9 +151,9 @@ function UserDetailContent() {
               </div>
             </div>
             <div className="text-right hidden sm:block">
-              <p className="text-xs text-[var(--muted-foreground)]">Last login</p>
+              <p className="text-xs text-[var(--muted-foreground)]">{t("users.details.last_login") as string}</p>
               <p className="text-xs font-medium text-[var(--foreground)]">
-                {user.lastLoginAt ? formatDateTimeForDisplay(user.lastLoginAt) : "Never"}
+                {user.lastLoginAt ? formatDateTimeForDisplay(user.lastLoginAt) : t("users.details.never") as string}
               </p>
             </div>
           </div>
@@ -164,15 +164,15 @@ function UserDetailContent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2 bg-[var(--card)] border-none shadow-sm">
           <CardContent className="p-6">
-            <h3 className="text-sm font-semibold mb-4 text-[var(--foreground)]">Profile Information</h3>
+            <h3 className="text-sm font-semibold mb-4 text-[var(--foreground)]">{t("users.details.profile_info") as string}</h3>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { label: "Timezone", value: user.timezone },
-                { label: "Language", value: user.language },
-                { label: "Email Verified", value: user.emailVerified ? "Yes" : "No" },
-                { label: "Source", value: user.source },
-                { label: "Joined", value: formatDateTimeForDisplay(user.createdAt) },
-                { label: "Organizations", value: `${user.organizationMembers?.length || 0} ${user.organizationMembers?.length === 1 ? "membership" : "memberships"}` },
+                { label: t("users.details.timezone"), value: user.timezone },
+                { label: t("users.details.language"), value: user.language },
+                { label: t("users.details.email_verified"), value: user.emailVerified ? t("users.details.yes") : t("users.details.no") },
+                { label: t("users.details.source"), value: user.source },
+                { label: t("users.table.created"), value: formatDateTimeForDisplay(user.createdAt) },
+                { label: t("users.table.organizations"), value: user.organizationMembers?.length > 1 ? t("users.details.membership_count_plural", { count: user.organizationMembers?.length }) as string : t("users.details.membership_count", { count: user.organizationMembers?.length || 0 }) as string },
               ].map((item) => (
                 <div key={item.label}>
                   <span className="text-xs text-[var(--muted-foreground)]">{item.label}</span>
@@ -185,27 +185,27 @@ function UserDetailContent() {
 
         <Card className="bg-[var(--card)] border-none shadow-sm">
           <CardContent className="p-6 space-y-5">
-            <h3 className="text-sm font-semibold text-[var(--foreground)]">Actions</h3>
+            <h3 className="text-sm font-semibold text-[var(--foreground)]">{t("users.details.actions") as string}</h3>
             <div className="space-y-2">
-              <label className="text-xs text-[var(--muted-foreground)]">Role</label>
+              <label className="text-xs text-[var(--muted-foreground)]">{t("users.table.role") as string}</label>
               <Select value={user.role} onValueChange={handleRoleChange}>
                 <SelectTrigger className="h-9 border-none bg-[var(--background)] shadow-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-none bg-[var(--popover)]">
-                  {GLOBAL_ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  {GLOBAL_ROLES.map((r) => <SelectItem key={r} value={r}>{t(`users.roles.${r.toLowerCase()}`, r) as string}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs text-[var(--muted-foreground)]">Status</label>
+              <label className="text-xs text-[var(--muted-foreground)]">{t("users.table.status") as string}</label>
               <div className="flex items-center gap-3">
                 <Badge className={`text-xs px-2 py-1 rounded-md border ${
                   user.status === "ACTIVE"
                     ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
                     : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
                 }`}>
-                  {user.status}
+                  {t(`users.status.${user.status.toLowerCase()}`, user.status) as string}
                 </Badge>
                 <Button
                   variant="outline"
@@ -216,32 +216,32 @@ function UserDetailContent() {
                   }`}
                   onClick={handleStatusToggle}
                 >
-                  {user.status === "ACTIVE" ? "Deactivate" : "Activate"}
+                  {user.status === "ACTIVE" ? t("users.actions.deactivate") as string : t("users.actions.activate") as string}
                 </Button>
               </div>
             </div>
 
             {/* Reset Password */}
             <div className="space-y-2">
-              <label className="text-xs text-[var(--muted-foreground)]">Password</label>
+              <label className="text-xs text-[var(--muted-foreground)]">{t("users.actions.reset_password") as string}</label>
               <Button
                 variant="outline"
                 className="h-9 w-full border-none bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 text-[var(--foreground)] transition-all duration-200"
                 onClick={handleResetPassword}
               >
-                Generate Reset Link
+                {t("users.actions.reset_password") as string}
               </Button>
             </div>
 
             {/* Delete */}
             <div className="space-y-2 pt-3 border-t border-[var(--border)]">
-              <label className="text-xs text-[var(--muted-foreground)]">Danger Zone</label>
+              <label className="text-xs text-[var(--muted-foreground)]">{t("users.details.danger_zone") as string}</label>
               <Button
                 variant="outline"
                 className="h-9 w-full border-none bg-[var(--destructive)]/10 hover:bg-[var(--destructive)]/20 text-[var(--destructive)] transition-all duration-200"
                 onClick={handleDelete}
               >
-                Remove User
+                {t("users.actions.delete") as string}
               </Button>
             </div>
           </CardContent>
@@ -251,7 +251,7 @@ function UserDetailContent() {
       {/* Organization Memberships */}
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-[var(--foreground)]">
-          Organization Memberships ({user.organizationMembers?.length || 0})
+          {t("users.details.memberships") as string} ({user.organizationMembers?.length || 0})
         </h3>
         {user.organizationMembers?.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -277,15 +277,15 @@ function UserDetailContent() {
                     </Badge>
                   </div>
                   <div className="flex gap-4 mt-3 text-xs text-[var(--muted-foreground)]">
-                    <span>{membership.organization._count?.members || 0} {membership.organization._count?.members === 1 ? "member" : "members"}</span>
-                    <span>{membership.organization._count?.workspaces || 0} {membership.organization._count?.workspaces === 1 ? "workspace" : "workspaces"}</span>
+                    <span>{membership.organization._count?.members || 0} {t("organizations.details.members")}</span>
+                    <span>{membership.organization._count?.workspaces || 0} {t("organizations.details.workspaces")}</span>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-[var(--muted-foreground)]">No organization memberships</p>
+          <p className="text-sm text-[var(--muted-foreground)]">{t("users.details.no_memberships") as string}</p>
         )}
       </div>
     </>
@@ -293,14 +293,15 @@ function UserDetailContent() {
 }
 
 export default function AdminUserDetailPage() {
+  const { t } = useTranslation("admin");
   const router = useRouter();
   const { id } = router.query;
 
   return (
     <AdminLayout
       breadcrumbs={[
-        { label: "Users", href: "/admin/users" },
-        { label: typeof id === "string" ? "User Details" : "..." },
+        { label: t("navigation.users") as string, href: "/admin/users" },
+        { label: typeof id === "string" ? t("users.actions.view_details") as string : "..." },
       ]}
     >
       <UserDetailContent />

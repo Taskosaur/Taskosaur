@@ -5,6 +5,7 @@ import { adminApi } from "@/lib/admin-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/auth-context";
+import { useTranslation } from "react-i18next";
 import {
   HiUsers,
   HiBuildingOffice2,
@@ -71,7 +72,7 @@ function StatCard({
           )}
         </div>
         <div className="text-2xl font-bold text-[var(--foreground)]">{value.toLocaleString()}</div>
-        <div className="text-sm font-medium text-[var(--muted-foreground)] mt-1">{title}</div>
+        <div className="text-sm font-medium text-[var(--muted-foreground)] mt-1">{title as string}</div>
       </CardContent>
     </Card>
   );
@@ -86,13 +87,14 @@ function ConfigStatusBadge({ configured, label }: { configured: boolean; label: 
         <HiXCircle className="w-4 h-4 text-[var(--muted-foreground)]" />
       )}
       <span className={`text-xs ${configured ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]"}`}>
-        {label}
+        {label as string}
       </span>
     </div>
   );
 }
 
 function AdminDashboardContent() {
+  const { t } = useTranslation("admin");
   const router = useRouter();
   const { getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
@@ -165,10 +167,13 @@ function AdminDashboardContent() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-[var(--foreground)]">
-                Welcome back, {currentUser?.firstName || "Admin"}
+                {t("dashboard.welcome_back", { name: currentUser?.firstName || t("users.roles.super_admin") as string }) as string}
               </h2>
               <p className="text-xs text-[var(--muted-foreground)] mt-1">
-                Here&apos;s an overview of your platform. {stats?.activeUsers || 0} active users across {stats?.totalOrganizations || 0} organizations.
+                {t("dashboard.platform_overview", {
+                  userCount: stats?.activeUsers || 0,
+                  orgCount: stats?.totalOrganizations || 0,
+                }) as string}
               </p>
             </div>
             <button
@@ -176,7 +181,7 @@ function AdminDashboardContent() {
               className="text-xs text-[var(--primary)] hover:underline cursor-pointer flex items-center gap-1"
             >
               <HiCog6Tooth className="w-3.5 h-3.5" />
-              Configuration
+              {t("navigation.configuration") as string}
             </button>
           </div>
         </CardContent>
@@ -187,35 +192,35 @@ function AdminDashboardContent() {
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <StatCard
             icon={HiUsers}
-            title="Total Users"
+            title={t("dashboard.stats.total_users") as string}
             value={stats.totalUsers}
-            subValue={stats.newUsersThisWeek > 0 ? `+${stats.newUsersThisWeek} this week` : undefined}
+            subValue={stats.newUsersThisWeek > 0 ? t("dashboard.stats.new_this_week", { count: stats.newUsersThisWeek }) as string : undefined}
             onClick={() => router.push("/admin/users")}
           />
           <StatCard
             icon={HiUserGroup}
-            title="Active Users"
+            title={t("dashboard.stats.active_users") as string}
             value={stats.activeUsers}
           />
           <StatCard
             icon={HiBuildingOffice2}
-            title="Organizations"
+            title={t("dashboard.stats.organizations") as string}
             value={stats.totalOrganizations}
-            subValue={stats.newOrgsThisWeek > 0 ? `+${stats.newOrgsThisWeek} this week` : undefined}
+            subValue={stats.newOrgsThisWeek > 0 ? t("dashboard.stats.new_this_week", { count: stats.newOrgsThisWeek }) as string : undefined}
             onClick={() => router.push("/admin/organizations")}
           />
-          <StatCard icon={HiSquares2X2} title="Workspaces" value={stats.totalWorkspaces} />
+          <StatCard icon={HiSquares2X2} title={t("dashboard.stats.workspaces") as string} value={stats.totalWorkspaces} />
           <StatCard
             icon={HiFolder}
-            title="Projects"
+            title={t("dashboard.stats.projects") as string}
             value={stats.totalProjects}
-            subValue={stats.newProjectsThisWeek > 0 ? `+${stats.newProjectsThisWeek} this week` : undefined}
+            subValue={stats.newProjectsThisWeek > 0 ? t("dashboard.stats.new_this_week", { count: stats.newProjectsThisWeek }) as string : undefined}
           />
           <StatCard
             icon={HiClipboardDocumentList}
-            title="Tasks"
+            title={t("dashboard.stats.tasks") as string}
             value={stats.totalTasks}
-            subValue={stats.newTasksThisWeek > 0 ? `+${stats.newTasksThisWeek} this week` : undefined}
+            subValue={stats.newTasksThisWeek > 0 ? t("dashboard.stats.new_this_week", { count: stats.newTasksThisWeek }) as string : undefined}
           />
         </div>
       )}
@@ -225,12 +230,12 @@ function AdminDashboardContent() {
         <Card className="bg-[var(--card)] border-none shadow-sm">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-[var(--foreground)]">System Status</h3>
+              <h3 className="text-sm font-semibold text-[var(--foreground)]">{t("dashboard.system_status.title") as string}</h3>
               <button
                 onClick={() => router.push("/admin/config")}
                 className="text-xs text-[var(--primary)] hover:underline cursor-pointer"
               >
-                Manage
+                {t("dashboard.system_status.manage") as string}
               </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -239,10 +244,10 @@ function AdminDashboardContent() {
                   <HiUserPlus className="w-4 h-4 text-[var(--primary)]" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-[var(--foreground)]">Registration</p>
+                  <p className="text-xs font-medium text-[var(--foreground)]">{t("dashboard.system_status.registration") as string}</p>
                   <ConfigStatusBadge
                     configured={configStatus.registrationEnabled}
-                    label={configStatus.registrationEnabled ? "Enabled" : "Disabled"}
+                    label={configStatus.registrationEnabled ? t("dashboard.system_status.enabled") as string : t("dashboard.system_status.disabled") as string}
                   />
                 </div>
               </div>
@@ -251,10 +256,10 @@ function AdminDashboardContent() {
                   <HiEnvelope className="w-4 h-4 text-[var(--primary)]" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-[var(--foreground)]">Email / SMTP</p>
+                  <p className="text-xs font-medium text-[var(--foreground)]">{t("dashboard.system_status.email_smtp") as string}</p>
                   <ConfigStatusBadge
                     configured={configStatus.smtpConfigured}
-                    label={configStatus.smtpConfigured ? "Configured" : "Not configured"}
+                    label={configStatus.smtpConfigured ? t("dashboard.system_status.configured") as string : t("dashboard.system_status.not_configured") as string}
                   />
                 </div>
               </div>
@@ -263,10 +268,10 @@ function AdminDashboardContent() {
                   <HiShieldCheck className="w-4 h-4 text-[var(--primary)]" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-[var(--foreground)]">Single Sign-On</p>
+                  <p className="text-xs font-medium text-[var(--foreground)]">{t("dashboard.system_status.sso") as string}</p>
                   <ConfigStatusBadge
                     configured={configStatus.ssoEnabled}
-                    label={configStatus.ssoEnabled ? "Enabled" : "Disabled"}
+                    label={configStatus.ssoEnabled ? t("dashboard.system_status.enabled") as string : t("dashboard.system_status.disabled") as string}
                   />
                 </div>
               </div>

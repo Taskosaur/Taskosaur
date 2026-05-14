@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { adminApi } from "@/lib/admin-api";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import { HiEnvelope, HiShieldCheck, HiUserPlus, HiBuildingOffice2, HiExclamation
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface ConfigSetting {
   key: string;
@@ -27,49 +28,49 @@ interface ConfigSetting {
   isEncrypted: boolean;
 }
 
-// Default config structure with categories
-const CONFIG_SCHEMA = {
+// Default config structure helper
+const getConfigSchema = (t: any) => ({
   registration: {
-    title: "User Registration",
-    description: "Control who can create accounts on the platform",
+    title: t("config.sections.registration"),
+    description: t("config.sections.registration_desc"),
     icon: HiUserPlus,
     fields: [
       {
         key: "registration_enabled",
-        label: "Enable User Registration",
-        description: "When disabled, only admins can create new user accounts via invitations",
+        label: t("config.labels.registration_enabled"),
+        description: t("config.labels.registration_enabled_desc"),
         type: "toggle" as const,
         defaultValue: "true",
         category: "registration",
       },
       {
         key: "default_organization_id",
-        label: "Default Organization",
-        description: "New users will automatically join this organization instead of creating their own. Leave empty to require org creation on signup.",
+        label: t("config.labels.default_org"),
+        description: t("config.labels.default_org_desc"),
         type: "org-select" as const,
         defaultValue: "",
         category: "registration",
       },
       {
         key: "allow_org_creation",
-        label: "Allow Organization Creation",
-        description: "When disabled, only Super Admins can create new organizations. Users will be assigned to the default organization.",
+        label: t("config.labels.allow_org_creation"),
+        description: t("config.labels.allow_org_creation_desc"),
         type: "toggle" as const,
         defaultValue: "true",
         category: "registration",
       },
       {
         key: "allow_workspace_creation",
-        label: "Allow Workspace Creation",
-        description: "When disabled, only Organization Owners and Managers can create workspaces.",
+        label: t("config.labels.allow_workspace_creation"),
+        description: t("config.labels.allow_workspace_creation_desc"),
         type: "toggle" as const,
         defaultValue: "true",
         category: "registration",
       },
       {
         key: "allow_project_creation",
-        label: "Allow Project Creation",
-        description: "When disabled, only Workspace Managers and above can create projects.",
+        label: t("config.labels.allow_project_creation"),
+        description: t("config.labels.allow_project_creation_desc"),
         type: "toggle" as const,
         defaultValue: "true",
         category: "registration",
@@ -77,38 +78,38 @@ const CONFIG_SCHEMA = {
     ],
   },
   smtp: {
-    title: "Email / SMTP Configuration",
-    description: "Configure outgoing email settings for notifications and password resets",
+    title: t("config.sections.smtp"),
+    description: t("config.labels.smtp_desc"),
     icon: HiEnvelope,
     fields: [
       {
         key: "smtp_host",
-        label: "SMTP Host",
-        description: "e.g., smtp.gmail.com, smtp.sendgrid.net",
+        label: t("config.labels.smtp_host"),
+        description: t("config.labels.smtp_host_desc"),
         type: "text" as const,
         defaultValue: "",
         category: "smtp",
       },
       {
         key: "smtp_port",
-        label: "SMTP Port",
-        description: "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)",
+        label: t("config.labels.smtp_port"),
+        description: t("config.labels.smtp_port_desc"),
         type: "text" as const,
         defaultValue: "587",
         category: "smtp",
       },
       {
         key: "smtp_user",
-        label: "SMTP Username",
-        description: "Usually your email address",
+        label: t("config.labels.smtp_user"),
+        description: t("config.labels.smtp_user_desc"),
         type: "text" as const,
         defaultValue: "",
         category: "smtp",
       },
       {
         key: "smtp_pass",
-        label: "SMTP Password",
-        description: "App password or SMTP credential",
+        label: t("config.labels.smtp_pass"),
+        description: t("config.labels.smtp_pass_desc"),
         type: "password" as const,
         defaultValue: "",
         category: "smtp",
@@ -116,8 +117,8 @@ const CONFIG_SCHEMA = {
       },
       {
         key: "smtp_from",
-        label: "From Address",
-        description: "The sender email address for outgoing emails",
+        label: t("config.labels.smtp_from"),
+        description: t("config.labels.smtp_from_desc"),
         type: "text" as const,
         defaultValue: "",
         category: "smtp",
@@ -125,46 +126,46 @@ const CONFIG_SCHEMA = {
     ],
   },
   sso: {
-    title: "Single Sign-On (SSO / OIDC)",
-    description: "Configure OpenID Connect for external authentication (e.g., Authentik, Keycloak, Okta)",
+    title: t("config.sections.security"),
+    description: t("config.labels.sso_desc"),
     icon: HiShieldCheck,
     fields: [
       {
         key: "sso_enabled",
-        label: "Enable SSO / OIDC Login",
-        description: "Allow users to log in with an external identity provider",
+        label: t("config.labels.sso_enabled"),
+        description: t("config.labels.sso_enabled_desc"),
         type: "toggle" as const,
         defaultValue: "false",
         category: "sso",
       },
       {
         key: "sso_provider_name",
-        label: "Provider Display Name",
-        description: "Shown on the login button, e.g., 'Login with Authentik'",
+        label: t("config.labels.sso_provider_name"),
+        description: t("config.labels.sso_provider_name_desc"),
         type: "text" as const,
         defaultValue: "",
         category: "sso",
       },
       {
         key: "sso_issuer_url",
-        label: "Issuer URL",
-        description: "OIDC discovery URL, e.g., https://auth.example.com/application/o/taskosaur/",
+        label: t("config.labels.sso_issuer_url"),
+        description: t("config.labels.sso_issuer_url_desc"),
         type: "text" as const,
         defaultValue: "",
         category: "sso",
       },
       {
         key: "sso_client_id",
-        label: "Client ID",
-        description: "OAuth2 client ID from your identity provider",
+        label: t("config.labels.sso_client_id"),
+        description: t("config.labels.sso_client_id_desc"),
         type: "text" as const,
         defaultValue: "",
         category: "sso",
       },
       {
         key: "sso_client_secret",
-        label: "Client Secret",
-        description: "OAuth2 client secret",
+        label: t("config.labels.sso_client_secret"),
+        description: t("config.labels.sso_client_secret_desc"),
         type: "password" as const,
         defaultValue: "",
         category: "sso",
@@ -172,15 +173,15 @@ const CONFIG_SCHEMA = {
       },
       {
         key: "sso_auto_register",
-        label: "Auto-Create Accounts via SSO",
-        description: "When enabled, new users can be created through SSO even if public registration is disabled",
+        label: t("config.labels.sso_auto_register"),
+        description: t("config.labels.sso_auto_register_desc"),
         type: "toggle" as const,
         defaultValue: "false",
         category: "sso",
       },
     ],
   },
-};
+});
 
 interface FieldSource {
   source: "env" | "db" | "none";
@@ -188,6 +189,7 @@ interface FieldSource {
 }
 
 function AdminConfigContent() {
+  const { t } = useTranslation("admin");
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [fieldSources, setFieldSources] = useState<Record<string, FieldSource>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -196,6 +198,8 @@ function AdminConfigContent() {
   const [orgPopoverOpen, setOrgPopoverOpen] = useState(false);
   const [ssoRedirectUri, setSsoRedirectUri] = useState("");
   const [testingSmtp, setTestingSmtp] = useState(false);
+
+  const CONFIG_SCHEMA = useMemo(() => getConfigSchema(t), [t]);
 
   const loadConfig = useCallback(async () => {
     try {
@@ -278,10 +282,10 @@ function AdminConfigContent() {
         }));
 
       await adminApi.saveConfig(sectionSettings);
-      toast.success(`${section.title} saved successfully`);
+      toast.success(t("config.save_success", { section: section.title }));
     } catch (error) {
       console.error("Failed to save config:", error);
-      toast.error("Failed to save configuration");
+      toast.error(t("config.save_error"));
     } finally {
       setIsSaving(null);
     }
@@ -312,7 +316,7 @@ function AdminConfigContent() {
   // Warning: org creation disabled but no default org set
   const showOrgWarning = !allowOrgCreation && !defaultOrgId;
 
-  const renderGenericSection = (sectionKey: string, section: (typeof CONFIG_SCHEMA)[keyof typeof CONFIG_SCHEMA]) => {
+  const renderGenericSection = (sectionKey: string, section: any) => {
     const Icon = section.icon;
     return (
       <Card key={sectionKey} className="bg-[var(--card)] border-none shadow-sm">
@@ -322,13 +326,13 @@ function AdminConfigContent() {
               <Icon className="w-4 h-4 text-[var(--primary)]" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-[var(--foreground)]">{section.title}</h3>
-              <p className="text-xs text-[var(--muted-foreground)]">{section.description}</p>
+              <h3 className="text-sm font-semibold text-[var(--foreground)]">{section.title as string}</h3>
+              <p className="text-xs text-[var(--muted-foreground)]">{section.description as string}</p>
             </div>
           </div>
 
           <div className="mt-5 space-y-4">
-            {section.fields.map((field) => {
+            {section.fields.map((field: any) => {
               const source = fieldSources[field.key];
               const isReadonly = source?.readonly === true;
 
@@ -337,8 +341,8 @@ function AdminConfigContent() {
                   {field.type === "toggle" ? (
                     <div className="flex items-center justify-between py-2">
                       <div>
-                        <Label className="text-sm font-medium">{field.label}</Label>
-                        <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{field.description}</p>
+                        <Label className="text-sm font-medium">{field.label as string}</Label>
+                        <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{field.description as string}</p>
                       </div>
                       <Switch
                         checked={getValue(field.key, field.defaultValue) === "true"}
@@ -349,17 +353,17 @@ function AdminConfigContent() {
                   ) : (
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor={field.key} className="text-sm font-medium">{field.label}</Label>
+                        <Label htmlFor={field.key} className="text-sm font-medium">{field.label as string}</Label>
                         {source?.source === "env" && (
                           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
-                            Set via .env
+                            {t("config.labels.set_via_env") as string}
                           </span>
                         )}
                       </div>
                       <Input
                         id={field.key}
                         type={field.type === "password" ? "password" : "text"}
-                        placeholder={field.description}
+                        placeholder={field.description as string}
                         value={getValue(field.key, field.defaultValue)}
                         onChange={(e) => handleChange(field.key, e.target.value)}
                         readOnly={isReadonly}
@@ -367,7 +371,7 @@ function AdminConfigContent() {
                       />
                       {isReadonly && (
                         <p className="text-[10px] text-[var(--muted-foreground)]">
-                          This value is set via environment variable and cannot be changed here.
+                          {t("config.labels.readonly_env_desc") as string}
                         </p>
                       )}
                     </div>
@@ -382,9 +386,9 @@ function AdminConfigContent() {
             <div className="mt-4 pt-4 border-t border-[var(--border)]">
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Redirect URI</Label>
+                  <Label className="text-sm font-medium">{t("config.labels.redirect_uri") as string}</Label>
                   <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400">
-                    Auto-generated
+                    {t("config.labels.auto_generated") as string}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -399,14 +403,14 @@ function AdminConfigContent() {
                     className="h-9 px-3 flex-shrink-0 border-none"
                     onClick={() => {
                       navigator.clipboard.writeText(ssoRedirectUri);
-                      toast.success("Redirect URI copied to clipboard");
+                      toast.success(t("config.labels.copied_to_clipboard") as string);
                     }}
                   >
-                    Copy
+                    {t("config.labels.copy") as string}
                   </Button>
                 </div>
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  Add this URL as the redirect/callback URI in your identity provider settings.
+                  {t("config.labels.redirect_uri_desc") as string}
                 </p>
               </div>
             </div>
@@ -417,9 +421,9 @@ function AdminConfigContent() {
             <div className="mt-4 pt-4 border-t border-[var(--border)]">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-sm font-medium">Test Connection</Label>
+                  <Label className="text-sm font-medium">{t("config.labels.test_connection") as string}</Label>
                   <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                    Verify SMTP server is reachable and credentials are valid
+                    {t("config.labels.test_connection_desc") as string}
                   </p>
                 </div>
                 <Button
@@ -431,9 +435,9 @@ function AdminConfigContent() {
                     setTestingSmtp(true);
                     try {
                       const result = await adminApi.testSmtp();
-                      toast.success(result.message || "SMTP connection verified");
+                      toast.success(result.message || t("config.labels.smtp_verified") as string);
                     } catch (err: unknown) {
-                      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "SMTP test failed";
+                      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || t("config.labels.smtp_test_failed") as string;
                       toast.error(msg);
                     } finally {
                       setTestingSmtp(false);
@@ -443,15 +447,15 @@ function AdminConfigContent() {
                   {testingSmtp ? (
                     <span className="flex items-center gap-2">
                       <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Testing...
+                      {t("config.labels.testing") as string}
                     </span>
-                  ) : "Test Connection"}
+                  ) : t("config.labels.test_connection") as string}
                 </Button>
               </div>
             </div>
           )}
 
-          {section.fields.some((f) => !fieldSources[f.key]?.readonly) && (
+          {section.fields.some((f: any) => !fieldSources[f.key]?.readonly) && (
             <div className="mt-5 flex justify-end">
               <Button
                 className="h-9 bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 transition-all duration-200 font-medium rounded-lg shadow-none border-none"
@@ -461,9 +465,9 @@ function AdminConfigContent() {
                 {isSaving === sectionKey ? (
                   <span className="flex items-center gap-2">
                     <span className="w-4 h-4 border-2 border-[var(--primary-foreground)] border-t-transparent rounded-full animate-spin" />
-                    Saving...
+                    {t("config.saving") as string}
                   </span>
-                ) : "Save"}
+                ) : t("config.save_changes") as string}
               </Button>
             </div>
           )}
@@ -482,8 +486,8 @@ function AdminConfigContent() {
               <HiUserPlus className="w-4 h-4 text-[var(--primary)]" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-[var(--foreground)]">User Registration</h3>
-              <p className="text-xs text-[var(--muted-foreground)]">Control who can create accounts and resources on the platform</p>
+              <h3 className="text-sm font-semibold text-[var(--foreground)]">{t("config.sections.registration") as string}</h3>
+              <p className="text-xs text-[var(--muted-foreground)]">{t("config.sections.registration_desc") as string}</p>
             </div>
           </div>
 
@@ -491,9 +495,9 @@ function AdminConfigContent() {
           <div className="mt-5">
             <div className="flex items-center justify-between py-2">
               <div>
-                <Label className="text-sm font-medium">Enable User Registration</Label>
+                <Label className="text-sm font-medium">{t("config.labels.registration_enabled") as string}</Label>
                 <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                  When disabled, only admins can create new user accounts via invitations
+                  {t("config.labels.registration_enabled_desc") as string}
                 </p>
               </div>
               <Switch
@@ -508,12 +512,12 @@ function AdminConfigContent() {
             <div className="flex-1 mr-4">
               <div className="flex items-center gap-2">
                 <HiBuildingOffice2 className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
-                <Label className="text-sm font-medium">Default Organization</Label>
+                <Label className="text-sm font-medium">{t("config.labels.default_org") as string}</Label>
               </div>
               <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
                 {defaultOrgId
-                  ? `New users will automatically join "${selectedOrgName || "selected organization"}" on signup`
-                  : "New users will need to create their own organization on signup"}
+                  ? t("config.labels.default_org_active_desc", { name: selectedOrgName || t("common.none") as string }) as string
+                  : t("config.labels.default_org_none_desc") as string}
               </p>
             </div>
             <Popover open={orgPopoverOpen} onOpenChange={setOrgPopoverOpen}>
@@ -525,16 +529,16 @@ function AdminConfigContent() {
                   className="h-9 w-[220px] justify-between border-none bg-background font-normal flex-shrink-0"
                 >
                   <span className="truncate">
-                    {selectedOrgName || "None"}
+                    {selectedOrgName || t("common.none") as string}
                   </span>
                   <HiChevronUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[220px] p-0 border-none bg-[var(--popover)]" align="end">
                 <Command>
-                  <CommandInput placeholder="Search organizations..." className="h-9" />
+                  <CommandInput placeholder={t("organizations.search_placeholder") as string} className="h-9" />
                   <CommandList>
-                    <CommandEmpty>No organization found.</CommandEmpty>
+                    <CommandEmpty>{t("common.no_results") as string}</CommandEmpty>
                     <CommandGroup>
                       <CommandItem
                         value="none"
@@ -544,7 +548,7 @@ function AdminConfigContent() {
                         }}
                       >
                         <HiCheck className={`mr-2 h-3.5 w-3.5 ${!defaultOrgId ? "opacity-100" : "opacity-0"}`} />
-                        None
+                        {t("common.none") as string}
                       </CommandItem>
                       {organizations.map((org) => (
                         <CommandItem
@@ -572,10 +576,10 @@ function AdminConfigContent() {
               <HiExclamationTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
-                  Organization creation is disabled with no default organization set
+                  {t("config.warnings.no_org_creation_or_default") as string}
                 </p>
                 <p className="text-xs text-amber-700 dark:text-amber-400/80 mt-0.5">
-                  New users will be unable to proceed after signup. Set a default organization above or enable organization creation below.
+                  {t("config.warnings.no_org_creation_or_default_desc") as string}
                 </p>
               </div>
             </div>
@@ -584,14 +588,14 @@ function AdminConfigContent() {
           {/* Resource Creation Permissions */}
           <div className="mt-4 pt-4 border-t border-[var(--border)]">
             <p className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider mb-3">
-              Resource Creation Permissions
+              {t("config.labels.resource_creation_perms") as string}
             </p>
             <div className="space-y-1">
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <Label className="text-sm font-medium">Allow Organization Creation</Label>
+                  <Label className="text-sm font-medium">{t("config.labels.allow_org_creation") as string}</Label>
                   <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                    When disabled, only Super Admins can create new organizations
+                    {t("config.labels.allow_org_creation_desc") as string}
                   </p>
                 </div>
                 <Switch
@@ -601,9 +605,9 @@ function AdminConfigContent() {
               </div>
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <Label className="text-sm font-medium">Allow Workspace Creation</Label>
+                  <Label className="text-sm font-medium">{t("config.labels.allow_workspace_creation") as string}</Label>
                   <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                    When disabled, only Organization Owners and Managers can create workspaces
+                    {t("config.labels.allow_workspace_creation_desc") as string}
                   </p>
                 </div>
                 <Switch
@@ -613,9 +617,9 @@ function AdminConfigContent() {
               </div>
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <Label className="text-sm font-medium">Allow Project Creation</Label>
+                  <Label className="text-sm font-medium">{t("config.labels.allow_project_creation") as string}</Label>
                   <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                    When disabled, only Workspace Managers and above can create projects
+                    {t("config.labels.allow_project_creation_desc") as string}
                   </p>
                 </div>
                 <Switch
@@ -635,9 +639,9 @@ function AdminConfigContent() {
               {isSaving === "registration" ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-[var(--primary-foreground)] border-t-transparent rounded-full animate-spin" />
-                  Saving...
+                  {t("config.saving") as string}
                 </span>
-              ) : "Save"}
+              ) : t("config.save_changes") as string}
             </Button>
           </div>
         </CardContent>

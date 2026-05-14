@@ -21,6 +21,7 @@ import { HiEllipsisVertical, HiXMark, HiEye, HiShieldCheck, HiShieldExclamation,
 import { HiSearch } from "react-icons/hi";
 import { ShieldCheck, Flame, CircleDot } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 // Global user roles — only SUPER_ADMIN and MEMBER are meaningful at system level
 const GLOBAL_ROLES = ["SUPER_ADMIN", "MEMBER"];
@@ -28,10 +29,10 @@ const GLOBAL_ROLES = ["SUPER_ADMIN", "MEMBER"];
 const ALL_ROLES = ["SUPER_ADMIN", "OWNER", "MANAGER", "MEMBER", "VIEWER"];
 const STATUSES = ["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"];
 
-const ROLE_OPTIONS = ALL_ROLES.map((r) => ({ id: r, name: r, value: r }));
-const STATUS_OPTIONS = STATUSES.map((s) => ({
+const getRoleOptions = (t: any) => ALL_ROLES.map((r) => ({ id: r, name: t(`users.roles.${r.toLowerCase()}`, r), value: r }));
+const getStatusOptions = (t: any) => STATUSES.map((s) => ({
   id: s,
-  name: s,
+  name: t(`users.status.${s.toLowerCase()}`, s),
   value: s,
   color:
     s === "ACTIVE" ? "#22c55e" :
@@ -81,6 +82,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 function AdminUsersContent() {
+  const { t } = useTranslation("admin");
   const router = useRouter();
   const { createSection } = useGenericFilters();
   const [users, setUsers] = useState<any[]>([]);
@@ -144,28 +146,28 @@ function AdminUsersContent() {
   }, []);
 
   const roleFilters = useMemo(
-    () => ROLE_OPTIONS.map((r) => ({
+    () => getRoleOptions(t).map((r) => ({
       ...r,
       selected: selectedRoles.includes(r.id),
       count: users.filter((u) => u.role === r.id).length,
     })),
-    [selectedRoles, users]
+    [selectedRoles, users, t]
   );
 
   const statusFilters = useMemo(
-    () => STATUS_OPTIONS.map((s) => ({
+    () => getStatusOptions(t).map((s) => ({
       ...s,
       selected: selectedStatuses.includes(s.id),
       count: users.filter((u) => u.status === s.id).length,
     })),
-    [selectedStatuses, users]
+    [selectedStatuses, users, t]
   );
 
   const filterSections = useMemo(
     () => [
       createSection({
         id: "role",
-        title: "Role",
+        title: t("users.table.role"),
         icon: ShieldCheck,
         data: roleFilters,
         selectedIds: selectedRoles,
@@ -176,7 +178,7 @@ function AdminUsersContent() {
       }),
       createSection({
         id: "status",
-        title: "Status",
+        title: t("users.table.status"),
         icon: CircleDot,
         data: statusFilters,
         selectedIds: selectedStatuses,
@@ -186,16 +188,16 @@ function AdminUsersContent() {
         onClearAll: () => { setSelectedStatuses([]); setPage(1); },
       }),
     ],
-    [roleFilters, statusFilters, selectedRoles, selectedStatuses, toggleRole, toggleStatus, createSection]
+    [roleFilters, statusFilters, selectedRoles, selectedStatuses, toggleRole, toggleStatus, createSection, t]
   );
 
   const handleRoleChange = async (userId: string, role: string) => {
     try {
       await adminApi.updateUserRole(userId, role);
-      toast.success("User role updated");
+      toast.success(t("common.success"));
       fetchUsers();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to update role");
+      toast.error(error?.response?.data?.message || t("common.error_loading"));
     }
   };
 
@@ -203,10 +205,10 @@ function AdminUsersContent() {
     const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     try {
       await adminApi.updateUserStatus(userId, newStatus);
-      toast.success(`User ${newStatus === "ACTIVE" ? "activated" : "deactivated"}`);
+      toast.success(t("common.success"));
       fetchUsers();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to update status");
+      toast.error(error?.response?.data?.message || t("common.error_loading"));
     }
   };
 
@@ -216,31 +218,31 @@ function AdminUsersContent() {
       // Copy the reset link to clipboard
       if (result.resetLink) {
         await navigator.clipboard.writeText(window.location.origin + result.resetLink);
-        toast.success(`Password reset link for ${userName} copied to clipboard. Valid for 24 hours.`);
+        toast.success(t("users.actions.reset_password_link_copied", { name: userName }));
       } else {
         toast.success(result.message);
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to generate reset link");
+      toast.error(error?.response?.data?.message || t("common.error_loading"));
     }
   };
 
   const handleDeleteUser = async (userId: string, userName: string) => {
-    if (!window.confirm(`Are you sure you want to remove "${userName}"? This will deactivate their account and remove them from all organizations.`)) {
+    if (!window.confirm(t("users.actions.delete_confirmation", { name: userName }))) {
       return;
     }
     try {
       await adminApi.deleteUser(userId);
-      toast.success(`User "${userName}" removed`);
+      toast.success(t("users.actions.user_removed", { name: userName }));
       fetchUsers();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to delete user");
+      toast.error(error?.response?.data?.message || t("common.error_loading"));
     }
   };
 
   return (
     <>
-      <p className="text-sm text-[var(--muted-foreground)]">{total} {total === 1 ? "user" : "users"} in the system</p>
+      <p className="text-sm text-[var(--muted-foreground)]">{t("users.total_count", { count: total }) as string}</p>
 
       {/* Search & Filter Bar */}
       <div className="flex flex-wrap items-center gap-3">
@@ -248,7 +250,7 @@ function AdminUsersContent() {
           <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
           <Input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder={t("users.search_placeholder") as string}
             value={searchInput}
             onChange={(e) => { setSearchInput(e.target.value); setPage(1); }}
             className="pl-10 rounded-md border border-[var(--border)]"
@@ -264,10 +266,10 @@ function AdminUsersContent() {
         </div>
         <FilterDropdown
           sections={filterSections}
-          title="Filters"
+          title={t("common.filters") as string}
           activeFiltersCount={totalActiveFilters}
           onClearAllFilters={clearAllFilters}
-          placeholder="Filter users"
+          placeholder={t("users.search_placeholder") as string}
           dropdownWidth="w-56"
           showApplyButton={false}
         />
@@ -291,9 +293,9 @@ function AdminUsersContent() {
           ) : users.length === 0 ? (
             <div className="p-12 text-center">
               <HiUsers className="w-10 h-10 mx-auto text-[var(--muted-foreground)]/50 mb-3" />
-              <p className="text-sm font-medium text-[var(--foreground)]">No users found</p>
+              <p className="text-sm font-medium text-[var(--foreground)]">{t("common.no_results") as string}</p>
               <p className="text-xs text-[var(--muted-foreground)] mt-1">
-                {debouncedSearch ? "Try adjusting your search or filters" : "No users in the system yet"}
+                {debouncedSearch ? t("common.try_adjusting") : t("users.no_users")}
               </p>
             </div>
           ) : (
@@ -301,12 +303,12 @@ function AdminUsersContent() {
               <div className="min-w-[700px]">
               <div className="px-4 py-3 border-b border-[var(--border)]">
                 <div className="grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
-                  <div className="col-span-4">User</div>
-                  <div className="col-span-2">Role</div>
-                  <div className="col-span-2">Status</div>
-                  <div className="col-span-1">Orgs</div>
-                  <div className="col-span-2">Joined</div>
-                  <div className="col-span-1">Actions</div>
+                  <div className="col-span-4">{t("users.table.user") as string}</div>
+                  <div className="col-span-2">{t("users.table.role") as string}</div>
+                  <div className="col-span-2">{t("users.table.status") as string}</div>
+                  <div className="col-span-1">{t("users.table.organizations") as string}</div>
+                  <div className="col-span-2">{t("users.table.created") as string}</div>
+                  <div className="col-span-1">{t("users.table.actions") as string}</div>
                 </div>
               </div>
               {users.map((user) => (
@@ -329,12 +331,12 @@ function AdminUsersContent() {
                     </div>
                     <div className="col-span-2">
                       <Badge className={`text-xs px-2 py-1 rounded-md border ${getRoleBadgeClass(user.role)}`}>
-                        {user.role}
+                        {t(`users.roles.${user.role.toLowerCase()}`, user.role) as string}
                       </Badge>
                     </div>
                     <div className="col-span-2">
                       <Badge className={`text-xs px-2 py-1 rounded-md border ${getStatusBadgeClass(user.status)}`}>
-                        {user.status}
+                        {t(`users.status.${user.status.toLowerCase()}`, user.status) as string}
                       </Badge>
                     </div>
                     <div className="col-span-1 text-xs text-[var(--muted-foreground)]">
@@ -356,7 +358,7 @@ function AdminUsersContent() {
                             className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
                           >
                             <HiEye className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
-                            <span className="text-sm">View Details</span>
+                            <span className="text-sm">{t("users.actions.view_details") as string}</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="my-1" />
                           {user.role !== "SUPER_ADMIN" && (
@@ -365,7 +367,7 @@ function AdminUsersContent() {
                               className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
                             >
                               <HiShieldCheck className="w-3.5 h-3.5 text-purple-500" />
-                              <span className="text-sm">Promote to Super Admin</span>
+                              <span className="text-sm">{t("users.actions.promote_super_admin") as string}</span>
                             </DropdownMenuItem>
                           )}
                           {user.role === "SUPER_ADMIN" && (
@@ -374,7 +376,7 @@ function AdminUsersContent() {
                               className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
                             >
                               <HiShieldExclamation className="w-3.5 h-3.5 text-orange-500" />
-                              <span className="text-sm">Remove Super Admin</span>
+                              <span className="text-sm">{t("users.actions.remove_super_admin") as string}</span>
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator className="my-1" />
@@ -385,12 +387,12 @@ function AdminUsersContent() {
                             {user.status === "ACTIVE" ? (
                               <>
                                 <HiNoSymbol className="w-3.5 h-3.5 text-[var(--destructive)]" />
-                                <span className="text-sm text-[var(--destructive)]">Deactivate</span>
+                                <span className="text-sm text-[var(--destructive)]">{t("users.actions.deactivate") as string}</span>
                               </>
                             ) : (
                               <>
                                 <HiCheckCircle className="w-3.5 h-3.5 text-green-600" />
-                                <span className="text-sm text-green-600">Activate</span>
+                                <span className="text-sm text-green-600">{t("users.actions.activate") as string}</span>
                               </>
                             )}
                           </DropdownMenuItem>
@@ -399,7 +401,7 @@ function AdminUsersContent() {
                             className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
                           >
                             <HiKey className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
-                            <span className="text-sm">Reset Password</span>
+                            <span className="text-sm">{t("users.actions.reset_password") as string}</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="my-1" />
                           <DropdownMenuItem
@@ -407,7 +409,7 @@ function AdminUsersContent() {
                             className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--destructive)]/10"
                           >
                             <HiTrash className="w-3.5 h-3.5 text-[var(--destructive)]" />
-                            <span className="text-sm text-[var(--destructive)]">Remove User</span>
+                            <span className="text-sm text-[var(--destructive)]">{t("users.actions.delete") as string}</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

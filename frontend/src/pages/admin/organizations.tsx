@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { HiXMark, HiEllipsisVertical, HiEye, HiPause, HiPlay, HiTrash, HiBuildingOffice2 } from "react-icons/hi2";
 import { HiSearch } from "react-icons/hi";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -30,6 +31,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 function AdminOrganizationsContent() {
+  const { t } = useTranslation("admin");
   const router = useRouter();
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,23 +65,23 @@ function AdminOrganizationsContent() {
   const handleToggleArchive = async (orgId: string, orgName: string, isArchived: boolean) => {
     try {
       await adminApi.toggleOrganizationArchive(orgId);
-      toast.success(`Organization "${orgName}" ${isArchived ? "activated" : "suspended"}`);
+      toast.success(t("common.success"));
       fetchOrgs();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to update organization");
+      toast.error(error?.response?.data?.message || t("common.error_loading"));
     }
   };
 
   const handleDelete = async (orgId: string, orgName: string) => {
-    if (!window.confirm(`Are you sure you want to permanently delete "${orgName}"? This will remove all workspaces, projects, and tasks within it. This action cannot be undone.`)) {
+    if (!window.confirm(t("common.confirmation.title"))) {
       return;
     }
     try {
       await adminApi.deleteOrganization(orgId);
-      toast.success(`Organization "${orgName}" deleted`);
+      toast.success(t("common.success"));
       fetchOrgs();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to delete organization");
+      toast.error(error?.response?.data?.message || t("common.error_loading"));
     }
   };
 
@@ -90,14 +92,14 @@ function AdminOrganizationsContent() {
 
   return (
     <>
-      <p className="text-sm text-[var(--muted-foreground)]">{total} {total === 1 ? "organization" : "organizations"} in the system</p>
+      <p className="text-sm text-[var(--muted-foreground)]">{t("organizations.total_count", { count: total }) as string}</p>
 
       {/* Search Bar */}
       <div className="relative w-full sm:max-w-xs">
         <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
         <Input
           type="text"
-          placeholder="Search organizations..."
+          placeholder={t("organizations.search_placeholder") as string}
           value={searchInput}
           onChange={(e) => { setSearchInput(e.target.value); setPage(1); }}
           className="pl-10 rounded-md border border-[var(--border)]"
@@ -130,9 +132,9 @@ function AdminOrganizationsContent() {
           ) : organizations.length === 0 ? (
             <div className="p-12 text-center">
               <HiBuildingOffice2 className="w-10 h-10 mx-auto text-[var(--muted-foreground)]/50 mb-3" />
-              <p className="text-sm font-medium text-[var(--foreground)]">No organizations found</p>
+              <p className="text-sm font-medium text-[var(--foreground)]">{t("common.no_results") as string}</p>
               <p className="text-xs text-[var(--muted-foreground)] mt-1">
-                {debouncedSearch ? "Try adjusting your search" : "No organizations in the system yet"}
+                {debouncedSearch ? t("common.try_adjusting") as string : t("organizations.no_orgs") as string}
               </p>
             </div>
           ) : (
@@ -141,13 +143,13 @@ function AdminOrganizationsContent() {
               {/* Header */}
               <div className="px-4 py-3 border-b border-[var(--border)]">
                 <div className="grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
-                  <div className="col-span-3">Organization</div>
-                  <div className="col-span-3">Owner</div>
-                  <div className="col-span-1">Status</div>
-                  <div className="col-span-1">Members</div>
-                  <div className="col-span-1">Workspaces</div>
-                  <div className="col-span-2">Created</div>
-                  <div className="col-span-1">Actions</div>
+                  <div className="col-span-3">{t("organizations.table.organization") as string}</div>
+                  <div className="col-span-3">{t("organizations.table.owner") as string}</div>
+                  <div className="col-span-1">{t("users.table.status") as string}</div>
+                  <div className="col-span-1">{t("organizations.table.users") as string}</div>
+                  <div className="col-span-1">{t("organizations.table.workspaces") as string}</div>
+                  <div className="col-span-2">{t("organizations.table.created") as string}</div>
+                  <div className="col-span-1">{t("organizations.table.actions") as string}</div>
                 </div>
               </div>
               {/* Rows */}
@@ -187,7 +189,7 @@ function AdminOrganizationsContent() {
                           ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
                           : "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
                       }`}>
-                        {org.archive ? "Suspended" : "Active"}
+                        {org.archive ? t("users.status.suspended") as string : t("users.status.active") as string}
                       </Badge>
                     </div>
                     <div className="col-span-1 text-xs text-[var(--muted-foreground)]">
@@ -212,7 +214,7 @@ function AdminOrganizationsContent() {
                             className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
                           >
                             <HiEye className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
-                            <span className="text-sm">View Details</span>
+                            <span className="text-sm">{t("users.actions.view_details") as string}</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="my-1" />
                           <DropdownMenuItem
@@ -222,12 +224,12 @@ function AdminOrganizationsContent() {
                             {org.archive ? (
                               <>
                                 <HiPlay className="w-3.5 h-3.5 text-green-600" />
-                                <span className="text-sm text-green-600">Activate</span>
+                                <span className="text-sm text-green-600">{t("users.actions.activate") as string}</span>
                               </>
                             ) : (
                               <>
                                 <HiPause className="w-3.5 h-3.5 text-orange-500" />
-                                <span className="text-sm text-orange-500">Suspend</span>
+                                <span className="text-sm text-orange-500">{t("users.actions.suspend") as string}</span>
                               </>
                             )}
                           </DropdownMenuItem>
@@ -237,7 +239,7 @@ function AdminOrganizationsContent() {
                             className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--destructive)]/10"
                           >
                             <HiTrash className="w-3.5 h-3.5 text-[var(--destructive)]" />
-                            <span className="text-sm text-[var(--destructive)]">Delete</span>
+                            <span className="text-sm text-[var(--destructive)]">{t("users.actions.delete") as string}</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
