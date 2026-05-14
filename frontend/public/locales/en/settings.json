@@ -53,7 +53,9 @@
     "title": "Language & Region",
     "description": "Select your preferred language for the application interface.",
     "display_language": "Display Language",
-    "select_placeholder": "Select a language"
+    "select_placeholder": "Select a language",
+    "update_success": "Language updated successfully",
+    "update_failed": "Failed to update language"
   },
   "ai_section": {
     "title": "AI Assistant Settings",

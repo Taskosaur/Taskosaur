@@ -8,6 +8,7 @@ import AppProviders from "./AppProviders";
 import OrgProviders from "./OrgProvider";
 import PublicProviders from "./PublicProviders";
 import { LayoutProvider } from "@/contexts/layout-context";
+import i18n from "@/lib/i18n";
 
 interface AppBootstrapperProps {
   children: React.ReactNode;
@@ -192,6 +193,17 @@ export default function AppBootstrapper({ children }: AppBootstrapperProps) {
 
     bootstrap();
   }, [authLoading, router.isReady, handleAuthCheck]);
+
+  // Synchronize language with user preference
+  useEffect(() => {
+    if (isAuthenticated) {
+      const user = getCurrentUser();
+      const targetLang = user?.language || "en";
+      if (targetLang !== i18n.language) {
+        i18n.changeLanguage(targetLang);
+      }
+    }
+  }, [isAuthenticated, getCurrentUser]);
 
   // Handle Loading States
   if (phase !== "READY" || isRedirecting) {

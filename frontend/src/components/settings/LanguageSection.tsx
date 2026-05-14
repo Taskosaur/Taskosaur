@@ -9,12 +9,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/auth-context";
+import { toast } from "sonner";
 
 export default function LanguageSection() {
   const { t, i18n } = useTranslation("settings");
+  const { getCurrentUser, updateUser } = useAuth();
+  const currentUser = getCurrentUser();
 
-  const changeLanguage = (value: string) => {
+  const changeLanguage = async (value: string) => {
     i18n.changeLanguage(value);
+    if (currentUser) {
+      try {
+        await updateUser(currentUser.id, { language: value });
+        toast.success(t("language_section.update_success", "Language updated successfully"));
+      } catch (error) {
+        toast.error(t("language_section.update_failed", "Failed to update language"));
+      }
+    }
   };
 
   const languages = [
@@ -43,7 +55,10 @@ export default function LanguageSection() {
       <div className="max-w-md space-y-4">
         <div className="space-y-2">
           <Label htmlFor="language-select">{t("language_section.display_language")}</Label>
-          <Select value={i18n.language} onValueChange={changeLanguage}>
+          <Select 
+            value={i18n.language?.split("-")[0] || "en"} 
+            onValueChange={changeLanguage}
+          >
             <SelectTrigger id="language-select" className="w-full">
               <SelectValue placeholder={t("language_section.select_placeholder")} />
             </SelectTrigger>
