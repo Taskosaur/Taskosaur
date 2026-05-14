@@ -1,0 +1,204 @@
+{
+  "administration": "Administration",
+  "navigation": {
+    "overview": "Overview",
+    "users": "Users",
+    "organizations": "Organizations",
+    "configuration": "Configuration"
+  },
+  "dashboard": {
+    "welcome_back": "Welcome back, {{name}}",
+    "platform_overview": "Here's an overview of your platform. {{userCount}} active users across {{orgCount}} organizations.",
+    "stats": {
+      "total_users": "Total Users",
+      "active_users": "Active Users",
+      "organizations": "Organizations",
+      "workspaces": "Workspaces",
+      "projects": "Projects",
+      "tasks": "Tasks",
+      "new_this_week": "+{{count}} this week"
+    },
+    "system_status": {
+      "title": "System Status",
+      "manage": "Manage",
+      "registration": "Registration",
+      "email_smtp": "Email / SMTP",
+      "sso": "Single Sign-On",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "configured": "Configured",
+      "not_configured": "Not configured"
+    }
+  },
+  "users": {
+    "title": "Users",
+    "description": "Manage platform users and their roles",
+    "search_placeholder": "Search by name, email or username...",
+    "table": {
+      "user": "User",
+      "role": "Role",
+      "status": "Status",
+      "organizations": "Organizations",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "roles": {
+      "super_admin": "Super Admin",
+      "user": "User"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "suspended": "Suspended"
+    },
+    "actions": {
+      "edit": "Edit",
+      "suspend": "Suspend",
+      "activate": "Activate",
+      "delete": "Delete",
+      "view_details": "View Details",
+      "promote_super_admin": "Promote to Super Admin",
+      "remove_super_admin": "Remove Super Admin",
+      "deactivate": "Deactivate",
+      "reset_password": "Reset Password",
+      "reset_password_link_copied": "Password reset link for {{name}} copied to clipboard",
+      "delete_confirmation": "Are you sure you want to delete user {{name}}? This action cannot be undone.",
+      "user_removed": "User {{name}} has been removed"
+    },
+    "total_count": "Total: {{count}} users",
+    "no_users": "No users in the system yet",
+    "details": {
+      "profile_info": "Profile Information",
+      "actions": "Actions",
+      "danger_zone": "Danger Zone",
+      "memberships": "Organization Memberships",
+      "last_login": "Last login",
+      "never": "Never",
+      "email_verified": "Email Verified",
+      "source": "Source",
+      "timezone": "Timezone",
+      "language": "Language",
+      "yes": "Yes",
+      "no": "No",
+      "membership_count": "{{count}} membership",
+      "membership_count_plural": "{{count}} memberships",
+      "no_memberships": "No organization memberships"
+    }
+  },
+  "organizations": {
+    "title": "Organizations",
+    "description": "Manage platform organizations and their limits",
+    "create_new": "New Organization",
+    "search_placeholder": "Search by name or slug...",
+    "table": {
+      "organization": "Organization",
+      "slug": "Slug",
+      "owner": "Owner",
+      "users": "Users",
+      "workspaces": "Workspaces",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "total_count": "Total: {{count}} organizations",
+    "no_orgs": "No organizations in the system yet",
+    "details": {
+      "information": "Organization Information",
+      "danger_zone": "Danger Zone",
+      "members": "Members",
+      "workspaces": "Workspaces",
+      "projects": "Projects",
+      "tasks": "Tasks"
+    },
+    "actions": {
+      "transfer_ownership": "Transfer Ownership",
+      "transfer_confirmation": "Are you sure you want to transfer ownership of this organization? This action cannot be undone.",
+      "select_new_owner": "Select new owner",
+      "transfer": "Transfer"
+    }
+  },
+  "config": {
+    "title": "System Configuration",
+    "description": "Global system settings and configuration",
+    "save_changes": "Save Changes",
+    "saving": "Saving...",
+    "sections": {
+      "general": "General Settings",
+      "registration": "Registration",
+      "registration_desc": "Control who can create accounts and resources on the platform",
+      "security": "Security",
+      "smtp": "SMTP Settings"
+    },
+    "labels": {
+      "site_name": "Site Name",
+      "registration_enabled": "Enable Registration",
+      "registration_enabled_desc": "When disabled, only admins can create new user accounts via invitations",
+      "default_org": "Default Organization",
+      "default_org_desc": "New users will automatically join this organization instead of creating their own. Leave empty to require org creation on signup.",
+      "default_org_active_desc": "New users will automatically join {{name}}",
+      "default_org_none_desc": "New users will need to create their own organization on signup",
+      "allow_org_creation": "Allow Organization Creation",
+      "allow_org_creation_desc": "When disabled, only Super Admins can create new organizations. Users will be assigned to the default organization.",
+      "allow_workspace_creation": "Allow Workspace Creation",
+      "allow_workspace_creation_desc": "When disabled, only Organization Owners and Managers can create workspaces.",
+      "allow_project_creation": "Allow Project Creation",
+      "allow_project_creation_desc": "When disabled, only Workspace Managers and above can create projects.",
+      "resource_creation_perms": "Resource Creation Permissions",
+      "sso_enabled": "Enable SSO",
+      "sso_enabled_desc": "Allow users to log in with an external identity provider",
+      "sso_desc": "Configure OpenID Connect for external authentication",
+      "sso_provider_name": "Provider Display Name",
+      "sso_provider_name_desc": "Shown on the login button, e.g., 'Login with Authentik'",
+      "sso_issuer_url": "Issuer URL",
+      "sso_issuer_url_desc": "OIDC discovery URL, e.g., https://auth.example.com/application/o/taskosaur/",
+      "sso_client_id": "Client ID",
+      "sso_client_id_desc": "OAuth2 client ID from your identity provider",
+      "sso_client_secret": "Client Secret",
+      "sso_client_secret_desc": "OAuth2 client secret",
+      "sso_auto_register": "Auto-Create Accounts via SSO",
+      "sso_auto_register_desc": "When enabled, new users can be created through SSO even if public registration is disabled",
+      "smtp_host": "SMTP Host",
+      "smtp_host_desc": "e.g., smtp.gmail.com, smtp.sendgrid.net",
+      "smtp_port": "SMTP Port",
+      "smtp_port_desc": "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)",
+      "smtp_user": "SMTP User",
+      "smtp_user_desc": "Usually your email address",
+      "smtp_pass": "SMTP Password",
+      "smtp_pass_desc": "App password or SMTP credential",
+      "smtp_from": "SMTP From Address",
+      "smtp_from_desc": "The sender email address for outgoing emails",
+      "smtp_desc": "Configure outgoing email settings for notifications and password resets",
+      "redirect_uri": "Redirect URI",
+      "redirect_uri_desc": "Add this URL as the redirect/callback URI in your identity provider settings.",
+      "auto_generated": "Auto-generated",
+      "copy": "Copy",
+      "copied_to_clipboard": "Copied to clipboard",
+      "test_connection": "Test Connection",
+      "test_connection_desc": "Verify SMTP server is reachable and credentials are valid",
+      "testing": "Testing...",
+      "smtp_verified": "SMTP connection verified",
+      "smtp_test_failed": "SMTP test failed",
+      "set_via_env": "Set via .env",
+      "readonly_env_desc": "This value is set via environment variable and cannot be changed here."
+    },
+    "warnings": {
+      "no_org_creation_or_default": "Organization creation is disabled with no default organization set",
+      "no_org_creation_or_default_desc": "New users will be unable to proceed after signup. Set a default organization above or enable organization creation below."
+    },
+    "save_success": "Successfully saved {{section}} configuration",
+    "save_error": "Failed to save configuration"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error_loading": "Failed to load data",
+    "no_results": "No results found",
+    "success": "Success",
+    "filters": "Filters",
+    "try_adjusting": "Try adjusting your search or filters",
+    "none": "None",
+    "confirmation": {
+      "title": "Are you sure?",
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    }
+  }
+}

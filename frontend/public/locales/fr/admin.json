@@ -1,0 +1,205 @@
+{
+  "administration": "Administration",
+  "navigation": {
+    "overview": "Aperçu",
+    "users": "Utilisateurs",
+    "organizations": "Organisations",
+    "configuration": "Configuration"
+  },
+  "dashboard": {
+    "welcome_back": "Bienvenue, {{name}}",
+    "platform_overview": "Voici un aperçu de votre plateforme. {{userCount}} utilisateurs actifs dans {{orgCount}} organisations.",
+    "stats": {
+      "total_users": "Total Utilisateurs",
+      "active_users": "Utilisateurs Actifs",
+      "organizations": "Organisations",
+      "workspaces": "Espaces de Travail",
+      "projects": "Projets",
+      "tasks": "Tâches",
+      "new_this_week": "+{{count}} cette semaine"
+    },
+    "system_status": {
+      "title": "État du Système",
+      "manage": "Gérer",
+      "registration": "Inscription",
+      "email_smtp": "E-mail / SMTP",
+      "sso": "Authentification Unique (SSO)",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "configured": "Configuré",
+      "not_configured": "Non configuré"
+    }
+  },
+  "users": {
+    "title": "Utilisateurs",
+    "description": "Gérer les utilisateurs de la plateforme et leurs rôles",
+    "search_placeholder": "Rechercher par nom, e-mail ou nom d'utilisateur...",
+    "table": {
+      "user": "Utilisateur",
+      "role": "Rôle",
+      "status": "Statut",
+      "organizations": "Organisations",
+      "created": "Créé",
+      "actions": "Actions"
+    },
+    "roles": {
+      "super_admin": "Super Admin",
+      "user": "Utilisateur"
+    },
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif",
+      "suspended": "Suspendu",
+      "pending": "En attente"
+    },
+    "actions": {
+      "edit": "Modifier",
+      "suspend": "Suspendre",
+      "activate": "Activer",
+      "delete": "Supprimer",
+      "view_details": "Voir les détails",
+      "promote_super_admin": "Promouvoir Super Admin",
+      "remove_super_admin": "Retirer Super Admin",
+      "deactivate": "Désactiver",
+      "reset_password": "Réinitialiser le mot de passe",
+      "reset_password_link_copied": "Lien de réinitialisation pour {{name}} copié",
+      "delete_confirmation": "Êtes-vous sûr de vouloir supprimer l'utilisateur {{name}} ?",
+      "user_removed": "L'utilisateur {{name}} a été supprimé"
+    },
+    "total_count": "Total : {{count}} utilisateurs",
+    "no_users": "Aucun utilisateur dans le système pour le moment",
+    "details": {
+      "profile_info": "Informations du Profil",
+      "actions": "Actions",
+      "danger_zone": "Zone de Danger",
+      "memberships": "Appartenance aux Organisations",
+      "last_login": "Dernière connexion",
+      "never": "Jamais",
+      "email_verified": "E-mail Vérifié",
+      "source": "Source",
+      "timezone": "Fuseau Horaire",
+      "language": "Langue",
+      "yes": "Oui",
+      "no": "Non",
+      "membership_count": "{{count}} adhésion",
+      "membership_count_plural": "{{count}} adhésions",
+      "no_memberships": "Aucune adhésion à une organisation"
+    }
+  },
+  "organizations": {
+    "title": "Organisations",
+    "description": "Gérer les organisations de la plateforme et leurs limites",
+    "create_new": "Nouvelle Organisation",
+    "search_placeholder": "Rechercher par nom ou slug...",
+    "table": {
+      "organization": "Organisation",
+      "slug": "Slug",
+      "owner": "Proprétaire",
+      "users": "Utilisateurs",
+      "workspaces": "Espaces de Travail",
+      "created": "Créé",
+      "actions": "Actions"
+    },
+    "total_count": "Total : {{count}} organisations",
+    "no_orgs": "Aucune organisation dans le système pour le moment",
+    "details": {
+      "information": "Informations sur l'Organisation",
+      "danger_zone": "Zone de Danger",
+      "members": "Membres",
+      "workspaces": "Espaces de Travail",
+      "projects": "Projets",
+      "tasks": "Tâches"
+    },
+    "actions": {
+      "transfer_ownership": "Transférer la propriété",
+      "transfer_confirmation": "Êtes-vous sûr de vouloir transférer la propriété ? Cette action est irréversible.",
+      "select_new_owner": "Sélectionner le nouveau propriétaire",
+      "transfer": "Transférer"
+    }
+  },
+  "config": {
+    "title": "Configuration Système",
+    "description": "Paramètres globaux et configuration du système",
+    "save_changes": "Enregistrer les modifications",
+    "saving": "Enregistrement...",
+    "sections": {
+      "general": "Paramètres Généraux",
+      "registration": "Inscription",
+      "registration_desc": "Contrôler qui peut créer des comptes et des ressources",
+      "security": "Sécurité",
+      "smtp": "Paramètres SMTP"
+    },
+    "labels": {
+      "site_name": "Nom du Site",
+      "registration_enabled": "Activer l'Inscription",
+      "registration_enabled_desc": "Désactivé, seuls les admins peuvent créer des comptes",
+      "default_org": "Organisation par Défaut",
+      "default_org_desc": "Les nouveaux utilisateurs rejoindront cette organisation",
+      "default_org_active_desc": "Les nouveaux utilisateurs rejoindront {{name}}",
+      "default_org_none_desc": "Les utilisateurs doivent créer leur propre organisation",
+      "allow_org_creation": "Autoriser la Création d'Organisation",
+      "allow_org_creation_desc": "Désactivé, seuls les Super Admins peuvent créer des organisations",
+      "allow_workspace_creation": "Autoriser la Création d'Espace",
+      "allow_workspace_creation_desc": "Désactivé, seuls les proprios et managers peuvent créer des espaces",
+      "allow_project_creation": "Autoriser la Création de Projet",
+      "allow_project_creation_desc": "Désactivé, seuls les managers d'espace peuvent créer des projets",
+      "resource_creation_perms": "Permissions de Création de Ressources",
+      "sso_enabled": "Activer le SSO",
+      "sso_enabled_desc": "Permettre aux utilisateurs de se connecter via un fournisseur tiers",
+      "sso_desc": "Configurer OpenID Connect",
+      "sso_provider_name": "Nom du Fournisseur",
+      "sso_provider_name_desc": "Affiché sur le bouton de connexion",
+      "sso_issuer_url": "URL de l'Émetteur",
+      "sso_issuer_url_desc": "URL de découverte OIDC",
+      "sso_client_id": "ID Client",
+      "sso_client_id_desc": "ID client OAuth2",
+      "sso_client_secret": "Secret Client",
+      "sso_client_secret_desc": "Secret client OAuth2",
+      "sso_auto_register": "Création de Compte via SSO",
+      "sso_auto_register_desc": "Permettre la création via SSO même si l'inscription publique est fermée",
+      "smtp_host": "Hôte SMTP",
+      "smtp_host_desc": "ex: smtp.gmail.com",
+      "smtp_port": "Port SMTP",
+      "smtp_port_desc": "ex: 587, 465, 25",
+      "smtp_user": "Utilisateur SMTP",
+      "smtp_user_desc": "Votre adresse e-mail",
+      "smtp_pass": "Mot de Passe SMTP",
+      "smtp_pass_desc": "Mot de passe d'application",
+      "smtp_from": "Expéditeur SMTP",
+      "smtp_from_desc": "L'adresse d'expédition des e-mails",
+      "smtp_desc": "Configurer l'envoi d'e-mails",
+      "redirect_uri": "URI de Redirection",
+      "redirect_uri_desc": "Ajoutez cet URL dans les paramètres de votre fournisseur",
+      "auto_generated": "Généré automatiquement",
+      "copy": "Copier",
+      "copied_to_clipboard": "Copié dans le presse-papiers",
+      "test_connection": "Tester la Connexion",
+      "test_connection_desc": "Vérifier les paramètres SMTP",
+      "testing": "Test en cours...",
+      "smtp_verified": "Connexion SMTP vérifiée",
+      "smtp_test_failed": "Échec du test SMTP",
+      "set_via_env": "Défini via .env",
+      "readonly_env_desc": "Cette valeur est définie via l'environnement et n'est pas modifiable"
+    },
+    "warnings": {
+      "no_org_creation_or_default": "La création d'organisation est désactivée sans organisation par défaut",
+      "no_org_creation_or_default_desc": "Les nouveaux utilisateurs seront bloqués après l'inscription."
+    },
+    "save_success": "Configuration {{section}} enregistrée",
+    "save_error": "Échec de l'enregistrement"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error_loading": "Échec du chargement",
+    "no_results": "Aucun résultat",
+    "success": "Succès",
+    "filters": "Filtres",
+    "try_adjusting": "Essayez d'ajuster vos filtres",
+    "none": "Aucun",
+    "confirmation": {
+      "title": "Êtes-vous sûr ?",
+      "confirm": "Confirmer",
+      "cancel": "Annuler"
+    }
+  }
+}

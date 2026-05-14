@@ -1,0 +1,205 @@
+{
+  "administration": "Administração",
+  "navigation": {
+    "overview": "Visão Geral",
+    "users": "Usuários",
+    "organizations": "Organizações",
+    "configuration": "Configuração"
+  },
+  "dashboard": {
+    "welcome_back": "Bem-vindo de volta, {{name}}",
+    "platform_overview": "Aqui está uma visão geral da sua plataforma. {{userCount}} usuários ativos em {{orgCount}} organizações.",
+    "stats": {
+      "total_users": "Total de Usuários",
+      "active_users": "Usuários Ativos",
+      "organizations": "Organizações",
+      "workspaces": "Espaços de Trabalho",
+      "projects": "Projetos",
+      "tasks": "Tarefas",
+      "new_this_week": "+{{count}} esta semana"
+    },
+    "system_status": {
+      "title": "Status do Sistema",
+      "manage": "Gerenciar",
+      "registration": "Registro",
+      "email_smtp": "E-mail / SMTP",
+      "sso": "Login Único (SSO)",
+      "enabled": "Ativado",
+      "disabled": "Desativado",
+      "configured": "Configurado",
+      "not_configured": "Não configurado"
+    }
+  },
+  "users": {
+    "title": "Usuários",
+    "description": "Gerenciar usuários da plataforma e seus papéis",
+    "search_placeholder": "Pesquisar por nome, e-mail ou nome de usuário...",
+    "table": {
+      "user": "Usuário",
+      "role": "Papel",
+      "status": "Status",
+      "organizations": "Organizações",
+      "created": "Criado em",
+      "actions": "Ações"
+    },
+    "roles": {
+      "super_admin": "Super Admin",
+      "user": "Usuário"
+    },
+    "status": {
+      "active": "Ativo",
+      "inactive": "Inativo",
+      "suspended": "Suspenso",
+      "pending": "Pendente"
+    },
+    "actions": {
+      "edit": "Editar",
+      "suspend": "Suspender",
+      "activate": "Ativar",
+      "delete": "Excluir",
+      "view_details": "Ver Detalhes",
+      "promote_super_admin": "Promover a Super Admin",
+      "remove_super_admin": "Remover Super Admin",
+      "deactivate": "Desativar",
+      "reset_password": "Redefinir Senha",
+      "reset_password_link_copied": "Link de redefinição de senha para {{name}} copiado para a área de transferência",
+      "delete_confirmation": "Tem certeza que deseja excluir o usuário {{name}}? Esta ação não pode ser desfeita.",
+      "user_removed": "O usuário {{name}} foi removido"
+    },
+    "total_count": "Total: {{count}} usuários",
+    "no_users": "Nenhum usuário no sistema ainda",
+    "details": {
+      "profile_info": "Informações do Perfil",
+      "actions": "Ações",
+      "danger_zone": "Zona de Perigo",
+      "memberships": "Associações a Organizações",
+      "last_login": "Último login",
+      "never": "Nunca",
+      "email_verified": "E-mail Verificado",
+      "source": "Origem",
+      "timezone": "Fuso Horário",
+      "language": "Idioma",
+      "yes": "Sim",
+      "no": "Não",
+      "membership_count": "{{count}} associação",
+      "membership_count_plural": "{{count}} associações",
+      "no_memberships": "Nenhuma associação a organização"
+    }
+  },
+  "organizations": {
+    "title": "Organizações",
+    "description": "Gerenciar organizações da plataforma e seus limites",
+    "create_new": "Nova Organização",
+    "search_placeholder": "Pesquisar por nome ou slug...",
+    "table": {
+      "organization": "Organização",
+      "slug": "Slug",
+      "owner": "Proprietário",
+      "users": "Usuários",
+      "workspaces": "Espaços de Trabalho",
+      "created": "Criado em",
+      "actions": "Ações"
+    },
+    "total_count": "Total: {{count}} organizações",
+    "no_orgs": "Nenhuma organização no sistema ainda",
+    "details": {
+      "information": "Informações da Organização",
+      "danger_zone": "Zona de Perigo",
+      "members": "Membros",
+      "workspaces": "Espaços de Trabalho",
+      "projects": "Projetos",
+      "tasks": "Tarefas"
+    },
+    "actions": {
+      "transfer_ownership": "Transferir Propriedade",
+      "transfer_confirmation": "Tem certeza que deseja transferir a propriedade desta organização? Esta ação não pode ser desfeita.",
+      "select_new_owner": "Selecionar novo proprietário",
+      "transfer": "Transferir"
+    }
+  },
+  "config": {
+    "title": "Configuração do Sistema",
+    "description": "Configurações globais e do sistema",
+    "save_changes": "Salvar Alterações",
+    "saving": "Salvando...",
+    "sections": {
+      "general": "Configurações Gerais",
+      "registration": "Registro",
+      "registration_desc": "Controlar quem pode criar contas e recursos na plataforma",
+      "security": "Segurança",
+      "smtp": "Configurações SMTP"
+    },
+    "labels": {
+      "site_name": "Nome do Site",
+      "registration_enabled": "Habilitar Registro",
+      "registration_enabled_desc": "Quando desativado, apenas administradores podem criar novas contas de usuário via convites",
+      "default_org": "Organização Padrão",
+      "default_org_desc": "Novos usuários entrarão automaticamente nesta organização em vez de criar a sua própria. Deixe vazio para exigir a criação da organização no registro.",
+      "default_org_active_desc": "Novos usuários entrarão automaticamente em {{name}}",
+      "default_org_none_desc": "Novos usuários precisarão criar sua própria organização no registro",
+      "allow_org_creation": "Permitir Criação de Organização",
+      "allow_org_creation_desc": "Quando desativado, apenas Super Administradores podem criar novas organizações. Os usuários serão atribuídos à organização padrão.",
+      "allow_workspace_creation": "Permitir Criação de Workspace",
+      "allow_workspace_creation_desc": "Quando desativado, apenas proprietários e gerentes da organização podem criar workspaces.",
+      "allow_project_creation": "Permitir Criação de Projeto",
+      "allow_project_creation_desc": "Quando desativado, apenas gerentes de workspace e superiores podem criar projetos.",
+      "resource_creation_perms": "Permissões de Criação de Recursos",
+      "sso_enabled": "Habilitar SSO",
+      "sso_enabled_desc": "Permitir que usuários façam login com um provedor de identidade externo",
+      "sso_desc": "Configurar OpenID Connect para autenticação externa",
+      "sso_provider_name": "Nome de Exibição do Provedor",
+      "sso_provider_name_desc": "Mostrado no botão de login, ex: 'Login com Authentik'",
+      "sso_issuer_url": "URL do Emissor",
+      "sso_issuer_url_desc": "URL de descoberta OIDC, ex: https://auth.exemplo.com/application/o/taskosaur/",
+      "sso_client_id": "ID do Cliente",
+      "sso_client_id_desc": "ID do cliente OAuth2 do seu provedor de identidade",
+      "sso_client_secret": "Segredo do Cliente",
+      "sso_client_secret_desc": "Segredo do cliente OAuth2",
+      "sso_auto_register": "Criar Contas Automaticamente via SSO",
+      "sso_auto_register_desc": "Quando ativado, novos usuários podem ser criados via SSO mesmo se o registro público estiver desativado",
+      "smtp_host": "Host SMTP",
+      "smtp_host_desc": "ex: smtp.gmail.com, smtp.sendgrid.net",
+      "smtp_port": "Porta SMTP",
+      "smtp_port_desc": "Portas comuns: 587 (TLS), 465 (SSL), 25 (sem criptografia)",
+      "smtp_user": "Usuário SMTP",
+      "smtp_user_desc": "Geralmente seu endereço de e-mail",
+      "smtp_pass": "Senha SMTP",
+      "smtp_pass_desc": "Senha do aplicativo ou credencial SMTP",
+      "smtp_from": "Endereço de Remetente SMTP",
+      "smtp_from_desc": "O endereço de e-mail do remetente para e-mails de saída",
+      "smtp_desc": "Configurar as definições de e-mail de saída para notificações e redefinições de senha",
+      "redirect_uri": "URI de Redirecionamento",
+      "redirect_uri_desc": "Adicione este URL como o URI de redirecionamento/callback nas configurações do seu provedor de identidade.",
+      "auto_generated": "Gerado automaticamente",
+      "copy": "Copiar",
+      "copied_to_clipboard": "Copiado para a área de transferência",
+      "test_connection": "Testar Conexão",
+      "test_connection_desc": "Verifique se o servidor SMTP está acessível e se as credenciais são válidas",
+      "testing": "Testando...",
+      "smtp_verified": "Conexão SMTP verificada",
+      "smtp_test_failed": "Teste SMTP falhou",
+      "set_via_env": "Definido via .env",
+      "readonly_env_desc": "Este valor é definido via variável de ambiente e não pode ser alterado aqui."
+    },
+    "warnings": {
+      "no_org_creation_or_default": "A criação de organização está desativada e nenhuma organização padrão foi definida",
+      "no_org_creation_or_default_desc": "Novos usuários não poderão prosseguir após o registro. Defina uma organização padrão acima ou ative a criação de organização abaixo."
+    },
+    "save_success": "Configuração de {{section}} salva com sucesso",
+    "save_error": "Falha ao salvar a configuração"
+  },
+  "common": {
+    "loading": "Carregando...",
+    "error_loading": "Falha ao carregar dados",
+    "no_results": "Nenhum resultado encontrado",
+    "success": "Sucesso",
+    "filters": "Filtros",
+    "try_adjusting": "Tente ajustar sua pesquisa ou filtros",
+    "none": "Nenhum",
+    "confirmation": {
+      "title": "Você tem certeza?",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar"
+    }
+  }
+}

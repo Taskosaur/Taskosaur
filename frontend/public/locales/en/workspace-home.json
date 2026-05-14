@@ -22,13 +22,75 @@
     "member_workload": "Member Workload Distribution",
     "resource_allocation": "Resource Allocation"
   },
+  "roles": {
+    "admin": "Admin",
+    "manager": "Manager",
+    "member": "Member",
+    "viewer": "Viewer",
+    "guest": "Guest",
+    "contributor": "Contributor"
+  },
+  "project_status": {
+    "planning": "Planning",
+    "active": "Active",
+    "on_hold": "On Hold",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "task_types": {
+    "story": "Story",
+    "task": "Task",
+    "bug": "Bug",
+    "epic": "Epic",
+    "feature": "Feature"
+  },
+  "priority": {
+    "lowest": "Lowest",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "highest": "Highest"
+  },
+  "workload": {
+    "label": "Workload",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "assigned": "Assigned Tasks",
+    "reported": "Reported Tasks"
+  },
+  "quality": {
+    "resolved": "Resolved",
+    "remaining": "Remaining",
+    "low_performance": "Low Performance",
+    "medium_performance": "Medium Performance",
+    "high_performance": "High Performance",
+    "resolution_rate": "Resolution Rate"
+  },
+  "project_count": {
+    "low": "<=5 Projects",
+    "medium": "6-10 Projects",
+    "high": ">10 Projects"
+  },
   "charts": {
     "project_status_description": "Current status breakdown of all projects",
-    "task_priority_description": "Overview of tasks by their priority levels",
+    "project_status_description_with_count": "{{count}} total projects across organization",
+    "task_priority_description": "Overview of tasks by their priority levels across all projects",
     "task_type_description": "Distribution of tasks by their type",
-    "sprint_status_description": "Current status of all sprints in this workspace",
+    "task_type_description_with_count": "{{count}} total tasks across organization",
+    "sprint_status_description": "Current status of all sprints across projects",
     "kpi_metrics_description": "Key performance indicators for your workspace",
-    "monthly_completion_description": "Number of tasks completed each month"
+    "monthly_completion_description": "Number of tasks completed each month",
+    "team_utilization_description_all": "Organization member roles breakdown",
+    "team_utilization_description_workspace": "Role breakdown for selected workspace",
+    "all_workspaces": "All Workspaces",
+    "member_workload_description": "Active tasks vs reported tasks by member",
+    "workspace_projects_description": "Project distribution across workspaces",
+    "resource_allocation_description_all": "Team member distribution by role",
+    "resource_allocation_description_project": "Role distribution for selected project",
+    "all_projects": "All Projects",
+    "count": "Count",
+    "quality_metrics_description_with_count": "{{resolved}}/{{total}} bugs resolved ({{rate}}%)"
   },
   "kpi": {
     "total_projects": "Total Projects",
@@ -82,5 +144,17 @@
         "task_completion_rate": "Task completion rate"
       }
     }
+  },
+  "agenda": {
+    "overdue": "Overdue",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "due": "Due",
+    "no_due_date": "No due date",
+    "all_clear": "All clear for today!",
+    "no_tasks_scheduled": "No tasks scheduled. You're all caught up!",
+    "great_job": "Great job staying organized!",
+    "open_task": "Open task: {{title}}",
+    "click_to_view": "Click to view task details"
   }
 }

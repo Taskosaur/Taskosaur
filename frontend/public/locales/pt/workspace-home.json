@@ -22,13 +22,75 @@
     "member_workload": "Distribuição de Carga de Trabalho dos Membros",
     "resource_allocation": "Alocação de Recursos"
   },
+  "roles": {
+    "admin": "Administrador",
+    "manager": "Gerente",
+    "member": "Membro",
+    "viewer": "Visualizador",
+    "guest": "Convidado",
+    "contributor": "Contribuidor"
+  },
+  "project_status": {
+    "planning": "Planejamento",
+    "active": "Ativo",
+    "on_hold": "Em espera",
+    "completed": "Concluído",
+    "cancelled": "Cancelado"
+  },
+  "task_types": {
+    "story": "História",
+    "task": "Tarefa",
+    "bug": "Erro",
+    "epic": "Épico",
+    "feature": "Funcionalidade"
+  },
+  "priority": {
+    "lowest": "Muito baixa",
+    "low": "Baixa",
+    "medium": "Média",
+    "high": "Alta",
+    "highest": "Muito alta"
+  },
+  "workload": {
+    "label": "Carga de trabalho",
+    "low": "Baixa",
+    "medium": "Média",
+    "high": "Alta",
+    "assigned": "Tarefas atribuídas",
+    "reported": "Tarefas relatadas"
+  },
+  "quality": {
+    "resolved": "Resolvido",
+    "remaining": "Restante",
+    "low_performance": "Baixo desempenho",
+    "medium_performance": "Desempenho médio",
+    "high_performance": "Alto desempenho",
+    "resolution_rate": "Taxa de resolução"
+  },
+  "project_count": {
+    "low": "<=5 Projetos",
+    "medium": "6-10 Projetos",
+    "high": ">10 Projetos"
+  },
   "charts": {
     "project_status_description": "Detalhamento do status atual de todos os projetos",
-    "task_priority_description": "Visão geral das tarefas por seus níveis de prioridade",
+    "project_status_description_with_count": "{{count}} projetos totais em toda a organização",
+    "task_priority_description": "Visão geral das tarefas por seus níveis de prioridade em todos os projetos",
     "task_type_description": "Distribuição das tarefas por seu tipo",
-    "sprint_status_description": "Status atual de todas as sprints neste espaço de trabalho",
+    "task_type_description_with_count": "{{count}} tarefas totais em toda a organização",
+    "sprint_status_description": "Status atual de todas as sprints nos projetos",
     "kpi_metrics_description": "Principais indicadores de desempenho para seu espaço de trabalho",
-    "monthly_completion_description": "Número de tarefas concluídas a cada mês"
+    "monthly_completion_description": "Número de tarefas concluídas a cada mês",
+    "team_utilization_description_all": "Detalhamento das funções dos membros da organização",
+    "team_utilization_description_workspace": "Detalhamento das funções para o espaço de trabalho selecionado",
+    "all_workspaces": "Todos os espaços de trabalho",
+    "member_workload_description": "Tarefas ativas vs tarefas relatadas por membro",
+    "workspace_projects_description": "Distribuição de projetos entre os espaços de trabalho",
+    "resource_allocation_description_all": "Distribuição dos membros da equipe por função",
+    "resource_allocation_description_project": "Distribuição de funções para o projeto selecionado",
+    "all_projects": "Todos os projetos",
+    "count": "Contagem",
+    "quality_metrics_description_with_count": "{{resolved}}/{{total}} erros resolvidos ({{rate}}%)"
   },
   "kpi": {
     "total_projects": "Total de Projetos",
@@ -82,5 +144,17 @@
         "task_completion_rate": "Taxa de conclusão de tarefas"
       }
     }
+  },
+  "agenda": {
+    "overdue": "Atrasado",
+    "today": "Hoje",
+    "tomorrow": "Amanhã",
+    "due": "Vencimento",
+    "no_due_date": "Sem data de vencimento",
+    "all_clear": "Tudo em ordem por hoje!",
+    "no_tasks_scheduled": "Nenhuma tarefa agendada. Você está em dia!",
+    "great_job": "Ótimo trabalho mantendo-se organizado!",
+    "open_task": "Abrir tarefa: {{title}}",
+    "click_to_view": "Clique para ver os detalhes da tarefa"
   }
 }

@@ -10,6 +10,7 @@
   "show_all_widgets": "Mostrar todos los widgets",
   "no_data_available": "No hay datos analíticos disponibles para este proyecto.",
   "load_data": "Cargar Datos",
+  "no_settings_available": "No hay configuraciones disponibles",
   "unknown": "Desconocido",
   "na": "N/D",
   "charts": {
