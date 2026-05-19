@@ -8,31 +8,31 @@ datasource db {
 }
 
 model User {
-  id               String     @id @default(uuid()) @db.Uuid
-  mobileNumber     String?    @map("mobile_number")
-  email            String     @unique
-  username         String?    @unique
-  firstName        String     @map("first_name")
-  lastName         String     @map("last_name")
-  avatar           String?
-  bio              String?
-  timezone         String     @default("UTC")
-  language         String     @default("en")
-  role             Role       @default(MEMBER)
-  status           UserStatus @default(ACTIVE)
-  lastLoginAt      DateTime?  @map("last_login_at")
-  emailVerified    Boolean    @default(false) @map("email_verified")
-  password         String?
-  refreshToken     String?    @map("refresh_token")
-  preferences      Json?
-  onboardInfo      Json?
-  createdAt        DateTime   @default(now()) @map("created_at")
-  updatedAt        DateTime   @updatedAt @map("updated_at")
-  deletedAt        DateTime?  @map("deleted_at")
-  deletedBy        String?    @map("deleted_by") @db.Uuid
+  id            String     @id @default(uuid()) @db.Uuid
+  mobileNumber  String?    @map("mobile_number")
+  email         String     @unique
+  username      String?    @unique
+  firstName     String     @map("first_name")
+  lastName      String     @map("last_name")
+  avatar        String?
+  bio           String?
+  timezone      String     @default("UTC")
+  language      String     @default("en")
+  role          Role       @default(MEMBER)
+  status        UserStatus @default(ACTIVE)
+  lastLoginAt   DateTime?  @map("last_login_at")
+  emailVerified Boolean    @default(false) @map("email_verified")
+  password      String?
+  refreshToken  String?    @map("refresh_token")
+  preferences   Json?
+  onboardInfo   Json?
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  deletedAt     DateTime?  @map("deleted_at")
+  deletedBy     String?    @map("deleted_by") @db.Uuid
 
-  resetToken       String?    @unique @map("reset_token")
-  resetTokenExpiry DateTime?  @map("reset_token_expiry")
+  resetToken       String?   @unique @map("reset_token")
+  resetTokenExpiry DateTime? @map("reset_token_expiry")
 
   // Default Organization for user
   defaultOrganizationId String?       @map("default_organization_id") @db.Uuid
@@ -42,8 +42,8 @@ model User {
   source UserSource @default(MANUAL)
 
   // SSO / OIDC fields
-  externalId       String?  @unique @map("external_id")
-  externalProvider String?  @map("external_provider")
+  externalId       String? @unique @map("external_id")
+  externalProvider String? @map("external_provider")
 
   activityLogs             ActivityLog[]
   createdAutomationRules   AutomationRule[]     @relation("AutomationRuleCreatedBy")
@@ -121,35 +121,46 @@ model User {
   // Public Task Shares
   createdPublicTaskShares PublicTaskShare[] @relation("PublicTaskShareCreatedBy")
 
+  // Trello Sync Relations
+  createdTrelloSyncs TrelloSync[] @relation("TrelloSyncCreatedBy")
+  updatedTrelloSyncs TrelloSync[] @relation("TrelloSyncUpdatedBy")
+
+  // Jira Sync Relations
+  createdJiraSyncs JiraSync[] @relation("JiraSyncCreatedBy")
+  updatedJiraSyncs JiraSync[] @relation("JiraSyncUpdatedBy")
+
+  // AI Chat Conversations
+  conversations Conversation[]
+
   @@map("users")
 }
 
 model Organization {
-  id              String               @id @default(uuid()) @db.Uuid
-  name            String
-  slug            String               @unique
-  description     String?
-  avatar          String?
-  website         String?
-  settings        Json?
-  ownerId         String               @map("owner_id") @db.Uuid
-  createdBy       String?              @map("created_by_id") @db.Uuid
-  updatedBy       String?              @map("updated_by_id") @db.Uuid
-  createdAt       DateTime             @default(now()) @map("created_at")
-  updatedAt       DateTime             @updatedAt @map("updated_at")
-  automationRules AutomationRule[]
-  customFields    CustomField[]
-  members         OrganizationMember[]
-  archive         Boolean              @default(false)
-  owner           User                 @relation("OrganizationOwner", fields: [ownerId], references: [id])
-  createdByUser   User?                @relation("OrganizationCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser   User?                @relation("OrganizationUpdatedBy", fields: [updatedBy], references: [id])
-  usersWithDefault User[]              @relation("UserDefaultOrganization")
-  workflows       Workflow[]
-  workspaces      Workspace[]
-  ActivityLog     ActivityLog[]
-  Notification    Notification[]
-  Invitation      Invitation[]
+  id               String               @id @default(uuid()) @db.Uuid
+  name             String
+  slug             String               @unique
+  description      String?
+  avatar           String?
+  website          String?
+  settings         Json?
+  ownerId          String               @map("owner_id") @db.Uuid
+  createdBy        String?              @map("created_by_id") @db.Uuid
+  updatedBy        String?              @map("updated_by_id") @db.Uuid
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+  automationRules  AutomationRule[]
+  customFields     CustomField[]
+  members          OrganizationMember[]
+  archive          Boolean              @default(false)
+  owner            User                 @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  createdByUser    User?                @relation("OrganizationCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser    User?                @relation("OrganizationUpdatedBy", fields: [updatedBy], references: [id])
+  usersWithDefault User[]               @relation("UserDefaultOrganization")
+  workflows        Workflow[]
+  workspaces       Workspace[]
+  ActivityLog      ActivityLog[]
+  Notification     Notification[]
+  Invitation       Invitation[]
 
   @@map("organizations")
 }
@@ -175,31 +186,33 @@ model OrganizationMember {
 }
 
 model Workspace {
-  id              String            @id @default(uuid()) @db.Uuid
-  name            String
-  slug            String
-  description     String?
-  avatar          String?
-  color           String?
-  settings        Json?
-  organizationId  String            @map("organization_id") @db.Uuid
+  id                String            @id @default(uuid()) @db.Uuid
+  name              String
+  slug              String
+  description       String?
+  avatar            String?
+  color             String?
+  settings          Json?
+  organizationId    String            @map("organization_id") @db.Uuid
   parentWorkspaceId String?           @map("parent_workspace_id") @db.Uuid
   path              String?           @map("path")
-  createdBy       String?           @map("created_by_id") @db.Uuid
-  updatedBy       String?           @map("updated_by_id") @db.Uuid
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
-  archive         Boolean           @default(false)
-  automationRules AutomationRule[]
-  projects        Project[]
-  members         WorkspaceMember[]
-  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy         String?           @map("created_by_id") @db.Uuid
+  updatedBy         String?           @map("updated_by_id") @db.Uuid
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  archive           Boolean           @default(false)
+  automationRules   AutomationRule[]
+  projects          Project[]
+  members           WorkspaceMember[]
+  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   parentWorkspace   Workspace?        @relation("WorkspaceHierarchy", fields: [parentWorkspaceId], references: [id], onDelete: SetNull)
   childWorkspaces   Workspace[]       @relation("WorkspaceHierarchy")
-  createdByUser   User?             @relation("WorkspaceCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser   User?             @relation("WorkspaceUpdatedBy", fields: [updatedBy], references: [id])
-  Invitation      Invitation[]
-  workspaceLabels WorkspaceLabel[]
+  createdByUser     User?             @relation("WorkspaceCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser     User?             @relation("WorkspaceUpdatedBy", fields: [updatedBy], references: [id])
+  Invitation        Invitation[]
+  workspaceLabels   WorkspaceLabel[]
+  trelloSync        TrelloSync?
+  jiraSync          JiraSync?
 
   @@unique([organizationId, slug])
   @@index([parentWorkspaceId])
@@ -257,6 +270,8 @@ model Project {
   tasks           Task[]
   Invitation      Invitation[]
   inbox           ProjectInbox?
+  trelloSync      TrelloSync?
+  jiraSync        JiraSync?
 
   @@unique([workspaceId, slug])
   @@map("projects")
@@ -307,9 +322,15 @@ model Task {
   isArchived        Boolean      @default(false) @map("is_archived")
   archivedBy        String?      @map("archived_by") @db.Uuid
   // Inbox Integration
-  inboxMessageId    String? @unique @map("inbox_message_id") @db.Uuid
-  emailThreadId     String? @map("email_thread_id")
-  allowEmailReplies Boolean @default(false) @map("allow_email_replies")
+  inboxMessageId    String?      @unique @map("inbox_message_id") @db.Uuid
+  emailThreadId     String?      @map("email_thread_id")
+  allowEmailReplies Boolean      @default(false) @map("allow_email_replies")
+
+  // Trello Integration
+  trelloCardId String? @unique @map("trello_card_id")
+
+  // Jira Integration
+  jiraIssueId String? @unique @map("jira_issue_id")
 
   // Recurrence fields
   isRecurring     Boolean @default(false) @map("is_recurring")
@@ -318,20 +339,20 @@ model Task {
   // Relations
   attachments     TaskAttachment[]
   comments        TaskComment[]
-  inboxMessage    InboxMessage?    @relation(fields: [inboxMessageId], references: [id])
+  inboxMessage    InboxMessage?     @relation(fields: [inboxMessageId], references: [id])
   recurringConfig RecurringTask?
-  blocks          TaskDependency[] @relation("BlockingTask")
-  dependsOn       TaskDependency[] @relation("DependentTask")
+  blocks          TaskDependency[]  @relation("BlockingTask")
+  dependsOn       TaskDependency[]  @relation("DependentTask")
   labels          TaskLabel[]
   watchers        TaskWatcher[]
-  parentTask      Task?            @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
-  childTasks      Task[]           @relation("TaskHierarchy")
-  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdByUser   User?            @relation("TaskCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser   User?            @relation("TaskUpdatedBy", fields: [updatedBy], references: [id])
-  archiveByUser   User?            @relation("TaskArchivedBy", fields: [archivedBy], references: [id])
-  sprint          Sprint?          @relation(fields: [sprintId], references: [id])
-  status          TaskStatus       @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  parentTask      Task?             @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
+  childTasks      Task[]            @relation("TaskHierarchy")
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdByUser   User?             @relation("TaskCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser   User?             @relation("TaskUpdatedBy", fields: [updatedBy], references: [id])
+  archiveByUser   User?             @relation("TaskArchivedBy", fields: [archivedBy], references: [id])
+  sprint          Sprint?           @relation(fields: [sprintId], references: [id])
+  status          TaskStatus        @relation(fields: [statusId], references: [id], onDelete: Cascade)
   timeEntries     TimeEntry[]
   assignees       TaskAssignee[]
   reporters       TaskReporter[]
@@ -374,14 +395,14 @@ model RecurringTask {
 }
 
 model TaskRank {
-  id                String    @id @default(uuid()) @db.Uuid
-  taskId            String    @map("task_id") @db.Uuid
-  scopeType         ScopeType @map("scope_type")
-  scopeId           String    @map("scope_id") @db.Uuid
-  viewType          ViewType  @map("view_type")
-  rank              Float?
-  
-  task              Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  id        String    @id @default(uuid()) @db.Uuid
+  taskId    String    @map("task_id") @db.Uuid
+  scopeType ScopeType @map("scope_type")
+  scopeId   String    @map("scope_id") @db.Uuid
+  viewType  ViewType  @map("view_type")
+  rank      Float?
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, scopeType, scopeId, viewType])
   @@index([scopeType, scopeId, viewType, rank])
@@ -499,19 +520,19 @@ model Sprint {
 }
 
 model Label {
-  id            String      @id @default(uuid()) @db.Uuid
-  name          String
-  color         String
-  description   String?
-  projectId     String      @map("project_id") @db.Uuid
-  createdBy     String?     @map("created_by_id") @db.Uuid
-  updatedBy     String?     @map("updated_by_id") @db.Uuid
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
-  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdByUser User?       @relation("LabelCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser User?       @relation("LabelUpdatedBy", fields: [updatedBy], references: [id])
-  taskLabels    TaskLabel[]
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  color           String
+  description     String?
+  projectId       String           @map("project_id") @db.Uuid
+  createdBy       String?          @map("created_by_id") @db.Uuid
+  updatedBy       String?          @map("updated_by_id") @db.Uuid
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdByUser   User?            @relation("LabelCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser   User?            @relation("LabelUpdatedBy", fields: [updatedBy], references: [id])
+  taskLabels      TaskLabel[]
   workspaceLabels WorkspaceLabel[]
 
   @@unique([projectId, name])
@@ -523,8 +544,8 @@ model WorkspaceLabel {
   labelId     String   @map("label_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at")
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  label       Label     @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  label     Label     @relation(fields: [labelId], references: [id], onDelete: Cascade)
 
   @@id([workspaceId, labelId])
   @@map("workspace_labels")
@@ -634,13 +655,13 @@ model TaskAttachment {
 }
 
 model PublicTaskShare {
-  id         String    @id @default(uuid()) @db.Uuid
-  token      String    @unique
-  expiresAt  DateTime  @map("expires_at")
-  revokedAt  DateTime? @map("revoked_at")
-  taskId     String    @map("task_id") @db.Uuid
-  createdBy  String?   @map("created_by_id") @db.Uuid
-  createdAt  DateTime  @default(now()) @map("created_at")
+  id        String    @id @default(uuid()) @db.Uuid
+  token     String    @unique
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  taskId    String    @map("task_id") @db.Uuid
+  createdBy String?   @map("created_by_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at")
 
   task          Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
   createdByUser User? @relation("PublicTaskShareCreatedBy", fields: [createdBy], references: [id])
@@ -1314,6 +1335,84 @@ model EmailSyncLog {
   @@map("email_sync_logs")
 }
 
+// ============= TRELLO SYNC =============
+model TrelloSync {
+  id          String  @id @default(uuid()) @db.Uuid
+  projectId   String? @unique @map("project_id") @db.Uuid
+  workspaceId String? @unique @map("workspace_id") @db.Uuid
+
+  // Trello connection
+  trelloWorkspaceId String? @map("trello_workspace_id")
+  trelloBoardId     String? @map("trello_board_id")
+  trelloApiKey      String  @map("trello_api_key") // AES-256-GCM encrypted
+  trelloToken       String  @map("trello_token") // AES-256-GCM encrypted
+
+  // Sync configuration
+  syncEnabled  Boolean @default(true) @map("sync_enabled")
+  syncInterval Int     @default(15) @map("sync_interval") // minutes
+
+  // Status tracking
+  lastSyncAt     DateTime?   @map("last_sync_at")
+  lastSyncStatus SyncStatus? @map("last_sync_status")
+  lastSyncError  String?     @map("last_sync_error") @db.Text
+  cardsImported  Int         @default(0) @map("cards_imported")
+
+  // List → Status mappings: { trelloListId: taskosaurStatusId }
+  statusMappings Json? @map("status_mappings")
+
+  createdBy String?  @map("created_by_id") @db.Uuid
+  updatedBy String?  @map("updated_by_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project       Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workspace     Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdByUser User?      @relation("TrelloSyncCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?      @relation("TrelloSyncUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@index([workspaceId])
+  @@map("trello_syncs")
+}
+
+// ============= JIRA SYNC =============
+model JiraSync {
+  id          String  @id @default(uuid()) @db.Uuid
+  projectId   String? @unique @map("project_id") @db.Uuid
+  workspaceId String? @unique @map("workspace_id") @db.Uuid
+
+  // Jira connection
+  jiraSiteUrl    String  @map("jira_site_url")    // e.g. https://org.atlassian.net
+  jiraProjectKey String? @map("jira_project_key") // e.g. PROJ
+  jiraEmail      String  @map("jira_email")       // AES-256-GCM encrypted
+  jiraApiToken   String  @map("jira_api_token")   // AES-256-GCM encrypted
+
+  // Sync configuration
+  syncEnabled  Boolean @default(true) @map("sync_enabled")
+  syncInterval Int     @default(15) @map("sync_interval") // minutes
+
+  // Status tracking
+  lastSyncAt     DateTime?   @map("last_sync_at")
+  lastSyncStatus SyncStatus? @map("last_sync_status")
+  lastSyncError  String?     @map("last_sync_error") @db.Text
+  issuesImported Int         @default(0) @map("issues_imported")
+
+  // Jira status → Taskosaur status mappings: { jiraStatusId: taskosaurStatusId }
+  statusMappings Json? @map("status_mappings")
+
+  createdBy String?  @map("created_by_id") @db.Uuid
+  updatedBy String?  @map("updated_by_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project       Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workspace     Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdByUser User?      @relation("JiraSyncCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?      @relation("JiraSyncUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@index([workspaceId])
+  @@map("jira_syncs")
+}
+
 model Settings {
   id          String   @id @default(uuid()) @db.Uuid
   key         String
@@ -1329,8 +1428,7 @@ model Settings {
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Unique constraint: key must be unique per user (or globally if userId is null)
-  @@unique([userId, key])  // This allows same keys for different users, and also allows global settings (userId = null)
-
+  @@unique([userId, key]) // This allows same keys for different users, and also allows global settings (userId = null)
   @@map("settings")
 }
 
@@ -1338,12 +1436,12 @@ model Settings {
 model MediaAsset {
   id         String   @id @default(uuid()) @db.Uuid
   userId     String   @db.Uuid
-  assetType  String   // "editor-image", "avatar", "attachment", etc.
-  storageKey String   // Full storage path (e.g., "editor-images/uuid-timestamp.png")
-  filename   String   // Original filename (for display purposes)
-  mimeType   String   // File type (image/png, etc.)
-  size       Int      // File size in bytes
-  fileHash   String?  // SHA-256 hash for future deduplication
+  assetType  String // "editor-image", "avatar", "attachment", etc.
+  storageKey String // Full storage path (e.g., "editor-images/uuid-timestamp.png")
+  filename   String // Original filename (for display purposes)
+  mimeType   String // File type (image/png, etc.)
+  size       Int // File size in bytes
+  fileHash   String? // SHA-256 hash for future deduplication
   inCloud    Boolean  @default(false)
   createdAt  DateTime @default(now()) @map("created_at")
 
@@ -1382,3 +1480,33 @@ enum RecurrenceEndType {
   ON_DATE
   AFTER_OCCURRENCES
 }
+
+// ============= AI CHAT CONVERSATIONS =============
+model Conversation {
+  id        String        @id @default(uuid()) @db.Uuid
+  title     String        @default("New Chat")
+  sessionId String        @map("session_id") @unique
+  userId    String        @map("user_id") @db.Uuid
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([updatedAt])
+  @@map("conversations")
+}
+
+model ChatMessage {
+  id             String       @id @default(uuid()) @db.Uuid
+  role           String       // "user", "assistant", or "system"
+  content        String       @db.Text
+  conversationId String       @map("conversation_id") @db.Uuid
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@map("chat_messages")
+}
+
