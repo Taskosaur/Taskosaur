@@ -1121,21 +1121,7 @@ function ProjectTasksContent() {
                   <ActionButton
                     primary
                     showPlusIcon
-                    onClick={() => {
-                      const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);
-                      const safeProjectSlug = sanitizeSlug(projectSlug);
-                      if (!safeWorkspaceSlug || !safeProjectSlug) {
-                        console.error('Invalid workspace or project slug');
-                        router.push('/');
-                        return;
-                      }
-                      const path = `/${safeWorkspaceSlug}/${safeProjectSlug}/tasks/new`;
-                      if (isValidInternalPath(path)) {
-                        router.push(path);
-                      } else {
-                        router.push('/');
-                      }
-                    }}
+                    onClick={() => setNewTaskModalOpen(true)}
                     disabled={!project?.id}
                   >
                     {t("createTask")}

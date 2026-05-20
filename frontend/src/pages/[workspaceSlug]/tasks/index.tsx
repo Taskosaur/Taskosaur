@@ -1285,20 +1285,7 @@ function WorkspaceTasksContent() {
                   <ActionButton
                     primary
                     showPlusIcon
-                    onClick={() => {
-                      const safeSlug = sanitizeSlug(workspaceSlug);
-                      if (!safeSlug) {
-                        console.error('Invalid workspace slug');
-                        router.push('/');
-                        return;
-                      }
-                      const path = `/${safeSlug}/tasks/new`;
-                      if (isValidInternalPath(path)) {
-                        router.push(path);
-                      } else {
-                        router.push('/');
-                      }
-                    }}
+                    onClick={() => setNewTaskModalOpen(true)}
                     disabled={!workspace?.id}
                   >
                     {t("createTask")}

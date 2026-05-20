@@ -13,6 +13,10 @@
   @apply relative h-9 px-4 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] shadow-sm hover:shadow-md transition-all duration-200 font-medium;
 }
 
+.actionbutton-destructive {
+  @apply relative h-9 px-4 bg-[var(--destructive)] hover:bg-[var(--destructive)]/90 text-white shadow-sm hover:shadow-md transition-all duration-200 font-medium;
+}
+
 .actionbutton-outline {
   @apply h-9 px-4 border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors;
 }

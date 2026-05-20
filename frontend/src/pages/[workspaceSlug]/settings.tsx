@@ -20,12 +20,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import DangerZoneModal from "@/components/common/DangerZoneModal";
-import { HiExclamationTriangle, HiArrowPath } from "react-icons/hi2";
+import { HiExclamationTriangle, HiArrowPath, HiCog } from "react-icons/hi2";
+import { FaTrello } from "react-icons/fa";
+import { SiJira } from "react-icons/si";
 import { PageHeader } from "@/components/common/PageHeader";
 import ErrorState from "@/components/common/ErrorState";
 import { SEO } from "@/components/common/SEO";
 import { useTranslation } from "react-i18next";
 import { useSlugRedirect, cacheSlugId } from "@/hooks/useSlugRedirect";
+import TrelloWorkspaceSyncPanel from "@/components/integrations/TrelloWorkspaceSyncPanel";
+import JiraWorkspaceSyncPanel from "@/components/integrations/JiraWorkspaceSyncPanel";
 
 function WorkspaceSettingsContent() {
   const { t } = useTranslation("settings");
@@ -44,6 +48,13 @@ function WorkspaceSettingsContent() {
   const { getUserAccess } = useAuth();
   const [hasAccess, setHasAccess] = useState(false);
   const { handleSlugNotFound } = useSlugRedirect();
+  const [activeTab, setActiveTab] = useState("general");
+
+  const tabs = [
+    { id: "general", name: t("workspace_settings.tabs.general", "General"), icon: HiCog },
+    { id: "trello", name: t("workspace_settings.tabs.trello", "Trello Sync"), icon: FaTrello },
+    { id: "jira", name: t("workspace_settings.tabs.jira", "Jira Sync"), icon: SiJira },
+  ];
 
   const [formData, setFormData] = useState({
     name: "",
@@ -355,161 +366,206 @@ function WorkspaceSettingsContent() {
           </Alert>
         )}
 
-        <Card className="border-none bg-[var(--card)]">
-          <CardHeader>
-            <CardTitle>{t("workspace_settings.general_info")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">{t("workspace_settings.name")}</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                placeholder={t("workspace_settings.name_placeholder")}
-                disabled={saving || !hasAccess}
-              />
+        <div className="space-y-6">
+          <div className="rounded-[var(--card-radius)] border-none">
+            <div className="border-b border-[var(--border)]">
+              <nav className="flex gap-1">
+                {tabs.map((tab) => {
+                  const IconComponent = tab.icon;
+                  const isActive = activeTab === tab.id;
+
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex cursor-pointer items-center gap-2 px-3 py-2 border-b-2 text-sm font-medium transition-all duration-200 ease-in-out ${
+                        isActive
+                          ? "border-b-[var(--primary)] text-[var(--primary)]"
+                          : "border-b-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                      }`}
+                    >
+                      <IconComponent className="w-4 h-4" />
+                      <span>{tab.name}</span>
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="slug">{t("workspace_settings.slug")}</Label>
-              <Input
-                id="slug"
-                value={formData.slug}
-                onChange={(e) => handleInputChange("slug", e.target.value)}
-                placeholder={t("workspace_settings.slug_placeholder")}
-                disabled={saving || !hasAccess}
-              />
-              <p className="text-xs text-[var(--muted-foreground)]">
-                {t("workspace_settings.slug_desc")}
-              </p>
-            </div>
+            <div className="mt-6">
+              {activeTab === "general" && (
+                <div className="space-y-6">
+                  <Card className="border-none bg-[var(--card)]">
+                    <CardHeader>
+                      <CardTitle>{t("workspace_settings.general_info")}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">{t("workspace_settings.name")}</Label>
+                        <Input
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) => handleInputChange("name", e.target.value)}
+                          placeholder={t("workspace_settings.name_placeholder")}
+                          disabled={saving || !hasAccess}
+                        />
+                      </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">{t("workspace_settings.description_label")}</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
-                placeholder={t("workspace_settings.description_placeholder")}
-                rows={3}
-                disabled={saving || !hasAccess}
-              />
-            </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="slug">{t("workspace_settings.slug")}</Label>
+                        <Input
+                          id="slug"
+                          value={formData.slug}
+                          onChange={(e) => handleInputChange("slug", e.target.value)}
+                          placeholder={t("workspace_settings.slug_placeholder")}
+                          disabled={saving || !hasAccess}
+                        />
+                        <p className="text-xs text-[var(--muted-foreground)]">
+                          {t("workspace_settings.slug_desc")}
+                        </p>
+                      </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="parentWorkspaceId">Parent Workspace (Optional)</Label>
-              <Select
-                value={formData.parentWorkspaceId || "none"}
-                onValueChange={(value) => handleInputChange("parentWorkspaceId", value === "none" ? "" : value)}
-                disabled={saving || !hasAccess}
-              >
-                <SelectTrigger className="w-full bg-[var(--card)] border-[var(--border)]">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent className="bg-[var(--card)] border-[var(--border)]">
-                  <SelectItem value="none">None</SelectItem>
-                  {workspaceTree
-                    ?.filter(w => w.id !== workspace?.id) // Don't let it be its own parent
-                    .map(ws => (
-                      <SelectItem key={ws.id} value={ws.id}>
-                        {ws.name}
-                      </SelectItem>
-                    ))
-                  }
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-[var(--muted-foreground)]">
-                Nest this workspace under another workspace.
-              </p>
-            </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="description">{t("workspace_settings.description_label")}</Label>
+                        <Textarea
+                          id="description"
+                          value={formData.description}
+                          onChange={(e) => handleInputChange("description", e.target.value)}
+                          placeholder={t("workspace_settings.description_placeholder")}
+                          rows={3}
+                          disabled={saving || !hasAccess}
+                        />
+                      </div>
 
-            <div className="flex justify-end pt-4">
-              <Button
-                onClick={handleSave}
-                disabled={saving || !formData.name.trim() || !hasAccess}
-                className="h-9 px-4 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] shadow-sm hover:shadow-md transition-all duration-200 font-medium cursor-pointer rounded-lg flex items-center gap-2"
-              >
-                {saving ? t("workspace_settings.saving") : t("workspace_settings.save_changes")}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                      <div className="space-y-2">
+                        <Label htmlFor="parentWorkspaceId">Parent Workspace (Optional)</Label>
+                        <Select
+                          value={formData.parentWorkspaceId || "none"}
+                          onValueChange={(value) => handleInputChange("parentWorkspaceId", value === "none" ? "" : value)}
+                          disabled={saving || !hasAccess}
+                        >
+                          <SelectTrigger className="w-full bg-[var(--card)] border-[var(--border)]">
+                            <SelectValue placeholder="None" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[var(--card)] border-[var(--border)]">
+                            <SelectItem value="none">None</SelectItem>
+                            {workspaceTree
+                              ?.filter(w => w.id !== workspace?.id) // Don't let it be its own parent
+                              .map(ws => (
+                                <SelectItem key={ws.id} value={ws.id}>
+                                  {ws.name}
+                                </SelectItem>
+                              ))
+                            }
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-[var(--muted-foreground)]">
+                          Nest this workspace under another workspace.
+                        </p>
+                      </div>
 
-        {/* Inherit from parent workspace — only shown when a parent is configured */}
-        {workspace?.parentWorkspaceId && (
-          <Card className="border-none bg-[var(--card)]">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <HiArrowPath className="w-4 h-4" style={{ color: "hsl(var(--primary))" }} />
-                Inherit from parent workspace
-              </CardTitle>
-              <CardDescription>
-                Re-sync member permissions, label templates, and workflow configuration from the
-                parent workspace into this workspace. Existing members and settings are preserved —
-                only new items are added.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between rounded-md border border-[var(--border)] bg-[var(--background)] p-4">
-                <div className="text-sm text-muted-foreground">
-                  Applies inheritance from{" "}
-                  <span className="font-medium text-foreground">
-                    {workspaceTree?.find((w) => w.id === workspace.parentWorkspaceId)?.name ??
-                      "parent workspace"}
-                  </span>
-                </div>
-                <Button
-                  onClick={handleApplyInheritance}
-                  disabled={applyingInheritance || !hasAccess}
-                  className="h-9 px-4 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] shadow-sm hover:shadow-md transition-all duration-200 font-medium cursor-pointer rounded-lg flex items-center gap-2"
-                >
-                  {applyingInheritance ? (
-                    <>
-                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                      Applying...
-                    </>
-                  ) : (
-                    <>
-                      <HiArrowPath className="w-4 h-4" />
-                      Apply Inheritance
-                    </>
+                      <div className="flex justify-end pt-4">
+                        <Button
+                          onClick={handleSave}
+                          disabled={saving || !formData.name.trim() || !hasAccess}
+                          className="h-9 px-4 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] shadow-sm hover:shadow-md transition-all duration-200 font-medium cursor-pointer rounded-lg flex items-center gap-2"
+                        >
+                          {saving ? t("workspace_settings.saving") : t("workspace_settings.save_changes")}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Inherit from parent workspace — only shown when a parent is configured */}
+                  {workspace?.parentWorkspaceId && (
+                    <Card className="border-none bg-[var(--card)]">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <HiArrowPath className="w-4 h-4" style={{ color: "hsl(var(--primary))" }} />
+                          Inherit from parent workspace
+                        </CardTitle>
+                        <CardDescription>
+                          Re-sync member permissions, label templates, and workflow configuration from the
+                          parent workspace into this workspace. Existing members and settings are preserved —
+                          only new items are added.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between rounded-md border border-[var(--border)] bg-[var(--background)] p-4">
+                          <div className="text-sm text-muted-foreground">
+                            Applies inheritance from{" "}
+                            <span className="font-medium text-foreground">
+                              {workspaceTree?.find((w) => w.id === workspace.parentWorkspaceId)?.name ??
+                                "parent workspace"}
+                            </span>
+                          </div>
+                          <Button
+                            onClick={handleApplyInheritance}
+                            disabled={applyingInheritance || !hasAccess}
+                            className="h-9 px-4 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] shadow-sm hover:shadow-md transition-all duration-200 font-medium cursor-pointer rounded-lg flex items-center gap-2"
+                          >
+                            {applyingInheritance ? (
+                              <>
+                                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                                Applying...
+                              </>
+                            ) : (
+                              <>
+                                <HiArrowPath className="w-4 h-4" />
+                                Apply Inheritance
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
-        <div className="bg-red-50 dark:bg-red-950/20 border-none rounded-md px-4 py-6">
-          <div className="flex items-start gap-3">
-            <HiExclamationTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-1" />
-            <div className="flex-1">
-              <h4 className="font-medium text-red-800 dark:text-red-400">
-                {t("workspace_settings.danger_zone.title")}
-              </h4>
-              <p className="text-sm text-red-700 dark:text-red-500 mb-4">
-                {t("workspace_settings.danger_zone.description")}
-              </p>
-              <DangerZoneModal
-                entity={{
-                  type: "workspace",
-                  name: workspace?.slug || "",
-                  displayName: workspace?.name || "",
-                }}
-                actions={dangerZoneActions}
-                onRetry={retryFetch}
-              >
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={!hasAccess}
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  <HiExclamationTriangle className="w-4 h-4 mr-2" />
-                  {t("workspace_settings.danger_zone.delete_label")}
-                </Button>
-              </DangerZoneModal>
+                  <div className="bg-red-50 dark:bg-red-950/20 border-none rounded-md px-4 py-6">
+                    <div className="flex items-start gap-3">
+                      <HiExclamationTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-1" />
+                      <div className="flex-1">
+                        <h4 className="font-medium text-red-800 dark:text-red-400">
+                          {t("workspace_settings.danger_zone.title")}
+                        </h4>
+                        <p className="text-sm text-red-700 dark:text-red-500 mb-4">
+                          {t("workspace_settings.danger_zone.description")}
+                        </p>
+                        <DangerZoneModal
+                          entity={{
+                            type: "workspace",
+                            name: workspace?.slug || "",
+                            displayName: workspace?.name || "",
+                          }}
+                          actions={dangerZoneActions}
+                          onRetry={retryFetch}
+                        >
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={!hasAccess}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                          >
+                            <HiExclamationTriangle className="w-4 h-4 mr-2" />
+                            {t("workspace_settings.danger_zone.delete_label")}
+                          </Button>
+                        </DangerZoneModal>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "trello" && workspace?.id && (
+                <TrelloWorkspaceSyncPanel workspaceId={workspace.id} />
+              )}
+
+              {activeTab === "jira" && workspace?.id && (
+                <JiraWorkspaceSyncPanel
+                  workspaceId={workspace.id}
+                  organizationId={workspace.organizationId}
+                />
+              )}
             </div>
           </div>
         </div>
