@@ -262,7 +262,7 @@ export class TrelloSyncService {
 
               await this.taskRanks.seedForTasksBatch(
                 createdTasks.map((t) => t.id),
-                sync.projectId,
+                sync.projectId!,
                 projectInfo.workspaceId,
                 projectInfo.orgId,
                 tx,

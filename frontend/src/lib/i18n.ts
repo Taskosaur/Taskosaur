@@ -24,7 +24,7 @@ i18n
       order: ['querystring', 'cookie', 'localStorage', 'navigator', 'htmlTag'],
       caches: ['localStorage', 'cookie'],
     },
-    ns: ['common', 'projects', 'workspaces', 'workspace-home', 'tasks', 'activities', 'settings', 'sprints', 'calendar', 'analytics', 'members', 'project-members', 'project-settings'],
+    ns: ['common', 'projects', 'workspaces', 'workspace-home', 'tasks', 'activities', 'settings', 'sprints', 'calendar', 'analytics', 'members', 'project-members', 'project-settings', 'integrations'],
     defaultNS: 'common',
     load: 'languageOnly',
   });
