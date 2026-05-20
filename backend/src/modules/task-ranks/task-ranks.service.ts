@@ -109,6 +109,68 @@ export class TaskRanksService {
     await tx.taskRank.createMany({ data: rows });
   }
 
+  async seedForTasksBatch(
+    taskIds: string[],
+    projectId: string,
+    workspaceId: string,
+    orgId: string,
+    tx: Prisma.TransactionClient,
+  ) {
+    if (taskIds.length === 0) return;
+
+    const scopes = [
+      { scopeType: ScopeType.PROJECT, scopeId: projectId },
+      { scopeType: ScopeType.WORKSPACE, scopeId: workspaceId },
+      { scopeType: ScopeType.ORGANIZATION, scopeId: orgId },
+    ];
+
+    const views = [ViewType.LIST, ViewType.GANTT, ViewType.BOARD];
+
+    const existingMaxRanks = await tx.taskRank.groupBy({
+      by: ['scopeType', 'scopeId', 'viewType'],
+      where: {
+        OR: scopes.flatMap((scope) =>
+          views.map((view) => ({
+            scopeType: scope.scopeType,
+            scopeId: scope.scopeId,
+            viewType: view,
+          })),
+        ),
+      },
+      _max: { rank: true },
+    });
+
+    const maxRankMap = new Map(
+      existingMaxRanks.map((r) => [`${r.scopeType}:${r.scopeId}:${r.viewType}`, r._max.rank ?? 0]),
+    );
+
+    const rows: {
+      taskId: string;
+      scopeType: ScopeType;
+      scopeId: string;
+      viewType: ViewType;
+      rank: number;
+    }[] = [];
+    for (const taskId of taskIds) {
+      for (const { scopeType, scopeId } of scopes) {
+        for (const viewType of views) {
+          const key = `${scopeType}:${scopeId}:${viewType}`;
+          const currentRank = (maxRankMap.get(key) ?? 0) + 1;
+          rows.push({
+            taskId,
+            scopeType,
+            scopeId,
+            viewType,
+            rank: currentRank,
+          });
+          maxRankMap.set(key, currentRank); // increment for the next task
+        }
+      }
+    }
+
+    await tx.taskRank.createMany({ data: rows });
+  }
+
   /**
    * Ensures that EVERY task belonging to the given scope/view has a taskRank
    * row before we compute a reorder.  Tasks that were created before the

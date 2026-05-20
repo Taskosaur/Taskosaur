@@ -7,7 +7,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { HiExclamationTriangle, HiInformationCircle } from "react-icons/hi2";
-import ActionButton from "../common/ActionButton";
+import { Button } from "@/components/ui/button";
+import ActionButton from "@/components/common/ActionButton";
+import { cn } from "@/lib/utils";
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -52,12 +54,23 @@ export default function ConfirmationModal({
           <DialogDescription>{message}</DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="flex justify-end gap-2">
-          <ActionButton type="submit" primary onClick={onConfirm}>
+        <DialogFooter className="flex justify-end gap-3 mt-4">
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            className="px-6 h-10 rounded-lg font-medium border-[var(--border)] hover:bg-[var(--muted)] text-[var(--foreground)]"
+          >
+            {cancelText || "Cancel"}
+          </Button>
+          <ActionButton
+            variant={type === "danger" ? "destructive" : "default"}
+            onClick={onConfirm}
+            className={cn(
+              "px-6 h-10 rounded-lg font-medium shadow-sm transition-all hover:shadow-md active:scale-95",
+              type !== "danger" && "bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90"
+            )}
+          >
             {confirmText}
-          </ActionButton>
-          <ActionButton variant="outline" onClick={onClose}>
-            {cancelText}
           </ActionButton>
         </DialogFooter>
       </DialogContent>
