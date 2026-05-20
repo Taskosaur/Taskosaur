@@ -179,7 +179,6 @@ describe('TasksController (e2e)', () => {
     parentTaskId = parentTask.id;
   });
 
-
   describe('/tasks (POST)', () => {
     it('should create a task with basic fields', () => {
       const createDto: CreateTaskDto = {

@@ -136,7 +136,6 @@ describe('TaskAttachmentsController (e2e)', () => {
     fs.writeFileSync(testFilePath, 'This is a test file for e2e attachment testing.');
   });
 
-
   let attachmentId: string;
 
   describe('/task-attachments/upload/:taskId (POST)', () => {

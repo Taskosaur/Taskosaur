@@ -141,7 +141,6 @@ describe('ActivityLogController (e2e)', () => {
     });
   });
 
-
   describe('/activity-logs/task/:taskId/activities (GET)', () => {
     it('should list activities for a task using UUID', () => {
       return request(app.getHttpServer())

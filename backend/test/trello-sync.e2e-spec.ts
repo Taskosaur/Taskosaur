@@ -4,7 +4,13 @@ import * as request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { Role, ProjectStatus, ProjectPriority, ProjectVisibility, SyncStatus } from '@prisma/client';
+import {
+  Role,
+  ProjectStatus,
+  ProjectPriority,
+  ProjectVisibility,
+  SyncStatus,
+} from '@prisma/client';
 import { TrelloApiService } from '../src/modules/trello-sync/trello-api.service';
 
 describe('TrelloSyncController (e2e)', () => {

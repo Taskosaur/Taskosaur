@@ -188,7 +188,11 @@ describe('JiraSyncController (e2e)', () => {
     it('should validate credentials and list projects', () => {
       return request(app.getHttpServer())
         .post('/api/jira-sync/validate/projects')
-        .query({ siteUrl: 'https://test.atlassian.net', email: 'test@example.com', apiToken: 'token' })
+        .query({
+          siteUrl: 'https://test.atlassian.net',
+          email: 'test@example.com',
+          apiToken: 'token',
+        })
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.CREATED)
         .expect((res) => {
@@ -200,7 +204,12 @@ describe('JiraSyncController (e2e)', () => {
     it('should validate credentials and list statuses', () => {
       return request(app.getHttpServer())
         .post('/api/jira-sync/validate/statuses')
-        .query({ siteUrl: 'https://test.atlassian.net', projectKey: 'TEST', email: 'test@example.com', apiToken: 'token' })
+        .query({
+          siteUrl: 'https://test.atlassian.net',
+          projectKey: 'TEST',
+          email: 'test@example.com',
+          apiToken: 'token',
+        })
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.CREATED)
         .expect((res) => {

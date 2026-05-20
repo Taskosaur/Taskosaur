@@ -4,7 +4,13 @@ import * as request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { Role, ProjectStatus, ProjectPriority, ProjectVisibility, SyncStatus } from '@prisma/client';
+import {
+  Role,
+  ProjectStatus,
+  ProjectPriority,
+  ProjectVisibility,
+  SyncStatus,
+} from '@prisma/client';
 import { TrelloApiService } from '../src/modules/trello-sync/trello-api.service';
 
 describe('TrelloWorkspaceController (e2e)', () => {
@@ -137,11 +143,11 @@ describe('TrelloWorkspaceController (e2e)', () => {
     // Cleanup
     await prismaService.trelloSync.deleteMany({ where: { workspaceId } });
     await prismaService.workspaceMember.deleteMany({ where: { workspaceId } });
-    await prismaService.projectMember.deleteMany({ 
-        where: { project: { workspaceId } } 
+    await prismaService.projectMember.deleteMany({
+      where: { project: { workspaceId } },
     });
     await prismaService.task.deleteMany({
-        where: { project: { workspaceId } }
+      where: { project: { workspaceId } },
     });
     await prismaService.project.deleteMany({ where: { workspaceId } });
     await prismaService.workspace.delete({ where: { id: workspaceId } });
