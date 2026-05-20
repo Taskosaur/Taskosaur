@@ -9,7 +9,9 @@
     "tabs": {
         "general": "General",
         "email": "Correo Electrónico",
-        "rules": "Reglas"
+        "rules": "Reglas",
+        "trello": "Sincronización de Trello",
+        "jira": "Sincronización de Jira"
     },
     "general": {
         "title": "Información General",

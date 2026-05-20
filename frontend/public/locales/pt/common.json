@@ -1,11 +1,14 @@
 {
   "save": "Salvar",
   "cancel": "Cancelar",
+  "back": "Voltar",
   "delete": "Excluir",
   "continue": "Continuar",
   "confirm": "Confirmar",
   "error": "Erro",
   "success": "Sucesso",
+  "minutes": "{{count}} minuto",
+  "minutes_plural": "{{count}} minutos",
   "priorities": {
     "lowest": "Muito Baixa",
     "low": "Baixa",

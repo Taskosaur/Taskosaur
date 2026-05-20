@@ -167,6 +167,11 @@
   "workspace_settings": {
     "title": "Configuración del Espacio de Trabajo",
     "description": "Administra la configuración y preferencias de tu espacio de trabajo",
+    "tabs": {
+      "general": "General",
+      "trello": "Sincronización de Trello",
+      "jira": "Sincronización de Jira"
+    },
     "general_info": "Información General",
     "name": "Nombre del Espacio de Trabajo",
     "name_placeholder": "Introduce el nombre del espacio de trabajo",

@@ -169,6 +169,11 @@
   "workspace_settings": {
     "title": "Workspace Settings",
     "description": "Manage your workspace configuration and preferences",
+    "tabs": {
+      "general": "General",
+      "trello": "Trello Sync",
+      "jira": "Jira Sync"
+    },
     "general_info": "General Information",
     "name": "Workspace Name",
     "name_placeholder": "Enter workspace name",
