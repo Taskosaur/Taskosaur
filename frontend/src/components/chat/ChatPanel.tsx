@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { formatDateTimeForDisplay } from "@/utils/date";
 import { isValidSlug } from "@/utils/slugUtils";
-import { HiXMark, HiPaperAirplane, HiSparkles, HiArrowPath, HiStop, HiMicrophone } from "react-icons/hi2";
+import { HiXMark, HiPaperAirplane, HiSparkles, HiArrowPath, HiStop, HiMicrophone, HiPlus, HiTrash, HiPencil, HiBars3, HiChatBubbleLeft } from "react-icons/hi2";
 import { useChatContext } from "@/contexts/chat-context";
-import { mcpServer, extractContextFromPath } from "@/lib/mcp-server";
+import { mcpServer, extractContextFromPath, Conversation } from "@/lib/mcp-server";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { BrowserAgent } from "@/lib/browser-automation/browser-agent";
@@ -37,6 +37,11 @@ function sanitizeErrorMessage(msg: string): string {
 export default function ChatPanel() {
   const { isChatOpen, toggleChat } = useChatContext();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string>("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,8 +138,6 @@ export default function ChatPanel() {
       } else {
         browserAgentRef.current.reset();
       }
-      sessionStorage.removeItem("mcp_conversation_history");
-      mcpServer.clearHistory();
 
       // Initialize voice controller
       voiceControllerRef.current = new VoiceController({
@@ -217,36 +220,65 @@ export default function ChatPanel() {
     [adjustTextareaHeight]
   );
 
-  // Load messages from session storage (improved logic)
+  const refreshConversations = useCallback(async () => {
+    if (typeof window !== "undefined") {
+      try {
+        await mcpServer.loadAll();
+      } catch (e) {
+        console.warn("Failed to load conversations from backend", e);
+      }
+      setConversations(mcpServer.getConversations());
+    }
+  }, []);
+
+  // Load messages from current conversation
   const loadMessagesFromHistory = useCallback(() => {
     try {
-      // Only load if we don't have any messages yet
-      if (messages.length > 0) {
-        return false;
-      }
+      const conv = mcpServer.getCurrentConversation();
+      if (conv) {
+        const convertedMessages: Message[] = conv.messages.map((msg, index) => ({
+          role: msg.role === "system" ? "assistant" : msg.role,
+          content: msg.content,
+          timestamp: new Date(Date.now() - (conv.messages.length - index) * 1000),
+          isStreaming: false,
+        }));
 
-      const storedHistory = sessionStorage.getItem("mcp_conversation_history");
-      if (storedHistory) {
-        const chatHistory: ChatMessage[] = JSON.parse(storedHistory);
-
-        // Only load if we have substantial history (more than just a greeting)
-        if (chatHistory.length > 2) {
-          const convertedMessages: Message[] = chatHistory.map((msg, index) => ({
-            role: msg.role === "system" ? "assistant" : msg.role,
-            content: msg.content,
-            timestamp: new Date(Date.now() - (chatHistory.length - index) * 1000),
-            isStreaming: false,
-          }));
-
-          setMessages(convertedMessages);
-          return true;
-        }
+        setMessages(convertedMessages);
+        return true;
       }
     } catch (error) {
-      console.warn("Failed to load messages from session storage:", error);
+      console.warn("Failed to load messages from conversation history:", error);
     }
     return false;
-  }, [messages.length]);
+  }, []);
+
+  // Handlers for conversation threads
+  const handleNewChat = async () => {
+    const newId = await mcpServer.startNewConversation();
+    setCurrentConversationId(newId);
+    setIsHistoryOpen(false);
+  };
+
+  const handleSelectConversation = async (id: string) => {
+    await mcpServer.switchConversation(id);
+    setCurrentConversationId(id);
+    setIsHistoryOpen(false);
+  };
+
+  const handleDeleteConversation = async (id: string) => {
+    const nextId = await mcpServer.deleteConversation(id);
+    setCurrentConversationId(nextId);
+    await refreshConversations();
+  };
+
+  const handleRename = async (id: string) => {
+    if (editTitle.trim()) {
+      await mcpServer.renameConversation(id, editTitle.trim());
+      await refreshConversations();
+    }
+    setEditingId(null);
+    setEditTitle("");
+  };
 
   // Initialize services on mount
   useEffect(() => {
@@ -269,12 +301,14 @@ export default function ChatPanel() {
           name: currentUser.email,
         },
         ...pathContext,
+      }).then(async () => {
+        // Load initial conversation
+        const currentConv = mcpServer.getCurrentConversation();
+        setCurrentConversationId(currentConv?.id || "");
+        await refreshConversations();
       });
-
-      // Load existing conversation history
-      loadMessagesFromHistory();
     }
-  }, [pathname, getCurrentUser, loadMessagesFromHistory]);
+  }, [pathname, getCurrentUser, refreshConversations]);
 
   // Update context when path changes (unless manually cleared)
   useEffect(() => {
@@ -283,6 +317,51 @@ export default function ChatPanel() {
       mcpServer.updateContext(pathContext);
     }
   }, [pathname, user, isContextManuallyCleared]);
+
+  // Load conversation messages when active conversation changes
+  useEffect(() => {
+    if (currentConversationId) {
+      loadMessagesFromHistory();
+    }
+  }, [currentConversationId, loadMessagesFromHistory]);
+
+  // Sync messages state back to active conversation in DB
+  useEffect(() => {
+    let active = true;
+    const syncHistory = async () => {
+      const chatHistory: ChatMessage[] = messages
+        .filter((m) => !m.isStreaming && m.role !== "system")
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+
+      const currentConv = mcpServer.getCurrentConversation();
+      if (currentConv && currentConv.id) {
+        // Clean currentConv.messages to contain only role and content for comparison
+        const currentMessagesCleaned = (currentConv.messages || [])
+          .filter((m) => m.role !== "system")
+          .map((m) => ({
+            role: m.role,
+            content: m.content,
+          }));
+
+        const currentHistoryJson = JSON.stringify(currentMessagesCleaned);
+        const newHistoryJson = JSON.stringify(chatHistory);
+
+        if (currentHistoryJson !== newHistoryJson) {
+          await mcpServer.saveHistory(chatHistory);
+          if (!active) return;
+          await refreshConversations();
+        }
+      }
+    };
+
+    syncHistory();
+    return () => {
+      active = false;
+    };
+  }, [messages, refreshConversations]);
 
   if (
     currentOrganizationId !== null &&
@@ -364,7 +443,7 @@ export default function ChatPanel() {
     setIsBrowserAgentRunning(true);
 
     try {
-      const result = await browserAgentRef.current.executeTask(message, undefined, handleAgentStatus);
+      const result = await browserAgentRef.current.executeTask(message, undefined, handleAgentStatus, mcpServer.sessionId);
 
       let cleanMessage = result.message || "";
       if (cleanMessage.startsWith("DONE:")) {
@@ -464,10 +543,11 @@ export default function ChatPanel() {
     browserAgentRef.current?.stop();
   };
 
-  const clearChat = () => {
+  const clearChat = async () => {
     setMessages([]);
-    mcpServer.clearHistory();
+    await mcpServer.clearHistory();
     browserAgentRef.current?.reset();
+    await refreshConversations();
   };
 
   const clearContext = async () => {
@@ -479,7 +559,7 @@ export default function ChatPanel() {
       setIsContextManuallyCleared(true);
 
       // Also clear the history to ensure clean context
-      mcpServer.clearHistory();
+      await mcpServer.clearHistory();
 
       // Clear the local messages but keep the context clear message
       setMessages([
@@ -490,65 +570,21 @@ export default function ChatPanel() {
           timestamp: new Date(),
         },
       ]);
+      await refreshConversations();
     } catch (error) {
       console.error("Failed to clear context:", error);
       setError("Failed to clear context. Please try again.");
     }
   };
 
-  // Improved sync logic that only runs on mount/chat open, not during active messaging
-  useEffect(() => {
-    const syncWithMcpHistory = () => {
-      try {
-        // Skip sync if context was manually cleared or if user is actively messaging
-        if (isContextManuallyCleared || isLoading) {
-          return;
-        }
 
-        const mcpHistory = mcpServer.getHistory();
-
-        // Only sync if we have significant history and no current streaming
-        if (mcpHistory.length > 2 && !messages.some((m) => m.isStreaming)) {
-          const currentHistoryLength = messages.filter(
-            (m) => m.role !== "system" || !m.content.includes("Context cleared")
-          ).length;
-
-          // Only sync if there's a meaningful difference (more than 1 message gap)
-          if (Math.abs(mcpHistory.length - currentHistoryLength) > 1) {
-            const syncedMessages: Message[] = mcpHistory.map((msg: ChatMessage, index: number) => ({
-              role: msg.role === "system" ? "assistant" : msg.role,
-              content: msg.content,
-              timestamp:
-                messages[index]?.timestamp ||
-                new Date(Date.now() - (mcpHistory.length - index) * 1000),
-              isStreaming: false,
-            }));
-
-            // Preserve system messages from manual context clearing
-            const systemMessages = messages.filter(
-              (m) => m.role === "system" && m.content.includes("Context cleared")
-            );
-            setMessages([...systemMessages, ...syncedMessages]);
-          }
-        }
-      } catch (error) {
-        console.warn("Failed to sync with MCP history:", error);
-      }
-    };
-
-    // Only sync on initial load when chat opens, not continuously
-    if (isChatOpen && user && !isContextManuallyCleared && !isLoading) {
-      const timeout = setTimeout(syncWithMcpHistory, 500); // Longer delay to avoid conflicts
-      return () => clearTimeout(timeout);
-    }
-  }, [isChatOpen, user]); // Removed messages.length to prevent continuous triggering
 
   return (
     <>
       {/* Chat Panel - positioned below header */}
       <div
         id="chat-panel"
-        className={`fixed top-0 right-0 bottom-0 bg-[var(--background)] border-l border-[var(--border)] z-40 transform transition-transform duration-300 ease-in-out flex flex-col ${
+        className={`fixed top-0 right-0 bottom-0 bg-[var(--background)] border-l border-[var(--border)] z-40 transform transition-transform duration-300 ease-in-out flex flex-col overflow-hidden ${
           isChatOpen ? "translate-x-0" : "translate-x-full"
         }`}
         style={{ width: `${panelWidth}px` }}
@@ -557,9 +593,114 @@ export default function ChatPanel() {
           onMouseDown={handleMouseDown}
           className="absolute left-0 top-0 bottom-0 w-0.5 cursor-col-resize bg-transparent hover:bg-gray-300/40"
         />
+
+        {/* Sidebar Overlay */}
+        {isHistoryOpen && (
+          <div 
+            className="absolute inset-0 bg-black/45 z-30 transition-opacity duration-200"
+            onClick={() => setIsHistoryOpen(false)}
+          />
+        )}
+
+        {/* Sidebar Content */}
+        <div className={`absolute top-0 bottom-0 left-0 w-[280px] bg-[var(--background)] border-r border-[var(--border)] z-40 transform transition-transform duration-300 ease-in-out flex flex-col ${
+          isHistoryOpen ? "translate-x-0" : "-translate-x-full"
+        }`}>
+          {/* Sidebar Header */}
+          <div className="p-4 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
+            <h3 className="font-semibold text-primary">Chat History</h3>
+            <button onClick={() => setIsHistoryOpen(false)} className="p-1 rounded-md hover:bg-[var(--accent)] transition-colors duration-200">
+              <HiXMark className="w-5 h-5 text-[var(--muted-foreground)]" />
+            </button>
+          </div>
+          
+          {/* New Chat Button */}
+          <div className="p-3 border-b border-[var(--border)] flex-shrink-0">
+            <button 
+              onClick={handleNewChat}
+              className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 text-sm font-medium shadow-sm hover:shadow"
+            >
+              <HiPlus className="w-4 h-4" />
+              New Chat
+            </button>
+          </div>
+
+          {/* Chat List */}
+          <div className="flex-1 overflow-y-auto p-2 space-y-1 chatgpt-scrollbar">
+            {conversations.map(conv => (
+              <div 
+                key={conv.id}
+                className={`group flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all duration-200 ${
+                  conv.id === currentConversationId 
+                    ? "bg-[var(--accent)] text-primary font-medium" 
+                    : "hover:bg-[var(--accent)]/65 text-[var(--muted-foreground)]"
+                }`}
+                onClick={() => handleSelectConversation(conv.id)}
+              >
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <HiChatBubbleLeft className="w-4 h-4 flex-shrink-0 text-blue-500" />
+                  {editingId === conv.id ? (
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      onBlur={() => handleRename(conv.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleRename(conv.id);
+                        if (e.key === 'Escape') setEditingId(null);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="bg-[var(--accent)] border border-blue-500 rounded px-1.5 py-0.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-500 text-primary"
+                      autoFocus
+                    />
+                  ) : (
+                    <span className="text-sm truncate">{conv.title}</span>
+                  )}
+                </div>
+                
+                {editingId !== conv.id && (
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingId(conv.id);
+                        setEditTitle(conv.title);
+                      }}
+                      className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-[var(--muted-foreground)] hover:text-primary transition-colors"
+                      title="Rename"
+                    >
+                      <HiPencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteConversation(conv.id);
+                      }}
+                      className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-950/40 text-red-500 hover:text-red-600 transition-colors"
+                      title="Delete"
+                    >
+                      <HiTrash className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Chat Header */}
         <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--background)]">
           <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                setIsHistoryOpen(true);
+                await refreshConversations();
+              }}
+              className="p-1 rounded-md hover:bg-[var(--accent)] transition-all duration-200"
+              title="View Chat History"
+            >
+              <HiBars3 className="w-5 h-5 text-[var(--muted-foreground)]" />
+            </button>
             <HiSparkles className="w-5 h-5 text-blue-600" />
             <h2 className="text-lg font-semibold text-primary">AI Assistant</h2>
           </div>

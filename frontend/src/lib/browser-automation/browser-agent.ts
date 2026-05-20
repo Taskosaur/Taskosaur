@@ -27,6 +27,7 @@ export class BrowserAgent {
   private steps: AgentStep[] = [];
   private conversationHistory: Array<{ role: string; content: string }> = [];
   private aborted: boolean = false;
+  private sessionId?: string;
 
   constructor(config?: BrowserAgentConfig) {
     this.detector = new DOMDetector();
@@ -40,8 +41,10 @@ export class BrowserAgent {
   public async executeTask(
     task: string,
     onProgress?: (step: AgentStep) => void,
-    onStatusChange?: (status: string) => void
+    onStatusChange?: (status: string) => void,
+    sessionId?: string
   ): Promise<AgentResult> {
+    this.sessionId = sessionId;
     this.steps = [];
     this.aborted = false;
 
@@ -171,6 +174,7 @@ export class BrowserAgent {
       const response = await api.post("/ai-chat/chat", {
         message: userMessage,
         history: cleanHistory,
+        sessionId: this.sessionId,
       });
 
       const data = response.data;

@@ -25,17 +25,216 @@ export interface MCPTool {
   execute: (params: any, context: TaskosaurContext) => Promise<any>;
 }
 
+export interface Conversation {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  updatedAt: string;
+  sessionId: string;
+}
+
 class MCPServer {
   private context: TaskosaurContext = {};
   private tools: Map<string, MCPTool> = new Map();
-  private conversationHistory: ChatMessage[] = [];
-  private sessionId: string = this.getOrCreateSessionId();
+  private conversations: Record<string, Conversation> = {};
+  private currentConversationId: string = "";
 
   // Initialize MCP server with context
-  initialize(context: TaskosaurContext = {}) {
+  async initialize(context: TaskosaurContext = {}) {
     this.context = context;
-    this.conversationHistory = [];
-    // Don't regenerate session ID on initialize - keep the persistent one
+    await this.loadAll();
+  }
+
+  async loadAll() {
+    if (typeof window !== "undefined") {
+      try {
+        const response = await api.get("/ai-chat/conversations");
+        const list = response.data || [];
+        
+        this.conversations = {};
+        list.forEach((conv: any) => {
+          this.conversations[conv.id] = {
+            id: conv.id,
+            title: conv.title,
+            sessionId: conv.sessionId,
+            updatedAt: conv.updatedAt,
+            messages: conv.messages || [],
+          };
+        });
+        
+        let currentId = localStorage.getItem("mcp_current_conversation_id");
+        if (!currentId || !this.conversations[currentId]) {
+          const sorted = this.getConversations();
+          if (sorted.length > 0) {
+            currentId = sorted[0].id;
+          } else {
+            // Create default conversation locally
+            const newConv = this.createNewConversationInternal();
+            currentId = newConv.id;
+          }
+        }
+        this.currentConversationId = currentId || "";
+        if (this.currentConversationId) {
+          localStorage.setItem("mcp_current_conversation_id", this.currentConversationId);
+        }
+      } catch (e) {
+        console.warn("Failed to load conversations from backend, using local storage fallback", e);
+        // Fallback to local storage if backend fails
+        const storedConvs = localStorage.getItem("mcp_conversations");
+        if (storedConvs) {
+          this.conversations = JSON.parse(storedConvs);
+        }
+        let currentId = localStorage.getItem("mcp_current_conversation_id");
+        if (!currentId || !this.conversations[currentId]) {
+          const newConv = this.createNewConversationInternal();
+          currentId = newConv.id;
+        }
+        this.currentConversationId = currentId;
+      }
+    }
+  }
+
+
+  private createNewConversationInternal(title = "New Chat"): Conversation {
+    let randomSuffix = "";
+    if (typeof window !== "undefined") {
+      const array = new Uint32Array(1);
+      window.crypto.getRandomValues(array);
+      randomSuffix = array[0].toString(36).substring(0, 9);
+    } else {
+      try {
+        randomSuffix = crypto.randomBytes(4).toString('hex').substring(0, 9);
+      } catch (e) {
+        randomSuffix = Math.random().toString(36).substring(2, 11);
+      }
+    }
+    const id = `chat_${Date.now()}_${randomSuffix}`;
+    const sessionId = `session_${Date.now()}_${randomSuffix}`;
+    
+    const newConv: Conversation = {
+      id,
+      title,
+      messages: [],
+      updatedAt: new Date().toISOString(),
+      sessionId,
+    };
+    
+    this.conversations[id] = newConv;
+    return newConv;
+  }
+
+
+  getConversations(): Conversation[] {
+    return Object.values(this.conversations)
+      .filter((c) => c.messages && c.messages.length > 0)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }
+
+  getCurrentConversation(): Conversation {
+    if (!this.currentConversationId || !this.conversations[this.currentConversationId]) {
+      // Return a temporary/empty conversation object if not loaded yet to prevent runtime crash
+      return {
+        id: "",
+        title: "New Chat",
+        messages: [],
+        updatedAt: new Date().toISOString(),
+        sessionId: "",
+      };
+    }
+    return this.conversations[this.currentConversationId];
+  }
+
+  async switchConversation(id: string) {
+    if (this.conversations[id]) {
+      this.currentConversationId = id;
+      localStorage.setItem("mcp_current_conversation_id", id);
+      // Reload from backend to get the latest messages
+      await this.loadAll();
+    }
+  }
+
+  async startNewConversation(title = "New Chat"): Promise<string> {
+    // Reuse existing empty conversation if one exists
+    const emptyConv = Object.values(this.conversations).find(
+      (c) => !c.messages || c.messages.length === 0
+    );
+    if (emptyConv) {
+      this.currentConversationId = emptyConv.id;
+      localStorage.setItem("mcp_current_conversation_id", emptyConv.id);
+      return emptyConv.id;
+    }
+
+    const newConv = this.createNewConversationInternal(title);
+    this.currentConversationId = newConv.id;
+    localStorage.setItem("mcp_current_conversation_id", newConv.id);
+    return newConv.id;
+  }
+
+  async deleteConversation(id: string): Promise<string> {
+    try {
+      await api.delete(`/ai-chat/conversations/${id}`);
+    } catch (e) {
+      console.warn("Failed to delete conversation on backend", e);
+    }
+
+    delete this.conversations[id];
+    let nextId = "";
+    if (this.currentConversationId === id) {
+      const remaining = this.getConversations();
+      if (remaining.length > 0) {
+        nextId = remaining[0].id;
+        this.currentConversationId = nextId;
+      } else {
+        const newConv = await this.startNewConversation();
+        nextId = newConv;
+        this.currentConversationId = nextId;
+      }
+    } else {
+      nextId = this.currentConversationId;
+    }
+    localStorage.setItem("mcp_current_conversation_id", this.currentConversationId);
+    return nextId;
+  }
+
+  async renameConversation(id: string, newTitle: string) {
+    if (this.conversations[id]) {
+      this.conversations[id].title = newTitle;
+      this.conversations[id].updatedAt = new Date().toISOString();
+      try {
+        await api.patch(`/ai-chat/conversations/${id}`, { title: newTitle });
+      } catch (e) {
+        console.warn("Failed to rename conversation on backend", e);
+      }
+    }
+  }
+
+  get conversationHistory(): ChatMessage[] {
+    return this.getCurrentConversation().messages;
+  }
+
+  set conversationHistory(messages: ChatMessage[]) {
+    const conv = this.getCurrentConversation();
+    if (conv.id) {
+      conv.messages = messages;
+      conv.updatedAt = new Date().toISOString();
+    }
+  }
+
+  async saveHistory(messages: ChatMessage[]) {
+    const conv = this.getCurrentConversation();
+    if (conv.id) {
+      conv.messages = messages;
+      conv.updatedAt = new Date().toISOString();
+      try {
+        await api.put(`/ai-chat/conversations/${conv.id}/messages`, { messages });
+      } catch (e) {
+        console.warn("Failed to sync messages to backend", e);
+      }
+    }
+  }
+
+  get sessionId(): string {
+    return this.getCurrentConversation().sessionId;
   }
 
   getCurrentOrganizationId(): string | null {
@@ -45,45 +244,14 @@ class MCPServer {
     return null;
   }
 
-  private getOrCreateSessionId(): string {
-    // Try to get existing session ID from localStorage or sessionStorage
-    if (typeof window !== "undefined") {
-      let sessionId = sessionStorage.getItem("mcp-session-id");
-      if (!sessionId) {
-        // Use cryptographically secure random value for suffix
-        const array = new Uint32Array(1);
-        window.crypto.getRandomValues(array);
-        const randomSuffix = array[0].toString(36).substring(0, 9);
-        sessionId = `session_${Date.now()}_${randomSuffix}`;
-        sessionStorage.setItem("mcp-session-id", sessionId);
-      } else {
-      }
-      return sessionId;
-    }
-
-    // Fallback for server-side rendering
-    // Fallback for server-side rendering: use insecure randomness, but ideally would use node crypto. Here, using insecure randomness as last resort.
-    let randomSuffix = '';
-    try {
-      // Try Node.js crypto if available
-      randomSuffix = crypto.randomBytes(4).toString('hex').substring(0, 9);
-    } catch (e) {
-      randomSuffix = Math.random().toString(36).substring(2, 11);
-    }
-    return `session_${Date.now()}_${randomSuffix}`;
-  }
-
-  // Update context (e.g., when user navigates to different workspace/project)
   updateContext(updates: Partial<TaskosaurContext>) {
     this.context = { ...this.context, ...updates };
   }
 
-  // Register a tool that the AI can use
   registerTool(tool: MCPTool) {
     this.tools.set(tool.name, tool);
   }
 
-  // Process a message from the user
   async processMessage(
     message: string,
     options: {
@@ -91,24 +259,22 @@ class MCPServer {
       onChunk?: (chunk: string) => void;
     } = {}
   ): Promise<string> {
-    // Add user message to history
-    this.conversationHistory.push({
-      role: "user",
-      content: message,
-    });
+    const currentConv = this.getCurrentConversation();
+    if (currentConv.id) {
+      currentConv.messages.push({
+        role: "user",
+        content: message,
+      });
+      currentConv.updatedAt = new Date().toISOString();
+    }
 
-    const currentOrganizationId: string | null = this.getCurrentOrganizationId();
-
-    // Build history for context
-    const history = this.conversationHistory.slice(0, -1); // Exclude current message
+    const currentOrganizationId = this.getCurrentOrganizationId();
 
     try {
-      // Call backend API using centralized API client
       const apiResponse = await api.post(
         "/ai-chat/chat",
         {
           message,
-          history,
           workspaceId: this.context.currentWorkspace,
           projectId: this.context.currentProject,
           sessionId: this.sessionId,
@@ -124,7 +290,6 @@ class MCPServer {
 
       const response = data.message;
 
-      // Handle streaming for UI compatibility
       if (options.stream && options.onChunk) {
         const words = response.split(" ");
         for (let i = 0; i < words.length; i++) {
@@ -134,16 +299,8 @@ class MCPServer {
         }
       }
 
-      // Add response to history
-      this.conversationHistory.push({
-        role: "assistant",
-        content: response,
-      });
-
-      // Keep more history for better context (last 10 messages)
-      if (this.conversationHistory.length > 10) {
-        this.conversationHistory = this.conversationHistory.slice(-10);
-      }
+      // Reload conversations from backend to sync history and title updates
+      await this.loadAll();
 
       return response;
     } catch (error) {
@@ -152,25 +309,30 @@ class MCPServer {
     }
   }
 
-  // Clear conversation history
-  clearHistory() {
-    this.conversationHistory = [];
+  async clearHistory() {
+    try {
+      const conv = this.getCurrentConversation();
+      if (conv.id) {
+        conv.messages = [];
+        conv.updatedAt = new Date().toISOString();
+      }
+      await api.delete(`/ai-chat/context/${this.sessionId}`);
+      await this.loadAll();
+    } catch (error) {
+      console.error("[MCP] Failed to clear history on backend:", error);
+    }
   }
 
-  // Clear context both locally and on backend
   async clearContext(): Promise<void> {
     try {
-      // Clear local context
       this.context = {
-        currentUser: this.context.currentUser, // Keep user info
-        permissions: this.context.permissions, // Keep permissions
+        currentUser: this.context.currentUser,
+        permissions: this.context.permissions,
       };
-
-      // Clear backend context
       await api.delete(`/ai-chat/context/${this.sessionId}`);
+      await this.loadAll();
     } catch (error) {
       console.error("[MCP] Failed to clear context on backend:", error);
-      // Still clear local context even if backend fails
       this.context = {
         currentUser: this.context.currentUser,
         permissions: this.context.permissions,

@@ -7,14 +7,22 @@ import {
   TestConnectionResponseDto,
   GenerateDescriptionDto,
   GenerateDescriptionResponseDto,
+  CreateConversationDto,
+  RenameConversationDto,
+  UpdateMessagesDto,
 } from './dto/chat.dto';
 import { SettingsService } from '../settings/settings.service';
 import { enhancePromptWithContext } from './app-guide';
 import { getAutomationPrompt } from './automation-prompts';
+import { PrismaService } from '../../prisma/prisma.service';
+import { Conversation } from '@prisma/client';
 
 @Injectable()
 export class AiChatService {
-  constructor(private settingsService: SettingsService) {}
+  constructor(
+    private settingsService: SettingsService,
+    private prisma: PrismaService,
+  ) {}
 
   private detectProvider(apiUrl: string): string {
     try {
@@ -41,6 +49,160 @@ export class AiChatService {
       // Invalid URL, fall back to previous logic or return custom (could alternatively throw error)
     }
     return 'custom'; // fallback for unknown providers
+  }
+
+  private async callLlm(
+    messages: ChatMessageDto[],
+    userId: string,
+    maxTokens = 500,
+  ): Promise<string> {
+    const [apiKey, model, rawApiUrl] = await Promise.all([
+      this.settingsService.get('ai_api_key', userId),
+      this.settingsService.get('ai_model', userId),
+      this.settingsService.get('ai_api_url', userId),
+    ]);
+
+    if (!model) {
+      throw new BadRequestException('AI model not configured. Please select a model in settings.');
+    }
+    if (!rawApiUrl) {
+      throw new BadRequestException(
+        'AI API URL not configured. Please set the API URL in settings.',
+      );
+    }
+
+    const apiUrl = this.validateApiUrl(rawApiUrl);
+    const provider = this.detectProvider(apiUrl);
+
+    if (!apiKey && provider !== 'ollama') {
+      throw new BadRequestException('AI API key not configured. Please set it in settings.');
+    }
+
+    const requestHeaders: any = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    };
+    let requestBody: any = {
+      model,
+      messages,
+      temperature: 0.1,
+      max_tokens: maxTokens,
+      stream: false,
+    };
+
+    const isGpt5Model = typeof model === 'string' && model.startsWith('gpt-5');
+    let requestUrl = apiUrl;
+
+    switch (provider) {
+      case 'openrouter':
+        requestUrl = `${apiUrl}/chat/completions`;
+        requestHeaders['HTTP-Referer'] = process.env.APP_URL || 'http://localhost:3000';
+        requestHeaders['X-Title'] = 'Taskosaur AI Assistant';
+        requestBody.top_p = 0.9;
+        requestBody.frequency_penalty = 0;
+        requestBody.presence_penalty = 0;
+        break;
+
+      case 'openai':
+        requestUrl = `${apiUrl}/chat/completions`;
+        delete requestBody.max_tokens;
+        requestBody.max_completion_tokens = maxTokens;
+        if (isGpt5Model) {
+          delete requestBody.temperature;
+        } else {
+          requestBody.top_p = 0.9;
+          requestBody.frequency_penalty = 0;
+          requestBody.presence_penalty = 0;
+        }
+        break;
+
+      case 'ollama':
+        if (apiUrl.includes('/v1')) {
+          requestUrl = apiUrl.endsWith('/chat/completions') ? apiUrl : `${apiUrl}/chat/completions`;
+        } else if (apiUrl.includes('/api')) {
+          requestUrl = apiUrl.endsWith('/chat') ? apiUrl : `${apiUrl}/chat`;
+        } else {
+          requestUrl = `${apiUrl}/v1/chat/completions`;
+        }
+        delete requestHeaders['Authorization'];
+        requestBody.top_p = 0.9;
+        break;
+
+      case 'anthropic':
+        requestUrl = `${apiUrl}/messages`;
+        requestHeaders['x-api-key'] = apiKey;
+        requestHeaders['anthropic-version'] = '2023-06-01';
+        delete requestHeaders['Authorization'];
+        requestBody = {
+          model,
+          messages: messages.filter((m) => m.role !== 'system'),
+          system: messages.find((m) => m.role === 'system')?.content,
+          max_tokens: maxTokens,
+          temperature: 0.1,
+        };
+        break;
+
+      case 'google':
+        this.validateModelName(model);
+        requestUrl = `${apiUrl}/models/${encodeURIComponent(String(model))}:generateContent?key=${encodeURIComponent(apiKey || '')}`;
+        delete requestHeaders['Authorization'];
+        requestBody = {
+          contents: messages.map((m) => ({
+            role: m.role === 'assistant' ? 'model' : m.role == 'system' ? 'model' : m.role,
+            parts: [{ text: m.content }],
+          })),
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: maxTokens,
+          },
+        };
+        break;
+
+      default:
+        requestUrl = `${apiUrl}/chat/completions`;
+        break;
+    }
+
+    const response = await fetch(requestUrl, {
+      method: 'POST',
+      headers: requestHeaders,
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        throw new BadRequestException(
+          'Invalid API key. Please check your OpenRouter API key in settings.',
+        );
+      } else if (response.status === 429) {
+        throw new BadRequestException(
+          'Rate limit exceeded by API provider. Please try again in a moment.',
+        );
+      } else if (response.status === 402) {
+        throw new BadRequestException(
+          'Insufficient credits. Please check your OpenRouter account.',
+        );
+      }
+
+      throw new BadRequestException(
+        errorData?.error?.message || `LLM API returned status ${response.status}`,
+      );
+    }
+
+    const responseData = await response.json();
+    let aiMessage = '';
+
+    if (provider === 'google') {
+      aiMessage = responseData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } else if (provider === 'anthropic') {
+      aiMessage = responseData?.content?.[0]?.text || '';
+    } else {
+      aiMessage = responseData?.choices?.[0]?.message?.content || '';
+    }
+
+    return aiMessage.trim();
   }
 
   private generateSystemPrompt(): string {
@@ -218,19 +380,54 @@ ADMIN PANEL RULES (SUPER_ADMIN ONLY):
       }
 
       // Get API settings from database
-      const [apiKey, model, rawApiUrl] = await Promise.all([
+      const [apiKey, rawApiUrl] = await Promise.all([
         this.settingsService.get('ai_api_key', userId),
-        this.settingsService.get('ai_model', userId, 'deepseek/deepseek-chat-v3-0324:free'),
-        this.settingsService.get('ai_api_url', userId, 'https://openrouter.ai/api/v1'),
+        this.settingsService.get('ai_api_url', userId),
       ]);
 
-      const apiUrl = rawApiUrl ? this.validateApiUrl(rawApiUrl) : 'https://openrouter.ai/api/v1';
+      if (!rawApiUrl) {
+        throw new BadRequestException(
+          'AI API URL not configured. Please set the API URL in settings.',
+        );
+      }
 
+      const apiUrl = this.validateApiUrl(rawApiUrl);
       const provider = this.detectProvider(apiUrl);
 
       // API key is optional for Ollama (localhost/private network)
       if (!apiKey && provider !== 'ollama') {
         throw new BadRequestException('AI API key not configured. Please set it in settings.');
+      }
+
+      // Find or create conversation if sessionId is provided
+      let conversation: Conversation | null = null;
+      let dbHistory: ChatMessageDto[] = [];
+
+      if (chatRequest.sessionId) {
+        conversation = await this.prisma.conversation.findUnique({
+          where: { sessionId: chatRequest.sessionId },
+        });
+
+        if (!conversation) {
+          conversation = await this.prisma.conversation.create({
+            data: {
+              userId,
+              sessionId: chatRequest.sessionId,
+              title: 'New Chat',
+            },
+          });
+        } else {
+          // Fetch existing history from DB
+          const historyMsgs = await this.prisma.chatMessage.findMany({
+            where: { conversationId: conversation.id },
+            orderBy: { createdAt: 'asc' },
+            take: 40,
+          });
+          dbHistory = historyMsgs.map((m) => ({
+            role: m.role as 'system' | 'user' | 'assistant',
+            content: m.content,
+          }));
+        }
       }
 
       // Build messages array with system prompt and conversation history
@@ -243,8 +440,12 @@ ADMIN PANEL RULES (SUPER_ADMIN ONLY):
         content: systemPrompt,
       });
 
-      // Add conversation history if provided
-      if (chatRequest.history && Array.isArray(chatRequest.history)) {
+      // Add conversation history (prefer DB history, fall back to request history)
+      if (dbHistory.length > 0) {
+        dbHistory.forEach((msg: ChatMessageDto) => {
+          messages.push(msg);
+        });
+      } else if (chatRequest.history && Array.isArray(chatRequest.history)) {
         chatRequest.history.forEach((msg: ChatMessageDto) => {
           messages.push({
             role: msg.role,
@@ -269,151 +470,85 @@ ADMIN PANEL RULES (SUPER_ADMIN ONLY):
         }
       }
 
+      // Save user message to database if we have a conversation
+      if (conversation) {
+        const taskMatch = chatRequest.message.match(/Task:\s*([^\n]+)/);
+        const cleanUserMsg = taskMatch ? taskMatch[1].trim() : chatRequest.message;
+
+        await this.prisma.chatMessage.create({
+          data: {
+            conversationId: conversation.id,
+            role: 'user',
+            content: cleanUserMsg,
+          },
+        });
+
+        // Auto-generate title by AI if it is still 'New Chat'
+        if (conversation.title === 'New Chat') {
+          try {
+            const titlePrompt = `Analyze the following first user message in a chat and generate a very short, concise topic title summarizing it (maximum 4 words, no quotes, no markdown, no ending period):
+
+"${cleanUserMsg}"`;
+
+            const aiGeneratedTitle = await this.callLlm(
+              [{ role: 'user', content: titlePrompt }],
+              userId,
+              500,
+            );
+
+            // Clean up the generated title
+            let cleanTitle = aiGeneratedTitle
+              .replace(/['"“”`.]/g, '')
+              .replace(/^title:\s*/i, '') // strip "Title: " prefix if generated
+              .trim();
+            if (cleanTitle.length > 40) {
+              cleanTitle = cleanTitle.substring(0, 40) + '...';
+            }
+
+            if (!cleanTitle || cleanTitle.length < 2) {
+              throw new Error('Generated title is empty or too short');
+            }
+
+            conversation = await this.prisma.conversation.update({
+              where: { id: conversation.id },
+              data: { title: cleanTitle },
+            });
+          } catch (e) {
+            console.warn('Failed to generate AI title, using fallback', e);
+            const cleanTitle = cleanUserMsg.trim();
+            const newTitle =
+              cleanTitle.length > 30 ? cleanTitle.substring(0, 30) + '...' : cleanTitle;
+            conversation = await this.prisma.conversation.update({
+              where: { id: conversation.id },
+              data: { title: newTitle || 'New Chat' },
+            });
+          }
+        }
+      }
+
       messages.push({
         role: 'user',
         content: userMessage,
       });
 
-      const isGpt5Model = typeof model === 'string' && model.startsWith('gpt-5');
+      // Call API helper to get response
+      const aiMessage = await this.callLlm(messages, userId, 500);
 
-      // Prepare request based on provider
-      let requestUrl = apiUrl;
-      const requestHeaders: any = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      };
-      let requestBody: any = {
-        model,
-        messages,
-        temperature: 0.1,
-        max_tokens: 500,
-        stream: false,
-      };
+      // Save assistant message to database if we have a conversation
+      if (conversation && aiMessage) {
+        await this.prisma.chatMessage.create({
+          data: {
+            conversationId: conversation.id,
+            role: 'assistant',
+            content: aiMessage,
+          },
+        });
 
-      // Adjust for different providers
-      switch (provider) {
-        case 'openrouter':
-          requestUrl = `${apiUrl}/chat/completions`;
-          requestHeaders['HTTP-Referer'] = process.env.APP_URL || 'http://localhost:3000';
-          requestHeaders['X-Title'] = 'Taskosaur AI Assistant';
-          requestBody.top_p = 0.9;
-          requestBody.frequency_penalty = 0;
-          requestBody.presence_penalty = 0;
-          break;
-
-        case 'openai':
-          requestUrl = `${apiUrl}/chat/completions`;
-          delete requestBody.max_tokens;
-          requestBody.max_completion_tokens = 500;
-          if (isGpt5Model) {
-            delete requestBody.temperature;
-          } else {
-            requestBody.top_p = 0.9;
-            requestBody.frequency_penalty = 0;
-            requestBody.presence_penalty = 0;
-          }
-          break;
-
-        case 'ollama':
-          // Ollama uses OpenAI-compatible API at /v1/chat/completions or /api/chat
-          // Check if URL already contains the endpoint path
-          if (apiUrl.includes('/v1')) {
-            requestUrl = apiUrl.endsWith('/chat/completions')
-              ? apiUrl
-              : `${apiUrl}/chat/completions`;
-          } else if (apiUrl.includes('/api')) {
-            requestUrl = apiUrl.endsWith('/chat') ? apiUrl : `${apiUrl}/chat`;
-          } else {
-            // Default to OpenAI-compatible endpoint
-            requestUrl = `${apiUrl}/v1/chat/completions`;
-          }
-          // Ollama doesn't require auth for local instances
-          delete requestHeaders['Authorization'];
-          requestBody.top_p = 0.9;
-          break;
-
-        case 'anthropic':
-          requestUrl = `${apiUrl}/messages`;
-          requestHeaders['x-api-key'] = apiKey;
-          requestHeaders['anthropic-version'] = '2023-06-01';
-          delete requestHeaders['Authorization'];
-          requestBody = {
-            model,
-            messages: messages.filter((m) => m.role !== 'system'), // Anthropic doesn't use system role the same way
-            system: messages.find((m) => m.role === 'system')?.content,
-            max_tokens: 500,
-            temperature: 0.1,
-          };
-          break;
-
-        case 'google':
-          // Google Gemini has a different API structure
-          this.validateModelName(model);
-          requestUrl = `${apiUrl}/models/${encodeURIComponent(String(model))}:generateContent?key=${encodeURIComponent(apiKey || '')}`;
-          delete requestHeaders['Authorization'];
-          requestBody = {
-            contents: messages.map((m) => ({
-              role: m.role === 'assistant' ? 'model' : m.role == 'system' ? 'model' : m.role,
-              parts: [{ text: m.content }],
-            })),
-            generationConfig: {
-              temperature: 0.1,
-              maxOutputTokens: 500,
-            },
-          };
-          break;
-
-        default: // custom or openrouter fallback
-          requestUrl = `${apiUrl}/chat/completions`;
-          break;
-      }
-
-      // Call API
-      const response = await fetch(requestUrl, {
-        method: 'POST',
-        headers: requestHeaders,
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-
-        if (response.status === 401) {
-          throw new BadRequestException(
-            'Invalid API key. Please check your OpenRouter API key in settings.',
-          );
-        } else if (response.status === 429) {
-          throw new BadRequestException(
-            'Rate limit exceeded by API provider. Please try again in a moment.',
-          );
-        } else if (response.status === 402) {
-          throw new BadRequestException(
-            'Insufficient credits. Please check your OpenRouter account.',
-          );
-        }
-
-        throw new BadRequestException(
-          errorData.error?.message || `API request failed with status ${response.status}`,
-        );
-      }
-
-      const data = await response.json();
-
-      let aiMessage = '';
-
-      // Parse response based on provider
-      switch (provider) {
-        case 'anthropic':
-          aiMessage = data.content?.[0]?.text || '';
-          break;
-
-        case 'google':
-          aiMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          break;
-
-        default: // OpenAI, OpenRouter, and custom providers use the same format
-          aiMessage = data.choices?.[0]?.message?.content || '';
-          break;
+        // Touch the conversation updatedAt timestamp
+        await this.prisma.conversation.update({
+          where: { id: conversation.id },
+          data: { updatedAt: new Date() },
+        });
       }
 
       return {
@@ -616,9 +751,16 @@ Respond ONLY with the description text, nothing else.`;
     }
   }
 
-  // Clear context for a specific session (no-op since context tracking was removed)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  clearContext(sessionId: string): { success: boolean } {
+  // Clear context/messages for a specific session
+  async clearContext(sessionId: string): Promise<{ success: boolean }> {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { sessionId },
+    });
+    if (conversation) {
+      await this.prisma.chatMessage.deleteMany({
+        where: { conversationId: conversation.id },
+      });
+    }
     return { success: true };
   }
 
@@ -955,5 +1097,82 @@ Respond ONLY with the description text, nothing else.`;
     if (!allowedPattern.test(trimmedModel)) {
       throw new BadRequestException(customErrorMessage);
     }
+  }
+
+  async getConversations(userId: string) {
+    return this.prisma.conversation.findMany({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+      take: 100, // Limit list to most recent 100 conversations to prevent huge payloads
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' },
+          take: 40, // Limit messages loaded per conversation to recent history
+        },
+      },
+    });
+  }
+
+  async createConversation(userId: string, dto: CreateConversationDto) {
+    const sessionId =
+      dto.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    return this.prisma.conversation.create({
+      data: {
+        userId,
+        title: dto.title || 'New Chat',
+        sessionId,
+      },
+      include: {
+        messages: true,
+      },
+    });
+  }
+
+  async renameConversation(userId: string, id: string, dto: RenameConversationDto) {
+    return this.prisma.conversation.update({
+      where: { id, userId },
+      data: {
+        title: dto.title,
+      },
+      include: {
+        messages: true,
+      },
+    });
+  }
+
+  async deleteConversation(userId: string, id: string) {
+    await this.prisma.conversation.delete({
+      where: { id, userId },
+    });
+    return { success: true };
+  }
+
+  async updateMessages(userId: string, id: string, dto: UpdateMessagesDto) {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id, userId },
+    });
+    if (!conversation) {
+      throw new BadRequestException('Conversation not found');
+    }
+
+    // Use transaction to delete and recreate messages safely
+    await this.prisma.$transaction([
+      this.prisma.chatMessage.deleteMany({
+        where: { conversationId: id },
+      }),
+      this.prisma.chatMessage.createMany({
+        data: dto.messages.map((msg) => ({
+          conversationId: id,
+          role: msg.role,
+          content: msg.content,
+        })),
+      }),
+      this.prisma.conversation.update({
+        where: { id },
+        data: { updatedAt: new Date() },
+      }),
+    ]);
+
+    return { success: true };
   }
 }

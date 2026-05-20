@@ -156,3 +156,39 @@ export class GenerateDescriptionResponseDto {
   })
   error?: string;
 }
+
+export class CreateConversationDto {
+  @ApiPropertyOptional({
+    description: 'Title of the conversation',
+  })
+  @IsString()
+  @IsOptional()
+  title?: string;
+
+  @ApiPropertyOptional({
+    description: 'Session ID',
+  })
+  @IsString()
+  @IsOptional()
+  sessionId?: string;
+}
+
+export class RenameConversationDto {
+  @ApiProperty({
+    description: 'New title of the conversation',
+  })
+  @IsString()
+  @IsNotEmpty()
+  title: string;
+}
+
+export class UpdateMessagesDto {
+  @ApiProperty({
+    type: [ChatMessageDto],
+    description: 'List of messages in the conversation',
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChatMessageDto)
+  messages: ChatMessageDto[];
+}

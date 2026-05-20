@@ -19,6 +19,7 @@ export interface ActionButtonProps {
   showPlusIcon?: boolean;
   secondary?: boolean;
   primary?: boolean;
+  size?: "default" | "sm" | "lg" | "icon";
   onMouseEnter?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onMouseLeave?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
@@ -57,6 +58,9 @@ const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProps>(
             break;
           case "ghost":
             classes += " actionbutton-ghost";
+            break;
+          case "destructive":
+            classes += " actionbutton-destructive";
             break;
           default:
             classes += " actionbutton-default";
