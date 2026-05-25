@@ -153,14 +153,10 @@ export class BrowserAgent {
   ): Promise<string> {
     try {
       // Build user message
-      let userMessage: string;
       const currentUrl = window.location.href;
 
-      if (isFirstIteration) {
-        userMessage = `Task: ${task}\n\nCurrent URL: ${currentUrl}\n\nAvailable elements:\n${elementsHtml}`;
-      } else {
-        userMessage = `Current URL: ${currentUrl}\n\nAvailable elements:\n${elementsHtml}`;
-      }
+      // Always include the Task so the backend matches the regex to inject context/rules
+      const userMessage = `Task: ${task}\n\nCurrent URL: ${currentUrl}\n\nAvailable elements:\n${elementsHtml}`;
 
       this.conversationHistory.push({
         role: "user",

@@ -107,15 +107,8 @@ export default function Header() {
   // Check AI enabled status
   useEffect(() => {
     const checkAIStatus = () => {
-      // currentUser is the source of truth if available
-      if (currentUser && typeof currentUser.isAiEnabled !== "undefined") {
-        setIsAIEnabled(currentUser.isAiEnabled);
-        localStorage.setItem("aiEnabled", currentUser.isAiEnabled ? "true" : "false");
-      } else {
-        // Fallback to localStorage if user object doesn't have the setting
-        const aiEnabled = localStorage.getItem("aiEnabled") === "true";
-        setIsAIEnabled(aiEnabled);
-      }
+      const aiEnabled = localStorage.getItem("aiEnabled") === "true";
+      setIsAIEnabled(aiEnabled);
     };
 
     // Check on mount and when user object changes
@@ -282,18 +275,15 @@ export default function Header() {
             {hasOrganizationAccess && (
               <div className={`transition-all duration-300 ease-in-out `}>
                 <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
-                  {hasAccess &&
-                    (contextLevel === "global" ||
-                      contextLevel === "workspace" ||
-                      contextLevel === "project") && (
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="default" className="header-create-button">
-                          <HiPlus className="size-4" />
-                          <span className="hidden sm:inline">{t("create")}</span>
-                          <HiChevronDown className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                    )}
+                  {hasAccess && (
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="default" className="header-create-button">
+                        <HiPlus className="size-4" />
+                        <span className="hidden sm:inline">{t("create")}</span>
+                        <HiChevronDown className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  )}
 
                   <DropdownMenuContent
                     className="header-dropdown-content"
@@ -305,87 +295,61 @@ export default function Header() {
                     </div>
 
                     <div className="p-2 space-y-1">
-                      {contextLevel === "global" && (
-                        <>
-                          <DropdownMenuItem asChild>
-                            <NewWorkspaceDialog
-                              open={isWorkspaceDialogOpen}
-                              onOpenChange={setIsWorkspaceDialogOpen}
-                              refetchWorkspaces={refetchWorkspaces}
-                            >
-                              <div className="header-dropdown-item">
-                                <div className="header-dropdown-icon">
-                                  <HiCommandLine className="header-dropdown-icon-inner" />
-                                </div>
-                                <div className="header-dropdown-item-content">
-                                  <div className="header-dropdown-item-title">{t("newWorkspace")}</div>
-                                  <div className="header-dropdown-item-description">
-                                    {t("newWorkspaceDesc")}
-                                  </div>
-                                </div>
-                              </div>
-                            </NewWorkspaceDialog>
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem
-                            className="header-dropdown-item"
-                            onSelect={() => {
-                              setShowNewProjectModal(true);
-                              setIsDropdownOpen(false);
-                            }}
-                          >
+                      <DropdownMenuItem asChild>
+                        <NewWorkspaceDialog
+                          open={isWorkspaceDialogOpen}
+                          onOpenChange={setIsWorkspaceDialogOpen}
+                          refetchWorkspaces={refetchWorkspaces}
+                        >
+                          <div className="header-dropdown-item">
                             <div className="header-dropdown-icon">
-                              <HiRocketLaunch className="header-dropdown-icon-inner" />
+                              <HiCommandLine className="header-dropdown-icon-inner" />
                             </div>
                             <div className="header-dropdown-item-content">
-                              <div className="header-dropdown-item-title">{t("newProject")}</div>
+                              <div className="header-dropdown-item-title">{t("newWorkspace")}</div>
                               <div className="header-dropdown-item-description">
-                                {t("newProjectDesc")}
+                                {t("newWorkspaceDesc")}
                               </div>
                             </div>
-                          </DropdownMenuItem>
-                        </>
-                      )}
+                          </div>
+                        </NewWorkspaceDialog>
+                      </DropdownMenuItem>
 
-                      {contextLevel === "workspace" && (
-                        <DropdownMenuItem
-                          className="header-dropdown-item"
-                          onSelect={() => {
-                            setShowNewProjectModal(true);
-                            setIsDropdownOpen(false);
-                          }}
-                        >
-                          <div className="header-dropdown-icon">
-                            <HiRocketLaunch className="header-dropdown-icon-inner" />
+                      <DropdownMenuItem
+                        className="header-dropdown-item"
+                        onSelect={() => {
+                          setShowNewProjectModal(true);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        <div className="header-dropdown-icon">
+                          <HiRocketLaunch className="header-dropdown-icon-inner" />
+                        </div>
+                        <div className="header-dropdown-item-content">
+                          <div className="header-dropdown-item-title">{t("newProject")}</div>
+                          <div className="header-dropdown-item-description">
+                            {t("newProjectDesc")}
                           </div>
-                          <div className="header-dropdown-item-content">
-                            <div className="header-dropdown-item-title">{t("newProject")}</div>
-                            <div className="header-dropdown-item-description">
-                              {t("newProjectDesc")}
-                            </div>
-                          </div>
-                        </DropdownMenuItem>
-                      )}
+                        </div>
+                      </DropdownMenuItem>
 
-                      {contextLevel === "project" && (
-                        <DropdownMenuItem
-                          className="header-dropdown-item"
-                          onSelect={() => {
-                            setShowNewTaskModal(true);
-                            setIsDropdownOpen(false);
-                          }}
-                        >
-                          <div className="header-dropdown-icon">
-                            <HiPlus className="header-dropdown-icon-inner" />
+                      <DropdownMenuItem
+                        className="header-dropdown-item"
+                        onSelect={() => {
+                          setShowNewTaskModal(true);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        <div className="header-dropdown-icon">
+                          <HiPlus className="header-dropdown-icon-inner" />
+                        </div>
+                        <div className="header-dropdown-item-content">
+                          <div className="header-dropdown-item-title">{t("newTask")}</div>
+                          <div className="header-dropdown-item-description">
+                            {t("newTaskDesc")}
                           </div>
-                          <div className="header-dropdown-item-content">
-                            <div className="header-dropdown-item-title">{t("newTask")}</div>
-                            <div className="header-dropdown-item-description">
-                              {t("newTaskDesc")}
-                            </div>
-                          </div>
-                        </DropdownMenuItem>
-                      )}
+                        </div>
+                      </DropdownMenuItem>
                     </div>
                   </DropdownMenuContent>
                 </DropdownMenu>

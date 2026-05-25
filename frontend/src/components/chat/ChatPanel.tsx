@@ -330,7 +330,7 @@ export default function ChatPanel() {
     let active = true;
     const syncHistory = async () => {
       const chatHistory: ChatMessage[] = messages
-        .filter((m) => !m.isStreaming && m.role !== "system")
+        .filter((m) => !m.isStreaming && m.role !== "system" && m.content && m.content.trim() !== "")
         .map((m) => ({
           role: m.role,
           content: m.content,
@@ -458,6 +458,10 @@ export default function ChatPanel() {
         cleanMessage = cleanMessage.substring(15).trim();
       }
       cleanMessage = sanitizeErrorMessage(cleanMessage);
+
+      if (!cleanMessage || cleanMessage.trim() === "") {
+        cleanMessage = "Task completed.";
+      }
 
       const resultMessage: Message = {
         role: "assistant",

@@ -199,7 +199,12 @@ export class AiChatService {
     } else if (provider === 'anthropic') {
       aiMessage = responseData?.content?.[0]?.text || '';
     } else {
+      // OpenAI-compat format (also used by Ollama /v1/chat/completions)
       aiMessage = responseData?.choices?.[0]?.message?.content || '';
+      // Ollama native /api/chat format
+      if (!aiMessage) aiMessage = responseData?.message?.content || '';
+      // Ollama native /api/generate format
+      if (!aiMessage) aiMessage = responseData?.response || '';
     }
 
     return aiMessage.trim();
@@ -733,7 +738,12 @@ Respond ONLY with the description text, nothing else.`;
           aiMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
           break;
         default:
+          // OpenAI-compat format (also used by Ollama /v1/chat/completions)
           aiMessage = data.choices?.[0]?.message?.content || '';
+          // Ollama native /api/chat format
+          if (!aiMessage) aiMessage = data.message?.content || '';
+          // Ollama native /api/generate format
+          if (!aiMessage) aiMessage = data.response || '';
           break;
       }
 
@@ -941,12 +951,22 @@ Respond ONLY with the description text, nothing else.`;
           break;
       }
 
-      // Make the test request
-      const response = await fetch(requestUrl, {
-        method: 'POST',
-        headers: requestHeaders,
-        body: JSON.stringify(requestBody),
-      });
+      // Make the test request — use a generous timeout for large/slow models (e.g. big GGUF files
+      // that need time to load into memory on first inference).
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 120_000); // 2-minute timeout
+
+      let response: Response;
+      try {
+        response = await fetch(requestUrl, {
+          method: 'POST',
+          headers: requestHeaders,
+          body: JSON.stringify(requestBody),
+          signal: abortController.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -991,7 +1011,12 @@ Respond ONLY with the description text, nothing else.`;
           aiMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
           break;
         default:
+          // OpenAI-compat format (also used by Ollama /v1/chat/completions)
           aiMessage = data.choices?.[0]?.message?.content || '';
+          // Ollama native /api/chat format
+          if (!aiMessage) aiMessage = data.message?.content || '';
+          // Ollama native /api/generate format
+          if (!aiMessage) aiMessage = data.response || '';
           break;
       }
 
@@ -1011,6 +1036,19 @@ Respond ONLY with the description text, nothing else.`;
 
       const errorMessage = error instanceof Error ? error.message : String(error);
       const causeCode = error instanceof Error && (error as any).cause?.code;
+
+      // AbortError is thrown when our AbortController timeout fires (large model loading)
+      const isAbortError =
+        (error instanceof Error && (error as any).name === 'AbortError') ||
+        errorMessage.includes('AbortError') ||
+        errorMessage.includes('This operation was aborted');
+      if (isAbortError) {
+        return {
+          success: false,
+          error:
+            'Request timed out (2 minutes). The model may still be loading into memory — please wait a moment and try again.',
+        };
+      }
 
       if (causeCode === 'ECONNREFUSED' || errorMessage.includes('ECONNREFUSED')) {
         return {

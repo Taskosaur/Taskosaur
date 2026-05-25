@@ -172,7 +172,9 @@ class MCPServer {
 
   async deleteConversation(id: string): Promise<string> {
     try {
-      await api.delete(`/ai-chat/conversations/${id}`);
+      if (!id.startsWith("chat_")) {
+        await api.delete(`/ai-chat/conversations/${id}`);
+      }
     } catch (e) {
       console.warn("Failed to delete conversation on backend", e);
     }
@@ -201,7 +203,9 @@ class MCPServer {
       this.conversations[id].title = newTitle;
       this.conversations[id].updatedAt = new Date().toISOString();
       try {
-        await api.patch(`/ai-chat/conversations/${id}`, { title: newTitle });
+        if (!id.startsWith("chat_")) {
+          await api.patch(`/ai-chat/conversations/${id}`, { title: newTitle });
+        }
       } catch (e) {
         console.warn("Failed to rename conversation on backend", e);
       }
@@ -226,7 +230,9 @@ class MCPServer {
       conv.messages = messages;
       conv.updatedAt = new Date().toISOString();
       try {
-        await api.put(`/ai-chat/conversations/${conv.id}/messages`, { messages });
+        if (!conv.id.startsWith("chat_")) {
+          await api.put(`/ai-chat/conversations/${conv.id}/messages`, { messages });
+        }
       } catch (e) {
         console.warn("Failed to sync messages to backend", e);
       }

@@ -9,6 +9,7 @@ import ResizableSidebar from "./ResizableSidebar";
 import WorkspaceSelector from "./WorkspaceSelector";
 import ProjectSelector from "./ProjectSelector";
 import WorkspaceTree from "./WorkspaceTree";
+import Tooltip from "@/components/common/ToolTip";
 
 import {
   HiHome,
@@ -591,13 +592,14 @@ export default function Sidebar() {
     }
     return (
       <div className="layout-sidebar-mini">
-        <button
-          onClick={() => toggleSidebar(!isSidebarCollapsed)}
-          className="layout-sidebar-mini-expand-button"
-          title={t("expandNavigation")}
-        >
-          <HiMenu size={16} />
-        </button>
+        <Tooltip content={t("expandNavigation")} position="right">
+          <button
+            onClick={() => toggleSidebar(!isSidebarCollapsed)}
+            className="layout-sidebar-mini-expand-button"
+          >
+            <HiMenu size={16} />
+          </button>
+        </Tooltip>
 
         <div className="layout-sidebar-mini-nav">
           {miniSidebarNavItems.map((item) => {
@@ -610,31 +612,31 @@ export default function Sidebar() {
               : {};
 
             return item.disabled ? (
-              <div
-                key={item.name}
-                className={`layout-sidebar-mini-nav-link layout-sidebar-mini-nav-link-disabled ${
-                  isItemActive
-                    ? "layout-sidebar-nav-link-active"
-                    : "layout-sidebar-mini-nav-link-inactive"
-                }`}
-                title={t("loginRequired")}
-                {...linkProps}
-              >
-                {item.icon}
-              </div>
+              <Tooltip key={item.name} content={t("loginRequired")} position="right">
+                <div
+                  className={`layout-sidebar-mini-nav-link layout-sidebar-mini-nav-link-disabled ${
+                    isItemActive
+                      ? "layout-sidebar-nav-link-active"
+                      : "layout-sidebar-mini-nav-link-inactive"
+                  }`}
+                  {...linkProps}
+                >
+                  {item.icon}
+                </div>
+              </Tooltip>
             ) : (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`layout-sidebar-mini-nav-link ${
-                  isItemActive
-                    ? "layout-sidebar-nav-link-active"
-                    : "layout-sidebar-mini-nav-link-inactive"
-                }`}
-                title={item.title || item.name}
-              >
-                {item.icon}
-              </Link>
+              <Tooltip key={item.name} content={item.title || item.name} position="right">
+                <Link
+                  href={item.href}
+                  className={`layout-sidebar-mini-nav-link ${
+                    isItemActive
+                      ? "layout-sidebar-nav-link-active"
+                      : "layout-sidebar-mini-nav-link-inactive"
+                  }`}
+                >
+                  {item.icon}
+                </Link>
+              </Tooltip>
             );
           })}
         </div>
@@ -652,13 +654,14 @@ export default function Sidebar() {
   return (
     <>
       {isSidebarCollapsed && (
-        <button
-          onClick={() => toggleSidebar(!isSidebarCollapsed)}
-          className="layout-sidebar-toggle-button"
-          title={t("showNavigation")}
-        >
-          <HiMenu size={16} />
-        </button>
+        <Tooltip content={t("showNavigation")} position="right">
+          <button
+            onClick={() => toggleSidebar(!isSidebarCollapsed)}
+            className="layout-sidebar-toggle-button"
+          >
+            <HiMenu size={16} />
+          </button>
+        </Tooltip>
       )}
 
       <div className="layout-sidebar-container">
