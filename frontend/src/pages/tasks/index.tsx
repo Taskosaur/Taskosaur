@@ -82,7 +82,7 @@ interface PaginationInfo {
 function TasksPageContent() {
   const router = useRouter();
   const { t } = useTranslation("tasks");
-  const { getAllTasks, getCalendarTask, getAllTaskStatuses, isLoading: taskLoading, taskResponse, tasks, updateTask } = useTask();
+  const { getAllTasks, getCalendarTask, getAllTaskStatuses, isLoading: taskLoading, tasks, updateTask } = useTask();
   const { getWorkspacesByOrganization } = useWorkspaceContext();
   const { getProjectsByOrganization, getTaskStatusByProject } = useProjectContext();
   const { getCurrentUser, getUserAccess } = useAuth();
@@ -394,6 +394,8 @@ function TasksPageContent() {
         }),
         sortBy: sortField,
         sortOrder: sortOrder,
+        groupBy: groupBy,
+        parentTaskId: "all",
       };
 
       const res = await getAllTasks(currentOrganizationId, params);
@@ -422,9 +424,9 @@ function TasksPageContent() {
     currentPage,
     pageSize,
     debouncedSearchQuery,
-    taskResponse,
     sortField,
     sortOrder,
+    groupBy,
   ]);
 
   // Load Gantt data
@@ -476,6 +478,15 @@ function TasksPageContent() {
         viewType: "GANTT",
         page: currentPage,
         limit: pageSize,
+        groupBy: groupBy !== "none" ? groupBy : undefined,
+        ...(selectedWorkspaces.length > 0 && { workspaceId: selectedWorkspaces.join(",") }),
+        ...(selectedProjects.length > 0 && { projectId: selectedProjects.join(",") }),
+        ...(selectedStatuses.length > 0 && { statuses: selectedStatuses.join(",") }),
+        ...(selectedPriorities.length > 0 && { priorities: selectedPriorities.join(",") }),
+        ...(selectedTaskTypes.length > 0 && { types: selectedTaskTypes.join(",") }),
+        ...(selectedAssignees.length > 0 && { assignees: selectedAssignees.join(",") }),
+        ...(selectedReporters.length > 0 && { reporters: selectedReporters.join(",") }),
+        ...(debouncedSearchQuery.trim() && { search: debouncedSearchQuery.trim() }),
       });
       if (res) {
         setGanttTasks(res.data || []);
@@ -493,7 +504,21 @@ function TasksPageContent() {
     } finally {
       if (!isSilent) setGanttLoading(false);
     }
-  }, [currentOrganizationId, currentPage, pageSize]);
+  }, [
+    currentOrganizationId,
+    currentPage,
+    pageSize,
+    groupBy,
+    selectedWorkspaces,
+    selectedProjects,
+    selectedStatuses,
+    selectedPriorities,
+    selectedTaskTypes,
+    selectedAssignees,
+    selectedReporters,
+    debouncedSearchQuery,
+    getCalendarTask,
+  ]);
 
   // Load data on mount and when organization changes
   useEffect(() => {
@@ -502,10 +527,14 @@ function TasksPageContent() {
     }
   }, [hasValidUserAndOrg, currentOrganizationId, loadInitialData]);
 
-  // Load tasks when filters change (only after URL params are initialized)
+  // Load tasks/Gantt when filters change (only after URL params are initialized)
   useEffect(() => {
     if (urlParamsInitialized) {
-      loadTasks();
+      if (currentView === "gantt") {
+        loadGanttData();
+      } else {
+        loadTasks();
+      }
     }
   }, [
     urlParamsInitialized,
@@ -521,7 +550,16 @@ function TasksPageContent() {
     debouncedSearchQuery,
     sortField,
     sortOrder,
+    groupBy,
+    currentView,
+    loadGanttData,
+    loadTasks,
   ]);
+
+  // Reset page when groupBy changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [groupBy]);
 
   const handleTaskUpdate = useCallback(
     async (taskId: string, updates: any) => {
@@ -1053,9 +1091,9 @@ function TasksPageContent() {
           organizationId={currentOrganizationId || undefined}
           groupBy={groupBy}
           onGroupByChange={setGroupBy}
-          groupMap={groupMap}
-          onGroupPageChange={goToGroupPage}
-          groupedLoading={groupedLoading}
+          groupMap={undefined}
+          onGroupPageChange={undefined}
+          groupedLoading={taskLoading}
         />
       );
     }
@@ -1102,7 +1140,7 @@ function TasksPageContent() {
   };
 
   // Hide flat pagination in grouped mode (per-group pagination handles navigation)
-  const showPagination = groupBy === "none" && tasks.length > 0 && pagination.totalPages >= 1;
+  const showPagination = tasks.length > 0 && pagination.totalPages >= 1;
 
 
   if (error) {

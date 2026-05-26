@@ -544,6 +544,11 @@ export class TasksController {
     description: 'Page size / limit (default: 20)',
     example: 20,
   })
+  @ApiQuery({
+    name: 'groupBy',
+    required: false,
+    description: 'Group by field',
+  })
   @Scope('ORGANIZATION', 'organizationId')
   @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
   findAll(
@@ -563,6 +568,7 @@ export class TasksController {
     @Query('sortOrder') sortOrder?: string,
     @Query('page') page = '1',
     @Query('limit') limit = '20',
+    @Query('groupBy') groupBy?: string,
   ) {
     return this.tasksService.findAll(
       organizationId,
@@ -581,6 +587,7 @@ export class TasksController {
       sortOrder,
       Number(page),
       Number(limit),
+      groupBy,
     );
   }
 
@@ -675,6 +682,7 @@ export class TasksController {
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('dateField') dateField: string = 'dueDate',
+    @Query('groupBy') groupBy?: string,
   ) {
     return this.tasksService.getTasks(
       organizationId,
@@ -695,6 +703,7 @@ export class TasksController {
       from ? new Date(from) : undefined,
       to ? new Date(to) : undefined,
       dateField,
+      groupBy,
     );
   }
 
