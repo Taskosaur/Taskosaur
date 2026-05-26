@@ -129,6 +129,30 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Function to load and update user AI settings after login
+  const loadUserAISettings = useCallback(async () => {
+    try {
+      // Load AI settings
+      const aiSettings = await settingsApi.getAll("ai");
+
+      // Update localStorage with new values
+      const aiEnabledSetting = aiSettings.find(setting => setting.key === 'ai_enabled');
+      if (aiEnabledSetting) {
+        const isEnabled = aiEnabledSetting.value === 'true';
+        localStorage.setItem("aiEnabled", isEnabled.toString());
+
+        // Dispatch event to notify other components about AI settings change
+        window.dispatchEvent(
+          new CustomEvent("aiSettingsChanged", {
+            detail: { aiEnabled: isEnabled },
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Error loading AI settings:", error);
+    }
+  }, []);
+
   // Initialize auth state once on mount
   useEffect(() => {
     const initializeAuth = async () => {
@@ -148,6 +172,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           // Setup organization for the user
           await setupUserOrganization(user.id);
 
+          // Sync AI settings from backend profile/settings
+          await loadUserAISettings();
+
           // Initialize WebSocket connection for already logged-in users (on page refresh)
           const token = localStorage.getItem("access_token");
           if (token) {
@@ -166,7 +193,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initializeAuth();
-  }, [setupUserOrganization]);
+  }, [setupUserOrganization, loadUserAISettings]);
 
   /**
    * Helper to handle API calls with error handling and optional user state update.
@@ -228,29 +255,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Function to load and update user AI settings after login
-  const loadUserAISettings = useCallback(async () => {
-    try {
-      // Load AI settings
-      const aiSettings = await settingsApi.getAll("ai");
 
-      // Update localStorage with new values
-      const aiEnabledSetting = aiSettings.find(setting => setting.key === 'ai_enabled');
-      if (aiEnabledSetting) {
-        const isEnabled = aiEnabledSetting.value === 'true';
-        localStorage.setItem("aiEnabled", isEnabled.toString());
-
-        // Dispatch event to notify other components about AI settings change
-        window.dispatchEvent(
-          new CustomEvent("aiSettingsChanged", {
-            detail: { aiEnabled: isEnabled },
-          })
-        );
-      }
-    } catch (error) {
-      console.error("Error loading AI settings:", error);
-    }
-  }, []);
 
   // Memoized context value with all methods
   const contextValue = useMemo(
