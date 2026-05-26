@@ -385,6 +385,18 @@ export const projectApi = {
       throw error;
     }
   },
+  getBulkHealthStats: async (projectIds: string[]): Promise<Record<string, any>> => {
+    if (!projectIds || projectIds.length === 0) return {};
+    try {
+      const response = await api.get<Record<string, any>>(
+        `/projects/bulk-health-stats?projectIds=${encodeURIComponent(projectIds.join(','))}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Get bulk project health stats error:", error);
+      throw error;
+    }
+  },
   getProjectStats: async (projectId: string): Promise<ProjectStats> => {
     try {
       const response = await api.get<ProjectStats>(

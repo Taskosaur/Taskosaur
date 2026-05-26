@@ -25,6 +25,7 @@ import Tooltip from "../common/ToolTip";
 import { CardsSkeleton } from "../skeletons/CardsSkeleton";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
+import { ProjectHealthIndicator, ProjectHealthStats } from "./ProjectHealthIndicator";
 
 interface ProjectsContentProps {
   contextType: "workspace" | "organization";
@@ -112,6 +113,7 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
   const [hasMore, setHasMore] = useState(false);
   const [archivedProjects, setArchivedProjects] = useState<any[]>([]);
   const [unarchivingId, setUnarchivingId] = useState<string | null>(null);
+  const [healthStats, setHealthStats] = useState<Record<string, ProjectHealthStats>>({});
 
   useEffect(() => {
     if (router.isReady) {
@@ -431,6 +433,18 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
     }
   }, [workspace?.id, contextId, hasAccess, contextType]);
 
+  // Fetch health stats when projects change
+  useEffect(() => {
+    if (projects.length > 0 && !isFetching) {
+      const projectIds = projects.map(p => p.id);
+      projectApi.getBulkHealthStats(projectIds)
+        .then((stats) => {
+          setHealthStats(prev => ({ ...prev, ...stats }));
+        })
+        .catch(err => console.error("Error fetching project health stats", err));
+    }
+  }, [projects, isFetching]);
+
   // Check user access
   useEffect(() => {
     if (contextId) {
@@ -702,22 +716,25 @@ const ProjectsContent: React.FC<ProjectsContentProps> = ({
                         subheading={project.key || project.slug}
                         description={project.description}
                         footer={
-                          <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center gap-4">
-                              <Tooltip content={t("tasks_count")} position="top" color="primary">
-                                <span className="flex items-center gap-1">
-                                  <HiClipboardDocumentList size={12} />
-                                  {project._count?.tasks || 0}
-                                </span>
-                              </Tooltip>
-                              <Tooltip content={t("start_date")} position="top" color="primary">
-                                <span className="flex items-center gap-1">
-                                  <HiCalendarDays size={12} />
-                                  {formatDate(project.updatedAt)}
-                                </span>
-                              </Tooltip>
+                          <div className="flex flex-col w-full gap-3">
+                            <div className="flex items-center justify-between w-full">
+                              <div className="flex items-center gap-4">
+                                <Tooltip content={t("tasks_count")} position="top" color="primary">
+                                  <span className="flex items-center gap-1">
+                                    <HiClipboardDocumentList size={12} />
+                                    {project._count?.tasks || 0}
+                                  </span>
+                                </Tooltip>
+                                <Tooltip content={t("start_date")} position="top" color="primary">
+                                  <span className="flex items-center gap-1">
+                                    <HiCalendarDays size={12} />
+                                    {formatDate(project.updatedAt)}
+                                  </span>
+                                </Tooltip>
+                              </div>
+                              <DynamicBadge label={statusText} size="sm" />
                             </div>
-                            <DynamicBadge label={statusText} size="sm" />
+                            <ProjectHealthIndicator stats={healthStats[project.id]} />
                           </div>
                         }
                       />

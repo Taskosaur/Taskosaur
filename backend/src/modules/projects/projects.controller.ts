@@ -236,6 +236,25 @@ export class ProjectsController {
     throw new BadRequestException('Either workspaceId or organizationId is required');
   }
 
+  @Get('bulk-health-stats')
+  @ApiOperation({ summary: 'Get bulk project health stats (completion predictor and heatmap)' })
+  @ApiQuery({ name: 'projectIds', description: 'Comma separated project IDs', required: true })
+  @ApiResponse({ status: 200, description: 'Project health stats' })
+  @Roles(Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.OWNER)
+  getBulkProjectHealthStats(
+    @Query('projectIds') projectIds: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    if (!projectIds) {
+      throw new BadRequestException('projectIds query parameter is required');
+    }
+    const ids = projectIds
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+    return this.projectsService.getBulkProjectHealthStats(ids, user.id);
+  }
+
   // Find project by ID - requires project access
   @Get(':id')
   @ApiOperation({ summary: 'Get project by ID' })

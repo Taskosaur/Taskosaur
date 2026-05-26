@@ -678,6 +678,121 @@ export class ProjectsService {
     return projects.map((p) => p.id);
   }
 
+  async getBulkProjectHealthStats(projectIds: string[], userId: string) {
+    if (!projectIds || projectIds.length === 0) return {};
+
+    const isSuperAdmin = await this.isSuperAdmin(userId);
+    const whereClause: any = {
+      id: { in: projectIds },
+      archive: false,
+    };
+
+    if (!isSuperAdmin) {
+      whereClause.OR = [
+        { visibility: 'PUBLIC', workspace: { organization: { members: { some: { userId } } } } },
+        { members: { some: { userId } } },
+        {
+          visibility: 'INTERNAL',
+          workspace: { members: { some: { userId } } },
+        },
+        { workspace: { organization: { ownerId: userId } } },
+        {
+          workspace: {
+            members: { some: { userId, role: { in: [Role.OWNER, Role.MANAGER] } } },
+          },
+        },
+      ];
+    }
+
+    const accessibleProjects = await this.prisma.project.findMany({
+      where: whereClause,
+      select: { id: true },
+    });
+
+    const validProjectIds = accessibleProjects.map((p) => p.id);
+    if (validProjectIds.length === 0) return {};
+
+    const tasks = await this.prisma.task.findMany({
+      where: {
+        projectId: { in: validProjectIds },
+        isArchived: false,
+      },
+      select: {
+        id: true,
+        projectId: true,
+        dueDate: true,
+        status: { select: { category: true } },
+      },
+    });
+
+    const stats: Record<string, any> = {};
+    for (const projectId of validProjectIds) {
+      stats[projectId] = {
+        totalTasks: 0,
+        completedTasks: 0,
+        overdueTasks: 0,
+        upcomingTasks: 0,
+        completionPredictor: 0,
+        heatmapData: Array(14).fill(0), // Next 14 days
+      };
+    }
+
+    const now = new Date();
+    // Start of today (normalized to 00:00:00)
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    tasks.forEach((task) => {
+      const projStats = stats[task.projectId];
+      projStats.totalTasks++;
+      if (task.status?.category === 'DONE') {
+        projStats.completedTasks++;
+      } else {
+        if (task.dueDate) {
+          const taskDate = new Date(task.dueDate);
+          const taskDayStart = new Date(
+            taskDate.getFullYear(),
+            taskDate.getMonth(),
+            taskDate.getDate(),
+          );
+
+          if (taskDayStart < today) {
+            projStats.overdueTasks++;
+          } else {
+            projStats.upcomingTasks++;
+            // Calculate day difference for heatmap (0 = today, 1 = tomorrow, ..., 13 = day 14)
+            const diffTime = Math.abs(taskDayStart.getTime() - today.getTime());
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays < 14) {
+              projStats.heatmapData[diffDays]++;
+            }
+          }
+        } else {
+          // Task has no due date, count as upcoming/pending
+          projStats.upcomingTasks++;
+        }
+      }
+    });
+
+    for (const projectId of validProjectIds) {
+      const projStats = stats[projectId];
+      let healthScore = 100;
+      if (projStats.totalTasks > 0) {
+        const completionRate = projStats.completedTasks / projStats.totalTasks;
+        healthScore = completionRate * 100;
+
+        // Penalize for overdue tasks
+        // Assuming 50% overdue tasks reduces score by 25 points (adjust as needed)
+        const overduePenalty = (projStats.overdueTasks / projStats.totalTasks) * 50;
+        healthScore = Math.max(0, healthScore - overduePenalty);
+      } else {
+        healthScore = 0; // No tasks
+      }
+      projStats.completionPredictor = Math.round(healthScore);
+    }
+
+    return stats;
+  }
+
   async findOne(id: string, userId: string): Promise<Project> {
     const { isElevated } = await this.accessControl.getProjectAccess(id, userId);
 
