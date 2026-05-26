@@ -1722,6 +1722,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         statusId: newTaskData.statusId,
         assigneeIds: newTaskData.assigneeIds.length > 0 ? newTaskData.assigneeIds : undefined, // Send array of assignee IDs
         dueDate: newTaskData.dueDate ? dayjs(newTaskData.dueDate).toISOString() : undefined,
+        ...(sprintId && { sprintId }),
       };
 
       await createTask(taskData);
@@ -2120,6 +2121,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h4 className="tasktable-task-title line-clamp-1 max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">
+                    {task.parentTask?.title && (
+                      <span className="text-[var(--muted-foreground)] mr-1">
+                        {task.parentTask.title} /
+                      </span>
+                    )}
                     {task.title}
                   </h4>
                   <Badge variant="outline" className="text-xs px-1.5 py-0 h-5 flex-shrink-0">

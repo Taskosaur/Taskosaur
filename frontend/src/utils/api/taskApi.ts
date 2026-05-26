@@ -221,6 +221,7 @@ export const taskApi = {
       sortOrder?: string;
       page?: number;
       limit?: number;
+      groupBy?: string;
     }
   ): Promise<PaginatedTaskResponse> => {
     try {
@@ -242,6 +243,7 @@ export const taskApi = {
       if (params?.reporters) queryParams.append("reporterIds", params.reporters);
       if (params?.sortBy) queryParams.append("sortBy", params.sortBy);
       if (params?.sortOrder) queryParams.append("sortOrder", params.sortOrder);
+      if (params?.groupBy && params.groupBy !== "none") queryParams.append("groupBy", params.groupBy);
 
       // Pagination
       if (params?.page !== undefined) queryParams.append("page", String(params.page));
@@ -276,6 +278,7 @@ export const taskApi = {
       from?: string;
       to?: string;
       dateField?: string;
+      groupBy?: string;
     }
   ): Promise<PaginatedTaskResponse> => {
     try {
@@ -307,6 +310,7 @@ export const taskApi = {
       if (params?.sortBy) queryParams.append("sortBy", params.sortBy);
       if (params?.sortOrder) queryParams.append("sortOrder", params.sortOrder);
       if (params?.viewType) queryParams.append("viewType", params.viewType);
+      if (params?.groupBy) queryParams.append("groupBy", params.groupBy);
 
       // Pagination
       if (params?.page !== undefined) queryParams.append("page", String(params.page));
@@ -422,6 +426,7 @@ export const taskApi = {
       status?: string;
       priority?: string;
       type?: string;
+      parentTaskId?: string;
     }
   ): Promise<PaginatedTaskResponse> => {
     try {
@@ -436,6 +441,7 @@ export const taskApi = {
       if (filters?.status) params.append("status", filters.status);
       if (filters?.priority) params.append("priority", filters.priority);
       if (filters?.type) params.append("type", filters.type);
+      if (filters?.parentTaskId) params.append("parentTaskId", filters.parentTaskId);
 
       // Sanitize slugs to prevent SSRF
       const safeWorkspaceSlug = sanitizeSlug(workspaceSlug);

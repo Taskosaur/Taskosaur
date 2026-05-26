@@ -72,6 +72,7 @@ interface TaskContextType extends TaskState {
       from?: string;
       to?: string;
       dateField?: string;
+      groupBy?: string;
     }
   ) => Promise<PaginatedTaskResponse>;
 
@@ -114,6 +115,7 @@ interface TaskContextType extends TaskState {
     params?: {
       workspaceId?: string;
       projectId?: string;
+      parentTaskId?: string;
       priorities?: string;
       statuses?: string;
       assignees?: string;
@@ -123,6 +125,7 @@ interface TaskContextType extends TaskState {
       sortOrder?: string;
       page?: number;
       limit?: number;
+      groupBy?: string;
     }
   ) => Promise<PaginatedTaskResponse>;
   getTasksByOrganization: (
@@ -140,6 +143,7 @@ interface TaskContextType extends TaskState {
       status?: string;
       priority?: string;
       type?: string;
+      parentTaskId?: string;
     }
   ) => Promise<PaginatedTaskResponse>;
   getTasksBySprint: (organizationId: string, sprintId: string) => Promise<Task[]>;
@@ -572,6 +576,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
         params?: {
           workspaceId?: string;
           projectId?: string;
+          parentTaskId?: string;
           priorities?: string;
           statuses?: string;
           assignees?: string;
@@ -581,6 +586,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
           sortOrder?: string;
           page?: number;
           limit?: number;
+          groupBy?: string;
         }
       ): Promise<PaginatedTaskResponse> => {
         const result = await taskApi.getAllTasks(organizationId, params);
@@ -615,6 +621,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
           from?: string;
           to?: string;
           dateField?: string;
+          groupBy?: string;
         }
       ): Promise<PaginatedTaskResponse> => {
         if (!organizationId) {
@@ -670,6 +677,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
           status?: string;
           priority?: string;
           type?: string;
+          parentTaskId?: string;
         }
       ): Promise<PaginatedTaskResponse> => {
         const result = await handleApiOperation(() =>

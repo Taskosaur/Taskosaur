@@ -382,12 +382,15 @@ function ProjectTasksContent() {
           sortOrder: sortOrder || "asc",
           page: currentPage,
           limit: pageSize,
+          groupBy: groupBy,
+          parentTaskId: "all",
         });
       } else {
         await getPublicProjectTasks(workspaceSlug as string, projectSlug as string, {
           ...commonFilters,
           page: currentPage,
           limit: pageSize,
+          parentTaskId: "all",
         });
       }
     } catch (error) {
@@ -416,6 +419,7 @@ function ProjectTasksContent() {
     getPublicProjectTasks,
     sortField,
     sortOrder,
+    groupBy,
   ]);
 
   const loadKanbanData = useCallback(
@@ -474,6 +478,14 @@ function ProjectTasksContent() {
         viewType: "GANTT",
         page: currentPage,
         limit: pageSize,
+        groupBy: groupBy !== "none" ? groupBy : undefined,
+        ...(selectedStatuses.length > 0 && { statuses: selectedStatuses.join(",") }),
+        ...(selectedPriorities.length > 0 && { priorities: selectedPriorities.join(",") }),
+        ...(selectedTaskTypes.length > 0 && { types: selectedTaskTypes.join(",") }),
+        ...(selectedSprints.length > 0 && { sprintId: selectedSprints.join(",") }),
+        ...(debouncedSearchQuery.trim() && { search: debouncedSearchQuery.trim() }),
+        ...(selectedAssignees.length > 0 && { assignees: selectedAssignees.join(",") }),
+        ...(selectedReporters.length > 0 && { reporters: selectedReporters.join(",") }),
       });
       if (res) {
         setGanttTasks(res.data || []);
@@ -491,7 +503,23 @@ function ProjectTasksContent() {
       setGanttTasks([]);
       setIsInitialLoad(false);
     }
-  }, [currentOrganizationId, workspace?.id, project?.id, isAuth, currentPage, pageSize, getCalendarTask]);
+  }, [
+    currentOrganizationId,
+    workspace?.id,
+    project?.id,
+    isAuth,
+    currentPage,
+    pageSize,
+    getCalendarTask,
+    groupBy,
+    selectedStatuses,
+    selectedPriorities,
+    selectedTaskTypes,
+    selectedSprints,
+    debouncedSearchQuery,
+    selectedAssignees,
+    selectedReporters,
+  ]);
 
   const handleTaskUpdate = useCallback(
     async (taskId: string, updates: any) => {
@@ -552,6 +580,7 @@ function ProjectTasksContent() {
     types: selectedTaskTypes.join(","),
     sortField,
     sortOrder,
+    groupBy,
   });
 
   useEffect(() => {
@@ -564,6 +593,7 @@ function ProjectTasksContent() {
       types: selectedTaskTypes.join(","),
       sortField,
       sortOrder,
+      groupBy,
     };
 
     const filtersChanged =
@@ -594,8 +624,14 @@ function ProjectTasksContent() {
     projectSlug,
     loadKanbanData,
     loadGanttData,
-    loadTasks
+    loadTasks,
+    groupBy,
   ]);
+
+  // Reset page when groupBy changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [groupBy]);
 
   const statusFilters = useMemo(
     () =>
@@ -989,9 +1025,9 @@ function ProjectTasksContent() {
           projectSlug={projectSlug as string}
           addTaskStatuses={availableStatuses}
           groupBy={groupBy}
-          groupMap={groupMap}
-          onGroupPageChange={goToGroupPage}
-          groupedLoading={groupedLoading}
+          groupMap={undefined}
+          onGroupPageChange={undefined}
+          groupedLoading={isLoading}
         />
       );
     }
@@ -1071,7 +1107,10 @@ function ProjectTasksContent() {
     }
   };
 
-  const showPagination = groupBy === "none" && currentView === "list" && tasks.length > 0 && pagination.totalPages >= 1;
+  const showPagination =
+    ((currentView === "list" && tasks.length > 0) ||
+      (currentView === "gantt" && ganttTasks.length > 0)) &&
+    pagination.totalPages >= 1;
 
   if (error) return <ErrorState error={error} onRetry={handleRetry} />;
 

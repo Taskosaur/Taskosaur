@@ -60,7 +60,11 @@ export class PublicTasksService {
       whereClause.type = filters.type;
     }
     if (filters.parentTaskId) {
-      whereClause.parentTaskId = filters.parentTaskId;
+      if (filters.parentTaskId === 'all') {
+        delete whereClause.parentTaskId; // Include both top-level and subtasks
+      } else {
+        whereClause.parentTaskId = filters.parentTaskId;
+      }
     }
     const skip = ((filters.page || 1) - 1) * (filters.limit || 50);
     const tasks = await this.prisma.task.findMany({

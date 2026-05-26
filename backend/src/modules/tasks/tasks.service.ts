@@ -872,6 +872,7 @@ export class TasksService {
     sortOrder?: string,
     page: number = 1,
     limit: number = 20,
+    groupBy?: string,
   ): Promise<{
     data: Task[];
     total: number;
@@ -945,7 +946,9 @@ export class TasksService {
 
     // Handle parentTaskId filtering
     if (parentTaskId !== undefined) {
-      if (parentTaskId === 'null' || parentTaskId === '' || parentTaskId === null) {
+      if (parentTaskId === 'all') {
+        // Do not filter by parentTaskId to include both main tasks and subtasks
+      } else if (parentTaskId === 'null' || parentTaskId === '' || parentTaskId === null) {
         whereClause.parentTaskId = null;
       } else {
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -985,6 +988,13 @@ export class TasksService {
     if (statuses && statuses.length > 0) {
       andConditions.push({
         statusId: { in: statuses },
+      });
+    } else {
+      // Exclude 'DONE' status tasks by default when no status filter is provided
+      andConditions.push({
+        status: {
+          category: { not: 'DONE' },
+        },
       });
     }
 
@@ -1038,13 +1048,37 @@ export class TasksService {
     // Pagination calculation
     const skip = (page - 1) * limit;
 
+    const orderByArray: any[] = [];
+    if (groupBy && groupBy !== 'none') {
+      if (groupBy === 'status') {
+        orderByArray.push({ status: { position: 'asc' } });
+        orderByArray.push({ statusId: 'asc' });
+      } else if (groupBy === 'priority') {
+        orderByArray.push({ priority: 'asc' });
+      } else if (groupBy === 'type') {
+        orderByArray.push({ type: 'asc' });
+      } else if (groupBy === 'project') {
+        orderByArray.push({ project: { name: 'asc' } });
+        orderByArray.push({ projectId: 'asc' });
+      } else if (groupBy === 'dueDate') {
+        orderByArray.push({ dueDate: 'asc' });
+      } else if (groupBy === 'createdAt') {
+        orderByArray.push({ createdAt: 'asc' });
+      }
+    }
+
     let orderBy: any = { taskNumber: 'desc' };
     let isRankSort = false;
     let scopeType = 'ORGANIZATION';
     let scopeId = organizationId;
     const viewType = 'LIST';
 
-    if (sortBy === 'listRank' || sortBy === 'workspaceListRank' || sortBy === 'displayOrder') {
+    const canUseRankSort = !groupBy || groupBy === 'none';
+
+    if (
+      canUseRankSort &&
+      (sortBy === 'listRank' || sortBy === 'workspaceListRank' || sortBy === 'displayOrder')
+    ) {
       isRankSort = true;
       if (projectId && projectId.length > 0) {
         scopeType = 'PROJECT';
@@ -1075,6 +1109,10 @@ export class TasksService {
       } else if (sortBy === 'commentsCount') {
         orderBy = { comments: { _count: sortOrder === 'asc' ? 'asc' : 'desc' } };
       }
+    }
+
+    if (orderByArray.length > 0) {
+      orderBy = [...orderByArray, orderBy];
     }
 
     let tasks: (Task & { [key: string]: any })[] = [];
@@ -1130,6 +1168,23 @@ export class TasksService {
       // correct filtered set rather than the entire organisation.
       let rankedTaskIds: { id: string }[];
 
+      let parentTaskCondition = Prisma.empty;
+      if (parentTaskId === 'all') {
+        parentTaskCondition = Prisma.empty;
+      } else if (whereClause.parentTaskId) {
+        parentTaskCondition = Prisma.sql`AND t."parent_task_id" = ${whereClause.parentTaskId}::uuid`;
+      } else {
+        parentTaskCondition = Prisma.sql`AND t."parent_task_id" IS NULL`;
+      }
+
+      let statusCondition = Prisma.empty;
+      if (statuses && statuses.length > 0) {
+        const statusSql = statuses.map((s) => Prisma.sql`${s}::uuid`);
+        statusCondition = Prisma.sql`AND t.status_id IN (${Prisma.join(statusSql)})`;
+      } else {
+        statusCondition = Prisma.sql`AND t.status_id IN (SELECT id FROM task_statuses WHERE category::text != 'DONE')`;
+      }
+
       if (scopeType === 'PROJECT') {
         rankedTaskIds = await this.prisma.$queryRaw<{ id: string }[]>`
           SELECT t.id
@@ -1142,8 +1197,9 @@ export class TasksService {
           INNER JOIN workspaces w ON p.workspace_id = w.id
           WHERE w."organization_id"::uuid = ${organizationId}::uuid
             AND t.project_id = ${scopeId}::uuid
-            AND t."parent_task_id" IS NULL
+            ${parentTaskCondition}
             ${sprintId ? Prisma.sql`AND t.sprint_id = ${sprintId}::uuid` : Prisma.empty}
+            ${statusCondition}
           ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
           LIMIT ${Prisma.raw(sqlLimit.toString())}
           OFFSET ${Prisma.raw(sqlOffset.toString())}`;
@@ -1159,8 +1215,9 @@ export class TasksService {
           INNER JOIN workspaces w ON p.workspace_id = w.id
           WHERE w."organization_id"::uuid = ${organizationId}::uuid
             AND p."workspace_id" = ${scopeId}::uuid
-            AND t."parent_task_id" IS NULL
+            ${parentTaskCondition}
             ${sprintId ? Prisma.sql`AND t.sprint_id = ${sprintId}::uuid` : Prisma.empty}
+            ${statusCondition}
           ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
           LIMIT ${Prisma.raw(sqlLimit.toString())}
           OFFSET ${Prisma.raw(sqlOffset.toString())}`;
@@ -1175,8 +1232,9 @@ export class TasksService {
           INNER JOIN projects p ON t.project_id = p.id
           INNER JOIN workspaces w ON p.workspace_id = w.id
           WHERE w."organization_id"::uuid = ${organizationId}::uuid
-            AND t."parent_task_id" IS NULL
+            ${parentTaskCondition}
             ${sprintId ? Prisma.sql`AND t.sprint_id = ${sprintId}::uuid` : Prisma.empty}
+            ${statusCondition}
           ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
           LIMIT ${Prisma.raw(sqlLimit.toString())}
           OFFSET ${Prisma.raw(sqlOffset.toString())}`;
@@ -1202,16 +1260,25 @@ export class TasksService {
           .filter((t): t is Task & { [key: string]: any } => !!t);
       }
     } else {
-      [tasks, total] = await this.prisma.$transaction([
-        this.prisma.task.findMany({
+      if (groupBy && groupBy !== 'none') {
+        tasks = await this.prisma.task.findMany({
           where: whereClause,
           include: includeConfig,
           orderBy,
-          skip,
-          take: limit,
-        }),
-        this.prisma.task.count({ where: whereClause }),
-      ]);
+        });
+        total = tasks.length;
+      } else {
+        [tasks, total] = await this.prisma.$transaction([
+          this.prisma.task.findMany({
+            where: whereClause,
+            include: includeConfig,
+            orderBy,
+            skip,
+            take: limit,
+          }),
+          this.prisma.task.count({ where: whereClause }),
+        ]);
+      }
     }
 
     // Transform the response
@@ -1327,12 +1394,83 @@ export class TasksService {
       })),
     };
 
+    let finalTasks = this.flattenTasksList(transformedTasks);
+    let totalPages = Math.ceil(total / limit);
+
+    if (groupBy && groupBy !== 'none') {
+      type TaskType = (typeof finalTasks)[number];
+
+      const getGroupKey = (task: TaskType): string => {
+        switch (groupBy) {
+          case 'status':
+            return task.statusId || 'no-status';
+          case 'priority':
+            return task.priority || 'no-priority';
+          case 'type':
+            return task.type || 'no-type';
+          case 'project':
+            return task.projectId || 'no-project';
+          case 'dueDate':
+            return task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : 'no-date';
+          case 'createdAt':
+            return task.createdAt
+              ? new Date(task.createdAt).toISOString().split('T')[0]
+              : 'no-date';
+          default:
+            return 'all';
+        }
+      };
+
+      // Group contiguous tasks
+      const groups: TaskType[][] = [];
+      let currentGroup: TaskType[] = [];
+      let lastKey: string | null = null;
+
+      for (const task of finalTasks) {
+        const key = getGroupKey(task);
+        if (lastKey === null) {
+          currentGroup.push(task);
+          lastKey = key;
+        } else if (key === lastKey) {
+          currentGroup.push(task);
+        } else {
+          groups.push(currentGroup);
+          currentGroup = [task];
+          lastKey = key;
+        }
+      }
+      if (currentGroup.length > 0) {
+        groups.push(currentGroup);
+      }
+
+      // Distribute groups into pages
+      const pages: TaskType[][] = [];
+      let currentPageTasks: TaskType[] = [];
+
+      for (const group of groups) {
+        if (currentPageTasks.length === 0) {
+          currentPageTasks.push(...group);
+        } else if (currentPageTasks.length + group.length <= limit) {
+          currentPageTasks.push(...group);
+        } else {
+          pages.push(currentPageTasks);
+          currentPageTasks = [...group];
+        }
+      }
+      if (currentPageTasks.length > 0) {
+        pages.push(currentPageTasks);
+      }
+
+      totalPages = pages.length;
+      finalTasks = pages[page - 1] || [];
+    }
+
     return {
-      data: this.flattenTasksList(transformedTasks),
+      data: finalTasks,
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages,
       filterCounts,
     };
   }
@@ -1356,6 +1494,7 @@ export class TasksService {
     from?: Date,
     to?: Date,
     dateField: string = 'dueDate',
+    groupBy?: string,
   ): Promise<{
     data: Task[];
     total: number;
@@ -1475,12 +1614,36 @@ export class TasksService {
     // Pagination calculation
     const skip = (page - 1) * limit;
 
+    const orderByArray: any[] = [];
+    if (groupBy && groupBy !== 'none') {
+      if (groupBy === 'status') {
+        orderByArray.push({ status: { position: 'asc' } });
+        orderByArray.push({ statusId: 'asc' });
+      } else if (groupBy === 'priority') {
+        orderByArray.push({ priority: 'asc' });
+      } else if (groupBy === 'type') {
+        orderByArray.push({ type: 'asc' });
+      } else if (groupBy === 'project') {
+        orderByArray.push({ project: { name: 'asc' } });
+        orderByArray.push({ projectId: 'asc' });
+      } else if (groupBy === 'dueDate') {
+        orderByArray.push({ dueDate: 'asc' });
+      } else if (groupBy === 'createdAt') {
+        orderByArray.push({ createdAt: 'asc' });
+      }
+    }
+
     let orderBy: any = { taskNumber: 'desc' };
     let isRankSort = false;
     let scopeType = 'ORGANIZATION';
     let scopeId = organizationId;
 
-    if (sortBy === 'listRank' || sortBy === 'workspaceListRank' || sortBy === 'displayOrder') {
+    const canUseRankSort = !groupBy || groupBy === 'none';
+
+    if (
+      canUseRankSort &&
+      (sortBy === 'listRank' || sortBy === 'workspaceListRank' || sortBy === 'displayOrder')
+    ) {
       isRankSort = true;
       if (projectId && projectId.length > 0) {
         scopeType = 'PROJECT';
@@ -1511,6 +1674,10 @@ export class TasksService {
       } else if (sortBy === 'commentsCount') {
         orderBy = { comments: { _count: sortOrder === 'asc' ? 'asc' : 'desc' } };
       }
+    }
+
+    if (orderByArray.length > 0) {
+      orderBy = [...orderByArray, orderBy];
     }
 
     const includeConfig = {
@@ -1561,6 +1728,17 @@ export class TasksService {
       const sqlLimit = limit;
       const sqlOffset = skip;
 
+      const parentTaskCondition =
+        parentTaskId === 'all'
+          ? Prisma.empty
+          : parentTaskId && parentTaskId !== 'null' && parentTaskId !== ''
+            ? Prisma.sql`AND t."parent_task_id" = ${whereClause.parentTaskId}::uuid`
+            : Prisma.sql`AND t."parent_task_id" IS NULL`;
+
+      const sprintCondition = sprintId
+        ? Prisma.sql`AND t.sprint_id = ${sprintId}::uuid`
+        : Prisma.empty;
+
       // Build scope-specific WHERE so LIMIT/OFFSET pages within the correct scope
       let rankedTaskIds: { id: string }[];
 
@@ -1576,7 +1754,8 @@ export class TasksService {
           INNER JOIN workspaces w ON p.workspace_id = w.id
           WHERE w."organization_id"::uuid = ${organizationId}::uuid
             AND t.project_id = ${scopeId}::uuid
-            AND t."parent_task_id" IS NULL
+            ${parentTaskCondition}
+            ${sprintCondition}
           ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
           LIMIT ${Prisma.raw(sqlLimit.toString())}
           OFFSET ${Prisma.raw(sqlOffset.toString())}`;
@@ -1592,7 +1771,8 @@ export class TasksService {
           INNER JOIN workspaces w ON p.workspace_id = w.id
           WHERE w."organization_id"::uuid = ${organizationId}::uuid
             AND p."workspace_id" = ${scopeId}::uuid
-            AND t."parent_task_id" IS NULL
+            ${parentTaskCondition}
+            ${sprintCondition}
           ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
           LIMIT ${Prisma.raw(sqlLimit.toString())}
           OFFSET ${Prisma.raw(sqlOffset.toString())}`;
@@ -1607,7 +1787,8 @@ export class TasksService {
           INNER JOIN projects p ON t.project_id = p.id
           INNER JOIN workspaces w ON p.workspace_id = w.id
           WHERE w."organization_id"::uuid = ${organizationId}::uuid
-            AND t."parent_task_id" IS NULL
+            ${parentTaskCondition}
+            ${sprintCondition}
           ORDER BY tr.rank ${Prisma.raw(rankOrderDir)} NULLS LAST, t.created_at ${Prisma.raw(rankOrderDir)}
           LIMIT ${Prisma.raw(sqlLimit.toString())}
           OFFSET ${Prisma.raw(sqlOffset.toString())}`;
@@ -1633,23 +1814,32 @@ export class TasksService {
           .filter((t): t is Task & { [key: string]: any } => !!t);
       }
     } else {
-      [tasks, total] = await Promise.all([
-        this.prisma.task.findMany({
+      if (groupBy && groupBy !== 'none') {
+        tasks = await this.prisma.task.findMany({
           where: whereClause,
           include: includeConfig,
           orderBy,
-          take: limit,
-          skip: skip,
-        }),
-        this.prisma.task.count({ where: whereClause }),
-      ]);
+        });
+        total = tasks.length;
+      } else {
+        [tasks, total] = await Promise.all([
+          this.prisma.task.findMany({
+            where: whereClause,
+            include: includeConfig,
+            orderBy,
+            take: limit,
+            skip: skip,
+          }),
+          this.prisma.task.count({ where: whereClause }),
+        ]);
+      }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    const formattedTasks = tasks.map((task: any) => ({
+    const formattedTasks = tasks.map((task) => ({
       ...task,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      labels: task.labels.map((taskLabel: any) => ({
+      labels: (
+        (task.labels as Array<{ taskId: string; labelId: string; label: any }> | undefined) || []
+      ).map((taskLabel) => ({
         taskId: taskLabel.taskId,
         labelId: taskLabel.labelId,
         name: taskLabel.label.name,
@@ -1658,12 +1848,83 @@ export class TasksService {
       })),
     }));
 
+    let finalTasks = this.flattenTasksList(formattedTasks);
+    let totalPages = Math.ceil(total / limit);
+
+    if (groupBy && groupBy !== 'none') {
+      type TaskType = (typeof finalTasks)[number];
+
+      const getGroupKey = (task: TaskType): string => {
+        switch (groupBy) {
+          case 'status':
+            return task.statusId || 'no-status';
+          case 'priority':
+            return task.priority || 'no-priority';
+          case 'type':
+            return task.type || 'no-type';
+          case 'project':
+            return task.projectId || 'no-project';
+          case 'dueDate':
+            return task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : 'no-date';
+          case 'createdAt':
+            return task.createdAt
+              ? new Date(task.createdAt).toISOString().split('T')[0]
+              : 'no-date';
+          default:
+            return 'all';
+        }
+      };
+
+      // Group contiguous tasks
+      const groups: TaskType[][] = [];
+      let currentGroup: TaskType[] = [];
+      let lastKey: string | null = null;
+
+      for (const task of finalTasks) {
+        const key = getGroupKey(task);
+        if (lastKey === null) {
+          currentGroup.push(task);
+          lastKey = key;
+        } else if (key === lastKey) {
+          currentGroup.push(task);
+        } else {
+          groups.push(currentGroup);
+          currentGroup = [task];
+          lastKey = key;
+        }
+      }
+      if (currentGroup.length > 0) {
+        groups.push(currentGroup);
+      }
+
+      // Distribute groups into pages
+      const pages: TaskType[][] = [];
+      let currentPageTasks: TaskType[] = [];
+
+      for (const group of groups) {
+        if (currentPageTasks.length === 0) {
+          currentPageTasks.push(...group);
+        } else if (currentPageTasks.length + group.length <= limit) {
+          currentPageTasks.push(...group);
+        } else {
+          pages.push(currentPageTasks);
+          currentPageTasks = [...group];
+        }
+      }
+      if (currentPageTasks.length > 0) {
+        pages.push(currentPageTasks);
+      }
+
+      totalPages = pages.length;
+      finalTasks = pages[page - 1] || [];
+    }
+
     return {
-      data: formattedTasks as any,
+      data: finalTasks as any,
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages,
     };
   }
 
@@ -1694,6 +1955,8 @@ export class TasksService {
     if (!userId) throw new ForbiddenException('User context required');
 
     const { organizationId, groupBy, limitPerGroup = 20, groupKey, page = 1 } = dto;
+    const parsedLimit = Number(limitPerGroup);
+    const parsedPage = Number(page);
 
     const access = await this.accessControl.getOrgAccess(organizationId, userId);
 
@@ -2024,7 +2287,7 @@ export class TasksService {
       const target = rawGroups.find((g) => g.key === groupKey);
       if (!target) {
         // Group not found — return empty (filters may have changed)
-        return { groups: [], groupBy, page, limitPerGroup };
+        return { groups: [], groupBy, page: parsedPage, limitPerGroup: parsedLimit };
       }
 
       const groupWhere = { ...baseWhere, ...target.extraWhere };
@@ -2032,13 +2295,13 @@ export class TasksService {
         groupWhere.AND = [...(baseWhere.AND || []), ...(target.extraWhere.AND || [])];
       }
 
-      const skip = (page - 1) * limitPerGroup;
+      const skip = (parsedPage - 1) * parsedLimit;
       const [rawTasks, totalCount] = await Promise.all([
         this.prisma.task.findMany({
           where: groupWhere,
           include: includeConfig,
           orderBy: { createdAt: 'desc' },
-          take: limitPerGroup,
+          take: parsedLimit,
           skip,
         }),
         this.prisma.task.count({ where: groupWhere }),
@@ -2051,12 +2314,12 @@ export class TasksService {
             label: target.label,
             totalCount,
             tasks: formatTasks(rawTasks),
-            page,
+            page: parsedPage,
           },
         ],
         groupBy,
-        page,
-        limitPerGroup,
+        page: parsedPage,
+        limitPerGroup: parsedLimit,
       };
     }
 
@@ -2073,7 +2336,7 @@ export class TasksService {
             where: groupWhere,
             include: includeConfig,
             orderBy: { createdAt: 'desc' },
-            take: limitPerGroup,
+            take: parsedLimit,
           }),
           this.prisma.task.count({ where: groupWhere }),
         ]);
@@ -2092,7 +2355,7 @@ export class TasksService {
       groups: groups.filter((g) => g.totalCount > 0),
       groupBy,
       page: 1,
-      limitPerGroup,
+      limitPerGroup: parsedLimit,
     };
   }
 

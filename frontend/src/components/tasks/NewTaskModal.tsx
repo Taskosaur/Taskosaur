@@ -69,6 +69,7 @@ interface FormData {
   storyPoints: string;
   sprintId?: string;
   parentTaskId?: string;
+  subtasks: { title: string }[];
 }
 
 interface NewTaskModalProps {
@@ -94,7 +95,7 @@ export function NewTaskModal({
   const { getWorkspacesByOrganization, getCurrentOrganizationId, getWorkspaceBySlug } =
     useWorkspace();
   const { getProjectsByWorkspace, getTaskStatusByProject } = useProject();
-  const { createTask } = useTask();
+  const { createTask, createSubtask } = useTask();
   const { fetchAnalyticsData } = useProject();
   const { getSprintsByProject, getActiveSprint } = useSprint();
   const { getCurrentUser } = useAuth();
@@ -109,6 +110,7 @@ export function NewTaskModal({
     storyPoints: "",
     sprintId: "",
     parentTaskId: "",
+    subtasks: [],
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -508,7 +510,27 @@ export function NewTaskModal({
 
         if (formData.sprintId) taskData.sprintId = formData.sprintId;
         if (formData.type === "SUBTASK" && formData.parentTaskId) taskData.parentTaskId = formData.parentTaskId;
-        await createTask(taskData);
+        const createdTask = await createTask(taskData);
+
+        if (formData.type !== "SUBTASK" && formData.subtasks.length > 0) {
+          const validSubtasks = formData.subtasks.filter(st => st.title.trim() !== "");
+          if (validSubtasks.length > 0) {
+            await Promise.all(
+              validSubtasks.map(st =>
+                createSubtask({
+                  title: st.title.trim(),
+                  description: "",
+                  priority: formData.priority as any,
+                  type: "SUBTASK",
+                  projectId: formData.project!.id,
+                  statusId: defaultStatus?.id,
+                  parentTaskId: createdTask.id,
+                  ...(formData.sprintId ? { sprintId: formData.sprintId } : {})
+                })
+              )
+            );
+          }
+        }
 
         if (projectSlug && workspaceSlug) {
           try {
@@ -552,6 +574,7 @@ export function NewTaskModal({
       storyPoints: "",
       sprintId: "",
       parentTaskId: "",
+      subtasks: [],
     });
 
     setWorkspaces([]);
@@ -1023,6 +1046,55 @@ export function NewTaskModal({
               />
             </div>
           </div>
+
+          {formData.type !== "SUBTASK" && (
+            <div className="projects-form-field mt-4">
+              <Label className="projects-form-label">
+                <HiClipboardList
+                  className="projects-form-label-icon"
+                  style={{ color: "hsl(var(--primary))" }}
+                />
+                {t("modal.subtasks", "Subtasks")}
+              </Label>
+              <div className="flex flex-col gap-2 mt-2">
+                {formData.subtasks.map((subtask, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      value={subtask.title}
+                      onChange={(e) => {
+                        const newSubtasks = [...formData.subtasks];
+                        newSubtasks[index].title = e.target.value;
+                        setFormData((prev) => ({ ...prev, subtasks: newSubtasks }));
+                      }}
+                      placeholder={t("modal.subtaskTitle", "Subtask title")}
+                      className="projects-workspace-button border-none"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        const newSubtasks = formData.subtasks.filter((_, i) => i !== index);
+                        setFormData((prev) => ({ ...prev, subtasks: newSubtasks }));
+                      }}
+                      className="text-[var(--destructive)] hover:bg-[var(--destructive)]/10"
+                    >
+                      {t("modal.remove", "Remove")}
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setFormData((prev) => ({ ...prev, subtasks: [...prev.subtasks, { title: "" }] }));
+                  }}
+                  className="w-full"
+                >
+                  {t("modal.addSubtask", "+ Add Subtask")}
+                </Button>
+              </div>
+            </div>
+          )}
 
           {!urlContext.sprintId && (
             <div className="projects-form-field mt-4">

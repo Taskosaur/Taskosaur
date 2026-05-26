@@ -443,17 +443,9 @@ function WorkspaceTasksContent() {
     try {
       setLocalError(null);
 
-      // When no status filter is selected on list view, exclude DONE statuses
       let statusFilter: { statuses?: string } = {};
       if (selectedStatuses.length > 0) {
         statusFilter = { statuses: selectedStatuses.join(",") };
-      } else if (currentView === "list" && availableStatuses.length > 0) {
-        const activeStatusIds = availableStatuses
-          .filter((s) => s.category !== "DONE")
-          .flatMap((s) => s.allIds || [s.id]);
-        if (activeStatusIds.length > 0) {
-          statusFilter = { statuses: activeStatusIds.join(",") };
-        }
       }
 
       // Build parameters for getAllTasks
@@ -483,6 +475,8 @@ function WorkspaceTasksContent() {
 
         page: currentPage,
         limit: pageSize,
+        groupBy: groupBy,
+        parentTaskId: "all",
       };
 
       // Call getAllTasks - this will update tasks and taskResponse in context
@@ -511,6 +505,7 @@ function WorkspaceTasksContent() {
     getAllTasks,
     sortField,
     sortOrder,
+    groupBy,
   ]);
 
   const loadGanttData = useCallback(async () => {
@@ -633,6 +628,7 @@ function WorkspaceTasksContent() {
     types: selectedTaskTypes.join(","),
     sortField,
     sortOrder,
+    groupBy,
   });
 
   useEffect(() => {
@@ -647,6 +643,7 @@ function WorkspaceTasksContent() {
       types: selectedTaskTypes.join(","),
       sortField,
       sortOrder,
+      groupBy,
     };
     const filtersChanged =
       JSON.stringify(currentFilters) !== JSON.stringify(previousFiltersRef.current);
@@ -668,7 +665,13 @@ function WorkspaceTasksContent() {
     validateRequiredData,
     sortField,
     sortOrder,
+    groupBy,
   ]);
+
+  // Reset page when groupBy changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [groupBy]);
 
   const projectFilters = useMemo(
     () =>
@@ -1165,9 +1168,9 @@ function WorkspaceTasksContent() {
           workspaceId={workspace?.id}
           organizationId={workspace?.organizationId}
           groupBy={groupBy}
-          groupMap={groupMap}
-          onGroupPageChange={goToGroupPage}
-          groupedLoading={groupedLoading}
+          groupMap={undefined}
+          onGroupPageChange={undefined}
+          groupedLoading={isLoading}
         />
       );
     }
@@ -1233,7 +1236,7 @@ function WorkspaceTasksContent() {
     }
   };
 
-  const showPagination = groupBy === "none" && currentView === "list" && tasks.length > 0 && pagination.totalPages >= 1;
+  const showPagination = currentView === "list" && tasks.length > 0 && pagination.totalPages >= 1;
 
 
   if (error) return <ErrorState error={error} onRetry={handleRetry} />;
