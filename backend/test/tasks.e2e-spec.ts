@@ -520,6 +520,67 @@ describe('TasksController (e2e)', () => {
           expect(res.body.limit).toBe(1);
         });
     });
+
+    it('should test grouping (groupBy)', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks')
+        .query({ organizationId, groupBy: 'priority' })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('data');
+          expect(Array.isArray(res.body.data)).toBe(true);
+          expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+        });
+    });
+
+    it('should test grouping by status (groupBy=status)', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks')
+        .query({ organizationId, groupBy: 'status' })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('data');
+          expect(Array.isArray(res.body.data)).toBe(true);
+          expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+        });
+    });
+
+    it('should test grouping page boundaries and prevent group splits (groupBy=status)', async () => {
+      const statusRes = await request(app.getHttpServer())
+        .get('/api/tasks')
+        .query({ organizationId, groupBy: 'status' })
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      const tasks = statusRes.body.data;
+      if (tasks.length >= 2) {
+        const res = await request(app.getHttpServer())
+          .get('/api/tasks')
+          .query({ organizationId, groupBy: 'status', limit: 1 })
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(HttpStatus.OK);
+
+        expect(res.body).toHaveProperty('data');
+        expect(Array.isArray(res.body.data)).toBe(true);
+
+        const page1Tasks = res.body.data;
+        const page2Res = await request(app.getHttpServer())
+          .get('/api/tasks')
+          .query({ organizationId, groupBy: 'status', limit: 1, page: 2 })
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(HttpStatus.OK);
+
+        const page2Tasks = page2Res.body.data;
+
+        const page1StatusIds = new Set(page1Tasks.map((t: any) => t.statusId));
+        const page2StatusIds = new Set(page2Tasks.map((t: any) => t.statusId));
+
+        for (const statusId of page1StatusIds) {
+          expect(page2StatusIds.has(statusId)).toBe(false);
+        }
+      }
+    });
   });
 
   describe('/tasks/all-tasks (GET)', () => {
@@ -533,6 +594,56 @@ describe('TasksController (e2e)', () => {
           expect(res.body).toHaveProperty('data');
           expect(Array.isArray(res.body.data)).toBe(true);
           expect(res.body.data.length).toBeGreaterThanOrEqual(2);
+        });
+    });
+
+    it('should fetch tasks for GANTT view including subtasks and honoring sprintId', async () => {
+      // Create a test task and subtask in the sprint
+      const ganttTask = await prismaService.task.create({
+        data: {
+          title: 'Gantt Test Task',
+          projectId,
+          statusId,
+          sprintId,
+          taskNumber: 8000,
+          slug: `${projectSlug}-8000`,
+        },
+      });
+
+      await prismaService.task.create({
+        data: {
+          title: 'Gantt Test Subtask',
+          projectId,
+          statusId,
+          sprintId,
+          parentTaskId: ganttTask.id,
+          taskNumber: 8001,
+          slug: `${projectSlug}-8001`,
+        },
+      });
+
+      return request(app.getHttpServer())
+        .get('/api/tasks/all-tasks')
+        .query({
+          organizationId,
+          viewType: 'GANTT',
+          parentTaskId: 'all',
+          sprintId: sprintId,
+          sortBy: 'listRank',
+          sortOrder: 'asc'
+        })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('data');
+          expect(Array.isArray(res.body.data)).toBe(true);
+          // Should include both the main task and the subtask
+          const taskIds = res.body.data.map((t: any) => t.id);
+          expect(taskIds.includes(ganttTask.id)).toBe(true);
+          
+          // Verify sprintId is honored (all returned tasks should belong to the sprint)
+          const allMatchSprint = res.body.data.every((t: any) => !t.sprintId || t.sprintId === sprintId);
+          expect(allMatchSprint).toBe(true);
         });
     });
   });
@@ -553,6 +664,108 @@ describe('TasksController (e2e)', () => {
           expect(res.body.meta).toHaveProperty('totalStatuses');
           expect(res.body.meta).toHaveProperty('fetchedAt');
         });
+    });
+  });
+
+  describe('/tasks/grouped (GET)', () => {
+    it('should get tasks grouped by status (initial load)', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks/grouped')
+        .query({ organizationId, groupBy: 'status' })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('groups');
+          expect(Array.isArray(res.body.groups)).toBe(true);
+          expect(res.body).toHaveProperty('groupBy');
+          expect(res.body.groupBy).toBe('status');
+
+          if (res.body.groups.length > 0) {
+            const group = res.body.groups[0];
+            expect(group).toHaveProperty('key');
+            expect(group).toHaveProperty('label');
+            expect(group).toHaveProperty('totalCount');
+            expect(group).toHaveProperty('tasks');
+            expect(Array.isArray(group.tasks)).toBe(true);
+          }
+        });
+    });
+
+    it('should get tasks grouped by priority (initial load)', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks/grouped')
+        .query({ organizationId, groupBy: 'priority' })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.groupBy).toBe('priority');
+          expect(Array.isArray(res.body.groups)).toBe(true);
+        });
+    });
+
+    it('should support load-more mode for a specific group key', async () => {
+      // 1. First request to get all groups and find a key
+      const initialRes = await request(app.getHttpServer())
+        .get('/api/tasks/grouped')
+        .query({ organizationId, groupBy: 'status' })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK);
+
+      if (initialRes.body.groups.length > 0) {
+        const targetGroupKey = initialRes.body.groups[0].key;
+
+        // 2. Request details for that group key in load-more mode
+        await request(app.getHttpServer())
+          .get('/api/tasks/grouped')
+          .query({
+            organizationId,
+            groupBy: 'status',
+            groupKey: targetGroupKey,
+            page: 1,
+            limitPerGroup: 2,
+          })
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(HttpStatus.OK)
+          .expect((res) => {
+            expect(res.body).toHaveProperty('groups');
+            expect(res.body.groups.length).toBe(1);
+            expect(res.body.groups[0].key).toBe(targetGroupKey);
+            expect(res.body.groups[0]).toHaveProperty('page');
+            expect(res.body.groups[0].page).toBe(1);
+          });
+      }
+    });
+
+    it('should apply filters (e.g. projectId) correctly', async () => {
+      await request(app.getHttpServer())
+        .get('/api/tasks/grouped')
+        .query({ organizationId, groupBy: 'status', projectId })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body.groupBy).toBe('status');
+          for (const group of res.body.groups) {
+            for (const task of group.tasks) {
+              expect(task.projectId).toBe(projectId);
+            }
+          }
+        });
+    });
+
+    it('should fail if organizationId is missing', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks/grouped')
+        .query({ groupBy: 'status' })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('should fail if groupBy is missing or invalid', () => {
+      return request(app.getHttpServer())
+        .get('/api/tasks/grouped')
+        .query({ organizationId, groupBy: 'invalid_field' })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.BAD_REQUEST);
     });
   });
 

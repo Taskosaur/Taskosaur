@@ -26,9 +26,12 @@ test.describe('Workspace Projects', () => {
 
     workspaceSlug = href!.split('/').filter(Boolean)[0];
 
-    // Navigate to workspace projects
-    await page.goto(`/${workspaceSlug}/projects`);
-    await page.waitForLoadState('networkidle');
+    // Navigate to workspace projects and wait for API calls
+    const [statsResponse] = await Promise.all([
+      page.waitForResponse(response => response.url().includes('/projects/bulk-health-stats') || response.status() === 200, { timeout: 15000 }).catch(() => null),
+      page.goto(`/${workspaceSlug}/projects`),
+      page.waitForLoadState('networkidle')
+    ]);
   });
 
   test('should display workspace projects page', async ({ page }) => {

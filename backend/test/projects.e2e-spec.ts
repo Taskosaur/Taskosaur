@@ -394,6 +394,40 @@ describe('ProjectsController (e2e)', () => {
     });
   });
 
+  describe('/projects/bulk-health-stats (GET)', () => {
+    let testProjectId: string;
+
+    beforeAll(async () => {
+      // Create a separate project for stats test
+      const statsDto = { ...createProjectDto, slug: `stats-test-${Date.now()}` };
+      const res = await request(app.getHttpServer())
+        .post('/api/projects')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(statsDto);
+      testProjectId = res.body.id;
+    });
+
+    it('should retrieve bulk health stats for projects', () => {
+      return request(app.getHttpServer())
+        .get('/api/projects/bulk-health-stats')
+        .query({ projectIds: testProjectId })
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.OK)
+        .expect((res) => {
+          expect(res.body).toHaveProperty(testProjectId);
+          expect(res.body[testProjectId]).toHaveProperty('completionPredictor');
+          expect(res.body[testProjectId]).toHaveProperty('heatmapData');
+        });
+    });
+
+    it('should require projectIds parameter', () => {
+      return request(app.getHttpServer())
+        .get('/api/projects/bulk-health-stats')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(HttpStatus.BAD_REQUEST);
+    });
+  });
+
   describe('/projects/:id (DELETE)', () => {
     it('should prevent non-owners from deleting the project', () => {
       return request(app.getHttpServer())
