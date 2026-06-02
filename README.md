@@ -305,10 +305,10 @@ taskosaur/
 
 ### Enable Conversational AI Task Execution in 3 Steps:
 
-1. **Navigate to Organization Settings**
+1. **Open AI Assistant Settings**
 
    ```
-   Go to Settings → Organization Settings → AI Assistant Settings
+   User menu (top-right avatar) → Profile → AI Settings button → AI Assistant Settings
    ```
 
 2. **Add Your LLM API Key**
