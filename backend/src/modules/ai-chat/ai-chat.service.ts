@@ -1,4 +1,5 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import {
   ChatRequestDto,
   ChatResponseDto,
@@ -413,6 +414,10 @@ ADMIN PANEL RULES (SUPER_ADMIN ONLY):
           where: { sessionId: chatRequest.sessionId },
         });
 
+        if (conversation && conversation.userId !== userId) {
+          throw new NotFoundException('Conversation not found');
+        }
+
         if (!conversation) {
           conversation = await this.prisma.conversation.create({
             data: {
@@ -762,16 +767,17 @@ Respond ONLY with the description text, nothing else.`;
   }
 
   // Clear context/messages for a specific session
-  async clearContext(sessionId: string): Promise<{ success: boolean }> {
+  async clearContext(userId: string, sessionId: string): Promise<{ success: boolean }> {
     const conversation = await this.prisma.conversation.findUnique({
       where: { sessionId },
     });
-    if (conversation) {
+    if (conversation && conversation.userId === userId) {
       await this.prisma.chatMessage.deleteMany({
         where: { conversationId: conversation.id },
       });
+      return { success: true };
     }
-    return { success: true };
+    return { success: false };
   }
 
   private readonly allowedHosts: string[] = [
@@ -1152,8 +1158,7 @@ Respond ONLY with the description text, nothing else.`;
   }
 
   async createConversation(userId: string, dto: CreateConversationDto) {
-    const sessionId =
-      dto.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const sessionId = dto.sessionId || `session_${Date.now()}_${randomBytes(16).toString('hex')}`;
     return this.prisma.conversation.create({
       data: {
         userId,
