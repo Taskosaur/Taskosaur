@@ -22,7 +22,8 @@ interface Props { workspaceId: string; organizationId?: string; }
 export default function JiraWorkspaceSyncPanel({ workspaceId, organizationId }: Props) {
   const { t } = useTranslation("integrations");
   const router = useRouter();
-  const { workspaceSlug } = router.query;
+  const rawWorkspaceSlug = router.query.workspaceSlug;
+  const workspaceSlug = Array.isArray(rawWorkspaceSlug) ? rawWorkspaceSlug[0] : rawWorkspaceSlug;
   const {
     connectWorkspace,
     getWorkspaceStatus,
@@ -39,7 +40,7 @@ export default function JiraWorkspaceSyncPanel({ workspaceId, organizationId }: 
   const [status, setStatus] = useState<JiraSyncStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [step, setStep] = useState<"status" | "credentials" | "connected" | "select_projects" | "mapping">("status");
-  const [subdomain, setSubdomain] = useState("");
+  const [siteUrl, setSiteUrl] = useState("");
   const [email, setEmail] = useState("");
   const [apiToken, setApiToken] = useState("");
   const [showToken, setShowToken] = useState(false);
@@ -71,11 +72,11 @@ export default function JiraWorkspaceSyncPanel({ workspaceId, organizationId }: 
   useEffect(() => { refresh(); }, [refresh]);
 
   const handleConnect = async () => {
-    if (!subdomain.trim() || !email.trim() || !apiToken.trim()) { toast.error("All fields required"); return; }
-    const siteUrl = `https://${subdomain.trim().replace(/^https?:\/\//, "").replace(/\.atlassian\.net.*$/, "")}.atlassian.net`;
+    if (!siteUrl.trim() || !email.trim() || !apiToken.trim()) { toast.error("All fields required"); return; }
+    const normalizedSiteUrl = siteUrl.trim();
     setConnecting(true);
     try {
-      await connectWorkspace(workspaceId, { jiraSiteUrl: siteUrl, jiraEmail: email.trim(), jiraApiToken: apiToken.trim() });
+      await connectWorkspace(workspaceId, { jiraSiteUrl: normalizedSiteUrl, jiraEmail: email.trim(), jiraApiToken: apiToken.trim() });
       await refresh();
       toast.success("Jira account connected!");
       setStep("select_projects");
@@ -106,7 +107,6 @@ export default function JiraWorkspaceSyncPanel({ workspaceId, organizationId }: 
           statuses = await listWorkspaceProjectStatuses(workspaceId, key);
         } else {
           // Use temporary credentials from state
-          const siteUrl = `https://${subdomain}.atlassian.net`;
           statuses = await validateAndListStatuses(siteUrl, key, email.trim(), apiToken.trim());
         }
         
@@ -162,16 +162,15 @@ export default function JiraWorkspaceSyncPanel({ workspaceId, organizationId }: 
 
   const handleDisconnect = async () => {
     setConfirmDisconnect(false); setDisconnecting(true);
-    try { await disconnectWorkspace(workspaceId); setStatus(null); setStep("status"); setSyncedProjects([]); toast.success("Jira disconnected"); }
+    try { await disconnectWorkspace(workspaceId); setStatus(null); setStep("status"); setSyncedProjects([]); setSiteUrl(""); toast.success("Jira disconnected"); }
     catch (e: any) { toast.error(e.message); }
     finally { setDisconnecting(false); }
   };
 
   const handleUpdateCreds = async () => {
-    if (!subdomain.trim() || !email.trim() || !apiToken.trim()) { toast.error("All fields required"); return; }
-    const siteUrl = `https://${subdomain.trim().replace(/^https?:\/\//, "").replace(/\.atlassian\.net.*$/, "")}.atlassian.net`;
+    if (!siteUrl.trim() || !email.trim() || !apiToken.trim()) { toast.error("All fields required"); return; }
     setConnecting(true);
-    try { await updateWorkspaceConfig(workspaceId, { jiraSiteUrl: siteUrl, jiraEmail: email.trim(), jiraApiToken: apiToken.trim() }); toast.success("Credentials updated"); setIsEditingCreds(false); }
+    try { await updateWorkspaceConfig(workspaceId, { jiraSiteUrl: siteUrl.trim(), jiraEmail: email.trim(), jiraApiToken: apiToken.trim() }); toast.success("Credentials updated"); setIsEditingCreds(false); }
     catch (e: any) { toast.error(e.message); }
     finally { setConnecting(false); }
   };
@@ -229,12 +228,9 @@ export default function JiraWorkspaceSyncPanel({ workspaceId, organizationId }: 
           </p>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="ws-subdomain">{t("jira.subdomain_label", "Jira Subdomain")}</Label>
-          <div className="flex items-center gap-0">
-            <span className="px-3 py-2 text-sm border border-r-0 border-[var(--border)] rounded-l-md bg-[var(--muted)] text-[var(--muted-foreground)] select-none">https://</span>
-            <Input id="ws-subdomain" value={subdomain} onChange={e => setSubdomain(e.target.value)} placeholder="yourorg" className="rounded-none border-x-0" />
-            <span className="px-3 py-2 text-sm border border-l-0 border-[var(--border)] rounded-r-md bg-[var(--muted)] text-[var(--muted-foreground)] select-none whitespace-nowrap">.atlassian.net</span>
-          </div>
+          <Label htmlFor="ws-site-url">{t("jira.site_url_label", "Jira Site URL")}</Label>
+          <Input id="ws-site-url" value={siteUrl} onChange={e => setSiteUrl(e.target.value)} placeholder="https://yourorg.atlassian.net" />
+          <p className="text-[10px] text-[var(--muted-foreground)]">{t("jira.site_url_hint", "The full URL from your browser. The hostname must be permitted by the server's JIRA_ALLOWED_HOSTS setting.")}</p>
         </div>
         <div className="grid gap-2"><Label htmlFor="ws-email">{t("jira.email_label", "Email")}</Label><Input id="ws-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" /></div>
         <div className="grid gap-2">
@@ -289,7 +285,7 @@ export default function JiraWorkspaceSyncPanel({ workspaceId, organizationId }: 
                 <div className="grid grid-cols-4 px-4 py-2 bg-[var(--muted)]/30 text-[10px] font-bold uppercase text-[var(--muted-foreground)] border-b border-[var(--border)]"><span>{t("jira.project", "Project")}</span><span>{t("jira.jira_key", "Jira Key")}</span><span>{t("jira.last_sync", "Last Sync")}</span><span>{t("jira.status", "Status")}</span></div>
                 {syncedProjects.map(p => (
                   <div key={p.id} className="grid grid-cols-4 items-center px-4 py-3 border-b border-[var(--border)] last:border-0 text-sm">
-                    <Link href={`/${workspaceSlug}/${p.slug}`} className="font-medium truncate hover:underline hover:text-[var(--primary)] text-left">
+                    <Link href={`/${encodeURIComponent(workspaceSlug ?? "")}/${encodeURIComponent(p.slug ?? "")}`} className="font-medium truncate hover:underline hover:text-[var(--primary)] text-left">
                       {p.name}
                     </Link>
                     <div className="flex items-center justify-start">
@@ -305,7 +301,7 @@ export default function JiraWorkspaceSyncPanel({ workspaceId, organizationId }: 
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={handleLoadProjects} disabled={loadingProjects} className="gap-2">{loadingProjects ? <Loader2 size={14} className="animate-spin" /> : <SiJira size={14} />}{t("jira.browse_projects", "Browse Projects")}</Button>
             {syncedProjects.length > 0 && <Button size="sm" variant="outline" onClick={handleSyncAll} disabled={syncing} className="gap-2">{syncing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}{t("jira.sync_all", "Sync All")}</Button>}
-            <Button size="sm" variant="outline" onClick={() => { setIsEditingCreds(true); setSubdomain(status?.jiraSiteUrl?.replace(/^https:\/\//, "").replace(/\.atlassian\.net.*$/, "") || ""); setEmail(""); setApiToken(""); }} className="gap-2">{t("jira.update_credentials", "Update Credentials")}</Button>
+            <Button size="sm" variant="outline" onClick={() => { setIsEditingCreds(true); setSiteUrl(status?.jiraSiteUrl || ""); setEmail(""); setApiToken(""); }} className="gap-2">{t("jira.update_credentials", "Update Credentials")}</Button>
             <ActionButton
               type="button"
               variant="destructive"
@@ -327,12 +323,9 @@ export default function JiraWorkspaceSyncPanel({ workspaceId, organizationId }: 
           </CardHeader>
           <CardContent className="py-6 space-y-4 max-w-lg">
             <div className="grid gap-2">
-              <Label>{t("jira.subdomain_label", "Jira Subdomain")}</Label>
-              <div className="flex items-center gap-0">
-                <span className="px-3 py-2 text-sm border border-r-0 border-[var(--border)] rounded-l-md bg-[var(--muted)] text-[var(--muted-foreground)] select-none">https://</span>
-                <Input value={subdomain} onChange={e => setSubdomain(e.target.value)} placeholder="yourorg" className="rounded-none border-x-0" />
-                <span className="px-3 py-2 text-sm border border-l-0 border-[var(--border)] rounded-r-md bg-[var(--muted)] text-[var(--muted-foreground)] select-none whitespace-nowrap">.atlassian.net</span>
-              </div>
+              <Label>{t("jira.site_url_label", "Jira Site URL")}</Label>
+              <Input value={siteUrl} onChange={e => setSiteUrl(e.target.value)} placeholder="https://yourorg.atlassian.net" />
+              <p className="text-[10px] text-[var(--muted-foreground)]">{t("jira.site_url_hint", "The full URL from your browser. The hostname must be permitted by the server's JIRA_ALLOWED_HOSTS setting.")}</p>
             </div>
             <div className="grid gap-2"><Label>{t("jira.email_label", "Email")}</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" /></div>
             <div className="grid gap-2"><Label>{t("jira.new_api_token_label", "New API Token")}</Label>

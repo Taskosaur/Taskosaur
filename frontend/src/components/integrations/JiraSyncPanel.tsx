@@ -61,7 +61,7 @@ export default function JiraSyncPanel({ projectId, projectStatuses = [] }: Props
   const [syncStatus, setSyncStatus] = useState<JiraSyncStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [step, setStep] = useState<Step>("status");
-  const [subdomain, setSubdomain] = useState("");
+  const [siteUrl, setSiteUrl] = useState("");
   const [email, setEmail] = useState("");
   const [apiToken, setApiToken] = useState("");
   const [showToken, setShowToken] = useState(false);
@@ -99,11 +99,10 @@ export default function JiraSyncPanel({ projectId, projectStatuses = [] }: Props
   }, [projectId, projectStatuses.length, getTaskStatusByProject]);
 
   const handleValidate = async () => {
-    if (!subdomain.trim() || !email.trim() || !apiToken.trim()) { toast.error("All fields are required"); return; }
-    const siteUrl = `https://${subdomain.trim().replace(/^https?:\/\//, "").replace(/\.atlassian\.net.*$/, "")}.atlassian.net`;
+    if (!siteUrl.trim() || !email.trim() || !apiToken.trim()) { toast.error("All fields are required"); return; }
     setConnecting(true);
     try {
-      const data = await validateAndListProjects(siteUrl, email.trim(), apiToken.trim());
+      const data = await validateAndListProjects(siteUrl.trim(), email.trim(), apiToken.trim());
       setJiraProjects(data); setStep("project");
       toast.success(`Found ${data.length} Jira project(s)`);
     } catch (e: any) { toast.error(e.message); }
@@ -112,10 +111,9 @@ export default function JiraSyncPanel({ projectId, projectStatuses = [] }: Props
 
   const handleSelectProject = async () => {
     if (!selectedProject) { toast.error("Select a project"); return; }
-    const siteUrl = `https://${subdomain.trim().replace(/^https?:\/\//, "").replace(/\.atlassian\.net.*$/, "")}.atlassian.net`;
     setConnecting(true);
     try {
-      const statuses = await validateAndListStatuses(siteUrl, selectedProject, email.trim(), apiToken.trim());
+      const statuses = await validateAndListStatuses(siteUrl.trim(), selectedProject, email.trim(), apiToken.trim());
       setJiraStatuses(statuses);
       const init: Record<string, string> = {};
       statuses.forEach(s => { init[s.id] = ""; });
@@ -134,10 +132,10 @@ export default function JiraSyncPanel({ projectId, projectStatuses = [] }: Props
       toast.error(t("jira.interval_error_max", "Sync interval cannot exceed 1440 minutes (24 hours)"));
       return;
     }
-    const siteUrl = `https://${subdomain.trim().replace(/^https?:\/\//, "").replace(/\.atlassian\.net.*$/, "")}.atlassian.net`;
+    const normalizedSiteUrl = siteUrl.trim();
     setConnecting(true);
     try {
-      const s = await connect({ projectId, jiraSiteUrl: siteUrl, jiraProjectKey: selectedProject, jiraEmail: email.trim(), jiraApiToken: apiToken.trim(), syncInterval: intervalNum, statusMappings: Object.fromEntries(Object.entries(statusMappings).filter(([, v]) => v && v !== "none")) });
+      const s = await connect({ projectId, jiraSiteUrl: normalizedSiteUrl, jiraProjectKey: selectedProject, jiraEmail: email.trim(), jiraApiToken: apiToken.trim(), syncInterval: intervalNum, statusMappings: Object.fromEntries(Object.entries(statusMappings).filter(([, v]) => v && v !== "none")) });
       setSyncStatus(s); setStep("done");
       toast.success("Jira connected successfully!");
       setSyncing(true);
@@ -163,7 +161,7 @@ export default function JiraSyncPanel({ projectId, projectStatuses = [] }: Props
 
   const handleDisconnect = async () => {
     setConfirmOpen(false); setDisconnecting(true);
-    try { await disconnect(projectId); setSyncStatus(null); setStep("status"); setEmail(""); setApiToken(""); setSubdomain(""); toast.success("Jira disconnected"); }
+    try { await disconnect(projectId); setSyncStatus(null); setStep("status"); setEmail(""); setApiToken(""); setSiteUrl(""); toast.success("Jira disconnected"); }
     catch (e: any) { toast.error(e.message); }
     finally { setDisconnecting(false); }
   };
@@ -366,18 +364,14 @@ export default function JiraSyncPanel({ projectId, projectStatuses = [] }: Props
                   </a>{" "}
                   {t("jira.and_create_token", "and create a token.")}
                 </li>
-                <li>{t("trello.wizard.api_key_hint", "Your subdomain is the part before .atlassian.net in your browser URL.").replace("Trello Power-Up Admin", "Jira URL").replace("chave API", "subdomínio").replace("clé API", "sous-domaine")}</li>
+                <li>{t("jira.site_url_hint", "The full URL from your browser. The hostname must be permitted by the server's JIRA_ALLOWED_HOSTS setting.")}</li>
               </ol>
             </div>
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="jira-subdomain">{t("jira.subdomain_label", "Jira Subdomain")}</Label>
-                <div className="flex items-center gap-0">
-                  <span className="px-3 py-2 text-sm border border-r-0 border-[var(--border)] rounded-l-md bg-[var(--muted)] text-[var(--muted-foreground)] select-none">https://</span>
-                  <Input id="jira-subdomain" value={subdomain} onChange={e => setSubdomain(e.target.value)} placeholder="yourorg" className="rounded-none border-x-0" />
-                  <span className="px-3 py-2 text-sm border border-l-0 border-[var(--border)] rounded-r-md bg-[var(--muted)] text-[var(--muted-foreground)] select-none whitespace-nowrap">.atlassian.net</span>
-                </div>
-                <p className="text-[10px] text-[var(--muted-foreground)]">{t("trello.wizard.api_key_hint", "The part before .atlassian.net in your Jira URL").replace("Your API Key can be found in the Trello Power-Up Admin.", "The part before .atlassian.net in your Jira URL")}</p>
+                <Label htmlFor="jira-site-url">{t("jira.site_url_label", "Jira Site URL")}</Label>
+                <Input id="jira-site-url" value={siteUrl} onChange={e => setSiteUrl(e.target.value)} placeholder="https://yourorg.atlassian.net" />
+                <p className="text-[10px] text-[var(--muted-foreground)]">{t("jira.site_url_hint", "The full URL from your browser. The hostname must be permitted by the server's JIRA_ALLOWED_HOSTS setting.")}</p>
               </div>
               <div className="grid gap-2"><Label htmlFor="jira-email">{t("jira.email_label", "Atlassian Email")}</Label><Input id="jira-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" /></div>
               <div className="grid gap-2">

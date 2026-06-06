@@ -88,26 +88,26 @@ describe('JiraApiService SSRF guard (e2e)', () => {
     it('rejects a non-atlassian hostname', async () => {
       await expect(
         service.getProjects('https://example.com', 'a@b.c', 'tok'),
-      ).rejects.toMatchObject({ message: expect.stringMatching(/not permitted/i) });
+      ).rejects.toMatchObject({ message: expect.stringMatching(/invalid or unsupported/i) });
       expect(axiosCreate).not.toHaveBeenCalled();
     });
 
     it('rejects the bare apex (atlassian.net has no leading label)', async () => {
       await expect(
         service.getProjects('https://atlassian.net', 'a@b.c', 'tok'),
-      ).rejects.toMatchObject({ message: expect.stringMatching(/not permitted/i) });
+      ).rejects.toMatchObject({ message: expect.stringMatching(/invalid or unsupported/i) });
     });
 
     it('rejects a multi-label subdomain against the single-label wildcard', async () => {
       await expect(
         service.getProjects('https://foo.bar.atlassian.net', 'a@b.c', 'tok'),
-      ).rejects.toMatchObject({ message: expect.stringMatching(/not permitted/i) });
+      ).rejects.toMatchObject({ message: expect.stringMatching(/invalid or unsupported/i) });
     });
 
     it('rejects a different TLD that contains atlassian.net as a label', async () => {
       await expect(
         service.getProjects('https://atlassian.net.evil.example', 'a@b.c', 'tok'),
-      ).rejects.toMatchObject({ message: expect.stringMatching(/not permitted/i) });
+      ).rejects.toMatchObject({ message: expect.stringMatching(/invalid or unsupported/i) });
     });
 
     it('matches case-insensitively', async () => {
@@ -151,7 +151,7 @@ describe('JiraApiService SSRF guard (e2e)', () => {
       const service = new JiraApiService();
       await expect(
         service.getProjects('https://acme.atlassian.net', 'a@b.c', 'tok'),
-      ).rejects.toMatchObject({ message: expect.stringMatching(/not permitted/i) });
+      ).rejects.toMatchObject({ message: expect.stringMatching(/invalid or unsupported/i) });
     });
 
     it('falls back to the default allowlist when JIRA_ALLOWED_HOSTS is blank', async () => {
@@ -209,7 +209,7 @@ describe('JiraApiService SSRF guard (e2e)', () => {
         dnsLookup.mockResolvedValue([{ address: ip, family: 4 }]);
         await expect(
           service.getProjects('https://jira.mycompany.com', 'a@b.c', 'tok'),
-        ).rejects.toMatchObject({ message: expect.stringMatching(/private or reserved/i) });
+        ).rejects.toMatchObject({ message: expect.stringMatching(/invalid or unsupported/i) });
         expect(axiosCreate).not.toHaveBeenCalled();
       });
     }
@@ -238,7 +238,7 @@ describe('JiraApiService SSRF guard (e2e)', () => {
         dnsLookup.mockResolvedValue([{ address: ip, family: 6 }]);
         await expect(
           service.getProjects('https://jira.mycompany.com', 'a@b.c', 'tok'),
-        ).rejects.toMatchObject({ message: expect.stringMatching(/private or reserved/i) });
+        ).rejects.toMatchObject({ message: expect.stringMatching(/invalid or unsupported/i) });
         expect(axiosCreate).not.toHaveBeenCalled();
       });
     }
@@ -254,7 +254,7 @@ describe('JiraApiService SSRF guard (e2e)', () => {
       ]);
       await expect(
         service.getProjects('https://jira.mycompany.com', 'a@b.c', 'tok'),
-      ).rejects.toMatchObject({ message: expect.stringMatching(/private or reserved/i) });
+      ).rejects.toMatchObject({ message: expect.stringMatching(/invalid or unsupported/i) });
     });
 
     it('accepts when all A records are public', async () => {

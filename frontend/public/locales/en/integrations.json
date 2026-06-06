@@ -129,6 +129,8 @@
     "loading_statuses": "Loading Statuses...",
     "importing": "Importing Projects...",
     "subdomain_label": "Jira Subdomain",
+    "site_url_label": "Jira Site URL",
+    "site_url_hint": "The full URL from your browser. The hostname must be permitted by the server's JIRA_ALLOWED_HOSTS setting.",
     "email_label": "Email",
     "api_token_label": "API Token",
     "new_api_token_label": "New API Token",

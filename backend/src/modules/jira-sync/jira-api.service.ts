@@ -144,9 +144,7 @@ export class JiraApiService {
 
     if (!hostnameAllowed(hostname, this.allowlist)) {
       this.logger.warn(`SSRF blocked: hostname ${hostname} not in allowlist`);
-      throw new BadRequestException(
-        `Jira site URL hostname is not permitted. Configure JIRA_ALLOWED_HOSTS to add it.`,
-      );
+      throw new BadRequestException('Invalid or unsupported Jira site URL');
     }
 
     let addresses: LookupAddress[];
@@ -163,7 +161,7 @@ export class JiraApiService {
     for (const { address } of addresses) {
       if (isPrivateIp(address)) {
         this.logger.warn(`SSRF blocked: ${hostname} resolved to private IP ${address}`);
-        throw new BadRequestException('Jira site URL resolves to a private or reserved address');
+        throw new BadRequestException('Invalid or unsupported Jira site URL');
       }
     }
 
@@ -213,6 +211,7 @@ export class JiraApiService {
       await client.get('/myself');
       return true;
     } catch (err) {
+      if (err instanceof BadRequestException) throw err;
       this.logger.warn(`Jira credential validation failed: ${err.message}`);
       return false;
     }
