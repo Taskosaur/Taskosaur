@@ -1,5 +1,73 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
+import * as dns from 'dns/promises';
+import type { LookupAddress } from 'dns';
+import * as https from 'https';
+import * as net from 'net';
+
+/**
+ * Parse JIRA_ALLOWED_HOSTS env var into a list of patterns.
+ * Each entry is either an exact hostname or a wildcard like *.atlassian.net.
+ * Wildcards match exactly one label (cert-wildcard semantics).
+ * Default: *.atlassian.net
+ */
+function parseAllowlist(): string[] {
+  const raw = process.env.JIRA_ALLOWED_HOSTS ?? '';
+  const entries = raw
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return entries.length ? entries : ['*.atlassian.net'];
+}
+
+function hostnameAllowed(hostname: string, allowlist: string[]): boolean {
+  const host = hostname.toLowerCase();
+  for (const pattern of allowlist) {
+    if (pattern === '*') return true;
+    if (pattern.startsWith('*.')) {
+      const suffix = pattern.slice(1); // e.g. ".atlassian.net"
+      if (host.endsWith(suffix) && host.indexOf('.') === host.length - suffix.length) {
+        return true;
+      }
+    } else if (pattern === host) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isPrivateIp(ip: string): boolean {
+  if (net.isIPv4(ip)) {
+    const parts = ip.split('.').map(Number);
+    const [a, b, c] = parts;
+    return (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 0 && c === 0) ||
+      (a === 192 && b === 0 && c === 2) ||
+      (a === 192 && b === 168) ||
+      (a === 198 && (b === 18 || b === 19)) ||
+      (a === 198 && b === 51 && c === 100) ||
+      (a === 203 && b === 0 && c === 113) ||
+      a >= 224
+    );
+  }
+  if (net.isIPv6(ip)) {
+    const normalized = ip.toLowerCase().split('%')[0];
+    if (normalized === '::1' || normalized === '::') return true;
+    const ipv4Match = normalized.match(/^::(?:ffff:)?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+    if (ipv4Match) return isPrivateIp(ipv4Match[1]);
+    const firstGroup = parseInt(normalized.split(':')[0] || '0', 16);
+    if ((firstGroup & 0xfe00) === 0xfc00) return true; // fc00::/7 unique local
+    if ((firstGroup & 0xffc0) === 0xfe80) return true; // fe80::/10 link-local
+    return false;
+  }
+  return true;
+}
 
 export interface JiraProject {
   id: string;
@@ -54,16 +122,86 @@ export interface JiraIssue {
 @Injectable()
 export class JiraApiService {
   private readonly logger = new Logger(JiraApiService.name);
+  private readonly allowlist: string[] = parseAllowlist();
 
-  private buildClient(siteUrl: string, email: string, apiToken: string): AxiosInstance {
+  private async buildClient(
+    siteUrl: string,
+    email: string,
+    apiToken: string,
+  ): Promise<AxiosInstance> {
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(siteUrl);
+    } catch {
+      throw new BadRequestException('Invalid Jira site URL');
+    }
+
+    if (parsedUrl.protocol !== 'https:') {
+      throw new BadRequestException('Jira site URL must use HTTPS');
+    }
+
+    const hostname = parsedUrl.hostname;
+
+    if (!hostnameAllowed(hostname, this.allowlist)) {
+      this.logger.warn(`SSRF blocked: hostname ${hostname} not in allowlist`);
+      throw new BadRequestException(
+        `Jira site URL hostname is not permitted. Configure JIRA_ALLOWED_HOSTS to add it.`,
+      );
+    }
+
+    let addresses: LookupAddress[];
+    try {
+      addresses = await dns.lookup(hostname, { all: true });
+    } catch {
+      throw new BadRequestException(`Cannot resolve Jira hostname: ${hostname}`);
+    }
+
+    if (!addresses.length) {
+      throw new BadRequestException(`Cannot resolve Jira hostname: ${hostname}`);
+    }
+
+    for (const { address } of addresses) {
+      if (isPrivateIp(address)) {
+        this.logger.warn(`SSRF blocked: ${hostname} resolved to private IP ${address}`);
+        throw new BadRequestException('Jira site URL resolves to a private or reserved address');
+      }
+    }
+
+    // Pin to first resolved address — prevents DNS rebinding after validation
+    const { address: pinnedIp, family: pinnedFamily } = addresses[0];
+
+    if (!pinnedIp || typeof pinnedFamily !== 'number' || pinnedFamily === 0) {
+      this.logger.error(
+        `DNS lookup for ${hostname} returned incomplete/invalid result: address=${pinnedIp}, family=${pinnedFamily} (type: ${typeof pinnedFamily})`,
+      );
+      throw new BadRequestException('Cannot resolve Jira hostname: invalid DNS response');
+    }
+
+    // Custom agent pins the resolved IP so subsequent connections can't be redirected
+    // by a DNS rebinding attack. Lookups for any other hostname are rejected.
+    const pinnedLookup = (
+      lookupHostname: string,
+      _opts: unknown,
+      cb: (err: Error | null, address: string, family: number) => void,
+    ) => {
+      if (lookupHostname.toLowerCase() !== hostname.toLowerCase()) {
+        return cb(new Error(`Unexpected host: ${lookupHostname}`), '', 0);
+      }
+      cb(null, pinnedIp, pinnedFamily);
+    };
+    const agent = Object.assign(new https.Agent({ lookup: pinnedLookup }), {
+      lookup: pinnedLookup,
+    });
+
     const credentials = Buffer.from(`${email}:${apiToken}`).toString('base64');
     return axios.create({
-      baseURL: `${siteUrl.replace(/\/$/, '')}/rest/api/3`,
+      baseURL: `https://${hostname}/rest/api/3`,
       headers: {
         Authorization: `Basic ${credentials}`,
         Accept: 'application/json',
         'Content-Type': 'application/json',
       },
+      httpsAgent: agent,
       timeout: 20000,
     });
   }
@@ -71,7 +209,7 @@ export class JiraApiService {
   /** Validate credentials by hitting /myself */
   async validateCredentials(siteUrl: string, email: string, apiToken: string): Promise<boolean> {
     try {
-      const client = this.buildClient(siteUrl, email, apiToken);
+      const client = await this.buildClient(siteUrl, email, apiToken);
       await client.get('/myself');
       return true;
     } catch (err) {
@@ -83,7 +221,7 @@ export class JiraApiService {
   /** List accessible Jira projects */
   async getProjects(siteUrl: string, email: string, apiToken: string): Promise<JiraProject[]> {
     try {
-      const client = this.buildClient(siteUrl, email, apiToken);
+      const client = await this.buildClient(siteUrl, email, apiToken);
       const results: JiraProject[] = [];
       let startAt = 0;
       const maxResults = 50;
@@ -114,7 +252,7 @@ export class JiraApiService {
     apiToken: string,
   ): Promise<JiraStatus[]> {
     try {
-      const client = this.buildClient(siteUrl, email, apiToken);
+      const client = await this.buildClient(siteUrl, email, apiToken);
       const { data } = await client.get(`/project/${projectKey}/statuses`);
 
       this.logger.log(
@@ -153,7 +291,7 @@ export class JiraApiService {
     apiToken: string,
   ): Promise<JiraIssue[]> {
     try {
-      const client = this.buildClient(siteUrl, email, apiToken);
+      const client = await this.buildClient(siteUrl, email, apiToken);
       const results: JiraIssue[] = [];
       let startAt = 0;
       const maxResults = 100;
@@ -245,7 +383,7 @@ export class JiraApiService {
     lastSyncAt?: Date,
   ): AsyncGenerator<JiraIssue[]> {
     try {
-      const client = this.buildClient(siteUrl, email, apiToken);
+      const client = await this.buildClient(siteUrl, email, apiToken);
       let startAt = 0;
       const maxResults = 100;
 
