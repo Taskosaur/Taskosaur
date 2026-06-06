@@ -359,16 +359,13 @@ describe('JiraApiService SSRF guard (e2e)', () => {
   });
 
   describe('validateCredentials behavior on rejection', () => {
-    it('returns false (does not throw) when the URL is SSRF-blocked', async () => {
+    it('throws BadRequestException (does not swallow) when the URL is SSRF-blocked', async () => {
       process.env.JIRA_ALLOWED_HOSTS = 'jira.mycompany.com';
       const service = new JiraApiService();
       dnsLookup.mockResolvedValue([{ address: '169.254.169.254', family: 4 }]);
-      const ok = await service.validateCredentials(
-        'https://jira.mycompany.com',
-        'a@b.c',
-        'tok',
-      );
-      expect(ok).toBe(false);
+      await expect(
+        service.validateCredentials('https://jira.mycompany.com', 'a@b.c', 'tok'),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(axiosCreate).not.toHaveBeenCalled();
     });
   });
