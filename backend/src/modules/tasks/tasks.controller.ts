@@ -42,6 +42,7 @@ import { Scope } from 'src/common/decorator/scope.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { BulkDeleteTasksDto } from './dto/bulk-delete-tasks.dto';
 import { BulkUpdateTasksStatusDto } from './dto/bulk-update-task-status.dto';
+import { BulkAssignTasksDto } from './dto/bulk-assign-tasks.dto';
 import { BulkCreateTasksDto } from './dto/bulk-create-tasks.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { RecurrenceConfigDto } from './dto/recurrence-config.dto';
@@ -171,6 +172,36 @@ export class TasksController {
   ) {
     return this.tasksService.bulkUpdateTasksStatus({
       ...bulkUpdateDto,
+      userId: user.id,
+    });
+  }
+
+  @Post('bulk-assign')
+  @ApiOperation({
+    summary: 'Bulk assign tasks to users',
+    description: 'Assign one or more users to multiple tasks at once.',
+  })
+  @ApiBody({ type: BulkAssignTasksDto })
+  @Roles(Role.OWNER, Role.MANAGER, Role.MEMBER)
+  @ApiResponse({
+    status: 200,
+    description: 'Tasks assigned successfully',
+    schema: {
+      example: {
+        assignedCount: 5,
+        failedTasks: [
+          {
+            id: '550e8400-e29b-41d4-a716-446655440002',
+            reason: 'Insufficient permissions to update this task',
+          },
+        ],
+      },
+    },
+  })
+  @HttpCode(200)
+  async bulkAssignTasks(@Body() bulkAssignDto: BulkAssignTasksDto, @CurrentUser() user: User) {
+    return this.tasksService.bulkAssignTasks({
+      ...bulkAssignDto,
       userId: user.id,
     });
   }

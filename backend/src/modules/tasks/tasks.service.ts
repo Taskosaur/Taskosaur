@@ -4274,4 +4274,216 @@ export class TasksService {
       beforeTaskId: beforeId,
     });
   }
+
+  async bulkAssignTasks(params: {
+    taskIds?: string[];
+    projectId?: string;
+    all?: boolean;
+    excludedIds?: string[];
+    assigneeIds?: string[];
+    userId: string;
+    search?: string;
+    statuses?: string;
+    priorities?: string;
+    types?: string;
+    assignees?: string;
+    reporters?: string;
+    sprintId?: string;
+    workspaceId?: string;
+  }): Promise<{
+    assignedCount: number;
+    updatedTasks: Task[];
+    failedTasks: Array<{ id: string; reason: string }>;
+  }> {
+    const {
+      taskIds,
+      projectId,
+      all,
+      excludedIds,
+      assigneeIds,
+      userId,
+      search,
+      statuses,
+      priorities,
+      types,
+      assignees,
+      reporters,
+      sprintId,
+      workspaceId,
+    } = params;
+
+    if ((!taskIds || taskIds.length === 0) && !all) {
+      throw new BadRequestException('No task IDs provided and "all" flag not set');
+    }
+
+    if (!assigneeIds) {
+      throw new BadRequestException(
+        'assigneeIds must be provided (can be empty array to clear assignments)',
+      );
+    }
+
+    // Verify all assignee user IDs exist (skip if clearing assignments with empty array)
+    if (assigneeIds.length > 0) {
+      const existingUsers = await this.prisma.user.findMany({
+        where: { id: { in: assigneeIds } },
+        select: { id: true },
+      });
+      if (existingUsers.length !== assigneeIds.length) {
+        const foundIds = existingUsers.map((u) => u.id);
+        const missingIds = assigneeIds.filter((id) => !foundIds.includes(id));
+        throw new BadRequestException(`Invalid assignee IDs: ${missingIds.join(', ')}`);
+      }
+    }
+
+    // Build task filter (same pattern as bulkUpdateTasksStatus)
+    const taskFilter: any = {};
+    if (all) {
+      if (projectId) taskFilter.projectId = projectId;
+      if (workspaceId) taskFilter.project = { workspaceId };
+
+      const andConditions: any[] = [];
+      if (statuses) andConditions.push({ statusId: { in: statuses.split(',') } });
+      if (priorities) andConditions.push({ priority: { in: priorities.split(',') } });
+      if (types) andConditions.push({ type: { in: types.split(',') } });
+      if (sprintId) andConditions.push({ sprintId });
+
+      if (search?.trim()) {
+        andConditions.push({
+          OR: [
+            { title: { contains: search.trim(), mode: 'insensitive' } },
+            { description: { contains: search.trim(), mode: 'insensitive' } },
+          ],
+        });
+      }
+
+      if (assignees) {
+        andConditions.push({ assignees: { some: { userId: { in: assignees.split(',') } } } });
+      }
+      if (reporters) {
+        andConditions.push({ reporters: { some: { userId: { in: reporters.split(',') } } } });
+      }
+      if (excludedIds && excludedIds.length > 0) {
+        andConditions.push({ id: { notIn: excludedIds } });
+      }
+
+      if (andConditions.length > 0) {
+        taskFilter.AND = andConditions;
+      }
+    } else {
+      let finalTaskIds = taskIds || [];
+      if (excludedIds && excludedIds.length > 0) {
+        finalTaskIds = finalTaskIds.filter((id) => !excludedIds.includes(id));
+      }
+      taskFilter.id = { in: finalTaskIds };
+    }
+
+    const tasks = await this.prisma.task.findMany({
+      where: taskFilter,
+      include: {
+        assignees: { select: { userId: true } },
+      },
+    });
+
+    let updatedTasks: Task[] = [];
+    let failedTasks: Array<{ id: string; reason: string }> = [];
+
+    // Handle missing tasks when using specific IDs
+    if (taskIds && taskIds.length > 0 && !all) {
+      const foundTaskIds = tasks.map((t) => t.id);
+      const missingTaskIds = taskIds.filter((id) => !foundTaskIds.includes(id));
+      failedTasks = missingTaskIds.map((id) => ({
+        id,
+        reason: 'Task not found',
+      }));
+    }
+
+    // Batch permission checks
+    const permissionChecks = await Promise.all(
+      tasks.map(async (task) => {
+        const { canChange } = await this.accessControl.getTaskAccess(task.id, userId);
+        return { taskId: task.id, canChange };
+      }),
+    );
+
+    const permissionMap = new Map(permissionChecks.map((p) => [p.taskId, p.canChange]));
+
+    // Separate tasks by permission
+    const allowedTaskIds = tasks.filter((task) => permissionMap.get(task.id)).map((t) => t.id);
+    const deniedTasks = tasks.filter((task) => !permissionMap.get(task.id));
+
+    // Add permission errors to failedTasks
+    deniedTasks.forEach((task) => {
+      failedTasks.push({
+        id: task.id,
+        reason: 'Insufficient permissions to update this task',
+      });
+    });
+
+    if (allowedTaskIds.length > 0) {
+      // Delete all existing assignees in batch
+      await this.prisma.taskAssignee.deleteMany({
+        where: { taskId: { in: allowedTaskIds } },
+      });
+
+      // If not clearing, create new assignees in batch
+      if (assigneeIds.length > 0) {
+        const assigneeData = allowedTaskIds.flatMap((taskId) =>
+          assigneeIds.map((userId) => ({
+            taskId,
+            userId,
+          })),
+        );
+
+        await this.prisma.taskAssignee.createMany({
+          data: assigneeData,
+        });
+      }
+    }
+
+    // Fetch updated tasks in batch
+    if (allowedTaskIds.length > 0) {
+      const updatedTasksList = await this.prisma.task.findMany({
+        where: { id: { in: allowedTaskIds } },
+        include: {
+          status: { select: { id: true, name: true, color: true, category: true } },
+          project: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              workspace: {
+                select: { id: true, name: true, slug: true, organizationId: true },
+              },
+            },
+          },
+          assignees: {
+            select: {
+              user: {
+                select: { id: true, email: true, firstName: true, lastName: true, avatar: true },
+              },
+            },
+          },
+          reporters: {
+            select: {
+              user: {
+                select: { id: true, email: true, firstName: true, lastName: true, avatar: true },
+              },
+            },
+          },
+          sprint: { select: { id: true, name: true, slug: true, status: true } },
+          _count: {
+            select: { childTasks: true, comments: true, attachments: true },
+          },
+        },
+      });
+
+      updatedTasks = updatedTasksList as unknown as Task[];
+    }
+
+    return {
+      assignedCount: updatedTasks.length,
+      updatedTasks: this.flattenTasksList(updatedTasks),
+      failedTasks,
+    };
+  }
 }
