@@ -67,7 +67,7 @@ export default function ConfirmationModal({
             onClick={onConfirm}
             className={cn(
               "px-6 h-10 rounded-lg font-medium shadow-sm transition-all hover:shadow-md active:scale-95",
-              type !== "danger" && "bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90"
+              type !== "danger" && "bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90"
             )}
           >
             {confirmText}
