@@ -1,4 +1,4 @@
-import { Trash2, X, CheckCircle, ChevronDown, Check } from "lucide-react";
+import { Trash2, X, CheckCircle, ChevronDown, Check, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
 import { useState } from "react";
@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import UserAvatar from "@/components/ui/avatars/UserAvatar";
 
 interface BulkActionBarProps {
   selectedCount: number;
@@ -21,6 +22,9 @@ interface BulkActionBarProps {
   excludedCount?: number;
   availableStatuses?: any[];
   onStatusUpdate?: (statusId: string) => void;
+  onAssign?: (assigneeIds: string[]) => void;
+  onClearAssignment?: () => void;
+  availableMembers?: any[];
   userRole?: string | null;
 }
 
@@ -35,13 +39,19 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
   excludedCount = 0,
   availableStatuses = [],
   onStatusUpdate,
+  onAssign,
+  onClearAssignment,
+  availableMembers = [],
   userRole,
 }) => {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [showClearAssignmentConfirmation, setShowClearAssignmentConfirmation] = useState(false);
   const [selectedStatusId, setSelectedStatusId] = useState<string | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
   const canDelete = userRole && ["SUPER_ADMIN", "OWNER", "MANAGER"].includes(userRole);
   const canUpdateStatus = userRole && ["SUPER_ADMIN", "OWNER", "MANAGER", "MEMBER", "DEVELOPER"].includes(userRole);
+  const canAssign = userRole && ["SUPER_ADMIN", "OWNER", "MANAGER", "MEMBER", "DEVELOPER"].includes(userRole);
 
   if (selectedCount === 0 && !allDelete) return null;
   const finalSelectedCount = allDelete ? (totalTask ?? 0) - excludedCount : selectedCount;
@@ -75,7 +85,29 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
     setSelectedStatusId(null);
   };
 
+  const handleMemberSelect = (userId: string) => {
+    setSelectedMemberId(userId);
+  };
+
+  const handleConfirmAssign = () => {
+    if (onAssign && selectedMemberId) {
+      onAssign([selectedMemberId]);
+      setSelectedMemberId(null);
+    }
+  };
+
+  const handleCancelAssign = () => {
+    setSelectedMemberId(null);
+  };
+
   const selectedStatus = availableStatuses.find((s) => s.id === selectedStatusId);
+  const selectedMember = availableMembers.find(
+    (m) => (m.user?.id || m.userId) === selectedMemberId
+  );
+  const selectedMemberName = selectedMember
+    ? `${selectedMember.user?.firstName || ""} ${selectedMember.user?.lastName || ""}`.trim() ||
+      selectedMember.user?.email || ""
+    : "";
 
   const allSelected = currentTaskCount && selectedCount >= currentTaskCount;
   return (
@@ -163,6 +195,84 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
               </DropdownMenu>
             )}
 
+            {onAssign && canAssign && (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 px-3 gap-2 hover:bg-primary/[0.08] text-[var(--foreground)] font-medium transition-all group"
+                    >
+                      <UserPlus className="size-4 text-primary group-hover:scale-110 transition-transform" />
+                      <span className="text-xs">Assign</span>
+                      <ChevronDown className="size-3.5 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="center"
+                    sideOffset={12}
+                    className="w-[260px] p-1.5 bg-[var(--card)]/95 backdrop-blur-sm border-[var(--border)] rounded-xl shadow-2xl animate-in zoom-in-95 duration-200"
+                  >
+                    <div className="px-2 py-2 mb-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70 border-b border-[var(--border)]/50">
+                      Assign to
+                    </div>
+                    <div className="max-h-[280px] overflow-y-auto pr-1 space-y-0.5 custom-scrollbar">
+                      {availableMembers.map((member) => {
+                        const firstName = member.user?.firstName || "";
+                        const lastName = member.user?.lastName || "";
+                        const email = member.user?.email || "";
+                        const displayName = `${firstName} ${lastName}`.trim() || email || "Unnamed";
+                        const userId = member.user?.id || member.userId;
+                        return (
+                        <DropdownMenuItem
+                          key={userId}
+                          onClick={() => handleMemberSelect(userId)}
+                          className={cn(
+                            "flex items-center justify-between gap-3 px-2.5 py-2.5 rounded-lg border border-transparent cursor-pointer transition-all",
+                            "hover:bg-primary/5 hover:border-primary/20",
+                            "group"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <UserAvatar user={member.user || member} size="xs" />
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">
+                                {displayName}
+                              </span>
+                              {email && (
+                                <span className="text-[11px] text-muted-foreground truncate max-w-[150px]">
+                                  {email}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <Check className="size-3.5 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </DropdownMenuItem>
+                      );
+                      })}
+                    </div>
+                    {availableMembers.length === 0 && (
+                      <div className="px-2 py-3 text-center text-xs text-muted-foreground italic bg-muted/30 rounded-lg">
+                        No members available
+                      </div>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                {onClearAssignment && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowClearAssignmentConfirmation(true)}
+                    className="h-9 px-3 gap-2 text-amber-600 hover:bg-amber-100 dark:text-amber-500 dark:hover:bg-amber-900/20 font-medium transition-all group"
+                  >
+                    <X className="size-4 group-hover:scale-110 transition-transform" />
+                    <span className="text-xs">Clear Assignment</span>
+                  </Button>
+                )}
+              </>
+            )}
+
             {canDelete && (
               <Button
                 variant="ghost"
@@ -216,7 +326,39 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
           type="info"
         />
       )}
+
+      {selectedMemberId && (
+        <ConfirmationModal
+          isOpen={!!selectedMemberId}
+          onClose={handleCancelAssign}
+          onConfirm={handleConfirmAssign}
+          title="Assign Tasks"
+          message={`Confirm assigning ${finalSelectedCount} ${
+            finalSelectedCount === 1 ? "task" : "tasks"
+          } to "${selectedMemberName}".`}
+          confirmText="Assign"
+          cancelText="Cancel"
+          type="info"
+        />
+      )}
+
+      {onClearAssignment && (
+        <ConfirmationModal
+          isOpen={showClearAssignmentConfirmation}
+          onClose={() => setShowClearAssignmentConfirmation(false)}
+          onConfirm={() => {
+            onClearAssignment();
+            setShowClearAssignmentConfirmation(false);
+          }}
+          title="Clear Assignment?"
+          message={`This will remove all assignees from ${finalSelectedCount} selected ${
+            finalSelectedCount === 1 ? "task" : "tasks"
+          }. You can reassign them later.`}
+          confirmText="Clear Assignment"
+          cancelText="Cancel"
+          type="warning"
+        />
+      )}
     </>
   );
 };
-

@@ -530,6 +530,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
     currentTask,
     bulkDeleteTasks,
     bulkUpdateTasksStatus,
+    bulkAssignTasks,
     updateRelativeTaskRank,
   } = useTask();
   const { getTaskStatusByProject } = useProject();
@@ -1020,7 +1021,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
 
   useEffect(() => {
     const fetchProjectMeta = async () => {
-      const projectId = currentProject?.id || newTaskData?.projectId;
+      const projectId = currentProject?.id || contextProject?.id || newTaskData?.projectId || (tasks.length > 0 ? tasks[0].projectId : null);
       if (addTaskStatuses && addTaskStatuses.length > 0) {
         setLocalAddTaskStatuses(addTaskStatuses);
       } else if (projectId) {
@@ -1033,17 +1034,19 @@ const TaskTable: React.FC<TaskTableProps> = ({
       } else {
         setLocalAddTaskStatuses([]);
       }
-      if (projectId && (!projectSlug || !projectMembers || projectMembers.length === 0)) {
+      if (projectId && (!projectMembers || projectMembers.length === 0)) {
         try {
           const members = await getProjectMembers(projectId);
           setLocalAddTaskProjectMembers(members || []);
         } catch (err) {
           setLocalAddTaskProjectMembers([]);
         }
+      } else if (projectId && projectMembers && projectMembers.length > 0) {
+        setLocalAddTaskProjectMembers(projectMembers);
       }
     };
     fetchProjectMeta();
-  }, [newTaskData.projectId, projectSlug]);
+  }, [newTaskData.projectId, projectSlug, showBulkActionBar, currentProject?.id, contextProject?.id]);
 
   const loadTaskCreationData = () => {
     if (localAddTaskStatuses && localAddTaskStatuses.length > 0) {
@@ -1219,6 +1222,143 @@ const TaskTable: React.FC<TaskTableProps> = ({
         error?.response?.data?.message ||
         error?.message ||
         "Failed to update tasks status. Please try again.";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleBulkAssign = async (assigneeIds: string[]) => {
+    const finalSelectedCount = allDelete ? (totalTask ?? 0) - excludedTaskIds.length : selectedTasks.length;
+    if (finalSelectedCount === 0) {
+      toast.warning("No tasks selected for assignment");
+      return;
+    }
+
+    try {
+      const displayCount = finalSelectedCount;
+      const loadingToast = toast.loading(
+        `Assigning ${displayCount} task${displayCount === 1 ? "" : "s"}...`
+      );
+
+      const result = await bulkAssignTasks({
+        taskIds: selectedTasks,
+        projectId: currentProject?.id,
+        all: allDelete,
+        excludedIds: excludedTaskIds,
+        assigneeIds,
+        search,
+        statuses: selectedStatuses?.join(","),
+        priorities: selectedPriorities?.join(","),
+        types: selectedTaskTypes?.join(","),
+        assignees: selectedAssignees?.join(","),
+        reporters: selectedReporters?.join(","),
+        organizationId: organizationId || currentOrganization?.id,
+        workspaceId,
+      });
+
+      toast.dismiss(loadingToast);
+
+      if (result.assignedCount > 0) {
+        toast.success(
+          `Successfully assigned ${result.assignedCount} task${result.assignedCount === 1 ? "" : "s"}`
+        );
+      }
+
+      if (result.failedTasks && result.failedTasks.length > 0) {
+        const maxErrorsToShow = 3;
+        result.failedTasks.slice(0, maxErrorsToShow).forEach((failed) => {
+          toast.error(`Failed to assign task: ${failed.reason}`, {
+            duration: 5000,
+          });
+        });
+
+        if (result.failedTasks.length > maxErrorsToShow) {
+          toast.warning(
+            `...and ${result.failedTasks.length - maxErrorsToShow} more task${result.failedTasks.length - maxErrorsToShow === 1 ? "" : "s"
+            } could not be assigned`,
+            { duration: 5000 }
+          );
+        }
+      }
+
+      if (onTaskRefetch) {
+        await onTaskRefetch();
+      }
+      
+      // Clear selection after successful bulk update
+      handleClearSelection();
+    } catch (error: any) {
+      console.error("Failed to assign tasks:", error);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to assign tasks. Please try again.";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleClearAssignment = async () => {
+    const finalSelectedCount = allDelete ? (totalTask ?? 0) - excludedTaskIds.length : selectedTasks.length;
+    if (finalSelectedCount === 0) {
+      toast.warning("No tasks selected for clearing assignment");
+      return;
+    }
+
+    try {
+      const displayCount = finalSelectedCount;
+      const loadingToast = toast.loading(
+        `Clearing assignment for ${displayCount} task${displayCount === 1 ? "" : "s"}...`
+      );
+
+      const result = await bulkAssignTasks({
+        taskIds: selectedTasks,
+        projectId: currentProject?.id,
+        all: allDelete,
+        excludedIds: excludedTaskIds,
+        assigneeIds: [],
+        search,
+        statuses: selectedStatuses?.join(","),
+        priorities: selectedPriorities?.join(","),
+        types: selectedTaskTypes?.join(","),
+        assignees: selectedAssignees?.join(","),
+        reporters: selectedReporters?.join(","),
+        organizationId: organizationId || currentOrganization?.id,
+        workspaceId,
+      });
+
+      toast.dismiss(loadingToast);
+
+      if (result.assignedCount > 0) {
+        toast.success(
+          `Successfully cleared assignment for ${result.assignedCount} task${result.assignedCount === 1 ? "" : "s"}`
+        );
+      }
+
+      if (result.failedTasks && result.failedTasks.length > 0) {
+        const maxErrorsToShow = 3;
+        result.failedTasks.slice(0, maxErrorsToShow).forEach((failed) => {
+          toast.error(`Failed to clear assignment: ${failed.reason}`, {
+            duration: 5000,
+          });
+        });
+
+        if (result.failedTasks.length > maxErrorsToShow) {
+          toast.warning(
+            `...and ${result.failedTasks.length - maxErrorsToShow} more task${result.failedTasks.length - maxErrorsToShow === 1 ? "" : "s"
+            } could not be updated`,
+            { duration: 5000 }
+          );
+        }
+      }
+
+      if (onTaskRefetch) {
+        await onTaskRefetch();
+      }
+    } catch (error: any) {
+      console.error("Failed to clear assignment:", error);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to clear assignment. Please try again.";
       toast.error(errorMessage);
     }
   };
@@ -2486,6 +2626,13 @@ const TaskTable: React.FC<TaskTableProps> = ({
           excludedCount={excludedTaskIds.length}
           onStatusUpdate={handleBulkStatusUpdate}
           availableStatuses={localAddTaskStatuses}
+          onAssign={handleBulkAssign}
+          onClearAssignment={handleClearAssignment}
+          availableMembers={
+            projectSlug && projectMembers && projectMembers.length > 0
+              ? projectMembers
+              : localAddTaskProjectMembers
+          }
           userRole={userRole}
         />
       )}

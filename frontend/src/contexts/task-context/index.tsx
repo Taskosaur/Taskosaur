@@ -189,6 +189,26 @@ interface TaskContextType extends TaskState {
     updatedTasks: Task[];
     failedTasks: Array<{ id: string; reason: string }>;
   }>;
+  bulkAssignTasks: (params: {
+    taskIds?: string[];
+    projectId?: string;
+    all?: boolean;
+    excludedIds?: string[];
+    assigneeIds: string[];
+    search?: string;
+    statuses?: string;
+    priorities?: string;
+    types?: string;
+    assignees?: string;
+    reporters?: string;
+    sprintId?: string;
+    workspaceId?: string;
+    organizationId?: string;
+  }) => Promise<{
+    assignedCount: number;
+    updatedTasks: Task[];
+    failedTasks: Array<{ id: string; reason: string }>;
+  }>;
   getTaskActivity: (
     taskId: string,
     isAth: boolean,
@@ -872,6 +892,53 @@ export function TaskProvider({ children }: TaskProviderProps) {
         if (result.updatedTasks && result.updatedTasks.length > 0) {
           setTaskState((prev) => {
             const updatedTaskIds = result.updatedTasks.map((t: any) => t.id);
+            return {
+              ...prev,
+              tasks: prev.tasks.map((task) => {
+                const updatedTask = result.updatedTasks.find((t: any) => t.id === task.id);
+                return updatedTask ? { ...task, ...updatedTask } : task;
+              }),
+              currentTask: result.updatedTasks.find((t: any) => t.id === prev.currentTask?.id || t.slug === prev.currentTask?.slug)
+                ? {
+                  ...prev.currentTask,
+                  ...result.updatedTasks.find((t: any) => t.id === prev.currentTask?.id || t.slug === prev.currentTask?.slug),
+                }
+                : prev.currentTask,
+            };
+          });
+        }
+
+        return result;
+      },
+
+      bulkAssignTasks: async (params: {
+        taskIds?: string[];
+        projectId?: string;
+        all?: boolean;
+        excludedIds?: string[];
+        assigneeIds: string[];
+        search?: string;
+        statuses?: string;
+        priorities?: string;
+        types?: string;
+        assignees?: string;
+        reporters?: string;
+        sprintId?: string;
+        workspaceId?: string;
+        organizationId?: string;
+      }): Promise<{
+        assignedCount: number;
+        updatedTasks: Task[];
+        failedTasks: Array<{ id: string; reason: string }>;
+      }> => {
+        const result = await handleApiOperation(
+          () => taskApi.bulkAssignTasks(params),
+          true,
+          false
+        );
+
+        if (result.updatedTasks && result.updatedTasks.length > 0) {
+          setTaskState((prev) => {
             return {
               ...prev,
               tasks: prev.tasks.map((task) => {

@@ -1420,4 +1420,38 @@ export const taskApi = {
       throw error;
     }
   },
+
+  bulkAssignTasks: async (params: {
+    taskIds?: string[];
+    projectId?: string;
+    all?: boolean;
+    excludedIds?: string[];
+    assigneeIds: string[];
+    search?: string;
+    statuses?: string;
+    priorities?: string;
+    types?: string;
+    assignees?: string;
+    reporters?: string;
+    sprintId?: string;
+    organizationId?: string;
+    workspaceId?: string;
+  }): Promise<{
+    assignedCount: number;
+    updatedTasks: Task[];
+    failedTasks: Array<{ id: string; reason: string }>;
+  }> => {
+    try {
+      const response = await api.post<{
+        assignedCount: number;
+        updatedTasks: Task[];
+        failedTasks: Array<{ id: string; reason: string }>;
+      }>("/tasks/bulk-assign", params);
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Bulk assign tasks error:", error?.response || error);
+      throw error;
+    }
+  },
 };
