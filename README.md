@@ -43,6 +43,7 @@ Taskosaur combines traditional project management features with Conversational A
   - [Manual Setup](#manual-setup)
 - [Development](#development)
 - [Project Structure](#project-structure)
+- [Jira & Trello Integration](#jira--trello-integration)
 - [Deployment](#deployment)
 - [API Documentation](#api-documentation)
 - [Contributing](#contributing)
@@ -162,6 +163,14 @@ If you prefer to run services locally:
    # Queue Configuration
    MAX_CONCURRENT_JOBS=5
    JOB_RETRY_ATTEMPTS=3
+
+   # Jira Integration - SSRF allowlist
+   # Comma-separated hostnames. Supports exact match or single-level wildcard (*.atlassian.net).
+   # Use * to allow any host (not recommended in production).
+   # Defaults to *.atlassian.net when unset.
+   # JIRA_ALLOWED_HOSTS=*.atlassian.net
+   # Self-hosted Jira Data Center example:
+   # JIRA_ALLOWED_HOSTS=jira.mycompany.com,*.atlassian.net
    ```
 
 4. **Setup Database**
@@ -345,6 +354,112 @@ Taskosaur's Conversational AI Task Execution features conversational AI for task
 "Set up automated workflow: when task is marked done, create review subtask"
 ```
 
+## Jira & Trello Integration
+
+Taskosaur supports two connection levels for both Jira and Trello:
+
+| Level | Scope | Required role | Use when |
+|-------|-------|---------------|----------|
+| **Workspace** | One Jira/Trello account linked to a whole workspace; bulk-import multiple projects/boards at once | Manager, Owner | Migrating or importing many projects |
+| **Project** | One Jira project or Trello board linked directly to a single Taskosaur project | Member, Manager, Owner | Ongoing bidirectional sync for one project |
+
+---
+
+### Jira - Workspace Level
+
+Connect your Jira account once at the workspace level, then browse and import any number of Jira projects as Taskosaur projects.
+
+1. Generate an Atlassian API token at `https://id.atlassian.com/manage-profile/security/api-tokens`
+2. In Taskosaur, open **Workspace Settings** → **Integrations** → **Connect Jira**
+3. Provide:
+   - **Jira Site URL** - e.g. `https://yourorg.atlassian.net`
+   - **Email** - your Atlassian account email
+   - **API Token** - the token generated above
+4. Once connected, use **Browse Projects** to see all accessible Jira projects, then select which ones to import
+5. Use **Sync All** to trigger a manual sync across all connected projects in the workspace
+
+Workspace-level Jira operations (Manager/Owner only):
+
+| Action | Description |
+|--------|-------------|
+| Connect | Link workspace to a Jira account |
+| Update credentials | Rotate email or API token |
+| List projects | Browse all Jira projects accessible with current credentials |
+| Import projects | Create Taskosaur projects from selected Jira projects |
+| Sync all | Manually trigger sync for every connected project in the workspace |
+| Disconnect | Remove the workspace Jira connection |
+
+---
+
+### Jira - Project Level
+
+Link a single Taskosaur project to a specific Jira project for ongoing bidirectional sync.
+
+1. Open a project → **Settings** → **Integrations** → **Connect Jira**
+2. Provide:
+   - **Jira Site URL** - e.g. `https://yourorg.atlassian.net`
+   - **Jira Project Key** - the key shown in Jira (e.g. `PROJ`)
+   - **Email** - your Atlassian account email
+   - **API Token** - your Atlassian API token
+   - **Sync Interval** - minutes between auto-syncs (5-1440, default: 15)
+   - **Status Mappings** _(optional)_ - map Jira status IDs to Taskosaur status IDs
+
+> **Tip:** Use the **Validate & List Projects** endpoint before connecting to discover available project keys without needing to know one in advance.
+
+---
+
+### JIRA_ALLOWED_HOSTS
+
+All Jira site URLs are validated against an SSRF allowlist before any outbound request. Set `JIRA_ALLOWED_HOSTS` in your `.env` to control which hostnames are permitted.
+
+| Value | Behavior |
+|-------|----------|
+| _(unset or blank)_ | Defaults to `*.atlassian.net` - Atlassian Cloud only |
+| `*.atlassian.net` | Explicit Atlassian Cloud only |
+| `jira.mycompany.com` | Single self-hosted Jira Data Center instance |
+| `jira.mycompany.com,*.atlassian.net` | Both self-hosted DC and Atlassian Cloud |
+| `*` | Any host - **not recommended in production** |
+
+Wildcards follow cert-wildcard semantics: `*.atlassian.net` matches `yourorg.atlassian.net` but **not** `sub.yourorg.atlassian.net`.
+
+Regardless of this setting, the server always blocks any hostname that resolves to a private, loopback, or link-local IP (RFC 1918, `169.254.x.x`, `::1`, carrier-grade NAT, multicast, etc.). Hostnames are resolved at validation time and the resolved IP is pinned for the duration of the request to prevent DNS-rebinding attacks.
+
+Credentials are encrypted at rest using AES-256-GCM.
+
+---
+
+### Trello - Workspace Level
+
+Connect your Trello account once at the workspace level, then browse and import Trello boards as Taskosaur projects.
+
+1. Get your API key at `https://trello.com/power-ups/admin`
+2. Generate a token via `https://trello.com/1/authorize?expiration=never&scope=read,write&response_type=token&key=YOUR_KEY`
+3. In Taskosaur, open **Workspace Settings** → **Integrations** → **Connect Trello**
+4. Provide:
+   - **API Key** - your personal Trello API key
+   - **Token** - the token generated above
+   - **Workspace ID** _(optional)_ - filter boards to a specific Trello workspace
+5. Use **Browse Boards** to see available boards, then select which to import
+6. Use **Sync All** to manually sync all connected boards in the workspace
+
+---
+
+### Trello - Project Level
+
+Link a single Taskosaur project to a specific Trello board for ongoing sync.
+
+1. Open a project → **Settings** → **Integrations** → **Connect Trello**
+2. Provide:
+   - **Board ID** - the short link from the board URL (the 8-character alphanumeric code, e.g. `aBcDeFgH` in `trello.com/b/aBcDeFgH/board-name`)
+   - **API Key** - your personal Trello API key
+   - **Token** - your Trello token
+   - **Sync Interval** - minutes between auto-syncs (5-1440, default: 15)
+   - **Status Mappings** _(optional)_ - map Trello list IDs to Taskosaur status IDs
+
+Trello credentials are encrypted at rest. The Trello API host (`api.trello.com`) is hardcoded server-side and cannot be redirected.
+
+---
+
 ## Features
 
 _Taskosaur is actively under development. The following features represent our planned capabilities, with many already implemented and others in progress._
@@ -425,6 +540,8 @@ _Taskosaur is actively under development. The following features represent our p
 - **Real-time Updates**: Live updates using WebSocket connections
 - **Activity Logging**: Comprehensive audit trail of all changes
 - **Search Functionality**: Working toward global search across projects and tasks
+- **Jira Sync**: Bidirectional sync with Jira Cloud and self-hosted Data Center (configurable via `JIRA_ALLOWED_HOSTS`)
+- **Trello Import**: Sync Trello boards and cards into Taskosaur projects
 
 ### Analytics & Reporting
 
