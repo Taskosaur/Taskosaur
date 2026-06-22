@@ -100,6 +100,8 @@ export class AuthService {
         avatar: user.avatar || undefined,
         bio: user.bio || undefined,
         mobileNumber: user.mobileNumber || undefined,
+        language: user.language || undefined,
+        timezone: user.timezone || undefined,
       },
     };
   }
@@ -181,6 +183,8 @@ export class AuthService {
         avatar: user.avatar || undefined,
         bio: user.bio || undefined,
         mobileNumber: user.mobileNumber || undefined,
+        language: user.language || undefined,
+        timezone: user.timezone || undefined,
       },
     };
   }
@@ -265,6 +269,8 @@ export class AuthService {
           username: user.username || undefined,
           role: user.role,
           avatar: user.avatar || undefined,
+          language: user.language || undefined,
+          timezone: user.timezone || undefined,
         },
       };
     } catch (error) {

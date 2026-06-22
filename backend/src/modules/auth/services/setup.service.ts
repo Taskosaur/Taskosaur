@@ -117,6 +117,8 @@ export class SetupService {
             avatar: user.avatar || undefined,
             bio: user.bio || undefined,
             mobileNumber: user.mobileNumber || undefined,
+            language: user.language || undefined,
+            timezone: user.timezone || undefined,
           },
         };
       });

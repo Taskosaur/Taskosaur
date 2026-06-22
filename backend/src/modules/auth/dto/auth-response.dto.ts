@@ -28,6 +28,8 @@ export class AuthResponseDto {
     avatar?: string;
     bio?: string;
     mobileNumber?: string;
+    language?: string;
+    timezone?: string;
   };
 }
 
