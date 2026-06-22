@@ -588,13 +588,15 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
            if (currentOrgId) {
                 const existingOrg = orgs.find(org => org.id === currentOrgId);
                 if (existingOrg) {
-                    // Only update if different to avoid potential loops (though setCurrentOrganization might handle it)
+                    // Preserve the user's previously selected org from localStorage
                     stateMethods.setCurrentOrganization(existingOrg);
                 } else if (orgs.length > 0) {
-                     stateMethods.setCurrentOrganization(orgs[0]);
+                    // Cached org no longer accessible (removed/revoked), fall back to default
+                     stateMethods.setCurrentOrganization(orgs.find((org) => org.isDefault) || orgs[0]);
                 }
            } else if (orgs.length > 0) {
-               stateMethods.setCurrentOrganization(orgs[0]);
+               // No cached selection (first visit or after login), set to default
+               stateMethods.setCurrentOrganization(orgs.find((org) => org.isDefault) || orgs[0]);
            }
        });
     }

@@ -103,26 +103,32 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     error: null,
   });
 
+  const ORG_CACHE_TTL = 5 * 60 * 1000;
+
   const setupUserOrganization = useCallback(async (userId: string) => {
     try {
-      // Check if a current orgId exists in local storage
-      const savedOrgId = localStorage.getItem("currentOrganizationId");
+      const cachedOrgId = localStorage.getItem("currentOrganizationId");
+      const cachedAt = localStorage.getItem("currentOrganizationCachedAt");
+      const now = Date.now();
 
-      // If org is already saved skip the API call.
-      if (savedOrgId) {
+      if (cachedOrgId && cachedAt && now - parseInt(cachedAt, 10) < ORG_CACHE_TTL) {
+        window.dispatchEvent(new CustomEvent("organizationChanged"));
         return;
       }
 
-      // No org saved yet (e.g., first login), fetch and set one
       const organizations = await organizationApi.getUserOrganizations(userId);
 
       if (!organizations || organizations.length === 0) {
         localStorage.removeItem("currentOrganizationId");
+        localStorage.removeItem("currentOrganizationCachedAt");
         return;
       }
 
-      const selectedOrg = organizations[0];
+      const defaultOrg = organizations.find((org) => org.isDefault);
+      const selectedOrg = defaultOrg || organizations[0];
+
       localStorage.setItem("currentOrganizationId", selectedOrg.id);
+      localStorage.setItem("currentOrganizationCachedAt", now.toString());
       window.dispatchEvent(new CustomEvent("organizationChanged"));
     } catch (error) {
       console.error("Error setting up user organization:", error);
@@ -169,8 +175,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         if (user && isAuth) {
           setAuthState((prev) => ({ ...prev, user }));
 
-          // Setup organization for the user
-          await setupUserOrganization(user.id);
+          // Do NOT call setupUserOrganization here - it resets the org to default on every page reload.
+          // Organization setup is handled by OrganizationContext which reads from localStorage
+          // and only falls back to default when there's no cached selection.
 
           // Sync AI settings from backend profile/settings
           await loadUserAISettings();
@@ -193,7 +200,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initializeAuth();
-  }, [setupUserOrganization, loadUserAISettings]);
+  }, [loadUserAISettings]);
 
   /**
    * Helper to handle API calls with error handling and optional user state update.
@@ -234,10 +241,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const user = authApi.getCurrentUser();
       if (!user) return "/login";
-      
-      // If we already have a saved organization, return early to avoid redundant API calls.
-      const savedOrgId = localStorage.getItem("currentOrganizationId");
-      if (savedOrgId) {
+
+      // If there's already a cached org, keep it — don't overwrite with default
+      const cachedOrgId = localStorage.getItem("currentOrganizationId");
+      if (cachedOrgId) {
         return "/dashboard";
       }
 
@@ -246,8 +253,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem("currentOrganizationId");
         return "/organization";
       }
-      
-      const selectedOrg = organizations[0];
+
+      const defaultOrg = organizations.find((org) => org.isDefault);
+      const selectedOrg = defaultOrg || organizations[0];
       localStorage.setItem("currentOrganizationId", selectedOrg.id);
       return "/dashboard";
     } catch (err) {
@@ -397,5 +405,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }
+
+export const invalidateOrgCache = () => {
+  localStorage.removeItem("currentOrganizationId");
+  localStorage.removeItem("currentOrganizationCachedAt");
+};
 
 export default AuthProvider;
