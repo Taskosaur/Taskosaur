@@ -34,6 +34,7 @@ export default function LanguageSection() {
     { code: "es", name: "Español" },
     { code: "fr", name: "Français" },
     { code: "pt", name: "Português" },
+    { code: "de", name: "Deutsch" },
   ];
 
   return (

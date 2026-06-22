@@ -9,12 +9,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/auth-context";
 
 export function LanguageToggle() {
   const { i18n } = useTranslation();
+  const { getCurrentUser, updateUser } = useAuth();
 
-  const changeLanguage = (lng: string) => {
+  const changeLanguage = async (lng: string) => {
     i18n.changeLanguage(lng);
+    const user = getCurrentUser();
+    if (user) {
+      try {
+        await updateUser(user.id, { language: lng });
+      } catch {
+        // silent fail
+      }
+    }
   };
 
   const languages = [
@@ -22,6 +32,7 @@ export function LanguageToggle() {
     { code: "es", name: "Español" },
     { code: "fr", name: "Français" },
     { code: "pt", name: "Português" },
+    { code: "de", name: "Deutsch" },
   ];
 
   const currentLanguageName = languages.find((l) => l.code === i18n.language)?.name || "English";
