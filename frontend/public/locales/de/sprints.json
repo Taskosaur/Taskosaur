@@ -1,0 +1,141 @@
+{
+  "title": "Sprint-Verwaltung",
+  "description": "Organisiere deine Arbeit in fokussierten Iterationen und verfolge den Fortschritt effektiv.",
+  "createSprint": "Sprint erstellen",
+  "noSprints": {
+    "title": "Noch keine Sprints",
+    "description": "Erstelle deinen ersten Sprint, um deine Arbeit in fokussierten Iterationen zu organisieren."
+  },
+  "deleteSprint": {
+    "title": "Sprint löschen",
+    "message": "Bist du sicher, dass du den Sprint \"{{name}}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "confirm": "Löschen",
+    "deleting": "Wird gelöscht...",
+    "cancel": "Abbrechen"
+  },
+  "errors": {
+    "workspaceNotFound": "Arbeitsbereich nicht gefunden",
+    "projectNotFound": "Projekt nicht gefunden",
+    "loadingProjectError": "Fehler beim Laden der Projektdaten",
+    "loadingPageError": "Fehler beim Laden der Seitendaten",
+    "fetchingProjectError": "Fehler beim Abrufen der Projektdaten",
+    "fetchTasksFailed": "Fehler beim Abrufen der Aufgaben"
+  },
+  "sprintTasks": {
+    "title": "Sprint-Aufgaben",
+    "description": "Verwalte und verfolge alle Aufgaben in diesem Sprint. {{total}} Aufgaben insgesamt",
+    "searchPlaceholder": "Aufgaben suchen..."
+  },
+  "card": {
+    "noDates": "Keine Daten festgelegt",
+    "days": "{{count}} Tage",
+    "completeSprint": "Sprint abschließen",
+    "editSprint": "Sprint bearbeiten",
+    "deleteSprint": "Sprint löschen"
+  },
+  "form": {
+    "editTitle": "Sprint bearbeiten",
+    "createTitle": "Neuen Sprint erstellen",
+    "editDescription": "Aktualisiere Sprintdetails und Zeitplan",
+    "createDescription": "Erstelle einen neuen Sprint, um deine Arbeit in fokussierten Iterationen zu organisieren",
+    "nameLabel": "Sprint-Name",
+    "namePlaceholder": "Sprint-Namen eingeben",
+    "goalLabel": "Sprint-Ziel",
+    "goalPlaceholder": "Beschreibe das Hauptziel und die Ergebnisse für diesen Sprint...",
+    "goalHint": "Hilf deinem Team, den Fokus und die erwarteten Ergebnisse des Sprints zu verstehen.",
+    "statusLabel": "Status",
+    "statusPlaceholder": "Status auswählen",
+    "startDateLabel": "Startdatum",
+    "endDateLabel": "Enddatum",
+    "cancel": "Abbrechen",
+    "update": "Aktualisieren",
+    "create": "Erstellen",
+    "updating": "Wird aktualisiert...",
+    "creating": "Sprint wird erstellt...",
+    "statuses": {
+      "planning": "Planung",
+      "active": "Aktiv",
+      "completed": "Abgeschlossen",
+      "cancelled": "Abgebrochen"
+    },
+    "validation": {
+      "nameRequired": "Sprint-Name ist erforderlich",
+      "startDateRequired": "Startdatum ist erforderlich",
+      "endDateRequired": "Enddatum ist erforderlich",
+      "endDateAfterStart": "Das Enddatum muss nach dem Startdatum liegen"
+    },
+    "saveFailed": "Sprint konnte nicht gespeichert werden"
+  },
+  "board": {
+    "loading": "Wird geladen...",
+    "invalidDate": "Ungültiges Datum",
+    "noSprintSelected": "Kein Sprint ausgewählt",
+    "selectSprintToView": "Bitte wähle einen Sprint aus, um das Board anzuzeigen",
+    "noSprintSelectedSubtitle": "Bitte wähle oben im Dropdown einen Sprint aus, um den Fortschritt zu sehen.",
+    "tasks": "Aufgaben",
+    "points": "Punkte",
+    "startSprint": "Sprint starten",
+    "completeSprint": "Sprint abschließen",
+    "tasksCompleted": "Aufgaben abgeschlossen",
+    "storyPoints": "Story Points",
+    "completionRate": "Abschlussrate",
+    "statuses": {
+      "sprintBacklog": "Sprint-Backlog",
+      "inProgress": "In Bearbeitung",
+      "testing": "Testen",
+      "done": "Erledigt"
+    }
+  },
+  "selector": {
+    "noActiveSprint": "Kein aktiver Sprint",
+    "noSprintsAvailable": "Keine Sprints verfügbar",
+    "createFirstSprint": "Erstelle deinen ersten Sprint"
+  },
+  "progress": {
+    "title": "Sprint-Fortschritt",
+    "timeline": "Sprint-Zeitplan",
+    "daysRemaining": "{{count}} Tage verbleibend",
+    "sprintEnded": "Sprint beendet",
+    "complete": "abgeschlossen",
+    "timeSpent": "Aufgewendete Zeit",
+    "estimated": "geschätzt",
+    "tasksComplete": "Aufgaben erledigt",
+    "inProgress": "in Bearbeitung",
+    "velocity": "Velocity",
+    "storyPointsPerDay": "Story Points pro Tag",
+    "capacity": "Kapazität",
+    "burndown": "Sprint-Burndown",
+    "burndownPlaceholder": "Das Burndown-Diagramm wird hier implementiert",
+    "quickActions": "Schnellaktionen",
+    "viewReport": "Sprint-Bericht anzeigen",
+    "exportData": "Daten exportieren"
+  },
+  "planning": {
+    "title": "Sprint-Planung",
+    "selectSprint": "Sprint auswählen",
+    "selectSprintToPlan": "Bitte wähle oben im Dropdown einen Sprint aus, um mit der Planung zu beginnen.",
+    "saveChanges": "Änderungen speichern",
+    "startSprint": "Sprint starten",
+    "goal": "Sprint-Ziel",
+    "noGoal": "Kein Ziel festgelegt",
+    "duration": "Dauer",
+    "noDates": "Keine Daten festgelegt",
+    "capacity": "Kapazität",
+    "hours": "Stunden",
+    "productBacklog": "Produkt-Backlog",
+    "tasks": "Aufgaben",
+    "sp": "SP",
+    "noTasksInBacklog": "Keine Aufgaben im Backlog",
+    "sprintBacklog": "Sprint-Backlog",
+    "dragTasksHere": "Ziehe Aufgaben hierher, um sie zum Sprint hinzuzufügen",
+    "clickToMove": "Klicke auf Aufgaben, um sie zwischen Backlog und Sprint zu verschieben",
+    "summary": "Sprint-Zusammenfassung",
+    "estimatedTime": "Geschätzte Zeit"
+  },
+  "tasksPanel": {
+    "title": "Sprint-Aufgaben",
+    "tasks": "Aufgaben",
+    "errorNoOrg": "Keine Organisation ausgewählt. Bitte wähle zuerst eine Organisation aus.",
+    "fetchFailed": "Fehler beim Abrufen der Aufgaben"
+  }
+}

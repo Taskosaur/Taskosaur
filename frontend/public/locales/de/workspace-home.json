@@ -1,0 +1,160 @@
+{
+  "analytics_title": "Arbeitsbereich-Analyse",
+  "analytics_description": "Einblicke in die Leistung und Kennzahlen deines Arbeitsbereichs",
+  "dashboard_settings": "Dashboard-Einstellungen",
+  "customize_widgets": "Passe deine Dashboard-Widgets an",
+  "no_widgets_title": "Keine Widgets zum Anzeigen",
+  "no_widgets_description": "Alle Widgets sind derzeit ausgeblendet. Verwende die Anpassen-Schaltfläche, um Widgets anzuzeigen.",
+  "show_all_widgets": "Alle Widgets anzeigen",
+  "no_data": "Keine Analysedaten für diese Organisation verfügbar.",
+  "load_data": "Daten laden",
+  "error_loading": "Fehler beim Laden der Organisationsanalysen:",
+  "widgets": {
+    "kpi_metrics": "KPI-Kennzahlen",
+    "project_status": "Verteilung des Projektstatus",
+    "task_priority": "Aufschlüsselung der Aufgabenpriorität",
+    "task_type": "Verteilung der Aufgabentypen",
+    "sprint_status": "Sprint-Statusübersicht",
+    "monthly_completion": "Monatlicher Aufgabenabschluss",
+    "team_utilization": "Verteilung der Teamrollen",
+    "quality_metrics": "Qualität der Bug-Behebung",
+    "workspace_projects": "Projekte pro Arbeitsbereich",
+    "member_workload": "Verteilung der Arbeitsbelastung der Mitglieder",
+    "resource_allocation": "Ressourcenallokation"
+  },
+  "roles": {
+    "admin": "Admin",
+    "manager": "Manager",
+    "member": "Mitglied",
+    "viewer": "Betrachter",
+    "guest": "Gast",
+    "contributor": "Mitwirkender"
+  },
+  "project_status": {
+    "planning": "Planung",
+    "active": "Aktiv",
+    "on_hold": "Pausiert",
+    "completed": "Abgeschlossen",
+    "cancelled": "Abgebrochen"
+  },
+  "task_types": {
+    "story": "Story",
+    "task": "Aufgabe",
+    "bug": "Bug",
+    "epic": "Epic",
+    "feature": "Feature"
+  },
+  "priority": {
+    "lowest": "Niedrigste",
+    "low": "Niedrig",
+    "medium": "Mittel",
+    "high": "Hoch",
+    "highest": "Höchste"
+  },
+  "workload": {
+    "label": "Arbeitsbelastung",
+    "low": "Niedrig",
+    "medium": "Mittel",
+    "high": "Hoch",
+    "assigned": "Zugewiesene Aufgaben",
+    "reported": "Gemeldete Aufgaben"
+  },
+  "quality": {
+    "resolved": "Behoben",
+    "remaining": "Verbleibend",
+    "low_performance": "Geringe Leistung",
+    "medium_performance": "Mittlere Leistung",
+    "high_performance": "Hohe Leistung",
+    "resolution_rate": "Behebungsrate"
+  },
+  "project_count": {
+    "low": "<= 5 Projekte",
+    "medium": "6-10 Projekte",
+    "high": "> 10 Projekte"
+  },
+  "charts": {
+    "project_status_description": "Aktuelle Statusaufschlüsselung aller Projekte",
+    "project_status_description_with_count": "{{count}} Projekte insgesamt in der Organisation",
+    "task_priority_description": "Übersicht der Aufgaben nach Prioritätsstufen über alle Projekte hinweg",
+    "task_type_description": "Verteilung der Aufgaben nach Typ",
+    "task_type_description_with_count": "{{count}} Aufgaben insgesamt in der Organisation",
+    "sprint_status_description": "Aktueller Status aller Sprints über Projekte hinweg",
+    "kpi_metrics_description": "Wichtige Leistungsindikatoren für deinen Arbeitsbereich",
+    "monthly_completion_description": "Anzahl der jeden Monat abgeschlossenen Aufgaben",
+    "team_utilization_description_all": "Aufschlüsselung der Mitgliederrollen in der Organisation",
+    "team_utilization_description_workspace": "Rollenaufschlüsselung für den ausgewählten Arbeitsbereich",
+    "all_workspaces": "Alle Arbeitsbereiche",
+    "member_workload_description": "Aktive Aufgaben vs. gemeldete Aufgaben pro Mitglied",
+    "workspace_projects_description": "Projektverteilung über Arbeitsbereiche hinweg",
+    "resource_allocation_description_all": "Verteilung der Teammitglieder nach Rolle",
+    "resource_allocation_description_project": "Rollenverteilung für das ausgewählte Projekt",
+    "all_projects": "Alle Projekte",
+    "count": "Anzahl",
+    "quality_metrics_description_with_count": "{{resolved}}/{{total}} Bugs behoben ({{rate}}%)"
+  },
+  "kpi": {
+    "total_projects": "Projekte gesamt",
+    "active_projects": "Aktive Projekte",
+    "completion_rate": "Abschlussrate",
+    "total_tasks": "Aufgaben gesamt",
+    "overdue_tasks": "Überfällige Aufgaben",
+    "task_health": "Aufgabenzustand",
+    "excellent": "Exzellent",
+    "good": "Gut",
+    "needs_focus": "Erfordert Aufmerksamkeit",
+    "perfect": "Perfekt",
+    "critical": "Kritisch",
+    "monitor": "Überwachung"
+  },
+  "header": {
+    "ready_to_tackle": "Bereit, deine Ziele anzugehen?",
+    "todays_agenda": "Tagesagenda",
+    "new_task": "Neue Aufgabe"
+  },
+  "analytics": {
+    "failed_to_fetch_today_task_data": "Fehler beim Abrufen der heutigen Aufgabendaten",
+    "error_loading_organization_analytics": "Fehler beim Laden der Organisationsanalysen:",
+    "today_agenda_tooltip": "Tagesagenda",
+    "dashboard_settings_tooltip": "Dashboard-Einstellungen",
+    "dashboard_title": "Dashboard",
+    "dashboard_description": "Umfassende Einblicke in die Leistung und den Gesundheitszustand deiner Organisation",
+    "no_analytics_data": "Keine Analysedaten für diese Organisation verfügbar.",
+    "load_data_button": "Daten laden",
+    "no_widgets_title": "Keine Widgets zum Anzeigen",
+    "no_widgets_description": "Alle Widgets sind derzeit ausgeblendet. Verwende die Anpassen-Schaltfläche, um Widgets anzuzeigen.",
+    "show_all_widgets_button": "Alle Widgets anzeigen",
+    "failed_to_load_widget_data": "Fehler beim Laden der Daten für {{widgetTitle}}",
+    "retry_button": "Wiederholen",
+    "kpi_cards": {
+      "workspaces": "Arbeitsbereiche gesamt",
+      "projects": "Projekte gesamt",
+      "members": "Teammitglieder",
+      "task_completion": "Aufgabenabschluss",
+      "bug_resolution": "Bug-Behebung",
+      "overdue_tasks": "Überfällige Aufgaben",
+      "active_sprints": "Aktive Sprints",
+      "productivity": "Gesamtproduktivität",
+      "descriptions": {
+        "active_status": "{{count}} aktiv",
+        "organization_members": "Organisationsmitglieder",
+        "tasks_count": "{{completed}} / {{total}} Aufgaben",
+        "resolved_count": "{{resolved}} / {{total}} behoben",
+        "require_attention": "Erfordern Aufmerksamkeit",
+        "currently_running": "Derzeit laufend",
+        "task_completion_rate": "Aufgabenabschlussrate"
+      }
+    }
+  },
+  "agenda": {
+    "overdue": "Überfällig",
+    "today": "Heute",
+    "tomorrow": "Morgen",
+    "due": "Fällig",
+    "no_due_date": "Kein Fälligkeitsdatum",
+    "all_clear": "Alles im grünen Bereich für heute!",
+    "no_tasks_scheduled": "Keine Aufgaben geplant. Du bist auf dem Laufenden!",
+    "great_job": "Großartige Arbeit, so organisiert zu bleiben!",
+    "open_task": "Offene Aufgabe: {{title}}",
+    "click_to_view": "Klicke hier, um Aufgabendetails anzuzeigen"
+  }
+}

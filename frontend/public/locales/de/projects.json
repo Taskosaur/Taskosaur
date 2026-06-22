@@ -1,0 +1,141 @@
+{
+  "title": "Ihre Projekte",
+  "description": "Verwalten und organisieren Sie Projekte innerhalb dieser Organisation.",
+  "search_placeholder": "Projekte suchen...",
+  "advanced_filters": "Erweiterte Filter",
+  "filter_placeholder": "Projekte filtern...",
+  "create_project": "Projekt erstellen",
+  "no_projects_found": "Keine Projekte gefunden",
+  "no_projects_match": "Keine Projekte entsprechen Ihrer aktuellen Suche und Ihren Filtern. Versuchen Sie, Ihre Kriterien anzupassen.",
+  "clear_filters": "Filter löschen",
+  "empty_state_title": "Keine Projekte gefunden",
+  "empty_state_description": "Erstellen Sie Ihr erstes Projekt, um mit der Organisation Ihrer Aufgaben und der Zusammenarbeit mit Ihrem Team zu beginnen.",
+  "tasks_count": "Anzahl der Aufgaben",
+  "start_date": "Startdatum",
+  "load_more": "Mehr laden",
+  "loading": "Laden...",
+  "showing_projects_one": "{{count}} Projekt wird angezeigt",
+  "showing_projects_other": "{{count}} Projekte werden angezeigt",
+  "matching": " passend zu \"{{query}}\"",
+  "with_filters_one": " mit {{count}} Filter angewendet",
+  "with_filters_other": " mit {{count}} Filtern angewendet",
+  "status": {
+    "active": "Aktiv",
+    "planning": "Planung",
+    "on_hold": "Pausiert",
+    "completed": "Abgeschlossen"
+  },
+  "priority": {
+    "title": "Priorität"
+  },
+  "messages": {
+    "created_success": "Projekt erfolgreich erstellt!",
+    "refresh_failed": "Projekt erstellt, aber Liste konnte nicht aktualisiert werden",
+    "load_failed": "Projekte konnten nicht geladen werden",
+    "auth_required": "Authentifizierung erforderlich. Bitte melden Sie sich erneut an."
+  },
+  "modal": {
+    "createTitle": "Neues Projekt erstellen",
+    "createDescription": "Organisieren Sie Ihre Aufgaben und arbeiten Sie mit Ihrem Team zusammen",
+    "tryAgain": "Erneut versuchen",
+    "projectName": "Projektname",
+    "enterProjectName": "Projektnamen eingeben",
+    "url": "URL:",
+    "urlWorkspace": "arbeitsbereich",
+    "urlProject": "projekt-name",
+    "workflow": "Arbeitsablauf",
+    "searchWorkflows": "Arbeitsabläufe suchen...",
+    "noWorkflowsFound": "Keine Arbeitsabläufe gefunden.",
+    "typeToSearchWorkflows": "Tippen Sie, um Arbeitsabläufe zu suchen",
+    "selectWorkflow": "Arbeitsablauf auswählen",
+    "workflowHint": "Wählen Sie einen Arbeitsablauf für den Prozess Ihres Projekts.",
+    "visibility": "Sichtbarkeit",
+    "selectVisibility": "Sichtbarkeit auswählen",
+    "noVisibilityOptions": "Keine Sichtbarkeitsoptionen gefunden.",
+    "visibilityHint": "Steuern Sie, wer auf dieses Projekt zugreifen kann.",
+    "workspace": "Arbeitsbereich",
+    "loadingWorkspaces": "Arbeitsbereiche werden geladen...",
+    "selectWorkspace": "Arbeitsbereich auswählen",
+    "searchWorkspaces": "Arbeitsbereiche suchen...",
+    "noWorkspacesFound": "Keine Arbeitsbereiche gefunden.",
+    "typeToSearchWorkspaces": "Tippen Sie, um Arbeitsbereiche zu suchen",
+    "workspaceHint": "Das Projekt wird in diesem Arbeitsbereich erstellt.",
+    "description": "Beschreibung",
+    "descriptionPlaceholder": "Beschreiben Sie, worum es in diesem Projekt geht...",
+    "descriptionHint": "Helfen Sie Ihrem Team, die Ziele und den Umfang des Projekts zu verstehen.",
+    "projectColors": "Projektfarben",
+    "selectCategory": "Kategorie auswählen",
+    "noCategoriesFound": "Keine Kategorien gefunden.",
+    "categoryHint": "Wählen Sie eine Kategorie aus, um Ihr Projekt zu organisieren und zu kennzeichnen.",
+    "cancel": "Abbrechen",
+    "create": "Projekt erstellen",
+    "creating": "Projekt wird erstellt...",
+    "success": "Projekt \"{{name}}\" erfolgreich erstellt!",
+    "errorLoadWorkspaces": "Arbeitsbereiche konnten nicht geladen werden",
+    "errorCreate": "Projekt konnte nicht erstellt werden",
+    "visibilityOptions": {
+      "PRIVATE": {
+        "label": "Privat",
+        "description": "Nur Mitglieder haben Zugriff auf dieses Projekt"
+      },
+      "INTERNAL": {
+        "label": "Intern",
+        "description": "Mitglieder des Arbeitsbereichs können anzeigen, Mitglieder können bearbeiten"
+      },
+      "PUBLIC": {
+        "label": "Öffentlich",
+        "description": "Jeder kann anzeigen, Mitglieder können bearbeiten"
+      }
+    }
+  },
+  "categories": {
+    "operational": {
+      "label": "Operativ",
+      "description": "Täglicher Betrieb und Wartung"
+    },
+    "technical": {
+      "label": "Technisch",
+      "description": "Entwicklungs- und technische Projekte"
+    },
+    "strategic": {
+      "label": "Strategisch",
+      "description": "Langfristige Planung und Strategie"
+    },
+    "hiring": {
+      "label": "Einstellung",
+      "description": "Rekrutierung und Teamaufbau"
+    },
+    "financial": {
+      "label": "Finanziell",
+      "description": "Budget- und Finanzplanung"
+    },
+    "neutral": {
+      "label": "Neutral",
+      "description": "Allgemeine oder nicht kategorisierte Projekte"
+    },
+    "innovation": {
+      "label": "Innovation",
+      "description": "Kreativitäts- und Innovationsinitiativen"
+    },
+    "community": {
+      "label": "Gemeinschaft",
+      "description": "Gemeinschafts- und Engagementinitiativen"
+    },
+    "sustainability": {
+      "label": "Nachhaltigkeit",
+      "description": "Nachhaltigkeits- und Umweltprojekte"
+    },
+    "marketing": {
+      "label": "Marketing",
+      "description": "Marketing- und Outreach-Kampagnen"
+    },
+    "research": {
+      "label": "Forschung",
+      "description": "Forschungs- und Analyseprojekte"
+    },
+    "growth": {
+      "label": "Wachstum",
+      "description": "Wachstums- und Expansionsinitiativen"
+    }
+  }
+}

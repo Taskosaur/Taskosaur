@@ -1,0 +1,28 @@
+{
+  "modal": {
+    "createTitle": "Neue Organisation erstellen",
+    "createDescription": "Gib Informationen zu deiner neuen Organisation an",
+    "name": "Organisationsname",
+    "namePlaceholder": "Organisationsnamen eingeben",
+    "slug": "Organisations-Slug",
+    "slugPlaceholder": "organisations-slug",
+    "slugHint": "Dies wird in deiner Organisations-URL verwendet. Nur Kleinbuchstaben, Zahlen und Bindestriche sind erlaubt.",
+    "description": "Beschreibung",
+    "descriptionPlaceholder": "Beschreibe deine Organisation...",
+    "website": "Website",
+    "websitePlaceholder": "https://beispiel.de",
+    "cancel": "Abbrechen",
+    "create": "Organisation erstellen",
+    "update": "Organisation aktualisieren",
+    "creating": "Wird erstellt...",
+    "saving": "Wird gespeichert...",
+    "success": "Organisation erfolgreich erstellt!",
+    "errorDefault": "Erstellung der Organisation fehlgeschlagen",
+    "errorSave": "Organisation konnte nicht gespeichert werden. Bitte versuche es erneut.",
+    "errorTitle": "Fehler beim Erstellen der Organisation",
+    "errorNameRequired": "Organisationsname ist erforderlich",
+    "errorSlugRequired": "Organisations-Slug ist erforderlich",
+    "errorSlugInvalid": "Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten",
+    "errorWebsiteInvalid": "Bitte gib eine gültige URL ein"
+  }
+}

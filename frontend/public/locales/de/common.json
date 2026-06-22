@@ -1,0 +1,37 @@
+{
+  "save": "Speichern",
+  "cancel": "Abbrechen",
+  "back": "Zurück",
+  "delete": "Löschen",
+  "continue": "Weiter",
+  "confirm": "Bestätigen",
+  "error": "Fehler",
+  "success": "Erfolg",
+  "minutes": "{{count}} Minute",
+  "minutes_plural": "{{count}} Minuten",
+  "priorities": {
+    "lowest": "Niedrigste",
+    "low": "Niedrig",
+    "medium": "Mittel",
+    "high": "Hoch",
+    "highest": "Höchste"
+  },
+  "invite": {
+    "invalidTitle": "Einladung ungültig",
+    "invalidMessage": "Ungültiger oder abgelaufener Einladungslink",
+    "whyHappened": "Warum ist das passiert?",
+    "reasonExpired": "Der Einladungslink könnte abgelaufen sein",
+    "reasonEmail": "Er wurde möglicherweise an eine andere E-Mail-Adresse gesendet",
+    "reasonUsed": "Die Einladung wurde bereits verwendet oder widerrufen",
+    "logout": "Abmelden und Konto wechseln",
+    "login": "Zurück zum Login",
+    "home": "Zurück zur Startseite"
+  },
+  "pagination": {
+    "showing": "Zeige",
+    "to": "bis",
+    "of": "von",
+    "page": "Seite",
+    "items": "Einträge"
+  }
+}

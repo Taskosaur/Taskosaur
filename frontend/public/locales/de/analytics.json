@@ -1,0 +1,84 @@
+{
+  "project_analytics_title": "Projektanalysen",
+  "project_analytics_description": "Einblicke in deine Projektleistung und Teamproduktivität",
+  "kpi_metrics": "KPI-Metriken",
+  "chart_widgets": "Diagramm-Widgets",
+  "dashboard_settings": "Dashboard-Einstellungen",
+  "customize_widgets": "Passe deine Dashboard-Widgets an",
+  "no_widgets_title": "Keine Widgets zum Anzeigen",
+  "no_widgets_description": "Alle Widgets sind derzeit ausgeblendet. Nutze die Anpassen-Schaltfläche, um Widgets anzuzeigen.",
+  "show_all_widgets": "Alle Widgets anzeigen",
+  "no_data_available": "Für dieses Projekt sind keine Analysedaten verfügbar.",
+  "load_data": "Daten laden",
+  "no_settings_available": "Keine Einstellungen verfügbar",
+  "unknown": "Unbekannt",
+  "na": "N/A",
+  "charts": {
+    "task_status_flow": {
+      "title": "Aufgabenstatus-Fluss",
+      "description": "Aktuelle Aufgabenverteilung nach Status"
+    },
+    "task_type_distribution": {
+      "title": "Aufgabentyp-Verteilung",
+      "description": "Arten von Aufgaben in diesem Projekt",
+      "types": {
+        "story": "Story",
+        "task": "Aufgabe",
+        "bug": "Fehler (Bug)",
+        "epic": "Epic",
+        "feature": "Funktion (Feature)"
+      }
+    },
+    "task_priority_distribution": {
+      "title": "Aufgabenprioritäts-Verteilung",
+      "description": "Aufschlüsselung der Projektaufgaben nach Priorität",
+      "count": "Anzahl",
+      "priorities": {
+        "lowest": "Niedrigste",
+        "low": "Niedrig",
+        "medium": "Mittel",
+        "high": "Hoch",
+        "highest": "Höchste"
+      }
+    },
+    "sprint_velocity_trend": {
+      "title": "Sprint-Velocity-Trend",
+      "description": "Abgeschlossene Story Points pro Sprint",
+      "story_points": "Story Points",
+      "average_velocity": "Durchschnittliche Velocity",
+      "no_sprints": "Keine abgeschlossenen Sprints für dieses Projekt gefunden"
+    }
+  },
+  "kpi": {
+    "total_tasks": {
+      "title": "Gesamtaufgaben",
+      "label": "Aufgaben",
+      "description": "Alle Aufgaben im Projekt"
+    },
+    "completed_tasks": {
+      "title": "Abgeschlossene Aufgaben",
+      "label": "Abgeschlossene Aufgaben",
+      "description": "Erfolgreich beendet"
+    },
+    "active_sprints": {
+      "title": "Aktive Sprints",
+      "label": "Aktive Sprints",
+      "description": "Aktuell laufend"
+    },
+    "bug_resolution": {
+      "title": "Fehlerbehebung",
+      "label": "Fehlerbehebung",
+      "description": "{{resolved}}/{{total}} Fehler behoben"
+    },
+    "task_completion": {
+      "title": "Aufgabenerledigung",
+      "label": "Aufgabenerledigung",
+      "description": "Gesamter Fortschritt"
+    },
+    "open_bugs": {
+      "title": "Offene Fehler",
+      "label": "Offene Fehler",
+      "description": "Erfordern Aufmerksamkeit"
+    }
+  }
+}

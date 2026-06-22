@@ -1,0 +1,42 @@
+{
+  "title": "{{name}} Kalender",
+  "description": "Anzeige und Verwaltung von Aufgaben für das Projekt {{name}} im Kalenderformat.",
+  "createTask": "Aufgabe erstellen",
+  "noTasks": {
+    "title": "Keine Aufgaben gefunden",
+    "description": "Erstelle deine erste Aufgabe für {{name}}, um sie im Kalender zu sehen."
+  },
+  "errors": {
+    "invalidSlug": "Ungültiger Arbeitsbereich- oder Projekt-Slug",
+    "workspaceNotFound": "Arbeitsbereich nicht gefunden",
+    "projectNotFound": "Projekt nicht gefunden",
+    "failedLoadData": "Daten konnten nicht geladen werden",
+    "projectOrWorkspaceNotFound": "Projekt oder Arbeitsbereich nicht gefunden"
+  },
+  "view": {
+    "noTasksScheduled": "Keine Aufgaben geplant",
+    "noTasksScheduledDescription": "Aufgaben mit Fälligkeitsdaten werden im Kalender angezeigt. Erstelle Aufgaben mit spezifischen Fälligkeitsdaten, um deinen Zeitplan zu visualisieren.",
+    "days": {
+      "sun": "So",
+      "mon": "Mo",
+      "tue": "Di",
+      "wed": "Mi",
+      "thu": "Do",
+      "fri": "Fr",
+      "sat": "Sa"
+    },
+    "untitledTask": "Aufgabe ohne Titel",
+    "more": "mehr",
+    "time": "Zeit",
+    "weekOf": "Woche vom {{date}}",
+    "daysWithTasks": "{{count}} Tage mit Aufgaben in diesem Monat",
+    "tasksThisWeek": "{{count}} Aufgaben diese Woche",
+    "month": "Monat",
+    "week": "Woche",
+    "today": "Heute",
+    "noTasksThisDay": "Keine Aufgaben für diesen Tag geplant",
+    "noStatus": "Kein Status",
+    "overdue": "Überfällig",
+    "assignee": "Bearbeiter"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "title": "Aktivitätsfeed",
+  "description": "Verwalte und verfolge alle deine Aktivitäten an einem Ort.",
+  "workspace_description": "Aktuelle Aktivitäten und Updates im Arbeitsbereich \"{{workspaceName}}\"",
+  "filters": {
+    "all": "Alle Aktivitäten",
+    "tasks": "Aufgaben",
+    "projects": "Projekte",
+    "workspaces": "Arbeitsbereiche",
+    "users": "Benutzer",
+    "comments": "Kommentare",
+    "status_changes": "Statusänderungen",
+    "assignments": "Zuweisungen",
+    "filter_by_type": "Nach Typ filtern",
+    "clear_filter": "Filter löschen"
+  },
+  "pagination": {
+    "page_info": "Seite {{currentPage}} von {{totalPages}}",
+    "previous": "Zurück",
+    "next": "Weiter"
+  },
+  "recent_activity": "Aktuelle Aktivitäten",
+  "workspace_activity": "Arbeitsbereich-Aktivitäten",
+  "failed_to_load": "Aktivitäten konnten nicht geladen werden",
+  "failed_to_refresh": "Aktivitäten konnten nicht aktualisiert werden",
+  "failed_to_load_workspace": "Arbeitsbereich-Aktivitäten konnten nicht geladen werden",
+  "no_activity": "Noch keine Aktivitäten vorhanden",
+  "no_filter_results": "Keine {{filter}} gefunden",
+  "workspace_not_found": "Arbeitsbereich nicht gefunden"
+}
