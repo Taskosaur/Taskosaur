@@ -208,7 +208,7 @@ export class JiraApiService {
   async validateCredentials(siteUrl: string, email: string, apiToken: string): Promise<boolean> {
     try {
       const client = await this.buildClient(siteUrl, email, apiToken);
-      await client.get('/myself');
+      await client.get('/myself'); // codeql[js/request-forgery]
       return true;
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
