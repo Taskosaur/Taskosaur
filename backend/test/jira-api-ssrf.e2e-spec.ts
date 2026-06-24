@@ -62,6 +62,34 @@ describe('JiraApiService SSRF guard (e2e)', () => {
         service.getProjects('ftp://acme.atlassian.net', 'a@b.c', 'tok'),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
+
+    it('rejects URL with embedded credentials', async () => {
+      const service = new JiraApiService();
+      await expect(
+        service.getProjects('https://admin:password@acme.atlassian.net', 'a@b.c', 'tok'),
+      ).rejects.toMatchObject({ message: expect.stringMatching(/must not include credentials/i) });
+    });
+
+    it('rejects URL with query parameters', async () => {
+      const service = new JiraApiService();
+      await expect(
+        service.getProjects('https://acme.atlassian.net?foo=bar', 'a@b.c', 'tok'),
+      ).rejects.toMatchObject({ message: expect.stringMatching(/must not include query/i) });
+    });
+
+    it('rejects URL with fragment', async () => {
+      const service = new JiraApiService();
+      await expect(
+        service.getProjects('https://acme.atlassian.net#section', 'a@b.c', 'tok'),
+      ).rejects.toMatchObject({ message: expect.stringMatching(/must not include query/i) });
+    });
+
+    it('rejects URL with path beyond origin', async () => {
+      const service = new JiraApiService();
+      await expect(
+        service.getProjects('https://acme.atlassian.net/rest/api/3', 'a@b.c', 'tok'),
+      ).rejects.toMatchObject({ message: expect.stringMatching(/must be a site origin/i) });
+    });
   });
 
   describe('default allowlist (*.atlassian.net)', () => {

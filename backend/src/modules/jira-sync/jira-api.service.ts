@@ -124,11 +124,10 @@ export class JiraApiService {
   private readonly logger = new Logger(JiraApiService.name);
   private readonly allowlist: string[] = parseAllowlist();
 
-  private async buildClient(
-    siteUrl: string,
-    email: string,
-    apiToken: string,
-  ): Promise<AxiosInstance> {
+  private async resolveSite(siteUrl: string): Promise<{
+    hostname: string;
+    agent: https.Agent;
+  }> {
     let parsedUrl: URL;
     try {
       parsedUrl = new URL(siteUrl);
@@ -140,7 +139,19 @@ export class JiraApiService {
       throw new BadRequestException('Jira site URL must use HTTPS');
     }
 
-    const hostname = parsedUrl.hostname;
+    if (parsedUrl.username || parsedUrl.password) {
+      throw new BadRequestException('Jira site URL must not include credentials');
+    }
+
+    if (parsedUrl.search || parsedUrl.hash) {
+      throw new BadRequestException('Jira site URL must not include query parameters or fragments');
+    }
+
+    if (parsedUrl.pathname && parsedUrl.pathname !== '/') {
+      throw new BadRequestException('Jira site URL must be a site origin (no path)');
+    }
+
+    const hostname = parsedUrl.hostname.toLowerCase();
 
     if (!hostnameAllowed(hostname, this.allowlist)) {
       this.logger.warn(`SSRF blocked: hostname ${hostname} not in allowlist`);
@@ -191,6 +202,15 @@ export class JiraApiService {
       lookup: pinnedLookup,
     });
 
+    return { hostname, agent };
+  }
+
+  private buildClient(
+    hostname: string,
+    agent: https.Agent,
+    email: string,
+    apiToken: string,
+  ): AxiosInstance {
     const credentials = Buffer.from(`${email}:${apiToken}`).toString('base64');
     return axios.create({
       baseURL: `https://${hostname}/rest/api/3`,
@@ -207,8 +227,9 @@ export class JiraApiService {
   /** Validate credentials by hitting /myself */
   async validateCredentials(siteUrl: string, email: string, apiToken: string): Promise<boolean> {
     try {
-      const client = await this.buildClient(siteUrl, email, apiToken);
-      await client.get('/myself'); // codeql[js/request-forgery]
+      const { hostname, agent } = await this.resolveSite(siteUrl);
+      const client = this.buildClient(hostname, agent, email, apiToken);
+      await client.get('/myself');
       return true;
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
@@ -220,7 +241,8 @@ export class JiraApiService {
   /** List accessible Jira projects */
   async getProjects(siteUrl: string, email: string, apiToken: string): Promise<JiraProject[]> {
     try {
-      const client = await this.buildClient(siteUrl, email, apiToken);
+      const { hostname, agent } = await this.resolveSite(siteUrl);
+      const client = this.buildClient(hostname, agent, email, apiToken);
       const results: JiraProject[] = [];
       let startAt = 0;
       const maxResults = 50;
@@ -251,7 +273,8 @@ export class JiraApiService {
     apiToken: string,
   ): Promise<JiraStatus[]> {
     try {
-      const client = await this.buildClient(siteUrl, email, apiToken);
+      const { hostname, agent } = await this.resolveSite(siteUrl);
+      const client = this.buildClient(hostname, agent, email, apiToken);
       const { data } = await client.get(`/project/${projectKey}/statuses`);
 
       this.logger.log(
@@ -290,7 +313,8 @@ export class JiraApiService {
     apiToken: string,
   ): Promise<JiraIssue[]> {
     try {
-      const client = await this.buildClient(siteUrl, email, apiToken);
+      const { hostname, agent } = await this.resolveSite(siteUrl);
+      const client = this.buildClient(hostname, agent, email, apiToken);
       const results: JiraIssue[] = [];
       let startAt = 0;
       const maxResults = 100;
@@ -382,7 +406,8 @@ export class JiraApiService {
     lastSyncAt?: Date,
   ): AsyncGenerator<JiraIssue[]> {
     try {
-      const client = await this.buildClient(siteUrl, email, apiToken);
+      const { hostname, agent } = await this.resolveSite(siteUrl);
+      const client = this.buildClient(hostname, agent, email, apiToken);
       let startAt = 0;
       const maxResults = 100;
 
