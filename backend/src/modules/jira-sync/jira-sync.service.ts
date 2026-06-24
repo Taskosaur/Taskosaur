@@ -10,6 +10,8 @@ import { JiraApiService } from './jira-api.service';
 import { ConnectJiraDto } from './dto/connect-jira.dto';
 import { ConnectJiraWorkspaceDto } from './dto/connect-jira-workspace.dto';
 import { UpdateJiraSyncDto } from './dto/update-jira-sync.dto';
+import { ValidateJiraCredentialsDto } from './dto/validate-jira-credentials.dto';
+import { ValidateJiraProjectStatusesDto } from './dto/validate-jira-project-statuses.dto';
 import { CryptoService } from '../../common/crypto.service';
 import { JiraSync, SyncStatus, TaskPriority } from '@prisma/client';
 import { TaskRanksService } from '../task-ranks/task-ranks.service';
@@ -85,28 +87,36 @@ export class JiraSyncService {
   // ─────────────────────────────────────────────────────
   //  Validate credentials and list Jira projects
   // ─────────────────────────────────────────────────────
-  async validateAndListProjects(siteUrl: string, email: string, apiToken: string) {
-    const valid = await this.jiraApi.validateCredentials(siteUrl, email, apiToken);
+  async validateAndListProjects(dto: ValidateJiraCredentialsDto) {
+    const valid = await this.jiraApi.validateCredentials(
+      dto.jiraSiteUrl,
+      dto.jiraEmail,
+      dto.jiraApiToken,
+    );
     if (!valid) {
       throw new BadRequestException(
         'Invalid Jira credentials. Please verify your site URL, email, and API token.',
       );
     }
-    return this.jiraApi.getProjects(siteUrl, email, apiToken);
+    return this.jiraApi.getProjects(dto.jiraSiteUrl, dto.jiraEmail, dto.jiraApiToken);
   }
 
   // ─────────────────────────────────────────────────────
   //  Validate credentials and list statuses for a project
   // ─────────────────────────────────────────────────────
-  async validateAndListStatuses(
-    siteUrl: string,
-    projectKey: string,
-    email: string,
-    apiToken: string,
-  ) {
-    const valid = await this.jiraApi.validateCredentials(siteUrl, email, apiToken);
+  async validateAndListStatuses(dto: ValidateJiraProjectStatusesDto) {
+    const valid = await this.jiraApi.validateCredentials(
+      dto.jiraSiteUrl,
+      dto.jiraEmail,
+      dto.jiraApiToken,
+    );
     if (!valid) throw new BadRequestException('Invalid Jira credentials');
-    return this.jiraApi.getProjectStatuses(siteUrl, projectKey, email, apiToken);
+    return this.jiraApi.getProjectStatuses(
+      dto.jiraSiteUrl,
+      dto.jiraProjectKey,
+      dto.jiraEmail,
+      dto.jiraApiToken,
+    );
   }
 
   // ─────────────────────────────────────────────────────

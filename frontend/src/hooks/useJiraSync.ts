@@ -67,9 +67,11 @@ export function useJiraSync() {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.post(
-          `/jira-sync/validate/projects?siteUrl=${encodeURIComponent(siteUrl)}&email=${encodeURIComponent(email)}&apiToken=${encodeURIComponent(apiToken)}`,
-        );
+        const res = await api.post('/jira-sync/validate/projects', {
+          jiraSiteUrl: siteUrl,
+          jiraEmail: email,
+          jiraApiToken: apiToken,
+        });
         return res.data;
       } catch (err: any) {
         const msg = err?.message || 'Failed to validate Jira credentials';
@@ -93,9 +95,12 @@ export function useJiraSync() {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.post(
-          `/jira-sync/validate/statuses?siteUrl=${encodeURIComponent(siteUrl)}&projectKey=${encodeURIComponent(projectKey)}&email=${encodeURIComponent(email)}&apiToken=${encodeURIComponent(apiToken)}`,
-        );
+        const res = await api.post('/jira-sync/validate/statuses', {
+          jiraSiteUrl: siteUrl,
+          jiraProjectKey: projectKey,
+          jiraEmail: email,
+          jiraApiToken: apiToken,
+        });
         return res.data;
       } catch (err: any) {
         const msg = err?.message || 'Failed to fetch Jira statuses';

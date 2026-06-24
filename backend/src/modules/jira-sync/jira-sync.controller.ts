@@ -8,7 +8,6 @@ import {
   Param,
   ParseUUIDPipe,
   UseGuards,
-  Query,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -21,6 +20,8 @@ import { Role } from '@prisma/client';
 import { JiraSyncService } from './jira-sync.service';
 import { ConnectJiraDto } from './dto/connect-jira.dto';
 import { UpdateJiraSyncDto } from './dto/update-jira-sync.dto';
+import { ValidateJiraCredentialsDto } from './dto/validate-jira-credentials.dto';
+import { ValidateJiraProjectStatusesDto } from './dto/validate-jira-project-statuses.dto';
 import { User } from '../users/entities/user.entity';
 
 @ApiTags('Jira Sync')
@@ -44,12 +45,8 @@ export class JiraSyncController {
   @ApiResponse({ status: 200, description: 'List of accessible Jira projects' })
   @ApiResponse({ status: 400, description: 'Invalid Jira credentials' })
   @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER)
-  validateAndListProjects(
-    @Query('siteUrl') siteUrl: string,
-    @Query('email') email: string,
-    @Query('apiToken') apiToken: string,
-  ) {
-    return this.jiraSyncService.validateAndListProjects(siteUrl, email, apiToken);
+  validateAndListProjects(@Body() dto: ValidateJiraCredentialsDto) {
+    return this.jiraSyncService.validateAndListProjects(dto);
   }
 
   @Post('validate/statuses')
@@ -58,13 +55,8 @@ export class JiraSyncController {
     description: 'Returns all statuses for the given Jira project key using provided credentials.',
   })
   @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER)
-  validateAndListStatuses(
-    @Query('siteUrl') siteUrl: string,
-    @Query('projectKey') projectKey: string,
-    @Query('email') email: string,
-    @Query('apiToken') apiToken: string,
-  ) {
-    return this.jiraSyncService.validateAndListStatuses(siteUrl, projectKey, email, apiToken);
+  validateAndListStatuses(@Body() dto: ValidateJiraProjectStatusesDto) {
+    return this.jiraSyncService.validateAndListStatuses(dto);
   }
 
   // ──────────────────────────────────────────────────
