@@ -80,11 +80,20 @@ export class TrelloApiService {
     }
   }
 
+  /** Validate board ID format (24-character hex, Trello's standard) */
+  private sanitizeBoardId(boardId: string): string {
+    if (typeof boardId !== 'string' || !/^[0-9a-f]{24}$/i.test(boardId)) {
+      throw new BadRequestException('Invalid Trello board ID format');
+    }
+    return boardId;
+  }
+
   /** List all lists on a board */
   async getLists(boardId: string, apiKey: string, token: string): Promise<TrelloList[]> {
+    const safeBoardId = this.sanitizeBoardId(boardId);
     try {
       const client = this.buildClient(apiKey, token);
-      const { data } = await client.get<TrelloList[]>(`/boards/${boardId}/lists`, {
+      const { data } = await client.get<TrelloList[]>(`/boards/${safeBoardId}/lists`, {
         params: { key: apiKey, token, filter: 'open', fields: 'id,name,closed,pos' },
       });
       return data;
@@ -98,9 +107,10 @@ export class TrelloApiService {
 
   /** Fetch all cards on a board (open and closed) */
   async getCards(boardId: string, apiKey: string, token: string): Promise<TrelloCard[]> {
+    const safeBoardId = this.sanitizeBoardId(boardId);
     try {
       const client = this.buildClient(apiKey, token);
-      const { data } = await client.get<TrelloCard[]>(`/boards/${boardId}/cards`, {
+      const { data } = await client.get<TrelloCard[]>(`/boards/${safeBoardId}/cards`, {
         params: {
           key: apiKey,
           token,
@@ -126,6 +136,7 @@ export class TrelloApiService {
     apiKey: string,
     token: string,
   ): AsyncGenerator<TrelloCard[]> {
+    const safeBoardId = this.sanitizeBoardId(boardId);
     try {
       const client = this.buildClient(apiKey, token);
       let before: string | undefined = undefined;
@@ -144,7 +155,7 @@ export class TrelloApiService {
           params.before = before;
         }
 
-        const { data } = await client.get<TrelloCard[]>(`/boards/${boardId}/cards`, { params });
+        const { data } = await client.get<TrelloCard[]>(`/boards/${safeBoardId}/cards`, { params });
 
         this.logger.log(`Trello API yielded batch of ${data.length} cards for board ${boardId}`);
 
@@ -165,11 +176,20 @@ export class TrelloApiService {
     }
   }
 
+  /** Validate card ID format (24-character hex, same as board) */
+  private sanitizeCardId(cardId: string): string {
+    if (typeof cardId !== 'string' || !/^[0-9a-f]{24}$/i.test(cardId)) {
+      throw new BadRequestException('Invalid Trello card ID format');
+    }
+    return cardId;
+  }
+
   /** Fetch a single card */
   async getCard(cardId: string, apiKey: string, token: string): Promise<TrelloCard> {
+    const safeCardId = this.sanitizeCardId(cardId);
     try {
       const client = this.buildClient(apiKey, token);
-      const { data } = await client.get<TrelloCard>(`/cards/${cardId}`, {
+      const { data } = await client.get<TrelloCard>(`/cards/${safeCardId}`, {
         params: { key: apiKey, token },
       });
       return data;
