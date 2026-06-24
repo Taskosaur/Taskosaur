@@ -60,9 +60,7 @@ export function useTrelloSync() {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.post(
-          `/trello-sync/validate/boards?apiKey=${encodeURIComponent(apiKey)}&token=${encodeURIComponent(token)}`,
-        );
+        const res = await api.post('/trello-sync/validate/boards', { apiKey, token });
         return res.data;
       } catch (err: any) {
         const msg = err?.message || 'Failed to validate credentials';
@@ -81,9 +79,7 @@ export function useTrelloSync() {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.post(
-          `/trello-sync/validate/lists?boardId=${encodeURIComponent(boardId)}&apiKey=${encodeURIComponent(apiKey)}&token=${encodeURIComponent(token)}`,
-        );
+        const res = await api.post('/trello-sync/validate/lists', { boardId, apiKey, token });
         return res.data;
       } catch (err: any) {
         const msg = err?.message || 'Failed to fetch lists';
