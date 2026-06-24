@@ -26,8 +26,10 @@ describe('TrelloSyncController (e2e)', () => {
   let projectId: string;
   let workflowId: string;
 
+  const validBoardId = '5e9f8f8f8f8f8f8f8f8f8f8f';
+
   const mockBoard = {
-    id: 'board-123',
+    id: validBoardId,
     name: 'Test Board',
     desc: 'Description',
     url: 'http://trello.com/b/board-123',
@@ -196,7 +198,7 @@ describe('TrelloSyncController (e2e)', () => {
     it('should validate credentials and list boards', () => {
       return request(app.getHttpServer())
         .post('/api/trello-sync/validate/boards')
-        .query({ apiKey: 'valid-key', token: 'valid-token' })
+        .send({ apiKey: 'valid-key', token: 'valid-token' })
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.CREATED)
         .expect((res) => {
@@ -208,7 +210,7 @@ describe('TrelloSyncController (e2e)', () => {
     it('should validate credentials and list lists', () => {
       return request(app.getHttpServer())
         .post('/api/trello-sync/validate/lists')
-        .query({ boardId: 'board-123', apiKey: 'valid-key', token: 'valid-token' })
+        .send({ boardId: validBoardId, apiKey: 'valid-key', token: 'valid-token' })
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.CREATED)
         .expect((res) => {
@@ -221,7 +223,7 @@ describe('TrelloSyncController (e2e)', () => {
       jest.spyOn(trelloApiService, 'validateCredentials').mockResolvedValueOnce(false);
       return request(app.getHttpServer())
         .post('/api/trello-sync/validate/boards')
-        .query({ apiKey: 'invalid-key', token: 'invalid-token' })
+        .send({ apiKey: 'invalid-key', token: 'invalid-token' })
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(HttpStatus.BAD_REQUEST);
     });
@@ -236,7 +238,7 @@ describe('TrelloSyncController (e2e)', () => {
 
       const connectDto = {
         projectId,
-        trelloBoardId: 'board-123',
+        trelloBoardId: validBoardId,
         trelloApiKey: 'my-api-key',
         trelloToken: 'my-token',
         syncInterval: 30,
@@ -250,7 +252,7 @@ describe('TrelloSyncController (e2e)', () => {
         .expect(HttpStatus.CREATED)
         .expect((res) => {
           expect(res.body.projectId).toBe(projectId);
-          expect(res.body.trelloBoardId).toBe('board-123');
+          expect(res.body.trelloBoardId).toBe(validBoardId);
           expect(res.body.hasApiKey).toBe(true);
           expect(res.body.hasToken).toBe(true);
         });
@@ -259,7 +261,7 @@ describe('TrelloSyncController (e2e)', () => {
     it('should return 409 when connecting an already connected project', () => {
       const connectDto = {
         projectId,
-        trelloBoardId: 'board-123',
+        trelloBoardId: validBoardId,
         trelloApiKey: 'my-api-key',
         trelloToken: 'my-token',
       };
@@ -278,7 +280,7 @@ describe('TrelloSyncController (e2e)', () => {
         .expect(HttpStatus.OK)
         .expect((res) => {
           expect(res.body.projectId).toBe(projectId);
-          expect(res.body.trelloBoardId).toBe('board-123');
+          expect(res.body.trelloBoardId).toBe(validBoardId);
         });
     });
 

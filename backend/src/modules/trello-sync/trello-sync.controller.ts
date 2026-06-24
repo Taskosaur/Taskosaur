@@ -8,7 +8,6 @@ import {
   Param,
   ParseUUIDPipe,
   UseGuards,
-  Query,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -21,6 +20,8 @@ import { Role } from '@prisma/client';
 import { TrelloSyncService } from './trello-sync.service';
 import { ConnectTrelloDto } from './dto/connect-trello.dto';
 import { UpdateTrelloSyncDto } from './dto/update-trello-sync.dto';
+import { ValidateTrelloBoardsDto } from './dto/validate-trello-boards.dto';
+import { ValidateTrelloListsDto } from './dto/validate-trello-lists.dto';
 import { User } from '../users/entities/user.entity';
 
 @ApiTags('Trello Sync')
@@ -41,11 +42,11 @@ export class TrelloSyncController {
       'Validates a user-supplied API Key + Token and returns all accessible Trello boards. ' +
       'Use this BEFORE connecting to discover the Board ID to use.',
   })
-  @ApiResponse({ status: 200, description: 'List of accessible Trello boards' })
+  @ApiResponse({ status: 201, description: 'List of accessible Trello boards' })
   @ApiResponse({ status: 400, description: 'Invalid Trello credentials' })
   @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER)
-  validateAndListBoards(@Query('apiKey') apiKey: string, @Query('token') token: string) {
-    return this.trelloSyncService.validateAndListBoards(apiKey, token);
+  validateAndListBoards(@Body() dto: ValidateTrelloBoardsDto) {
+    return this.trelloSyncService.validateAndListBoards(dto.apiKey, dto.token);
   }
 
   @Post('validate/lists')
@@ -54,13 +55,11 @@ export class TrelloSyncController {
     description:
       'Returns lists for the given boardId using provided credentials. Use to configure status mappings.',
   })
+  @ApiResponse({ status: 201, description: 'List of Trello lists for the board' })
+  @ApiResponse({ status: 400, description: 'Invalid credentials or board ID' })
   @Roles(Role.MEMBER, Role.MANAGER, Role.OWNER)
-  validateAndListLists(
-    @Query('boardId') boardId: string,
-    @Query('apiKey') apiKey: string,
-    @Query('token') token: string,
-  ) {
-    return this.trelloSyncService.validateAndListLists(boardId, apiKey, token);
+  validateAndListLists(@Body() dto: ValidateTrelloListsDto) {
+    return this.trelloSyncService.validateAndListLists(dto.boardId, dto.apiKey, dto.token);
   }
 
   // ──────────────────────────────────────────────────

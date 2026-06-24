@@ -1,4 +1,13 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsInt,
+  IsObject,
+  Min,
+  Max,
+  Matches,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -17,6 +26,9 @@ export class ConnectTrelloDto {
   })
   @IsString()
   @IsNotEmpty()
+  @Matches(/^[0-9a-f]{24}$/i, {
+    message: 'trelloBoardId must be a valid 24-character Trello board ID',
+  })
   trelloBoardId: string;
 
   @ApiProperty({
@@ -53,5 +65,6 @@ export class ConnectTrelloDto {
     example: { '5e9f8f8f8f8f8f8f8f8f8f8f': 'status-uuid-here' },
   })
   @IsOptional()
+  @IsObject()
   statusMappings?: Record<string, string>;
 }

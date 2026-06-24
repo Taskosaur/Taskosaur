@@ -1,4 +1,4 @@
-import { IsArray, IsString, IsNotEmpty } from 'class-validator';
+import { IsArray, IsString, IsNotEmpty, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ImportTrelloBoardsDto {
@@ -6,5 +6,9 @@ export class ImportTrelloBoardsDto {
   @IsArray()
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
+  @Matches(/^[0-9a-f]{24}$/i, {
+    each: true,
+    message: 'Each board ID must be a valid 24-character Trello board ID',
+  })
   boardIds: string[];
 }
