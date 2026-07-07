@@ -125,7 +125,7 @@ export class JiraApiService {
   private readonly allowlist: string[] = parseAllowlist();
 
   private async resolveSite(siteUrl: string): Promise<{
-    hostname: string;
+    origin: string;
     agent: https.Agent;
   }> {
     let parsedUrl: URL;
@@ -202,18 +202,19 @@ export class JiraApiService {
       lookup: pinnedLookup,
     });
 
-    return { hostname, agent };
+    const origin = `https://${hostname}`;
+    return { origin, agent };
   }
 
   private buildClient(
-    hostname: string,
+    origin: string,
     agent: https.Agent,
     email: string,
     apiToken: string,
   ): AxiosInstance {
     const credentials = Buffer.from(`${email}:${apiToken}`).toString('base64');
     return axios.create({
-      baseURL: `https://${hostname}/rest/api/3`,
+      baseURL: `${origin}/rest/api/3`,
       headers: {
         Authorization: `Basic ${credentials}`,
         Accept: 'application/json',
@@ -227,8 +228,8 @@ export class JiraApiService {
   /** Validate credentials by hitting /myself */
   async validateCredentials(siteUrl: string, email: string, apiToken: string): Promise<boolean> {
     try {
-      const { hostname, agent } = await this.resolveSite(siteUrl);
-      const client = this.buildClient(hostname, agent, email, apiToken);
+      const { origin, agent } = await this.resolveSite(siteUrl);
+      const client = this.buildClient(origin, agent, email, apiToken);
       await client.get('/myself');
       return true;
     } catch (err) {
@@ -241,8 +242,8 @@ export class JiraApiService {
   /** List accessible Jira projects */
   async getProjects(siteUrl: string, email: string, apiToken: string): Promise<JiraProject[]> {
     try {
-      const { hostname, agent } = await this.resolveSite(siteUrl);
-      const client = this.buildClient(hostname, agent, email, apiToken);
+      const { origin, agent } = await this.resolveSite(siteUrl);
+      const client = this.buildClient(origin, agent, email, apiToken);
       const results: JiraProject[] = [];
       let startAt = 0;
       const maxResults = 50;
@@ -273,8 +274,8 @@ export class JiraApiService {
     apiToken: string,
   ): Promise<JiraStatus[]> {
     try {
-      const { hostname, agent } = await this.resolveSite(siteUrl);
-      const client = this.buildClient(hostname, agent, email, apiToken);
+      const { origin, agent } = await this.resolveSite(siteUrl);
+      const client = this.buildClient(origin, agent, email, apiToken);
       const { data } = await client.get(`/project/${projectKey}/statuses`);
 
       this.logger.log(
@@ -313,8 +314,8 @@ export class JiraApiService {
     apiToken: string,
   ): Promise<JiraIssue[]> {
     try {
-      const { hostname, agent } = await this.resolveSite(siteUrl);
-      const client = this.buildClient(hostname, agent, email, apiToken);
+      const { origin, agent } = await this.resolveSite(siteUrl);
+      const client = this.buildClient(origin, agent, email, apiToken);
       const results: JiraIssue[] = [];
       let startAt = 0;
       const maxResults = 100;
@@ -406,8 +407,8 @@ export class JiraApiService {
     lastSyncAt?: Date,
   ): AsyncGenerator<JiraIssue[]> {
     try {
-      const { hostname, agent } = await this.resolveSite(siteUrl);
-      const client = this.buildClient(hostname, agent, email, apiToken);
+      const { origin, agent } = await this.resolveSite(siteUrl);
+      const client = this.buildClient(origin, agent, email, apiToken);
       let startAt = 0;
       const maxResults = 100;
 
