@@ -28,6 +28,8 @@ describe('TaskDependenciesController (e2e)', () => {
   let task1Slug: string;
   let task2Id: string;
   let task2Slug: string;
+  let task3Id: string;
+  let task3Slug: string;
   let dependencyId: string;
 
   beforeAll(async () => {
@@ -153,12 +155,36 @@ describe('TaskDependenciesController (e2e)', () => {
     });
     task2Id = task2.id;
     task2Slug = task2.slug;
+
+    const task3 = await prismaService.task.create({
+      data: {
+        title: 'Task 3',
+        description: 'Third task',
+        projectId: project.id,
+        statusId: status.id,
+        createdBy: user.id,
+        priority: 'MEDIUM',
+        type: 'TASK',
+        taskNumber: 3,
+        slug: `dep-task-3-${Date.now()}`,
+      },
+    });
+    task3Id = task3.id;
+    task3Slug = task3.slug;
   });
 
   afterAll(async () => {
     if (prismaService) {
       // Cleanup
-      await prismaService.taskDependency.deleteMany({ where: { createdBy: user.id } });
+      await prismaService.taskDependency.deleteMany({
+        where: {
+          OR: [
+            { dependentTaskId: task2Id },
+            { dependentTaskId: task3Id },
+            { blockingTaskId: task1Id },
+          ],
+        },
+      });
       await prismaService.task.deleteMany({ where: { projectId } });
       await prismaService.taskStatus.delete({ where: { id: statusId } });
       await prismaService.project.delete({ where: { id: projectId } });
@@ -188,6 +214,100 @@ describe('TaskDependenciesController (e2e)', () => {
           expect(res.body.dependentTaskId).toBe(task2Id);
           expect(res.body.blockingTaskId).toBe(task1Id);
           dependencyId = res.body.id;
+        });
+    });
+
+    it('should create a dependency using task UUIDs', () => {
+      const createDto: CreateTaskDependencyDto = {
+        dependentTaskId: task3Id,
+        blockingTaskId: task1Id,
+        type: DependencyType.BLOCKS,
+        createdBy: user.id,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/task-dependencies')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.CREATED)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('id');
+          expect(res.body.dependentTaskId).toBe(task3Id);
+          expect(res.body.blockingTaskId).toBe(task1Id);
+        });
+    });
+
+    it('should return 400 for self-dependency', () => {
+      const createDto: CreateTaskDependencyDto = {
+        dependentTaskId: task1Id,
+        blockingTaskId: task1Id,
+        type: DependencyType.BLOCKS,
+        createdBy: user.id,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/task-dependencies')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.BAD_REQUEST)
+        .expect((res) => {
+          expect(res.body.message).toBe('A task cannot depend on itself');
+        });
+    });
+
+    it('should return 409 for duplicate dependency', () => {
+      const createDto: CreateTaskDependencyDto = {
+        dependentTaskId: task2Slug,
+        blockingTaskId: task1Slug,
+        type: DependencyType.BLOCKS,
+        createdBy: user.id,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/task-dependencies')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.CONFLICT)
+        .expect((res) => {
+          expect(res.body.message).toBe('Dependency relationship already exists');
+        });
+    });
+
+    it('should return 400 for circular dependency', async () => {
+      // Current: task2 depends on task1, task3 depends on task1
+      // Try to make task1 depend on task2 (would create task1 -> task2 -> task1 cycle)
+      const createDto: CreateTaskDependencyDto = {
+        dependentTaskId: task1Id,
+        blockingTaskId: task2Id,
+        type: DependencyType.BLOCKS,
+        createdBy: user.id,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/task-dependencies')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.BAD_REQUEST)
+        .expect((res) => {
+          expect(res.body.message).toContain('circular');
+        });
+    });
+
+    it('should return 404 for non-existent task', () => {
+      const createDto: CreateTaskDependencyDto = {
+        dependentTaskId: '00000000-0000-0000-0000-000000000000',
+        blockingTaskId: task1Id,
+        type: DependencyType.BLOCKS,
+        createdBy: user.id,
+      };
+
+      return request(app.getHttpServer())
+        .post('/api/task-dependencies')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(createDto)
+        .expect(HttpStatus.NOT_FOUND)
+        .expect((res) => {
+          expect(res.body.message).toBe('Task not found');
         });
     });
   });

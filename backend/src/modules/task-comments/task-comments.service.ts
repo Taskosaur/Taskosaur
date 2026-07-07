@@ -9,9 +9,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskCommentDto } from './dto/create-task-comment.dto';
 import { UpdateTaskCommentDto } from './dto/update-task-comment.dto';
 import { EmailReplyService } from '../inbox/services/email-reply.service';
-import { sanitizeHtml, sanitizeText } from 'src/common/utils/sanitizer.util';
+import { sanitizeHtml, sanitizeText } from '../../common/utils/sanitizer.util';
 import { NotificationsService } from '../notifications/notifications.service';
-import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
 import { EmailTemplate, EmailPriority } from '../email/dto/email.dto';
 import { ConfigService } from '@nestjs/config';
@@ -31,13 +30,14 @@ const AUTHOR_SELECT_WITH_EMAIL = {
   avatar: true,
 } as const;
 
+const ADMIN_ROLES = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
+
 @Injectable()
 export class TaskCommentsService {
   constructor(
     private prisma: PrismaService,
     private emailReply: EmailReplyService,
     private notificationsService: NotificationsService,
-    private usersService: UsersService,
     private emailService: EmailService,
     private configService: ConfigService,
   ) {}
@@ -107,7 +107,11 @@ export class TaskCommentsService {
       where: { id: task.project.workspace.organizationId },
       select: { id: true, archive: true },
     });
-    if (org?.archive) {
+    if (!org) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    if (org.archive) {
       throw new ForbiddenException('Operation not allowed in an archived organization');
     }
 
@@ -310,9 +314,11 @@ export class TaskCommentsService {
         ...task.reporters.map((r) => ({ id: r.userId })),
         ...task.watchers.map((w) => ({ id: w.user.id })),
       ];
-      for (const participant of participants) {
-        if (!notifiedUserIds.has(participant.id)) {
-          await this.notificationsService.createNotification({
+      const participantNotifications = participants
+        .filter((participant) => !notifiedUserIds.has(participant.id))
+        .map((participant) => {
+          notifiedUserIds.add(participant.id);
+          return this.notificationsService.createNotification({
             title: 'New Comment',
             message: `${comment.author.firstName} commented on "${task.title}"`,
             type: NotificationType.TASK_COMMENTED,
@@ -324,8 +330,10 @@ export class TaskCommentsService {
             priority: NotificationPriority.MEDIUM,
             createdBy: authorId,
           });
-          notifiedUserIds.add(participant.id);
-        }
+        });
+
+      if (participantNotifications.length > 0) {
+        await Promise.all(participantNotifications);
       }
     }
   }
@@ -436,12 +444,10 @@ export class TaskCommentsService {
   }> {
     const { taskId: resolvedTaskId } = await this.checkAccess(userId, taskId);
 
-    const whereClause: any = {};
-    if (resolvedTaskId) {
-      whereClause.taskId = resolvedTaskId;
-      // Only get top-level comments (not replies)
-      whereClause.parentCommentId = null;
-    }
+    const whereClause: Prisma.TaskCommentWhereInput = {
+      taskId: resolvedTaskId,
+      parentCommentId: null,
+    };
 
     // Get total count for pagination
     const total = await this.prisma.taskComment.count({
@@ -594,7 +600,11 @@ export class TaskCommentsService {
       select: { isArchived: true },
     });
 
-    if (task && task.isArchived) {
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    if (task.isArchived) {
       throw new ForbiddenException('Cannot update comments on an archived task');
     }
 
@@ -651,9 +661,9 @@ export class TaskCommentsService {
     );
 
     const isAdmin =
-      ['OWNER', 'MANAGER', 'SUPER_ADMIN'].includes(projectRole) ||
-      ['OWNER', 'MANAGER', 'SUPER_ADMIN'].includes(workspaceRole) ||
-      ['OWNER', 'MANAGER', 'SUPER_ADMIN'].includes(organizationRole);
+      ADMIN_ROLES.includes(projectRole) ||
+      ADMIN_ROLES.includes(workspaceRole) ||
+      ADMIN_ROLES.includes(organizationRole);
 
     if (comment.authorId !== userId && !isAdmin) {
       throw new ForbiddenException('You can only delete your own comments');
@@ -731,9 +741,9 @@ export class TaskCommentsService {
   }> {
     const { taskId: resolvedTaskId } = await this.checkAccess(userId, taskId);
 
-    const whereClause: any = {
+    const whereClause: Prisma.TaskCommentWhereInput = {
       taskId: resolvedTaskId,
-      parentCommentId: null, // Only top-level comments
+      parentCommentId: null,
     };
 
     // Get total count
@@ -745,6 +755,7 @@ export class TaskCommentsService {
 
     let data: TaskComment[] = [];
     let loadedCount = 0;
+    const middleCount = Math.max(0, total - oldestCount - newestCount);
 
     if (page === 1) {
       // Initial load: Get oldest + newest comments
@@ -773,12 +784,11 @@ export class TaskCommentsService {
         });
 
         // Combine: oldest first, then newest (reversed to maintain chronological order)
-        data = [...oldest, ...newest.reverse()];
+        data = [...oldest, ...[...newest].reverse()];
       }
     } else {
       // Subsequent loads: Get middle comments
       // Ensure we don't accidentally fetch into the "newest" section
-      const middleCount = total - oldestCount - newestCount;
       const endIndex = total - newestCount;
       const skip = oldestCount + (page - 2) * limit;
       const remainingMiddle = Math.max(0, endIndex - skip);
@@ -797,7 +807,6 @@ export class TaskCommentsService {
       loadedCount = Math.min((page - 1) * limit, middleCount);
     }
 
-    const middleCount = Math.max(0, total - oldestCount - newestCount);
     const middlePages = Math.ceil(middleCount / limit);
     const totalPages = middlePages + 1; // +1 for the initial page
     const hasMore = page < totalPages;

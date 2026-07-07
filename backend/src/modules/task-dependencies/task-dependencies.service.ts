@@ -13,11 +13,27 @@ import {
 import { UpdateTaskDependencyDto } from './dto/update-task-dependency.dto';
 import { TaskDependency, DependencyType } from '@prisma/client';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 @Injectable()
 export class TaskDependenciesService {
   private readonly logger = new Logger(TaskDependenciesService.name);
 
   constructor(private prisma: PrismaService) {}
+
+  private async findTaskByIdOrSlug(identifier: string) {
+    const isUuid = UUID_REGEX.test(identifier);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: identifier } : { slug: identifier },
+      select: { id: true },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    return task;
+  }
 
   async create(createTaskDependencyDto: CreateTaskDependencyDto): Promise<TaskDependency> {
     const { dependentTaskId, blockingTaskId, createdBy, type } = createTaskDependencyDto;
@@ -28,36 +44,13 @@ export class TaskDependenciesService {
     }
 
     // Check if tasks exist
-    const isDepUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      dependentTaskId,
-    );
-    const isBlockUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      blockingTaskId,
-    );
-
     const [dependentTask, blockingTask] = await Promise.all([
-      this.prisma.task.findFirst({
-        where: isDepUuid ? { id: dependentTaskId } : { slug: dependentTaskId },
-      }),
-      this.prisma.task.findFirst({
-        where: isBlockUuid ? { id: blockingTaskId } : { slug: blockingTaskId },
-      }),
+      this.findTaskByIdOrSlug(dependentTaskId),
+      this.findTaskByIdOrSlug(blockingTaskId),
     ]);
 
-    if (!dependentTask) {
-      throw new NotFoundException(`Dependent task ${dependentTaskId} not found`);
-    }
-
-    if (!blockingTask) {
-      throw new NotFoundException(`Blocking task ${blockingTaskId} not found`);
-    }
-
-    // Update variables to use UUIDs
-    const depTaskId = dependentTask.id;
-    const blockTaskId = blockingTask.id;
-
     // Prevent self-dependency after resolution
-    if (depTaskId === blockTaskId) {
+    if (dependentTask.id === blockingTask.id) {
       throw new BadRequestException('A task cannot depend on itself');
     }
 
@@ -65,8 +58,8 @@ export class TaskDependenciesService {
     const existingDependency = await this.prisma.taskDependency.findUnique({
       where: {
         dependentTaskId_blockingTaskId: {
-          dependentTaskId: depTaskId,
-          blockingTaskId: blockTaskId,
+          dependentTaskId: dependentTask.id,
+          blockingTaskId: blockingTask.id,
         },
       },
     });
@@ -76,13 +69,13 @@ export class TaskDependenciesService {
     }
 
     // Check for circular dependencies
-    await this.validateNoCycles(depTaskId, blockTaskId);
+    await this.validateNoCycles(dependentTask.id, blockingTask.id);
 
     return this.prisma.taskDependency.create({
       data: {
         type: type || DependencyType.BLOCKS,
-        dependentTaskId: depTaskId,
-        blockingTaskId: blockTaskId,
+        dependentTaskId: dependentTask.id,
+        blockingTaskId: blockingTask.id,
         createdBy,
       },
       include: {
@@ -199,21 +192,11 @@ export class TaskDependenciesService {
     dependsOn: TaskDependency[];
     blocks: TaskDependency[];
   }> {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
-    const task = await this.prisma.task.findFirst({
-      where: isUuid ? { id: taskId } : { slug: taskId },
-      select: { id: true },
-    });
-
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
-
-    const resolvedTaskId = task.id;
+    const task = await this.findTaskByIdOrSlug(taskId);
 
     const [dependsOn, blocks] = await Promise.all([
       this.prisma.taskDependency.findMany({
-        where: { dependentTaskId: resolvedTaskId },
+        where: { dependentTaskId: task.id },
         include: {
           blockingTask: {
             select: {
@@ -226,7 +209,7 @@ export class TaskDependenciesService {
         },
       }),
       this.prisma.taskDependency.findMany({
-        where: { blockingTaskId: resolvedTaskId },
+        where: { blockingTaskId: task.id },
         include: {
           dependentTask: {
             select: {
@@ -244,15 +227,7 @@ export class TaskDependenciesService {
   }
 
   async getBlockedTasks(taskId: string): Promise<TaskDependency[]> {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
-    const task = await this.prisma.task.findFirst({
-      where: isUuid ? { id: taskId } : { slug: taskId },
-      select: { id: true },
-    });
-
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
+    const task = await this.findTaskByIdOrSlug(taskId);
 
     return this.prisma.taskDependency.findMany({
       where: { blockingTaskId: task.id },
@@ -326,27 +301,10 @@ export class TaskDependenciesService {
   }
 
   async removeByTasks(dependentTaskId: string, blockingTaskId: string): Promise<void> {
-    const isDepUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      dependentTaskId,
-    );
-    const isBlockUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      blockingTaskId,
-    );
-
     const [dependentTask, blockingTask] = await Promise.all([
-      this.prisma.task.findFirst({
-        where: isDepUuid ? { id: dependentTaskId } : { slug: dependentTaskId },
-        select: { id: true },
-      }),
-      this.prisma.task.findFirst({
-        where: isBlockUuid ? { id: blockingTaskId } : { slug: blockingTaskId },
-        select: { id: true },
-      }),
+      this.findTaskByIdOrSlug(dependentTaskId),
+      this.findTaskByIdOrSlug(blockingTaskId),
     ]);
-
-    if (!dependentTask || !blockingTask) {
-      throw new NotFoundException('One or both tasks not found');
-    }
 
     const dependency = await this.prisma.taskDependency.findUnique({
       where: {
