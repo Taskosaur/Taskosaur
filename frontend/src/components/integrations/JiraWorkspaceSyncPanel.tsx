@@ -285,9 +285,13 @@ export default function JiraWorkspaceSyncPanel({ workspaceId, organizationId }: 
                 <div className="grid grid-cols-4 px-4 py-2 bg-[var(--muted)]/30 text-[10px] font-bold uppercase text-[var(--muted-foreground)] border-b border-[var(--border)]"><span>{t("jira.project", "Project")}</span><span>{t("jira.jira_key", "Jira Key")}</span><span>{t("jira.last_sync", "Last Sync")}</span><span>{t("jira.status", "Status")}</span></div>
                 {syncedProjects.map(p => (
                   <div key={p.id} className="grid grid-cols-4 items-center px-4 py-3 border-b border-[var(--border)] last:border-0 text-sm">
-                    <Link href={`/${encodeURIComponent(workspaceSlug ?? "")}/${encodeURIComponent(p.slug ?? "")}`} className="font-medium truncate hover:underline hover:text-[var(--primary)] text-left">
-                      {p.name}
-                    </Link>
+                    {workspaceSlug ? (
+                      <Link href={`/${encodeURIComponent(workspaceSlug)}/${encodeURIComponent(p.slug ?? "")}`} className="font-medium truncate hover:underline hover:text-[var(--primary)] text-left">
+                        {p.name}
+                      </Link>
+                    ) : (
+                      <span className="font-medium truncate text-left">{p.name}</span>
+                    )}
                     <div className="flex items-center justify-start">
                       <Badge variant="outline" className="font-mono text-[10px] border-[var(--border)] bg-transparent text-[var(--muted-foreground)] font-medium py-0.5 px-2 h-5 w-fit">{p.jiraProjectKey}</Badge>
                     </div>
