@@ -47,6 +47,8 @@ export class BrowserAgent {
     this.sessionId = sessionId;
     this.steps = [];
     this.aborted = false;
+    let consecutiveFailures = 0;
+    const maxConsecutiveFailures = 3;
 
     for (let i = 0; i < this.config.maxIterations; i++) {
       if (this.aborted) {
@@ -107,19 +109,24 @@ export class BrowserAgent {
         if (onProgress) onProgress(step);
 
         if (!actionResult.success) {
-          // Action failed - add this to conversation history so LLM knows
           this.conversationHistory.push({
             role: "user",
             content: `Action failed: ${parsedAction.type}(${parsedAction.params.join(", ")}) - ${actionResult.message}`,
           });
-          return {
-            success: false,
-            message: `Action failed: ${actionResult.message}`,
-            steps: this.steps,
-          };
+          consecutiveFailures++;
+          if (consecutiveFailures >= maxConsecutiveFailures) {
+            return {
+              success: false,
+              message: `Failed after ${consecutiveFailures} attempts: ${actionResult.message}`,
+              steps: this.steps,
+            };
+          }
+          await this.wait(this.config.waitAfterAction);
+          continue;
         }
 
         // Add action result to conversation history so LLM knows what was done
+        consecutiveFailures = 0;
         this.conversationHistory.push({
           role: "user",
           content: `Action completed: ${parsedAction.type}(${parsedAction.params.join(", ")}) - ${actionResult.message}`,
@@ -190,7 +197,7 @@ export class BrowserAgent {
       return llmResponse;
     } catch (error: any) {
       const msg = error?.response?.data?.message || error?.response?.data?.error || error?.message || "Unknown error";
-      return `DONE: ${msg}`;
+      throw new Error(msg);
     }
   }
 
