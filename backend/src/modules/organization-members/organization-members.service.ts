@@ -178,13 +178,21 @@ export class OrganizationMembersService {
     search?: string,
     requestUserId?: string,
   ): Promise<OrganizationMember[]> {
-    if (organizationId && requestUserId) {
-      const requestUser = await this.prisma.user.findUnique({
-        where: { id: requestUserId },
-        select: { role: true },
-      });
-      const isSuperAdmin = requestUser?.role === OrganizationRole.SUPER_ADMIN;
+    if (!requestUserId) {
+      throw new ForbiddenException('Unauthenticated');
+    }
 
+    const requestUser = await this.prisma.user.findUnique({
+      where: { id: requestUserId },
+      select: { role: true },
+    });
+    const isSuperAdmin = requestUser?.role === OrganizationRole.SUPER_ADMIN;
+
+    const whereClause: any = {};
+
+    if (organizationId) {
+      // A specific organization was requested: the caller must be a member of
+      // it (or a SUPER_ADMIN) to see its members.
       if (!isSuperAdmin) {
         const requesterMember = await this.prisma.organizationMember.findUnique({
           where: {
@@ -199,12 +207,16 @@ export class OrganizationMembersService {
           throw new ForbiddenException('You are not a member of this organization');
         }
       }
-    }
-
-    const whereClause: any = {};
-
-    if (organizationId) {
       whereClause.organizationId = organizationId;
+    } else if (!isSuperAdmin) {
+      // No organization filter: restrict the result to the organizations the
+      // caller actually belongs to. Without this, omitting organizationId
+      // returned every organization's members (with PII) to any user.
+      const memberships = await this.prisma.organizationMember.findMany({
+        where: { userId: requestUserId },
+        select: { organizationId: true },
+      });
+      whereClause.organizationId = { in: memberships.map((m) => m.organizationId) };
     }
 
     if (search && search.trim()) {

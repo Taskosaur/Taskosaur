@@ -5,18 +5,66 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { TimeEntry } from '@prisma/client';
+import { TimeEntry, Role, ProjectVisibility } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTimeEntryDto } from './dto/create-time-entry.dto';
 import { UpdateTimeEntryDto } from './dto/update-time-entry.dto';
 import { StartTimerDto, StopTimerDto } from './dto/time-tracking.dto';
 
+// The authenticated principal, as populated on the request by JwtAuthGuard.
+// Authorization must be derived from this, never from a client-supplied id.
+export interface RequestingUser {
+  id: string;
+  role?: string;
+}
+
 @Injectable()
 export class TimeEntriesService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createTimeEntryDto: CreateTimeEntryDto): Promise<TimeEntry> {
-    const { taskId, userId } = createTimeEntryDto;
+  // Whether the user may see a task (and therefore its time entries): the
+  // owner of a project membership, a member of the workspace for an INTERNAL
+  // project, anyone for a PUBLIC project, or a SUPER_ADMIN. This is the tenant
+  // boundary for time tracking; without it any authenticated user could read
+  // or mutate time entries in every other organization.
+  private async canAccessTaskProject(taskId: string, user: RequestingUser): Promise<boolean> {
+    if (user.role === Role.SUPER_ADMIN) return true;
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      select: { project: { select: { id: true, visibility: true, workspaceId: true } } },
+    });
+    const project = task?.project;
+    if (!project) return false;
+
+    const projectMember = await this.prisma.projectMember.findUnique({
+      where: { userId_projectId: { userId: user.id, projectId: project.id } },
+      select: { role: true },
+    });
+    if (projectMember) return true;
+
+    if (project.visibility === ProjectVisibility.PUBLIC) return true;
+
+    if (project.visibility === ProjectVisibility.INTERNAL) {
+      const workspaceMember = await this.prisma.workspaceMember.findUnique({
+        where: { userId_workspaceId: { userId: user.id, workspaceId: project.workspaceId } },
+        select: { role: true },
+      });
+      if (workspaceMember) return true;
+    }
+
+    return false;
+  }
+
+  async create(
+    createTimeEntryDto: CreateTimeEntryDto,
+    requestingUser: RequestingUser,
+  ): Promise<TimeEntry> {
+    const { taskId } = createTimeEntryDto;
+
+    // The owner of a time entry is always the authenticated user. A
+    // client-supplied userId is ignored so a caller cannot log or attribute
+    // time on behalf of someone else.
+    createTimeEntryDto.userId = requestingUser.id;
 
     // Verify task exists
     const task = await this.prisma.task.findUnique({
@@ -28,14 +76,9 @@ export class TimeEntriesService {
       throw new NotFoundException('Task not found');
     }
 
-    // Verify user exists
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, firstName: true, lastName: true },
-    });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
+    // The user may only log time against a task they can access.
+    if (!(await this.canAccessTaskProject(taskId, requestingUser))) {
+      throw new ForbiddenException('You do not have access to this task');
     }
 
     // Validate start/end time logic
@@ -84,16 +127,30 @@ export class TimeEntriesService {
     });
   }
 
-  findAll(
+  async findAll(
+    requestingUser: RequestingUser,
     taskId?: string,
     userId?: string,
     startDate?: string,
     endDate?: string,
   ): Promise<TimeEntry[]> {
+    const isSuperAdmin = requestingUser.role === Role.SUPER_ADMIN;
     const whereClause: any = {};
 
-    if (taskId) whereClause.taskId = taskId;
-    if (userId) whereClause.userId = userId;
+    if (taskId) {
+      // Scoped to a task: the caller must be able to see that task, and may
+      // then read every logger's entries on it.
+      if (!(await this.canAccessTaskProject(taskId, requestingUser))) {
+        throw new ForbiddenException('You do not have access to this task');
+      }
+      whereClause.taskId = taskId;
+      if (userId) whereClause.userId = userId;
+    } else {
+      // No task scope: a caller may only list their own entries. A SUPER_ADMIN
+      // may target another user explicitly. This closes the cross-tenant dump
+      // that returned every organization's entries when no filter was given.
+      whereClause.userId = isSuperAdmin && userId ? userId : requestingUser.id;
+    }
 
     if (startDate || endDate) {
       whereClause.date = {};
@@ -133,7 +190,7 @@ export class TimeEntriesService {
     });
   }
 
-  async findOne(id: string): Promise<TimeEntry> {
+  async findOne(id: string, requestingUser: RequestingUser): Promise<TimeEntry> {
     const timeEntry = await this.prisma.timeEntry.findUnique({
       where: { id },
       include: {
@@ -171,6 +228,14 @@ export class TimeEntriesService {
     });
 
     if (!timeEntry) {
+      throw new NotFoundException('Time entry not found');
+    }
+
+    // The caller may read the entry only if they own it or can access the
+    // task's project. A cross-tenant read is reported as Not Found so the
+    // endpoint does not confirm the existence of another tenant's entry.
+    const isOwner = timeEntry.userId === requestingUser.id;
+    if (!isOwner && !(await this.canAccessTaskProject(timeEntry.taskId, requestingUser))) {
       throw new NotFoundException('Time entry not found');
     }
 
@@ -265,8 +330,13 @@ export class TimeEntriesService {
   }
 
   // Time Tracking Methods
-  async startTimer(startTimerDto: StartTimerDto): Promise<{ message: string; activeTimer: any }> {
-    const { taskId, userId, description } = startTimerDto;
+  async startTimer(
+    startTimerDto: StartTimerDto,
+    requestingUser: RequestingUser,
+  ): Promise<{ message: string; activeTimer: any }> {
+    const { taskId, description } = startTimerDto;
+    // The timer always belongs to the authenticated user, never a supplied id.
+    const userId = requestingUser.id;
 
     // Check if user already has an active timer
     const activeTimer = await this.getActiveTimer(userId);
@@ -282,6 +352,11 @@ export class TimeEntriesService {
 
     if (!task) {
       throw new NotFoundException('Task not found');
+    }
+
+    // The user may only start a timer on a task they can access.
+    if (!(await this.canAccessTaskProject(taskId, requestingUser))) {
+      throw new ForbiddenException('You do not have access to this task');
     }
 
     // Create a time entry with start time but no end time (active timer)
@@ -318,8 +393,10 @@ export class TimeEntriesService {
     };
   }
 
-  async stopTimer(stopTimerDto: StopTimerDto): Promise<TimeEntry> {
-    const { userId, description } = stopTimerDto;
+  async stopTimer(stopTimerDto: StopTimerDto, requestingUser: RequestingUser): Promise<TimeEntry> {
+    const { description } = stopTimerDto;
+    // Only the authenticated user's own timer may be stopped.
+    const userId = requestingUser.id;
 
     // Find active timer for user
     const activeTimer = await this.prisma.timeEntry.findFirst({
@@ -385,7 +462,16 @@ export class TimeEntriesService {
     return stoppedTimer;
   }
 
-  getActiveTimer(userId: string) {
+  getActiveTimer(userId: string, requestingUser?: RequestingUser) {
+    // When called on behalf of a request (not internally), a caller may only
+    // inspect their own active timer unless they are a SUPER_ADMIN.
+    if (
+      requestingUser &&
+      requestingUser.role !== Role.SUPER_ADMIN &&
+      requestingUser.id !== userId
+    ) {
+      throw new ForbiddenException('You can only view your own active timer');
+    }
     return this.prisma.timeEntry.findFirst({
       where: {
         userId,
@@ -421,15 +507,26 @@ export class TimeEntriesService {
 
   // Reporting Methods
   async getTimeSpentSummary(
+    requestingUser: RequestingUser,
     userId?: string,
     taskId?: string,
     startDate?: string,
     endDate?: string,
   ): Promise<any> {
+    const isSuperAdmin = requestingUser.role === Role.SUPER_ADMIN;
     const whereClause: any = {};
 
-    if (userId) whereClause.userId = userId;
-    if (taskId) whereClause.taskId = taskId;
+    if (taskId) {
+      if (!(await this.canAccessTaskProject(taskId, requestingUser))) {
+        throw new ForbiddenException('You do not have access to this task');
+      }
+      whereClause.taskId = taskId;
+      if (userId) whereClause.userId = userId;
+    } else {
+      // No task scope: summarise only the caller's own time (or a specific
+      // user's, for a SUPER_ADMIN). Prevents a cross-tenant totals leak.
+      whereClause.userId = isSuperAdmin && userId ? userId : requestingUser.id;
+    }
 
     if (startDate || endDate) {
       whereClause.date = {};

@@ -3,6 +3,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
   ServiceUnavailableException,
   Logger,
 } from '@nestjs/common';
@@ -15,6 +16,8 @@ import { InvitationStatus, NotificationPriority, NotificationType, Role } from '
 import { WorkspaceMembersService } from '../workspace-members/workspace-members.service';
 import { OrganizationMembersService } from '../organization-members/organization-members.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AccessControlService, AccessResult } from '../../common/access-control.utils';
+import { ROLE_RANK } from 'src/common/decorator/role-order';
 
 @Injectable()
 export class InvitationsService {
@@ -27,7 +30,90 @@ export class InvitationsService {
     private organizationMemberService: OrganizationMembersService,
     private configService: ConfigService,
     private notificationsService: NotificationsService,
+    private accessControl: AccessControlService,
   ) {}
+
+  // The role an invitation may grant must be a real, non-superadmin role, and
+  // an inviter may never grant a role above their own in the target scope.
+  private parseInvitableRole(role: string): Role {
+    const valid = (Object.values(Role) as string[]).includes(role);
+    if (!valid || role === Role.SUPER_ADMIN) {
+      throw new BadRequestException(`Invalid invitation role: ${role}`);
+    }
+    return role as Role;
+  }
+
+  // Return an access result only when it grants elevated (OWNER/MANAGER) or
+  // super-admin authority; swallow the "not a member" / "not found" rejections
+  // so the caller can fall back to a higher scope in the hierarchy.
+  private async elevatedAccessOrNull(
+    fn: () => Promise<AccessResult>,
+  ): Promise<AccessResult | null> {
+    try {
+      const result = await fn();
+      return result.isSuperAdmin || result.isElevated ? result : null;
+    } catch (error) {
+      if (error instanceof ForbiddenException || error instanceof NotFoundException) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  // The inviter's strongest elevated authority over the target, considering the
+  // scope itself and every ancestor up to the owning organization (an org admin
+  // may invite into any workspace/project it contains).
+  private async resolveInviterAuthority(
+    dto: CreateInvitationDto,
+    inviterId: string,
+    owningOrgId: string,
+  ): Promise<AccessResult | null> {
+    const candidates: AccessResult[] = [];
+    if (dto.projectId) {
+      const p = await this.elevatedAccessOrNull(() =>
+        this.accessControl.getProjectAccess(dto.projectId as string, inviterId),
+      );
+      if (p) candidates.push(p);
+    }
+    if (dto.workspaceId) {
+      const w = await this.elevatedAccessOrNull(() =>
+        this.accessControl.getWorkspaceAccess(dto.workspaceId as string, inviterId),
+      );
+      if (w) candidates.push(w);
+    }
+    const o = await this.elevatedAccessOrNull(() =>
+      this.accessControl.getOrgAccess(owningOrgId, inviterId),
+    );
+    if (o) candidates.push(o);
+
+    if (candidates.length === 0) return null;
+    return candidates.reduce((best, c) =>
+      c.isSuperAdmin || ROLE_RANK[c.role] > ROLE_RANK[best.role] ? c : best,
+    );
+  }
+
+  // Authorize the inviter against the target scope. Only a member with an
+  // elevated role (OWNER/MANAGER) in the organization, workspace, or project
+  // (or an ancestor), an organization owner, or a SUPER_ADMIN may invite; and
+  // the granted role may not exceed the inviter's own. Without this,
+  // POST /invitations let any authenticated user invite themselves as OWNER of
+  // any tenant.
+  private async assertCanInvite(
+    dto: CreateInvitationDto,
+    inviterId: string,
+    owningOrgId: string,
+  ): Promise<void> {
+    const requestedRole = this.parseInvitableRole(dto.role);
+
+    const access = await this.resolveInviterAuthority(dto, inviterId, owningOrgId);
+    if (!access) {
+      throw new ForbiddenException('You do not have permission to invite members to this scope');
+    }
+
+    if (!access.isSuperAdmin && ROLE_RANK[requestedRole] > ROLE_RANK[access.role]) {
+      throw new ForbiddenException('You cannot grant a role higher than your own');
+    }
+  }
 
   async createInvitation(dto: CreateInvitationDto, inviterId: string) {
     const isSmtpEnabled = await this.emailService.isSmtpEnabled();
@@ -90,6 +176,11 @@ export class InvitationsService {
       }
       owningOrgId = project.workspace.organizationId;
     }
+
+    // Authorize the INVITER against the target scope before anything else. This
+    // is the check that was missing: previously any authenticated user could
+    // invite themselves (or anyone) as OWNER of any organization.
+    await this.assertCanInvite(dto, inviterId, owningOrgId);
 
     await this.checkExistingMembership(dto);
 

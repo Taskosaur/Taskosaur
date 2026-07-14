@@ -1,5 +1,11 @@
-import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
-import { TaskStatus } from '@prisma/client';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
+import { TaskStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskStatusDto, CreateTaskStatusFromProjectDto } from './dto/create-task-status.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
@@ -7,6 +13,53 @@ import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 @Injectable()
 export class TaskStatusesService {
   private readonly logger = new Logger(TaskStatusesService.name);
+
+  // A task status belongs to a workflow, which belongs to an organization.
+  // Mutating a status must be restricted to a SUPER_ADMIN or a member of that
+  // organization. The @Roles decorators on the controller are inert because
+  // RolesGuard is not applied there, so the tenant boundary is enforced here;
+  // otherwise any authenticated user could edit, reorder, or delete any other
+  // organization's task statuses by UUID.
+  private async assertOrgMemberForWorkflow(workflowId: string, userId: string): Promise<void> {
+    const actor = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (actor?.role === Role.SUPER_ADMIN) return;
+
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id: workflowId },
+      select: { organizationId: true, organization: { select: { ownerId: true } } },
+    });
+    if (!workflow) {
+      throw new NotFoundException('Workflow not found');
+    }
+
+    // The organization owner is always authorized, even without an explicit
+    // membership row.
+    if (workflow.organization?.ownerId === userId) return;
+
+    const membership = await this.prisma.organizationMember.findUnique({
+      where: {
+        userId_organizationId: { userId, organizationId: workflow.organizationId },
+      },
+      select: { id: true },
+    });
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this organization');
+    }
+  }
+
+  private async assertOrgMemberForStatus(statusId: string, userId: string): Promise<void> {
+    const status = await this.prisma.taskStatus.findUnique({
+      where: { id: statusId },
+      select: { workflowId: true },
+    });
+    if (!status) {
+      throw new NotFoundException('Task status not found');
+    }
+    await this.assertOrgMemberForWorkflow(status.workflowId, userId);
+  }
 
   findDefaultWorkflowByOrganizationId(organizationId: string) {
     return this.prisma.workflow.findFirst({
@@ -25,6 +78,7 @@ export class TaskStatusesService {
   constructor(private prisma: PrismaService) {}
 
   async create(createTaskStatusDto: CreateTaskStatusDto, userId: string): Promise<TaskStatus> {
+    await this.assertOrgMemberForWorkflow(createTaskStatusDto.workflowId, userId);
     try {
       const existingStatus = await this.prisma.taskStatus.findFirst({
         where: {
@@ -214,6 +268,7 @@ export class TaskStatusesService {
     updateTaskStatusDto: UpdateTaskStatusDto,
     userId: string,
   ): Promise<TaskStatus> {
+    await this.assertOrgMemberForStatus(id, userId);
     try {
       const taskStatus = await this.prisma.taskStatus.update({
         where: { id },
@@ -276,6 +331,9 @@ export class TaskStatusesService {
     statusUpdates: { id: string; position: number }[],
     userId: string,
   ): Promise<TaskStatus[]> {
+    for (const { id } of statusUpdates) {
+      await this.assertOrgMemberForStatus(id, userId);
+    }
     try {
       // Use a transaction to ensure all updates happen atomically
       const updatedStatuses = await this.prisma.$transaction(
@@ -338,6 +396,7 @@ export class TaskStatusesService {
   }
 
   async remove(id: string, userId: string): Promise<void> {
+    await this.assertOrgMemberForStatus(id, userId);
     try {
       // Check if status exists and is not already deleted
       const existingStatus = await this.prisma.taskStatus.findUnique({
@@ -465,6 +524,7 @@ export class TaskStatusesService {
   }
 
   async restore(id: string, userId: string): Promise<TaskStatus> {
+    await this.assertOrgMemberForStatus(id, userId);
     try {
       const existingStatus = await this.prisma.taskStatus.findUnique({
         where: { id },
@@ -563,6 +623,7 @@ export class TaskStatusesService {
     }
 
     const workflowId = project.workflow.id;
+    await this.assertOrgMemberForWorkflow(workflowId, userId);
 
     try {
       const existingStatusCount = await this.prisma.taskStatus.count({

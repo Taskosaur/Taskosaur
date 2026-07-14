@@ -5,15 +5,54 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
-import { TaskWatcher } from '@prisma/client';
+import { TaskWatcher, Role, ProjectVisibility } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskWatcherDto, WatchTaskDto, UnwatchTaskDto } from './dto/create-task-watcher.dto';
+
+// The authenticated principal, as populated on the request by JwtAuthGuard.
+export interface RequestingUser {
+  id: string;
+  role?: string;
+}
 
 @Injectable()
 export class TaskWatchersService {
   private readonly logger = new Logger(TaskWatchersService.name);
 
   constructor(private prisma: PrismaService) {}
+
+  // Whether the user may see a task (and therefore its watchers): a project
+  // member, a member of the workspace for an INTERNAL project, anyone for a
+  // PUBLIC project, or a SUPER_ADMIN. This is the tenant boundary; without it
+  // any authenticated user could read or enumerate watchers on every task.
+  private async canAccessTask(taskId: string, user: RequestingUser): Promise<boolean> {
+    if (user.role === Role.SUPER_ADMIN) return true;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
+    const task = await this.prisma.task.findFirst({
+      where: isUuid ? { id: taskId } : { slug: taskId },
+      select: { project: { select: { id: true, visibility: true, workspaceId: true } } },
+    });
+    const project = task?.project;
+    if (!project) return false;
+
+    const projectMember = await this.prisma.projectMember.findUnique({
+      where: { userId_projectId: { userId: user.id, projectId: project.id } },
+      select: { role: true },
+    });
+    if (projectMember) return true;
+
+    if (project.visibility === ProjectVisibility.PUBLIC) return true;
+
+    if (project.visibility === ProjectVisibility.INTERNAL) {
+      const workspaceMember = await this.prisma.workspaceMember.findUnique({
+        where: { userId_workspaceId: { userId: user.id, workspaceId: project.workspaceId } },
+        select: { role: true },
+      });
+      if (workspaceMember) return true;
+    }
+
+    return false;
+  }
 
   async create(createTaskWatcherDto: CreateTaskWatcherDto): Promise<TaskWatcher> {
     const { taskId, userId } = createTaskWatcherDto;
@@ -151,7 +190,12 @@ export class TaskWatchersService {
     });
   }
 
-  async findAll(taskId?: string, userId?: string): Promise<TaskWatcher[]> {
+  async findAll(
+    requestingUser: RequestingUser,
+    taskId?: string,
+    userId?: string,
+  ): Promise<TaskWatcher[]> {
+    const isSuperAdmin = requestingUser.role === Role.SUPER_ADMIN;
     const whereClause: any = {};
     if (taskId) {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId);
@@ -160,12 +204,20 @@ export class TaskWatchersService {
         select: { id: true },
       });
       if (task) {
+        // Scoped to a task: the caller must be able to see that task.
+        if (!(await this.canAccessTask(task.id, requestingUser))) {
+          throw new ForbiddenException('You do not have access to this task');
+        }
         whereClause.taskId = task.id;
       } else {
         return []; // Task not found, so no watchers
       }
+      if (userId) whereClause.userId = userId;
+    } else {
+      // No task scope: a caller may only list their own watch rows. Prevents
+      // enumerating every tenant's watchers.
+      whereClause.userId = isSuperAdmin && userId ? userId : requestingUser.id;
     }
-    if (userId) whereClause.userId = userId;
 
     return this.prisma.taskWatcher.findMany({
       where: whereClause,
@@ -211,7 +263,7 @@ export class TaskWatchersService {
     });
   }
 
-  async findOne(id: string): Promise<TaskWatcher> {
+  async findOne(id: string, requestingUser: RequestingUser): Promise<TaskWatcher> {
     const watcher = await this.prisma.taskWatcher.findUnique({
       where: { id },
       include: {
@@ -286,6 +338,14 @@ export class TaskWatchersService {
     });
 
     if (!watcher) {
+      throw new NotFoundException('Task watcher not found');
+    }
+
+    // The caller may read the watcher only if it is their own or they can
+    // access the watched task. A cross-tenant read is reported as Not Found so
+    // the endpoint does not confirm the existence of another tenant's record.
+    const isOwner = watcher.userId === requestingUser.id;
+    if (!isOwner && !(await this.canAccessTask(watcher.taskId, requestingUser))) {
       throw new NotFoundException('Task watcher not found');
     }
 

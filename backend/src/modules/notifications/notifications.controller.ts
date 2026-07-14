@@ -13,6 +13,7 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -232,6 +233,7 @@ export class NotificationsController {
     example: 20,
   })
   async getNotificationsByUserAndOrganization(
+    @Req() req: Request,
     @Param('userId', ParseUUIDPipe) userId: string,
     @Param('organizationId', ParseUUIDPipe) organizationId: string,
     @Query('isRead') isRead?: string,
@@ -242,6 +244,14 @@ export class NotificationsController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
   ) {
+    // A notification feed is personal. The userId path parameter must match the
+    // authenticated caller (a SUPER_ADMIN may read any user's feed); otherwise
+    // any authenticated user could read another user's notifications.
+    const caller = getAuthUser(req);
+    if (caller.id !== userId && caller.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException('You can only read your own notifications');
+    }
+
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 20;
 

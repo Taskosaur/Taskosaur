@@ -8,6 +8,7 @@ import { WorkspaceMembersService } from '../workspace-members/workspace-members.
 import { OrganizationMembersService } from '../organization-members/organization-members.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SettingsModule } from '../settings/settings.module';
+import { AccessControlService } from '../../common/access-control.utils';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { SettingsModule } from '../settings/settings.module';
     EmailService,
     WorkspaceMembersService,
     OrganizationMembersService,
+    AccessControlService,
   ],
   exports: [InvitationsService],
 })
