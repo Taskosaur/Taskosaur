@@ -1,5 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { Workflow } from '@prisma/client';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { Workflow, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWorkflowDto } from './dto/create-workflow.dto';
 import { UpdateWorkflowDto } from './dto/update-workflow.dto';
@@ -9,7 +14,63 @@ import { DEFAULT_TASK_STATUSES } from 'src/constants/defaultWorkflow';
 export class WorkflowsService {
   constructor(private prisma: PrismaService) {}
 
-  create(createWorkflowDto: CreateWorkflowDto, userId: string): Promise<Workflow> {
+  // A workflow (and its statuses/transitions) belongs to an organization.
+  // Every workflow operation must be restricted to a SUPER_ADMIN or a member
+  // (or the owner) of that organization. The controller only authenticates via
+  // JwtAuthGuard, so without these checks any authenticated user could read,
+  // create, modify, or delete any organization's workflows across tenants.
+  private async assertOrgMember(organizationId: string, userId: string): Promise<void> {
+    const actor = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (actor?.role === Role.SUPER_ADMIN) return;
+
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { ownerId: true },
+    });
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
+    }
+    if (organization.ownerId === userId) return;
+
+    const membership = await this.prisma.organizationMember.findUnique({
+      where: { userId_organizationId: { userId, organizationId } },
+      select: { id: true },
+    });
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this organization');
+    }
+  }
+
+  private async assertOrgMemberForWorkflow(workflowId: string, userId: string): Promise<void> {
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id: workflowId },
+      select: { organizationId: true },
+    });
+    if (!workflow) {
+      throw new NotFoundException('Workflow not found');
+    }
+    await this.assertOrgMember(workflow.organizationId, userId);
+  }
+
+  // The organization ids the user may see workflows for (owned or joined).
+  private async accessibleOrganizationIds(userId: string): Promise<string[]> {
+    const [owned, memberships] = await Promise.all([
+      this.prisma.organization.findMany({ where: { ownerId: userId }, select: { id: true } }),
+      this.prisma.organizationMember.findMany({
+        where: { userId },
+        select: { organizationId: true },
+      }),
+    ]);
+    return Array.from(
+      new Set([...owned.map((o) => o.id), ...memberships.map((m) => m.organizationId)]),
+    );
+  }
+
+  async create(createWorkflowDto: CreateWorkflowDto, userId: string): Promise<Workflow> {
+    await this.assertOrgMember(createWorkflowDto.organizationId, userId);
     return this.prisma.$transaction(async (tx) => {
       if (createWorkflowDto.isDefault) {
         await tx.workflow.updateMany({
@@ -73,8 +134,23 @@ export class WorkflowsService {
     });
   }
 
-  findAll(organizationId?: string): Promise<Workflow[]> {
-    const whereClause = organizationId ? { organizationId } : {};
+  async findAll(userId: string, organizationId?: string): Promise<Workflow[]> {
+    let whereClause: any;
+    if (organizationId) {
+      await this.assertOrgMember(organizationId, userId);
+      whereClause = { organizationId };
+    } else {
+      // No organization filter: restrict to the organizations the caller can
+      // see, rather than returning every organization's workflows.
+      const actor = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      whereClause =
+        actor?.role === Role.SUPER_ADMIN
+          ? {}
+          : { organizationId: { in: await this.accessibleOrganizationIds(userId) } };
+    }
 
     return this.prisma.workflow.findMany({
       where: whereClause,
@@ -102,9 +178,9 @@ export class WorkflowsService {
     });
   }
 
-  async findAllByOrganizationSlug(slug: string): Promise<Workflow[]> {
+  async findAllByOrganizationSlug(slug: string, userId: string): Promise<Workflow[]> {
     if (!slug) {
-      throw new Error('Organization slug must be provided');
+      throw new BadRequestException('Organization slug must be provided');
     }
 
     // First, find the organization by slug
@@ -114,8 +190,10 @@ export class WorkflowsService {
     });
 
     if (!organization) {
-      throw new Error(`Organization with slug "${slug}" not found`);
+      throw new NotFoundException(`Organization with slug "${slug}" not found`);
     }
+
+    await this.assertOrgMember(organization.id, userId);
 
     return this.prisma.workflow.findMany({
       where: { organizationId: organization.id },
@@ -144,7 +222,8 @@ export class WorkflowsService {
     });
   }
 
-  async findOne(id: string): Promise<Workflow> {
+  async findOne(id: string, userId: string): Promise<Workflow> {
+    await this.assertOrgMemberForWorkflow(id, userId);
     const workflow = await this.prisma.workflow.findUnique({
       where: { id },
       include: {
@@ -199,7 +278,12 @@ export class WorkflowsService {
     return workflow;
   }
 
-  update(id: string, updateWorkflowDto: UpdateWorkflowDto, userId: string): Promise<Workflow> {
+  async update(
+    id: string,
+    updateWorkflowDto: UpdateWorkflowDto,
+    userId: string,
+  ): Promise<Workflow> {
+    await this.assertOrgMemberForWorkflow(id, userId);
     return this.prisma.$transaction(async (tx) => {
       // If this is set as default, unset other defaults in the same organization
       if (updateWorkflowDto.isDefault) {
@@ -271,7 +355,8 @@ export class WorkflowsService {
     });
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, userId: string): Promise<void> {
+    await this.assertOrgMemberForWorkflow(id, userId);
     try {
       await this.prisma.workflow.delete({
         where: { id },
@@ -285,7 +370,8 @@ export class WorkflowsService {
     }
   }
 
-  getDefaultWorkflow(organizationId: string) {
+  async getDefaultWorkflow(organizationId: string, userId: string) {
+    await this.assertOrgMember(organizationId, userId);
     return this.prisma.workflow.findFirst({
       where: {
         organizationId,
@@ -306,6 +392,8 @@ export class WorkflowsService {
     organizationId: string,
     userId: string,
   ): Promise<Workflow> {
+    // userId is the authenticated principal (from the JWT), never a body field.
+    await this.assertOrgMember(organizationId, userId);
     try {
       const updatedWorkflow = await this.prisma.$transaction(async (prisma) => {
         const workflow = await prisma.workflow.findUnique({

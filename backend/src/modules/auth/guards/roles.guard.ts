@@ -44,12 +44,24 @@ export class RolesGuard implements CanActivate {
       type: ScopeType;
       idParam: string;
     }>(SCOPE_KEY, [ctx.getHandler(), ctx.getClass()]);
-    const params = {
-      ...(req.params ?? {}),
-      ...(req.query ?? {}),
+    // SECURITY: the scope id that authorization is checked against must come
+    // from the addressed resource (the URL path), not from the request body.
+    // Precedence is path params, then query, then body, so a body field can
+    // never override a path-addressed scope. Without this ordering a caller
+    // could send the id of a scope they control in the body while the handler
+    // acts on the scope named in the path, and be authorized against the wrong
+    // scope (a cross-tenant privilege escalation). Body is kept only as a
+    // fallback for routes that legitimately carry the scope id in the body and
+    // have no path param for it (for example creating a workspace in an
+    // organization), where the guard and the handler read the same body field
+    // and therefore agree on the target.
+    const scopeSource = {
       ...(req.body ?? {}),
+      ...(req.query ?? {}),
+      ...(req.params ?? {}),
     };
-    const { type, idParam } = scopeMeta ?? inferScopeFromParams(params as Record<string, string>);
+    const { type, idParam } =
+      scopeMeta ?? inferScopeFromParams(scopeSource as Record<string, string>);
 
     if (!type) {
       // If no scope is defined, check if the user meets any of the required global roles
@@ -59,10 +71,11 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Insufficient privileges for this global action');
     }
 
-    const scopeId = params[idParam];
+    const scopeId = scopeSource[idParam];
     if (!scopeId) throw new ForbiddenException('Scope id missing');
 
     let resolvedScopeId = scopeId;
+    let projectVisibility: string | undefined;
     if (type === 'PROJECT' && idParam === 'slug') {
       const project = await this.prisma.project.findUnique({
         where: { slug: scopeId },
@@ -70,9 +83,7 @@ export class RolesGuard implements CanActivate {
       });
       if (!project) throw new NotFoundException('Project not found');
       resolvedScopeId = project.id;
-      if (project.visibility === 'PUBLIC') {
-        return true;
-      }
+      projectVisibility = project.visibility;
     }
     if (type === 'ORGANIZATION' && idParam === 'slug') {
       const organization = await this.prisma.organization.findUnique({
@@ -82,6 +93,19 @@ export class RolesGuard implements CanActivate {
       if (!organization) throw new NotFoundException('Organization not found');
       resolvedScopeId = organization.id;
     }
+
+    // A PUBLIC project grants READ-ONLY access, and only enough to satisfy a
+    // VIEWER-level requirement. This replaces an unconditional "return true"
+    // that ignored both the HTTP method and the required role, which would have
+    // granted writes on a public project to any authenticated user. A public
+    // project can still have members with a real role; they are resolved below.
+    if (projectVisibility === 'PUBLIC') {
+      const method = String(req.method ?? 'GET').toUpperCase();
+      const isReadOnly = method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
+      const viewerSatisfies = requiredRoles.some((r) => ROLE_RANK['VIEWER'] >= ROLE_RANK[r]);
+      if (isReadOnly && viewerSatisfies) return true;
+    }
+
     const memberRole = await this.getMemberRole(type, user.id as string, resolvedScopeId as string);
     if (!memberRole) throw new ForbiddenException('Not a member of this scope');
     const ok = requiredRoles.some((r) => ROLE_RANK[memberRole] >= ROLE_RANK[r]);

@@ -20,9 +20,10 @@ import {
   ApiBody,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { TaskWatchersService } from './task-watchers.service';
+import { TaskWatchersService, RequestingUser } from './task-watchers.service';
 import { CreateTaskWatcherDto, WatchTaskDto, UnwatchTaskDto } from './dto/create-task-watcher.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Task Watchers')
 @ApiBearerAuth('JWT-auth')
@@ -108,8 +109,12 @@ export class TaskWatchersController {
     description: 'Filter by user ID',
   })
   @ApiResponse({ status: 200, description: 'List of task watchers' })
-  findAll(@Query('taskId') taskId?: string, @Query('userId') userId?: string) {
-    return this.taskWatchersService.findAll(taskId, userId);
+  findAll(
+    @CurrentUser() user: RequestingUser,
+    @Query('taskId') taskId?: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.taskWatchersService.findAll(user, taskId, userId);
   }
 
   @Get('stats')
@@ -170,18 +175,14 @@ export class TaskWatchersController {
   @ApiParam({ name: 'id', description: 'Task watcher ID (UUID)' })
   @ApiResponse({ status: 200, description: 'Task watcher details' })
   @ApiResponse({ status: 404, description: 'Task watcher not found' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.taskWatchersService.findOne(id);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: RequestingUser) {
+    return this.taskWatchersService.findOne(id, user);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove a task watcher' })
   @ApiParam({ name: 'id', description: 'Task watcher ID (UUID)' })
-  @ApiQuery({
-    name: 'requestUserId',
-    description: 'ID of user making the request',
-  })
   @ApiResponse({
     status: 204,
     description: 'Task watcher removed successfully',
@@ -191,11 +192,9 @@ export class TaskWatchersController {
     status: 403,
     description: 'Not authorized to remove this watcher',
   })
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    // TODO: Get requestUserId from JWT token when authentication is implemented
-    @Query('requestUserId') requestUserId: string,
-  ) {
-    return this.taskWatchersService.remove(id, requestUserId);
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: RequestingUser) {
+    // The owning-user check is made against the authenticated principal, not a
+    // client-supplied requestUserId.
+    return this.taskWatchersService.remove(id, user.id);
   }
 }

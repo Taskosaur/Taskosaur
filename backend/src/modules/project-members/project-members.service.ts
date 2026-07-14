@@ -342,10 +342,30 @@ export class ProjectMembersService {
       }
     }
 
+    const actorForScope = projectId
+      ? null
+      : await this.prisma.user.findFirst({
+          where: { id: requestUserId },
+          select: { role: true },
+        });
+    const isSuperAdminScope = actorForScope?.role === OrganizationRole.SUPER_ADMIN;
+
     const whereClause: any = {};
 
     if (projectId) {
       whereClause.projectId = projectId;
+    } else if (!isSuperAdminScope) {
+      // No project filter was supplied. Restrict the listing to projects the
+      // caller actually participates in (as a project member or a member of
+      // the project's workspace). Without this, omitting projectId bypassed
+      // the authorization block above and returned every project's members
+      // (with PII) across all organizations.
+      whereClause.project = {
+        OR: [
+          { members: { some: { userId: requestUserId } } },
+          { workspace: { members: { some: { userId: requestUserId } } } },
+        ],
+      };
     }
 
     if (search && search.trim()) {
