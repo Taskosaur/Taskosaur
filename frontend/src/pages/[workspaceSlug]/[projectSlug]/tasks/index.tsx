@@ -1221,6 +1221,8 @@ function ProjectTasksContent() {
                 router.push('/');
               }
             }}
+            viewKanban={isAuth}
+            viewGantt={isAuth}
             rightContent={
               <>
                 {currentView === "gantt" && (
