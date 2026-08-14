@@ -7,8 +7,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
+import { EmailService } from '../email/email.service';
 import { Role, UserStatus } from '@prisma/client';
 import * as crypto from 'crypto';
+import * as bcrypt from 'bcrypt';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
@@ -17,6 +19,7 @@ export class AdminService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly settingsService: SettingsService,
+    private readonly emailService: EmailService,
   ) {}
 
   async getDashboardStats() {
@@ -292,19 +295,27 @@ export class AdminService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    // Generate a reset token and store it
+    // Generate a reset token, store the hash, email the plain token to the user
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const hashedResetToken = await bcrypt.hash(resetToken, 10);
 
     await this.prisma.user.update({
       where: { id },
-      data: { resetToken, resetTokenExpiry },
+      data: { resetToken: hashedResetToken, resetTokenExpiry },
+    });
+
+    const resetUrl = `${this.configService.get('FRONTEND_URL', 'http://localhost:3000')}/reset-password?token=${resetToken}`;
+    await this.emailService.sendPasswordResetEmail(user.email, {
+      userName: user.firstName,
+      resetToken: resetToken, // Pass the plain token (not hashed)
+      resetUrl: resetUrl,
     });
 
     return {
       success: true,
       resetLink: `/reset-password?token=${resetToken}`,
-      message: `Password reset link generated for ${user.email}. Valid for 24 hours.`,
+      message: `Password reset email sent to ${user.email}. Valid for 24 hours.`,
     };
   }
 

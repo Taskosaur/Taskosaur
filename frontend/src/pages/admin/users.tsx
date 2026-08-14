@@ -215,7 +215,6 @@ function AdminUsersContent() {
   const handleResetPassword = async (userId: string, userName: string) => {
     try {
       const result = await adminApi.resetUserPassword(userId);
-      // Copy the reset link to clipboard
       if (result.resetLink) {
         await navigator.clipboard.writeText(window.location.origin + result.resetLink);
         toast.success(t("users.actions.reset_password_link_copied", { name: userName }));
