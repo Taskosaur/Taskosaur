@@ -11,22 +11,25 @@
 
 
 ### 🔒 Security & Authentication
-- [ ] Add support for OpenID Connect (OIDC) and SAML login.
+- [x] Add support for OpenID Connect (OIDC) login.
+- [ ] Add SAML login.
 - [ ] Enable login via Google, GitHub, and Azure with auto-account creation.
 - [ ] Implement 2FA (TOTP) and SMS login with recovery codes.
-- [ ] Build an admin dashboard to manage SSO and user sessions.
+- [x] Build an admin dashboard to manage SSO config.
+- [ ] Add user session management to the admin dashboard.
 
 ---
 
 ### 📊 Analytics & Reporting
 - [ ] Create workload heatmaps and a project completion predictor.
-- [ ] Design a drag-and-drop system for custom dashboard widgets.
+- [x] Design a drag-and-drop system for custom dashboard widgets.
 - [ ] Create a visual report builder with scheduled email delivery.
 - [ ] Support exporting reports to PDF, Excel, CSV, and JSON.
 
 ### 🔄 Import/Export & Migration
-- [ ] Build importers for Jira, Trello, and Asana with field mapping.
-- [ ] Create a CSV/Excel bulk importer.
+- [x] Build importers for Jira and Trello with field mapping.
+- [ ] Build an Asana importer.
+- [x] Create a CSV/Excel bulk importer.
 - [ ] Enable full project exports including all files and settings.
 
 ### 🤖 AI Enhancement
@@ -46,5 +49,5 @@
 ---
 
 **Document Version:** 1.0  
-**Last Updated:** February 20, 2026  
+**Last Updated:** August 14, 2026  
 **Maintained By:** Taskosaur Development Team
