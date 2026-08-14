@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -15,6 +16,8 @@ import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
@@ -470,9 +473,12 @@ export class AdminService {
 
     const newOwner = await this.prisma.user.findUnique({
       where: { id: newOwnerId },
-      select: { id: true },
+      select: { id: true, status: true, deletedAt: true },
     });
-    if (!newOwner) throw new NotFoundException('New owner user not found');
+    if (!newOwner || newOwner.deletedAt) throw new NotFoundException('New owner user not found');
+    if (newOwner.status !== UserStatus.ACTIVE) {
+      throw new ForbiddenException('Cannot transfer ownership to an inactive or suspended user');
+    }
 
     // Ensure the new owner is a member, promote to OWNER
     const membership = await this.prisma.organizationMember.findUnique({
@@ -627,7 +633,10 @@ export class AdminService {
       };
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
-      throw new BadRequestException(`SMTP test failed: ${msg}`);
+      this.logger.error(`SMTP test failed for ${smtpHost}:${smtpPort}: ${msg}`);
+      throw new BadRequestException(
+        'SMTP test failed. Check host, port, and credentials, then see server logs for details.',
+      );
     }
   }
 }
