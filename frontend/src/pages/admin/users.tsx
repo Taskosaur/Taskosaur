@@ -299,13 +299,13 @@ function AdminUsersContent() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="min-w-[700px]">
+              <div className="min-w-[800px]">
               <div className="px-4 py-3 border-b border-[var(--border)]">
-                <div className="grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
-                  <div className="col-span-4">{t("users.table.user") as string}</div>
+                <div className="grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase">
+                  <div className="col-span-3">{t("users.table.user") as string}</div>
                   <div className="col-span-2">{t("users.table.role") as string}</div>
                   <div className="col-span-2">{t("users.table.status") as string}</div>
-                  <div className="col-span-1">{t("users.table.organizations") as string}</div>
+                  <div className="col-span-2">{t("users.table.organizations") as string}</div>
                   <div className="col-span-2">{t("users.table.created") as string}</div>
                   <div className="col-span-1">{t("users.table.actions") as string}</div>
                 </div>
@@ -317,7 +317,7 @@ function AdminUsersContent() {
                   onClick={() => router.push(`/admin/users/${user.id}`)}
                 >
                   <div className="grid grid-cols-12 gap-3 items-center">
-                    <div className="col-span-4 flex items-center gap-3 min-w-0">
+                    <div className="col-span-3 flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-full bg-[var(--primary)]/10 flex items-center justify-center text-xs font-semibold text-[var(--primary)] flex-shrink-0">
                         {user.firstName?.charAt(0)?.toUpperCase() || "?"}
                       </div>
@@ -338,7 +338,7 @@ function AdminUsersContent() {
                         {t(`users.status.${user.status.toLowerCase()}`, user.status) as string}
                       </Badge>
                     </div>
-                    <div className="col-span-1 text-xs text-[var(--muted-foreground)]">
+                    <div className="col-span-2 text-xs text-[var(--muted-foreground)]">
                       {user._count?.organizationMembers || 0}
                     </div>
                     <div className="col-span-2 text-xs text-[var(--muted-foreground)]">
