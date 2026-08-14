@@ -17,7 +17,18 @@ import {
 import { FilterDropdown, useGenericFilters } from "@/components/common/FilterDropdown";
 import Pagination from "@/components/common/Pagination";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HiEllipsisVertical, HiXMark, HiEye, HiShieldCheck, HiShieldExclamation, HiNoSymbol, HiCheckCircle, HiKey, HiTrash, HiUsers } from "react-icons/hi2";
+import {
+  HiEllipsisVertical,
+  HiXMark,
+  HiEye,
+  HiShieldCheck,
+  HiShieldExclamation,
+  HiNoSymbol,
+  HiCheckCircle,
+  HiKey,
+  HiTrash,
+  HiUsers,
+} from "react-icons/hi2";
 import { HiSearch } from "react-icons/hi";
 import { ShieldCheck, Flame, CircleDot } from "lucide-react";
 import { toast } from "sonner";
@@ -29,16 +40,22 @@ const GLOBAL_ROLES = ["SUPER_ADMIN", "MEMBER"];
 const ALL_ROLES = ["SUPER_ADMIN", "OWNER", "MANAGER", "MEMBER", "VIEWER"];
 const STATUSES = ["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"];
 
-const getRoleOptions = (t: any) => ALL_ROLES.map((r) => ({ id: r, name: t(`users.roles.${r.toLowerCase()}`, r), value: r }));
-const getStatusOptions = (t: any) => STATUSES.map((s) => ({
-  id: s,
-  name: t(`users.status.${s.toLowerCase()}`, s),
-  value: s,
-  color:
-    s === "ACTIVE" ? "#22c55e" :
-    s === "SUSPENDED" ? "#ef4444" :
-    s === "PENDING" ? "#eab308" : "#6b7280",
-}));
+const getRoleOptions = (t: any) =>
+  ALL_ROLES.map((r) => ({ id: r, name: t(`users.roles.${r.toLowerCase()}`, r), value: r }));
+const getStatusOptions = (t: any) =>
+  STATUSES.map((s) => ({
+    id: s,
+    name: t(`users.status.${s.toLowerCase()}`, s),
+    value: s,
+    color:
+      s === "ACTIVE"
+        ? "#22c55e"
+        : s === "SUSPENDED"
+          ? "#ef4444"
+          : s === "PENDING"
+            ? "#eab308"
+            : "#6b7280",
+  }));
 
 const getRoleBadgeClass = (role: string) => {
   switch (role) {
@@ -119,9 +136,7 @@ function AdminUsersContent() {
   }, [fetchUsers]);
 
   const toggleRole = useCallback((id: string) => {
-    setSelectedRoles((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setSelectedRoles((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
     setPage(1);
   }, []);
 
@@ -146,20 +161,22 @@ function AdminUsersContent() {
   }, []);
 
   const roleFilters = useMemo(
-    () => getRoleOptions(t).map((r) => ({
-      ...r,
-      selected: selectedRoles.includes(r.id),
-      count: users.filter((u) => u.role === r.id).length,
-    })),
+    () =>
+      getRoleOptions(t).map((r) => ({
+        ...r,
+        selected: selectedRoles.includes(r.id),
+        count: users.filter((u) => u.role === r.id).length,
+      })),
     [selectedRoles, users, t]
   );
 
   const statusFilters = useMemo(
-    () => getStatusOptions(t).map((s) => ({
-      ...s,
-      selected: selectedStatuses.includes(s.id),
-      count: users.filter((u) => u.status === s.id).length,
-    })),
+    () =>
+      getStatusOptions(t).map((s) => ({
+        ...s,
+        selected: selectedStatuses.includes(s.id),
+        count: users.filter((u) => u.status === s.id).length,
+      })),
     [selectedStatuses, users, t]
   );
 
@@ -174,7 +191,10 @@ function AdminUsersContent() {
         searchable: false,
         onToggle: toggleRole,
         onSelectAll: () => setSelectedRoles(ALL_ROLES),
-        onClearAll: () => { setSelectedRoles([]); setPage(1); },
+        onClearAll: () => {
+          setSelectedRoles([]);
+          setPage(1);
+        },
       }),
       createSection({
         id: "status",
@@ -185,10 +205,22 @@ function AdminUsersContent() {
         searchable: false,
         onToggle: toggleStatus,
         onSelectAll: () => setSelectedStatuses(STATUSES),
-        onClearAll: () => { setSelectedStatuses([]); setPage(1); },
+        onClearAll: () => {
+          setSelectedStatuses([]);
+          setPage(1);
+        },
       }),
     ],
-    [roleFilters, statusFilters, selectedRoles, selectedStatuses, toggleRole, toggleStatus, createSection, t]
+    [
+      roleFilters,
+      statusFilters,
+      selectedRoles,
+      selectedStatuses,
+      toggleRole,
+      toggleStatus,
+      createSection,
+      t,
+    ]
   );
 
   const handleRoleChange = async (userId: string, role: string) => {
@@ -241,7 +273,9 @@ function AdminUsersContent() {
 
   return (
     <>
-      <p className="text-sm text-[var(--muted-foreground)]">{t("users.total_count", { count: total }) as string}</p>
+      <p className="text-sm text-[var(--muted-foreground)]">
+        {t("users.total_count", { count: total }) as string}
+      </p>
 
       {/* Search & Filter Bar */}
       <div className="flex flex-wrap items-center gap-3">
@@ -251,7 +285,10 @@ function AdminUsersContent() {
             type="text"
             placeholder={t("users.search_placeholder") as string}
             value={searchInput}
-            onChange={(e) => { setSearchInput(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setSearchInput(e.target.value);
+              setPage(1);
+            }}
             className="pl-10 rounded-md border border-[var(--border)]"
           />
           {searchInput && (
@@ -292,7 +329,9 @@ function AdminUsersContent() {
           ) : users.length === 0 ? (
             <div className="p-12 text-center">
               <HiUsers className="w-10 h-10 mx-auto text-[var(--muted-foreground)]/50 mb-3" />
-              <p className="text-sm font-medium text-[var(--foreground)]">{t("common.no_results") as string}</p>
+              <p className="text-sm font-medium text-[var(--foreground)]">
+                {t("common.no_results") as string}
+              </p>
               <p className="text-xs text-[var(--muted-foreground)] mt-1">
                 {debouncedSearch ? t("common.try_adjusting") : t("users.no_users")}
               </p>
@@ -300,123 +339,153 @@ function AdminUsersContent() {
           ) : (
             <div className="overflow-x-auto">
               <div className="min-w-[800px]">
-              <div className="px-4 py-3 border-b border-[var(--border)]">
-                <div className="grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase">
-                  <div className="col-span-3">{t("users.table.user") as string}</div>
-                  <div className="col-span-2">{t("users.table.role") as string}</div>
-                  <div className="col-span-2">{t("users.table.status") as string}</div>
-                  <div className="col-span-2">{t("users.table.organizations") as string}</div>
-                  <div className="col-span-2">{t("users.table.created") as string}</div>
-                  <div className="col-span-1">{t("users.table.actions") as string}</div>
-                </div>
-              </div>
-              {users.map((user) => (
-                <div
-                  key={user.id}
-                  className="px-4 py-3 hover:bg-[var(--accent)]/30 transition-colors cursor-pointer border-b border-[var(--border)] last:border-b-0"
-                  onClick={() => router.push(`/admin/users/${user.id}`)}
-                >
-                  <div className="grid grid-cols-12 gap-3 items-center">
-                    <div className="col-span-3 flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-[var(--primary)]/10 flex items-center justify-center text-xs font-semibold text-[var(--primary)] flex-shrink-0">
-                        {user.firstName?.charAt(0)?.toUpperCase() || "?"}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-medium text-[var(--foreground)] truncate">
-                          {user.firstName} {user.lastName}
-                        </p>
-                        <p className="text-xs text-[var(--muted-foreground)] truncate">{user.email}</p>
-                      </div>
-                    </div>
-                    <div className="col-span-2">
-                      <Badge className={`text-xs px-2 py-1 rounded-md border ${getRoleBadgeClass(user.role)}`}>
-                        {t(`users.roles.${user.role.toLowerCase()}`, user.role) as string}
-                      </Badge>
-                    </div>
-                    <div className="col-span-2">
-                      <Badge className={`text-xs px-2 py-1 rounded-md border ${getStatusBadgeClass(user.status)}`}>
-                        {t(`users.status.${user.status.toLowerCase()}`, user.status) as string}
-                      </Badge>
-                    </div>
-                    <div className="col-span-2 text-xs text-[var(--muted-foreground)]">
-                      {user._count?.organizationMembers || 0}
-                    </div>
-                    <div className="col-span-2 text-xs text-[var(--muted-foreground)]">
-                      {formatDateForDisplay(user.createdAt)}
-                    </div>
-                    <div className="col-span-1" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-7 w-7 p-0 hover:bg-[var(--accent)]">
-                            <HiEllipsisVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="border-none bg-[var(--popover)] shadow-lg min-w-[180px] p-1">
-                          <DropdownMenuItem
-                            onClick={() => router.push(`/admin/users/${user.id}`)}
-                            className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
-                          >
-                            <HiEye className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
-                            <span className="text-sm">{t("users.actions.view_details") as string}</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator className="my-1" />
-                          {user.role !== "SUPER_ADMIN" && (
-                            <DropdownMenuItem
-                              onClick={() => handleRoleChange(user.id, "SUPER_ADMIN")}
-                              className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
-                            >
-                              <HiShieldCheck className="w-3.5 h-3.5 text-purple-500" />
-                              <span className="text-sm">{t("users.actions.promote_super_admin") as string}</span>
-                            </DropdownMenuItem>
-                          )}
-                          {user.role === "SUPER_ADMIN" && (
-                            <DropdownMenuItem
-                              onClick={() => handleRoleChange(user.id, "MEMBER")}
-                              className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
-                            >
-                              <HiShieldExclamation className="w-3.5 h-3.5 text-orange-500" />
-                              <span className="text-sm">{t("users.actions.remove_super_admin") as string}</span>
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator className="my-1" />
-                          <DropdownMenuItem
-                            onClick={() => handleStatusChange(user.id, user.status)}
-                            className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
-                          >
-                            {user.status === "ACTIVE" ? (
-                              <>
-                                <HiNoSymbol className="w-3.5 h-3.5 text-[var(--destructive)]" />
-                                <span className="text-sm text-[var(--destructive)]">{t("users.actions.deactivate") as string}</span>
-                              </>
-                            ) : (
-                              <>
-                                <HiCheckCircle className="w-3.5 h-3.5 text-green-600" />
-                                <span className="text-sm text-green-600">{t("users.actions.activate") as string}</span>
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleResetPassword(user.id, `${user.firstName} ${user.lastName}`)}
-                            className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
-                          >
-                            <HiKey className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
-                            <span className="text-sm">{t("users.actions.reset_password") as string}</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator className="my-1" />
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteUser(user.id, `${user.firstName} ${user.lastName}`)}
-                            className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--destructive)]/10"
-                          >
-                            <HiTrash className="w-3.5 h-3.5 text-[var(--destructive)]" />
-                            <span className="text-sm text-[var(--destructive)]">{t("users.actions.delete") as string}</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                <div className="px-4 py-3 border-b border-[var(--border)]">
+                  <div className="grid grid-cols-12 gap-3 text-xs font-medium text-[var(--muted-foreground)] uppercase">
+                    <div className="col-span-3">{t("users.table.user") as string}</div>
+                    <div className="col-span-2">{t("users.table.role") as string}</div>
+                    <div className="col-span-2">{t("users.table.status") as string}</div>
+                    <div className="col-span-2">{t("users.table.organizations") as string}</div>
+                    <div className="col-span-2">{t("users.table.created") as string}</div>
+                    <div className="col-span-1">{t("users.table.actions") as string}</div>
                   </div>
                 </div>
-              ))}
-            </div>
+                {users.map((user) => (
+                  <div
+                    key={user.id}
+                    className="px-4 py-3 hover:bg-[var(--accent)]/30 transition-colors cursor-pointer border-b border-[var(--border)] last:border-b-0"
+                    onClick={() => router.push(`/admin/users/${user.id}`)}
+                  >
+                    <div className="grid grid-cols-12 gap-3 items-center">
+                      <div className="col-span-3 flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-[var(--primary)]/10 flex items-center justify-center text-xs font-semibold text-[var(--primary)] flex-shrink-0">
+                          {user.firstName?.charAt(0)?.toUpperCase() || "?"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-[var(--foreground)] truncate">
+                            {user.firstName} {user.lastName}
+                          </p>
+                          <p className="text-xs text-[var(--muted-foreground)] truncate">
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        <Badge
+                          className={`text-xs px-2 py-1 rounded-md border ${getRoleBadgeClass(user.role)}`}
+                        >
+                          {t(`users.roles.${user.role.toLowerCase()}`, user.role) as string}
+                        </Badge>
+                      </div>
+                      <div className="col-span-2">
+                        <Badge
+                          className={`text-xs px-2 py-1 rounded-md border ${getStatusBadgeClass(user.status)}`}
+                        >
+                          {t(`users.status.${user.status.toLowerCase()}`, user.status) as string}
+                        </Badge>
+                      </div>
+                      <div className="col-span-2 text-xs text-[var(--muted-foreground)]">
+                        {user._count?.organizationMembers || 0}
+                      </div>
+                      <div className="col-span-2 text-xs text-[var(--muted-foreground)]">
+                        {formatDateForDisplay(user.createdAt)}
+                      </div>
+                      <div className="col-span-1" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              className="h-7 w-7 p-0 hover:bg-[var(--accent)]"
+                            >
+                              <HiEllipsisVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="border-none bg-[var(--popover)] shadow-lg min-w-[180px] p-1"
+                          >
+                            <DropdownMenuItem
+                              onClick={() => router.push(`/admin/users/${user.id}`)}
+                              className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
+                            >
+                              <HiEye className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
+                              <span className="text-sm">
+                                {t("users.actions.view_details") as string}
+                              </span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="my-1" />
+                            {user.role !== "SUPER_ADMIN" && (
+                              <DropdownMenuItem
+                                onClick={() => handleRoleChange(user.id, "SUPER_ADMIN")}
+                                className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
+                              >
+                                <HiShieldCheck className="w-3.5 h-3.5 text-purple-500" />
+                                <span className="text-sm">
+                                  {t("users.actions.promote_super_admin") as string}
+                                </span>
+                              </DropdownMenuItem>
+                            )}
+                            {user.role === "SUPER_ADMIN" && (
+                              <DropdownMenuItem
+                                onClick={() => handleRoleChange(user.id, "MEMBER")}
+                                className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
+                              >
+                                <HiShieldExclamation className="w-3.5 h-3.5 text-orange-500" />
+                                <span className="text-sm">
+                                  {t("users.actions.remove_super_admin") as string}
+                                </span>
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator className="my-1" />
+                            <DropdownMenuItem
+                              onClick={() => handleStatusChange(user.id, user.status)}
+                              className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
+                            >
+                              {user.status === "ACTIVE" ? (
+                                <>
+                                  <HiNoSymbol className="w-3.5 h-3.5 text-[var(--destructive)]" />
+                                  <span className="text-sm text-[var(--destructive)]">
+                                    {t("users.actions.deactivate") as string}
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <HiCheckCircle className="w-3.5 h-3.5 text-green-600" />
+                                  <span className="text-sm text-green-600">
+                                    {t("users.actions.activate") as string}
+                                  </span>
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleResetPassword(user.id, `${user.firstName} ${user.lastName}`)
+                              }
+                              className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--accent)]"
+                            >
+                              <HiKey className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
+                              <span className="text-sm">
+                                {t("users.actions.reset_password") as string}
+                              </span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="my-1" />
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleDeleteUser(user.id, `${user.firstName} ${user.lastName}`)
+                              }
+                              className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 hover:bg-[var(--destructive)]/10"
+                            >
+                              <HiTrash className="w-3.5 h-3.5 text-[var(--destructive)]" />
+                              <span className="text-sm text-[var(--destructive)]">
+                                {t("users.actions.delete") as string}
+                              </span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
