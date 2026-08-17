@@ -51,6 +51,13 @@ class MCPServer {
         const response = await api.get("/ai-chat/conversations");
         const list = response.data || [];
         
+        // A new chat lives only in memory (id prefixed "chat_") until its first message
+        // round-trips to the backend. Wiping it here left currentConversationId dangling,
+        // so the fallback below dropped the user into the most-recent saved thread mid-send.
+        const unsavedLocal = Object.values(this.conversations).filter((c) =>
+          c.id.startsWith("chat_")
+        );
+
         this.conversations = {};
         list.forEach((conv: any) => {
           this.conversations[conv.id] = {
@@ -61,7 +68,10 @@ class MCPServer {
             messages: conv.messages || [],
           };
         });
-        
+        unsavedLocal.forEach((conv) => {
+          this.conversations[conv.id] = conv;
+        });
+
         let currentId = localStorage.getItem("mcp_current_conversation_id");
         if (!currentId || !this.conversations[currentId]) {
           const sorted = this.getConversations();
