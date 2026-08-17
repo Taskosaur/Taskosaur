@@ -236,6 +236,58 @@ export class ActionExecutor {
     }
   }
 
+  // The prompt tells the model to press Enter to submit quick-create rows, so it needs a
+  // standalone action. Same event sequence as inputText's pressEnter option.
+  public async pressEnter(index?: number, options?: { detector?: any }): Promise<ActionResult> {
+    const detector = options?.detector || getGlobalDetector();
+
+    let target: any = null;
+    if (index !== undefined && index !== null && !Number.isNaN(index)) {
+      target = detector.getElement(index);
+      if (!target) {
+        return { success: false, message: `Element with index ${index} not found` };
+      }
+      const inner =
+        target.tagName?.toUpperCase() === "INPUT" || target.tagName?.toUpperCase() === "TEXTAREA"
+          ? target
+          : target.querySelector("input") || target.querySelector("textarea");
+      target = inner || target;
+    } else {
+      // No index given: send to whatever currently has focus.
+      target = document.activeElement;
+    }
+
+    if (!target) {
+      return { success: false, message: "No element focused to press Enter on" };
+    }
+
+    try {
+      if (target.focus) target.focus();
+
+      ["keydown", "keypress", "keyup"].forEach((eventType) => {
+        target.dispatchEvent(
+          new KeyboardEvent(eventType, {
+            key: "Enter",
+            code: "Enter",
+            keyCode: 13,
+            bubbles: true,
+            cancelable: true,
+          } as KeyboardEventInit)
+        );
+      });
+
+      return {
+        success: true,
+        message: index !== undefined ? `Pressed Enter on element [${index}]` : "Pressed Enter",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Error pressing Enter: ${(error as Error).message}`,
+      };
+    }
+  }
+
   public async scroll(direction: "up" | "down", amount: number = 1): Promise<ActionResult> {
     try {
       const scrollAmount = direction === "up" ? -amount : amount;
