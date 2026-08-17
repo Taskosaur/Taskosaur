@@ -32,6 +32,7 @@
     "seed:admin": "ts-node -r tsconfig-paths/register src/seeder/seeder.command.ts admin",
     "seed:clear": "ts-node -r tsconfig-paths/register src/seeder/seeder.command.ts clear",
     "seed:reset": "ts-node -r tsconfig-paths/register src/seeder/seeder.command.ts reset",
+    "seed:demo": "ts-node -r tsconfig-paths/register src/seeder/demo-seed.ts",
     "clean": "shx rm -rf node_modules dist out .next"
   },
   "dependencies": {
