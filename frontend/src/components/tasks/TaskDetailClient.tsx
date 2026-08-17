@@ -834,8 +834,14 @@ export default function TaskDetailClient({
         recurrence: false,
         sprint: false,
       });
-      onTaskRefetch && onTaskRefetch();
+      if (!isAIActive()) {
+        onTaskRefetch && onTaskRefetch();
+      }
       toast.success(t("detail.updateTaskSuccess"));
+      // Every other AI-driven update path auto-closes; without this the agent saves the
+      // description and then sits on an open panel, since the prompt forbids it from
+      // closing the modal itself.
+      handleAIAutoClose();
     } catch (error) {
       toast.error(t("detail.updateTaskError"));
     }
