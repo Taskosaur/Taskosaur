@@ -53,6 +53,21 @@ export const TaskBar: React.FC<TaskBarProps> = memo(({
   const [deltaDays, setDeltaDays] = useState(0);
   const justResized = useRef(false);
 
+  // Tooltip sits above the bar, unless the sticky timeline header would clip it.
+  const barRef = useRef<HTMLDivElement>(null);
+  const [flipTooltipDown, setFlipTooltipDown] = useState(false);
+
+  // ponytail: constant clearance, not a measured tooltip/header height.
+  // Swap for a measured value (or floating-ui) if the tooltip content grows.
+  const TOOLTIP_CLEARANCE = 150;
+  const updateTooltipSide = () => {
+    const bar = barRef.current;
+    if (!bar) return;
+    const scroller = bar.closest(".overflow-y-auto");
+    const scrollerTop = scroller ? scroller.getBoundingClientRect().top : 0;
+    setFlipTooltipDown(bar.getBoundingClientRect().top - scrollerTop < TOOLTIP_CLEARANCE);
+  };
+
   const taskStart = useMemo(() => parseDate(task.startDate), [task.startDate]);
   const taskEnd = useMemo(() => parseDate(task.dueDate), [task.dueDate]);
 
@@ -218,10 +233,11 @@ export const TaskBar: React.FC<TaskBarProps> = memo(({
         }\nDuration: ${actualDuration} ${viewMode === "days" ? "days" : viewMode}`}
         tabIndex={0}
         role="button"
-        onMouseEnter={() => onHover(task.id)}
+        ref={barRef}
+        onMouseEnter={() => { updateTooltipSide(); onHover(task.id); }}
         onMouseLeave={() => onHover(null)}
         onKeyDown={(e) => onKeyDown(e, task)}
-        onFocus={() => onFocus(task.id)}
+        onFocus={() => { updateTooltipSide(); onFocus(task.id); }}
         onBlur={() => onFocus(null)}
         onClick={handleNavigation}
         onMouseDown={(e) => handleInteractionStart(e, 'move')}
@@ -265,7 +281,9 @@ export const TaskBar: React.FC<TaskBarProps> = memo(({
 
         {/* Hover Tooltip - show temp dates if resizing */}
         {(isHovered || isFocused || isResizing) && (
-          <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-[var(--popover)] text-[var(--popover-foreground)] px-3 py-2 rounded-lg shadow-lg z-40 whitespace-nowrap max-w-xs border border-[var(--border)] text-sm">
+          <div className={`pointer-events-none absolute ${
+            flipTooltipDown ? "top-full mt-2" : "bottom-full mb-2"
+          } left-1/2 transform -translate-x-1/2 bg-[var(--popover)] text-[var(--popover-foreground)] px-3 py-2 rounded-lg shadow-lg z-40 whitespace-nowrap max-w-xs border border-[var(--border)] text-sm`}>
             <div className="font-semibold truncate text-sm">{task.title || "Untitled Task"}</div>
             <div className="text-[var(--muted-foreground)] mt-1 text-xs">
               {formatDateForDisplay(currentStart)} -{" "}
@@ -274,7 +292,11 @@ export const TaskBar: React.FC<TaskBarProps> = memo(({
             <div className="mt-2 text-sm">
               <StatusBadge status={task.status.name} />
             </div>
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[var(--popover)]"></div>
+            <div className={`absolute left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-transparent ${
+              flipTooltipDown
+                ? "bottom-full border-b-4 border-b-[var(--popover)]"
+                : "top-full border-t-4 border-t-[var(--popover)]"
+            }`}></div>
           </div>
         )}
       </div>
