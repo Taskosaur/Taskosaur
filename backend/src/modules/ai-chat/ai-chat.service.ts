@@ -18,6 +18,31 @@ import { getAutomationPrompt } from './automation-prompts';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Conversation } from '@prisma/client';
 
+/**
+ * Drop empty messages and merge consecutive same-role ones.
+ *
+ * The browser agent appends action results as extra `user` turns, so history arrives as
+ * assistant -> user -> user. OpenAI tolerates that; Cohere rejects it with
+ * "No valid response generated. Try updating messages" and Anthropic requires strict
+ * alternation. Normalising here keeps every provider happy.
+ */
+export function normalizeMessages(messages: ChatMessageDto[]): ChatMessageDto[] {
+  const out: ChatMessageDto[] = [];
+
+  for (const msg of messages) {
+    if (!msg?.content || !msg.content.trim()) continue;
+
+    const prev = out[out.length - 1];
+    if (prev && prev.role === msg.role) {
+      prev.content = `${prev.content}\n\n${msg.content}`;
+    } else {
+      out.push({ role: msg.role, content: msg.content });
+    }
+  }
+
+  return out;
+}
+
 @Injectable()
 export class AiChatService {
   constructor(
@@ -45,6 +70,7 @@ export class AiChatService {
         hostname.endsWith('.generativelanguage.googleapis.com')
       )
         return 'google';
+      if (hostname === 'api.cohere.com' || hostname.endsWith('.api.cohere.com')) return 'cohere';
     } catch (e) {
       console.log(e);
       // Invalid URL, fall back to previous logic or return custom (could alternatively throw error)
@@ -166,6 +192,27 @@ export class AiChatService {
     return msg;
   }
 
+  // Providers disagree on error shape: OpenAI/OpenRouter use {error:{message}},
+  // Cohere/Anthropic use {message}, Google uses {error:{message}} too. Read the raw
+  // body once, log it, and pick whichever field is present.
+  private async readApiError(response: Response, provider: string): Promise<string> {
+    const raw = await response.text().catch(() => '');
+    let parsed: { error?: { message?: string }; message?: string } = {};
+    try {
+      parsed = JSON.parse(raw) as { error?: { message?: string }; message?: string };
+    } catch {
+      // non-JSON error body — raw text is all we get
+    }
+
+    console.error(
+      `LLM API error ${response.status} from provider "${provider}": ${raw.slice(0, 1000)}`,
+    );
+
+    return (
+      parsed?.error?.message || parsed?.message || `LLM API returned status ${response.status}`
+    );
+  }
+
   private async fetchWithTimeout(
     url: string,
     init: RequestInit,
@@ -180,10 +227,18 @@ export class AiChatService {
     }
   }
 
+  // Reasoning models (e.g. Cohere command-a-*) spend most of their completion budget
+  // on hidden reasoning before emitting the answer — measured ~3.1k reasoning tokens for
+  // a single automation step. max_tokens is a ceiling, not a reservation, so a high
+  // default costs nothing for non-reasoning models.
+  private get maxTokensDefault(): number {
+    return parseInt(process.env.AI_MAX_TOKENS || '', 10) || 4000;
+  }
+
   private async callLlm(
     messages: ChatMessageDto[],
     userId: string,
-    maxTokens = 500,
+    maxTokens = this.maxTokensDefault,
   ): Promise<string> {
     const [apiKey, model, rawApiUrl] = await Promise.all([
       this.settingsService.get('ai_api_key', userId),
@@ -212,7 +267,7 @@ export class AiChatService {
       apiUrl,
       apiKey: apiKey || '',
       model,
-      messages,
+      messages: normalizeMessages(messages),
       maxTokens,
       temperature: 0.1,
       samplingExtras: true,
@@ -226,7 +281,7 @@ export class AiChatService {
     );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const apiError = await this.readApiError(response, provider);
 
       if (response.status === 401) {
         throw new BadRequestException('Invalid API key. Please check your settings.');
@@ -236,12 +291,23 @@ export class AiChatService {
         throw new BadRequestException('Insufficient credits. Please check your account.');
       }
 
-      throw new BadRequestException(
-        errorData?.error?.message || `LLM API returned status ${response.status}`,
-      );
+      throw new BadRequestException(apiError);
     }
 
     const responseData = await response.json();
+
+    // Truncated mid-reasoning: Cohere copies the partial chain-of-thought into `content`,
+    // so the "answer" is really cut-off reasoning. Fail loudly instead of returning it.
+    if (responseData?.choices?.[0]?.finish_reason === 'length') {
+      const used = responseData?.usage?.completion_tokens_details?.reasoning_tokens;
+      console.error(
+        `LLM response truncated at max_tokens=${maxTokens} (reasoning_tokens=${used ?? 'n/a'}, provider="${provider}", model="${model}")`,
+      );
+      throw new BadRequestException(
+        'AI response was cut off by the token limit. Raise AI_MAX_TOKENS or pick a model with less verbose reasoning.',
+      );
+    }
+
     return this.parseProviderResponse(provider, responseData).trim();
   }
 
@@ -258,6 +324,7 @@ Your task is to respond with the NEXT NEW action to take. Available actions:
 - type(index, "text") - Type text into an input field
 - scroll("up" or "down") - Scroll the page
 - select(index, "option text") - Select an option from dropdown
+- press_enter(index) - Press Enter to submit an input (index optional, defaults to focused field)
 
 Format your response EXACTLY like this:
 ACTION: click(5)
@@ -484,19 +551,19 @@ ADMIN PANEL RULES (SUPER_ADMIN ONLY):
         content: systemPrompt,
       });
 
-      // Add conversation history (prefer DB history, fall back to request history)
-      if (dbHistory.length > 0) {
-        dbHistory.forEach((msg: ChatMessageDto) => {
-          messages.push(msg);
+      // Prefer the request history: during a browser-automation run it carries the
+      // "Action completed/failed" entries that tell the model what already happened.
+      // Those are never persisted, so preferring dbHistory here left the agent blind and
+      // it repeated actions until it hit maxIterations. dbHistory is the reload fallback.
+      const requestHistory = Array.isArray(chatRequest.history) ? chatRequest.history : [];
+      const history = requestHistory.length > 0 ? requestHistory : dbHistory;
+
+      history.forEach((msg: ChatMessageDto) => {
+        messages.push({
+          role: msg.role,
+          content: msg.content,
         });
-      } else if (chatRequest.history && Array.isArray(chatRequest.history)) {
-        chatRequest.history.forEach((msg: ChatMessageDto) => {
-          messages.push({
-            role: msg.role,
-            content: msg.content,
-          });
-        });
-      }
+      });
 
       let userMessage = chatRequest.message;
 
@@ -537,7 +604,6 @@ ADMIN PANEL RULES (SUPER_ADMIN ONLY):
             const aiGeneratedTitle = await this.callLlm(
               [{ role: 'user', content: titlePrompt }],
               userId,
-              500,
             );
 
             // Clean up the generated title
@@ -576,7 +642,7 @@ ADMIN PANEL RULES (SUPER_ADMIN ONLY):
       });
 
       // Call API helper to get response
-      const aiMessage = await this.callLlm(messages, userId, 500);
+      const aiMessage = await this.callLlm(messages, userId);
 
       // Save assistant message to database if we have a conversation
       if (conversation && aiMessage) {
@@ -602,12 +668,38 @@ ADMIN PANEL RULES (SUPER_ADMIN ONLY):
     } catch (error: any) {
       console.error(error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage?.includes('Failed to fetch') || errorMessage?.includes('NetworkError')) {
+
+      // Node's fetch reports every connection-level failure as the bare string
+      // "fetch failed" and hides the real reason in error.cause.code. The old check only
+      // matched the browser's wording ("Failed to fetch"), so these fell through
+      // undiagnosed.
+      const causeCode = error instanceof Error ? (error as any).cause?.code : undefined;
+      const isAbort = error instanceof Error && (error as any).name === 'AbortError';
+
+      if (isAbort) {
         return {
-          message: 'Network error. Please check your internet connection.',
+          message: 'The AI request timed out. Try again, or raise AI_REQUEST_TIMEOUT_MS.',
           success: false,
-          error: 'Network error. Please check your internet connection.',
+          error: 'The AI request timed out. Try again, or raise AI_REQUEST_TIMEOUT_MS.',
         };
+      }
+
+      if (
+        causeCode ||
+        errorMessage?.includes('fetch failed') ||
+        errorMessage?.includes('Failed to fetch') ||
+        errorMessage?.includes('NetworkError')
+      ) {
+        const detail =
+          {
+            ENOTFOUND: 'Host not found — check the AI API URL.',
+            ECONNREFUSED: 'Connection refused — the AI service is not reachable.',
+            ECONNRESET: 'Connection reset by the AI provider (possibly rate limiting).',
+            ETIMEDOUT: 'Connection timed out — the AI service is not responding.',
+          }[causeCode as string] || 'Check your internet connection and the AI API URL.';
+
+        const msg = `Could not reach the AI provider. ${detail}`;
+        return { message: msg, success: false, error: msg };
       }
 
       return {
@@ -745,6 +837,9 @@ Respond ONLY with the description text, nothing else.`;
     // Google - base domains
     'generativelanguage.googleapis.com',
     'aiplatform.googleapis.com',
+
+    // Cohere
+    'api.cohere.com',
   ];
 
   // AWS Bedrock pattern
@@ -843,7 +938,7 @@ Respond ONLY with the description text, nothing else.`;
       );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const apiError = await this.readApiError(response, provider);
 
         if (response.status === 401) {
           return {
@@ -869,7 +964,7 @@ Respond ONLY with the description text, nothing else.`;
 
         return {
           success: false,
-          error: errorData.error?.message || `API request failed with status ${response.status}`,
+          error: apiError,
         };
       }
 

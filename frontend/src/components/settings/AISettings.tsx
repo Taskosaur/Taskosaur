@@ -442,6 +442,10 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
                 models)
               </li>
               <li>
+                • <strong>Cohere:</strong> https://api.cohere.com/compatibility/v1 (Command R
+                models)
+              </li>
+              <li>
                 • <strong>Ollama (Self-hosted):</strong> http://localhost:11434 (Local models like
                 llama3, mistral, codellama)
               </li>
