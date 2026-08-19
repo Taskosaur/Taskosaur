@@ -428,7 +428,7 @@ describe('AiChatController (e2e)', () => {
         .expect(HttpStatus.CREATED) // Note: Controller returns 201 Created status but body has success: false
         .expect((res) => {
           expect(res.body.success).toBe(false);
-          expect(res.body.error).toContain('Network error');
+          expect(res.body.error).toContain('Could not reach the AI provider');
         });
     });
   });
@@ -465,6 +465,8 @@ describe('AiChatController (e2e)', () => {
         fetchSpy.mockResolvedValue({
           ok: false,
           status: 401,
+          text: () =>
+            Promise.resolve(JSON.stringify({ error: { message: 'Invalid Key' } })),
           json: () => Promise.resolve({ error: { message: 'Invalid Key' } }),
         } as any);
 
@@ -483,6 +485,7 @@ describe('AiChatController (e2e)', () => {
         fetchSpy.mockResolvedValue({
           ok: false,
           status: 429,
+          text: () => Promise.resolve(JSON.stringify({})),
           json: () => Promise.resolve({}),
         } as any);
 
