@@ -55,6 +55,7 @@ interface OrganizationAnalyticsProps {
   organizationId: string;
 }
 
+
 // Sortable Widget Component
 function SortableWidget({
   id,
@@ -515,36 +516,38 @@ export function OrganizationAnalytics({ organizationId }: OrganizationAnalyticsP
 
       {/* Widgets Grid */}
       {data && visibleCount > 0 && (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={visibleWidgets.map((w) => w.id)}
-            strategy={rectSortingStrategy}
+        <div style={{ willChange: "width" }}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {visibleWidgets.map((widget) => (
-                <SortableWidget key={widget.id} id={widget.id} className={widget.gridCols}>
-                  {renderWidgetContent(widget)}
-                </SortableWidget>
-              ))}
-            </div>
-          </SortableContext>
-          <DragOverlay>
-            {activeWidget ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                <div className={activeWidget.gridCols}>
-                  <Card className="h-full opacity-80 shadow-xl cursor-grabbing">
-                    {renderWidgetContent(activeWidget)}
-                  </Card>
-                </div>
+            <SortableContext
+              items={visibleWidgets.map((w) => w.id)}
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {visibleWidgets.map((widget) => (
+                  <SortableWidget key={widget.id} id={widget.id} className={widget.gridCols}>
+                    {renderWidgetContent(widget)}
+                  </SortableWidget>
+                ))}
               </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+            </SortableContext>
+            <DragOverlay>
+              {activeWidget ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                  <div className={activeWidget.gridCols}>
+                    <Card className="h-full opacity-80 shadow-xl cursor-grabbing">
+                      {renderWidgetContent(activeWidget)}
+                    </Card>
+                  </div>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
       )}
     </div>
   );

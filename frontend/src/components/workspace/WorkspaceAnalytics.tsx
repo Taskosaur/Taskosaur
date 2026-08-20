@@ -42,6 +42,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+
 // Sortable Widget Component
 function SortableWidget({
   id,
@@ -377,62 +378,64 @@ export function WorkspaceAnalytics({ workspaceSlug }: WorkspaceAnalyticsProps) {
       )}
 
       {analyticsData && visibleCount > 0 && (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={visibleWidgets.map((w) => w.id)}
-            strategy={rectSortingStrategy}
+        <div style={{ willChange: "width" }}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {visibleWidgets.map((widget, index) => {
-                const Component = widget.component;
-                const widgetData = analyticsData[widget.dataKey];
+            <SortableContext
+              items={visibleWidgets.map((w) => w.id)}
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {visibleWidgets.map((widget, index) => {
+                  const Component = widget.component;
+                  const widgetData = analyticsData[widget.dataKey];
 
-                return (
-                  <SortableWidget
-                    key={widget.id}
-                    id={widget.id}
-                    className={widget.gridCols}
-                    widgetTitle={widget.title}
-                    onMoveUp={() => moveWidget(widget.id, "up")}
-                    onMoveDown={() => moveWidget(widget.id, "down")}
-                    canMoveUp={index > 0}
-                    canMoveDown={index < visibleWidgets.length - 1}
-                  >
-                    <Component
-                      data={widgetData}
-                      workspaceId={currentWorkspace?.slug === workspaceSlug ? currentWorkspace?.id : undefined}
-                    />
-                  </SortableWidget>
-                );
-              })}
-            </div>
-          </SortableContext>
-          <DragOverlay>
-            {activeWidget ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                <div className={activeWidget.gridCols}>
-                   <Card className="h-full opacity-80 shadow-xl cursor-grabbing">
-                    {(() => {
-                       const Component = activeWidget.component;
-                       const widgetData = analyticsData[activeWidget.dataKey];
-                       return (
-                         <Component
-                           data={widgetData}
-                           workspaceId={currentWorkspace?.slug === workspaceSlug ? currentWorkspace?.id : undefined}
-                         />
-                       );
-                    })()}
-                  </Card>
-                </div>
+                  return (
+                    <SortableWidget
+                      key={widget.id}
+                      id={widget.id}
+                      className={widget.gridCols}
+                      widgetTitle={widget.title}
+                      onMoveUp={() => moveWidget(widget.id, "up")}
+                      onMoveDown={() => moveWidget(widget.id, "down")}
+                      canMoveUp={index > 0}
+                      canMoveDown={index < visibleWidgets.length - 1}
+                    >
+                      <Component
+                        data={widgetData}
+                        workspaceId={currentWorkspace?.slug === workspaceSlug ? currentWorkspace?.id : undefined}
+                      />
+                    </SortableWidget>
+                  );
+                })}
               </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+            </SortableContext>
+            <DragOverlay>
+              {activeWidget ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                  <div className={activeWidget.gridCols}>
+                    <Card className="h-full opacity-80 shadow-xl cursor-grabbing">
+                      {(() => {
+                         const Component = activeWidget.component;
+                         const widgetData = analyticsData[activeWidget.dataKey];
+                         return (
+                           <Component
+                             data={widgetData}
+                             workspaceId={currentWorkspace?.slug === workspaceSlug ? currentWorkspace?.id : undefined}
+                           />
+                         );
+                      })()}
+                    </Card>
+                  </div>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
       )}
     </div>
   );
