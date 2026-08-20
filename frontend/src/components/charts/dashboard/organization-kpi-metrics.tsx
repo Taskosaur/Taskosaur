@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import React from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/router";
 import { Building2, FolderOpen, Users, CheckCircle, Bug, Zap, Clock } from "lucide-react";
 import { StatCard } from "@/components/common/StatCard";
@@ -97,15 +98,15 @@ function SortableStatCard({ id, label, value, icon, description, link }: Sortabl
     transition,
     opacity: isDragging ? 0.5 : 1,
     cursor: "grab",
-    touchAction: "none", // Prevent scrolling on touch devices while dragging
+    touchAction: "none",
   };
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = useCallback((e: React.MouseEvent) => {
     // Only navigate if we're not dragging and we have a link
     if (!isDragging && link) {
       router.push(link);
     }
-  };
+  }, [isDragging, link, router]);
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={handleClick}>
@@ -114,7 +115,7 @@ function SortableStatCard({ id, label, value, icon, description, link }: Sortabl
   );
 }
 
-export function OrganizationKPIMetrics({
+function OrganizationKPIMetricsComponent({
   data,
   visibleCards = [],
   onOrderChange,
@@ -152,7 +153,7 @@ export function OrganizationKPIMetrics({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Requires 8px movement before drag starts (prevents accidental clicks)
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -160,7 +161,7 @@ export function OrganizationKPIMetrics({
     })
   );
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
@@ -174,7 +175,7 @@ export function OrganizationKPIMetrics({
         onOrderChange(newOrder);
       }
     }
-  };
+  }, [orderedIds, onOrderChange]);
 
   // Merge static config, dynamic data, and visibility/order
   const displayCards = useMemo(() => {
@@ -277,3 +278,5 @@ export function OrganizationKPIMetrics({
     </DndContext>
   );
 }
+
+export const OrganizationKPIMetrics = React.memo(OrganizationKPIMetricsComponent);

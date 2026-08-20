@@ -1,4 +1,5 @@
 // components/charts/organization/task-type-chart.tsx
+import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useTranslation } from "react-i18next";
 import {
@@ -21,7 +22,7 @@ interface TaskTypeChartProps {
   data: Array<{ type: string; _count: { type: number } }>;
 }
 
-export function TaskTypeChart({ data }: TaskTypeChartProps) {
+function TaskTypeChartComponent({ data }: TaskTypeChartProps) {
   const { t } = useTranslation("workspace-home");
   const chartData = data?.map((item) => ({
     name: t(chartConfig[item.type]?.label) || item.type,
@@ -71,3 +72,5 @@ export function TaskTypeChart({ data }: TaskTypeChartProps) {
     </ChartWrapper>
   );
 }
+
+export const TaskTypeChart = React.memo(TaskTypeChartComponent);

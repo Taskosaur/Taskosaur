@@ -1,3 +1,4 @@
+import React from "react";
 import { formatDateForDisplay } from "@/utils/date";
 import {
   LineChart,
@@ -33,7 +34,7 @@ const CustomizedAxisTick = ({ x, y, payload }: any) => {
   );
 };
 
-export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
+function SprintVelocityChartComponent({ data }: SprintVelocityChartProps) {
   const { t } = useTranslation(["analytics"]);
 
   const translatedConfig = {
@@ -138,3 +139,5 @@ export function SprintVelocityChart({ data }: SprintVelocityChartProps) {
     </ChartWrapper>
   );
 }
+
+export const SprintVelocityChart = React.memo(SprintVelocityChartComponent);

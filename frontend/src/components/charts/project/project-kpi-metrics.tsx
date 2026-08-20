@@ -1,6 +1,7 @@
+import React from "react";
 import { StatCard } from "@/components/common/StatCard";
 import { CheckCircle, AlertTriangle, TrendingUp, Bug, Zap, Clock } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import {
@@ -56,30 +57,32 @@ function SortableStatCard({ id, label, value, icon, description, onClick }: Sort
     touchAction: "none",
   };
 
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    // Only trigger onClick if we're not dragging
+    if (!isDragging && onClick) {
+      onClick();
+    }
+  }, [isDragging, onClick]);
+
   return (
-    <div 
-      ref={setNodeRef} 
-      style={style} 
-      {...attributes} 
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
       {...listeners}
-      onClick={(e) => {
-        // Only trigger onClick if we're not dragging
-        if (!isDragging && onClick) {
-          onClick();
-        }
-      }}
+      onClick={handleClick}
     >
-      <StatCard 
-        label={label} 
-        value={value} 
-        icon={icon} 
+      <StatCard
+        label={label}
+        value={value}
+        icon={icon}
         className={`transition-colors hover:bg-[var(--accent)]/50`}
       />
     </div>
   );
 }
 
-export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) {
+function ProjectKPIMetricsComponent({ data, taskStatus }: ProjectKPIMetricsProps) {
   const { t } = useTranslation(["analytics"]);
   const router = useRouter();
 
@@ -121,7 +124,7 @@ export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) 
     })
   );
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
@@ -131,16 +134,16 @@ export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) 
         return arrayMove(items, oldIndex, newIndex);
       });
     }
-  };
+  }, []);
 
-  const handleNavigate = (path: string, query?: Record<string, string>) => {
+  const handleNavigate = useCallback((path: string, query?: Record<string, string>) => {
     if (!workspaceSlug || !projectSlug) return;
-    
+
     router.push({
       pathname: `/${workspaceSlug}/${projectSlug}${path}`,
       query,
     });
-  };
+  }, [workspaceSlug, projectSlug, router]);
 
   const displayCards = useMemo(() => {
     return orderedIds.map((id) => {
@@ -235,8 +238,8 @@ export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) 
       <SortableContext items={orderedIds} strategy={rectSortingStrategy}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {displayCards.map((card) => (
-            <SortableStatCard 
-              key={card.id} 
+            <SortableStatCard
+              key={card.id}
               id={card.id}
               label={card.label}
               value={card.value}
@@ -250,3 +253,5 @@ export function ProjectKPIMetrics({ data, taskStatus }: ProjectKPIMetricsProps) 
     </DndContext>
   );
 }
+
+export const ProjectKPIMetrics = React.memo(ProjectKPIMetricsComponent);

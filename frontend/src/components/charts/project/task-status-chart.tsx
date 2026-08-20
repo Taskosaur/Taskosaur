@@ -1,4 +1,5 @@
 // components/charts/project/task-status-chart.tsx
+import React, { useCallback } from "react";
 import { PieChart, Pie, ResponsiveContainer, Cell, Legend } from "recharts";
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ChartWrapper } from "../chart-wrapper";
@@ -23,7 +24,7 @@ interface TaskStatusChartProps {
   data: TaskStatusChartData[];
 }
 
-export function TaskStatusChart({ data }: TaskStatusChartProps) {
+function TaskStatusChartComponent({ data }: TaskStatusChartProps) {
   const { t } = useTranslation(["analytics"]);
   const router = useRouter();
   const { workspaceSlug, projectSlug } = router.query;
@@ -44,7 +45,7 @@ export function TaskStatusChart({ data }: TaskStatusChartProps) {
     };
   });
 
-  const handleClick = (entry: any) => {
+  const handleClick = useCallback((entry: any) => {
     if (
       workspaceSlug &&
       typeof workspaceSlug === "string" &&
@@ -59,7 +60,7 @@ export function TaskStatusChart({ data }: TaskStatusChartProps) {
         query: { workspaceSlug, projectSlug, statuses: entry.id },
       });
     }
-  };
+  }, [workspaceSlug, projectSlug, router]);
 
   // Build dynamic config from status data for legend
   const chartConfig = sortedData?.reduce(
@@ -136,3 +137,5 @@ export function TaskStatusChart({ data }: TaskStatusChartProps) {
     </ChartWrapper>
   );
 }
+
+export const TaskStatusChart = React.memo(TaskStatusChartComponent);

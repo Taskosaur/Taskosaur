@@ -1,4 +1,5 @@
 // components/charts/project/task-priority-chart.tsx
+import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { ChartWrapper } from "../chart-wrapper";
 import { useTranslation } from "react-i18next";
@@ -45,7 +46,7 @@ const renderCustomizedLabel = ({
   );
 };
 
-export function TaskPriorityChart({ data }: TaskPriorityChartProps) {
+function TaskPriorityChartComponent({ data }: TaskPriorityChartProps) {
   const { t } = useTranslation(["analytics"]);
 
   // Custom tooltip component
@@ -120,3 +121,5 @@ export function TaskPriorityChart({ data }: TaskPriorityChartProps) {
     </ChartWrapper>
   );
 }
+
+export const TaskPriorityChart = React.memo(TaskPriorityChartComponent);

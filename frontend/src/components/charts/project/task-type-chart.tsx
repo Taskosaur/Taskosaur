@@ -1,4 +1,5 @@
 // components/charts/project/task-type-chart.tsx
+import React from "react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
 import {
   ChartTooltip,
@@ -21,7 +22,7 @@ interface TaskTypeChartProps {
   data: Array<{ type: string; _count: { type: number } }>;
 }
 
-export function TaskTypeChart({ data }: TaskTypeChartProps) {
+function TaskTypeChartComponent({ data }: TaskTypeChartProps) {
   const { t } = useTranslation(["analytics"]);
   const safeData = Array.isArray(data) ? data : [];
   
@@ -78,3 +79,5 @@ export function TaskTypeChart({ data }: TaskTypeChartProps) {
     </ChartWrapper>
   );
 }
+
+export const TaskTypeChart = React.memo(TaskTypeChartComponent);
