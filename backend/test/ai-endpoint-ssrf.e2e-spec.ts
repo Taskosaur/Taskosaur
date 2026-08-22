@@ -174,6 +174,32 @@ describe('Outbound request guard for user-supplied endpoints (e2e)', () => {
       const dest = await resolve('https://api.example.com');
       expect(dest.origin).toBe('https://api.example.com');
     });
+
+    it('builds the destination prefix entirely from checked parts', async () => {
+      // Scheme is one of two literals chosen by a boolean, host is the address
+      // that was checked, port is a bounded integer. None of it is the
+      // caller's text pasted back into a URL.
+      const dest = await resolve('https://api.example.com:8443/v1');
+      expect(dest.requestOrigin).toBe('https://93.184.216.34:8443');
+      const parsed = new URL(dest.requestOrigin);
+      expect(parsed.protocol).toBe('https:');
+      expect(parsed.hostname).toBe('93.184.216.34');
+      expect(parsed.port).toBe('8443');
+    });
+
+    it.each(['0', '65536', '99999', 'not-a-port'])(
+      'refuses an out-of-range or non-numeric port %p',
+      async (port) => {
+        await expect(resolve(`https://api.example.com:${port}`)).rejects.toBeInstanceOf(
+          UnsafeDestinationError,
+        );
+      },
+    );
+
+    it('normalises a default port rather than trusting the text', async () => {
+      const dest = await resolve('https://api.example.com:443');
+      expect(dest.requestOrigin).toBe('https://93.184.216.34:443');
+    });
   });
 
   describe('supporting helpers', () => {

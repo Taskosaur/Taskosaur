@@ -225,7 +225,13 @@ export class JiraApiService {
     // would hand out a pooled connection carrying the wrong TLS name, which
     // servers answer with 421.
     const literalHost = net.isIPv6(pinnedIp) ? `[${pinnedIp}]` : pinnedIp;
-    const port = parsedUrl.port || '443';
+
+    // Read the port as a number and range-check it rather than pasting the
+    // text back into a URL: a number cannot carry anything else along with it.
+    const port = parsedUrl.port ? Number.parseInt(parsedUrl.port, 10) : 443;
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      throw new BadRequestException('Invalid or unsupported Jira site URL');
+    }
     const agent = new https.Agent({ servername: hostname, keepAlive: false });
 
     const origin = `https://${hostname}`;

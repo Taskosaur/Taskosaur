@@ -226,14 +226,27 @@ export async function resolveSafeDestination(
   // Sharing one between hosts would offer a pooled connection with the wrong
   // TLS name attached, and servers answer that with 421.
   const literalHost = net.isIPv6(pinnedIp) ? `[${pinnedIp}]` : pinnedIp;
-  const port = parsed.port || (isHttps ? '443' : '80');
+
+  // Read the port as a number and range-check it rather than pasting the text
+  // back into a URL. `new URL` accepts some things that are not a port once
+  // they are concatenated somewhere else, and a number cannot carry any of it.
+  const defaultPort = isHttps ? 443 : 80;
+  const port = parsed.port ? Number.parseInt(parsed.port, 10) : defaultPort;
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    return reject(`port ${parsed.port} is not a valid port`);
+  }
 
   const agent = isHttps
     ? new https.Agent({ servername: hostname, keepAlive: false })
     : new http.Agent({ keepAlive: false });
 
+  // Every part of the destination prefix is now something this function chose:
+  // the scheme is one of two literals picked by a boolean, the host is the
+  // address that was checked, and the port is a bounded integer. None of it is
+  // the caller's text pasted back in.
+  const scheme = isHttps ? 'https:' : 'http:';
   const origin = `${parsed.protocol}//${parsed.host}`;
-  const requestOrigin = `${parsed.protocol}//${literalHost}:${port}`;
+  const requestOrigin = `${scheme}//${literalHost}:${port}`;
   const requestUrl = opts.originOnly
     ? requestOrigin
     : `${requestOrigin}${parsed.pathname}${parsed.search}${parsed.hash}`;
