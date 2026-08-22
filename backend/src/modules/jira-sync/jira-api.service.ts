@@ -149,6 +149,8 @@ export class JiraApiService {
 
   private async resolveSite(siteUrl: string): Promise<{
     origin: string;
+    requestOrigin: string;
+    hostHeader: string;
     agent: https.Agent;
   }> {
     let parsedUrl: URL;
@@ -209,36 +211,41 @@ export class JiraApiService {
       throw new BadRequestException('Cannot resolve Jira hostname: invalid DNS response');
     }
 
-    // Custom agent pins the resolved IP so subsequent connections can't be redirected
-    // by a DNS rebinding attack. Lookups for any other hostname are rejected.
-    const pinnedLookup = (
-      lookupHostname: string,
-      _opts: unknown,
-      cb: (err: Error | null, address: string, family: number) => void,
-    ) => {
-      if (lookupHostname.toLowerCase() !== hostname.toLowerCase()) {
-        return cb(new Error(`Unexpected host: ${lookupHostname}`), '', 0);
-      }
-      cb(null, pinnedIp, pinnedFamily);
-    };
-    const agent = Object.assign(new https.Agent({ lookup: pinnedLookup }), {
-      lookup: pinnedLookup,
-    });
+    // Send to the address that was checked rather than to the name. A hostname
+    // in the URL is resolved again when the socket opens, and that second
+    // lookup is the gap DNS rebinding lives in; an address is not resolved at
+    // all, so the gap is not there to exploit.
+    //
+    // The name still does its two jobs: `servername` drives SNI and with it
+    // certificate verification, so a certificate that does not cover the site
+    // still fails the handshake, and the Host header carries the name for
+    // virtual hosting, which Atlassian needs because tenants share addresses.
+    //
+    // The agent is per-site because `servername` is fixed on it; a shared agent
+    // would hand out a pooled connection carrying the wrong TLS name, which
+    // servers answer with 421.
+    const literalHost = net.isIPv6(pinnedIp) ? `[${pinnedIp}]` : pinnedIp;
+    const port = parsedUrl.port || '443';
+    const agent = new https.Agent({ servername: hostname, keepAlive: false });
 
     const origin = `https://${hostname}`;
-    return { origin, agent };
+    const requestOrigin = `https://${literalHost}:${port}`;
+    return { origin, requestOrigin, hostHeader: parsedUrl.host, agent };
   }
 
   private buildClient(
-    origin: string,
+    site: { requestOrigin: string; hostHeader: string },
     agent: https.Agent,
     email: string,
     apiToken: string,
   ): AxiosInstance {
     const credentials = Buffer.from(`${email}:${apiToken}`).toString('base64');
     return axios.create({
-      baseURL: `${origin}/rest/api/3`,
+      baseURL: `${site.requestOrigin}/rest/api/3`,
       headers: {
+        // The URL names the checked address, so the site's own name has to
+        // travel in the Host header for the server to route the request.
+        Host: site.hostHeader,
         Authorization: `Basic ${credentials}`,
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -255,8 +262,8 @@ export class JiraApiService {
   /** Validate credentials by hitting /myself */
   async validateCredentials(siteUrl: string, email: string, apiToken: string): Promise<boolean> {
     try {
-      const { origin, agent } = await this.resolveSite(siteUrl);
-      const client = this.buildClient(origin, agent, email, apiToken);
+      const site = await this.resolveSite(siteUrl);
+      const client = this.buildClient(site, site.agent, email, apiToken);
       await client.get('/myself');
       return true;
     } catch (err) {
@@ -269,8 +276,8 @@ export class JiraApiService {
   /** List accessible Jira projects */
   async getProjects(siteUrl: string, email: string, apiToken: string): Promise<JiraProject[]> {
     try {
-      const { origin, agent } = await this.resolveSite(siteUrl);
-      const client = this.buildClient(origin, agent, email, apiToken);
+      const site = await this.resolveSite(siteUrl);
+      const client = this.buildClient(site, site.agent, email, apiToken);
       const results: JiraProject[] = [];
       let startAt = 0;
       const maxResults = 50;
@@ -302,11 +309,9 @@ export class JiraApiService {
   ): Promise<JiraStatus[]> {
     const safeKey = assertProjectKey(projectKey);
     try {
-      const { origin, agent } = await this.resolveSite(siteUrl);
-      const client = this.buildClient(origin, agent, email, apiToken);
-      const { data } = await client.get(
-        `/project/${encodeURIComponent(safeKey)}/statuses`,
-      );
+      const site = await this.resolveSite(siteUrl);
+      const client = this.buildClient(site, site.agent, email, apiToken);
+      const { data } = await client.get(`/project/${encodeURIComponent(safeKey)}/statuses`);
 
       this.logger.log(
         `[DEBUG] Raw /project/${projectKey}/statuses response: ${JSON.stringify(data).substring(0, 2000)}`,
@@ -345,8 +350,8 @@ export class JiraApiService {
   ): Promise<JiraIssue[]> {
     const safeKey = assertProjectKey(projectKey);
     try {
-      const { origin, agent } = await this.resolveSite(siteUrl);
-      const client = this.buildClient(origin, agent, email, apiToken);
+      const site = await this.resolveSite(siteUrl);
+      const client = this.buildClient(site, site.agent, email, apiToken);
       const results: JiraIssue[] = [];
       let startAt = 0;
       const maxResults = 100;
@@ -439,8 +444,8 @@ export class JiraApiService {
   ): AsyncGenerator<JiraIssue[]> {
     const safeKey = assertProjectKey(projectKey);
     try {
-      const { origin, agent } = await this.resolveSite(siteUrl);
-      const client = this.buildClient(origin, agent, email, apiToken);
+      const site = await this.resolveSite(siteUrl);
+      const client = this.buildClient(site, site.agent, email, apiToken);
       let startAt = 0;
       const maxResults = 100;
 

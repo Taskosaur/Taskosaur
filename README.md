@@ -422,7 +422,9 @@ All Jira site URLs are validated against an SSRF allowlist before any outbound r
 
 Wildcards follow cert-wildcard semantics: `*.atlassian.net` matches `yourorg.atlassian.net` but **not** `sub.yourorg.atlassian.net`.
 
-Regardless of this setting, the server always blocks any hostname that resolves to a private, loopback, or link-local IP (RFC 1918, `169.254.x.x`, `::1`, carrier-grade NAT, multicast, etc.). Hostnames are resolved at validation time and the resolved IP is pinned for the duration of the request to prevent DNS-rebinding attacks. Redirects are refused, because a redirect names a destination none of those checks has seen.
+Regardless of this setting, the server always blocks any hostname that resolves to a private, loopback, or link-local IP (RFC 1918, `169.254.x.x`, `::1`, carrier-grade NAT, multicast, etc.). Every address a name resolves to is checked, not just the first, so a name answering with one public and one private address is refused.
+
+The request is then sent to the address that was checked rather than to the name. A hostname in the URL is resolved a second time when the socket opens, and that second lookup is the gap DNS rebinding lives in; sending to an address means there is no second lookup to answer. The name still governs TLS through SNI, so a certificate that does not cover the site fails the handshake, and it still travels in the `Host` header, so virtual hosting works normally. Redirects are refused, because a redirect names a destination none of those checks has seen.
 
 ### AI_ALLOWED_HOSTS and AI_ALLOW_PRIVATE_ENDPOINTS
 

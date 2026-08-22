@@ -299,7 +299,9 @@ export class AiChatService {
     }
 
     const destination = await this.resolveProviderEndpoint(rawApiUrl);
+    // The name decides which provider this is; the address is what gets sent to.
     const apiUrl = destination.url.replace(/\/$/, '');
+    const requestBase = destination.requestUrl.replace(/\/$/, '');
     const provider = this.detectProvider(apiUrl);
 
     if (!apiKey && provider !== 'ollama') {
@@ -308,7 +310,7 @@ export class AiChatService {
 
     const { url, headers, body } = this.buildProviderRequest({
       provider,
-      apiUrl,
+      apiUrl: requestBase,
       apiKey: apiKey || '',
       model,
       messages: normalizeMessages(messages),
@@ -320,7 +322,11 @@ export class AiChatService {
     const timeoutMs = parseInt(process.env.AI_REQUEST_TIMEOUT_MS || '', 10) || 60_000;
     const response = await this.fetchWithTimeout(
       url,
-      { method: 'POST', headers, body: JSON.stringify(body) },
+      {
+        method: 'POST',
+        headers: { ...headers, Host: destination.hostHeader },
+        body: JSON.stringify(body),
+      },
       timeoutMs,
       destination.agent,
     );
@@ -544,6 +550,7 @@ ADMIN PANEL RULES (SUPER_ADMIN ONLY):
       }
 
       const destination = await this.resolveProviderEndpoint(rawApiUrl);
+      // Only the provider identity is needed here; callLlm re-resolves and sends.
       const apiUrl = destination.url.replace(/\/$/, '');
       const provider = this.detectProvider(apiUrl);
 
@@ -781,7 +788,9 @@ ADMIN PANEL RULES (SUPER_ADMIN ONLY):
       }
 
       const destination = await this.resolveProviderEndpoint(rawApiUrl);
+      // The name decides which provider this is; the address is what gets sent to.
       const apiUrl = destination.url.replace(/\/$/, '');
+      const requestBase = destination.requestUrl.replace(/\/$/, '');
       const provider = this.detectProvider(apiUrl);
       if (!apiKey && provider !== 'ollama') {
         return {
@@ -819,7 +828,7 @@ Respond ONLY with the description text, nothing else.`;
 
       const { url, headers, body } = this.buildProviderRequest({
         provider,
-        apiUrl,
+        apiUrl: requestBase,
         apiKey: apiKey || '',
         model,
         messages,
@@ -829,7 +838,11 @@ Respond ONLY with the description text, nothing else.`;
 
       const response = await this.fetchWithTimeout(
         url,
-        { method: 'POST', headers, body: JSON.stringify(body) },
+        {
+          method: 'POST',
+          headers: { ...headers, Host: destination.hostHeader },
+          body: JSON.stringify(body),
+        },
         60_000,
         destination.agent,
       );
@@ -983,7 +996,9 @@ Respond ONLY with the description text, nothing else.`;
     try {
       // Validate the URL (this also allows HTTP for localhost/private networks)
       const destination = await this.resolveProviderEndpoint(apiUrl);
+      // The name decides which provider this is; the address is what gets sent to.
       const validatedUrl = destination.url.replace(/\/$/, '');
+      const requestBase = destination.requestUrl.replace(/\/$/, '');
       const provider = this.detectProvider(validatedUrl);
 
       // API key is required for non-Ollama providers
@@ -1004,7 +1019,7 @@ Respond ONLY with the description text, nothing else.`;
 
       const { url, headers, body } = this.buildProviderRequest({
         provider,
-        apiUrl: validatedUrl,
+        apiUrl: requestBase,
         apiKey,
         model,
         messages,
@@ -1014,7 +1029,11 @@ Respond ONLY with the description text, nothing else.`;
 
       const response = await this.fetchWithTimeout(
         url,
-        { method: 'POST', headers, body: JSON.stringify(body) },
+        {
+          method: 'POST',
+          headers: { ...headers, Host: destination.hostHeader },
+          body: JSON.stringify(body),
+        },
         120_000,
         destination.agent,
       );

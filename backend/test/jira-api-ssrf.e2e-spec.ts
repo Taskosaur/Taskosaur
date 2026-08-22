@@ -109,8 +109,10 @@ describe('JiraApiService SSRF guard (e2e)', () => {
       expect(result).toEqual([]);
       expect(axiosCreate).toHaveBeenCalledTimes(1);
       const opts = axiosCreate.mock.calls[0]?.[0];
-      expect(opts?.baseURL).toBe('https://acme.atlassian.net/rest/api/3');
-      expect(opts?.httpsAgent).toBeDefined();
+      // The address is what gets sent to; the name rides along in TLS and Host.
+      expect(opts?.baseURL).toBe('https://104.18.0.1:443/rest/api/3');
+      expect(opts?.headers?.Host).toBe('acme.atlassian.net');
+      expect(opts?.httpsAgent?.options?.servername).toBe('acme.atlassian.net');
     });
 
     it('rejects a non-atlassian hostname', async () => {
@@ -321,7 +323,7 @@ describe('JiraApiService SSRF guard (e2e)', () => {
     });
   });
 
-  describe('IP pinning via httpsAgent', () => {
+  describe('pinning the checked address', () => {
     let service: JiraApiService;
 
     beforeEach(() => {
@@ -329,59 +331,67 @@ describe('JiraApiService SSRF guard (e2e)', () => {
       service = new JiraApiService();
     });
 
-    it('passes an httpsAgent with a custom lookup to axios.create', async () => {
-      dnsLookup.mockResolvedValue([{ address: '104.18.0.1', family: 4 }]);
+    const call = async (ip = '104.18.0.1', family = 4) => {
+      dnsLookup.mockResolvedValue([{ address: ip, family }]);
       const client = makeClientMock();
       axiosCreate.mockReturnValue(client);
-
       await service.getProjects('https://jira.mycompany.com', 'a@b.c', 'tok');
+      return axiosCreate.mock.calls[0]?.[0] as any;
+    };
 
-      const opts = axiosCreate.mock.calls[0]?.[0];
-      expect(opts?.httpsAgent).toBeDefined();
-      expect(typeof (opts?.httpsAgent as { lookup?: unknown })?.lookup).toBe('function');
+    it('sends to the address that was checked, not to the name', async () => {
+      // A name in the URL is resolved again when the socket opens. That second
+      // lookup is the gap DNS rebinding lives in, so the request goes to the
+      // address instead and no connect-time lookup happens at all.
+      const opts = await call('104.18.0.2');
+      expect(opts.baseURL).toBe('https://104.18.0.2:443/rest/api/3');
+      expect(opts.baseURL).not.toContain('jira.mycompany.com');
     });
 
-    it('the lookup pins the resolved IP for the expected hostname', async () => {
-      dnsLookup.mockResolvedValue([{ address: '104.18.0.2', family: 4 }]);
-      const client = makeClientMock();
-      axiosCreate.mockReturnValue(client);
-
-      await service.getProjects('https://jira.mycompany.com', 'a@b.c', 'tok');
-
-      const opts = axiosCreate.mock.calls[0]?.[0];
-      const lookup = (opts?.httpsAgent as { lookup: Function }).lookup;
-      expect(typeof lookup).toBe('function');
-
-      const cb = jest.fn();
-      lookup('jira.mycompany.com', {}, cb);
-      expect(cb).toHaveBeenCalledWith(null, '104.18.0.2', 4);
+    it('keeps the name for TLS, so a wrong certificate still fails', async () => {
+      const opts = await call();
+      expect(opts.httpsAgent.options.servername).toBe('jira.mycompany.com');
     });
 
-    it('the lookup blocks lookups for any other hostname (DNS rebinding mitigation)', async () => {
-      dnsLookup.mockResolvedValue([{ address: '104.18.0.3', family: 4 }]);
-      const client = makeClientMock();
-      axiosCreate.mockReturnValue(client);
-
-      await service.getProjects('https://jira.mycompany.com', 'a@b.c', 'tok');
-
-      const opts = axiosCreate.mock.calls[0]?.[0];
-      const lookup = (opts?.httpsAgent as { lookup: Function }).lookup;
-
-      const cb = jest.fn();
-      lookup('attacker.example', {}, cb);
-      expect(cb).toHaveBeenCalledTimes(1);
-      const err = cb.mock.calls[0][0];
-      expect(err).toBeInstanceOf(Error);
-      expect(String(err)).toMatch(/unexpected host/i);
+    it('keeps the name in the Host header, so the server still routes it', async () => {
+      const opts = await call();
+      expect(opts.headers.Host).toBe('jira.mycompany.com');
     });
 
-    it('validates dns.lookup is called with { all: true }', async () => {
-      dnsLookup.mockResolvedValue([{ address: '104.18.0.4', family: 4 }]);
-      const client = makeClientMock();
-      axiosCreate.mockReturnValue(client);
+    it('does not pool connections across destinations', async () => {
+      // servername is fixed on the agent, so a shared agent could hand out a
+      // connection carrying the wrong TLS name. Servers answer that with 421.
+      const opts = await call();
+      expect(opts.httpsAgent.options.keepAlive).toBe(false);
+    });
 
-      await service.getProjects('https://jira.mycompany.com', 'a@b.c', 'tok');
+    it('brackets an IPv6 address so the URL stays parseable', async () => {
+      const opts = await call('2606:4700::1111', 6);
+      expect(opts.baseURL).toBe('https://[2606:4700::1111]:443/rest/api/3');
+      expect(new URL(opts.baseURL).hostname).toBe('[2606:4700::1111]');
+    });
 
+    it('keeps a non-default port on both the address and the Host header', async () => {
+      dnsLookup.mockResolvedValue([{ address: '104.18.0.9', family: 4 }]);
+      axiosCreate.mockReturnValue(makeClientMock());
+      process.env.JIRA_ALLOWED_HOSTS = 'jira.mycompany.com';
+      await new JiraApiService().getProjects(
+        'https://jira.mycompany.com:8443',
+        'a@b.c',
+        'tok',
+      );
+      const opts = axiosCreate.mock.calls[0]?.[0] as any;
+      expect(opts.baseURL).toBe('https://104.18.0.9:8443/rest/api/3');
+      expect(opts.headers.Host).toBe('jira.mycompany.com:8443');
+    });
+
+    it('still refuses to follow redirects', async () => {
+      const opts = await call();
+      expect(opts.maxRedirects).toBe(0);
+    });
+
+    it('asks for every address, not just the first', async () => {
+      await call();
       expect(dnsLookup).toHaveBeenCalledWith('jira.mycompany.com', { all: true });
     });
   });

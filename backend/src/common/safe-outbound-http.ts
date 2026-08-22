@@ -111,12 +111,25 @@ export interface SafeDestinationOptions {
 }
 
 export interface SafeDestination {
-  /** The origin to send to, rebuilt from the validated parts. */
+  /** The origin as written, for logging and for messages people read. */
   origin: string;
   /** The validated URL, including its path when originOnly is off. */
   url: string;
   hostname: string;
-  /** An agent pinned to the checked address, for http or https as parsed. */
+  /**
+   * The origin to actually send to. The host here is the literal address that
+   * was checked, not the name: connecting to an address cannot be re-pointed by
+   * a later DNS answer, because no lookup happens at connect time. The name
+   * still governs TLS through `servername` on the agent, and still reaches the
+   * server in `hostHeader`, so certificate checking and virtual hosting behave
+   * exactly as they would for a request written the ordinary way.
+   */
+  requestOrigin: string;
+  /** requestOrigin with the validated path, query and fragment kept. */
+  requestUrl: string;
+  /** The value for the Host header: the name, plus the port when it is not the default. */
+  hostHeader: string;
+  /** An agent bound to this destination's TLS name. Do not share it between hosts. */
   agent: http.Agent | https.Agent;
 }
 
@@ -199,29 +212,39 @@ export async function resolveSafeDestination(
     throw new UnsafeDestinationError('Cannot resolve hostname: invalid DNS response');
   }
 
-  // Pinning the checked address is what closes the gap between the check and
-  // the connection: without it the name can resolve to something else in
-  // between, and the request goes wherever the second answer points.
-  const pinnedLookup = (
-    lookupHostname: string,
-    _opts: unknown,
-    cb: (err: Error | null, address: string, family: number) => void,
-  ) => {
-    if (lookupHostname.toLowerCase() !== hostname.toLowerCase()) {
-      return cb(new Error(`Unexpected host: ${lookupHostname}`), '', 0);
-    }
-    cb(null, pinnedIp, pinnedFamily);
-  };
+  // Send to the address that was checked, rather than sending to the name and
+  // hoping it still resolves the same way. A hostname in the URL is resolved
+  // again when the socket opens, which is the gap DNS rebinding lives in; an
+  // address is not resolved at all, so the gap is not there to exploit.
+  //
+  // Everything the name was doing is kept: `servername` drives SNI and, with
+  // it, certificate verification, so a certificate that does not cover the name
+  // still fails. The Host header carries the name for virtual hosting, which
+  // matters because most providers share an address across many names.
+  //
+  // The agent belongs to this destination because `servername` is fixed on it.
+  // Sharing one between hosts would offer a pooled connection with the wrong
+  // TLS name attached, and servers answer that with 421.
+  const literalHost = net.isIPv6(pinnedIp) ? `[${pinnedIp}]` : pinnedIp;
+  const port = parsed.port || (isHttps ? '443' : '80');
 
   const agent = isHttps
-    ? Object.assign(new https.Agent({ lookup: pinnedLookup }), { lookup: pinnedLookup })
-    : Object.assign(new http.Agent({ lookup: pinnedLookup }), { lookup: pinnedLookup });
+    ? new https.Agent({ servername: hostname, keepAlive: false })
+    : new http.Agent({ keepAlive: false });
 
   const origin = `${parsed.protocol}//${parsed.host}`;
+  const requestOrigin = `${parsed.protocol}//${literalHost}:${port}`;
+  const requestUrl = opts.originOnly
+    ? requestOrigin
+    : `${requestOrigin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+
   return {
     origin,
     url: opts.originOnly ? origin : parsed.toString(),
     hostname,
+    requestOrigin,
+    requestUrl,
+    hostHeader: parsed.host,
     agent,
   };
 }

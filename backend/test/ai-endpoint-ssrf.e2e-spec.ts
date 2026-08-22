@@ -133,23 +133,46 @@ describe('Outbound request guard for user-supplied endpoints (e2e)', () => {
   });
 
   describe('pinning the checked address', () => {
-    it('pins the connection so the name cannot resolve elsewhere afterwards', async () => {
+    it('sends to the address that was checked, not to the name', async () => {
+      // A name in the URL is resolved again when the socket opens, and that
+      // second lookup is where DNS rebinding gets its second answer in. Sending
+      // to the address means there is no second lookup to answer.
       const dest = await resolve('https://api.example.com');
-      const lookup = (dest.agent as any).lookup as (
-        host: string,
-        opts: unknown,
-        cb: (e: Error | null, addr: string, fam: number) => void,
-      ) => void;
+      expect(dest.requestOrigin).toBe('https://93.184.216.34:443');
+      expect(dest.requestUrl).toBe('https://93.184.216.34:443/');
+      expect(dest.requestUrl).not.toContain('api.example.com');
+    });
 
-      // The host that was checked resolves to the address that was checked.
-      const forChecked = jest.fn();
-      lookup('api.example.com', {}, forChecked);
-      expect(forChecked).toHaveBeenCalledWith(null, '93.184.216.34', 4);
+    it('keeps the name for TLS, so a wrong certificate still fails', async () => {
+      const dest = await resolve('https://api.example.com');
+      expect((dest.agent as any).options.servername).toBe('api.example.com');
+    });
 
-      // Any other host is refused, so a redirect or a rebind cannot move it.
-      const forOther = jest.fn();
-      lookup('169.254.169.254', {}, forOther);
-      expect(forOther.mock.calls[0][0]).toBeInstanceOf(Error);
+    it('keeps the name in the Host header, so the server still routes it', async () => {
+      const dest = await resolve('https://api.example.com');
+      expect(dest.hostHeader).toBe('api.example.com');
+    });
+
+    it('does not pool connections across destinations', async () => {
+      const dest = await resolve('https://api.example.com');
+      expect((dest.agent as any).options.keepAlive).toBe(false);
+    });
+
+    it('keeps the path, query and fragment of the endpoint', async () => {
+      const dest = await resolve('https://api.example.com/v1/chat?beta=1#x');
+      expect(dest.requestUrl).toBe('https://93.184.216.34:443/v1/chat?beta=1#x');
+      expect(dest.url).toBe('https://api.example.com/v1/chat?beta=1#x');
+    });
+
+    it('keeps a non-default port on both the address and the Host header', async () => {
+      const dest = await resolve('https://api.example.com:8443');
+      expect(dest.requestOrigin).toBe('https://93.184.216.34:8443');
+      expect(dest.hostHeader).toBe('api.example.com:8443');
+    });
+
+    it('still reports the name in origin, for logs and messages people read', async () => {
+      const dest = await resolve('https://api.example.com');
+      expect(dest.origin).toBe('https://api.example.com');
     });
   });
 
