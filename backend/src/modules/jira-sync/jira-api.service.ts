@@ -69,6 +69,29 @@ function isPrivateIp(ip: string): boolean {
   return true;
 }
 
+/**
+ * Jira project keys are letters, digits and underscores starting with a letter;
+ * the REST API also accepts a numeric project id. Anything else is refused
+ * rather than escaped, because this value is used in two places where escaping
+ * would have to be different and getting either one wrong is a security bug:
+ *
+ * - a URL path segment, where `../` walks up out of `/rest/api/3` and reaches
+ *   any other endpoint on the connected site under the stored credentials;
+ * - a double-quoted JQL literal, where a `"` closes the string early and the
+ *   rest of the key becomes query syntax.
+ *
+ * A single strict shape check covers both, and it costs nothing: no real Jira
+ * key has ever contained a slash, a quote, or a space.
+ */
+const JIRA_PROJECT_KEY = /^(?:[A-Za-z][A-Za-z0-9_]{0,254}|[0-9]{1,19})$/;
+
+function assertProjectKey(projectKey: string): string {
+  if (typeof projectKey !== 'string' || !JIRA_PROJECT_KEY.test(projectKey)) {
+    throw new BadRequestException('Invalid Jira project key');
+  }
+  return projectKey;
+}
+
 export interface JiraProject {
   id: string;
   key: string;
@@ -277,10 +300,13 @@ export class JiraApiService {
     email: string,
     apiToken: string,
   ): Promise<JiraStatus[]> {
+    const safeKey = assertProjectKey(projectKey);
     try {
       const { origin, agent } = await this.resolveSite(siteUrl);
       const client = this.buildClient(origin, agent, email, apiToken);
-      const { data } = await client.get(`/project/${projectKey}/statuses`);
+      const { data } = await client.get(
+        `/project/${encodeURIComponent(safeKey)}/statuses`,
+      );
 
       this.logger.log(
         `[DEBUG] Raw /project/${projectKey}/statuses response: ${JSON.stringify(data).substring(0, 2000)}`,
@@ -317,6 +343,7 @@ export class JiraApiService {
     email: string,
     apiToken: string,
   ): Promise<JiraIssue[]> {
+    const safeKey = assertProjectKey(projectKey);
     try {
       const { origin, agent } = await this.resolveSite(siteUrl);
       const client = this.buildClient(origin, agent, email, apiToken);
@@ -327,7 +354,7 @@ export class JiraApiService {
       while (true) {
         const { data } = await client.get('/search/jql', {
           params: {
-            jql: `project = "${projectKey}" ORDER BY created ASC`,
+            jql: `project = "${safeKey}" ORDER BY created ASC`,
             startAt,
             maxResults,
             fields: [
@@ -410,13 +437,14 @@ export class JiraApiService {
     apiToken: string,
     lastSyncAt?: Date,
   ): AsyncGenerator<JiraIssue[]> {
+    const safeKey = assertProjectKey(projectKey);
     try {
       const { origin, agent } = await this.resolveSite(siteUrl);
       const client = this.buildClient(origin, agent, email, apiToken);
       let startAt = 0;
       const maxResults = 100;
 
-      let jql = `project = "${projectKey}"`;
+      let jql = `project = "${safeKey}"`;
       if (lastSyncAt) {
         // Jira JQL format: yyyy/MM/dd HH:mm
         const pad = (n: number) => n.toString().padStart(2, '0');
