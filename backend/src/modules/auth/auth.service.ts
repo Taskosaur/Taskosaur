@@ -57,13 +57,21 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Auto-promote first user to SUPER_ADMIN if not already
+    // Bootstrap: the first account to sign in on a fresh instance becomes the
+    // administrator, so a new deployment is not left with nobody able to
+    // administer it.
+    //
+    // The condition is "this instance has no administrator yet", not "you are
+    // the oldest account". Those differ once the founding account is deleted:
+    // DELETE /users/:id removes the row outright, so an oldest-account test
+    // would then match whoever is next in line and silently make them a
+    // SUPER_ADMIN at their next login, which nobody asked for.
     if (user.role !== Role.SUPER_ADMIN) {
-      const firstUser = await this.prisma.user.findFirst({
-        orderBy: { createdAt: 'asc' },
+      const existingAdmin = await this.prisma.user.findFirst({
+        where: { role: Role.SUPER_ADMIN, deletedAt: null },
         select: { id: true },
       });
-      if (firstUser && firstUser.id === user.id) {
+      if (!existingAdmin) {
         await this.prisma.user.update({
           where: { id: user.id },
           data: { role: Role.SUPER_ADMIN },
