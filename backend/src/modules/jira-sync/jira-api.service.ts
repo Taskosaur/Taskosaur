@@ -222,6 +222,10 @@ export class JiraApiService {
       },
       httpsAgent: agent,
       timeout: 20000,
+      // A redirect names a destination none of the validation above has seen,
+      // and following one would step around the allowlist, the address check,
+      // and the pinned lookup in a single hop. Jira does not need them.
+      maxRedirects: 0,
     });
   }
 

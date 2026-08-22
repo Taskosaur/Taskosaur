@@ -1,5 +1,14 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { randomBytes } from 'crypto';
+import axios from 'axios';
+import type { Agent as HttpAgent } from 'http';
+import type { Agent as HttpsAgent } from 'https';
+import {
+  parseHostAllowlist,
+  resolveSafeDestination,
+  UnsafeDestinationError,
+  type SafeDestination,
+} from '../../common/safe-outbound-http';
 import {
   ChatRequestDto,
   ChatResponseDto,
@@ -43,8 +52,18 @@ export function normalizeMessages(messages: ChatMessageDto[]): ChatMessageDto[] 
   return out;
 }
 
+/** The parts of a fetch Response the provider calls actually read. */
+interface ResponseLike {
+  ok: boolean;
+  status: number;
+  text(): Promise<string>;
+  json(): Promise<any>;
+}
+
 @Injectable()
 export class AiChatService {
+  private readonly logger = new Logger(AiChatService.name);
+
   constructor(
     private settingsService: SettingsService,
     private prisma: PrismaService,
@@ -195,7 +214,7 @@ export class AiChatService {
   // Providers disagree on error shape: OpenAI/OpenRouter use {error:{message}},
   // Cohere/Anthropic use {message}, Google uses {error:{message}} too. Read the raw
   // body once, log it, and pick whichever field is present.
-  private async readApiError(response: Response, provider: string): Promise<string> {
+  private async readApiError(response: ResponseLike, provider: string): Promise<string> {
     const raw = await response.text().catch(() => '');
     let parsed: { error?: { message?: string }; message?: string } = {};
     try {
@@ -213,18 +232,42 @@ export class AiChatService {
     );
   }
 
+  /**
+   * Send one request to a provider endpoint that has already been validated.
+   *
+   * The agent is pinned to the address that was checked, and redirects are
+   * refused rather than followed: a redirect names a destination none of the
+   * validation has seen, and following one would undo it. Any non-2xx status is
+   * returned rather than thrown, because the callers read the body to build a
+   * provider-specific message.
+   */
   private async fetchWithTimeout(
     url: string,
-    init: RequestInit,
+    init: { method?: string; headers?: Record<string, string>; body?: string },
     timeoutMs: number,
-  ): Promise<Response> {
-    const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), timeoutMs);
-    try {
-      return await fetch(url, { ...init, signal: ac.signal });
-    } finally {
-      clearTimeout(timer);
-    }
+    agent?: HttpAgent | HttpsAgent,
+  ): Promise<ResponseLike> {
+    const res = await axios.request<string>({
+      url,
+      method: (init.method as any) || 'GET',
+      headers: init.headers,
+      data: init.body,
+      timeout: timeoutMs,
+      httpAgent: agent,
+      httpsAgent: agent,
+      maxRedirects: 0,
+      responseType: 'text',
+      transformResponse: [(d: unknown) => d],
+      validateStatus: () => true,
+    });
+
+    const raw = typeof res.data === 'string' ? res.data : JSON.stringify(res.data ?? '');
+    return {
+      ok: res.status >= 200 && res.status < 300,
+      status: res.status,
+      text: () => Promise.resolve(raw),
+      json: () => Promise.resolve(JSON.parse(raw || '{}') as unknown),
+    };
   }
 
   // Reasoning models (e.g. Cohere command-a-*) spend most of their completion budget
@@ -255,7 +298,8 @@ export class AiChatService {
       );
     }
 
-    const apiUrl = this.validateApiUrl(rawApiUrl);
+    const destination = await this.resolveProviderEndpoint(rawApiUrl);
+    const apiUrl = destination.url.replace(/\/$/, '');
     const provider = this.detectProvider(apiUrl);
 
     if (!apiKey && provider !== 'ollama') {
@@ -278,6 +322,7 @@ export class AiChatService {
       url,
       { method: 'POST', headers, body: JSON.stringify(body) },
       timeoutMs,
+      destination.agent,
     );
 
     if (!response.ok) {
@@ -498,7 +543,8 @@ ADMIN PANEL RULES (SUPER_ADMIN ONLY):
         );
       }
 
-      const apiUrl = this.validateApiUrl(rawApiUrl);
+      const destination = await this.resolveProviderEndpoint(rawApiUrl);
+      const apiUrl = destination.url.replace(/\/$/, '');
       const provider = this.detectProvider(apiUrl);
 
       // API key is optional for Ollama (localhost/private network)
@@ -734,7 +780,8 @@ ADMIN PANEL RULES (SUPER_ADMIN ONLY):
         throw new Error('AI not configured');
       }
 
-      const apiUrl = this.validateApiUrl(rawApiUrl);
+      const destination = await this.resolveProviderEndpoint(rawApiUrl);
+      const apiUrl = destination.url.replace(/\/$/, '');
       const provider = this.detectProvider(apiUrl);
       if (!apiKey && provider !== 'ollama') {
         return {
@@ -784,6 +831,7 @@ Respond ONLY with the description text, nothing else.`;
         url,
         { method: 'POST', headers, body: JSON.stringify(body) },
         60_000,
+        destination.agent,
       );
 
       if (!response.ok) {
@@ -873,6 +921,45 @@ Respond ONLY with the description text, nothing else.`;
     return privateIPv4Pattern.test(hostname);
   }
 
+  /**
+   * Validate a provider endpoint and pin the connection to the address that was
+   * checked.
+   *
+   * This URL comes from settings that any authenticated user can write, so
+   * without these checks a user could aim the server at anything it can reach
+   * and read the answer back through the error path. The destination must
+   * therefore resolve to a public address, unless an operator has deliberately
+   * opened that up.
+   *
+   * AI_ALLOW_PRIVATE_ENDPOINTS exists for the self-hosted case: a model server
+   * on localhost or the local network is a legitimate deployment. It is off by
+   * default because it is only safe when the operator, not the user, decides
+   * where requests may go, and AI_ALLOWED_HOSTS narrows it further.
+   */
+  private async resolveProviderEndpoint(apiUrl: string): Promise<SafeDestination> {
+    const allowPrivate = process.env.AI_ALLOW_PRIVATE_ENDPOINTS === 'true';
+    const allowlist = parseHostAllowlist(process.env.AI_ALLOWED_HOSTS, ['*']);
+
+    try {
+      return await resolveSafeDestination(
+        apiUrl,
+        { allowlist, allowPrivate, originOnly: false },
+        (reason) => this.logger.warn(`AI endpoint refused: ${reason}`),
+      );
+    } catch (err) {
+      if (err instanceof UnsafeDestinationError) {
+        throw new BadRequestException(
+          allowPrivate
+            ? err.message
+            : `${err.message}. Endpoints on the server's own network are not permitted ` +
+                'unless an administrator has enabled them.',
+        );
+      }
+      throw err;
+    }
+  }
+
+  /** Shape-only validation, kept for callers that just need a tidy URL. */
   validateApiUrl(apiUrl: string): string {
     let url: URL;
     try {
@@ -880,16 +967,9 @@ Respond ONLY with the description text, nothing else.`;
     } catch {
       throw new BadRequestException('Invalid URL format');
     }
-
-    // Allow HTTP for localhost and private networks (e.g., self-hosted Ollama)
-    const allowHttp = this.isLocalhost(url.hostname) || this.isPrivateNetwork(url.hostname);
-
-    if (url.protocol !== 'https:' && !allowHttp) {
-      throw new BadRequestException(
-        'Only HTTPS URLs allowed (HTTP is permitted for localhost and private network addresses)',
-      );
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+      throw new BadRequestException('Only HTTP(S) URLs are supported');
     }
-
     return url.toString().replace(/\/$/, '');
   }
 
@@ -902,7 +982,8 @@ Respond ONLY with the description text, nothing else.`;
 
     try {
       // Validate the URL (this also allows HTTP for localhost/private networks)
-      const validatedUrl = this.validateApiUrl(apiUrl);
+      const destination = await this.resolveProviderEndpoint(apiUrl);
+      const validatedUrl = destination.url.replace(/\/$/, '');
       const provider = this.detectProvider(validatedUrl);
 
       // API key is required for non-Ollama providers
@@ -935,6 +1016,7 @@ Respond ONLY with the description text, nothing else.`;
         url,
         { method: 'POST', headers, body: JSON.stringify(body) },
         120_000,
+        destination.agent,
       );
 
       if (!response.ok) {

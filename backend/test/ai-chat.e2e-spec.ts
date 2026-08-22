@@ -5,6 +5,7 @@ import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
+import axios from 'axios';
 import {
   CreateConversationDto,
   RenameConversationDto,
@@ -13,6 +14,26 @@ import {
   TestConnectionDto,
   GenerateDescriptionDto,
 } from './../src/modules/ai-chat/dto/chat.dto';
+
+/**
+ * Translate a fetch-shaped stub reply into the axios shape the service reads.
+ * Tests stay written as "the provider replied with this", which is the part
+ * that matters; the transport underneath is not what they are asserting.
+ */
+function asFetchLike(reply: {
+  ok?: boolean;
+  status?: number;
+  json?: () => Promise<any>;
+  text?: () => Promise<string>;
+}): Promise<{ status: number; data: string }> {
+  const status = reply.status ?? (reply.ok === false ? 500 : 200);
+  const bodyPromise = reply.text
+    ? reply.text()
+    : reply.json
+      ? reply.json().then((v) => JSON.stringify(v))
+      : Promise.resolve('{}');
+  return bodyPromise.then((data) => ({ status, data }));
+}
 
 describe('AiChatController (e2e)', () => {
   let app: INestApplication;
@@ -81,7 +102,11 @@ describe('AiChatController (e2e)', () => {
   });
 
   beforeEach(async () => {
-    fetchSpy = jest.spyOn(global, 'fetch');
+    // The service sends provider requests through axios, so that the
+    // destination can be validated and the connection pinned to the address
+    // that was checked. These tests still describe what the provider replies;
+    // asFetchLike translates that into what axios hands back.
+    fetchSpy = jest.spyOn(axios, 'request');
     // Reset settings to default before each test to prevent test pollution
     await prismaService.settings.update({
       where: { userId_key: { userId: user.id, key: 'ai_enabled' } },
@@ -298,30 +323,30 @@ describe('AiChatController (e2e)', () => {
       const sessionId = `chat_session_${Date.now()}`;
 
       // Mock OpenAI success response
-      fetchSpy.mockImplementation((url, init) => {
-        const body = init?.body ? JSON.parse(init.body as string) : {};
+      fetchSpy.mockImplementation((config: any) => {
+        const body = config?.data ? JSON.parse(config.data as string) : {};
         // Check if this is the title generation prompt
         const isTitlePrompt = body.messages?.[0]?.content?.includes(
           'Analyze the following first user message',
         );
 
         if (isTitlePrompt) {
-          return Promise.resolve({
+          return asFetchLike({
             ok: true,
             json: () =>
               Promise.resolve({
                 choices: [{ message: { content: 'Automated Title' } }],
               }),
-          } as any);
+          }) as any;
         }
 
-        return Promise.resolve({
+        return asFetchLike({
           ok: true,
           json: () =>
             Promise.resolve({
               choices: [{ message: { content: 'Hello! I am your AI assistant.' } }],
             }),
-        } as any);
+        }) as any;
       });
 
       const dto: ChatRequestDto = {
@@ -358,13 +383,13 @@ describe('AiChatController (e2e)', () => {
       const sessionId = `history_session_${Date.now()}`;
 
       // First call (creates conversation and first message pair)
-      fetchSpy.mockResolvedValue({
+      fetchSpy.mockImplementation(() => asFetchLike({
         ok: true,
         json: () =>
           Promise.resolve({
             choices: [{ message: { content: 'Reply to first message' } }],
           }),
-      } as any);
+      }) as any);
 
       await request(app.getHttpServer())
         .post('/api/ai-chat/chat')
@@ -377,16 +402,16 @@ describe('AiChatController (e2e)', () => {
 
       // Second call (uses existing conversation)
       let sentMessagesPayload: any[] = [];
-      fetchSpy.mockImplementation((url, init) => {
-        const body = init?.body ? JSON.parse(init.body as string) : {};
+      fetchSpy.mockImplementation((config: any) => {
+        const body = config?.data ? JSON.parse(config.data as string) : {};
         sentMessagesPayload = body.messages || [];
-        return Promise.resolve({
+        return asFetchLike({
           ok: true,
           json: () =>
             Promise.resolve({
               choices: [{ message: { content: 'Reply to second message' } }],
             }),
-        } as any);
+        }) as any;
       });
 
       await request(app.getHttpServer())
@@ -442,13 +467,13 @@ describe('AiChatController (e2e)', () => {
       };
 
       it('should successfully test connection', async () => {
-        fetchSpy.mockResolvedValue({
+        fetchSpy.mockImplementation(() => asFetchLike({
           ok: true,
           json: () =>
             Promise.resolve({
               choices: [{ message: { content: 'Connection successful.' } }],
             }),
-        } as any);
+        }) as any);
 
         await request(app.getHttpServer())
           .post('/api/ai-chat/test-connection')
@@ -462,13 +487,13 @@ describe('AiChatController (e2e)', () => {
       });
 
       it('should return error on 401 Unauthorized response from provider', async () => {
-        fetchSpy.mockResolvedValue({
+        fetchSpy.mockImplementation(() => asFetchLike({
           ok: false,
           status: 401,
           text: () =>
             Promise.resolve(JSON.stringify({ error: { message: 'Invalid Key' } })),
           json: () => Promise.resolve({ error: { message: 'Invalid Key' } }),
-        } as any);
+        }) as any);
 
         await request(app.getHttpServer())
           .post('/api/ai-chat/test-connection')
@@ -482,12 +507,12 @@ describe('AiChatController (e2e)', () => {
       });
 
       it('should return error on 429 Rate Limit response from provider', async () => {
-        fetchSpy.mockResolvedValue({
+        fetchSpy.mockImplementation(() => asFetchLike({
           ok: false,
           status: 429,
           text: () => Promise.resolve(JSON.stringify({})),
           json: () => Promise.resolve({}),
-        } as any);
+        }) as any);
 
         await request(app.getHttpServer())
           .post('/api/ai-chat/test-connection')
@@ -503,13 +528,13 @@ describe('AiChatController (e2e)', () => {
 
     describe('POST /ai-chat/generate-description', () => {
       it('should successfully generate a task description using AI', async () => {
-        fetchSpy.mockResolvedValue({
+        fetchSpy.mockImplementation(() => asFetchLike({
           ok: true,
           json: () =>
             Promise.resolve({
               choices: [{ message: { content: 'This is a description generated for testing.' } }],
             }),
-        } as any);
+        }) as any);
 
         const dto: GenerateDescriptionDto = {
           title: 'Implement E2E tests',

@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../../users/users.service';
+import { UserStatus } from '@prisma/client';
 
 export interface JwtPayload {
   sub: string;
@@ -33,6 +34,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const user = await this.usersService.findOne(payload.sub);
     if (!user) {
       throw new UnauthorizedException('User not found');
+    }
+
+    // Password login already refuses an account that is not ACTIVE, but every
+    // request authenticated by a token has to make the same check. Without it,
+    // a token issued before an administrator deactivated the account keeps
+    // working until it expires, so deactivation does not take effect when it is
+    // most likely to matter: offboarding, an incident, a policy action.
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedException('Account is not active');
     }
 
     return {

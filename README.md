@@ -422,7 +422,20 @@ All Jira site URLs are validated against an SSRF allowlist before any outbound r
 
 Wildcards follow cert-wildcard semantics: `*.atlassian.net` matches `yourorg.atlassian.net` but **not** `sub.yourorg.atlassian.net`.
 
-Regardless of this setting, the server always blocks any hostname that resolves to a private, loopback, or link-local IP (RFC 1918, `169.254.x.x`, `::1`, carrier-grade NAT, multicast, etc.). Hostnames are resolved at validation time and the resolved IP is pinned for the duration of the request to prevent DNS-rebinding attacks.
+Regardless of this setting, the server always blocks any hostname that resolves to a private, loopback, or link-local IP (RFC 1918, `169.254.x.x`, `::1`, carrier-grade NAT, multicast, etc.). Hostnames are resolved at validation time and the resolved IP is pinned for the duration of the request to prevent DNS-rebinding attacks. Redirects are refused, because a redirect names a destination none of those checks has seen.
+
+### AI_ALLOWED_HOSTS and AI_ALLOW_PRIVATE_ENDPOINTS
+
+The AI provider endpoint is read from settings that any signed-in user can write, so it is held to the same rules as the Jira site URL: allowlist, resolved-address check, pinned connection, no redirects.
+
+| Variable | Behavior |
+|-------|----------|
+| `AI_ALLOWED_HOSTS` _(unset)_ | Any public host is permitted |
+| `AI_ALLOWED_HOSTS=api.openai.com,*.anthropic.com` | Only those providers |
+| `AI_ALLOW_PRIVATE_ENDPOINTS` _(unset or `false`)_ | Endpoints on the server's own network are refused |
+| `AI_ALLOW_PRIVATE_ENDPOINTS=true` | Permits `localhost` and private ranges, for a self-hosted model server |
+
+`AI_ALLOW_PRIVATE_ENDPOINTS` is off by default on purpose. With it on, anyone who can edit AI settings can make the server issue requests to anything it can reach, so enable it only together with a narrow `AI_ALLOWED_HOSTS`.
 
 Credentials are encrypted at rest using AES-256-GCM.
 

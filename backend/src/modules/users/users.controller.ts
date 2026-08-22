@@ -37,6 +37,15 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserStatusService } from './services/user-status.service';
 import { UserStatusResponseDto, BulkUserStatusResponseDto } from './dto/user-status.dto';
 
+/**
+ * Fields of a user record that describe the account's standing rather than the
+ * person's profile. An administrator decides each of them, so the account owner
+ * may not set them on themselves through the ordinary self-update route:
+ * `status` gates password login, `role` carries privilege, and `emailVerified`
+ * asserts an ownership check the user has not actually passed.
+ */
+const PRIVILEGED_SELF_UPDATE_FIELDS = ['role', 'status', 'emailVerified'] as const;
+
 @ApiTags('users')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -137,15 +146,29 @@ export class UsersController {
     @Req() req: any,
   ) {
     const requestUser = req.user;
+    const isSuperAdmin = requestUser.role === Role.SUPER_ADMIN;
 
     // 1. If not SUPER_ADMIN and not Self -> Forbidden
-    if (requestUser.role !== Role.SUPER_ADMIN && requestUser.id !== id) {
+    if (!isSuperAdmin && requestUser.id !== id) {
       throw new ForbiddenException('You can only update your own profile');
     }
 
-    // 2. If Self (and not SUPER_ADMIN) -> Prevent role modification
-    if (requestUser.role !== Role.SUPER_ADMIN && updateUserDto.role) {
-      throw new ForbiddenException('You cannot change your own role');
+    // 2. Self-service edits the profile, never the account's standing in the
+    // system. Each field below is decided elsewhere by an administrator, and
+    // letting the account owner set it here would let them undo that decision:
+    // `status` gates password login, `role` grants privilege, and
+    // `emailVerified` asserts an ownership check the user has not passed.
+    // Rejecting rather than silently dropping them keeps the refusal visible.
+    if (!isSuperAdmin) {
+      const attempted = PRIVILEGED_SELF_UPDATE_FIELDS.filter(
+        (field) => updateUserDto[field] !== undefined,
+      );
+      if (attempted.length > 0) {
+        throw new ForbiddenException(
+          `You cannot change your own ${attempted.join(', ')}. ` +
+            'An administrator manages these fields.',
+        );
+      }
     }
 
     return this.usersService.update(id, updateUserDto);
