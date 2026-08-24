@@ -421,6 +421,7 @@ export class AuthController {
   async oidcCallback(
     @Query('code') code: string,
     @Query('state') state: string,
+    @Query('iss') iss: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
@@ -437,6 +438,7 @@ export class AuthController {
         state,
         storedState,
         storedNonce,
+        iss,
       );
 
       // Clear OIDC cookies
