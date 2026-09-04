@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { Workflow, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -357,6 +358,41 @@ export class WorkflowsService {
 
   async remove(id: string, userId: string): Promise<void> {
     await this.assertOrgMemberForWorkflow(id, userId);
+
+    // Deleting a workflow reaches further than it looks. The database cascades
+    // workflows -> task_statuses -> tasks, so removing a workflow removes the
+    // statuses under it and then every task sitting in one of those statuses.
+    // Those tasks are gone outright: not archived, not soft-deleted, no undo.
+    //
+    // A project pointing at the workflow is refused by the database itself
+    // (projects.workflow_id is RESTRICT), but that is not the dangerous case.
+    // The dangerous case is a workflow no project points at any more, because
+    // changing a project's workflow leaves its existing tasks on the old
+    // workflow's statuses. Nothing then stands between the delete and the
+    // tasks, and the caller sees a plain success.
+    //
+    // So count what actually depends on this workflow and refuse while anything
+    // does, naming what is in the way so the caller can deal with it.
+    const [projectCount, taskCount] = await Promise.all([
+      this.prisma.project.count({ where: { workflowId: id } }),
+      this.prisma.task.count({ where: { status: { workflowId: id } } }),
+    ]);
+
+    if (projectCount > 0 || taskCount > 0) {
+      const blockers: string[] = [];
+      if (taskCount > 0) {
+        blockers.push(`${taskCount} task${taskCount === 1 ? '' : 's'}`);
+      }
+      if (projectCount > 0) {
+        blockers.push(`${projectCount} project${projectCount === 1 ? '' : 's'}`);
+      }
+      throw new ConflictException(
+        `This workflow is still in use by ${blockers.join(' and ')}. ` +
+          'Move them to another workflow before deleting it, because deleting ' +
+          'this workflow would delete those tasks permanently.',
+      );
+    }
+
     try {
       await this.prisma.workflow.delete({
         where: { id },
