@@ -231,8 +231,11 @@ export class BrowserAgent {
       return null;
     }
 
-    // Check for ACTION: format
-    const actionMatch = trimmed.match(/ACTION:\s*(\w+)\(([^)]*)\)/i);
+    // Accept either the preferred "ACTION: click(5)" format or a bare "click(5)"
+    // line at the start of the response. Models sometimes omit the prefix.
+    const actionMatch =
+      trimmed.match(/ACTION:\s*(\w+)\(([^)]*)\)/i) ??
+      trimmed.match(/^(\w+)\(([^)]*)\)/i);
     if (actionMatch) {
       const actionType = actionMatch[1].toLowerCase();
       const paramsStr = actionMatch[2].trim();
