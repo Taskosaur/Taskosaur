@@ -223,11 +223,14 @@ describe('Workflow delete must not destroy tasks (e2e)', () => {
   });
 
   it('refuses for an ordinary member too, and destroys nothing', async () => {
-    // No role check on this route, so a plain member reaches the same code.
+    // A member is now turned away by the role check before the dependency
+    // check is ever reached, so this is a 403 rather than a 409. Either way
+    // the tasks survive, which is what this test is here to hold on to.
+    // The role requirement itself is covered in workflow-authorization.
     await request(app.getHttpServer())
       .delete(`/api/workflows/${workflowId}`)
       .set('Authorization', `Bearer ${memberToken}`)
-      .expect(HttpStatus.CONFLICT);
+      .expect(HttpStatus.FORBIDDEN);
 
     expect(await surviving()).toBe(3);
   });

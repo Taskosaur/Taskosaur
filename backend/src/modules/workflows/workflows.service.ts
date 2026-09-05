@@ -10,6 +10,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWorkflowDto } from './dto/create-workflow.dto';
 import { UpdateWorkflowDto } from './dto/update-workflow.dto';
 import { DEFAULT_TASK_STATUSES } from 'src/constants/defaultWorkflow';
+import { ROLE_RANK } from 'src/common/decorator/role-order';
 
 @Injectable()
 export class WorkflowsService {
@@ -20,7 +21,11 @@ export class WorkflowsService {
   // (or the owner) of that organization. The controller only authenticates via
   // JwtAuthGuard, so without these checks any authenticated user could read,
   // create, modify, or delete any organization's workflows across tenants.
-  private async assertOrgMember(organizationId: string, userId: string): Promise<void> {
+  private async assertOrgMember(
+    organizationId: string,
+    userId: string,
+    minRole?: Role,
+  ): Promise<void> {
     const actor = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { role: true },
@@ -38,14 +43,29 @@ export class WorkflowsService {
 
     const membership = await this.prisma.organizationMember.findUnique({
       where: { userId_organizationId: { userId, organizationId } },
-      select: { id: true },
+      select: { role: true },
     });
     if (!membership) {
       throw new ForbiddenException('You are not a member of this organization');
     }
+
+    // Reading a workflow is fine for any member, but changing one is not.
+    // A workflow and its statuses are organization-wide: renaming a status,
+    // moving the default, or deleting the workflow changes what every project
+    // in the organization sees. Deleting a single status already requires
+    // MANAGER or above, so the wider operations cannot require less.
+    if (minRole && ROLE_RANK[membership.role] < ROLE_RANK[minRole]) {
+      throw new ForbiddenException(
+        `This action requires the ${minRole} role or higher in this organization`,
+      );
+    }
   }
 
-  private async assertOrgMemberForWorkflow(workflowId: string, userId: string): Promise<void> {
+  private async assertOrgMemberForWorkflow(
+    workflowId: string,
+    userId: string,
+    minRole?: Role,
+  ): Promise<void> {
     const workflow = await this.prisma.workflow.findUnique({
       where: { id: workflowId },
       select: { organizationId: true },
@@ -53,7 +73,7 @@ export class WorkflowsService {
     if (!workflow) {
       throw new NotFoundException('Workflow not found');
     }
-    await this.assertOrgMember(workflow.organizationId, userId);
+    await this.assertOrgMember(workflow.organizationId, userId, minRole);
   }
 
   // The organization ids the user may see workflows for (owned or joined).
@@ -284,7 +304,7 @@ export class WorkflowsService {
     updateWorkflowDto: UpdateWorkflowDto,
     userId: string,
   ): Promise<Workflow> {
-    await this.assertOrgMemberForWorkflow(id, userId);
+    await this.assertOrgMemberForWorkflow(id, userId, Role.MANAGER);
     return this.prisma.$transaction(async (tx) => {
       // If this is set as default, unset other defaults in the same organization
       if (updateWorkflowDto.isDefault) {
@@ -357,7 +377,7 @@ export class WorkflowsService {
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    await this.assertOrgMemberForWorkflow(id, userId);
+    await this.assertOrgMemberForWorkflow(id, userId, Role.MANAGER);
 
     // Deleting a workflow reaches further than it looks. The database cascades
     // workflows -> task_statuses -> tasks, so removing a workflow removes the
@@ -429,7 +449,7 @@ export class WorkflowsService {
     userId: string,
   ): Promise<Workflow> {
     // userId is the authenticated principal (from the JWT), never a body field.
-    await this.assertOrgMember(organizationId, userId);
+    await this.assertOrgMember(organizationId, userId, Role.MANAGER);
     try {
       const updatedWorkflow = await this.prisma.$transaction(async (prisma) => {
         const workflow = await prisma.workflow.findUnique({
