@@ -24,8 +24,6 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TaskStatusesService } from './task-statuses.service';
 import { CreateTaskStatusDto, CreateTaskStatusFromProjectDto } from './dto/create-task-status.dto';
 import { UpdatePositionsDto, UpdateTaskStatusDto } from './dto/update-task-status.dto';
-import { Roles } from 'src/common/decorator/roles.decorator';
-import { Role } from '@prisma/client';
 
 @ApiTags('Task Statuses')
 @ApiBearerAuth('JWT-auth')
@@ -125,7 +123,9 @@ export class TaskStatusesController {
     return this.taskStatusesService.restore(id, user.id as string);
   }
 
-  @Roles(Role.MANAGER, Role.OWNER, Role.SUPER_ADMIN)
+  // MANAGER or above. RolesGuard is what reads @Roles, and this controller does
+  // not register it, so the requirement is enforced in the service instead;
+  // a decorator here would look like a control while doing nothing.
   @Patch(':id')
   @ApiOperation({ summary: 'Update a task status' })
   @ApiParam({ name: 'id', description: 'Task status ID (UUID)' })
@@ -140,7 +140,9 @@ export class TaskStatusesController {
     return this.taskStatusesService.update(id, updateTaskStatusDto, user.id as string);
   }
 
-  @Roles(Role.MANAGER, Role.OWNER, Role.SUPER_ADMIN)
+  // MANAGER or above. RolesGuard is what reads @Roles, and this controller does
+  // not register it, so the requirement is enforced in the service instead;
+  // a decorator here would look like a control while doing nothing.
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a task status' })
   @ApiParam({ name: 'id', description: 'Task status ID (UUID)' })

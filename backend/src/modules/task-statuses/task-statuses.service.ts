@@ -9,6 +9,7 @@ import { TaskStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskStatusDto, CreateTaskStatusFromProjectDto } from './dto/create-task-status.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
+import { ROLE_RANK } from 'src/common/decorator/role-order';
 
 @Injectable()
 export class TaskStatusesService {
@@ -20,7 +21,11 @@ export class TaskStatusesService {
   // RolesGuard is not applied there, so the tenant boundary is enforced here;
   // otherwise any authenticated user could edit, reorder, or delete any other
   // organization's task statuses by UUID.
-  private async assertOrgMemberForWorkflow(workflowId: string, userId: string): Promise<void> {
+  private async assertOrgMemberForWorkflow(
+    workflowId: string,
+    userId: string,
+    minRole?: Role,
+  ): Promise<void> {
     const actor = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { role: true },
@@ -43,14 +48,31 @@ export class TaskStatusesService {
       where: {
         userId_organizationId: { userId, organizationId: workflow.organizationId },
       },
-      select: { id: true },
+      select: { role: true },
     });
     if (!membership) {
       throw new ForbiddenException('You are not a member of this organization');
     }
+
+    // Statuses are organization-wide: every project on this workflow shows them,
+    // and every task sits in one. Renaming or removing one is not a per-member
+    // action, so reading is open to any member and changing is not.
+    //
+    // The controller says the same thing with @Roles, but that metadata is only
+    // read by RolesGuard and this controller does not register it, so the
+    // requirement has to be enforced here to exist at all.
+    if (minRole && ROLE_RANK[membership.role] < ROLE_RANK[minRole]) {
+      throw new ForbiddenException(
+        `This action requires the ${minRole} role or higher in this organization`,
+      );
+    }
   }
 
-  private async assertOrgMemberForStatus(statusId: string, userId: string): Promise<void> {
+  private async assertOrgMemberForStatus(
+    statusId: string,
+    userId: string,
+    minRole?: Role,
+  ): Promise<void> {
     const status = await this.prisma.taskStatus.findUnique({
       where: { id: statusId },
       select: { workflowId: true },
@@ -58,7 +80,7 @@ export class TaskStatusesService {
     if (!status) {
       throw new NotFoundException('Task status not found');
     }
-    await this.assertOrgMemberForWorkflow(status.workflowId, userId);
+    await this.assertOrgMemberForWorkflow(status.workflowId, userId, minRole);
   }
 
   findDefaultWorkflowByOrganizationId(organizationId: string) {
@@ -268,7 +290,7 @@ export class TaskStatusesService {
     updateTaskStatusDto: UpdateTaskStatusDto,
     userId: string,
   ): Promise<TaskStatus> {
-    await this.assertOrgMemberForStatus(id, userId);
+    await this.assertOrgMemberForStatus(id, userId, Role.MANAGER);
     try {
       const taskStatus = await this.prisma.taskStatus.update({
         where: { id },
@@ -396,7 +418,7 @@ export class TaskStatusesService {
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    await this.assertOrgMemberForStatus(id, userId);
+    await this.assertOrgMemberForStatus(id, userId, Role.MANAGER);
     try {
       // Check if status exists and is not already deleted
       const existingStatus = await this.prisma.taskStatus.findUnique({
@@ -524,7 +546,7 @@ export class TaskStatusesService {
   }
 
   async restore(id: string, userId: string): Promise<TaskStatus> {
-    await this.assertOrgMemberForStatus(id, userId);
+    await this.assertOrgMemberForStatus(id, userId, Role.MANAGER);
     try {
       const existingStatus = await this.prisma.taskStatus.findUnique({
         where: { id },
