@@ -5,6 +5,7 @@ import { GripVertical, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProjectContext } from "@/contexts/project-context";
 import { useOrganization } from "@/contexts/organization-context";
+import { useAuth } from "@/contexts/auth-context";
 import {
   Dialog,
   DialogContent,
@@ -43,10 +44,37 @@ const StatusSettingsModal: React.FC<StatusSettingsModalProps> = ({
     updateTaskStatus,
     deleteTaskStatus,
   } = useProjectContext();
-  const { updateTaskStatusPositions } = useOrganization();
+  const { updateTaskStatusPositions, currentOrganization } = useOrganization();
+  const { getUserAccess } = useAuth();
+
+  // Statuses belong to the organization's workflow, not to this project, so
+  // renaming or removing one changes what every project in the organization
+  // sees. The API allows that for MANAGER and above, which is what isElevated
+  // means on an organization scope, so ask about the organization rather than
+  // the project or the answers will disagree with the server.
+  const [canEditStatuses, setCanEditStatuses] = useState(false);
 
   const [statusList, setStatusList] = useState<TaskStatus[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const orgId =
+      currentOrganization?.id ||
+      (typeof window !== "undefined" ? localStorage.getItem("currentOrganizationId") : null);
+    if (!isOpen || !orgId) return;
+    let cancelled = false;
+    getUserAccess({ name: "organization", id: orgId })
+      .then((access) => {
+        if (!cancelled) setCanEditStatuses(Boolean(access?.isElevated));
+      })
+      .catch(() => {
+        // Fail closed: if the answer cannot be had, do not offer the controls.
+        if (!cancelled) setCanEditStatuses(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, currentOrganization?.id]);
 
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -229,28 +257,34 @@ const StatusSettingsModal: React.FC<StatusSettingsModalProps> = ({
         />
         <span className="kanban-status-row-name">{s.name}</span>
 
-        {/* kebab menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="kanban-status-row-menu-trigger">
-              <HiEllipsisVertical size={16} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="bottom" align="end" className="kanban-status-row-menu-content">
-            <DropdownMenuItem
-              onClick={() => startEdit(s)}
-              className="cursor-pointer hover:bg-[var(--muted)]"
+        {/* kebab menu, only for those the API will actually let through */}
+        {canEditStatuses && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="kanban-status-row-menu-trigger">
+                <HiEllipsisVertical size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="bottom"
+              align="end"
+              className="kanban-status-row-menu-content"
             >
-              <HiPencil size={14} /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setWorkFlowStatusToDelete(s.id)}
-              className="kanban-status-row-menu-delete"
-            >
-              <HiTrash size={14} /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem
+                onClick={() => startEdit(s)}
+                className="cursor-pointer hover:bg-[var(--muted)]"
+              >
+                <HiPencil size={14} /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setWorkFlowStatusToDelete(s.id)}
+                className="kanban-status-row-menu-delete"
+              >
+                <HiTrash size={14} /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     );
 
@@ -261,7 +295,9 @@ const StatusSettingsModal: React.FC<StatusSettingsModalProps> = ({
           <DialogHeader>
             <DialogTitle className="kanban-status-modal-title">Workflow Settings</DialogTitle>
             <DialogDescription className="kanban-status-modal-description">
-              Drag rows to reorder. Use the menu to edit or delete.
+              {canEditStatuses
+                ? "Drag rows to reorder. Use the menu to edit or delete."
+                : "Drag rows to reorder. Editing and deleting statuses needs the Manager role."}
             </DialogDescription>
           </DialogHeader>
 
