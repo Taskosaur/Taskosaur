@@ -121,13 +121,11 @@ const StatusColumn: React.FC<StatusColumnProps> = ({
   });
   const { getUserAccess } = useAuth();
   const [hasAccess, setHasAccess] = useState(false);
-  const [canStatusChange, setStatusChange] = useState(false);
   useEffect(() => {
     if (!projectId) return;
     getUserAccess({ name: "project", id: projectId })
       .then((data) => {
         setHasAccess(data?.canChange || !(data?.role === "VIEWER"));
-        setStatusChange(data?.role === "MANAGER" || data?.role || "OWNER" || data?.canChange);
       })
       .catch((error) => {
         console.error("Error fetching user access:", error);
