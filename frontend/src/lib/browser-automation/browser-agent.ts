@@ -226,16 +226,22 @@ export class BrowserAgent {
   private parseAction(response: string): { type: string; params: any[] } | null {
     const trimmed = response.trim();
 
-    // Check for DONE
-    if (this.isExplicitDone(trimmed)) {
+    // Only the unambiguous prefixes end the loop here. The looser "task complete"
+    // check in isExplicitDone stays in executeTask, where it runs only if no action
+    // parsed - otherwise a trailing "...makes the task complete" would swallow a
+    // real action and report it as done without ever executing it.
+    if (/^(DONE|ASK):/i.test(trimmed)) {
       return null;
     }
 
     // Accept either the preferred "ACTION: click(5)" format or a bare "click(5)"
-    // line at the start of the response. Models sometimes omit the prefix.
+    // line. Models sometimes omit the prefix, and sometimes wrap it in a preamble
+    // or a code fence, so the fallback is per-line rather than string-anchored.
+    // The bare form deliberately requires "name(" with no space: that shape is the
+    // only thing separating an action from prose, which writes "word (aside)".
     const actionMatch =
-      trimmed.match(/ACTION:\s*(\w+)\(([^)]*)\)/i) ??
-      trimmed.match(/^(\w+)\(([^)]*)\)/i);
+      trimmed.match(/ACTION:\s*(\w+)\s*\(([^)]*)\)/i) ??
+      trimmed.match(/^\s*(\w+)\(([^)]*)\)/im);
     if (actionMatch) {
       const actionType = actionMatch[1].toLowerCase();
       const paramsStr = actionMatch[2].trim();
