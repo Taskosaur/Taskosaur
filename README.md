@@ -29,7 +29,7 @@ Taskosaur combines traditional project management features with Conversational A
 - 🤖 **Conversational AI for Task Execution** - Execute project tasks through natural conversation directly in-app
 - 💬 **Natural Language Commands** - "Create sprint with high-priority bugs from last week" executes automatically
 - 🏠 **Self-Hosted** - Your data stays on your infrastructure
-- 💰 **Bring Your Own LLM** - Use your own API key with OpenAI, Anthropic, OpenRouter, or local models
+- 💰 **Bring Your Own LLM** - Use your own API key with OpenAI, Anthropic, OpenRouter, Requesty, or local models
 - 🔧 **In-App Browser Automation** - AI navigates the interface and performs actions directly within the application
 - 📊 **Full Project Management** - Kanban boards, sprints, task dependencies, time tracking
 - 🌐 **Open Source** - Available under Business Source License (BSL)
@@ -325,6 +325,7 @@ taskosaur/
    - Toggle "Enable AI Chat" to ON
    - Add your API key from any compatible provider:
      - **OpenRouter** (100+ models, free options): `https://openrouter.ai/api/v1`
+     - **Requesty** (OpenAI compatible router): `https://router.requesty.ai/v1` (EU: `https://router.eu.requesty.ai/v1`)
      - **OpenAI** (GPT models): `https://api.openai.com/v1`
      - **Anthropic** (Claude models): `https://api.anthropic.com/v1`
      - **Local AI** (Ollama, etc.): Your local endpoint

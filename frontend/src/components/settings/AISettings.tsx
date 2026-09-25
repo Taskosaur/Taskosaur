@@ -432,6 +432,10 @@ export default function AISettingsModal({ isOpen, onClose }: AISettingsModalProp
                 options available)
               </li>
               <li>
+                • <strong>Requesty:</strong> https://router.requesty.ai/v1 (OpenAI compatible
+                router, EU endpoint at https://router.eu.requesty.ai/v1)
+              </li>
+              <li>
                 • <strong>OpenAI:</strong> https://api.openai.com/v1 (GPT models)
               </li>
               <li>
