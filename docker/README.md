@@ -234,6 +234,7 @@ After starting Taskosaur, enable conversational AI for in-app task execution:
 1. **Navigate to Settings** → Organization Settings → AI Assistant Settings
 2. **Add your LLM API key** from any provider:
    - OpenRouter (100+ models): `https://openrouter.ai/api/v1`
+   - Requesty (OpenAI compatible router): `https://router.requesty.ai/v1` (EU: `https://router.eu.requesty.ai/v1`)
    - OpenAI: `https://api.openai.com/v1`
    - Anthropic: `https://api.anthropic.com/v1`
    - Local AI (Ollama): Your local endpoint

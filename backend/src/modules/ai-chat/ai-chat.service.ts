@@ -81,6 +81,7 @@ export class AiChatService {
       }
 
       if (hostname === 'openrouter.ai' || hostname.endsWith('.openrouter.ai')) return 'openrouter';
+      if (hostname === 'requesty.ai' || hostname.endsWith('.requesty.ai')) return 'requesty';
       if (hostname === 'api.openai.com' || hostname.endsWith('.api.openai.com')) return 'openai';
       if (hostname === 'api.anthropic.com' || hostname.endsWith('.api.anthropic.com'))
         return 'anthropic';
@@ -130,6 +131,7 @@ export class AiChatService {
 
     switch (provider) {
       case 'openrouter':
+      case 'requesty':
         url = `${apiUrl}/chat/completions`;
         headers['HTTP-Referer'] = process.env.APP_URL || 'http://localhost:3000';
         headers['X-Title'] = 'Taskosaur AI Assistant';
@@ -888,6 +890,10 @@ Respond ONLY with the description text, nothing else.`;
     // OpenRouter
     'openrouter.ai',
     'api.openrouter.ai',
+
+    // Requesty
+    'router.requesty.ai',
+    'router.eu.requesty.ai',
 
     // OpenAI
     'api.openai.com',
