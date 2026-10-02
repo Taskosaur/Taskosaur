@@ -137,7 +137,13 @@ export class OidcService {
     return { url, state, nonce };
   }
 
-  async handleCallback(code: string, state: string, storedState: string, storedNonce: string) {
+  async handleCallback(
+    code: string,
+    state: string,
+    storedState: string,
+    storedNonce: string,
+    iss?: string,
+  ) {
     if (state !== storedState) {
       throw new BadRequestException('Invalid SSO state parameter');
     }
@@ -145,14 +151,23 @@ export class OidcService {
     const oidcClient = await this.getClient();
     const config = await this.getOidcConfig();
 
+    // RFC 9207 requires the `iss` authorization response parameter to be
+    // forwarded to the client so openid-client can verify it matches the
+    // issuer advertised in the discovery document. Providers like Keycloak
+    // advertise `authorization_response_iss_parameter_supported: true` and
+    // will fail token exchange if `iss` is omitted from the params.
+    const callbackParams: { code: string; state: string; iss?: string } = { code, state };
+    if (iss) {
+      callbackParams.iss = iss;
+    }
+
     let tokenSet: { claims: () => Record<string, unknown> };
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      tokenSet = await oidcClient.callback(
-        config.redirectUri,
-        { code, state },
-        { state: storedState, nonce: storedNonce },
-      );
+      tokenSet = await oidcClient.callback(config.redirectUri, callbackParams, {
+        state: storedState,
+        nonce: storedNonce,
+      });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`OIDC callback error: ${msg}`);
