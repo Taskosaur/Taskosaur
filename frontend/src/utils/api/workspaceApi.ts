@@ -160,7 +160,7 @@ export const workspaceApi = {
       const response = await api.delete(`/workspaces/${workspaceId}`);
 
       // Handle different response types
-      const contentType = response.headers?.["content-type"] || "";
+      const contentType = String(response.headers?.["content-type"] || "");
       const status = response.status;
 
       if (status === 204 || status === 200) {
@@ -250,7 +250,7 @@ export const workspaceApi = {
       );
 
       // Handle different response types
-      const contentType = response.headers?.["content-type"] || "";
+      const contentType = String(response.headers?.["content-type"] || "");
       const status = response.status;
 
       if (status === 204 || status === 200) {
@@ -380,7 +380,7 @@ export const workspaceApi = {
       const response = await api.patch(`/workspaces/archive/${workspaceId}`);
 
       // Handle different response types
-      const contentType = response.headers?.["content-type"] || "";
+      const contentType = String(response.headers?.["content-type"] || "");
       const status = response.status;
 
       if (status === 204 || status === 200) {
