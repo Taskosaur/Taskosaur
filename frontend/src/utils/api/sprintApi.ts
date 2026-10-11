@@ -149,7 +149,7 @@ export const sprintApi = {
     try {
       const response = await api.delete(`/sprints/${sprintId}`);
 
-      const contentType = response.headers?.["content-type"] || "";
+      const contentType = String(response.headers?.["content-type"] || "");
       const status = response.status;
 
       if (status === 204 || status === 200) {
