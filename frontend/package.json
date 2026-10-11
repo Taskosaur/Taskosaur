@@ -7,10 +7,10 @@
   "private": true,
   "license": "SEE LICENSE IN https://github.com/Taskosaur/Taskosaur/blob/main/LICENSE.md",
   "scripts": {
-    "dev": "node server.js",
+    "dev": "next dev -p ${PORT:-3001}",
     "build": "next build",
     "build:dist": "cross-env BUILD_DIST=true next build",
-    "start": "cross-env NODE_ENV=production node server.mjs",
+    "start": "cross-env NODE_ENV=production next start -p ${PORT:-3001}",
     "lint": "eslint",
     "clean": "shx rm -rf node_modules .next out",
     "test:e2e": "playwright test",

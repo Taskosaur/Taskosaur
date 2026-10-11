@@ -154,7 +154,7 @@ export const projectApi = {
       const response = await api.delete(`/projects/${encodeURIComponent(projectId)}`);
 
       // Handle different response types
-      const contentType = response.headers?.["content-type"] || "";
+      const contentType = String(response.headers?.["content-type"] || "");
       const status = response.status;
 
       if (status === 204 || status === 200) {
@@ -308,7 +308,7 @@ export const projectApi = {
       );
 
       // Handle different response types
-      const contentType = response.headers?.["content-type"] || "";
+      const contentType = String(response.headers?.["content-type"] || "");
       const status = response.status;
 
       if (status === 204 || status === 200) {
@@ -414,7 +414,7 @@ export const projectApi = {
       const response = await api.patch(`/projects/archive/${encodeURIComponent(projectId)}`);
 
       // Handle different response types
-      const contentType = response.headers?.["content-type"] || "";
+      const contentType = String(response.headers?.["content-type"] || "");
       const status = response.status;
 
       if (status === 204 || status === 200) {

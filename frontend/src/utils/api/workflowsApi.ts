@@ -99,7 +99,7 @@ export const workflowsApi = {
       const response = await api.delete(`/workflows/${workflowId}`);
 
       // Handle different response types
-      const contentType = response.headers?.["content-type"] || "";
+      const contentType = String(response.headers?.["content-type"] || "");
       const status = response.status;
 
       if (status === 204 || status === 200) {

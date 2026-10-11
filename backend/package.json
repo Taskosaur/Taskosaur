@@ -61,6 +61,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
     "@types/sanitize-html": "^2.16.0",
+    "axios": "^1.11.0",
     "bcrypt": "^5.1.1",
     "better-queue": "^3.8.12",
     "bull": "^4.16.5",
