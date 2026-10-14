@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/breadcrumb";
 import { ChevronRight } from "lucide-react";
 import api from "@/lib/api";
+import { useOrganization } from "@/contexts/organization-context";
+import { workspaceApi } from "@/utils/api/workspaceApi";
+import { projectApi } from "@/utils/api/projectApi";
 import { useWorkspace } from "@/contexts/workspace-context";
 
 // Helper: Convert slug-like text into Title Case
@@ -38,6 +41,7 @@ interface BreadcrumbItem {
 
 export default function Breadcrumb() {
   const pathname = usePathname();
+  const { currentOrganization } = useOrganization();
   const { workspaceTree } = useWorkspace();
   const [currentPath, setCurrentPath] = useState('');
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
@@ -97,6 +101,31 @@ export default function Breadcrumb() {
     }
 
     const segments = pathToUse.split("/").filter((seg) => seg.length > 0);
+
+    if (segments[segments.length - 1] === "docs") {
+      let active = true;
+      if (segments[0] === "organization") {
+        setBreadcrumbs([{ name: currentOrganization?.name || "Organization", href: "/dashboard", current: false }, { name: "Docs", current: true }]);
+      } else {
+        const organizationId = currentOrganization?.id;
+        if (!organizationId || !isUUID(organizationId)) {
+          setBreadcrumbs([]);
+          return;
+        }
+        Promise.resolve().then(() => Promise.all([
+          workspaceApi.getWorkspaceBySlug(segments[0], organizationId),
+          segments.length === 3 ? projectApi.getProjectBySlug(segments[1], true, segments[0]) : Promise.resolve(null),
+        ])).then(([ws, pr]) => {
+          if (!active) return;
+          setBreadcrumbs([
+            { name: ws.name, href: `/${ws.slug}`, current: false },
+            ...(pr ? [{ name: pr.name, href: `/${ws.slug}/${pr.slug}`, current: false }] : []),
+            { name: "Docs", current: true },
+          ]);
+        }).catch(() => { if (active) buildBreadcrumbFromSegments(segments); });
+      }
+      return () => { active = false; };
+    }
 
     // Check if this is a sprint detail page: /[workspace]/[project]/sprints/[sprintId]
     const isSprintDetail = segments.length === 4 &&
@@ -219,7 +248,7 @@ export default function Breadcrumb() {
 
     // Default: build breadcrumb from URL segments
     buildBreadcrumbFromSegments(segments);
-  }, [pathToUse]);
+  }, [pathToUse, currentOrganization?.id, currentOrganization?.name]);
 
   const buildBreadcrumbFromSegments = (segments: string[]) => {
     const baseItems: BreadcrumbItem[] = [];

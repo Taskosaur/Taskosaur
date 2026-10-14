@@ -8,6 +8,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { SetupService } from './services/setup.service';
 import { OidcService } from './services/oidc.service';
+import { AuthSessionService } from './services/auth-session.service';
 import { UsersModule } from '../users/users.module';
 import { EmailModule } from '../email/email.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
@@ -35,6 +36,7 @@ import { SettingsModule } from '../settings/settings.module';
   controllers: [AuthController],
   providers: [
     AuthService,
+    AuthSessionService,
     JwtStrategy,
     LocalStrategy,
     SetupService,

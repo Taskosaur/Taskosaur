@@ -177,11 +177,17 @@ export class AuthController {
     description: 'Logout successful',
   })
   async logout(
-    @CurrentUser() user: { id: string },
+    @CurrentUser() user: { id: string; sid?: string },
+    @Body() refreshTokenDto: RefreshTokenDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string }> {
-    await this.authService.logout(user.id);
-    this.clearRefreshTokenCookie(res);
+    const encryptedCookie = req.cookies?.refresh_token;
+    const legacyToken = encryptedCookie
+      ? decryptCookieValue(String(encryptedCookie), this.getEncryptionSecret()) || ''
+      : refreshTokenDto?.refresh_token;
+    const clearCookie = await this.authService.logout(user.id, user.sid, legacyToken);
+    if (clearCookie) this.clearRefreshTokenCookie(res);
     return { message: 'Logout successful' };
   }
 

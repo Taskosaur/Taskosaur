@@ -4,7 +4,6 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
@@ -13,18 +12,18 @@ import { RegisterDto } from './dto/register.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { JwtPayload } from './strategies/jwt.strategy';
 import { SYSTEM_USER_ID } from '../../common/constants';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { SettingsService } from '../settings/settings.service';
+import { AuthSessionService } from './services/auth-session.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private readonly usersService: UsersService,
-    private readonly jwtService: JwtService,
+    private readonly authSessionService: AuthSessionService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
     private readonly settingsService: SettingsService,
@@ -42,6 +41,7 @@ export class AuthService {
       user &&
       user.password &&
       user.status === 'ACTIVE' && // Only active users can login
+      !user.deletedAt &&
       (await bcrypt.compare(password, user.password))
     ) {
       const result: Omit<typeof user, 'password'> = Object.assign({}, user);
@@ -80,24 +80,10 @@ export class AuthService {
       }
     }
 
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
-
-    const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
-    });
-
-    // Update refresh token in database
-    await this.usersService.updateRefreshToken(user.id, refreshToken);
+    const tokens = await this.authSessionService.create(user);
 
     return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
+      ...tokens,
       user: {
         id: user.id,
         email: user.email,
@@ -163,25 +149,10 @@ export class AuthService {
     // Auto-join default organization if configured
     await this.addUserToDefaultOrganization(user.id);
 
-    // Generate tokens
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
-
-    const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
-    });
-
-    // Update refresh token in database
-    await this.usersService.updateRefreshToken(user.id, refreshToken);
+    const tokens = await this.authSessionService.create(user);
 
     return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
+      ...tokens,
       user: {
         id: user.id,
         email: user.email,
@@ -234,61 +205,25 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string): Promise<AuthResponseDto> {
-    try {
-      const decoded = this.jwtService.verify(refreshToken, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      });
-
-      // Type guard to ensure decoded payload has required properties
-      if (!decoded || typeof decoded !== 'object' || !('sub' in decoded)) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
-      const payload = decoded as JwtPayload;
-      const user = await this.usersService.findOne(payload.sub);
-
-      if (!user || user.refreshToken !== refreshToken) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
-      const newPayload: JwtPayload = {
-        sub: user.id,
+    const { user, ...tokens } = await this.authSessionService.refresh(refreshToken);
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
         email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        username: user.username || undefined,
         role: user.role,
-      };
-
-      const newAccessToken = this.jwtService.sign(newPayload);
-      const newRefreshToken = this.jwtService.sign(newPayload, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
-      });
-
-      // Update refresh token in database
-      await this.usersService.updateRefreshToken(user.id, newRefreshToken);
-
-      return {
-        access_token: newAccessToken,
-        refresh_token: newRefreshToken,
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          username: user.username || undefined,
-          role: user.role,
-          avatar: user.avatar || undefined,
-          language: user.language || undefined,
-          timezone: user.timezone || undefined,
-        },
-      };
-    } catch (error) {
-      console.error('Error refreshing token:', error);
-      throw new UnauthorizedException('Invalid refresh token');
-    }
+        avatar: user.avatar || undefined,
+        language: user.language || undefined,
+        timezone: user.timezone || undefined,
+      },
+    };
   }
 
-  async logout(userId: string): Promise<void> {
-    await this.usersService.updateRefreshToken(userId, null);
+  async logout(userId: string, sessionId?: string, refreshToken?: string): Promise<boolean> {
+    return this.authSessionService.revoke(userId, sessionId, refreshToken);
   }
 
   /**
@@ -456,6 +391,7 @@ export class AuthService {
             refreshToken: null,
           },
         });
+        await prisma.authSession.deleteMany({ where: { userId: validUser.id as string } });
       });
 
       // Send password reset confirmation email

@@ -4,9 +4,7 @@ import { SetupAdminDto } from '../dto/setup-admin.dto';
 import { Role, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { AuthResponseDto } from '../dto/auth-response.dto';
-import { JwtPayload } from '../strategies/jwt.strategy';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import { AuthSessionService } from './auth-session.service';
 
 @Injectable()
 export class SetupService {
@@ -15,8 +13,7 @@ export class SetupService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly authSessionService: AuthSessionService,
   ) {}
 
   async isSetupRequired(): Promise<boolean> {
@@ -86,27 +83,10 @@ export class SetupService {
           },
         });
 
-        // Generate JWT tokens
-        const payload: JwtPayload = {
-          sub: user.id,
-          email: user.email,
-          role: user.role,
-        };
-
-        const accessToken = this.jwtService.sign(payload);
-        const refreshToken = this.jwtService.sign(payload, {
-          expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
-        });
-
-        // Save refresh token
-        await prismaTransaction.user.update({
-          where: { id: user.id },
-          data: { refreshToken },
-        });
+        const tokens = await this.authSessionService.create(user, prismaTransaction);
 
         return {
-          access_token: accessToken,
-          refresh_token: refreshToken,
+          ...tokens,
           user: {
             id: user.id,
             email: user.email,

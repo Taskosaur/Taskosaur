@@ -18,6 +18,7 @@ import {
   UserData,
 } from "@/types";
 import { initializeSocket, disconnectSocket } from "@/lib/socket";
+import { TokenManager } from "@/lib/api";
 
 interface AuthState {
   user: User | null;
@@ -258,8 +259,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       const selectedOrg = defaultOrg || organizations[0];
       localStorage.setItem("currentOrganizationId", selectedOrg.id);
       return "/dashboard";
-    } catch (err) {
-      return "/login";
+    } catch {
+      return TokenManager.getAccessToken() ? "/dashboard" : "/login";
     }
   }, []);
 

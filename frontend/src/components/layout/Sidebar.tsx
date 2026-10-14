@@ -12,6 +12,7 @@ import WorkspaceTree from "./WorkspaceTree";
 import Tooltip from "@/components/common/ToolTip";
 
 import {
+  HiDocumentText,
   HiHome,
   HiViewGrid,
   HiClipboardList,
@@ -47,6 +48,7 @@ const usePathnameParsing = (pathname: string, isMounted: boolean) => {
 
     // Define global routes that should not be treated as workspace slugs
     const globalRoutes = [
+      "organization",
       "dashboard",
       "workspaces",
       "projects",
@@ -58,7 +60,7 @@ const usePathnameParsing = (pathname: string, isMounted: boolean) => {
     ];
 
     // Define workspace-level routes that should not be treated as project slugs
-    const workspaceRoutes = ["projects", "members", "activities", "tasks", "analytics", "settings"];
+    const workspaceRoutes = ["docs", "projects", "members", "activities", "tasks", "analytics", "settings"];
 
     if (parts.length === 0 || globalRoutes.includes(parts[0])) {
       return { currentWorkspaceSlug: null, currentProjectSlug: null };
@@ -175,6 +177,7 @@ export default function Sidebar() {
         title: t("allActivities"),
         disabled: !isAuth,
       },
+      { name: "Organization Docs", href: "/organization/docs", icon: <HiDocumentText size={16} />, title: "Organization documents", disabled: !isAuth },
       // Settings only shown to authenticated users
       ...(isAuth
         ? [
@@ -242,6 +245,7 @@ export default function Sidebar() {
               title: t("workspaceTasks"),
               disabled: !isAuth,
             },
+            { name: "Docs", href: `/${currentWorkspaceSlug}/docs`, icon: <HiDocumentText size={16} />, title: "Workspace documents", disabled: !isAuth },
             // Settings only shown to authenticated users
             ...(isAuth
               ? [
@@ -329,6 +333,13 @@ export default function Sidebar() {
             href: `/${currentWorkspaceSlug}/${currentProjectSlug}/sprints`,
             icon: <HiLightningBolt size={16} />,
             title: t("sprints"),
+            disabled: false,
+          },
+          {
+            name: "Docs",
+            href: `/${currentWorkspaceSlug}/${currentProjectSlug}/docs`,
+            icon: <HiDocumentText size={16} />,
+            title: "Project documents",
             disabled: false,
           },
           {
@@ -699,3 +710,4 @@ export default function Sidebar() {
     </>
   );
 }
+
