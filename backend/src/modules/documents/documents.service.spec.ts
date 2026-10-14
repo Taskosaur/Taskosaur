@@ -108,13 +108,18 @@ describe('Repository documents', () => {
   });
   it('serializes competing saves and rejects the stale revision', async () => {
     const original = await service.read('project', 'README.md');
-    const results = await Promise.allSettled([
-      service.save('project', 'README.md', '# Winner', original.revision),
-      service.save('project', 'README.md', '# Loser', original.revision),
-    ]);
-    expect(results[0].status).toBe('fulfilled');
-    expect(results[1]).toMatchObject({ status: 'rejected', reason: expect.any(ConflictException) });
-    expect((await service.read('project', 'README.md')).content).toBe('# Winner');
+    const contents = ['# First', '# Second'];
+    const results = await Promise.allSettled(
+      contents.map((content) => service.save('project', 'README.md', content, original.revision)),
+    );
+    // Either call can reach the per-file lock first, so only require that exactly one wins.
+    const winner = results.findIndex((result) => result.status === 'fulfilled');
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results[1 - winner]).toMatchObject({
+      status: 'rejected',
+      reason: expect.any(ConflictException),
+    });
+    expect((await service.read('project', 'README.md')).content).toBe(contents[winner]);
     expect(await fs.readdir(root)).toEqual(['README.md']);
   });
   it('detects edits made by external tools before a save', async () => {
