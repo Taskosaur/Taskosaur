@@ -185,7 +185,7 @@ export class AuthController {
     const encryptedCookie = req.cookies?.refresh_token;
     const legacyToken = encryptedCookie
       ? decryptCookieValue(String(encryptedCookie), this.getEncryptionSecret()) || ''
-      : refreshTokenDto.refresh_token;
+      : refreshTokenDto?.refresh_token;
     const clearCookie = await this.authService.logout(user.id, user.sid, legacyToken);
     if (clearCookie) this.clearRefreshTokenCookie(res);
     return { message: 'Logout successful' };
