@@ -5,6 +5,7 @@ import Subtasks from "./Subtasks";
 import DropdownAction from "@/components/common/DropdownAction";
 import { UpdateTaskRequest } from "@/types/task-dto";
 import TaskAttachments from "./TaskAttachment";
+import TaskDocumentLinks from "@/components/documents/TaskDocumentLinks";
 import TaskLabels from "./TaskLabels";
 import { useTask } from "@/contexts/task-context";
 import { useProjectContext } from "@/contexts/project-context";
@@ -1142,6 +1143,16 @@ export default function TaskDetailClient({
               )}
             </div>
 
+            {isAuth && (task.projectId || task.project?.id) && (workspaceSlug || task.project?.workspace?.slug) && (projectSlug || task.project?.slug) && (
+              <TaskDocumentLinks
+                projectId={task.projectId || task.project?.id}
+                taskId={task.id}
+                returnTaskId={task.slug || taskId}
+                workspaceSlug={workspaceSlug || task.project?.workspace?.slug}
+                projectSlug={projectSlug || task.project?.slug}
+                canEdit={canEditGeneral}
+              />
+            )}
             <TaskAttachments
               attachments={attachments}
               isUploading={isUploading}
@@ -2189,3 +2200,4 @@ export default function TaskDetailClient({
     </div>
   );
 }
+

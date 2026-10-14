@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { RouterModule } from '@nestjs/core';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { DocumentsModule } from './modules/documents/documents.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import appConfig from './config/configuration';
@@ -69,6 +70,7 @@ import { JiraSyncModule } from './modules/jira-sync/jira-sync.module';
           OrganizationsModule,
           WorkspacesModule,
           ProjectsModule,
+          DocumentsModule,
           TasksModule,
           WorkflowsModule,
           TaskStatusesModule,
@@ -108,6 +110,7 @@ import { JiraSyncModule } from './modules/jira-sync/jira-sync.module';
     OrganizationsModule,
     WorkspacesModule,
     ProjectsModule,
+    DocumentsModule,
     TasksModule,
     WorkflowsModule,
     TaskStatusesModule,
