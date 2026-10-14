@@ -4,12 +4,11 @@ import {
   BadRequestException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { SettingsService } from '../../settings/settings.service';
 import { Role, UserSource, UserStatus } from '@prisma/client';
-import { JwtPayload } from '../strategies/jwt.strategy';
+import { AuthSessionService } from './auth-session.service';
 
 // openid-client v5 is ESM-only — must use dynamic import in CommonJS
 let _oidcModule: typeof import('openid-client') | null = null;
@@ -38,7 +37,7 @@ export class OidcService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settingsService: SettingsService,
-    private readonly jwtService: JwtService,
+    private readonly authSessionService: AuthSessionService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -194,28 +193,15 @@ export class OidcService {
       throw new BadRequestException('Failed to create or find SSO user');
     }
 
-    // Generate JWT tokens (same pattern as auth.service login)
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
+    const tokens = await this.authSessionService.create(user);
 
-    const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
-    });
-
-    // Store refresh token
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { refreshToken, lastLoginAt: new Date() },
+      data: { lastLoginAt: new Date() },
     });
 
     return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
+      ...tokens,
       user: {
         id: user.id,
         email: user.email,

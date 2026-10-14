@@ -74,25 +74,7 @@ const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_BASE = 1000;
 
 // Global state management
-let isRefreshing = false;
 let refreshPromise: Promise<string> | null = null;
-let failedQueue: Array<{
-  resolve: (value: any) => void;
-  reject: (error: any) => void;
-}> = [];
-
-// Process failed queue when refresh completes
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach(({ resolve, reject }) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve(token);
-    }
-  });
-
-  failedQueue = [];
-};
 
 // Token expiry configuration (match backend JWT_EXPIRES_IN)
 const TOKEN_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
@@ -252,6 +234,23 @@ const handleApiError = (error: AxiosError): ApiError => {
   };
 };
 
+const toApiError = (error: unknown): ApiError => {
+  if (isAxiosError(error)) return handleApiError(error);
+
+  if (error && typeof error === "object" && "message" in error) {
+    const apiError = error as ApiError;
+    return {
+      message: typeof apiError.message === "string" ? apiError.message : "An unexpected error occurred",
+      status: apiError.status,
+      code: apiError.code,
+      isNetworkError: apiError.isNetworkError || error instanceof ApiNetworkError,
+      isTimeoutError: apiError.isTimeoutError || error instanceof ApiTimeoutError,
+    };
+  }
+
+  return { message: "An unexpected error occurred" };
+};
+
 // Safe redirect function
 const safeRedirect = (url: string): void => {
   try {
@@ -288,29 +287,74 @@ const refreshTokens = async (): Promise<string> => {
     const { access_token } = response.data;
 
     if (!access_token) {
-      throw new ApiAuthError("Invalid token response", 401);
+      throw new ApiAuthError("Invalid token response", 502);
     }
 
     TokenManager.setAccessToken(access_token);
 
     return access_token;
   } catch (error) {
-    TokenManager.clearTokens();
+    if (error instanceof ApiAuthError) throw error;
 
     if (isAxiosError(error)) {
       if (error.response?.status === 401) {
+        TokenManager.clearTokens();
         throw new ApiAuthError("Session expired. Please log in again.", 401);
-      } else if (error.code === "NETWORK_ERROR") {
-        throw new ApiNetworkError("Network error during token refresh");
       }
+
+      if (
+        error.code === "ECONNABORTED" ||
+        error.code === "ETIMEDOUT" ||
+        error.message?.toLowerCase().includes("timeout")
+      ) {
+        throw new ApiTimeoutError("Token refresh timed out. Please try again.");
+      }
+
+      if (error.code === "NETWORK_ERROR" || error.code === "ERR_NETWORK" || !error.response) {
+        throw new ApiNetworkError("Network error during token refresh. Please try again.", error);
+      }
+
+      throw handleApiError(error);
     }
 
-    throw new ApiAuthError("Failed to refresh authentication", 401);
+    throw error;
   }
 };
 
-// Proactive token refresh - ensures we have a valid token before making requests
-let proactiveRefreshPromise: Promise<string | null> | null = null;
+const REFRESH_LOCK_NAME = "taskosaur-auth-refresh";
+
+const isUnauthenticatedRefreshError = (error: unknown): boolean =>
+  error instanceof ApiAuthError && error.status === 401;
+
+const refreshTokensWithBrowserLock = async (rejectedToken?: string): Promise<string> => {
+  const refresh = async (): Promise<string> => {
+    const currentToken = TokenManager.getAccessToken();
+
+    // Another tab may have completed the refresh while this tab waited for the lock.
+    if (currentToken && rejectedToken && currentToken !== rejectedToken) return currentToken;
+    if (currentToken && !rejectedToken && !TokenManager.isTokenExpiringSoon()) return currentToken;
+
+    return refreshTokens();
+  };
+
+  if (typeof navigator !== "undefined" && navigator.locks?.request) {
+    return navigator.locks.request(REFRESH_LOCK_NAME, refresh);
+  }
+
+  return refresh();
+};
+
+// Proactive and reactive refreshes share one in-tab request. Web Locks also
+// serialize cookie rotation across tabs in browsers that support the API.
+const getFreshAccessToken = (rejectedToken?: string): Promise<string> => {
+  if (!refreshPromise) {
+    refreshPromise = refreshTokensWithBrowserLock(rejectedToken).finally(() => {
+      refreshPromise = null;
+    });
+  }
+
+  return refreshPromise;
+};
 
 const ensureValidToken = async (): Promise<string | null> => {
   const token = TokenManager.getAccessToken();
@@ -321,25 +365,11 @@ const ensureValidToken = async (): Promise<string | null> => {
   // Token is still fresh - no need to refresh
   if (!TokenManager.isTokenExpiringSoon()) return token;
 
-  // Already refreshing - wait for it
-  if (isRefreshing || proactiveRefreshPromise) {
-    try {
-      return await (proactiveRefreshPromise || refreshPromise);
-    } catch {
-      return token; // Return old token, let the 401 handler deal with it
-    }
-  }
-
-  // Proactively refresh the token
   try {
-    proactiveRefreshPromise = refreshTokens();
-    const newToken = await proactiveRefreshPromise;
-    return newToken;
-  } catch {
-    // Proactive refresh failed - return old token, let the 401 handler deal with it
-    return token;
-  } finally {
-    proactiveRefreshPromise = null;
+    return await getFreshAccessToken();
+  } catch (error) {
+    if (isUnauthenticatedRefreshError(error)) safeRedirect("/login");
+    throw error;
   }
 };
 
@@ -472,12 +502,12 @@ api.interceptors.request.use(
       return config;
     } catch (error) {
       console.error("Request interceptor error:", error);
-      return config;
+      return Promise.reject(error);
     }
   },
-  (error: AxiosError) => {
+  (error: unknown) => {
     console.error("Request interceptor error:", error);
-    return Promise.reject(handleApiError(error));
+    return Promise.reject(isAxiosError(error) ? handleApiError(error) : error);
   }
 );
 
@@ -491,6 +521,10 @@ api.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
+    // Request-interceptor refresh failures are not Axios response errors. Keep
+    // their status and network/timeout details when they pass through here.
+    if (!isAxiosError(error)) return Promise.reject(toApiError(error));
+
     const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
     try {
@@ -511,32 +545,11 @@ api.interceptors.response.use(
       if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
         originalRequest._retry = true;
 
-        // If already refreshing, add to queue
-        if (isRefreshing) {
-          return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          })
-            .then((token) => {
-              if (originalRequest.headers && token) {
-                originalRequest.headers.Authorization = `Bearer ${token}`;
-              }
-              return api(originalRequest);
-            })
-            .catch((err) => {
-              return Promise.reject(handleApiError(err));
-            });
-        }
-
-        // Start refresh process
-        isRefreshing = true;
-
         try {
-          if (!refreshPromise) {
-            refreshPromise = refreshTokens();
-          }
-
-          const newToken = await refreshPromise;
-          processQueue(null, newToken);
+          const authorization = originalRequest.headers?.Authorization;
+          const rejectedToken =
+            typeof authorization === "string" ? authorization.replace(/^Bearer\s+/i, "") : undefined;
+          const newToken = await getFreshAccessToken(rejectedToken);
 
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -544,14 +557,8 @@ api.interceptors.response.use(
 
           return api(originalRequest);
         } catch (refreshError) {
-          processQueue(refreshError, null);
-          safeRedirect("/login");
-          return Promise.reject(
-            new ApiAuthError("Authentication failed. Please log in again.", 401)
-          );
-        } finally {
-          isRefreshing = false;
-          refreshPromise = null;
+          if (isUnauthenticatedRefreshError(refreshError)) safeRedirect("/login");
+          return Promise.reject(refreshError);
         }
       }
 
@@ -648,11 +655,7 @@ export const apiUtils = {
       const response = await api.get("/auth/me");
       return response.data;
     } catch (error) {
-      if (isAxiosError(error) && error.response?.status === 401) {
-        TokenManager.clearTokens();
-        safeRedirect("/login");
-      }
-      throw handleApiError(error as AxiosError);
+      throw toApiError(error);
     }
   },
 
@@ -666,17 +669,7 @@ export const apiUtils = {
     } catch (error) {
       console.error("API request failed:", error);
 
-      if (isAxiosError(error)) {
-        return { data: null, error: handleApiError(error) };
-      }
-
-      return {
-        data: null,
-        error: {
-          message: "An unexpected error occurred",
-          status: 500,
-        },
-      };
+      return { data: null, error: toApiError(error) };
     }
   },
 };
